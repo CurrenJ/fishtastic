@@ -1,0 +1,38 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+#issueTrackerURL = ""
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''
+${mod_description}
+'''
+logoFile = "${mod_icon}"
+
+[[dependencies.fishtastic]]
+modId = "neoforge"
+type = "required"
+versionRange = "${mod_neoforge_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.fishtastic]]
+modId = "minecraft"
+type = "required"
+versionRange = "${mod_minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.fishtastic]]
+modId = "gelatinui"
+type = "optional"
+versionRange = "${mod_gelatinui_version_range}"
+ordering = "BEFORE"
+side = "BOTH"
+
+[[mixins]]
+config = "fishtastic-neoforge.mixins.json"
