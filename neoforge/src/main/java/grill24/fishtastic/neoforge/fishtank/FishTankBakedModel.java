@@ -311,10 +311,15 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
         CompositeModelData composite = getCompositeModelFor(extraData);
 
-        // Combine quads from both frame and sand models
+        // Combine quads from frame and sand models
         List<BakedQuad> combinedQuads = new java.util.ArrayList<>();
         combinedQuads.addAll(composite.frameModel.getQuads(state, side, rand, extraData, renderType));
-        combinedQuads.addAll(composite.sandModel.getQuads(state, side, rand, extraData, renderType));
+
+        // Only add sand if bottom face is closed (has a floor)
+        FishTankModelData modelData = extraData.get(FishTankModelData.DATA_PROPERTY);
+        if (modelData != null && !modelData.openFaces().contains(Direction.DOWN)) {
+            combinedQuads.addAll(composite.sandModel.getQuads(state, side, rand, extraData, renderType));
+        }
 
         return combinedQuads;
     }

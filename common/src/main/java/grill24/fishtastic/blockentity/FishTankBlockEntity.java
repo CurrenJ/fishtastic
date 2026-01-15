@@ -1,6 +1,7 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -33,7 +34,7 @@ public class FishTankBlockEntity extends BlockEntity {
     private Block sandBlock = Blocks.SAND; // Default sand block
 
     // Store the glass block for edges
-    private Block glassBlock = Blocks.BLUE_STAINED_GLASS; // Default glass block
+    private Block glassBlock = FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(); // Default glass block
 
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);

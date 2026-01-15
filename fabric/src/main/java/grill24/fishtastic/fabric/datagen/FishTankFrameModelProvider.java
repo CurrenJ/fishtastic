@@ -77,13 +77,22 @@ public class FishTankFrameModelProvider implements DataProvider {
             elements.add(createFloor());
         }
 
-        // Add corner supports (always present, but may be partial)
-        elements.add(createSupport(0, 0, openFaces));      // NW corner
-        elements.add(createSupport(15, 0, openFaces));     // NE corner
-        elements.add(createSupport(0, 15, openFaces));     // SW corner
-        elements.add(createSupport(15, 15, openFaces));    // SE corner
+        // Add corner supports only if BOTH adjacent edges are closed
+        // If either edge is open, that edge will extend to cover the corner instead
+        if (!openFaces.contains(Direction.NORTH) && !openFaces.contains(Direction.WEST)) {
+            elements.add(createSupport(0, 0, openFaces));      // NW corner
+        }
+        if (!openFaces.contains(Direction.NORTH) && !openFaces.contains(Direction.EAST)) {
+            elements.add(createSupport(15, 0, openFaces));     // NE corner
+        }
+        if (!openFaces.contains(Direction.SOUTH) && !openFaces.contains(Direction.WEST)) {
+            elements.add(createSupport(0, 15, openFaces));     // SW corner
+        }
+        if (!openFaces.contains(Direction.SOUTH) && !openFaces.contains(Direction.EAST)) {
+            elements.add(createSupport(15, 15, openFaces));    // SE corner
+        }
 
-        // Add edge frames for closed faces
+        // Add edge frames for closed faces, extended to cover corners where adjacent edge is open
         if (!openFaces.contains(Direction.NORTH)) {
             elements.add(createNorthEdge(openFaces));
         }
@@ -166,6 +175,7 @@ public class FishTankFrameModelProvider implements DataProvider {
     /**
      * Create a corner support pillar.
      * Height is adjusted based on whether floor/ceiling are present.
+     * Each face uses glass texture if the adjacent edge is open, frame texture otherwise.
      */
     private JsonObject createSupport(int x, int z, Set<Direction> openFaces) {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
@@ -178,12 +188,23 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
-        faces.add("north", createFace(0, 0, 1, heightUV, "#frame"));
-        faces.add("east", createFace(0, 0, 1, heightUV, "#frame"));
-        faces.add("south", createFace(0, 0, 1, heightUV, "#frame"));
-        faces.add("west", createFace(0, 0, 1, heightUV, "#frame"));
-        faces.add("up", createFace(0, 0, 1, 1, "#frame"));
-        faces.add("down", createFace(0, 0, 1, 1, "#frame"));
+
+        // Each face uses glass if the adjacent edge is open, frame otherwise. Using x,z direction, set for all tex uvs.
+        // convert x and z to directions
+        Direction northDir = (z == 0) ? Direction.NORTH : Direction.SOUTH;
+        Direction westDir = (x == 0) ? Direction.WEST : Direction.EAST;
+
+        String tex = "#frame";
+        if(openFaces.contains(northDir) || openFaces.contains(westDir)) {
+            tex = "#glass";
+        }
+
+        faces.add("north", createFace(0, 0, 1, heightUV, tex));
+        faces.add("east", createFace(0, 0, 1, heightUV, tex));
+        faces.add("south", createFace(0, 0, 1, heightUV, tex));
+        faces.add("west", createFace(0, 0, 1, heightUV, tex));
+        faces.add("up", createFace(0, 0, 1, 1, tex));
+        faces.add("down", createFace(0, 0, 1, 1, tex));
         element.add("faces", faces);
 
         return element;
@@ -191,24 +212,29 @@ public class FishTankFrameModelProvider implements DataProvider {
 
     /**
      * Create horizontal edge frame for the north face (between corners).
+     * Extends to corners if adjacent perpendicular edges are open.
      */
     private JsonObject createNorthEdge(Set<Direction> openFaces) {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
         int maxY = openFaces.contains(Direction.UP) ? 16 : 15;
 
+        // Extend to cover corners if perpendicular edges are open
+        int minX = openFaces.contains(Direction.WEST) ? 0 : 1;
+        int maxX = openFaces.contains(Direction.EAST) ? 16 : 15;
+
         JsonObject element = new JsonObject();
         element.addProperty("name", "edge_north");
-        element.add("from", createVec3(1, minY, 0));
-        element.add("to", createVec3(15, maxY, 1));
+        element.add("from", createVec3(minX, minY, 0));
+        element.add("to", createVec3(maxX, maxY, 1));
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
-        faces.add("north", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("north", createFace(minX, 0, maxX, heightUV, "#glass"));
         faces.add("east", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("south", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("south", createFace(minX, 0, maxX, heightUV, "#glass"));
         faces.add("west", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("up", createFace(1, 0, 15, 1, "#glass"));
-        faces.add("down", createFace(1, 0, 15, 1, "#glass"));
+        faces.add("up", createFace(minX, 0, maxX, 1, "#glass"));
+        faces.add("down", createFace(minX, 0, maxX, 1, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -218,19 +244,23 @@ public class FishTankFrameModelProvider implements DataProvider {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
         int maxY = openFaces.contains(Direction.UP) ? 16 : 15;
 
+        // Extend to cover corners if perpendicular edges are open
+        int minX = openFaces.contains(Direction.WEST) ? 0 : 1;
+        int maxX = openFaces.contains(Direction.EAST) ? 16 : 15;
+
         JsonObject element = new JsonObject();
         element.addProperty("name", "edge_south");
-        element.add("from", createVec3(1, minY, 15));
-        element.add("to", createVec3(15, maxY, 16));
+        element.add("from", createVec3(minX, minY, 15));
+        element.add("to", createVec3(maxX, maxY, 16));
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
-        faces.add("north", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("north", createFace(minX, 0, maxX, heightUV, "#glass"));
         faces.add("east", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("south", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("south", createFace(minX, 0, maxX, heightUV, "#glass"));
         faces.add("west", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("up", createFace(1, 0, 15, 1, "#glass"));
-        faces.add("down", createFace(1, 0, 15, 1, "#glass"));
+        faces.add("up", createFace(minX, 0, maxX, 1, "#glass"));
+        faces.add("down", createFace(minX, 0, maxX, 1, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -240,19 +270,23 @@ public class FishTankFrameModelProvider implements DataProvider {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
         int maxY = openFaces.contains(Direction.UP) ? 16 : 15;
 
+        // Extend to cover corners if perpendicular edges are open
+        int minZ = openFaces.contains(Direction.NORTH) ? 0 : 1;
+        int maxZ = openFaces.contains(Direction.SOUTH) ? 16 : 15;
+
         JsonObject element = new JsonObject();
         element.addProperty("name", "edge_west");
-        element.add("from", createVec3(0, minY, 1));
-        element.add("to", createVec3(1, maxY, 15));
+        element.add("from", createVec3(0, minY, minZ));
+        element.add("to", createVec3(1, maxY, maxZ));
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
         faces.add("north", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("east", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
         faces.add("south", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("west", createFace(1, 0, 15, heightUV, "#glass"));
-        faces.add("up", createFace(0, 1, 1, 15, "#glass"));
-        faces.add("down", createFace(0, 1, 1, 15, "#glass"));
+        faces.add("west", createFace(minZ, 0, maxZ, heightUV, "#glass"));
+        faces.add("up", createFace(0, minZ, 1, maxZ, "#glass"));
+        faces.add("down", createFace(0, minZ, 1, maxZ, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -262,19 +296,23 @@ public class FishTankFrameModelProvider implements DataProvider {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
         int maxY = openFaces.contains(Direction.UP) ? 16 : 15;
 
+        // Extend to cover corners if perpendicular edges are open
+        int minZ = openFaces.contains(Direction.NORTH) ? 0 : 1;
+        int maxZ = openFaces.contains(Direction.SOUTH) ? 16 : 15;
+
         JsonObject element = new JsonObject();
         element.addProperty("name", "edge_east");
-        element.add("from", createVec3(15, minY, 1));
-        element.add("to", createVec3(16, maxY, 15));
+        element.add("from", createVec3(15, minY, minZ));
+        element.add("to", createVec3(16, maxY, maxZ));
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
         faces.add("north", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("east", createFace(1, 0, 15, heightUV, "#glass"));
+        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
         faces.add("south", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("west", createFace(1, 0, 15, heightUV, "#glass"));
-        faces.add("up", createFace(0, 1, 1, 15, "#glass"));
-        faces.add("down", createFace(0, 1, 1, 15, "#glass"));
+        faces.add("west", createFace(minZ, 0, maxZ, heightUV, "#glass"));
+        faces.add("up", createFace(0, minZ, 1, maxZ, "#glass"));
+        faces.add("down", createFace(0, minZ, 1, maxZ, "#glass"));
         element.add("faces", faces);
 
         return element;

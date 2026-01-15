@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/blue_stained_glass",
+  "textures": {
+    "all": "fishtastic:block/clear_blue_stained_glass"
+  }
+}

@@ -11,7 +11,6 @@ import net.minecraft.data.models.model.ModelTemplates;
 import net.minecraft.data.models.model.TextureMapping;
 import net.minecraft.data.models.model.TextureSlot;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
 
 public class FishtasticModelProvider extends FabricModelProvider {
     public FishtasticModelProvider(FabricDataOutput output) {
