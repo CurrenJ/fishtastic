@@ -117,7 +117,7 @@ public class FishTankFrameModelProvider implements DataProvider {
         groups.add(baseGroup);
         model.add("groups", groups);
 
-        Path path = pathProvider.json(Fishtastic.id("fish_tank_frame_" + permutationIndex));
+        Path path = pathProvider.json(Fishtastic.id("fishtankbase/fish_tank_frame_" + permutationIndex));
         return DataProvider.saveStable(cache, model, path);
     }
 

@@ -6,8 +6,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -117,5 +120,42 @@ public class FishTankBlock extends Block implements EntityBlock {
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
+        if (!level.isClientSide) {
+            // Check if the player is holding a block item
+            if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
+                Block heldBlock = blockItem.getBlock();
+
+                BlockEntity be = level.getBlockEntity(blockPos);
+                if (be instanceof FishTankBlockEntity fishTank) {
+                    // Get the hit position relative to the block
+                    double relativeY = blockHitResult.getLocation().y - blockPos.getY();
+
+                    // Top 3/4 of the block (y > 0.25) sets frame block
+                    // Bottom 1/4 of the block (y <= 0.25) sets sand block
+                    if (relativeY > 0.25) {
+                        fishTank.setFrameBlock(heldBlock);
+                        player.displayClientMessage(
+                            Component.literal("Fish tank frame changed to: " +
+                                BuiltInRegistries.BLOCK.getKey(heldBlock)),
+                            true
+                        );
+                    } else {
+                        fishTank.setSandBlock(heldBlock);
+                        player.displayClientMessage(
+                            Component.literal("Fish tank sand changed to: " +
+                                BuiltInRegistries.BLOCK.getKey(heldBlock)),
+                            true
+                        );
+                    }
+
+                    return ItemInteractionResult.SUCCESS;
+                }
+            }
+        }
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 }

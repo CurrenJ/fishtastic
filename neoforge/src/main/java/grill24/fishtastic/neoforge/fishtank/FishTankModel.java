@@ -11,6 +11,7 @@ import com.google.gson.JsonParseException;
 
 import com.mojang.datafixers.util.Either;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.neoforge.FishtasticConfig;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
@@ -89,14 +90,14 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
 
                 // Generate all 64 permutations of frame models for this block
                 for (int permutation = 0; permutation < 64; permutation++) {
-                    BakedModel frameModel = generateFrameModelForBlock(frameBlock, Blocks.BLUE_STAINED_GLASS, bakery, spriteGetter, modelState, permutation);
+                    BakedModel frameModel = generateFrameModelForBlock(frameBlock, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), bakery, spriteGetter, modelState, permutation);
                     // Generate sand model with the same permutation index
                     BakedModel sandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, permutation);
 
                     if (frameModel != null && sandModel != null) {
                         var composite = new FishTankBakedModel.CompositeModelData(frameModel, sandModel);
                         var openFaces = FishTankModelData.openFacesFromIndex(permutation);
-                        bakedModels.put(new FishTankModelData(frameBlock, Blocks.SAND, Blocks.BLUE_STAINED_GLASS, openFaces), composite);
+                        bakedModels.put(new FishTankModelData(frameBlock, Blocks.SAND, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), openFaces), composite);
                     }
                 }
             }
@@ -105,7 +106,7 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         // Ensure DEFAULT model exists (permutation 0 - all faces closed)
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {
             Fishtastic.LOGGER.info("Pre-generating default Fish Tank model");
-            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, Blocks.BLUE_STAINED_GLASS, bakery, spriteGetter, modelState, 0);
+            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), bakery, spriteGetter, modelState, 0);
             BakedModel defaultSandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, 0);
 
             if (defaultFrameModel != null && defaultSandModel != null) {

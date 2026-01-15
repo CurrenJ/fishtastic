@@ -16,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.models.model.ModelLocationUtils;
+import net.minecraft.data.models.model.TextureSlot;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -275,21 +276,78 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         return parent;
     }
 
+
+    private static final TextureSlot[] ALL_SLOTS = {
+        TextureSlot.ALL,
+        TextureSlot.TEXTURE,
+        TextureSlot.PARTICLE,
+        TextureSlot.END,
+        TextureSlot.BOTTOM,
+        TextureSlot.TOP,
+        TextureSlot.FRONT,
+        TextureSlot.BACK,
+        TextureSlot.SIDE,
+        TextureSlot.NORTH,
+        TextureSlot.SOUTH,
+        TextureSlot.EAST,
+        TextureSlot.WEST,
+        TextureSlot.UP,
+        TextureSlot.DOWN,
+        TextureSlot.CROSS,
+        TextureSlot.PLANT,
+        TextureSlot.WALL,
+        TextureSlot.RAIL,
+        TextureSlot.WOOL,
+        TextureSlot.PATTERN,
+        TextureSlot.PANE,
+        TextureSlot.EDGE,
+        TextureSlot.FAN,
+        TextureSlot.STEM,
+        TextureSlot.UPPER_STEM,
+        TextureSlot.CROP,
+        TextureSlot.DIRT,
+        TextureSlot.FIRE,
+        TextureSlot.LANTERN,
+        TextureSlot.PLATFORM,
+        TextureSlot.UNSTICKY,
+        TextureSlot.TORCH,
+        TextureSlot.LAYER0,
+        TextureSlot.LAYER1,
+        TextureSlot.LAYER2,
+        TextureSlot.LIT_LOG,
+        TextureSlot.CANDLE,
+        TextureSlot.INSIDE,
+        TextureSlot.CONTENT,
+        TextureSlot.INNER_TOP,
+        TextureSlot.FLOWERBED
+    };
+
+    /**
+     * Helper method to get the first present texture from a texture mapping by checking all slots in order.
+     */
+    private ResourceLocation getFirstPresentTexture(Map<String, Either<Material, String>> textureMapping) {
+        for (TextureSlot slot : ALL_SLOTS) {
+            Either<Material, String> textureEither = textureMapping.get(slot.getId());
+            if (textureEither != null) {
+                if (textureEither.left().isPresent()) {
+                    return textureEither.left().get().texture();
+                } else {
+                    return ResourceLocation.withDefaultNamespace(textureEither.right().get());
+                }
+            }
+        }
+        return null;
+    }
+
     private Map<String, Either<Material, String>> buildTextureMap(Map<String, Either<Material, String>> textureMapping) {
         // Build the texture map that would normally come from JSON
         Map<String, Either<Material, String>> map = new HashMap<>();
 
-        // Get the block texture from the source block model
-        Either<Material, String> blockTextureEither = textureMapping.get("all");
-        if (blockTextureEither == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Source block model is missing 'all' texture");
+        ResourceLocation blockTexture = getFirstPresentTexture(textureMapping);
+
+        if (blockTexture == null) {
+            Fishtastic.LOGGER.error("Error building Fish Tank model: Source block model is missing all texture slots");
             return map;
-        }
-        ResourceLocation blockTexture;
-        if (blockTextureEither.left().isPresent()) {
-            blockTexture = blockTextureEither.left().get().texture();
-        } else {
-            blockTexture = ResourceLocation.withDefaultNamespace(blockTextureEither.right().get());
         }
 
         // Convert ResourceLocations to Materials (the format BlockModel expects)
@@ -304,30 +362,18 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         // Build the texture map with both frame and glass textures
         Map<String, Either<Material, String>> map = new HashMap<>();
 
-        // Get the frame texture from the source block model
-        Either<Material, String> frameTextureEither = frameTextureMapping.get("all");
-        if (frameTextureEither == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Frame block model is missing 'all' texture");
+        // Get the frame texture by checking all slots in order
+        ResourceLocation frameTexture = getFirstPresentTexture(frameTextureMapping);
+        if (frameTexture == null) {
+            Fishtastic.LOGGER.error("Error building Fish Tank model: Frame block model is missing all texture slots");
             return map;
-        }
-        ResourceLocation frameTexture;
-        if (frameTextureEither.left().isPresent()) {
-            frameTexture = frameTextureEither.left().get().texture();
-        } else {
-            frameTexture = ResourceLocation.withDefaultNamespace(frameTextureEither.right().get());
         }
 
-        // Get the glass texture from the source block model
-        Either<Material, String> glassTextureEither = glassTextureMapping.get("all");
-        if (glassTextureEither == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Glass block model is missing 'all' texture");
+        // Get the glass texture by checking all slots in order
+        ResourceLocation glassTexture = getFirstPresentTexture(glassTextureMapping);
+        if (glassTexture == null) {
+            Fishtastic.LOGGER.error("Error building Fish Tank model: Glass block model is missing all texture slots");
             return map;
-        }
-        ResourceLocation glassTexture;
-        if (glassTextureEither.left().isPresent()) {
-            glassTexture = glassTextureEither.left().get().texture();
-        } else {
-            glassTexture = ResourceLocation.withDefaultNamespace(glassTextureEither.right().get());
         }
 
         // Convert ResourceLocations to Materials (the format BlockModel expects)

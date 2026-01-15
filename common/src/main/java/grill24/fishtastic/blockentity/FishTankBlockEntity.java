@@ -208,7 +208,7 @@ public class FishTankBlockEntity extends BlockEntity {
             if (blockId != null && BuiltInRegistries.BLOCK.containsKey(blockId)) {
                 glassBlock = BuiltInRegistries.BLOCK.get(blockId);
             } else {
-                glassBlock = Blocks.BLUE_STAINED_GLASS; // Graceful fallback
+                glassBlock = FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(); // Graceful fallback
             }
         }
 
