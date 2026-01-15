@@ -30,6 +30,61 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     @Override
+    protected void onPlace(BlockState blockState, Level level, BlockPos blockPos, BlockState oldState, boolean movedByPiston) {
+        super.onPlace(blockState, level, blockPos, oldState, movedByPiston);
+
+        if (!level.isClientSide) {
+            // Update connections for this tank
+            updateConnections(level, blockPos);
+
+            // Update connections for all adjacent tanks
+            for (Direction direction : Direction.values()) {
+                BlockPos adjacentPos = blockPos.relative(direction);
+                if (level.getBlockEntity(adjacentPos) instanceof FishTankBlockEntity) {
+                    updateConnections(level, adjacentPos);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected BlockState updateShape(BlockState blockState, Direction direction, BlockState neighborState,
+                                     LevelAccessor level, BlockPos blockPos, BlockPos neighborPos) {
+        if (!level.isClientSide()) {
+            // Update connections when a neighboring block changes
+            updateConnections((Level) level, blockPos);
+        }
+        return super.updateShape(blockState, direction, neighborState, level, blockPos, neighborPos);
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        // If the block is being replaced by a different block (not just state change)
+        if (!state.is(newState.getBlock())) {
+            if (!level.isClientSide) {
+                // Update connections for all adjacent tanks
+                for (Direction direction : Direction.values()) {
+                    BlockPos adjacentPos = pos.relative(direction);
+                    if (level.getBlockEntity(adjacentPos) instanceof FishTankBlockEntity) {
+                        updateConnections(level, adjacentPos);
+                    }
+                }
+            }
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
+    }
+
+    /**
+     * Update connections for a fish tank by detecting adjacent fish tanks.
+     */
+    private void updateConnections(Level level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof FishTankBlockEntity fishTank) {
+            fishTank.updateConnections(level, pos);
+        }
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(blockPos);

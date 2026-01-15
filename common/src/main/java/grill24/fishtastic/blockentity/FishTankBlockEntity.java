@@ -95,6 +95,35 @@ public class FishTankBlockEntity extends BlockEntity {
     }
 
     /**
+     * Update connections by detecting adjacent fish tanks.
+     * Called when the block is placed or when neighboring blocks change.
+     */
+    public void updateConnections(Level level, BlockPos pos) {
+        Set<Direction> newOpenFaces = EnumSet.noneOf(Direction.class);
+
+        // Check all 6 directions for adjacent fish tanks
+        for (Direction direction : Direction.values()) {
+            BlockPos adjacentPos = pos.relative(direction);
+            BlockEntity adjacentBE = level.getBlockEntity(adjacentPos);
+
+            // If there's a fish tank adjacent, open this face
+            if (adjacentBE instanceof FishTankBlockEntity) {
+                newOpenFaces.add(direction);
+            }
+        }
+
+        // Only update if the connections have changed
+        if (!newOpenFaces.equals(this.openFaces)) {
+            this.openFaces = newOpenFaces;
+            setChanged();
+            if (!level.isClientSide) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            }
+            RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+        }
+    }
+
+    /**
      * Set the frame block for this fish tank.
      */
     public void setFrameBlock(Block block) {
@@ -120,11 +149,25 @@ public class FishTankBlockEntity extends BlockEntity {
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
+    /**
+     * Set the glass block for this fish tank edges.
+     */
+    public void setGlassBlock(Block block) {
+        this.glassBlock = block;
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        // Request model data update for re-rendering
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.putString("FrameBlock", BuiltInRegistries.BLOCK.getKey(frameBlock).toString());
         tag.putString("SandBlock", BuiltInRegistries.BLOCK.getKey(sandBlock).toString());
+        tag.putString("GlassBlock", BuiltInRegistries.BLOCK.getKey(glassBlock).toString());
 
         // Save open faces as a bit field
         int openFacesBits = 0;

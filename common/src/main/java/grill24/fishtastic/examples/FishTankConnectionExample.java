@@ -9,33 +9,53 @@ import java.util.Set;
 
 /**
  * Example code demonstrating how to use the Fish Tank multi-block connection system.
- * This is for documentation purposes only and not meant to be compiled.
+ *
+ * NOTE: As of the automatic connection update, fish tanks now automatically detect
+ * and connect to adjacent fish tanks when placed. Manual connection is still supported
+ * for custom scenarios.
  */
 public class FishTankConnectionExample {
 
     /**
+     * Example: Place fish tanks - they automatically connect!
+     * When you place a fish tank next to another fish tank, they automatically
+     * detect each other and open the connecting faces.
+     */
+    public void automaticConnection() {
+        // Just place fish tanks adjacent to each other in-game
+        // They will automatically connect!
+        //
+        // Example: Place tank A, then place tank B to the east
+        // - Tank A will automatically open its EAST face
+        // - Tank B will automatically open its WEST face
+        // - They form a connected 2x1 tank
+    }
+
+    /**
      * Example: Create a standalone fish tank (all faces closed)
+     * This still works for setting initial properties.
      */
     public void createStandaloneTank(FishTankBlockEntity blockEntity) {
         // Set frame and sand blocks
         blockEntity.setFrameBlock(Blocks.OAK_PLANKS);
         blockEntity.setSandBlock(Blocks.SAND);
+        blockEntity.setGlassBlock(Blocks.BLUE_STAINED_GLASS);
 
-        // No open faces - this will use permutation 0 (fully enclosed tank)
-        blockEntity.setOpenFaces(EnumSet.noneOf(Direction.class));
+        // Note: Open faces are automatically managed based on adjacent tanks
+        // Manual setting will be overridden on next block update
     }
 
     /**
-     * Example: Connect two tanks horizontally (north-south)
+     * Example: Manual connection (for custom scenarios)
+     * You can still manually control connections if needed.
      */
-    public void connectTanksNorthSouth(FishTankBlockEntity northTank, FishTankBlockEntity southTank) {
-        // North tank - open south face
+    public void manualConnection(FishTankBlockEntity northTank, FishTankBlockEntity southTank) {
+        // Manually open faces (useful for testing or special cases)
         northTank.setFaceOpen(Direction.SOUTH, true);
-
-        // South tank - open north face
         southTank.setFaceOpen(Direction.NORTH, true);
 
-        // Both tanks now share an opening, creating a larger tank
+        // Note: These manual settings will be overridden if neighboring blocks change
+        // Use this for custom scenarios where automatic detection isn't desired
     }
 
     /**
