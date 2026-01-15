@@ -60,12 +60,12 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
     /**
      * Generate baked models for blocks from configured tags. This is called during bake() when tags are available.
      */
-    private Map<FishTankModelData, BakedModel> generateModelsForConfiguredTags(
+    private Map<FishTankModelData, FishTankBakedModel.CompositeModelData> generateModelsForConfiguredTags(
             ModelBaker bakery,
             Function<Material, TextureAtlasSprite> spriteGetter,
             ModelState modelState) {
 
-        var bakedModels = new HashMap<FishTankModelData, BakedModel>();
+        var bakedModels = new HashMap<FishTankModelData, FishTankBakedModel.CompositeModelData>();
 
         // Pre-generate models for blocks in configured tags
         for (Config entry : FishtasticConfig.STARTUP.customFishTankFrameTypes.get()) {
@@ -87,24 +87,34 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                 Fishtastic.LOGGER.info("Pre-generating Fish Tank model for tag {} - block {}",
                     idStr, BuiltInRegistries.BLOCK.getKey(block));
 
-                BakedModel bakedModel = generateModelForBlock(block, bakery, spriteGetter, modelState);
-                if (bakedModel != null) {
-                    bakedModels.put(new FishTankModelData(block), bakedModel);
+                // Generate frame model
+                BakedModel frameModel = generateModelForBlock(block, bakery, spriteGetter, modelState, "frame");
+                // For pre-generation, use same block for sand (can be changed at runtime)
+                BakedModel sandModel = generateModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, "sand");
+
+                if (frameModel != null && sandModel != null) {
+                    var composite = new FishTankBakedModel.CompositeModelData(frameModel, sandModel);
+                    bakedModels.put(new FishTankModelData(block, Blocks.SAND), composite);
                 }
             }
         }
 
         // Ensure DEFAULT model exists
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {
-            Fishtastic.LOGGER.info("Pre-generating default Fish Tank model for oak planks");
-            BakedModel defaultModel = generateModelForBlock(Blocks.OAK_PLANKS, bakery, spriteGetter, modelState);
-            if (defaultModel != null) {
-                bakedModels.put(FishTankModelData.DEFAULT, defaultModel);
+            Fishtastic.LOGGER.info("Pre-generating default Fish Tank model");
+            BakedModel defaultFrameModel = generateModelForBlock(Blocks.OAK_PLANKS, bakery, spriteGetter, modelState, "frame");
+            BakedModel defaultSandModel = generateModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, "sand");
+
+            if (defaultFrameModel != null && defaultSandModel != null) {
+                var composite = new FishTankBakedModel.CompositeModelData(defaultFrameModel, defaultSandModel);
+                bakedModels.put(FishTankModelData.DEFAULT, composite);
             } else {
                 // Ultimate fallback
                 Fishtastic.LOGGER.error("Failed to generate default model! Using cube fallback.");
                 var fallbackModel = modelGetter.apply(ResourceLocation.withDefaultNamespace("block/cube"));
-                bakedModels.put(FishTankModelData.DEFAULT, fallbackModel.bake(bakery, spriteGetter, modelState));
+                var bakedFallback = fallbackModel.bake(bakery, spriteGetter, modelState);
+                var composite = new FishTankBakedModel.CompositeModelData(bakedFallback, bakedFallback);
+                bakedModels.put(FishTankModelData.DEFAULT, composite);
             }
         }
 
@@ -112,33 +122,33 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
     }
 
     /**
-     * Generate a baked model for a specific block.
+     * Generate a baked model for a specific block with a label.
      */
     BakedModel generateModelForBlock(Block block, ModelBaker bakery,
                                      Function<Material, TextureAtlasSprite> spriteGetter,
-                                     ModelState modelState) {
+                                     ModelState modelState, String modelType) {
         try {
             var blockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(block));
 
             if (blockModel.getParentLocation() != null) {
-                Fishtastic.LOGGER.warn("Block model {} has parent - may not work correctly for Fish Tank frame",
-                    BuiltInRegistries.BLOCK.getKey(block));
+                Fishtastic.LOGGER.warn("Block model {} has parent - may not work correctly for Fish Tank {}",
+                    BuiltInRegistries.BLOCK.getKey(block), modelType);
             }
 
             var textureMap = buildTextureMap(blockModel.textureMap);
 
             // Create new BlockModel with parent and textures
-            final ResourceLocation parent = ResourceLocation.withDefaultNamespace("block/stairs"); // TODO: TEMP parent model
+            ResourceLocation parent = FishTankBakedModel.getBaseModel(modelType);
             var unbakedModel = new BlockModel(parent, List.of(), textureMap,
                 context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-            unbakedModel.name = context.getModelName() + "[" + BuiltInRegistries.BLOCK.getKey(block) + "]";
+            unbakedModel.name = context.getModelName() + "[" + modelType + ":" + BuiltInRegistries.BLOCK.getKey(block) + "]";
             unbakedModel.resolveParents(modelGetter);
 
             // Bake the model
             return unbakedModel.bake(bakery, spriteGetter, modelState);
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate Fish Tank model for block {}",
-                BuiltInRegistries.BLOCK.getKey(block), e);
+            Fishtastic.LOGGER.error("Failed to generate Fish Tank {} model for block {}",
+                modelType, BuiltInRegistries.BLOCK.getKey(block), e);
             return null;
         }
     }

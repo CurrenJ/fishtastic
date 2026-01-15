@@ -25,11 +25,21 @@ public class FishTankBlockEntity extends BlockEntity {
     // Store the frame block directly - can be any block
     private Block frameBlock = Blocks.OAK_PLANKS; // Default frame block
 
+    // Store the sand block directly - can be any block
+    private Block sandBlock = Blocks.SAND; // Default sand block
+
     /**
      * Get the frame block for this fish tank.
      */
     public Block getFrameBlock() {
         return frameBlock;
+    }
+
+    /**
+     * Get the sand block for this fish tank.
+     */
+    public Block getSandBlock() {
+        return sandBlock;
     }
 
     /**
@@ -40,25 +50,52 @@ public class FishTankBlockEntity extends BlockEntity {
         setChanged();
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-            setChanged();
         }
+        // Request model data update for re-rendering
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    /**
+     * Set the sand block for this fish tank.
+     */
+    public void setSandBlock(Block block) {
+        this.sandBlock = block;
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        // Request model data update for re-rendering
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.putString("FrameBlock", BuiltInRegistries.BLOCK.getKey(frameBlock).toString());
+        tag.putString("SandBlock", BuiltInRegistries.BLOCK.getKey(sandBlock).toString());
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
+
+        // Load frame block
         if (tag.contains("FrameBlock")) {
             ResourceLocation blockId = ResourceLocation.tryParse(tag.getString("FrameBlock"));
             if (blockId != null && BuiltInRegistries.BLOCK.containsKey(blockId)) {
                 frameBlock = BuiltInRegistries.BLOCK.get(blockId);
             } else {
                 frameBlock = Blocks.OAK_PLANKS; // Graceful fallback
+            }
+        }
+
+        // Load sand block
+        if (tag.contains("SandBlock")) {
+            ResourceLocation blockId = ResourceLocation.tryParse(tag.getString("SandBlock"));
+            if (blockId != null && BuiltInRegistries.BLOCK.containsKey(blockId)) {
+                sandBlock = BuiltInRegistries.BLOCK.get(blockId);
+            } else {
+                sandBlock = Blocks.SAND; // Graceful fallback
             }
         }
 

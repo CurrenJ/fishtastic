@@ -38,16 +38,24 @@ public class FishTankBlock extends Block implements EntityBlock {
                 List<Block> availableFrameBlocks = RegistrationApiSided.getInstance().getConfiguredFrameBlocks();
 
                 if (!availableFrameBlocks.isEmpty()) {
-                    // Pick a random block from the list
-                    Block newFrameBlock = availableFrameBlocks.get(level.random.nextInt(availableFrameBlocks.size()));
-                    fishTank.setFrameBlock(newFrameBlock);
+                    Block newBlock = availableFrameBlocks.get(level.random.nextInt(availableFrameBlocks.size()));
 
-                    // Send feedback to player
-                    player.displayClientMessage(
-                        Component.literal("Fish tank frame changed to: " +
-                            BuiltInRegistries.BLOCK.getKey(newFrameBlock)),
-                        true
-                    );
+                    // If sneaking, change sand block; otherwise change frame block
+                    if (player.isShiftKeyDown()) {
+                        fishTank.setSandBlock(newBlock);
+                        player.displayClientMessage(
+                            Component.literal("Fish tank sand changed to: " +
+                                BuiltInRegistries.BLOCK.getKey(newBlock)),
+                            true
+                        );
+                    } else {
+                        fishTank.setFrameBlock(newBlock);
+                        player.displayClientMessage(
+                            Component.literal("Fish tank frame changed to: " +
+                                BuiltInRegistries.BLOCK.getKey(newBlock)),
+                            true
+                        );
+                    }
 
                     return InteractionResult.SUCCESS;
                 }

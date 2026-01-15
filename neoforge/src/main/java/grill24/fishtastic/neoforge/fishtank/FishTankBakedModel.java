@@ -23,7 +23,6 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.BakedModelWrapper;
@@ -41,9 +40,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
-    private final Map<FishTankModelData, BakedModel> bakedFishTankModels;
+    // Cache structure to hold both frame and sand models
+    static class CompositeModelData {
+        final BakedModel frameModel;
+        final BakedModel sandModel;
+
+        CompositeModelData(BakedModel frameModel, BakedModel sandModel) {
+            this.frameModel = frameModel;
+            this.sandModel = sandModel;
+        }
+    }
+
+    private final Map<FishTankModelData, CompositeModelData> bakedFishTankModels;
     // Thread-safe cache for on-demand generated models
-    private final ConcurrentHashMap<FishTankModelData, BakedModel> onDemandCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<FishTankModelData, CompositeModelData> onDemandCache = new ConcurrentHashMap<>();
 
     // Context for on-demand model generation
     private final Function<ResourceLocation, UnbakedModel> modelGetter;
@@ -55,13 +65,13 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     private final ItemOverrides itemOverrides;
 
     FishTankBakedModel(
-            Map<FishTankModelData, BakedModel> bakedFishTankModels,
+            Map<FishTankModelData, CompositeModelData> bakedFishTankModels,
             Function<ResourceLocation, UnbakedModel> modelGetter,
             IGeometryBakingContext context,
             ModelBaker bakery,
             Function<Material, TextureAtlasSprite> spriteGetter,
             ModelState modelState) {
-        super(Objects.requireNonNull(bakedFishTankModels.get(FishTankModelData.DEFAULT))); //default model
+        super(Objects.requireNonNull(bakedFishTankModels.get(FishTankModelData.DEFAULT)).frameModel); //default model
         this.bakedFishTankModels = bakedFishTankModels;
         this.modelGetter = modelGetter;
         this.context = context;
@@ -73,77 +83,130 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
             @Override
             public BakedModel resolve(BakedModel pModel, ItemStack pStack, ClientLevel pLevel, LivingEntity pEntity, int pSeed) {
                 // TODO: Read frame block from item NBT when implemented
-                var data = FishTankModelData.DEFAULT;
-                return getOrGenerateModel(data);
+                return FishTankBakedModel.this;
             }
         };
     }
 
-    private BakedModel getModelFor(ModelData modelData) {
+    private CompositeModelData getCompositeModelFor(ModelData modelData) {
         var data = Objects.requireNonNullElse(modelData.get(FishTankModelData.DATA_PROPERTY), FishTankModelData.DEFAULT);
-        return getOrGenerateModel(data);
+        return getOrGenerateCompositeModel(data);
     }
 
     /**
-     * Get a model, generating it on-demand if it doesn't exist yet.
+     * Get a composite model, generating it on-demand if it doesn't exist yet.
      */
-    private BakedModel getOrGenerateModel(FishTankModelData data) {
+    private CompositeModelData getOrGenerateCompositeModel(FishTankModelData data) {
+        Fishtastic.LOGGER.info("Looking up composite model for frame={}, sand={}",
+            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
+
         // Check if we already have it pre-baked
-        BakedModel model = bakedFishTankModels.get(data);
-        if (model != null) {
-            return model;
+        CompositeModelData composite = bakedFishTankModels.get(data);
+        if (composite != null) {
+            Fishtastic.LOGGER.info("Found pre-baked composite model");
+            return composite;
         }
 
         // Check on-demand cache
-        model = onDemandCache.get(data);
-        if (model != null) {
-            return model;
+        composite = onDemandCache.get(data);
+        if (composite != null) {
+            Fishtastic.LOGGER.info("Found cached on-demand composite model");
+            return composite;
         }
 
         // Generate on-demand
+        Fishtastic.LOGGER.info("Generating composite model on-demand");
         try {
-            model = generateModelForBlock(data);
-            if (model != null) {
-                onDemandCache.put(data, model);
-                return model;
+            composite = generateCompositeModel(data);
+            if (composite != null) {
+                onDemandCache.put(data, composite);
+                return composite;
             }
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate Fish Tank model on-demand for block {}",
-                BuiltInRegistries.BLOCK.getKey(data.frameBlock()), e);
+            Fishtastic.LOGGER.error("Failed to generate Fish Tank composite model on-demand for frame={}, sand={}",
+                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+                BuiltInRegistries.BLOCK.getKey(data.sandBlock()), e);
         }
 
         // Fallback to default
+        Fishtastic.LOGGER.warn("Using fallback default composite model");
         return bakedFishTankModels.get(FishTankModelData.DEFAULT);
     }
 
     /**
-     * Generate a baked model for a specific block on-demand.
+     * Generate a composite model with both frame and sand models.
      */
-    private BakedModel generateModelForBlock(FishTankModelData data) {
-        Block block = data.frameBlock();
+    private CompositeModelData generateCompositeModel(FishTankModelData data) {
+        Block frameBlock = data.frameBlock();
+        Block sandBlock = data.sandBlock();
 
-        Fishtastic.LOGGER.info("Generating Fish Tank model on-demand for block {}",
-            BuiltInRegistries.BLOCK.getKey(block));
+        Fishtastic.LOGGER.info("Generating Fish Tank composite model on-demand for frame={}, sand={}",
+            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(sandBlock));
 
-        var frameSourceBlockModel = (BlockModel) modelGetter.apply(
-            ModelLocationUtils.getModelLocation(block));
+        // Generate frame model
+        Fishtastic.LOGGER.info("Generating FRAME model for block {}", BuiltInRegistries.BLOCK.getKey(frameBlock));
+        BakedModel frameModel = generateModelForBlock(frameBlock, "frame");
 
-        if (frameSourceBlockModel.getParentLocation() != null) {
-            Fishtastic.LOGGER.warn("Block model {} has parent - may not work correctly for Fish Tank frame",
-                BuiltInRegistries.BLOCK.getKey(block));
+        // Generate sand model
+        Fishtastic.LOGGER.info("Generating SAND model for block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
+        BakedModel sandModel = generateModelForBlock(sandBlock, "sand");
+
+        if (frameModel == null || sandModel == null) {
+            Fishtastic.LOGGER.error("Failed to generate one or both models: frame={}, sand={}",
+                frameModel != null, sandModel != null);
+            return null;
         }
 
-        var textureMap = buildTextureMap(frameSourceBlockModel.textureMap);
+        Fishtastic.LOGGER.info("Successfully created composite model with frame={} and sand={}",
+            frameModel.getClass().getSimpleName(), sandModel.getClass().getSimpleName());
+        return new CompositeModelData(frameModel, sandModel);
+    }
 
-        // Create new BlockModel with parent and textures
-        final ResourceLocation parent = ResourceLocation.withDefaultNamespace("block/stairs"); // TODO: TEMP parent model
-        var unbakedModel = new BlockModel(parent, List.of(), textureMap,
-            context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-        unbakedModel.name = context.getModelName() + "[" + BuiltInRegistries.BLOCK.getKey(block) + "]";
-        unbakedModel.resolveParents(modelGetter);
+    /**
+     * Generate a baked model for a specific block with a given label.
+     */
+    private BakedModel generateModelForBlock(Block block, String modelType) {
+        try {
+            var blockModel = (BlockModel) modelGetter.apply(
+                ModelLocationUtils.getModelLocation(block));
 
-        // Bake the model
-        return unbakedModel.bake(bakery, spriteGetter, modelState);
+            if (blockModel.getParentLocation() != null) {
+                Fishtastic.LOGGER.warn("Block model {} has parent - may not work correctly for Fish Tank {}",
+                    BuiltInRegistries.BLOCK.getKey(block), modelType);
+            }
+
+            var textureMap = buildTextureMap(blockModel.textureMap);
+
+            // Create new BlockModel with parent and textures - select parent based on model type
+            ResourceLocation parent = getBaseModel(modelType);
+            if (parent == null) return null;
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[" + modelType + ":" + BuiltInRegistries.BLOCK.getKey(block) + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate {} model for block {}",
+                modelType, BuiltInRegistries.BLOCK.getKey(block), e);
+            return null;
+        }
+    }
+
+    public static @org.jetbrains.annotations.Nullable ResourceLocation getBaseModel(String modelType) {
+        ResourceLocation parent;
+        switch (modelType) {
+            case "frame" -> parent = ResourceLocation.withDefaultNamespace("block/stairs");
+            case "sand" -> parent = ResourceLocation.withDefaultNamespace("block/slab");
+            default -> {
+                Fishtastic.LOGGER.error("Unknown model type '{}' for Fish Tank model generation", modelType);
+                return null;
+            }
+        }
+        return parent;
     }
 
     private Map<String, Either<Material, String>> buildTextureMap(Map<String, Either<Material, String>> textureMapping) {
@@ -173,17 +236,30 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
 
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
-        return getModelFor(extraData).getQuads(state, side, rand, extraData, renderType);
+        CompositeModelData composite = getCompositeModelFor(extraData);
+
+        // Combine quads from both frame and sand models
+        List<BakedQuad> combinedQuads = new java.util.ArrayList<>();
+        combinedQuads.addAll(composite.frameModel.getQuads(state, side, rand, extraData, renderType));
+        combinedQuads.addAll(composite.sandModel.getQuads(state, side, rand, extraData, renderType));
+
+        return combinedQuads;
     }
 
     @Override
     public TextureAtlasSprite getParticleIcon(ModelData data) {
-        return getModelFor(data).getParticleIcon(data);
+        // Use frame model for particle
+        return getCompositeModelFor(data).frameModel.getParticleIcon(data);
     }
 
     @Override
     public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
-        return getModelFor(data).getRenderTypes(state, rand, data);
+        CompositeModelData composite = getCompositeModelFor(data);
+        // Combine render types from both models
+        return ChunkRenderTypeSet.union(
+            composite.frameModel.getRenderTypes(state, rand, data),
+            composite.sandModel.getRenderTypes(state, rand, data)
+        );
     }
 
     @Override
