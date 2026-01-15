@@ -102,18 +102,18 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         // Check if we already have it pre-baked
         CompositeModelData composite = bakedFishTankModels.get(data);
         if (composite != null) {
-            Fishtastic.LOGGER.info("Found pre-baked composite model for frame={}, sand={}",
-                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
+//            Fishtastic.LOGGER.info("Found pre-baked composite model for frame={}, sand={}",
+//                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+//                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
             return composite;
         }
 
         // Check on-demand cache
         composite = onDemandCache.get(data);
         if (composite != null) {
-            Fishtastic.LOGGER.info("Found cached on-demand composite model for frame={}, sand={}",
-                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
+//            Fishtastic.LOGGER.info("Found cached on-demand composite model for frame={}, sand={}",
+//                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+//                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
             return composite;
         }
 
@@ -146,15 +146,19 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     private CompositeModelData generateCompositeModel(FishTankModelData data) {
         Block frameBlock = data.frameBlock();
         Block sandBlock = data.sandBlock();
+        Block glassBlock = data.glassBlock();
+        int permutationIndex = data.getPermutationIndex();
 
-        Fishtastic.LOGGER.info("Generating Fish Tank composite model on-demand for frame={}, sand={}",
-            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(sandBlock));
+        Fishtastic.LOGGER.info("Generating Fish Tank composite model on-demand for frame={}, sand={}, glass={}, permutation={}",
+            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(sandBlock),
+            BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
 
-        // Generate frame model
-        Fishtastic.LOGGER.info("Generating FRAME model for block {}", BuiltInRegistries.BLOCK.getKey(frameBlock));
-        BakedModel frameModel = generateModelForBlock(frameBlock, "frame");
+        // Generate frame model with correct permutation (includes glass textures)
+        Fishtastic.LOGGER.info("Generating FRAME model for block {} and glass {} with permutation {}",
+            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
+        BakedModel frameModel = generateFrameModelForBlock(frameBlock, glassBlock, permutationIndex);
 
-        // Generate sand model
+        // Generate sand model (always the same)
         Fishtastic.LOGGER.info("Generating SAND model for block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
         BakedModel sandModel = generateModelForBlock(sandBlock, "sand");
 
@@ -170,17 +174,43 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     }
 
     /**
+     * Generate a frame model for a specific block with a given permutation index.
+     */
+    private BakedModel generateFrameModelForBlock(Block frameBlock, Block glassBlock, int permutationIndex) {
+        try {
+            var frameBlockModel = (BlockModel) modelGetter.apply(
+                ModelLocationUtils.getModelLocation(frameBlock));
+            var glassBlockModel = (BlockModel) modelGetter.apply(
+                ModelLocationUtils.getModelLocation(glassBlock));
+
+            // Build texture map with both frame and glass textures
+            var textureMap = buildFrameAndGlassTextureMap(frameBlockModel.textureMap, glassBlockModel.textureMap);
+
+            // Use the permutation-specific frame model
+            ResourceLocation parent = ft("block/fishtankbase/fish_tank_frame_" + permutationIndex);
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[frame:" + BuiltInRegistries.BLOCK.getKey(frameBlock) +
+                "_glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) + "_p" + permutationIndex + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate frame model for block {} with glass {} and permutation {}",
+                BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
+            return null;
+        }
+    }
+
+    /**
      * Generate a baked model for a specific block with a given label.
      */
     private BakedModel generateModelForBlock(Block block, String modelType) {
         try {
             var blockModel = (BlockModel) modelGetter.apply(
                 ModelLocationUtils.getModelLocation(block));
-
-            if (blockModel.getParentLocation() != null) {
-                Fishtastic.LOGGER.warn("Block model {} has parent - may not work correctly for Fish Tank {}",
-                    BuiltInRegistries.BLOCK.getKey(block), modelType);
-            }
 
             var textureMap = buildTextureMap(blockModel.textureMap);
 
@@ -238,6 +268,45 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         return map;
     }
 
+    private Map<String, Either<Material, String>> buildFrameAndGlassTextureMap(
+            Map<String, Either<Material, String>> frameTextureMapping,
+            Map<String, Either<Material, String>> glassTextureMapping) {
+        // Build the texture map with both frame and glass textures
+        Map<String, Either<Material, String>> map = new HashMap<>();
+
+        // Get the frame texture from the source block model
+        Either<Material, String> frameTextureEither = frameTextureMapping.get("all");
+        if (frameTextureEither == null) {
+            Fishtastic.LOGGER.error("Error building Fish Tank model: Frame block model is missing 'all' texture");
+            return map;
+        }
+        ResourceLocation frameTexture;
+        if (frameTextureEither.left().isPresent()) {
+            frameTexture = frameTextureEither.left().get().texture();
+        } else {
+            frameTexture = ResourceLocation.withDefaultNamespace(frameTextureEither.right().get());
+        }
+
+        // Get the glass texture from the source block model
+        Either<Material, String> glassTextureEither = glassTextureMapping.get("all");
+        if (glassTextureEither == null) {
+            Fishtastic.LOGGER.error("Error building Fish Tank model: Glass block model is missing 'all' texture");
+            return map;
+        }
+        ResourceLocation glassTexture;
+        if (glassTextureEither.left().isPresent()) {
+            glassTexture = glassTextureEither.left().get().texture();
+        } else {
+            glassTexture = ResourceLocation.withDefaultNamespace(glassTextureEither.right().get());
+        }
+
+        // Convert ResourceLocations to Materials (the format BlockModel expects)
+        map.put("frame", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, frameTexture)));
+        map.put("glass", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, glassTexture)));
+
+        return map;
+    }
+
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
         CompositeModelData composite = getCompositeModelFor(extraData);
@@ -258,12 +327,8 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
 
     @Override
     public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
-        CompositeModelData composite = getCompositeModelFor(data);
-        // Combine render types from both models
-        return ChunkRenderTypeSet.union(
-            composite.frameModel.getRenderTypes(state, rand, data),
-            composite.sandModel.getRenderTypes(state, rand, data)
-        );
+        // Fish tank needs translucent render type for glass transparency
+        return ChunkRenderTypeSet.of(RenderType.translucent());
     }
 
     @Override

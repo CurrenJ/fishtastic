@@ -5,9 +5,7 @@ import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.IModBusEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 
 import static grill24.fishtastic.util.Utility.ft;

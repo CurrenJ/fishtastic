@@ -23,7 +23,7 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
     @NotNull
     public ModelData getModelData() {
         return ModelData.builder()
-                .with(FishTankModelData.DATA_PROPERTY, new FishTankModelData(getFrameBlock(), getSandBlock()))
+                .with(FishTankModelData.DATA_PROPERTY, new FishTankModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces()))
                 .build();
     }
 

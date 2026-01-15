@@ -3,6 +3,7 @@ package grill24.fishtastic.blockentity;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -17,6 +18,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 public class FishTankBlockEntity extends BlockEntity {
     public FishTankBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(FishtasticBlockEntityTypes.FISH_TANK.value(), blockPos, blockState);
@@ -27,6 +31,12 @@ public class FishTankBlockEntity extends BlockEntity {
 
     // Store the sand block directly - can be any block
     private Block sandBlock = Blocks.SAND; // Default sand block
+
+    // Store the glass block for edges
+    private Block glassBlock = Blocks.BLUE_STAINED_GLASS; // Default glass block
+
+    // Store which faces are connected to other fish tanks (open faces)
+    private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
 
     /**
      * Get the frame block for this fish tank.
@@ -40,6 +50,48 @@ public class FishTankBlockEntity extends BlockEntity {
      */
     public Block getSandBlock() {
         return sandBlock;
+    }
+
+    /**
+     * Get the glass block for this fish tank edges.
+     */
+    public Block getGlassBlock() {
+        return glassBlock;
+    }
+
+    /**
+     * Get the set of open faces (connected to other tanks)
+     */
+    public Set<Direction> getOpenFaces() {
+        return EnumSet.copyOf(openFaces);
+    }
+
+    /**
+     * Set a face as open (connected to another tank)
+     */
+    public void setFaceOpen(Direction face, boolean open) {
+        if (open) {
+            openFaces.add(face);
+        } else {
+            openFaces.remove(face);
+        }
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    /**
+     * Set all open faces at once
+     */
+    public void setOpenFaces(Set<Direction> faces) {
+        this.openFaces = EnumSet.copyOf(faces);
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
     /**
@@ -73,6 +125,13 @@ public class FishTankBlockEntity extends BlockEntity {
         super.saveAdditional(tag, registries);
         tag.putString("FrameBlock", BuiltInRegistries.BLOCK.getKey(frameBlock).toString());
         tag.putString("SandBlock", BuiltInRegistries.BLOCK.getKey(sandBlock).toString());
+
+        // Save open faces as a bit field
+        int openFacesBits = 0;
+        for (Direction dir : openFaces) {
+            openFacesBits |= (1 << dir.ordinal());
+        }
+        tag.putInt("OpenFaces", openFacesBits);
     }
 
     @Override
@@ -96,6 +155,27 @@ public class FishTankBlockEntity extends BlockEntity {
                 sandBlock = BuiltInRegistries.BLOCK.get(blockId);
             } else {
                 sandBlock = Blocks.SAND; // Graceful fallback
+            }
+        }
+
+        // Load glass block
+        if (tag.contains("GlassBlock")) {
+            ResourceLocation blockId = ResourceLocation.tryParse(tag.getString("GlassBlock"));
+            if (blockId != null && BuiltInRegistries.BLOCK.containsKey(blockId)) {
+                glassBlock = BuiltInRegistries.BLOCK.get(blockId);
+            } else {
+                glassBlock = Blocks.BLUE_STAINED_GLASS; // Graceful fallback
+            }
+        }
+
+        // Load open faces
+        if (tag.contains("OpenFaces")) {
+            int openFacesBits = tag.getInt("OpenFaces");
+            openFaces.clear();
+            for (Direction dir : Direction.values()) {
+                if ((openFacesBits & (1 << dir.ordinal())) != 0) {
+                    openFaces.add(dir);
+                }
             }
         }
 
