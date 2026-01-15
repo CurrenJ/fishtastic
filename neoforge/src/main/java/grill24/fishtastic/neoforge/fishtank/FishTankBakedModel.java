@@ -39,6 +39,8 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import static grill24.fishtastic.util.Utility.ft;
+
 public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     // Cache structure to hold both frame and sand models
     static class CompositeModelData {
@@ -97,26 +99,28 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
      * Get a composite model, generating it on-demand if it doesn't exist yet.
      */
     private CompositeModelData getOrGenerateCompositeModel(FishTankModelData data) {
-        Fishtastic.LOGGER.info("Looking up composite model for frame={}, sand={}",
-            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
-
         // Check if we already have it pre-baked
         CompositeModelData composite = bakedFishTankModels.get(data);
         if (composite != null) {
-            Fishtastic.LOGGER.info("Found pre-baked composite model");
+            Fishtastic.LOGGER.info("Found pre-baked composite model for frame={}, sand={}",
+                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
             return composite;
         }
 
         // Check on-demand cache
         composite = onDemandCache.get(data);
         if (composite != null) {
-            Fishtastic.LOGGER.info("Found cached on-demand composite model");
+            Fishtastic.LOGGER.info("Found cached on-demand composite model for frame={}, sand={}",
+                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
             return composite;
         }
 
         // Generate on-demand
-        Fishtastic.LOGGER.info("Generating composite model on-demand");
+        Fishtastic.LOGGER.info("Generating composite model on-demand for frame={}, sand={}",
+            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
         try {
             composite = generateCompositeModel(data);
             if (composite != null) {
@@ -130,7 +134,9 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         }
 
         // Fallback to default
-        Fishtastic.LOGGER.warn("Using fallback default composite model");
+        Fishtastic.LOGGER.warn("Using fallback default composite model for frame={}, sand={}",
+            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
         return bakedFishTankModels.get(FishTankModelData.DEFAULT);
     }
 
@@ -199,8 +205,8 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     public static @org.jetbrains.annotations.Nullable ResourceLocation getBaseModel(String modelType) {
         ResourceLocation parent;
         switch (modelType) {
-            case "frame" -> parent = ResourceLocation.withDefaultNamespace("block/stairs");
-            case "sand" -> parent = ResourceLocation.withDefaultNamespace("block/slab");
+            case "frame" -> parent = ft("block/fish_tank_frame");
+            case "sand" -> parent = ft("block/fish_tank_sand");
             default -> {
                 Fishtastic.LOGGER.error("Unknown model type '{}' for Fish Tank model generation", modelType);
                 return null;
@@ -227,9 +233,7 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         }
 
         // Convert ResourceLocations to Materials (the format BlockModel expects)
-        map.put("side", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
-        map.put("bottom", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
-        map.put("top", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
+        map.put("all", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
 
         return map;
     }
