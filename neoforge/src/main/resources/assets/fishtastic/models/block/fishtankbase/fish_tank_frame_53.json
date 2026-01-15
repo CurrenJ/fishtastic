@@ -73,24 +73,6 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
-        "east": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            15
-          ]
-        },
         "north": {
           "texture": "#glass",
           "uv": [
@@ -106,24 +88,6 @@
             0,
             0,
             16,
-            15
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
-        "west": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
             15
           ]
         }

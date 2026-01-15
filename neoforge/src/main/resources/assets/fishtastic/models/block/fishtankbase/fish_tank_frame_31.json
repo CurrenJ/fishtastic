@@ -4,48 +4,12 @@
   "elements": [
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
         "east": {
           "texture": "#glass",
           "uv": [
             0,
             0,
             16,
-            16
-          ]
-        },
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
             16
           ]
         },

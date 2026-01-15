@@ -176,6 +176,7 @@ public class FishTankFrameModelProvider implements DataProvider {
      * Create a corner support pillar.
      * Height is adjusted based on whether floor/ceiling are present.
      * Each face uses glass texture if the adjacent edge is open, frame texture otherwise.
+     * Only renders the 2 large outward-facing sides for glass faces (not the thin internal strips).
      */
     private JsonObject createSupport(int x, int z, Set<Direction> openFaces) {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
@@ -189,22 +190,55 @@ public class FishTankFrameModelProvider implements DataProvider {
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
 
-        // Each face uses glass if the adjacent edge is open, frame otherwise. Using x,z direction, set for all tex uvs.
-        // convert x and z to directions
+        // Each face uses glass if the adjacent edge is open, frame texture otherwise
+        // For glass faces, only render the 2 large outward-facing sides
         Direction northDir = (z == 0) ? Direction.NORTH : Direction.SOUTH;
         Direction westDir = (x == 0) ? Direction.WEST : Direction.EAST;
 
-        String tex = "#frame";
-        if(openFaces.contains(northDir) || openFaces.contains(westDir)) {
-            tex = "#glass";
+        boolean northFaceOpen = openFaces.contains(northDir);
+        boolean westFaceOpen = openFaces.contains(westDir);
+
+        // Only add the 2 outward-facing large faces
+        if (z == 0) {
+            // NW or NE corner - render north face if open
+            if (northFaceOpen) {
+                faces.add("north", createFace(0, 0, 1, heightUV, "#glass"));
+            } else {
+                faces.add("north", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("south", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("up", createFace(0, 0, 1, 1, "#frame"));
+                faces.add("down", createFace(0, 0, 1, 1, "#frame"));
+            }
+        } else {
+            // SW or SE corner - render south face if open
+            if (northFaceOpen) {
+                faces.add("south", createFace(0, 0, 1, heightUV, "#glass"));
+            } else {
+                faces.add("north", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("south", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("up", createFace(0, 0, 1, 1, "#frame"));
+                faces.add("down", createFace(0, 0, 1, 1, "#frame"));
+            }
         }
 
-        faces.add("north", createFace(0, 0, 1, heightUV, tex));
-        faces.add("east", createFace(0, 0, 1, heightUV, tex));
-        faces.add("south", createFace(0, 0, 1, heightUV, tex));
-        faces.add("west", createFace(0, 0, 1, heightUV, tex));
-        faces.add("up", createFace(0, 0, 1, 1, tex));
-        faces.add("down", createFace(0, 0, 1, 1, tex));
+        if (x == 0) {
+            // NW or SW corner - render west face if open
+            if (westFaceOpen) {
+                faces.add("west", createFace(0, 0, 1, heightUV, "#glass"));
+            } else if (!northFaceOpen) {
+                faces.add("west", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("east", createFace(0, 0, 1, heightUV, "#frame"));
+            }
+        } else {
+            // NE or SE corner - render east face if open
+            if (westFaceOpen) {
+                faces.add("east", createFace(0, 0, 1, heightUV, "#glass"));
+            } else if (!northFaceOpen) {
+                faces.add("west", createFace(0, 0, 1, heightUV, "#frame"));
+                faces.add("east", createFace(0, 0, 1, heightUV, "#frame"));
+            }
+        }
+
         element.add("faces", faces);
 
         return element;
@@ -213,6 +247,7 @@ public class FishTankFrameModelProvider implements DataProvider {
     /**
      * Create horizontal edge frame for the north face (between corners).
      * Extends to corners if adjacent perpendicular edges are open.
+     * Only renders the 2 large flat faces (not the thin internal strips).
      */
     private JsonObject createNorthEdge(Set<Direction> openFaces) {
         int minY = openFaces.contains(Direction.DOWN) ? 0 : 1;
@@ -229,12 +264,9 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
+        // Only render the 2 large flat faces (north and south)
         faces.add("north", createFace(minX, 0, maxX, heightUV, "#glass"));
-        faces.add("east", createFace(0, 0, 1, heightUV, "#glass"));
         faces.add("south", createFace(minX, 0, maxX, heightUV, "#glass"));
-        faces.add("west", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("up", createFace(minX, 0, maxX, 1, "#glass"));
-        faces.add("down", createFace(minX, 0, maxX, 1, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -255,12 +287,9 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
+        // Only render the 2 large flat faces (north and south)
         faces.add("north", createFace(minX, 0, maxX, heightUV, "#glass"));
-        faces.add("east", createFace(0, 0, 1, heightUV, "#glass"));
         faces.add("south", createFace(minX, 0, maxX, heightUV, "#glass"));
-        faces.add("west", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("up", createFace(minX, 0, maxX, 1, "#glass"));
-        faces.add("down", createFace(minX, 0, maxX, 1, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -281,12 +310,9 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
-        faces.add("north", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
-        faces.add("south", createFace(0, 0, 1, heightUV, "#glass"));
+        // Only render the 2 large flat faces (west and east)
         faces.add("west", createFace(minZ, 0, maxZ, heightUV, "#glass"));
-        faces.add("up", createFace(0, minZ, 1, maxZ, "#glass"));
-        faces.add("down", createFace(0, minZ, 1, maxZ, "#glass"));
+        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
         element.add("faces", faces);
 
         return element;
@@ -307,12 +333,9 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         JsonObject faces = new JsonObject();
         int heightUV = maxY - minY;
-        faces.add("north", createFace(0, 0, 1, heightUV, "#glass"));
-        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
-        faces.add("south", createFace(0, 0, 1, heightUV, "#glass"));
+        // Only render the 2 large flat faces (west and east)
         faces.add("west", createFace(minZ, 0, maxZ, heightUV, "#glass"));
-        faces.add("up", createFace(0, minZ, 1, maxZ, "#glass"));
-        faces.add("down", createFace(0, minZ, 1, maxZ, "#glass"));
+        faces.add("east", createFace(minZ, 0, maxZ, heightUV, "#glass"));
         element.add("faces", faces);
 
         return element;

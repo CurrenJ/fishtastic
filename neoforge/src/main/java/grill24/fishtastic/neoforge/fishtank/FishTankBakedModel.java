@@ -158,9 +158,10 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
             BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
         BakedModel frameModel = generateFrameModelForBlock(frameBlock, glassBlock, permutationIndex);
 
-        // Generate sand model (always the same)
-        Fishtastic.LOGGER.info("Generating SAND model for block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
-        BakedModel sandModel = generateModelForBlock(sandBlock, "sand");
+        // Generate sand model with correct permutation
+        Fishtastic.LOGGER.info("Generating SAND model for block {} with permutation {}",
+            BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex);
+        BakedModel sandModel = generateSandModelForBlock(sandBlock, permutationIndex);
 
         if (frameModel == null || sandModel == null) {
             Fishtastic.LOGGER.error("Failed to generate one or both models: frame={}, sand={}",
@@ -200,6 +201,35 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Failed to generate frame model for block {} with glass {} and permutation {}",
                 BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a sand model for a specific block with a given permutation index.
+     */
+    private BakedModel generateSandModelForBlock(Block sandBlock, int permutationIndex) {
+        try {
+            var blockModel = (BlockModel) modelGetter.apply(
+                ModelLocationUtils.getModelLocation(sandBlock));
+
+            // Build texture map with sand block textures
+            var textureMap = buildTextureMap(blockModel.textureMap);
+
+            // Use the permutation-specific sand model
+            ResourceLocation parent = ft("block/fishtankbase/fish_tank_sand_" + permutationIndex);
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[sand:" + BuiltInRegistries.BLOCK.getKey(sandBlock) +
+                "_p" + permutationIndex + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate sand model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex, e);
             return null;
         }
     }

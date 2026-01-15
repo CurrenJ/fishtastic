@@ -280,24 +280,6 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            1,
-            0,
-            15,
-            1
-          ]
-        },
-        "east": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            14
-          ]
-        },
         "north": {
           "texture": "#glass",
           "uv": [
@@ -313,24 +295,6 @@
             1,
             0,
             15,
-            14
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            1,
-            0,
-            15,
-            1
-          ]
-        },
-        "west": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
             14
           ]
         }
@@ -349,15 +313,6 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            15
-          ]
-        },
         "east": {
           "texture": "#glass",
           "uv": [
@@ -365,33 +320,6 @@
             0,
             15,
             14
-          ]
-        },
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            14
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            14
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            15
           ]
         },
         "west": {
@@ -418,15 +346,6 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            15
-          ]
-        },
         "east": {
           "texture": "#glass",
           "uv": [
@@ -434,33 +353,6 @@
             0,
             15,
             14
-          ]
-        },
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            14
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            14
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            15
           ]
         },
         "west": {

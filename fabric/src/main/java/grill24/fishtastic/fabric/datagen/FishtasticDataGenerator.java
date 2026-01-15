@@ -14,5 +14,6 @@ public class FishtasticDataGenerator implements DataGeneratorEntrypoint {
         FabricDataGenerator.Pack pack = fabricDataGenerator.createPack();
         pack.addProvider(FishtasticModelProvider::new);
         pack.addProvider(FishTankFrameModelProvider::new);
+        pack.addProvider(FishTankSandModelProvider::new);
     }
 }

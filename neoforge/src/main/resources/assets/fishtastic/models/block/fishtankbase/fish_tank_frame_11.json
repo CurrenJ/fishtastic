@@ -142,24 +142,6 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            1,
-            0,
-            15,
-            1
-          ]
-        },
-        "east": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
         "north": {
           "texture": "#glass",
           "uv": [
@@ -175,24 +157,6 @@
             1,
             0,
             15,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            1,
-            0,
-            15,
-            1
-          ]
-        },
-        "west": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
             16
           ]
         }
@@ -211,48 +175,12 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            1,
-            1,
-            16
-          ]
-        },
         "east": {
           "texture": "#glass",
           "uv": [
             1,
             0,
             16,
-            16
-          ]
-        },
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            1,
-            1,
             16
           ]
         },
@@ -280,48 +208,12 @@
     },
     {
       "faces": {
-        "down": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            1,
-            1,
-            16
-          ]
-        },
         "east": {
           "texture": "#glass",
           "uv": [
             1,
             0,
             16,
-            16
-          ]
-        },
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            1,
-            16
-          ]
-        },
-        "up": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            1,
-            1,
             16
           ]
         },

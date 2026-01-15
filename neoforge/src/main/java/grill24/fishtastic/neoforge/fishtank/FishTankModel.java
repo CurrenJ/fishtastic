@@ -90,8 +90,8 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                 // Generate all 64 permutations of frame models for this block
                 for (int permutation = 0; permutation < 64; permutation++) {
                     BakedModel frameModel = generateFrameModelForBlock(frameBlock, Blocks.BLUE_STAINED_GLASS, bakery, spriteGetter, modelState, permutation);
-                    // For pre-generation, use default sand block (can be changed at runtime)
-                    BakedModel sandModel = generateModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, "sand");
+                    // Generate sand model with the same permutation index
+                    BakedModel sandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, permutation);
 
                     if (frameModel != null && sandModel != null) {
                         var composite = new FishTankBakedModel.CompositeModelData(frameModel, sandModel);
@@ -106,7 +106,7 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {
             Fishtastic.LOGGER.info("Pre-generating default Fish Tank model");
             BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, Blocks.BLUE_STAINED_GLASS, bakery, spriteGetter, modelState, 0);
-            BakedModel defaultSandModel = generateModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, "sand");
+            BakedModel defaultSandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, 0);
 
             if (defaultFrameModel != null && defaultSandModel != null) {
                 var composite = new FishTankBakedModel.CompositeModelData(defaultFrameModel, defaultSandModel);
@@ -128,6 +128,8 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
      * Generate a frame model for a specific block with a given permutation index.
      */
     private static final String FRAME_MODELS_LOCATION = "block/fishtankbase/fish_tank_frame_";
+    private static final String SAND_MODELS_LOCATION = "block/fishtankbase/fish_tank_sand_";
+
     BakedModel generateFrameModelForBlock(Block frameBlock, Block glassBlock, ModelBaker bakery,
                                           Function<Material, TextureAtlasSprite> spriteGetter,
                                           ModelState modelState, int permutationIndex) {
@@ -151,6 +153,35 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Failed to generate Fish Tank frame model for block {} with glass {} and permutation {}",
                 BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a sand model for a specific block with a given permutation index.
+     */
+    BakedModel generateSandModelForBlock(Block sandBlock, ModelBaker bakery,
+                                         Function<Material, TextureAtlasSprite> spriteGetter,
+                                         ModelState modelState, int permutationIndex) {
+        try {
+            var blockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(sandBlock));
+
+            var textureMap = buildTextureMap(blockModel.textureMap);
+
+            // Use the permutation-specific sand model
+            ResourceLocation parent = ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, SAND_MODELS_LOCATION + permutationIndex);
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[sand:" + BuiltInRegistries.BLOCK.getKey(sandBlock) +
+                "_p" + permutationIndex + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate Fish Tank sand model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex, e);
             return null;
         }
     }
