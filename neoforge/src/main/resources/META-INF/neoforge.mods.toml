@@ -35,4 +35,7 @@ ordering = "BEFORE"
 side = "BOTH"
 
 [[mixins]]
+config = "fishtastic.mixins.json"
+
+[[mixins]]
 config = "fishtastic-neoforge.mixins.json"
