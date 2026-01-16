@@ -18,7 +18,9 @@
     "main": [
       "grill24.fishtastic.fabric.FishtasticFabric"
     ],
-    "client": [],
+    "client": [
+      "grill24.fishtastic.fabric.FishtasticFabricClient"
+    ],
     "fabric-datagen": [
       "grill24.fishtastic.fabric.datagen.FishtasticDataGenerator"
     ],

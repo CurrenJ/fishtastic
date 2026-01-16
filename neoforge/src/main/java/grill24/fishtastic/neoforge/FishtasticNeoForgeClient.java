@@ -1,17 +1,25 @@
 package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
+import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.RegisterNamedRenderTypesEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 import static grill24.fishtastic.util.Utility.ft;
 
@@ -23,11 +31,23 @@ public final class FishtasticNeoForgeClient {
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
+
+        // Register client tick event handler
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
         event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE);
         Fishtastic.LOGGER.info("Fishtastic model loaders registered.");
+    }
+
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(
+            (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
+            FishTankBlockEntityRenderer::new
+        );
+        Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
     }
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
@@ -36,5 +56,13 @@ public final class FishtasticNeoForgeClient {
             // Example: Make a block render with cutout transparency
             ItemBlockRenderTypes.setRenderLayer(FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), RenderType.translucent());
         });
+    }
+
+    public static void onClientTick(ClientTickEvent.Pre event) {
+        // Update tick counter for animations
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null && !mc.isPaused()) {
+            ClientTickHandler.tick(1.0f);
+        }
     }
 }

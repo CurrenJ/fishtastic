@@ -92,30 +92,22 @@ public class FishTankBlock extends Block implements EntityBlock {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity fishTank) {
-                // Get all blocks from configured tags via platform API
-                List<Block> availableFrameBlocks = RegistrationApiSided.getInstance().getConfiguredFrameBlocks();
-
-                if (!availableFrameBlocks.isEmpty()) {
-                    Block newBlock = availableFrameBlocks.get(level.random.nextInt(availableFrameBlocks.size()));
-
-                    // If sneaking, change sand block; otherwise change frame block
-                    if (player.isShiftKeyDown()) {
-                        fishTank.setSandBlock(newBlock);
-                        player.displayClientMessage(
-                            Component.literal("Fish tank sand changed to: " +
-                                BuiltInRegistries.BLOCK.getKey(newBlock)),
-                            true
-                        );
-                    } else {
-                        fishTank.setFrameBlock(newBlock);
-                        player.displayClientMessage(
-                            Component.literal("Fish tank frame changed to: " +
-                                BuiltInRegistries.BLOCK.getKey(newBlock)),
-                            true
-                        );
+                ItemStack extracted = fishTank.extractItem();
+                if (!extracted.isEmpty()) {
+                    // Give the item to the player or drop it
+                    if (!player.getInventory().add(extracted)) {
+                        player.drop(extracted, false);
                     }
-
+                    player.displayClientMessage(
+                        Component.literal("Removed item from fish tank"),
+                        true
+                    );
                     return InteractionResult.SUCCESS;
+                } else {
+                    player.displayClientMessage(
+                        Component.literal("Fish tank is empty"),
+                        true
+                    );
                 }
             }
         }
@@ -125,18 +117,18 @@ public class FishTankBlock extends Block implements EntityBlock {
     @Override
     protected ItemInteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
         if (!level.isClientSide) {
-            // Check if the player is holding a block item
-            if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
-                Block heldBlock = blockItem.getBlock();
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof FishTankBlockEntity fishTank) {
+                // Check if the player is holding a block item
+                if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
+                    Block heldBlock = blockItem.getBlock();
 
-                BlockEntity be = level.getBlockEntity(blockPos);
-                if (be instanceof FishTankBlockEntity fishTank) {
                     // Get the hit position relative to the block
                     double relativeY = blockHitResult.getLocation().y - blockPos.getY();
 
-                    // Top 3/4 of the block (y > 0.25) sets frame block
-                    // Bottom 1/4 of the block (y <= 0.25) sets sand block
-                    if (relativeY > 0.25) {
+                    // Top 2/4 of the block (y > 0.33) sets frame block
+                    // Bottom 1/4 of the block (y <= 0.33) sets sand block
+                    if (relativeY > 0.33) {
                         fishTank.setFrameBlock(heldBlock);
                         player.displayClientMessage(
                             Component.literal("Fish tank frame changed to: " +
@@ -153,9 +145,61 @@ public class FishTankBlock extends Block implements EntityBlock {
                     }
 
                     return ItemInteractionResult.SUCCESS;
+                } else if (!itemStack.isEmpty()) {
+                    // Non-block item - try to add it to the tank
+                    ItemStack toAdd = itemStack.copy();
+                    toAdd.setCount(1);
+
+                    // Calculate the rotation based on player's position relative to the block
+                    float rotation = calculateRotationTowardPlayer(player, blockPos);
+
+                    if (fishTank.addItem(toAdd, rotation)) {
+                        itemStack.shrink(1);
+                        player.displayClientMessage(
+                            Component.literal("Added item to fish tank"),
+                            true
+                        );
+                        return ItemInteractionResult.SUCCESS;
+                    } else {
+                        player.displayClientMessage(
+                            Component.literal("Fish tank is full"),
+                            true
+                        );
+                        return ItemInteractionResult.FAIL;
+                    }
                 }
             }
         }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    /**
+     * Calculate the Y-axis rotation angle for an item to face toward the player.
+     * Returns angle in degrees.
+     */
+    private float calculateRotationTowardPlayer(Player player, BlockPos blockPos) {
+        // Get the center of the block
+        double blockCenterX = blockPos.getX() + 0.5;
+        double blockCenterZ = blockPos.getZ() + 0.5;
+
+        // Get player position
+        double playerX = player.getX();
+        double playerZ = player.getZ();
+
+        // Calculate direction vector from block to player
+        double dx = playerX - blockCenterX;
+        double dz = playerZ - blockCenterZ;
+
+        // Calculate angle in radians, then convert to degrees
+        // atan2 gives us the angle from the positive X axis
+        // We need to adjust because Minecraft's rotation is different
+        double angleRadians = Math.atan2(dz, dx);
+        float angleDegrees = (float) Math.toDegrees(angleRadians);
+
+        // Adjust to face the player (add 90 degrees because of Minecraft's coordinate system)
+        // In Minecraft, 0 degrees is south (+Z), 90 is west (-X), 180 is north (-Z), 270 is east (+X)
+        angleDegrees = -angleDegrees + 90f;
+
+        return angleDegrees;
     }
 }

@@ -6,12 +6,17 @@ import grill24.fishtastic.architectury.RegistrationApiSided;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -22,7 +27,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 import java.util.Set;
 
-public class FishTankBlockEntity extends BlockEntity {
+public class FishTankBlockEntity extends BlockEntity implements Container {
+    public static final int CONTAINER_SIZE = 27; // 3x9 slots like a chest
+
     public FishTankBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(FishtasticBlockEntityTypes.FISH_TANK.value(), blockPos, blockState);
     }
@@ -38,6 +45,12 @@ public class FishTankBlockEntity extends BlockEntity {
 
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
+
+    // Item storage
+    private NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
+
+    // Store the rotation (in degrees) for the first item based on player direction when placed
+    private float firstItemRotation = 0f;
 
     /**
      * Get the frame block for this fish tank.
@@ -176,6 +189,21 @@ public class FishTankBlockEntity extends BlockEntity {
             openFacesBits |= (1 << dir.ordinal());
         }
         tag.putInt("OpenFaces", openFacesBits);
+
+        // Save items
+        CompoundTag itemsTag = new CompoundTag();
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            if (!stack.isEmpty()) {
+                Tag itemTag = new CompoundTag();
+                itemTag = stack.save(registries, itemTag);
+                itemsTag.put(String.valueOf(i), itemTag);
+            }
+        }
+        tag.put("Items", itemsTag);
+
+        // Save first item rotation
+        tag.putFloat("FirstItemRotation", firstItemRotation);
     }
 
     @Override
@@ -223,6 +251,33 @@ public class FishTankBlockEntity extends BlockEntity {
             }
         }
 
+        // Load items
+        // Initialize all slots to empty first
+        for (int i = 0; i < CONTAINER_SIZE; i++) {
+            items.set(i, ItemStack.EMPTY);
+        }
+        if (tag.contains("Items")) {
+            CompoundTag itemsTag = tag.getCompound("Items");
+            for (String key : itemsTag.getAllKeys()) {
+                try {
+                    int slot = Integer.parseInt(key);
+                    if (slot >= 0 && slot < CONTAINER_SIZE) {
+                        ItemStack stack = ItemStack.parse(registries, itemsTag.getCompound(key)).orElse(ItemStack.EMPTY);
+                        items.set(slot, stack);
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore invalid keys
+                }
+            }
+        }
+
+        // Load first item rotation
+        if (tag.contains("FirstItemRotation")) {
+            firstItemRotation = tag.getFloat("FirstItemRotation");
+        } else {
+            firstItemRotation = 0f;
+        }
+
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
@@ -235,6 +290,189 @@ public class FishTankBlockEntity extends BlockEntity {
     @Nullable
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    // Container interface methods
+    @Override
+    public int getContainerSize() {
+        return CONTAINER_SIZE;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        for (ItemStack stack : items) {
+            if (!stack.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public ItemStack getItem(int slot) {
+        if (slot >= 0 && slot < items.size()) {
+            return items.get(slot);
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public ItemStack removeItem(int slot, int amount) {
+        ItemStack stack = getItem(slot);
+        if (!stack.isEmpty()) {
+            ItemStack result = stack.split(amount);
+            if (stack.isEmpty()) {
+                items.set(slot, ItemStack.EMPTY);
+            }
+            setChanged();
+            if (level != null && !level.isClientSide) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            }
+            return result;
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public ItemStack removeItemNoUpdate(int slot) {
+        if (slot >= 0 && slot < items.size()) {
+            ItemStack stack = items.get(slot);
+            items.set(slot, ItemStack.EMPTY);
+            return stack;
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public void setItem(int slot, ItemStack stack) {
+        if (slot >= 0 && slot < items.size()) {
+            items.set(slot, stack);
+            if (!stack.isEmpty() && stack.getCount() > getMaxStackSize()) {
+                stack.setCount(getMaxStackSize());
+            }
+            setChanged();
+            if (level != null && !level.isClientSide) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            }
+        }
+    }
+
+    @Override
+    public boolean stillValid(Player player) {
+        if (level == null || level.getBlockEntity(worldPosition) != this) {
+            return false;
+        }
+        return player.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 64.0;
+    }
+
+    @Override
+    public void clearContent() {
+        for (int i = 0; i < CONTAINER_SIZE; i++) {
+            items.set(i, ItemStack.EMPTY);
+        }
+        setChanged();
+    }
+
+    /**
+     * Try to add an item to the tank. Returns true if successful.
+     */
+    public boolean addItem(ItemStack stack) {
+        return addItem(stack, 0f);
+    }
+
+    /**
+     * Try to add an item to the tank with a specific rotation. Returns true if successful.
+     */
+    public boolean addItem(ItemStack stack, float rotation) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        // Try to merge with existing stacks first
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack existing = items.get(i);
+            if (!existing.isEmpty() && ItemStack.isSameItemSameComponents(existing, stack)) {
+                int maxStackSize = Math.min(getMaxStackSize(), stack.getMaxStackSize());
+                int canAdd = maxStackSize - existing.getCount();
+                if (canAdd > 0) {
+                    int toAdd = Math.min(canAdd, stack.getCount());
+                    existing.grow(toAdd);
+                    stack.shrink(toAdd);
+                    setChanged();
+                    if (level != null && !level.isClientSide) {
+                        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+                    }
+                    if (stack.isEmpty()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Try to find an empty slot
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).isEmpty()) {
+                items.set(i, stack.copy());
+                // Store rotation only for the first slot (slot 0)
+                if (i == 0) {
+                    firstItemRotation = rotation;
+                }
+                stack.setCount(0);
+                setChanged();
+                if (level != null && !level.isClientSide) {
+                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Remove one item from the tank. Returns the removed item or ItemStack.EMPTY if empty.
+     */
+    public ItemStack extractItem() {
+        // Find the first non-empty slot
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            if (!stack.isEmpty()) {
+                ItemStack result = stack.copy();
+                items.set(i, ItemStack.EMPTY);
+                setChanged();
+                if (level != null && !level.isClientSide) {
+                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+                }
+                return result;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    /**
+     * Check if the tank has any items
+     */
+    public boolean hasItems() {
+        return !isEmpty();
+    }
+
+    /**
+     * Get the first non-empty item for rendering
+     */
+    public ItemStack getFirstItem() {
+        for (ItemStack stack : items) {
+            if (!stack.isEmpty()) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    /**
+     * Get the rotation angle for the first item
+     */
+    public float getFirstItemRotation() {
+        return firstItemRotation;
     }
 
 }
