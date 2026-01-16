@@ -12,9 +12,11 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
     private final ItemStack itemStack;
     private int tickCount = 0;
     private static final int ANIMATION_DURATION = 200; // 3 seconds at 20 ticks/second
+    private final FishingMinigameState minigameState;
 
     public TestItemActivationAnimation(ItemStack itemStack) {
         this.itemStack = itemStack;
+        this.minigameState = new FishingMinigameState();
     }
 
     @Override
@@ -25,9 +27,25 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
     @Override
     public void tick() {
         tickCount++;
+        minigameState.tick();
 
         // Recognize key press for debugging purposes
         // (In a real implementation, input handling would be elsewhere)
+    }
+
+    /**
+     * Applies an upward impulse to the bobber (player interaction)
+     */
+    public void applyPlayerImpulse() {
+        minigameState.applyImpulse();
+    }
+
+    /**
+     * Gets the current minigame state
+     * @return The fishing minigame state object
+     */
+    public FishingMinigameState getMinigameState() {
+        return minigameState;
     }
 
     @Override
@@ -44,7 +62,7 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         int y = screenHeight / 2;
 
         guiGraphics.pose().pushPose();
-        float angle = progress * 360.0f;
+        float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
 
         guiGraphics.pose().translate(x, y, 0);
 
@@ -54,9 +72,8 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         renderItem(BAR, guiGraphics, minecraft, angle, 0);
 
         float maxYOffset = 19f / 32f; // Max Y offset in item texture units
-        // sin wave for bobbing effect
-        float yOffset = (float) Math.sin(progress * Math.PI * 4) * 0.5f + 0.5f; // Normalize to 0-1
-        yOffset *= maxYOffset;
+        // Use physics-based bobber position from minigame state with interpolation for smooth rendering
+        float yOffset = minigameState.getInterpolatedBobberPosition(partialTick) * maxYOffset;
         guiGraphics.pose().translate(0, -yOffset, 0);
         renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
 

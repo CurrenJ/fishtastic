@@ -27,8 +27,13 @@ public class TestItem extends Item {
 
             // Check if there's an active animation
             if (gameRendererExt.fishtastic$getActiveAnimation() != null) {
-                // Cancel the current animation
-                gameRendererExt.fishtastic$cancelCurrentAnimation();
+                // If the active animation is a TestItemActivationAnimation, apply impulse to it
+                if (gameRendererExt.fishtastic$getActiveAnimation() instanceof TestItemActivationAnimation testAnimation) {
+                    testAnimation.applyPlayerImpulse();
+                } else {
+                    // Cancel other animation types
+                    gameRendererExt.fishtastic$cancelCurrentAnimation();
+                }
             } else {
                 // Start a new animation
                 TestItemActivationAnimation animation = new TestItemActivationAnimation(itemStack.copy());
