@@ -1,8 +1,12 @@
 package grill24.fishtastic.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Manages the state and physics of the fishing minigame.
  * Tracks bobber position (0-1 range) with gravity, acceleration, and bounciness.
+ * Manages multiple fishing targets that move along the bar.
  */
 public class FishingMinigameState {
     // Physics constants
@@ -11,22 +15,36 @@ public class FishingMinigameState {
     private static final float IMPULSE_STRENGTH = 0.04f; // Upward impulse when player uses item
     private static final float FRICTION = 0.986f; // Velocity dampening per tick
 
+    // Catch progress constants
+    private static final float CATCH_PROGRESS_GAIN = 0.01f; // Progress gain per tick when item is in bobber
+    private static final float CATCH_PROGRESS_LOSS = 0.005f; // Progress loss per tick when item is outside bobber
+
     // Bobber state
+    private static final float BOBBER_SIZE = 9 / 28f; // Size of the bobber (normalized to max valid bobber bar length) for collision calculations
     private float bobberPosition; // 0 = default/bottom, 1 = max/top
     private float bobberVelocity; // Velocity in position units per tick
     private float previousVelocity; // Velocity from previous tick for smooth interpolation
 
+    // Catch progress state
+    private float catchProgress; // 0 = no progress, 1 = caught (item should be caught)
+
+    // Target management
+    private final List<FishingTarget> targets;
+
     // Boundaries
     private static final float MIN_POSITION = 0.0f;
-    private static final float MAX_POSITION = 1.0f;
+    private static float MAX_POSITION = 1.0f;
 
     /**
      * Creates a new fishing minigame state with bobber at default position
      */
     public FishingMinigameState() {
+        MAX_POSITION = 1.0f - BOBBER_SIZE;
         this.bobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.previousVelocity = 0.0f;
+        this.catchProgress = 0.0f;
+        this.targets = new ArrayList<>();
     }
 
     /**
@@ -34,9 +52,12 @@ public class FishingMinigameState {
      * @param initialPosition Initial bobber position (0-1)
      */
     public FishingMinigameState(float initialPosition) {
+        MAX_POSITION = 1.0f - BOBBER_SIZE;
         this.bobberPosition = Math.max(MIN_POSITION, Math.min(MAX_POSITION, initialPosition));
         this.bobberVelocity = 0.0f;
         this.previousVelocity = 0.0f;
+        this.catchProgress = 0.0f;
+        this.targets = new ArrayList<>();
     }
 
     /**
@@ -65,6 +86,11 @@ public class FishingMinigameState {
             bobberVelocity = -Math.abs(bobberVelocity) * BOUNCINESS; // Bounce down
             previousVelocity = bobberVelocity; // Update previous velocity to avoid interpolation snap
         }
+
+        // Update all targets
+        for (FishingTarget target : targets) {
+            target.tick();
+        }
     }
 
     /**
@@ -84,6 +110,37 @@ public class FishingMinigameState {
         // Update previous velocity to current before applying impulse to avoid snap
         previousVelocity = bobberVelocity;
         bobberVelocity += impulse;
+    }
+
+    /**
+     * Updates catch progress when item is inside the bobber
+     */
+    public void updateCatchProgress(boolean isItemInBobber) {
+        if (isItemInBobber) {
+            // Gain progress when item is in bobber
+            catchProgress += CATCH_PROGRESS_GAIN;
+            catchProgress = Math.min(1.0f, catchProgress);
+        } else {
+            // Lose progress when item is outside bobber
+            catchProgress -= CATCH_PROGRESS_LOSS;
+            catchProgress = Math.max(0.0f, catchProgress);
+        }
+    }
+
+    /**
+     * Gets the current catch progress
+     * @return Progress value between 0 (no progress) and 1 (caught)
+     */
+    public float getCatchProgress() {
+        return catchProgress;
+    }
+
+    /**
+     * Checks if the item has been caught (progress reached 1.0)
+     * @return true if catch progress is at maximum
+     */
+    public boolean isItemCaught() {
+        return catchProgress >= 1.0f;
     }
 
     /**
@@ -143,6 +200,10 @@ public class FishingMinigameState {
         this.bobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.previousVelocity = 0.0f;
+        this.catchProgress = 0.0f;
+        for (FishingTarget target : targets) {
+            target.reset();
+        }
     }
 
     /**
@@ -159,5 +220,49 @@ public class FishingMinigameState {
      */
     public boolean isAtTop() {
         return bobberPosition >= MAX_POSITION - 0.01f;
+    }
+
+    public float getBobberSize() {
+        return BOBBER_SIZE;
+    }
+
+    /**
+     * Adds a target to the minigame
+     * @param target The fishing target to add
+     */
+    public void addTarget(FishingTarget target) {
+        targets.add(target);
+    }
+
+    /**
+     * Removes a target from the minigame
+     * @param target The fishing target to remove
+     * @return true if the target was removed
+     */
+    public boolean removeTarget(FishingTarget target) {
+        return targets.remove(target);
+    }
+
+    /**
+     * Gets all targets in the minigame
+     * @return List of fishing targets
+     */
+    public List<FishingTarget> getTargets() {
+        return targets;
+    }
+
+    /**
+     * Clears all targets from the minigame
+     */
+    public void clearTargets() {
+        targets.clear();
+    }
+
+    /**
+     * Gets the number of targets
+     * @return The number of targets in the minigame
+     */
+    public int getTargetCount() {
+        return targets.size();
     }
 }

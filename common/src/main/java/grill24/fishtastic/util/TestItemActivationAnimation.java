@@ -3,20 +3,28 @@ package grill24.fishtastic.util;
 import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Vector2f;
+
+import java.util.Random;
 
 public class TestItemActivationAnimation implements ItemActivationAnimation {
     private final ItemStack itemStack;
     private int tickCount = 0;
-    private static final int ANIMATION_DURATION = 200; // 3 seconds at 20 ticks/second
+    private static final int ANIMATION_DURATION = 600; // 30 seconds at 20 TPS
     private final FishingMinigameState minigameState;
 
     public TestItemActivationAnimation(ItemStack itemStack) {
         this.itemStack = itemStack;
         this.minigameState = new FishingMinigameState();
+
+        // Add some example targets
+        Random random = new Random();
+        minigameState.addTarget(new FishingTarget(new ItemStack(Items.STONE), random, 0.3f));
+        minigameState.addTarget(new FishingTarget(new ItemStack(Items.DIAMOND), random, 0.6f));
+        minigameState.addTarget(new FishingTarget(new ItemStack(Items.GOLD_INGOT), random, 0.8f));
     }
 
     @Override
@@ -29,8 +37,17 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         tickCount++;
         minigameState.tick();
 
-        // Recognize key press for debugging purposes
-        // (In a real implementation, input handling would be elsewhere)
+        // Update catch progress for all targets based on collision
+        final float normalizedBobberMinY = minigameState.getBobberPosition();
+        final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
+
+        for (FishingTarget target : minigameState.getTargets()) {
+            float targetPosition = target.getPosition();
+            boolean isTargetWithinBobber =
+                    targetPosition >= normalizedBobberMinY &&
+                    targetPosition <= normalizedBobberMaxY;
+            target.updateCatchProgress(isTargetWithinBobber);
+        }
     }
 
     /**
@@ -66,16 +83,68 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
 
         guiGraphics.pose().translate(x, y, 0);
 
-        float scale = screenHeight / 2f;
+        float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale, scale);
 
         renderItem(BAR, guiGraphics, minecraft, angle, 0);
 
-        float maxYOffset = 19f / 32f; // Max Y offset in item texture units
+        guiGraphics.pose().pushPose();
+        float bobberMaxYOffset = 28f / 32f; // Max Y offset in item texture units
         // Use physics-based bobber position from minigame state with interpolation for smooth rendering
-        float yOffset = minigameState.getInterpolatedBobberPosition(partialTick) * maxYOffset;
+        float normalizedBobberPosition = minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
+        float yOffset = normalizedBobberPosition * bobberMaxYOffset;
         guiGraphics.pose().translate(0, -yOffset, 0);
         renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
+        guiGraphics.pose().popPose();
+
+//        guiGraphics.pose().pushPose();
+//        final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
+        // EXAMPLE OF RENDERING ITEM ON BAR
+//        final float itemYOffset = (float) Math.sin(progress * Math.PI * 4) * 0.5f; // -0.5 to 0.5
+//
+//        // Calculate scale based on catch progress - item shrinks as it's being caught
+//        float catchProgress = minigameState.getCatchProgress();
+//        float scaleMultiplier = 1.0f - (catchProgress * 0.8f); // Shrinks to 20% of original size at full progress
+//        final float itemScale = (2 / 16f) * scaleMultiplier;
+//
+//        guiGraphics.pose().translate(0, -itemYOffset * itemMaxYOffset, 2);
+//        guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+//        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+//        extension.fishtastic$renderItem(new ItemStack(Items.STONE), 0, 0);
+//        guiGraphics.pose().popPose();
+
+//        final float normalizedItemY = (itemYOffset + 0.5f) * (itemMaxYOffset / bobberMaxYOffset);
+//        final float normalizedBobberMinY = normalizedBobberPosition;
+//        final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
+//        boolean isItemWithinBobber =
+//                normalizedItemY >= normalizedBobberMinY &&
+//                normalizedItemY <= normalizedBobberMaxY;
+
+
+        // Render all targets from the minigame state
+        final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        int zOffset = 2;
+        for (FishingTarget target : minigameState.getTargets()) {
+            guiGraphics.pose().pushPose();
+
+            // Get interpolated position for smooth rendering
+            float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f; // -0.5 to 0.5 for correct position
+            float targetYOffset = targetPosition * itemMaxYOffset;
+
+            // Calculate scale based on catch progress - item shrinks as it's being caught
+            float catchProgress = target.getCatchProgress();
+            float scaleMultiplier = 1.0f - (catchProgress * 0.8f); // Shrinks to 20% of original size at full progress
+            final float itemScale = (2 / 16f) * scaleMultiplier;
+
+            guiGraphics.pose().translate(0, -targetYOffset, zOffset);
+            guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+            extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+
+            guiGraphics.pose().popPose();
+            zOffset++; // Increment z-offset for each target so they don't z-fight
+        }
 
         guiGraphics.pose().popPose();
 
