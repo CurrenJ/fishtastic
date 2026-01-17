@@ -4,10 +4,14 @@ import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.FastColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.joml.Quaternionf;
 import org.joml.Vector2f;
+import org.joml.Vector3f;
 
+import java.awt.*;
 import java.util.Random;
 
 public class TestItemActivationAnimation implements ItemActivationAnimation {
@@ -41,12 +45,31 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         final float normalizedBobberMinY = minigameState.getBobberPosition();
         final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
 
-        for (FishingTarget target : minigameState.getTargets()) {
+        // Use iterator to safely remove targets while iterating
+        var iterator = minigameState.getTargets().iterator();
+        boolean anyOngoing = false;
+        while (iterator.hasNext()) {
+            FishingTarget target = iterator.next();
             float targetPosition = target.getPosition();
             boolean isTargetWithinBobber =
                     targetPosition >= normalizedBobberMinY &&
                     targetPosition <= normalizedBobberMaxY;
             target.updateCatchProgress(isTargetWithinBobber);
+
+            // Check if target was caught or failed
+            if (target.isCaught()) {
+                iterator.remove();
+                // Target caught successfully - could add reward logic here
+            } else if (target.hasFailed()) {
+                iterator.remove();
+            } else {
+                anyOngoing = true;
+            }
+        }
+
+        if(!anyOngoing && minigameState.getTargets().isEmpty()) {
+            // End the animation if no targets are left
+            tickCount = ANIMATION_DURATION;
         }
     }
 
@@ -97,33 +120,14 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popPose();
 
-//        guiGraphics.pose().pushPose();
-//        final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
-        // EXAMPLE OF RENDERING ITEM ON BAR
-//        final float itemYOffset = (float) Math.sin(progress * Math.PI * 4) * 0.5f; // -0.5 to 0.5
-//
-//        // Calculate scale based on catch progress - item shrinks as it's being caught
-//        float catchProgress = minigameState.getCatchProgress();
-//        float scaleMultiplier = 1.0f - (catchProgress * 0.8f); // Shrinks to 20% of original size at full progress
-//        final float itemScale = (2 / 16f) * scaleMultiplier;
-//
-//        guiGraphics.pose().translate(0, -itemYOffset * itemMaxYOffset, 2);
-//        guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-//        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
-//        extension.fishtastic$renderItem(new ItemStack(Items.STONE), 0, 0);
-//        guiGraphics.pose().popPose();
-
-//        final float normalizedItemY = (itemYOffset + 0.5f) * (itemMaxYOffset / bobberMaxYOffset);
-//        final float normalizedBobberMinY = normalizedBobberPosition;
-//        final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
-//        boolean isItemWithinBobber =
-//                normalizedItemY >= normalizedBobberMinY &&
-//                normalizedItemY <= normalizedBobberMaxY;
-
 
         // Render all targets from the minigame state
         final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        // Calculate bobber bounds for shake effect
+        final float normalizedBobberMinY = minigameState.getBobberPosition();
+        final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
 
         int zOffset = 2;
         for (FishingTarget target : minigameState.getTargets()) {
@@ -133,14 +137,38 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
             float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f; // -0.5 to 0.5 for correct position
             float targetYOffset = targetPosition * itemMaxYOffset;
 
-            // Calculate scale based on catch progress - item shrinks as it's being caught
             float catchProgress = target.getCatchProgress();
-            float scaleMultiplier = 1.0f - (catchProgress * 0.8f); // Shrinks to 20% of original size at full progress
+
+            // Add shake effect only if target is currently being caught (within bobber)
+            float targetRawPosition = target.getInterpolatedPosition(partialTick);
+            boolean isTargetWithinBobber = targetRawPosition >= normalizedBobberMinY && targetRawPosition <= normalizedBobberMaxY;
+            float shakeAngle = 0f;
+            if (isTargetWithinBobber) {
+                float shakeOffset = target.getShakeOffset(partialTick);
+                targetYOffset += shakeOffset;
+                shakeAngle = (float) (Math.sin((tickCount + partialTick) * (0.25F + catchProgress)) * 10f - (2 * catchProgress)); // Shake angle
+            }
+
+            // Calculate scale based on catch progress
+            // Scale grows from 0.5 (at progress 0) to 2.0 (at progress 1)
+            // Base scale at 0.5 progress is 1.0
+            float scaleMultiplier = 0.5f + (catchProgress * 0.5f); // Range: 0.5 (at progress=0) to 2.0 (at progress=1)
             final float itemScale = (2 / 16f) * scaleMultiplier;
 
+            float prog = Math.max(0, (0.5f - catchProgress) * 2f); //
+            Vector3f color = Utility.interpolateColor(
+                    new Vector3f(1, 1, 1), // White at progress 0
+                    new Vector3f(1, 0.25f, 0.25f), // Light green at progress 1
+                    prog
+            );
+
+
             guiGraphics.pose().translate(0, -targetYOffset, zOffset);
+            guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(shakeAngle));
             guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+            guiGraphics.setColor(color.x, color.y, color.z, 1f);
             extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+            guiGraphics.setColor(1f, 1f, 1f, 1f);
 
             guiGraphics.pose().popPose();
             zOffset++; // Increment z-offset for each target so they don't z-fight
@@ -175,13 +203,17 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
     }
 
     private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics, Minecraft minecraft, float angle, int zOffset) {
+        renderItem(guiTextureItem, guiGraphics, minecraft, Axis.YP.rotationDegrees(angle), zOffset);
+    }
+
+    private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics, Minecraft minecraft, Quaternionf quaternion, int zOffset) {
         guiGraphics.pose().pushPose();
 
         Vector2f pivot = guiTextureItem.localPivot();
         guiGraphics.pose().translate(-pivot.x(), -pivot.y(), zOffset); // Adjust position so that pivot is center-origin
 
         guiGraphics.pose().translate(pivot.x(), pivot.y(), 0); // Translate to local pivot so that rotation occurs around pivot
-        guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(angle)); // Apply rotation
+        guiGraphics.pose().mulPose(quaternion); // Apply rotation
         guiGraphics.pose().translate(-pivot.x(), -pivot.y(), 0); // Translate back after rotation
 
         // Render the item

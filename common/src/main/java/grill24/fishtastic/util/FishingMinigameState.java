@@ -16,8 +16,8 @@ public class FishingMinigameState {
     private static final float FRICTION = 0.986f; // Velocity dampening per tick
 
     // Catch progress constants
-    private static final float CATCH_PROGRESS_GAIN = 0.01f; // Progress gain per tick when item is in bobber
-    private static final float CATCH_PROGRESS_LOSS = 0.005f; // Progress loss per tick when item is outside bobber
+    private static final float CATCH_PROGRESS_GAIN = 0.005f; // Progress gain per tick when item is in bobber
+    private static final float CATCH_PROGRESS_LOSS = 0.0005f; // Progress loss per tick when item is outside bobber
 
     // Bobber state
     private static final float BOBBER_SIZE = 9 / 28f; // Size of the bobber (normalized to max valid bobber bar length) for collision calculations

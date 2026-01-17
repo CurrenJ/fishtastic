@@ -33,6 +33,11 @@ public class FishingTarget {
     private float catchProgress;
     private static final float CATCH_PROGRESS_GAIN = 0.01f;
     private static final float CATCH_PROGRESS_LOSS = 0.005f;
+    private static final float INITIAL_CATCH_PROGRESS = 0.5f;
+
+    // Shaking effect for active capture
+    private static final float SHAKE_INTENSITY = 0.002f; // Maximum shake offset
+    private int shakeTick; // Counter for shake animation
 
     /**
      * Creates a new fishing target with a random initial position
@@ -48,7 +53,8 @@ public class FishingTarget {
         this.speed = 0;
         this.ticksSinceLastMove = 0;
         this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = 0.0f;
+        this.catchProgress = INITIAL_CATCH_PROGRESS;
+        this.shakeTick = 0;
     }
 
     /**
@@ -66,7 +72,8 @@ public class FishingTarget {
         this.speed = 0;
         this.ticksSinceLastMove = 0;
         this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = 0.0f;
+        this.catchProgress = INITIAL_CATCH_PROGRESS;
+        this.shakeTick = 0;
     }
 
     /**
@@ -76,6 +83,7 @@ public class FishingTarget {
         previousPosition = currentPosition;
 
         ticksSinceLastMove++;
+        shakeTick++; // Increment shake animation counter
 
         // Check if it's time to pick a new target position
         if (ticksSinceLastMove >= ticksUntilNextMove) {
@@ -171,7 +179,27 @@ public class FishingTarget {
     }
 
     /**
-     * Resets the target to a new random position with zero progress
+     * Checks if this target capture has failed
+     * @return true if catch progress is at minimum
+     */
+    public boolean hasFailed() {
+        return catchProgress <= 0.0f;
+    }
+
+    /**
+     * Gets the shake offset for rendering when being actively captured
+     * @param partialTick Progress between current and next tick (0-1)
+     * @return Shake offset value for Y position
+     */
+    public float getShakeOffset(float partialTick) {
+        // Calculate shake based on tick counter and partial tick
+        float totalTick = shakeTick + partialTick;
+        // Use sine wave for smooth shaking motion, frequency increases with progress
+        return (float) Math.sin(totalTick * 2) * SHAKE_INTENSITY;
+    }
+
+    /**
+     * Resets the target to a new random position with initial progress
      */
     public void reset() {
         this.currentPosition = random.nextFloat();
@@ -180,7 +208,8 @@ public class FishingTarget {
         this.speed = 0;
         this.ticksSinceLastMove = 0;
         this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = 0.0f;
+        this.catchProgress = INITIAL_CATCH_PROGRESS;
+        this.shakeTick = 0;
     }
 
     /**
