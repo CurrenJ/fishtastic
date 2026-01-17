@@ -1,17 +1,17 @@
 package grill24.fishtastic.util;
 
 import com.mojang.math.Axis;
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.util.FastColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
-import java.awt.*;
 import java.util.Random;
 
 public class TestItemActivationAnimation implements ItemActivationAnimation {
@@ -97,10 +97,16 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         // Calculate progress (0.0 to 1.0)
         float progress = (tickCount + partialTick) / ANIMATION_DURATION;
 
-        // Simple test animation: move item from center to top-right corner
+        // Center of the screen
         int x = screenWidth / 2;
         int y = screenHeight / 2;
 
+        renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
+        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
+    }
+
+    private void renderFishingBar(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
+        // ----- Render Fishing Bar + Bobber -----
         guiGraphics.pose().pushPose();
         float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
 
@@ -129,6 +135,7 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         final float normalizedBobberMinY = minigameState.getBobberPosition();
         final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
 
+        // ----- Render Targets -----
         int zOffset = 2;
         for (FishingTarget target : minigameState.getTargets()) {
             guiGraphics.pose().pushPose();
@@ -138,6 +145,7 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
             float targetYOffset = targetPosition * itemMaxYOffset;
 
             float catchProgress = target.getCatchProgress();
+            Fishtastic.LOGGER.info(String.valueOf(catchProgress));
 
             // Add shake effect only if target is currently being caught (within bobber)
             float targetRawPosition = target.getInterpolatedPosition(partialTick);
@@ -146,7 +154,10 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
             if (isTargetWithinBobber) {
                 float shakeOffset = target.getShakeOffset(partialTick);
                 targetYOffset += shakeOffset;
-                shakeAngle = (float) (Math.sin((tickCount + partialTick) * (0.25F + catchProgress)) * 10f - (2 * catchProgress)); // Shake angle
+                float baseFreq = 0.05f;
+                final float freqMultiplier = 0.2f;
+                final float baseAmplitude = 10f;
+                shakeAngle = target.getShakeAngle(partialTick, baseFreq, freqMultiplier, baseAmplitude);
             }
 
             // Calculate scale based on catch progress
@@ -173,9 +184,19 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
             guiGraphics.pose().popPose();
             zOffset++; // Increment z-offset for each target so they don't z-fight
         }
-
         guiGraphics.pose().popPose();
+    }
 
+    private static void renderRewardsDisplay(GuiGraphics guiGraphics, int x, int y, int screenWidth, int screenHeight) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(x - (screenHeight / 3f), y, 0);
+
+        float rewardDisplayScale = screenHeight / 3f;
+        guiGraphics.pose().scale(rewardDisplayScale, rewardDisplayScale, rewardDisplayScale);
+
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+        extension.fishtastic$renderItem(new ItemStack(Blocks.BRICKS), 0, 0);
+        guiGraphics.pose().popPose();
     }
 
     /**

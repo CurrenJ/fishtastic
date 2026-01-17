@@ -83,7 +83,7 @@ public class FishingTarget {
         previousPosition = currentPosition;
 
         ticksSinceLastMove++;
-        shakeTick++; // Increment shake animation counter
+        // Note: shakeTick is now incremented only when being captured, see updateCatchProgress
 
         // Check if it's time to pick a new target position
         if (ticksSinceLastMove >= ticksUntilNextMove) {
@@ -131,9 +131,11 @@ public class FishingTarget {
         if (isInBobber) {
             catchProgress += CATCH_PROGRESS_GAIN;
             catchProgress = Math.min(1.0f, catchProgress);
+            shakeTick++; // Increment shake animation only when being captured
         } else {
             catchProgress -= CATCH_PROGRESS_LOSS;
             catchProgress = Math.max(0.0f, catchProgress);
+            shakeTick = 0; // Reset shake animation when not being captured
         }
     }
 
@@ -196,6 +198,20 @@ public class FishingTarget {
         float totalTick = shakeTick + partialTick;
         // Use sine wave for smooth shaking motion, frequency increases with progress
         return (float) Math.sin(totalTick * 2) * SHAKE_INTENSITY;
+    }
+
+    /**
+     * Gets the shake angle for rotation when being actively captured
+     * @param partialTick Progress between current and next tick (0-1)
+     * @param baseFrequency Base oscillation frequency
+     * @param frequencyMultiplier Multiplier applied to catch progress for dynamic frequency
+     * @param amplitude Maximum rotation amplitude in degrees
+     * @return Shake angle in degrees
+     */
+    public float getShakeAngle(float partialTick, float baseFrequency, float frequencyMultiplier, float amplitude) {
+        float totalTick = shakeTick + partialTick;
+        float frequency = baseFrequency + catchProgress * frequencyMultiplier;
+        return (float) (Math.sin(totalTick * frequency * (Math.PI * 2)) * amplitude);
     }
 
     /**
