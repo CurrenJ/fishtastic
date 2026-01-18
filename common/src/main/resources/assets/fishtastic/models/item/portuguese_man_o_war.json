@@ -1,0 +1,7 @@
+
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "fishtastic:item/fish/portuguese_man_o_war"
+  }
+}
