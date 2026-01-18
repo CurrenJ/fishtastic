@@ -3,12 +3,14 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.core.Holder;
+import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 
 public class FishtasticItems {
-    public static Holder<Item> TEST_ITEM;
     public static Holder<Item> FISHING_MINIGAME_ROD_BACKGROUND;
     public static Holder<Item> FISHING_MINIGAME_BOBBER;
+
+    public static Holder<Item> COPPER_FISHING_ROD;
 
     public static Holder<Item> BLAZED_GRUB;
     public static Holder<Item> BLUEGILL;
@@ -33,9 +35,10 @@ public class FishtasticItems {
     public static Holder<Item> WORMS;
 
     public static void registerItems() {
-        TEST_ITEM = RegistrationApiSided.getInstance().registerItem("test_item", loc -> new TestItem(new Item.Properties()));
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(new Item.Properties().stacksTo(1)));
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(new Item.Properties().stacksTo(1)));
+
+        COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new FishingRodItem(new Item.Properties().durability(250)));
 
         BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> new Item(new Item.Properties()));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new Item(new Item.Properties()));

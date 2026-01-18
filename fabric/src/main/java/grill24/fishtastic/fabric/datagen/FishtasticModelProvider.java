@@ -26,8 +26,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
 
     @Override
     public void generateItemModels(ItemModelGenerators itemModelGenerators) {
-        // Example item model generation for TEST_ITEM
-        TextureMapping testItemTexMap = new TextureMapping().put(TextureSlot.LAYER0, TextureMapping.getItemTexture(Items.STICK));
-        ModelTemplates.FLAT_ITEM.create(ModelLocationUtils.getModelLocation(FishtasticItems.TEST_ITEM.value()), testItemTexMap, itemModelGenerators.output);
+        // Model generation for COPPER_FISHING_ROD
+        itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
     }
 }

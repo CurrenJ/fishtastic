@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -11,6 +12,10 @@ import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -55,6 +60,21 @@ public final class FishtasticNeoForgeClient {
         event.enqueueWork(() -> {
             // Example: Make a block render with cutout transparency
             ItemBlockRenderTypes.setRenderLayer(FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), RenderType.translucent());
+
+            // Register cast property for copper fishing rod
+            ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), ResourceLocation.withDefaultNamespace("cast"), (stack, level, entity, seed) -> {
+                if (entity == null) {
+                    return 0.0F;
+                } else {
+                    boolean bl = entity.getMainHandItem() == stack;
+                    boolean bl2 = entity.getOffhandItem() == stack;
+                    if (entity.getMainHandItem().getItem() instanceof FishingRodItem) {
+                        bl2 = false;
+                    }
+
+                    return (bl || bl2) && entity instanceof Player && ((Player)entity).fishing != null ? 1.0F : 0.0F;
+                }
+            });
         });
     }
 
