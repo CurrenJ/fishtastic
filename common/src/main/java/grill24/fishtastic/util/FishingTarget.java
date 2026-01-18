@@ -1,6 +1,9 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.Fishtastic;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import java.util.Random;
 
@@ -9,6 +12,16 @@ import java.util.Random;
  * Each target has its own position, movement behavior, and associated ItemStack.
  */
 public class FishingTarget {
+    /**
+     * Represents the current state of the target in its lifecycle
+     */
+    public enum TargetState {
+        ACTIVE,                 // Target is actively in play
+        ANIMATING_COLLECTION,   // Target was caught and is playing collection animation
+        ANIMATING_FAIL,         // Target failed and is playing fail animation
+        COMPLETE                // Animation finished, ready to be removed
+    }
+
     // Movement constants
     private static final float MIN_MOVE_INTERVAL_TICKS = 20f; // 1 second
     private static final float MAX_MOVE_INTERVAL_TICKS = 120f; // 6 seconds
@@ -39,6 +52,31 @@ public class FishingTarget {
     private static final float SHAKE_INTENSITY = 0.002f; // Maximum shake offset
     private int shakeTick; // Counter for shake animation
 
+    // Animation state
+    private TargetState state;
+    private int animationTick; // Tracks animation progress
+    private int previousAnimationTick; // For interpolation
+
+    // Collection animation constants
+    private static final int COLLECTION_ANIMATION_DURATION = 30; // 1.5 seconds at 20 TPS
+
+    // Fail animation constants and physics state
+    private static final int FAIL_ANIMATION_MAX_DURATION = 100; // Max duration before forced completion
+    private static final float FAIL_GRAVITY = 0.003f;
+    private static final float FAIL_INITIAL_VELOCITY_Y_MIN = 0.02f;
+    private static final float FAIL_INITIAL_VELOCITY_Y_MAX = 0.06f;
+    private static final float FAIL_INITIAL_VELOCITY_X_MIN = -0.03f;
+    private static final float FAIL_INITIAL_VELOCITY_X_MAX = 0.03f;
+    private static final float FAIL_INITIAL_ROT_VEL_MIN = 5f;
+    private static final float FAIL_INITIAL_ROT_VEL_MAX = 15f;
+
+    private Vector2f failPosition; // Screen-space position for fail animation (normalized 0-1)
+    private Vector2f previousFailPosition; // Previous position for interpolation
+    private Vector2f failVelocity; // Velocity vector
+    private Vector3f failRotation; // Current rotation angles in degrees (X, Y, Z axes)
+    private Vector3f failRotationalVelocity; // Rotation speeds in degrees per tick (X, Y, Z axes)
+    private Vector3f previousFailRotation; // For interpolation
+
     /**
      * Creates a new fishing target with a random initial position
      * @param itemStack The ItemStack to display for this target
@@ -55,6 +93,9 @@ public class FishingTarget {
         this.ticksUntilNextMove = getRandomMoveInterval();
         this.catchProgress = INITIAL_CATCH_PROGRESS;
         this.shakeTick = 0;
+        this.state = TargetState.ACTIVE;
+        this.animationTick = 0;
+        this.previousAnimationTick = 0;
     }
 
     /**
@@ -74,6 +115,9 @@ public class FishingTarget {
         this.ticksUntilNextMove = getRandomMoveInterval();
         this.catchProgress = INITIAL_CATCH_PROGRESS;
         this.shakeTick = 0;
+        this.state = TargetState.ACTIVE;
+        this.animationTick = 0;
+        this.previousAnimationTick = 0;
     }
 
     /**
@@ -81,30 +125,84 @@ public class FishingTarget {
      */
     public void tick() {
         previousPosition = currentPosition;
+        previousAnimationTick = animationTick;
 
-        ticksSinceLastMove++;
-        // Note: shakeTick is now incremented only when being captured, see updateCatchProgress
+        switch (state) {
+            case ACTIVE:
+                // Normal active target behavior
+                ticksSinceLastMove++;
+                // Note: shakeTick is now incremented only when being captured, see updateCatchProgress
 
-        // Check if it's time to pick a new target position
-        if (ticksSinceLastMove >= ticksUntilNextMove) {
-            pickNewTargetPosition();
-            ticksSinceLastMove = 0;
-            ticksUntilNextMove = getRandomMoveInterval();
-        }
+                // Check if it's time to pick a new target position
+                if (ticksSinceLastMove >= ticksUntilNextMove) {
+                    pickNewTargetPosition();
+                    ticksSinceLastMove = 0;
+                    ticksUntilNextMove = getRandomMoveInterval();
+                }
 
-        // Move towards target position
-        if (currentPosition != targetPosition) {
-            float distance = targetPosition - currentPosition;
-            float movement = Math.signum(distance) * Math.min(Math.abs(distance), speed);
-            currentPosition += movement;
+                // Move towards target position
+                if (currentPosition != targetPosition) {
+                    float distance = targetPosition - currentPosition;
+                    float movement = Math.signum(distance) * Math.min(Math.abs(distance), speed);
+                    currentPosition += movement;
 
-            // Clamp to valid range
-            currentPosition = Math.max(0, Math.min(1, currentPosition));
+                    // Clamp to valid range
+                    currentPosition = Math.max(0, Math.min(1, currentPosition));
 
-            // Snap to target if very close
-            if (Math.abs(currentPosition - targetPosition) < 0.001f) {
-                currentPosition = targetPosition;
-            }
+                    // Snap to target if very close
+                    if (Math.abs(currentPosition - targetPosition) < 0.001f) {
+                        currentPosition = targetPosition;
+                    }
+                }
+                break;
+
+            case ANIMATING_COLLECTION:
+                // Collection animation: spin and shrink
+                animationTick++;
+                if (animationTick >= COLLECTION_ANIMATION_DURATION) {
+                    state = TargetState.COMPLETE;
+                }
+                break;
+
+            case ANIMATING_FAIL:
+                // Fail animation: physics simulation
+                if (failRotation != null) {
+                    if (previousFailRotation == null) {
+                        previousFailRotation = new Vector3f(failRotation);
+                    } else {
+                        previousFailRotation.set(failRotation);
+                    }
+                }
+                if (failPosition != null) {
+                    if (previousFailPosition == null) {
+                        previousFailPosition = new Vector2f(failPosition);
+                    } else {
+                        previousFailPosition.set(failPosition);
+                    }
+                }
+                animationTick++;
+
+                // Apply gravity
+                failVelocity.y -= FAIL_GRAVITY;
+
+                // Update position
+                failPosition.x += failVelocity.x;
+                failPosition.y += failVelocity.y;
+
+                // Update rotation on all axes
+                failRotation.x += failRotationalVelocity.x;
+                failRotation.y += failRotationalVelocity.y;
+                failRotation.z += failRotationalVelocity.z;
+
+                // Check if off-screen or max duration reached
+                if (failPosition.y() < -2 || animationTick >= FAIL_ANIMATION_MAX_DURATION) {
+                    state = TargetState.COMPLETE;
+                }
+                break;
+
+            case COMPLETE:
+                // Do nothing, waiting to be removed
+                break;
         }
     }
 
@@ -251,5 +349,138 @@ public class FishingTarget {
      */
     public void setSpeed(float speed) {
         this.speed = Math.max(0, speed);
+    }
+
+    /**
+     * Starts the collection animation (called when target is caught)
+     */
+    public void startCollectionAnimation() {
+        state = TargetState.ANIMATING_COLLECTION;
+        animationTick = 0;
+        previousAnimationTick = 0;
+    }
+
+    /**
+     * Starts the fail animation (called when target capture fails)
+     * @param x Starting X position in screen space (normalized 0-1)
+     * @param y Starting Y position in screen space (normalized 0-1)
+     */
+    public void startFailAnimation(float x, float y) {
+        state = TargetState.ANIMATING_FAIL;
+        animationTick = 0;
+        previousAnimationTick = 0;
+
+        // Initialize physics state
+        // Start at current bar position
+        failPosition = new Vector2f(x, y);
+        previousFailPosition = new Vector2f(x, y); // Initialize previous position
+
+        // Random upward and sideways velocity
+        float velocityY = FAIL_INITIAL_VELOCITY_Y_MIN + random.nextFloat() * (FAIL_INITIAL_VELOCITY_Y_MAX - FAIL_INITIAL_VELOCITY_Y_MIN);
+        float velocityX = FAIL_INITIAL_VELOCITY_X_MIN + random.nextFloat() * (FAIL_INITIAL_VELOCITY_X_MAX - FAIL_INITIAL_VELOCITY_X_MIN);
+        failVelocity = new Vector2f(velocityX, velocityY);
+
+        // Random rotational velocities for all three axes
+        float rotVelX = FAIL_INITIAL_ROT_VEL_MIN + random.nextFloat() * (FAIL_INITIAL_ROT_VEL_MAX - FAIL_INITIAL_ROT_VEL_MIN);
+        float rotVelY = FAIL_INITIAL_ROT_VEL_MIN + random.nextFloat() * (FAIL_INITIAL_ROT_VEL_MAX - FAIL_INITIAL_ROT_VEL_MIN);
+        float rotVelZ = FAIL_INITIAL_ROT_VEL_MIN + random.nextFloat() * (FAIL_INITIAL_ROT_VEL_MAX - FAIL_INITIAL_ROT_VEL_MIN);
+
+        // Randomize direction for each axis
+        if (random.nextBoolean()) rotVelX = -rotVelX;
+        if (random.nextBoolean()) rotVelY = -rotVelY;
+        if (random.nextBoolean()) rotVelZ = -rotVelZ;
+
+        failRotationalVelocity = new Vector3f(rotVelX, rotVelY, rotVelZ);
+
+        failRotation = new Vector3f(0, 0, 0);
+        previousFailRotation = new Vector3f(0, 0, 0);
+    }
+
+    /**
+     * Gets the current state of the target
+     * @return The target's current state
+     */
+    public TargetState getState() {
+        return state;
+    }
+
+    /**
+     * Checks if the animation is complete and target can be removed
+     * @return true if animation is complete
+     */
+    public boolean isAnimationComplete() {
+        return state == TargetState.COMPLETE;
+    }
+
+    /**
+     * Gets the collection animation spin angle with interpolation
+     * @param partialTick Progress between current and next tick (0-1)
+     * @return Rotation angle in degrees (0-720 for two full rotations)
+     */
+    public float getCollectionSpinAngle(float partialTick) {
+        if (state != TargetState.ANIMATING_COLLECTION) {
+            return 0;
+        }
+
+        float interpolatedTick = previousAnimationTick + (animationTick - previousAnimationTick) * partialTick;
+        float progress = Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION);
+
+        // Apply easing for smooth spin
+        float easedProgress = MathUtil.easeInOutQuad(progress);
+
+        // Two full rotations (720 degrees)
+        return easedProgress * 720f;
+    }
+
+    /**
+     * Gets the collection animation scale with interpolation
+     * @param partialTick Progress between current and next tick (0-1)
+     * @return Scale value (1.0 to 0.0)
+     */
+    public float getCollectionScale(float partialTick) {
+        if (state != TargetState.ANIMATING_COLLECTION) {
+            return 1.0f;
+        }
+
+        float interpolatedTick = previousAnimationTick + (animationTick - previousAnimationTick) * partialTick;
+        float progress = Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION);
+
+        // Apply easing for smooth shrink
+        float easedProgress = MathUtil.easeInOutQuad(progress);
+
+        // Scale from 1.0 to 0.0
+        return 1.0f - easedProgress;
+    }
+
+    /**
+     * Gets the fail animation screen position with interpolation
+     * @param partialTick Progress between current and next tick (0-1)
+     * @return Interpolated screen position (normalized 0-1)
+     */
+    public Vector2f getFailScreenPosition(float partialTick) {
+        if (state == TargetState.ANIMATING_FAIL && failPosition != null && previousFailPosition != null) {
+            // Interpolate between previous and current position for smooth rendering
+            float interpX = previousFailPosition.x + (failPosition.x - previousFailPosition.x) * partialTick;
+            float interpY = previousFailPosition.y + (failPosition.y - previousFailPosition.y) * partialTick;
+            return new Vector2f(interpX, interpY);
+        }
+        return failPosition != null ? new Vector2f(failPosition) : new Vector2f(0.5f, currentPosition);
+    }
+
+    /**
+     * Gets the fail animation rotation angles with interpolation on all axes
+     * @param partialTick Progress between current and next tick (0-1)
+     * @return Rotation angles in degrees (X, Y, Z axes)
+     */
+    public Vector3f getFailRotation(float partialTick) {
+        if (state != TargetState.ANIMATING_FAIL || failRotation == null || previousFailRotation == null) {
+            return new Vector3f(0, 0, 0);
+        }
+
+        float interpX = previousFailRotation.x + (failRotation.x - previousFailRotation.x) * partialTick;
+        float interpY = previousFailRotation.y + (failRotation.y - previousFailRotation.y) * partialTick;
+        float interpZ = previousFailRotation.z + (failRotation.z - previousFailRotation.z) * partialTick;
+
+        return new Vector3f(interpX, interpY, interpZ);
     }
 }

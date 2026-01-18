@@ -17,8 +17,17 @@ import java.util.Random;
 public class TestItemActivationAnimation implements ItemActivationAnimation {
     private final ItemStack itemStack;
     private int tickCount = 0;
-    private static final int ANIMATION_DURATION = 600; // 30 seconds at 20 TPS
     private final FishingMinigameState minigameState;
+
+    // Intro animation state
+    private boolean isIntro = true;
+    private int introAnimationTick = 0;
+    private static final int INTRO_ANIMATION_DURATION = 20; // 1 second at 20 TPS
+
+    // Hide animation state
+    private boolean isHiding = false;
+    private int hideAnimationTick = 0;
+    private static final int HIDE_ANIMATION_DURATION = 20; // 1 second at 20 TPS
 
     public TestItemActivationAnimation(ItemStack itemStack) {
         this.itemStack = itemStack;
@@ -33,12 +42,29 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
 
     @Override
     public boolean isActive() {
-        return tickCount < ANIMATION_DURATION;
+        // Animation is active until hide animation completes
+        return !isHiding || hideAnimationTick < HIDE_ANIMATION_DURATION;
     }
 
     @Override
     public void tick() {
         tickCount++;
+
+        // If in intro, advance intro animation
+        if (isIntro) {
+            introAnimationTick++;
+            if (introAnimationTick >= INTRO_ANIMATION_DURATION) {
+                isIntro = false;
+            }
+            return; // Don't update minigame state during intro animation
+        }
+
+        // If hiding, advance hide animation
+        if (isHiding) {
+            hideAnimationTick++;
+            return; // Don't update minigame state during hide animation
+        }
+
         minigameState.tick();
 
         // Update catch progress for all targets based on collision
@@ -50,26 +76,32 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         boolean anyOngoing = false;
         while (iterator.hasNext()) {
             FishingTarget target = iterator.next();
-            float targetPosition = target.getPosition();
-            boolean isTargetWithinBobber =
-                    targetPosition >= normalizedBobberMinY &&
-                    targetPosition <= normalizedBobberMaxY;
-            target.updateCatchProgress(isTargetWithinBobber);
 
-            // Check if target was caught or failed
-            if (target.isCaught()) {
+            // Only update active targets
+            if (target.getState() == FishingTarget.TargetState.ACTIVE) {
+                float targetPosition = target.getPosition();
+                boolean isTargetWithinBobber =
+                        targetPosition >= normalizedBobberMinY &&
+                        targetPosition <= normalizedBobberMaxY;
+                target.updateCatchProgress(isTargetWithinBobber);
+
+                // Check if target was caught or failed
+                if (target.isCaught()) {
+                    target.startCollectionAnimation();
+                } else if (target.hasFailed()) {
+                    target.startFailAnimation(0, 0);
+                } else {
+                    anyOngoing = true;
+                }
+            } else if (target.isAnimationComplete()) {
+                // Remove only when animation is complete
                 iterator.remove();
-                // Target caught successfully - could add reward logic here
-            } else if (target.hasFailed()) {
-                iterator.remove();
-            } else {
-                anyOngoing = true;
             }
         }
 
-        if(!anyOngoing && minigameState.getTargets().isEmpty()) {
-            // End the animation if no targets are left
-            tickCount = ANIMATION_DURATION;
+        // If no ongoing targets and all targets are cleared, start hide animation
+        if (!anyOngoing && minigameState.getTargets().isEmpty()) {
+            isHiding = true;
         }
     }
 
@@ -95,14 +127,14 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
         // Calculate progress (0.0 to 1.0)
-        float progress = (tickCount + partialTick) / ANIMATION_DURATION;
+        float progress = (tickCount + partialTick) / 600f; // Generic progress for any animations
 
         // Center of the screen
         int x = screenWidth / 2;
         int y = screenHeight / 2;
 
         renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
-        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
+//        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
     }
 
     private void renderFishingBar(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
@@ -110,7 +142,28 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         guiGraphics.pose().pushPose();
         float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
 
-        guiGraphics.pose().translate(x, y, 0);
+        // Calculate vertical offset for intro and hide animations
+        float verticalOffset = 0f;
+
+        // Intro animation: slide in from top
+        if (isIntro) {
+            float introProgress = (introAnimationTick + partialTick) / INTRO_ANIMATION_DURATION;
+            introProgress = Math.min(1.0f, introProgress); // Clamp to 1.0
+            // Ease-out function for smooth deceleration
+            introProgress = 1.0f - (1.0f - introProgress) * (1.0f - introProgress);
+            verticalOffset = -(1.0f - introProgress) * screenHeight; // Slide down from negative (top)
+        }
+
+        // Hide animation: slide out bottom
+        if (isHiding) {
+            float hideProgress = (hideAnimationTick + partialTick) / HIDE_ANIMATION_DURATION;
+            hideProgress = Math.min(1.0f, hideProgress); // Clamp to 1.0
+            // Ease-in function for smooth acceleration
+            hideProgress = hideProgress * hideProgress;
+            verticalOffset = hideProgress * screenHeight; // Slide down by screen height
+        }
+
+        guiGraphics.pose().translate(x, y + verticalOffset, 0);
 
         float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale, scale);
@@ -140,46 +193,81 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         for (FishingTarget target : minigameState.getTargets()) {
             guiGraphics.pose().pushPose();
 
-            // Get interpolated position for smooth rendering
-            float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f; // -0.5 to 0.5 for correct position
-            float targetYOffset = targetPosition * itemMaxYOffset;
+            FishingTarget.TargetState targetState = target.getState();
 
-            float catchProgress = target.getCatchProgress();
-            Fishtastic.LOGGER.info(String.valueOf(catchProgress));
+            if (targetState == FishingTarget.TargetState.ACTIVE) {
+                // Existing rendering logic for active targets
+                // Get interpolated position for smooth rendering
+                float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f; // -0.5 to 0.5 for correct position
+                float targetYOffset = targetPosition * itemMaxYOffset;
 
-            // Add shake effect only if target is currently being caught (within bobber)
-            float targetRawPosition = target.getInterpolatedPosition(partialTick);
-            boolean isTargetWithinBobber = targetRawPosition >= normalizedBobberMinY && targetRawPosition <= normalizedBobberMaxY;
-            float shakeAngle = 0f;
-            if (isTargetWithinBobber) {
-                float shakeOffset = target.getShakeOffset(partialTick);
-                targetYOffset += shakeOffset;
-                float baseFreq = 0.05f;
-                final float freqMultiplier = 0.2f;
-                final float baseAmplitude = 10f;
-                shakeAngle = target.getShakeAngle(partialTick, baseFreq, freqMultiplier, baseAmplitude);
+                float catchProgress = target.getCatchProgress();
+
+                // Add shake effect only if target is currently being caught (within bobber)
+                float targetRawPosition = target.getInterpolatedPosition(partialTick);
+                boolean isTargetWithinBobber = targetRawPosition >= normalizedBobberMinY && targetRawPosition <= normalizedBobberMaxY;
+                float shakeAngle = 0f;
+                if (isTargetWithinBobber) {
+                    float shakeOffset = target.getShakeOffset(partialTick);
+                    targetYOffset += shakeOffset;
+                    float baseFreq = 0.05f;
+                    final float freqMultiplier = 0.2f;
+                    final float baseAmplitude = 10f;
+                    shakeAngle = target.getShakeAngle(partialTick, baseFreq, freqMultiplier, baseAmplitude);
+                }
+
+                // Calculate scale based on catch progress
+                float scaleMultiplier = 0.5f + (catchProgress * 0.5f);
+                final float itemScale = (2 / 16f) * scaleMultiplier;
+
+                float prog = Math.max(0, (0.5f - catchProgress) * 2f);
+                Vector3f color = Utility.interpolateColor(
+                        new Vector3f(1, 1, 1), // White at progress 0
+                        new Vector3f(1, 0.25f, 0.25f), // Red at progress 1
+                        prog
+                );
+
+                guiGraphics.pose().translate(0, -targetYOffset, zOffset);
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(shakeAngle));
+                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                guiGraphics.setColor(color.x, color.y, color.z, 1f);
+                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+                guiGraphics.setColor(1f, 1f, 1f, 1f);
+
+            } else if (targetState == FishingTarget.TargetState.ANIMATING_COLLECTION) {
+                // Collection animation: spin on Y-axis and shrink
+                float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f;
+                float targetYOffset = targetPosition * itemMaxYOffset;
+
+                float spinAngle = target.getCollectionSpinAngle(partialTick);
+                float collectScale = target.getCollectionScale(partialTick);
+                final float itemScale = (2 / 16f) * collectScale;
+
+                guiGraphics.pose().translate(0, -targetYOffset, zOffset);
+                guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(spinAngle)); // Spin on Y-axis
+                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+
+            } else if (targetState == FishingTarget.TargetState.ANIMATING_FAIL) {
+                // Fail animation: physics-based movement with rotation on all axes
+                float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f;
+                float targetYOffset = targetPosition * itemMaxYOffset;
+
+                Vector3f failRotation = target.getFailRotation(partialTick);
+                float collectScale = target.getCollectionScale(partialTick);
+                final float itemScale = (2 / 16f) * collectScale;
+
+                Vector2f failPhysSim = target.getFailScreenPosition(partialTick);
+
+                guiGraphics.pose().translate(failPhysSim.x(), -targetYOffset - failPhysSim.y(), zOffset);
+                // Apply rotation on all three axes
+                guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(failRotation.x));
+                guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(failRotation.y));
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(failRotation.z));
+                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+
             }
-
-            // Calculate scale based on catch progress
-            // Scale grows from 0.5 (at progress 0) to 2.0 (at progress 1)
-            // Base scale at 0.5 progress is 1.0
-            float scaleMultiplier = 0.5f + (catchProgress * 0.5f); // Range: 0.5 (at progress=0) to 2.0 (at progress=1)
-            final float itemScale = (2 / 16f) * scaleMultiplier;
-
-            float prog = Math.max(0, (0.5f - catchProgress) * 2f); //
-            Vector3f color = Utility.interpolateColor(
-                    new Vector3f(1, 1, 1), // White at progress 0
-                    new Vector3f(1, 0.25f, 0.25f), // Light green at progress 1
-                    prog
-            );
-
-
-            guiGraphics.pose().translate(0, -targetYOffset, zOffset);
-            guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(shakeAngle));
-            guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-            guiGraphics.setColor(color.x, color.y, color.z, 1f);
-            extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
-            guiGraphics.setColor(1f, 1f, 1f, 1f);
 
             guiGraphics.pose().popPose();
             zOffset++; // Increment z-offset for each target so they don't z-fight
