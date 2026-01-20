@@ -40,6 +40,9 @@ public final class FishtasticNeoForgeClient {
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
+
+        // Register item size tooltip handler
+        NeoForge.EVENT_BUS.addListener(ItemSizeTooltipHandler::onItemTooltip);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
@@ -58,7 +61,7 @@ public final class FishtasticNeoForgeClient {
     public static void onClientSetup(final FMLClientSetupEvent event) {
         // Ensure this runs on the client thread
         event.enqueueWork(() -> {
-            // Example: Make a block render with cutout transparency
+            // Set render layer for clear blue stained glass
             ItemBlockRenderTypes.setRenderLayer(FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), RenderType.translucent());
 
             // Register cast property for copper fishing rod

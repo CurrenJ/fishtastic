@@ -23,5 +23,5 @@
   "item.fishtastic.starfish": "Starfish",
   "item.fishtastic.worms": "Worms",
 
-  "tooltip.fishtastic.size": "Size: %s"
+  "tooltip.fishtastic.item_size.cm": "%s cm"
 }
