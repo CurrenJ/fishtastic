@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.compat.GelatinMenusCompat;
 import net.neoforged.bus.api.IEventBus;
@@ -17,6 +18,10 @@ public final class FishtasticNeoForge {
         GelatinMenusCompat.init();
 
         // __BEGIN:item_registration:init_neoforge
+        // Register data components first
+        FishtasticDataComponents.registerDataComponents();
+        FishtasticRegistriesNeoForge.DATA_COMPONENT_TYPES.register(modEventBus);
+
         // Call modloader-specific static method to register items to our deferred register
         FishtasticItems.registerItems();
         FishtasticRegistriesNeoForge.ITEMS.register(modEventBus);

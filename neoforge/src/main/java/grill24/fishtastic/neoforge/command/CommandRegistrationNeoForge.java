@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.command;
 import com.mojang.brigadier.CommandDispatcher;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.command.FishtasticCommand;
+import grill24.fishtastic.command.SetItemSizeCommand;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -18,5 +19,6 @@ public class CommandRegistrationNeoForge {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         FishtasticCommand.register(dispatcher);
+        SetItemSizeCommand.register(dispatcher);
     }
 }

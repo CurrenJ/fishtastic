@@ -7,6 +7,7 @@ import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import static grill24.fishtastic.util.Utility.ft;
 
@@ -52,6 +54,15 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<BlockEntityType<?>> registerBlockEntityType(String name, Supplier<BlockEntityType.Builder<?>> builder) {
         return register(BuiltInRegistries.BLOCK_ENTITY_TYPE, name, loc -> builder.get().build(null));
+    }
+
+    @Override
+    public <T> Holder<DataComponentType<T>> registerDataComponent(String name, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
+        DataComponentType<T> componentType = builderOperator.apply(DataComponentType.<T>builder()).build();
+        ResourceKey<DataComponentType<?>> key = ResourceKey.create(BuiltInRegistries.DATA_COMPONENT_TYPE.key(), ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, name));
+        @SuppressWarnings("unchecked")
+        Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, (ResourceKey<DataComponentType<?>>) key, componentType);
+        return holder;
     }
 
     private static <T> Holder<T> register(Registry<T> registry, String name, Function<ResourceLocation, ? extends T> func) {

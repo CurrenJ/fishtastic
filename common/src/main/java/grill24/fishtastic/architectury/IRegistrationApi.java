@@ -5,6 +5,7 @@ import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -14,11 +15,13 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 public interface IRegistrationApi {
     <I extends Item> Holder<Item> registerItem(final String name, final Function<ResourceLocation, ? extends I> func);
     <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> func);
      Holder<BlockEntityType<?>> registerBlockEntityType(final String name, Supplier<BlockEntityType.Builder<?>> builder);
+    <T> Holder<DataComponentType<T>> registerDataComponent(final String name, final UnaryOperator<DataComponentType.Builder<T>> builderOperator);
 
     // Registries
     Registry<FishTankFrameType> fishTankFrameTypes();

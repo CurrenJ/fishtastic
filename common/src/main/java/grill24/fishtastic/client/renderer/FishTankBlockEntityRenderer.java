@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -11,6 +12,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -24,7 +26,8 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         // Context can be used to access various rendering resources if needed
     }
 
-    private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f,  (8.5f / 16f), 0.5f);
+    private static final Vector3f SAND_BASE_Y_OFFSET = new Vector3f(0f, 1f / 32f, 0f);
+    private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f,  8f / 16f, 0.5f);
     @Override
     public void render(FishTankBlockEntity blockEntity, float partialTick, PoseStack poseStack,
                       MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
@@ -45,11 +48,14 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         poseStack.pushPose();
 
         // -- TRANSFORMATIONS --
-        // Fish tank frame floor + sand = 2/16 blocks height
-        // Fish tank ceiling = 1/16 blocks height
+        // Fish tank sand = 1/16 blocks height tall
         // So center of tank vertically is at 8.5/16 blocks height
         // Start by translating to the center of the tank
-        poseStack.translate(ITEM_POSITION_OFFSET.x(), ITEM_POSITION_OFFSET.y(), ITEM_POSITION_OFFSET.z());
+        float yOffset = ITEM_POSITION_OFFSET.y();
+        if (!blockEntity.getOpenFaces().contains(Direction.DOWN)) {
+            yOffset += SAND_BASE_Y_OFFSET.y();
+        }
+        poseStack.translate(ITEM_POSITION_OFFSET.x(), yOffset, ITEM_POSITION_OFFSET.z());
 
         float t = ClientTickHandler.total() + partialTick;
 
@@ -78,7 +84,15 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
 
 
         // Scale the item slightly smaller
-        float scale = 0.5f;
+        float scale = 1f;
+        if(ItemSizeHelper.hasSize(itemToRender))
+        {
+            float size = ItemSizeHelper.getSize(itemToRender);
+            // Assume size is cm, where 100 cm = 1 block
+            scale = 0.01f + (size / 100f) * 0.8f; // Clamp scale between 0.01 and 0.6
+        } else {
+            scale *= 0.5f; // Default scale for items without size data
+        }
         poseStack.scale(scale, scale, scale);
 
         // -- RENDER ITEM --
@@ -143,4 +157,3 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
 
 
 }
-

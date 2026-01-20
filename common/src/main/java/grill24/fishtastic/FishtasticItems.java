@@ -7,11 +7,15 @@ import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 
 public class FishtasticItems {
+    // ----- Items for Rendering Only -----
     public static Holder<Item> FISHING_MINIGAME_ROD_BACKGROUND;
     public static Holder<Item> FISHING_MINIGAME_BOBBER;
+    public static Holder<Item> SPARKLE;
 
+    // ----- Fishing Rods -----
     public static Holder<Item> COPPER_FISHING_ROD;
 
+    // ----- Fish Items -----
     public static Holder<Item> BLAZED_GRUB;
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
@@ -37,6 +41,7 @@ public class FishtasticItems {
     public static void registerItems() {
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(new Item.Properties().stacksTo(1)));
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(new Item.Properties().stacksTo(1)));
+        SPARKLE = RegistrationApiSided.getInstance().registerItem("sparkle", loc -> new Item(new Item.Properties().stacksTo(1)));
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new FishingRodItem(new Item.Properties().durability(250)));
 

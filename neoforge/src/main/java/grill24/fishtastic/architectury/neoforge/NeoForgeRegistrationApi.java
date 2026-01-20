@@ -9,6 +9,7 @@ import grill24.fishtastic.neoforge.FishtasticRegistriesNeoForge;
 import grill24.fishtastic.neoforge.blockentity.FishTankBlockEntityNeoForge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 public class NeoForgeRegistrationApi implements IRegistrationApi {
     public static final NeoForgeRegistrationApi INSTANCE = new NeoForgeRegistrationApi();
@@ -45,6 +47,13 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<BlockEntityType<?>> registerBlockEntityType(String name, Supplier<BlockEntityType.Builder<?>> builder) {
         return FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(name, () -> builder.get().build(null));
+    }
+
+    @Override
+    public <T> Holder<DataComponentType<T>> registerDataComponent(String name, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
+        @SuppressWarnings("unchecked")
+        Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) FishtasticRegistriesNeoForge.DATA_COMPONENT_TYPES.register(name, () -> builderOperator.apply(DataComponentType.<T>builder()).build());
+        return holder;
     }
 
     // ----- Registries ----- //

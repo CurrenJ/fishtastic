@@ -153,7 +153,7 @@ public class FishTankBlock extends Block implements EntityBlock {
                     // Calculate the rotation based on player's position relative to the block
                     float rotation = calculateRotationTowardPlayer(player, blockPos);
 
-                    if (fishTank.addItem(toAdd, rotation)) {
+                    if (fishTank.addItem(toAdd, rotation, player)) {
                         itemStack.shrink(1);
                         player.displayClientMessage(
                             Component.literal("Added item to fish tank"),
@@ -161,10 +161,24 @@ public class FishTankBlock extends Block implements EntityBlock {
                         );
                         return ItemInteractionResult.SUCCESS;
                     } else {
-                        player.displayClientMessage(
-                            Component.literal("Fish tank is full"),
-                            true
-                        );
+                        // Error message is already displayed by canInsertItem if it's a size issue
+                        // Only show "tank is full" if the item could have fit
+                        if (fishTank.hasItems() && fishTank.getContainerSize() > 0) {
+                            // Check if tank is actually full by trying to find an empty slot
+                            boolean isFull = true;
+                            for (int i = 0; i < fishTank.getContainerSize(); i++) {
+                                if (fishTank.getItem(i).isEmpty()) {
+                                    isFull = false;
+                                    break;
+                                }
+                            }
+                            if (isFull) {
+                                player.displayClientMessage(
+                                    Component.literal("Fish tank is full"),
+                                    true
+                                );
+                            }
+                        }
                         return ItemInteractionResult.FAIL;
                     }
                 }
