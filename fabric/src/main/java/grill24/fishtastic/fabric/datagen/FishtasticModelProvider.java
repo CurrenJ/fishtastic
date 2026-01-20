@@ -26,7 +26,5 @@ public class FishtasticModelProvider extends FabricModelProvider {
 
     @Override
     public void generateItemModels(ItemModelGenerators itemModelGenerators) {
-        // Model generation for COPPER_FISHING_ROD
-        itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
     }
 }

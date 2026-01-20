@@ -30,8 +30,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         });
 
         // Register cast property for copper fishing rod
-        ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), new ResourceLocation("cast"), (stack, level, entity, seed) -> {
-            return entity != null && entity.isUsingItem() && entity.getUseItem() == stack ? 1.0F : 0.0F;
-        });
+        ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), ResourceLocation.withDefaultNamespace("cast"),
+                (stack, level, entity, seed) ->
+                        entity != null && entity.isUsingItem() && entity.getUseItem() == stack ? 1.0F : 0.0F);
     }
 }

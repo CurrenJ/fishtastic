@@ -1,6 +1,7 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.component.ItemSize;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -15,7 +16,7 @@ public class ItemSizeHelper {
      */
     public static ItemStack setSize(ItemStack stack, float size) {
         if (!stack.isEmpty() && size > 0) {
-            stack.set(FishtasticDataComponents.ITEM_SIZE.value(), size);
+            stack.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(size));
         }
         return stack;
     }
@@ -29,8 +30,8 @@ public class ItemSizeHelper {
         if (stack.isEmpty()) {
             return 0.0f;
         }
-        Float size = stack.get(FishtasticDataComponents.ITEM_SIZE.value());
-        return size != null ? size : 0.0f;
+        ItemSize itemSize = stack.get(FishtasticDataComponents.ITEM_SIZE.value());
+        return itemSize != null ? itemSize.size() : 0.0f;
     }
 
     /**

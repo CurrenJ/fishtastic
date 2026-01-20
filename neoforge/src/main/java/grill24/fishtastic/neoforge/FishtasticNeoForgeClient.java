@@ -40,9 +40,6 @@ public final class FishtasticNeoForgeClient {
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
-
-        // Register item size tooltip handler
-        NeoForge.EVENT_BUS.addListener(ItemSizeTooltipHandler::onItemTooltip);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
