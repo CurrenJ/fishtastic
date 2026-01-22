@@ -2,13 +2,13 @@ package grill24.fishtastic.fabric;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -16,6 +16,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Register network packets (client-side)
+        FabricPacketRegistrar.registerClientReceiver();
+
         // Register block entity renderer
         BlockEntityRendererRegistry.register(
             (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),

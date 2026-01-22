@@ -1,7 +1,6 @@
 package grill24.fishtastic.util;
 
 import com.mojang.math.Axis;
-import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,10 +11,11 @@ import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-public class TestItemActivationAnimation implements ItemActivationAnimation {
-    private final ItemStack itemStack;
+public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
     private final FishingMinigameState minigameState;
 
@@ -29,8 +29,10 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
     private int hideAnimationTick = 0;
     private static final int HIDE_ANIMATION_DURATION = 20; // 1 second at 20 TPS
 
-    public TestItemActivationAnimation(ItemStack itemStack) {
-        this.itemStack = itemStack;
+    // Track caught targets BEFORE they get removed
+    private final List<Integer> caughtTargetIndices = new ArrayList<>();
+
+    public FishingMinigameAnimation() {
         this.minigameState = new FishingMinigameState();
 
         // Add some example targets
@@ -74,6 +76,7 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
         // Use iterator to safely remove targets while iterating
         var iterator = minigameState.getTargets().iterator();
         boolean anyOngoing = false;
+        int targetIndex = 0;
         while (iterator.hasNext()) {
             FishingTarget target = iterator.next();
 
@@ -88,6 +91,10 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
                 // Check if target was caught or failed
                 if (target.isCaught()) {
                     target.startCollectionAnimation();
+                    // Track this target as caught BEFORE it gets removed
+                    if (!caughtTargetIndices.contains(targetIndex)) {
+                        caughtTargetIndices.add(targetIndex);
+                    }
                 } else if (target.hasFailed()) {
                     target.startFailAnimation(0, 0);
                 } else {
@@ -97,10 +104,22 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
                 // Remove only when animation is complete
                 iterator.remove();
             }
+
+            targetIndex++;
         }
 
         // If no ongoing targets and all targets are cleared, start hide animation
         if (!anyOngoing && minigameState.getTargets().isEmpty()) {
+            if (!isHiding) {
+                // Send results to server before hiding (via reflection to avoid client dependency)
+                try {
+                    Class<?> handlerClass = Class.forName("grill24.fishtastic.client.FishingMinigameClientHandler");
+                    java.lang.reflect.Method sendMethod = handlerClass.getMethod("sendMinigameResults");
+                    sendMethod.invoke(null);
+                } catch (Exception e) {
+                    // Silently fail - this is expected on server side
+                }
+            }
             isHiding = true;
         }
     }
@@ -110,6 +129,14 @@ public class TestItemActivationAnimation implements ItemActivationAnimation {
      */
     public void applyPlayerImpulse() {
         minigameState.applyImpulse();
+    }
+
+    /**
+     * Gets the list of caught target indices
+     * @return List of indices of targets that were caught
+     */
+    public List<Integer> getCaughtTargetIndices() {
+        return new ArrayList<>(caughtTargetIndices);
     }
 
     /**

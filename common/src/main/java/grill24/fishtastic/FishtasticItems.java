@@ -1,6 +1,7 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.FishingRodItem;
@@ -43,7 +44,7 @@ public class FishtasticItems {
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(new Item.Properties().stacksTo(1)));
         SPARKLE = RegistrationApiSided.getInstance().registerItem("sparkle", loc -> new Item(new Item.Properties().stacksTo(1)));
 
-        COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new FishingRodItem(new Item.Properties().durability(250)));
+        COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new CopperFishingRod(new Item.Properties().durability(250)));
 
         BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> new Item(new Item.Properties()));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new Item(new Item.Properties()));

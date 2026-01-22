@@ -4,12 +4,17 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
+import grill24.fishtastic.network.FishtasticPackets;
+import grill24.fishtastic.server.ServerTickHandler;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 
 import grill24.fishtastic.Fishtastic;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @Mod(Fishtastic.MOD_ID)
 public final class FishtasticNeoForge {
@@ -34,6 +39,15 @@ public final class FishtasticNeoForge {
 
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
+
+        // Register network packets
+        modEventBus.addListener(NeoForgePacketRegistrar::register);
+        FishtasticPackets.init();
+
+        // Register server tick handler
+        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> {
+            ServerTickHandler.onServerTick(event.getServer());
+        });
 
         // Register config
         FishtasticConfig.register(container);

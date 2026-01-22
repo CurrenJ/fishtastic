@@ -75,6 +75,11 @@ public class GameRendererMixin implements IGameRendererExtension {
     }
 
     @Override
+    public void fishtastic$displayItemActivation(java.util.function.Supplier<? extends ItemActivationAnimation> animationSupplier) {
+        this.activeAnimation = animationSupplier.get();
+    }
+
+    @Override
     public void fishtastic$cancelCurrentAnimation() {
         this.activeAnimation = null;
     }
