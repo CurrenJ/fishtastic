@@ -38,7 +38,8 @@ public class FishingMinigameClientHandler {
 
         for (StartFishingMinigamePacket.TargetData targetData : packet.targets()) {
             FishingTarget target = new FishingTarget(
-                    targetData.itemStack(),
+                    targetData.rewardStacks(),
+                    targetData.category(),
                     random,
                     targetData.initialPosition()
             );

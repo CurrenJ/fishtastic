@@ -77,7 +77,8 @@ public class FishingMinigameManager {
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
         for (ServerFishingTarget target : targets) {
             targetData.add(new StartFishingMinigamePacket.TargetData(
-                    target.displayStack(),
+                    target.rewardStacks(),
+                    target.category(),
                     target.initialPosition(),
                     target.difficulty()
             ));
@@ -92,7 +93,7 @@ public class FishingMinigameManager {
     }
 
     /**
-     * Handle minigame completion from client
+     * Handle minigame completion on server
      */
     public void handleMinigameComplete(ServerPlayer player, int sessionId, List<Integer> caughtTargetIndices) {
         UUID playerId = player.getUUID();
@@ -118,10 +119,13 @@ public class FishingMinigameManager {
         for (Integer index : caughtTargetIndices) {
             if (index >= 0 && index < session.targets.size()) {
                 ServerFishingTarget target = session.targets.get(index);
-                ItemStack reward = target.rewardStack().copy();
-                if (!reward.isEmpty()) {
-                    player.getInventory().add(reward);
-                    rewards.add(reward);
+                // Award all reward stacks from this target
+                for (ItemStack rewardStack : target.rewardStacks()) {
+                    ItemStack reward = rewardStack.copy();
+                    if (!reward.isEmpty()) {
+                        player.getInventory().add(reward);
+                        rewards.add(reward);
+                    }
                 }
             } else {
                 Fishtastic.LOGGER.warn("Player {} reported invalid target index {}",
@@ -188,14 +192,31 @@ public class FishingMinigameManager {
         int targetCount = Math.min(MAX_TARGETS, 3 + randomSource.nextInt(3));
 
         for (int i = 0; i < targetCount; i++) {
-            int index = randomSource.nextInt(possibleRewards.length);
-            ItemStack reward = possibleRewards[index].copy();
-            float difficulty = baseDifficulties[index] * difficultyModifier;
+            int numRewards = 1 + randomSource.nextInt(3); // 1-3 items per target
+            ItemStack[] rewardStacks = new ItemStack[numRewards];
+            for(int n = 0; n < numRewards; n++) {
+                // For simplicity, just duplicate the same item multiple times
+                // In a real implementation, you'd select different items
+                int index = randomSource.nextInt(possibleRewards.length);
+                rewardStacks[n] = possibleRewards[index].copy();
+            }
+
+            int difficultyIndex = randomSource.nextInt(baseDifficulties.length);
+            float difficulty = baseDifficulties[difficultyIndex] * difficultyModifier;
             float initialPosition = randomSource.nextFloat();
 
+            // Determine category based on item type
+            grill24.fishtastic.util.FishingTarget.TargetCategory category;
+            ItemStack reward = rewardStacks[0]; // Use first item to determine category
+            if (reward.is(net.minecraft.tags.ItemTags.FISHES)) {
+                category = grill24.fishtastic.util.FishingTarget.TargetCategory.FISH;
+            } else {
+                category = grill24.fishtastic.util.FishingTarget.TargetCategory.TREASURE;
+            }
+
             targets.add(new ServerFishingTarget(
-                    reward,
-                    reward.copy(), // Display stack same as reward for now
+                    List.of(rewardStacks), // For now, single item per target
+                    category,
                     difficulty,
                     initialPosition
             ));
@@ -234,11 +255,11 @@ public class FishingMinigameManager {
 
     /**
      * Server-side representation of a fishing target
-     * Contains both the actual reward and what the client sees
+     * Contains both the actual rewards and what the client sees
      */
     private record ServerFishingTarget(
-            ItemStack rewardStack,      // Actual reward given to player
-            ItemStack displayStack,     // What the client displays
+            List<ItemStack> rewardStacks,      // Actual rewards given to player
+            grill24.fishtastic.util.FishingTarget.TargetCategory category, // Category for display icon
             float difficulty,
             float initialPosition
     ) {}

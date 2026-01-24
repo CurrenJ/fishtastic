@@ -39,9 +39,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         // Add some example targets
         Random random = new Random();
-        minigameState.addTarget(new FishingTarget(new ItemStack(Items.STONE), random, 0.3f));
-        minigameState.addTarget(new FishingTarget(new ItemStack(Items.DIAMOND), random, 0.6f));
-        minigameState.addTarget(new FishingTarget(new ItemStack(Items.GOLD_INGOT), random, 0.8f));
+        minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.STONE)), FishingTarget.TargetCategory.TREASURE, random, 0.3f));
+        minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.DIAMOND)), FishingTarget.TargetCategory.TREASURE, random, 0.6f));
+        minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.GOLD_INGOT)), FishingTarget.TargetCategory.TREASURE, random, 0.8f));
     }
 
     @Override
@@ -238,7 +238,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             FishingTarget.TargetState targetState = target.getState();
 
             // Get the display item - use generic fish for FishtasticFish items during active/fail states
-            ItemStack displayItem = getDisplayItemStack(target);
+            ItemStack displayItem = target.getDisplayItemStack();
 
             if (targetState == FishingTarget.TargetState.ACTIVE) {
                 // Existing rendering logic for active targets
@@ -281,22 +281,29 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
             } else if (targetState == FishingTarget.TargetState.ANIMATING_SUCCESS) {
                 // Collection animation: physics-based movement with rotation on all axes
+                // Render each reward item with its own physics simulation
                 float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f;
                 float targetYOffset = targetPosition * itemMaxYOffset;
 
-                Vector3f successRotation = target.getSuccessRotation(partialTick);
-                float collectScale = target.getCollectionScale(partialTick);
-                final float itemScale = (2 / 16f) * collectScale;
+                final float itemScale = (2 / 16f);
 
-                Vector2f successPhysSim = target.getSuccessScreenPosition(partialTick);
+                for (PhysicsSimulation simulation : target.getPhysicsSimulations()) {
+                    guiGraphics.pose().pushPose();
 
-                guiGraphics.pose().translate(successPhysSim.x(), -targetYOffset - successPhysSim.y(), zOffset);
-                // Apply rotation on all three axes
-                guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(successRotation.x));
-                guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(successRotation.y));
-                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(successRotation.z));
-                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-                extension.fishtastic$renderItem(displayItem, 0, 0);
+                    Vector2f successPhysSim = simulation.getInterpolatedPosition(partialTick);
+                    Vector3f successRotation = simulation.getInterpolatedRotation(partialTick);
+
+                    guiGraphics.pose().translate(successPhysSim.x(), -targetYOffset - successPhysSim.y(), zOffset);
+                    // Apply rotation on all three axes
+                    guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(successRotation.x));
+                    guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(successRotation.y));
+                    guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(successRotation.z));
+                    guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                    extension.fishtastic$renderItem(simulation.getItemStack(), 0, 0);
+
+                    guiGraphics.pose().popPose();
+                    zOffset++; // Each item gets its own z-level to prevent z-fighting
+                }
 
             } else if (targetState == FishingTarget.TargetState.ANIMATING_FAIL) {
                 // Fail animation: spin on Y-axis and shrink
@@ -310,35 +317,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 guiGraphics.pose().translate(0, -targetYOffset, zOffset);
                 guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(spinAngle)); // Spin on Y-axis
                 guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+                extension.fishtastic$renderItem(displayItem, 0, 0);
             }
 
             guiGraphics.pose().popPose();
             zOffset++; // Increment z-offset for each target so they don't z-fight
         }
-    }
-
-    /**
-     * Gets the display ItemStack for a fishing target.
-     * For FishtasticFish items in ACTIVE or ANIMATING_SUCCESS states, returns the generic fish item
-     * to hide the actual reward until it's caught.
-     * For caught items (ANIMATING_SUCCESS), returns the actual item to reveal the reward.
-     *
-     * @param target The fishing target to get the display item for
-     * @return The ItemStack to display in the minigame
-     */
-    private ItemStack getDisplayItemStack(FishingTarget target) {
-        ItemStack itemStack = target.getItemStack();
-        FishingTarget.TargetState state = target.getState();
-
-        // Only hide FishtasticFish items during ACTIVE and ANIMATING_FAIL states
-        // Show the actual item during ANIMATING_SUCCESS (when caught)
-        if ((state == FishingTarget.TargetState.ACTIVE || state == FishingTarget.TargetState.ANIMATING_FAIL)
-            && (itemStack.is(ItemTags.FISHES) || itemStack.getItem() instanceof FishtasticFish)) {
-            return new ItemStack(FishtasticItems.GENERIC_FISH);
-        }
-
-        return itemStack;
     }
 
     private static void renderRewardsDisplay(GuiGraphics guiGraphics, int x, int y, int screenWidth, int screenHeight) {

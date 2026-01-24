@@ -1,9 +1,11 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.FishtasticItems;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
+import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -19,6 +21,14 @@ public class FishingTarget {
         ANIMATING_FAIL,   // Target was caught and is playing collection animation
         ANIMATING_SUCCESS,         // Target failed and is playing fail animation
         COMPLETE                // Animation finished, ready to be removed
+    }
+
+    /**
+     * Category of target for determining display icon
+     */
+    public enum TargetCategory {
+        FISH,       // Shows generic fish icon
+        TREASURE    // Shows chest icon
     }
 
     // Movement constants
@@ -38,7 +48,8 @@ public class FishingTarget {
     private int ticksUntilNextMove;
 
     // Associated data
-    private final ItemStack itemStack;
+    private final List<ItemStack> rewardItems;
+    private final TargetCategory category;
     private final Random random;
 
     // Catch progress for this specific target
@@ -59,30 +70,21 @@ public class FishingTarget {
     // Collection animation constants
     private static final int COLLECTION_ANIMATION_DURATION = 30; // 1.5 seconds at 20 TPS
 
-    // Success animation constants and physics state
+    // Success animation constants
     private static final int SUCCESS_ANIMATION_MAX_DURATION = 100; // Max duration before forced completion
-    private static final float SUCCESS_GRAVITY = 0.003f;
-    private static final float SUCCESS_INITIAL_VELOCITY_Y_MIN = 0.02f;
-    private static final float SUCCESS_INITIAL_VELOCITY_Y_MAX = 0.06f;
-    private static final float SUCCESS_INITIAL_VELOCITY_X_MIN = -0.03f;
-    private static final float SUCCESS_INITIAL_VELOCITY_X_MAX = 0.03f;
-    private static final float SUCCESS_INITIAL_ROT_VEL_MIN = 5f;
-    private static final float SUCCESS_INITIAL_ROT_VEL_MAX = 15f;
 
-    private Vector2f successPosition; // Screen-space position for success animation (normalized 0-1)
-    private Vector2f previousSuccessPosition; // Previous position for interpolation
-    private Vector2f successVelocity; // Velocity vector
-    private Vector3f successRotation; // Current rotation angles in degrees (X, Y, Z axes)
-    private Vector3f successRotationalVelocity; // Rotation speeds in degrees per tick (X, Y, Z axes)
-    private Vector3f previousSuccessRotation; // For interpolation
+    // Physics simulations for success animation (one per reward item)
+    private List<PhysicsSimulation> physicsSimulations;
 
     /**
      * Creates a new fishing target with a random initial position
-     * @param itemStack The ItemStack to display for this target
+     * @param rewardItems The ItemStacks to award when this target is caught
+     * @param category The category (FISH or TREASURE) for display purposes
      * @param random Random instance for generating movement patterns
      */
-    public FishingTarget(ItemStack itemStack, Random random) {
-        this.itemStack = itemStack;
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random) {
+        this.rewardItems = new ArrayList<>(rewardItems);
+        this.category = category;
         this.random = random;
         this.currentPosition = random.nextFloat();
         this.targetPosition = currentPosition;
@@ -95,16 +97,19 @@ public class FishingTarget {
         this.state = TargetState.ACTIVE;
         this.animationTick = 0;
         this.previousAnimationTick = 0;
+        this.physicsSimulations = new ArrayList<>();
     }
 
     /**
      * Creates a new fishing target with a specific initial position
-     * @param itemStack The ItemStack to display for this target
+     * @param rewardItems The ItemStacks to award when this target is caught
+     * @param category The category (FISH or TREASURE) for display purposes
      * @param random Random instance for generating movement patterns
      * @param initialPosition Initial position (0-1)
      */
-    public FishingTarget(ItemStack itemStack, Random random, float initialPosition) {
-        this.itemStack = itemStack;
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random, float initialPosition) {
+        this.rewardItems = new ArrayList<>(rewardItems);
+        this.category = category;
         this.random = random;
         this.currentPosition = Math.max(0, Math.min(1, initialPosition));
         this.targetPosition = currentPosition;
@@ -117,6 +122,7 @@ public class FishingTarget {
         this.state = TargetState.ACTIVE;
         this.animationTick = 0;
         this.previousAnimationTick = 0;
+        this.physicsSimulations = new ArrayList<>();
     }
 
     /**
@@ -164,37 +170,17 @@ public class FishingTarget {
                 break;
 
             case ANIMATING_SUCCESS:
-                // Success animation: physics simulation
-                if (successRotation != null) {
-                    if (previousSuccessRotation == null) {
-                        previousSuccessRotation = new Vector3f(successRotation);
-                    } else {
-                        previousSuccessRotation.set(successRotation);
-                    }
-                }
-                if (successPosition != null) {
-                    if (previousSuccessPosition == null) {
-                        previousSuccessPosition = new Vector2f(successPosition);
-                    } else {
-                        previousSuccessPosition.set(successPosition);
-                    }
-                }
+                // Success animation: physics simulation for each item
                 animationTick++;
 
-                // Apply gravity
-                successVelocity.y -= SUCCESS_GRAVITY;
+                // Update all physics simulations
+                for (PhysicsSimulation simulation : physicsSimulations) {
+                    simulation.tick();
+                }
 
-                // Update position
-                successPosition.x += successVelocity.x;
-                successPosition.y += successVelocity.y;
-
-                // Update rotation on all axes
-                successRotation.x += successRotationalVelocity.x;
-                successRotation.y += successRotationalVelocity.y;
-                successRotation.z += successRotationalVelocity.z;
-
-                // Check if off-screen or max duration reached
-                if (successPosition.y() < -2 || animationTick >= SUCCESS_ANIMATION_MAX_DURATION) {
+                // Check if all items are off-screen or max duration reached
+                boolean allOffScreen = physicsSimulations.stream().allMatch(PhysicsSimulation::isOffScreen);
+                if (allOffScreen || animationTick >= SUCCESS_ANIMATION_MAX_DURATION) {
                     state = TargetState.COMPLETE;
                 }
                 break;
@@ -254,11 +240,19 @@ public class FishingTarget {
     }
 
     /**
-     * Gets the ItemStack associated with this target
-     * @return The ItemStack to render
+     * Gets all reward items associated with this target
+     * @return List of ItemStacks to award when caught
      */
-    public ItemStack getItemStack() {
-        return itemStack;
+    public List<ItemStack> getAllRewardItems() {
+        return new ArrayList<>(rewardItems);
+    }
+
+    /**
+     * Gets the physics simulations for rendering success animation
+     * @return List of PhysicsSimulation instances
+     */
+    public List<PhysicsSimulation> getPhysicsSimulations() {
+        return physicsSimulations;
     }
 
     /**
@@ -370,29 +364,11 @@ public class FishingTarget {
         previousAnimationTick = 0;
 
         // Initialize physics state
-        // Start at current bar position
-        successPosition = new Vector2f(x, y);
-        previousSuccessPosition = new Vector2f(x, y); // Initialize previous position
-
-        // Random upward and sideways velocity
-        float velocityY = SUCCESS_INITIAL_VELOCITY_Y_MIN + random.nextFloat() * (SUCCESS_INITIAL_VELOCITY_Y_MAX - SUCCESS_INITIAL_VELOCITY_Y_MIN);
-        float velocityX = SUCCESS_INITIAL_VELOCITY_X_MIN + random.nextFloat() * (SUCCESS_INITIAL_VELOCITY_X_MAX - SUCCESS_INITIAL_VELOCITY_X_MIN);
-        successVelocity = new Vector2f(velocityX, velocityY);
-
-        // Random rotational velocities for all three axes
-        float rotVelX = SUCCESS_INITIAL_ROT_VEL_MIN + random.nextFloat() * (SUCCESS_INITIAL_ROT_VEL_MAX - SUCCESS_INITIAL_ROT_VEL_MIN);
-        float rotVelY = SUCCESS_INITIAL_ROT_VEL_MIN + random.nextFloat() * (SUCCESS_INITIAL_ROT_VEL_MAX - SUCCESS_INITIAL_ROT_VEL_MIN);
-        float rotVelZ = SUCCESS_INITIAL_ROT_VEL_MIN + random.nextFloat() * (SUCCESS_INITIAL_ROT_VEL_MAX - SUCCESS_INITIAL_ROT_VEL_MIN);
-
-        // Randomize direction for each axis
-        if (random.nextBoolean()) rotVelX = -rotVelX;
-        if (random.nextBoolean()) rotVelY = -rotVelY;
-        if (random.nextBoolean()) rotVelZ = -rotVelZ;
-
-        successRotationalVelocity = new Vector3f(rotVelX, rotVelY, rotVelZ);
-
-        successRotation = new Vector3f(0, 0, 0);
-        previousSuccessRotation = new Vector3f(0, 0, 0);
+        // Create a physics simulation for each reward item
+        physicsSimulations.clear();
+        for (ItemStack item : rewardItems) {
+            physicsSimulations.add(new PhysicsSimulation(item, 0, 0, random));
+        }
     }
 
     /**
@@ -452,34 +428,25 @@ public class FishingTarget {
     }
 
     /**
-     * Gets the success animation screen position with interpolation
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Interpolated screen position (normalized 0-1)
+     * Gets the display ItemStack for a fishing target.
+     * For FishtasticFish items in ACTIVE or ANIMATING_FAIL states, returns the generic fish item
+     * to hide the actual reward until it's caught.
+     * For caught items (ANIMATING_SUCCESS), returns the actual item to reveal the reward.
+     *
+     * @return The ItemStack to display in the minigame
      */
-    public Vector2f getSuccessScreenPosition(float partialTick) {
-        if (state == TargetState.ANIMATING_SUCCESS && successPosition != null && previousSuccessPosition != null) {
-            // Interpolate between previous and current position for smooth rendering
-            float interpX = previousSuccessPosition.x + (successPosition.x - previousSuccessPosition.x) * partialTick;
-            float interpY = previousSuccessPosition.y + (successPosition.y - previousSuccessPosition.y) * partialTick;
-            return new Vector2f(interpX, interpY);
-        }
-        return successPosition != null ? new Vector2f(successPosition) : new Vector2f(0.5f, currentPosition);
-    }
-
-    /**
-     * Gets the success animation rotation angles with interpolation on all axes
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Rotation angles in degrees (X, Y, Z axes)
-     */
-    public Vector3f getSuccessRotation(float partialTick) {
-        if (state != TargetState.ANIMATING_SUCCESS || successRotation == null || previousSuccessRotation == null) {
-            return new Vector3f(0, 0, 0);
+    public ItemStack getDisplayItemStack() {
+        // Only hide FishtasticFish items during ACTIVE and ANIMATING_FAIL states
+        // Show the actual item during ANIMATING_SUCCESS (when caught)
+        if ((state == FishingTarget.TargetState.ACTIVE || state == FishingTarget.TargetState.ANIMATING_FAIL)) {
+            if(category == TargetCategory.FISH) {
+                return new ItemStack(FishtasticItems.GENERIC_FISH);
+            } else {
+                return new ItemStack(Items.CHEST);
+            }
         }
 
-        float interpX = previousSuccessRotation.x + (successRotation.x - previousSuccessRotation.x) * partialTick;
-        float interpY = previousSuccessRotation.y + (successRotation.y - previousSuccessRotation.y) * partialTick;
-        float interpZ = previousSuccessRotation.z + (successRotation.z - previousSuccessRotation.z) * partialTick;
-
-        return new Vector3f(interpX, interpY, interpZ);
+        // During success animation, show first reward item (or empty if no rewards)
+        return rewardItems.isEmpty() ? ItemStack.EMPTY : rewardItems.get(0);
     }
 }
