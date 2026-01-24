@@ -2,8 +2,10 @@ package grill24.fishtastic.util;
 
 import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.item.FishtasticFish;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -58,15 +60,16 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             if (introAnimationTick >= INTRO_ANIMATION_DURATION) {
                 isIntro = false;
             }
-            return; // Don't update minigame state during intro animation
+            return; // Don't update minigame state or targets during intro animation
         }
 
         // If hiding, advance hide animation
         if (isHiding) {
             hideAnimationTick++;
-            return; // Don't update minigame state during hide animation
+            return; // Don't update minigame state or targets during hide animation
         }
 
+        // Only update minigame state and targets when not in intro or hiding
         minigameState.tick();
 
         // Update catch progress for all targets based on collision
@@ -126,8 +129,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /**
      * Applies an upward impulse to the bobber (player interaction)
+     * Does nothing if the minigame is hiding or in intro animation.
      */
     public void applyPlayerImpulse() {
+        // Don't apply impulse during intro or hide animations
+        if (isIntro || isHiding) {
+            return;
+        }
         minigameState.applyImpulse();
     }
 
@@ -160,13 +168,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         int x = screenWidth / 2;
         int y = screenHeight / 2;
 
-        renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
+        render(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
 //        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
     }
 
-    private void renderFishingBar(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
+    private void render(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
         // ----- Render Fishing Bar + Bobber -----
         guiGraphics.pose().pushPose();
+        renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenHeight);
+        renderTargets(guiGraphics, partialTick);
+        guiGraphics.pose().popPose();
+    }
+
+    private void renderFishingBar(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
         float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
 
         // Calculate vertical offset for intro and hide animations
@@ -200,13 +214,14 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().pushPose();
         float bobberMaxYOffset = 28f / 32f; // Max Y offset in item texture units
         // Use physics-based bobber position from minigame state with interpolation for smooth rendering
-        float normalizedBobberPosition = minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
+        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
         float yOffset = normalizedBobberPosition * bobberMaxYOffset;
         guiGraphics.pose().translate(0, -yOffset, 0);
         renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popPose();
+    }
 
-
+    private void renderTargets(GuiGraphics guiGraphics, float partialTick) {
         // Render all targets from the minigame state
         final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
@@ -221,6 +236,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             guiGraphics.pose().pushPose();
 
             FishingTarget.TargetState targetState = target.getState();
+
+            // Get the display item - use generic fish for FishtasticFish items during active/fail states
+            ItemStack displayItem = getDisplayItemStack(target);
 
             if (targetState == FishingTarget.TargetState.ACTIVE) {
                 // Existing rendering logic for active targets
@@ -258,7 +276,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(shakeAngle));
                 guiGraphics.pose().scale(itemScale, itemScale, itemScale);
                 guiGraphics.setColor(color.x, color.y, color.z, 1f);
-                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+                extension.fishtastic$renderItem(displayItem, 0, 0);
                 guiGraphics.setColor(1f, 1f, 1f, 1f);
 
             } else if (targetState == FishingTarget.TargetState.ANIMATING_COLLECTION) {
@@ -292,14 +310,36 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(failRotation.y));
                 guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(failRotation.z));
                 guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-                extension.fishtastic$renderItem(target.getItemStack(), 0, 0);
+                extension.fishtastic$renderItem(displayItem, 0, 0);
 
             }
 
             guiGraphics.pose().popPose();
             zOffset++; // Increment z-offset for each target so they don't z-fight
         }
-        guiGraphics.pose().popPose();
+    }
+
+    /**
+     * Gets the display ItemStack for a fishing target.
+     * For FishtasticFish items in ACTIVE or ANIMATING_FAIL states, returns the generic fish item
+     * to hide the actual reward until it's caught.
+     * For caught items (ANIMATING_COLLECTION), returns the actual item to reveal the reward.
+     *
+     * @param target The fishing target to get the display item for
+     * @return The ItemStack to display in the minigame
+     */
+    private ItemStack getDisplayItemStack(FishingTarget target) {
+        ItemStack itemStack = target.getItemStack();
+        FishingTarget.TargetState state = target.getState();
+
+        // Only hide FishtasticFish items during ACTIVE and ANIMATING_FAIL states
+        // Show the actual item during ANIMATING_COLLECTION (when caught)
+        if ((state == FishingTarget.TargetState.ACTIVE || state == FishingTarget.TargetState.ANIMATING_FAIL)
+            && (itemStack.is(ItemTags.FISHES) || itemStack.getItem() instanceof FishtasticFish)) {
+            return new ItemStack(FishtasticItems.GENERIC_FISH);
+        }
+
+        return itemStack;
     }
 
     private static void renderRewardsDisplay(GuiGraphics guiGraphics, int x, int y, int screenWidth, int screenHeight) {
