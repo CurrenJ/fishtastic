@@ -20,9 +20,7 @@ public class ItemStackMixin {
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
-        if (player != null && !player.isCreative() && itemStack.has(DataComponents.HIDE_TOOLTIP)) {
-            return;
-        } else {
+        if(player == null || player.isCreative() || !itemStack.has(DataComponents.HIDE_TOOLTIP)) {
             List<Component> tooltipLines = cir.getReturnValue();
 
             // Append item size information to the tooltip.
