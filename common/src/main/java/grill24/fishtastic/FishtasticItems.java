@@ -14,6 +14,7 @@ public class FishtasticItems {
     public static Holder<Item> FISHING_MINIGAME_BOBBER;
     public static Holder<Item> SPARKLE;
     public static Holder<Item> GENERIC_FISH;
+    public static Holder<Item> REWARD_CHEST;
 
     // ----- Fishing Rods -----
     public static Holder<Item> COPPER_FISHING_ROD;
@@ -45,6 +46,8 @@ public class FishtasticItems {
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(new Item.Properties().stacksTo(1)));
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(new Item.Properties().stacksTo(1)));
         SPARKLE = RegistrationApiSided.getInstance().registerItem("sparkle", loc -> new Item(new Item.Properties().stacksTo(1)));
+        GENERIC_FISH = RegistrationApiSided.getInstance().registerItem("generic_fish", loc -> new FishtasticFish(new Item.Properties()));
+        REWARD_CHEST = RegistrationApiSided.getInstance().registerItem("reward_chest", loc -> new TestItem(new Item.Properties().stacksTo(1)));
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new CopperFishingRod(new Item.Properties().durability(250)));
 
@@ -69,6 +72,5 @@ public class FishtasticItems {
         SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> new FishtasticFish(new Item.Properties()));
         STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFish(new Item.Properties()));
         WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> new FishtasticFish(new Item.Properties()));
-        GENERIC_FISH = RegistrationApiSided.getInstance().registerItem("generic_fish", loc -> new FishtasticFish(new Item.Properties()));
     }
 }
