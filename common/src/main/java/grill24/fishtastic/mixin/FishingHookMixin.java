@@ -2,17 +2,24 @@ package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.server.FishingMinigameManager;
+import grill24.fishtastic.util.IFishingHookExtension;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FishingHook.class)
-public class FishingHookMixin {
+public class FishingHookMixin implements IFishingHookExtension {
+    @Shadow
+    @Final
+    private int luck;
+
     @Inject(method = "retrieve", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getServer()Lnet/minecraft/server/MinecraftServer;"), cancellable = true)
     private void retrieve(ItemStack itemStack, CallbackInfoReturnable<Integer> cir) {
         FishingHook fishingHook = (FishingHook)(Object)this;
@@ -43,5 +50,10 @@ public class FishingHookMixin {
                 cir.setReturnValue(0); // Prevent hook discard when minigame is active
             }
         }
+    }
+
+    @Override
+    public int getLuck() {
+        return this.luck;
     }
 }

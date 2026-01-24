@@ -1,5 +1,7 @@
 package grill24.fishtastic.util;
 
+import net.minecraft.util.RandomSource;
+
 /**
  * Utility class for mathematical operations used throughout the mod.
  */
@@ -99,6 +101,10 @@ public class MathUtil {
     public static float easedLerp(float start, float end, float t, java.util.function.Function<Float, Float> easingFunction) {
         float easedT = easingFunction.apply(t);
         return lerp(start, end, easedT);
+    }
+
+    public static float randomGaussian(RandomSource randomSource, float mean, float stdDev) {
+        return (float) (mean + randomSource.nextGaussian() * stdDev);
     }
 }
 

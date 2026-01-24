@@ -2,10 +2,27 @@ package grill24.fishtastic.server;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
+import grill24.fishtastic.util.FishingTarget;
+import grill24.fishtastic.util.IFishingHookExtension;
+import grill24.fishtastic.util.MathUtil;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -173,49 +190,57 @@ public class FishingMinigameManager {
      */
     private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier) {
         List<ServerFishingTarget> targets = new ArrayList<>();
-        net.minecraft.util.RandomSource randomSource = player.getRandom();
+        RandomSource randomSource = player.getRandom();
 
         // TODO: Use loot tables for proper item selection
-        // For now, use hardcoded examples
-        ItemStack[] possibleRewards = {
-                new ItemStack(Items.COD),
-                new ItemStack(Items.SALMON),
-                new ItemStack(Items.TROPICAL_FISH),
-                new ItemStack(Items.PUFFERFISH),
-                new ItemStack(Items.DIAMOND),
-                new ItemStack(Items.EMERALD),
-                new ItemStack(Items.GOLD_INGOT),
-        };
+        // Sample fish items from fish tag
+        List<ItemStack> fishRewards = player.registryAccess().registryOrThrow(Registries.ITEM).getOrCreateTag(ItemTags.FISHES).stream()
+                .map(Holder::value)
+                .map(ItemStack::new)
+                .toList();
+
+        // Sample treasure items from loot table
+        List<ItemStack> treasureRewards = new ArrayList<>();
+        FishingHook hook = player.fishing;
+        IFishingHookExtension hookExt = (IFishingHookExtension) hook;
+        if (hook != null) {
+            LootTable lootTable =  level.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING_TREASURE);
+            for (int i = 0; i < 8; i++) {
+                LootParams lootparams = new LootParams.Builder(player.serverLevel())
+                        .withParameter(LootContextParams.ORIGIN, hook.position())
+                        .withParameter(LootContextParams.TOOL, player.getUseItem())
+                        .withParameter(LootContextParams.THIS_ENTITY, hook)
+                        .withParameter(LootContextParams.ATTACKING_ENTITY, hook.getOwner())
+                        .withLuck(hookExt.getLuck() + player.getLuck())
+                        .create(LootContextParamSets.FISHING);
+                List<ItemStack> drops = lootTable.getRandomItems(lootparams);
+                treasureRewards.addAll(drops);
+            }
+        }
 
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
-
-        int targetCount = Math.min(MAX_TARGETS, 3 + randomSource.nextInt(3));
-
+        int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, 2, 1), 1, MAX_TARGETS);
         for (int i = 0; i < targetCount; i++) {
-            int numRewards = 1 + randomSource.nextInt(3); // 1-3 items per target
-            ItemStack[] rewardStacks = new ItemStack[numRewards];
-            for(int n = 0; n < numRewards; n++) {
-                // For simplicity, just duplicate the same item multiple times
-                // In a real implementation, you'd select different items
-                int index = randomSource.nextInt(possibleRewards.length);
-                rewardStacks[n] = possibleRewards[index].copy();
-            }
+            boolean isFish = randomSource.nextBoolean();
+            List<ItemStack> possibleRewards = isFish ? fishRewards : treasureRewards;
+            int numRewards = isFish ? 1 : MathUtil.clamp((int) MathUtil.randomGaussian(randomSource, 1, 1), 1, 3);
+            List<ItemStack> rewardStacks = generateRewards(randomSource, possibleRewards, numRewards);
 
             int difficultyIndex = randomSource.nextInt(baseDifficulties.length);
             float difficulty = baseDifficulties[difficultyIndex] * difficultyModifier;
             float initialPosition = randomSource.nextFloat();
 
             // Determine category based on item type
-            grill24.fishtastic.util.FishingTarget.TargetCategory category;
-            ItemStack reward = rewardStacks[0]; // Use first item to determine category
-            if (reward.is(net.minecraft.tags.ItemTags.FISHES)) {
-                category = grill24.fishtastic.util.FishingTarget.TargetCategory.FISH;
+            FishingTarget.TargetCategory category;
+            ItemStack reward = rewardStacks.getFirst(); // Use first item to determine category
+            if (reward.is(ItemTags.FISHES)) {
+                category = FishingTarget.TargetCategory.FISH;
             } else {
-                category = grill24.fishtastic.util.FishingTarget.TargetCategory.TREASURE;
+                category = FishingTarget.TargetCategory.TREASURE;
             }
 
             targets.add(new ServerFishingTarget(
-                    List.of(rewardStacks), // For now, single item per target
+                    rewardStacks, // For now, single item per target
                     category,
                     difficulty,
                     initialPosition
@@ -223,6 +248,16 @@ public class FishingMinigameManager {
         }
 
         return targets;
+    }
+
+    private static List<ItemStack> generateRewards(RandomSource randomSource, List<ItemStack> possibleRewards, int numRewards) {
+        List<ItemStack> rewardStacks = new ArrayList<>();
+
+        for(int n = 0; n < numRewards; n++) {
+            int index = randomSource.nextInt(possibleRewards.size());
+            rewardStacks.add(possibleRewards.get(index).copy());
+        }
+        return rewardStacks;
     }
 
     /**
