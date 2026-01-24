@@ -23,5 +23,8 @@
   "item.fishtastic.starfish": "Starfish",
   "item.fishtastic.worms": "Worms",
 
-  "tooltip.fishtastic.item_size.cm": "%s cm"
+  "tooltip.fishtastic.item_size.cm": "%s cm",
+
+  "key.categories.fishtastic": "Fishtastic",
+  "key.fishtastic.fishing_minigame_impulse": "Fishing Minigame Impulse"
 }

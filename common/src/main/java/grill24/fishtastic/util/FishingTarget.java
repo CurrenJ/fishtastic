@@ -442,7 +442,7 @@ public class FishingTarget {
             if(category == TargetCategory.FISH) {
                 return new ItemStack(FishtasticItems.GENERIC_FISH);
             } else {
-                return new ItemStack(Items.CHEST);
+                return new ItemStack(FishtasticItems.REWARD_CHEST);
             }
         }
 

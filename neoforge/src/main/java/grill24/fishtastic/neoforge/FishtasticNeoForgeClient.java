@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
@@ -24,6 +25,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -37,6 +39,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -53,6 +56,12 @@ public final class FishtasticNeoForgeClient {
             FishTankBlockEntityRenderer::new
         );
         Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
+    }
+
+    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        FishtasticKeyBinds.init();
+        event.register(FishtasticKeyBinds.fishingMinigameImpulse);
+        Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
@@ -83,6 +92,8 @@ public final class FishtasticNeoForgeClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
+            // Handle key presses
+            FishtasticKeyBinds.handleKeyPress(mc);
         }
     }
 }
