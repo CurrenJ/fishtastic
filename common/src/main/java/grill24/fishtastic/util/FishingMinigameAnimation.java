@@ -2,10 +2,8 @@ package grill24.fishtastic.util;
 
 import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItems;
-import grill24.fishtastic.item.FishtasticFish;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;

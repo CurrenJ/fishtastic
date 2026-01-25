@@ -34,7 +34,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     public static final int CONTAINER_SIZE = 27; // 3x9 slots like a chest
 
     // Maximum item size (in cm) that can be inserted without tank size requirements
-    public static final float MAX_ITEM_SIZE_WITHOUT_REQUIREMENTS = 85.0f;
+    public static final float MAX_ITEM_SIZE_WITHOUT_REQUIREMENTS = 100.0f;
 
     // Minimum tank dimensions required for large items (3x3)
     public static final int MIN_TANK_WIDTH_FOR_LARGE_ITEMS = 3;
