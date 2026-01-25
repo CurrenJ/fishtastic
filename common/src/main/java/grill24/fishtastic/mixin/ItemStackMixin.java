@@ -1,6 +1,7 @@
 package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -16,7 +17,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.List;
 
 @Mixin(ItemStack.class)
-public class ItemStackMixin {
+public abstract class ItemStackMixin {
+
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
@@ -24,10 +26,29 @@ public class ItemStackMixin {
             List<Component> tooltipLines = cir.getReturnValue();
 
             // Append item size information to the tooltip.
-            ItemSize tooltipProvider = itemStack.get(FishtasticDataComponents.ITEM_SIZE.value());
-            if (tooltipProvider != null) {
-                tooltipProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
+            ItemSize sizeProvider = itemStack.get(FishtasticDataComponents.ITEM_SIZE.value());
+            if (sizeProvider != null) {
+                sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
             }
+
+            // Append fish quality information to the tooltip.
+            FishQuality qualityProvider = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
+            if (qualityProvider != null) {
+                qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
+            }
+        }
+    }
+
+    /**
+     * Make high-quality fish items shimmer with the enchantment glint effect.
+     */
+    @Inject(method = "hasFoil", at = @At("HEAD"), cancellable = true)
+    public void addQualityFoilEffect(CallbackInfoReturnable<Boolean> cir) {
+        ItemStack itemStack = (ItemStack)(Object)this;
+        FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
+
+        if (fishQuality != null && fishQuality.shouldRenderEffect()) {
+            cir.setReturnValue(true);
         }
     }
 }

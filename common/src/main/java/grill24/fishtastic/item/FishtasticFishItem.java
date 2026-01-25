@@ -1,6 +1,7 @@
 package grill24.fishtastic.item;
 
-import grill24.fishtastic.component.ItemSize;
+import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.Holder;
@@ -18,29 +19,21 @@ public class FishtasticFishItem extends Item {
             float meanOffset, float stdDevOffset,
             float meanMultiplier, float stdDevMultiplier) {}
 
-    public enum Quality {
-        COMMON,
-        UNCOMMON,
-        RARE,
-        EPIC,
-        LEGENDARY
-    }
-
-    public static Map<Quality, List<GaussianModifier>> QUALITY_SIZE_MODIFIERS = Map.of(
-            Quality.COMMON, List.of(new GaussianModifier(0.0f, 0.0f, 1.0f, 1.0f)),
-            Quality.UNCOMMON, List.of(new GaussianModifier(5.0f, 0.0f, 1.1f, 1.1f)),
-            Quality.RARE, List.of(new GaussianModifier(10.0f, 0.0f, 1.2f, 1.2f)),
-            Quality.EPIC, List.of(new GaussianModifier(20.0f, 0.0f, 1.3f, 1.3f)),
-            Quality.LEGENDARY, List.of(new GaussianModifier(30.0f, 0.0f, 1.5f, 1.5f))
+    public static Map<FishQuality.Quality, List<GaussianModifier>> QUALITY_SIZE_MODIFIERS = Map.of(
+            FishQuality.Quality.COMMON, List.of(new GaussianModifier(0.0f, 0.0f, 1.0f, 1.0f)),
+            FishQuality.Quality.UNCOMMON, List.of(new GaussianModifier(5.0f, 0.0f, 1.1f, 1.1f)),
+            FishQuality.Quality.RARE, List.of(new GaussianModifier(10.0f, 0.0f, 1.2f, 1.2f)),
+            FishQuality.Quality.EPIC, List.of(new GaussianModifier(20.0f, 0.0f, 1.3f, 1.3f)),
+            FishQuality.Quality.LEGENDARY, List.of(new GaussianModifier(30.0f, 0.0f, 1.5f, 1.5f))
     );
 
     // ----- Chance Of Each Quality -----
-    public static Map<Quality, Integer> QUALITY_WEIGHTS = Map.of(
-            Quality.COMMON, 6400,
-            Quality.UNCOMMON, 2500,
-            Quality.RARE, 750,
-            Quality.EPIC, 250,
-            Quality.LEGENDARY, 100
+    public static Map<FishQuality.Quality, Integer> QUALITY_WEIGHTS = Map.of(
+            FishQuality.Quality.COMMON, 6400,
+            FishQuality.Quality.UNCOMMON, 2500,
+            FishQuality.Quality.RARE, 750,
+            FishQuality.Quality.EPIC, 250,
+            FishQuality.Quality.LEGENDARY, 100
     );
     public static int TOTAL_BASE_WEIGHT = QUALITY_WEIGHTS.values().stream().mapToInt(Integer::intValue).sum();
 
@@ -66,7 +59,7 @@ public class FishtasticFishItem extends Item {
         return DEFAULT_BASE_STDDEV_SIZE;
     }
 
-    public static float getRandomSize(RandomSource randomSource, Quality quality, float baseMeanSize, float baseStdDevSize) {
+    public static float getRandomSize(RandomSource randomSource, FishQuality.Quality quality, float baseMeanSize, float baseStdDevSize) {
         List<GaussianModifier> modifiers = QUALITY_SIZE_MODIFIERS.get(quality);
         for (GaussianModifier modifier : modifiers) {
             baseMeanSize += modifier.meanOffset;
@@ -91,15 +84,18 @@ public class FishtasticFishItem extends Item {
             r -= weights.get(i);
             if(r < 0) {
                 ItemStack stack = new ItemStack(fishItems.get(i));
-                Quality quality = sampleRandomQuality(randomSource);
+                FishQuality.Quality quality = sampleRandomQuality(randomSource);
 
-                float size = 0.0f;
+                float size;
                 if (stack.getItem() instanceof FishtasticFishItem fishItem) {
                     size = getRandomSize(randomSource, quality, fishItem.getBaseMeanSize(), fishItem.getBaseStdDevSize());
                 } else {
                     size = getRandomSize(randomSource, quality, DEFAULT_BASE_MEAN_SIZE, DEFAULT_BASE_STDDEV_SIZE);
                 }
                 ItemSizeHelper.setSize(stack, size);
+
+                // Set the quality component
+                stack.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
 
                 return stack;
             }
@@ -122,9 +118,9 @@ public class FishtasticFishItem extends Item {
         return 1;
     }
 
-    public static Quality sampleRandomQuality(RandomSource randomSource) {
+    public static FishQuality.Quality sampleRandomQuality(RandomSource randomSource) {
         int r = randomSource.nextInt(TOTAL_BASE_WEIGHT);
-        for(Quality quality : Quality.values()) {
+        for(FishQuality.Quality quality : FishQuality.Quality.values()) {
             r -= QUALITY_WEIGHTS.get(quality);
             if(r < 0) {
                 return quality;
@@ -132,6 +128,6 @@ public class FishtasticFishItem extends Item {
         }
 
         // Fallback (should not reach here)
-        return Quality.COMMON;
+        return FishQuality.Quality.COMMON;
     }
 }
