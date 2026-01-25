@@ -20,6 +20,7 @@ public class FishtasticItems {
     public static Holder<Item> COPPER_FISHING_ROD;
 
     // ----- Fish Items -----
+    public static Holder<Item> ACUTE_IASPIS;
     public static Holder<Item> BLAZED_GRUB;
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
@@ -51,6 +52,7 @@ public class FishtasticItems {
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new CopperFishingRod(new Item.Properties().durability(250)));
 
+        ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFish(new Item.Properties()));
         BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> new FishtasticFish(new Item.Properties()));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFish(new Item.Properties()));
         FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFish(new Item.Properties()));
