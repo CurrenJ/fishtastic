@@ -5,6 +5,7 @@
   "minVersion": "0.8",
   "refmap": "fishtastic.refmap.json",
   "client": [
+    "MouseHandlerMixin"
   ],
   "mixins": [
   ],

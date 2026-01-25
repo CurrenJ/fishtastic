@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishTankCustomizationHandler;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -24,6 +25,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -43,6 +45,9 @@ public final class FishtasticNeoForgeClient {
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
+
+        // Register mouse scroll event handler for fish tank customization
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onMouseScroll);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
@@ -94,6 +99,12 @@ public final class FishtasticNeoForgeClient {
             ClientTickHandler.tick(1.0f);
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
+        }
+    }
+
+    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
+        if (FishTankCustomizationHandler.handleMouseScroll(event.getScrollDeltaY())) {
+            event.setCanceled(true);
         }
     }
 }

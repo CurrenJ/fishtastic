@@ -20,8 +20,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
 public class FishTankBlock extends Block implements EntityBlock {
     public FishTankBlock(Properties properties) {
         super(properties);
@@ -123,25 +121,35 @@ public class FishTankBlock extends Block implements EntityBlock {
                 if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
                     Block heldBlock = blockItem.getBlock();
 
-                    // Get the hit position relative to the block
-                    double relativeY = blockHitResult.getLocation().y - blockPos.getY();
+                    // Get the player's current customization mode
+                    FishTankCustomizationMode mode = FishTankCustomizationModeManager.getMode(player.getUUID());
 
-                    // Top 2/4 of the block (y > 0.33) sets frame block
-                    // Bottom 1/4 of the block (y <= 0.33) sets sand block
-                    if (relativeY > 0.33) {
-                        fishTank.setFrameBlock(heldBlock);
-                        player.displayClientMessage(
-                            Component.literal("Fish tank frame changed to: " +
-                                BuiltInRegistries.BLOCK.getKey(heldBlock)),
-                            true
-                        );
-                    } else {
-                        fishTank.setSandBlock(heldBlock);
-                        player.displayClientMessage(
-                            Component.literal("Fish tank sand changed to: " +
-                                BuiltInRegistries.BLOCK.getKey(heldBlock)),
-                            true
-                        );
+                    // Apply the block based on the current mode
+                    switch (mode) {
+                        case FRAME:
+                            fishTank.setFrameBlock(heldBlock);
+                            player.displayClientMessage(
+                                Component.literal("Fish tank frame changed to: " +
+                                    BuiltInRegistries.BLOCK.getKey(heldBlock)),
+                                true
+                            );
+                            break;
+                        case SAND:
+                            fishTank.setSandBlock(heldBlock);
+                            player.displayClientMessage(
+                                Component.literal("Fish tank sand changed to: " +
+                                    BuiltInRegistries.BLOCK.getKey(heldBlock)),
+                                true
+                            );
+                            break;
+                        case GLASS:
+                            fishTank.setGlassBlock(heldBlock);
+                            player.displayClientMessage(
+                                Component.literal("Fish tank glass changed to: " +
+                                    BuiltInRegistries.BLOCK.getKey(heldBlock)),
+                                true
+                            );
+                            break;
                     }
 
                     return ItemInteractionResult.SUCCESS;
