@@ -116,3 +116,5 @@ __pycache__/
 
 # data gen
 **generated/
+
+debug_src/**

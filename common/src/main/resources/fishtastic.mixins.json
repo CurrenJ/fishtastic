@@ -5,7 +5,10 @@
   "minVersion": "0.8",
   "client": [
     "GameRendererMixin",
-    "GuiGraphicsMixin"
+    "GuiGraphicsMixin",
+    "ItemRendererMixin",
+    "LevelRendererMixin",
+    "RenderBuffersMixin"
   ],
   "injectors": {
     "defaultRequire": 1
