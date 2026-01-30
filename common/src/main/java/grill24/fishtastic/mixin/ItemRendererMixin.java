@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexMultiConsumer;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.client.renderer.FishtasticRenderTypes;
-import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -88,14 +87,6 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                // Check if shaders are loaded
-                if (FishtasticShaders.getQualityGlowShader() == null ||
-                    FishtasticShaders.getEntityQualityGlowShader() == null ||
-                    FishtasticShaders.getQualityGlowTranslucentShader() == null) {
-                    System.out.println("[Fishtastic] Quality glow shaders not loaded yet!");
-                    return; // Shaders not loaded yet, use default behavior
-                }
-
                 // Use VertexMultiConsumer.create() just like vanilla does
                 cir.setReturnValue(Minecraft.useShaderTransparency() && renderType == Sheets.translucentItemSheet()
                         ? VertexMultiConsumer.create(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlowTranslucent()), bufferSource.getBuffer(renderType))
@@ -123,16 +114,8 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                // Check if shaders are loaded
-                if (FishtasticShaders.getQualityGlowShader() == null ||
-                    FishtasticShaders.getEntityQualityGlowDirectShader() == null) {
-                    System.out.println("[Fishtastic] Quality glow shaders not loaded yet! (Direct)");
-                    return; // Shaders not loaded yet, use default behavior
-                }
-
                 // Use our custom quality glow shader instead of the default glint
                 RenderType customRenderType = solid ? FishtasticRenderTypes.qualityGlow() : FishtasticRenderTypes.entityQualityGlowDirect();
-//                System.out.println("[Fishtastic] Using " + (solid ? "qualityGlow" : "entityQualityGlowDirect"));
 
                 // Use VertexMultiConsumer.create() just like vanilla does
                 cir.setReturnValue(VertexMultiConsumer.create(
@@ -149,12 +132,6 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                // Check if shader is loaded
-                if (FishtasticShaders.getQualityGlowShader() == null) {
-                    System.out.println("[Fishtastic] Quality glow shader not loaded yet! (Compass)");
-                    return; // Shader not loaded yet, use default behavior
-                }
-
                 cir.setReturnValue(VertexMultiConsumer.create(
                         new SheetedDecalTextureGenerator(multiBufferSource.getBuffer(FishtasticRenderTypes.qualityGlow()), pose, 0.0078125F), multiBufferSource.getBuffer(renderType)));
             }

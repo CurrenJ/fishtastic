@@ -1,25 +1,20 @@
 package grill24.fishtastic.fabric;
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
-import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-
-import static grill24.fishtastic.util.Utility.ft;
 
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
@@ -29,33 +24,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register custom shaders
         CoreShaderRegistrationCallback.EVENT.register(context -> {
-            // Register quality_glow shader
-            context.register(
-                ft("rendertype_quality_glow"),
-                DefaultVertexFormat.POSITION_TEX,
-                FishtasticShaders::setQualityGlowShader
-            );
 
-            // Register entity_quality_glow shader
-            context.register(
-                ft("rendertype_entity_quality_glow"),
-                DefaultVertexFormat.POSITION_TEX,
-                FishtasticShaders::setEntityQualityGlowShader
-            );
-
-            // Register entity_quality_glow_direct shader
-            context.register(
-                ft("rendertype_entity_quality_glow_direct"),
-                DefaultVertexFormat.POSITION_TEX,
-                FishtasticShaders::setEntityQualityGlowDirectShader
-            );
-
-            // Register quality_glow_translucent shader
-            context.register(
-                ft("rendertype_quality_glow_translucent"),
-                DefaultVertexFormat.POSITION_TEX,
-                FishtasticShaders::setQualityGlowTranslucentShader
-            );
         });
 
         // Initialize and register key bindings

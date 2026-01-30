@@ -1,42 +1,17 @@
 package grill24.fishtastic.mixin;
 
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.datafixers.util.Pair;
-import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
-import net.minecraft.CrashReport;
-import net.minecraft.CrashReportCategory;
-import net.minecraft.CrashReportDetail;
-import net.minecraft.ReportedException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.server.packs.resources.ResourceProvider;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.function.Consumer;
-
-import static grill24.fishtastic.util.Utility.ft;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin implements IGameRendererExtension {

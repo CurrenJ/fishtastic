@@ -8,15 +8,12 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.FishTankCustomizationHandler;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
-import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -84,53 +81,7 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void registerShaders(RegisterShadersEvent event) throws IOException {
-        Fishtastic.LOGGER.info("Registering Fishtastic shaders...");
-        try {
-            // Register quality_glow shader
-            event.registerShader(
-                new ShaderInstance(
-                    event.getResourceProvider(),
-                    ft("rendertype_quality_glow"),
-                    DefaultVertexFormat.POSITION_TEX
-                ),
-                FishtasticShaders::setQualityGlowShader
-            );
 
-            // Register entity_quality_glow shader
-            event.registerShader(
-                new ShaderInstance(
-                    event.getResourceProvider(),
-                    ft("rendertype_entity_quality_glow"),
-                    DefaultVertexFormat.POSITION_TEX
-                ),
-                FishtasticShaders::setEntityQualityGlowShader
-            );
-
-            // Register entity_quality_glow_direct shader
-            event.registerShader(
-                new ShaderInstance(
-                    event.getResourceProvider(),
-                    ft("rendertype_entity_quality_glow_direct"),
-                    DefaultVertexFormat.POSITION_TEX
-                ),
-                FishtasticShaders::setEntityQualityGlowDirectShader
-            );
-
-            // Register quality_glow_translucent shader
-            event.registerShader(
-                new ShaderInstance(
-                    event.getResourceProvider(),
-                    ft("rendertype_quality_glow_translucent"),
-                    DefaultVertexFormat.POSITION_TEX
-                ),
-                FishtasticShaders::setQualityGlowTranslucentShader
-            );
-
-            Fishtastic.LOGGER.info("Successfully registered all quality_glow shader variants!");
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to register quality_glow shaders", e);
-            throw e;
-        }
     }
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
