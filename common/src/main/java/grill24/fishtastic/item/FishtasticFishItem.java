@@ -2,6 +2,7 @@ package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.Holder;
@@ -93,6 +94,7 @@ public class FishtasticFishItem extends Item {
                     size = getRandomSize(randomSource, quality, DEFAULT_BASE_MEAN_SIZE, DEFAULT_BASE_STDDEV_SIZE);
                 }
                 ItemSizeHelper.setSize(stack, size);
+                FishQualityHelper.setQuality(stack, quality);
 
                 // Set the quality component
                 stack.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));

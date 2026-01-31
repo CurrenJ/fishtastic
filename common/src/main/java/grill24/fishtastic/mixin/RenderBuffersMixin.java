@@ -22,16 +22,15 @@ public class RenderBuffersMixin {
      * Modify the consumer passed to Util.make() to add our custom render types.
      * This wraps the vanilla consumer and adds our quality glow types after vanilla's setup.
      */
-    @Inject(method = "put", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "put", at = @At("HEAD"))
     private static void addQualityGlowRenderTypes(
             Object2ObjectLinkedOpenHashMap<RenderType, ByteBufferBuilder> object2ObjectLinkedOpenHashMap, RenderType renderType, CallbackInfo ci
     ) {
         if(renderType == RenderType.glint()) {
-            // Now add our custom quality glow render types
-            RenderBuffersMixin.fishtastic$putRenderType(object2ObjectLinkedOpenHashMap, FishtasticRenderTypes.qualityGlowTranslucent());
-            RenderBuffersMixin.fishtastic$putRenderType(object2ObjectLinkedOpenHashMap, FishtasticRenderTypes.qualityGlow());
-            RenderBuffersMixin.fishtastic$putRenderType(object2ObjectLinkedOpenHashMap, FishtasticRenderTypes.entityQualityGlow());
-            RenderBuffersMixin.fishtastic$putRenderType(object2ObjectLinkedOpenHashMap, FishtasticRenderTypes.entityQualityGlowDirect());
+            // Add all custom quality glow render types for each quality level
+            for (RenderType qualityRenderType : FishtasticRenderTypes.getAllCustomRenderTypes()) {
+                RenderBuffersMixin.fishtastic$putRenderType(object2ObjectLinkedOpenHashMap, qualityRenderType);
+            }
         }
     }
 

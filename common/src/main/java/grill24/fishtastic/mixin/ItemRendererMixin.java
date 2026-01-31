@@ -87,10 +87,11 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                // Use VertexMultiConsumer.create() just like vanilla does
+                FishQuality.Quality quality = fishQuality.quality();
+                // Use VertexMultiConsumer.create() just like vanilla does, with quality-specific render types
                 cir.setReturnValue(Minecraft.useShaderTransparency() && renderType == Sheets.translucentItemSheet()
-                        ? VertexMultiConsumer.create(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlowTranslucent()), bufferSource.getBuffer(renderType))
-                        : VertexMultiConsumer.create(bufferSource.getBuffer(solid ? FishtasticRenderTypes.qualityGlow() : FishtasticRenderTypes.entityQualityGlow()), bufferSource.getBuffer(renderType))
+                        ? VertexMultiConsumer.create(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlowTranslucent(quality)), bufferSource.getBuffer(renderType))
+                        : VertexMultiConsumer.create(bufferSource.getBuffer(solid ? FishtasticRenderTypes.qualityGlow(quality) : FishtasticRenderTypes.entityQualityGlow(quality)), bufferSource.getBuffer(renderType))
                 );
             }
         }
@@ -114,8 +115,9 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                // Use our custom quality glow shader instead of the default glint
-                RenderType customRenderType = solid ? FishtasticRenderTypes.qualityGlow() : FishtasticRenderTypes.entityQualityGlowDirect();
+                FishQuality.Quality quality = fishQuality.quality();
+                // Use our custom quality glow shader instead of the default glint, with quality-specific render types
+                RenderType customRenderType = solid ? FishtasticRenderTypes.qualityGlow(quality) : FishtasticRenderTypes.entityQualityGlowDirect(quality);
 
                 // Use VertexMultiConsumer.create() just like vanilla does
                 cir.setReturnValue(VertexMultiConsumer.create(
@@ -132,8 +134,9 @@ public class ItemRendererMixin {
         if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
             FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (fishQuality != null && fishQuality.shouldRenderEffect()) {
+                FishQuality.Quality quality = fishQuality.quality();
                 cir.setReturnValue(VertexMultiConsumer.create(
-                        new SheetedDecalTextureGenerator(multiBufferSource.getBuffer(FishtasticRenderTypes.qualityGlow()), pose, 0.0078125F), multiBufferSource.getBuffer(renderType)));
+                        new SheetedDecalTextureGenerator(multiBufferSource.getBuffer(FishtasticRenderTypes.qualityGlow(quality)), pose, 0.0078125F), multiBufferSource.getBuffer(renderType)));
             }
         }
     }

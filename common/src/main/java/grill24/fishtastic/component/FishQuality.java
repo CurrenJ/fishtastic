@@ -77,7 +77,7 @@ public record FishQuality(Quality quality) implements TooltipProvider {
      * Check if this quality should render with a visual effect
      */
     public boolean shouldRenderEffect() {
-        return quality.ordinal() >= Quality.RARE.ordinal();
+        return quality.ordinal() >= Quality.UNCOMMON.ordinal();
     }
 
     /**
@@ -86,8 +86,7 @@ public record FishQuality(Quality quality) implements TooltipProvider {
     public float getEffectIntensity() {
         return switch (quality) {
             case COMMON -> 0.0f;
-            case UNCOMMON -> 0.0f;
-            case RARE -> 0.3f;
+            case UNCOMMON, RARE -> 0.3f;
             case EPIC -> 0.6f;
             case LEGENDARY -> 1.0f;
         };
