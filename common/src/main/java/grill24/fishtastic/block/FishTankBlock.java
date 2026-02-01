@@ -124,6 +124,16 @@ public class FishTankBlock extends Block implements EntityBlock {
                     // Get the player's current customization mode
                     FishTankCustomizationMode mode = FishTankCustomizationModeManager.getMode(player.getUUID());
 
+                    // Check if the block is blacklisted for this part
+                    String partName = mode.name().toLowerCase();
+                    if (RegistrationApiSided.getInstance().isBlockBlacklisted(heldBlock, partName)) {
+                        player.displayClientMessage(
+                            Component.literal("§cThis block cannot be used for fish tank " + partName + " (blacklisted in config)"),
+                            true
+                        );
+                        return ItemInteractionResult.FAIL;
+                    }
+
                     // Apply the block based on the current mode
                     switch (mode) {
                         case FRAME:

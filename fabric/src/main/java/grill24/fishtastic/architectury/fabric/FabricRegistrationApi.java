@@ -19,13 +19,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.naming.OperationNotSupportedException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
-
-import static grill24.fishtastic.util.Utility.ft;
 
 public class FabricRegistrationApi implements IRegistrationApi {
     public static FabricRegistrationApi INSTANCE = new FabricRegistrationApi();
@@ -98,9 +94,8 @@ public class FabricRegistrationApi implements IRegistrationApi {
     }
 
     @Override
-    public List<Block> getConfiguredFrameBlocks() {
-        // TODO: Implement config reading for Fabric
-        // For now, return empty list
-        return new ArrayList<>();
+    public boolean isBlockBlacklisted(Block block, String partName) {
+        // TODO: Implement blacklist checking for Fabric when config is added
+        return false;
     }
 }

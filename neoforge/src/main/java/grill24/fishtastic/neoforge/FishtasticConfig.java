@@ -11,35 +11,43 @@ import java.util.Map;
 
 public final class FishtasticConfig {
     /**
-     * The config defines which block tags to use for pre-generating fish tank models.
-     * Any block can be used as a frame at runtime, but blocks in these tags will have
-     * their models pre-generated during resource loading for better performance.
+     * The config defines blacklisted blocks for fish tank parts and model path overrides.
      */
     public static class Startup {
-        public final ModConfigSpec.ConfigValue<List<? extends Config>> customFishTankFrameTypes;
+        public final ModConfigSpec.ConfigValue<List<? extends Config>> fishTankPartBlacklists;
         public final ModConfigSpec.ConfigValue<List<? extends Config>> blockModelPathOverrides;
 
         Startup(ModConfigSpec.Builder builder) {
             //TODO: See if/how this can be made to work with the config GUI
 
-            //The default value will be a list containing an empty table, rather than an empty list, to make the TOML syntax for lists of tables clearer to users.
-            //The default TOML file will then contain "[[customFishTankFrameTypes]]" rather than "customFishTankFrameTypes = []".
             var emptyConfig = Config.wrap(Map.of(), InMemoryFormat.defaultInstance());
-            customFishTankFrameTypes = builder
+            fishTankPartBlacklists = builder
                     .comment("""
                            
-                            Block tags for pre-generating fish tank models.
-                            Blocks in these tags will have models generated at startup for better performance.
-                            Any block can be used as a frame, but non-configured blocks generate models on-demand.
+                            Blacklisted blocks for fish tank parts.
+                            Specify the parts (frame, glass, sand) and the blocks/tags to blacklist.
+                            Blocks in these lists will not be used for the corresponding fish tank parts.
                             
-                            Example entry:
-                            [[customFishTankFrameTypes]]
-                                id = "my_mod:crimson"
-                                blocks = "#minecraft:crimson_stems"
+                            Example entries:
+                            [[fishTankPartBlacklists]]
+                                parts = ["frame"]
+                                blocks = ["minecraft:stone", "#minecraft:logs"]
+                            
+                            [[fishTankPartBlacklists]]
+                                parts = ["frame", "glass", "sand"]
+                                blocks = ["minecraft:bedrock"]
                                 """)
-                    .translation("fishtastic.config.customFishTankFrameTypes")
+                    .translation("fishtastic.config.fishTankPartBlacklists")
                     .gameRestart()
-                    .defineList("customFishTankFrameTypes", () -> List.of(emptyConfig), null, o -> o instanceof Config);
+                    .defineList("fishTankPartBlacklists", () ->
+                    {
+                        var frameBlacklist = Config.wrap(Map.of(
+                            "parts", List.of("frame", "glass", "sand"),
+                            "blocks", List.of("fishtastic:fish_tank")
+                        ), InMemoryFormat.defaultInstance());
+
+                        return List.of(frameBlacklist);
+                    }, null, o -> o instanceof Config);
 
             blockModelPathOverrides = builder
                     .comment("""

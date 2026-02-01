@@ -12,20 +12,16 @@ import com.google.gson.JsonParseException;
 import com.mojang.datafixers.util.Either;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
-import grill24.fishtastic.neoforge.FishtasticConfig;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
@@ -33,7 +29,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
 import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
 import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
-import com.electronwill.nightconfig.core.Config;
 
 public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
     // Store context needed for on-demand model generation
@@ -60,7 +55,7 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
     }
 
     /**
-     * Generate baked models for blocks from configured tags. This is called during bake() when tags are available.
+     * Ensure default baked models exist. This is called during bake() when tags are available.
      */
     private Map<FishTankModelData, FishTankBakedModel.CompositeModelData> generateModelsForConfiguredTags(
             ModelBaker bakery,
@@ -69,40 +64,6 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
 
         var bakedModels = new HashMap<FishTankModelData, FishTankBakedModel.CompositeModelData>();
 
-        // Pre-generate models for blocks in configured tags
-        for (Config entry : FishtasticConfig.STARTUP.customFishTankFrameTypes.get()) {
-            if (entry.isEmpty())
-                continue;
-
-            String blocksStr = entry.get("blocks");
-            if (blocksStr == null || !blocksStr.startsWith("#"))
-                continue;
-
-            String idStr = entry.get("id");
-            var tagKey = TagKey.create(Registries.BLOCK, ResourceLocation.parse(blocksStr.substring(1)));
-            var frameTagEntries = BuiltInRegistries.BLOCK.getTagOrEmpty(tagKey);
-
-            // Generate models for all blocks in this tag
-            for (var blockHolder : frameTagEntries) {
-                Block frameBlock = blockHolder.value();
-
-                Fishtastic.LOGGER.info("Pre-generating Fish Tank models for tag {} - block {}",
-                    idStr, BuiltInRegistries.BLOCK.getKey(frameBlock));
-
-                // Generate all 64 permutations of frame models for this block
-                for (int permutation = 0; permutation < 64; permutation++) {
-                    BakedModel frameModel = generateFrameModelForBlock(frameBlock, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), bakery, spriteGetter, modelState, permutation);
-                    // Generate sand model with the same permutation index
-                    BakedModel sandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, permutation);
-
-                    if (frameModel != null && sandModel != null) {
-                        var composite = new FishTankBakedModel.CompositeModelData(frameModel, sandModel);
-                        var openFaces = FishTankModelData.openFacesFromIndex(permutation);
-                        bakedModels.put(new FishTankModelData(frameBlock, Blocks.SAND, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), openFaces), composite);
-                    }
-                }
-            }
-        }
 
         // Ensure DEFAULT model exists (permutation 0 - all faces closed)
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {

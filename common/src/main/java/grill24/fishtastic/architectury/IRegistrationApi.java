@@ -32,6 +32,6 @@ public interface IRegistrationApi {
     // Request model data update for block entity (client-side)
     void requestModelDataUpdate(BlockEntity blockEntity);
 
-    // Get all blocks from configured frame block tags
-    java.util.List<Block> getConfiguredFrameBlocks();
+    // Check if a block is blacklisted for a specific fish tank part
+    boolean isBlockBlacklisted(Block block, String partName);
 }
