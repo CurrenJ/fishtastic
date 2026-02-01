@@ -209,11 +209,11 @@ public class FishingMinigameManager {
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
         int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, 2, 1), 1, MAX_TARGETS);
         for (int i = 0; i < targetCount; i++) {
-            boolean isFish = randomSource.nextBoolean();
-            int numRewards = isFish ? 1 : MathUtil.clamp((int) MathUtil.randomGaussian(randomSource, 1, 1), 1, 3);
+            boolean isFishReward = randomSource.nextInt(6) != 0; // Is fish reward, or treasure reward
+            int numRewards = isFishReward ? 1 : MathUtil.clamp((int) MathUtil.randomGaussian(randomSource, 1, 1), 1, 3);
 
             List<ItemStack> rewardStacks = new ArrayList<>();
-            if (isFish) {
+            if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishRewards, numRewards);
             } else {
                 rewardStacks = generateTreasureRewards(randomSource, lootparams, treasureRewards, numRewards);

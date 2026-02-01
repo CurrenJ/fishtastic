@@ -5,10 +5,10 @@ from scipy.stats import norm
 # Define the rarity modifiers from FishtasticFishItem.java
 rarity_modifiers = {
     'COMMON': {'meanOffset': 0.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.0, 'stdDevMultiplier': 1.0},
-    'UNCOMMON': {'meanOffset': 5.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.1, 'stdDevMultiplier': 1.1},
-    'RARE': {'meanOffset': 10.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.2, 'stdDevMultiplier': 1.2},
-    'EPIC': {'meanOffset': 20.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.3, 'stdDevMultiplier': 1.3},
-    'LEGENDARY': {'meanOffset': 30.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.5, 'stdDevMultiplier': 1.5}
+    'UNCOMMON': {'meanOffset': 10.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.1, 'stdDevMultiplier': 1.1},
+    'RARE': {'meanOffset': 20.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.2, 'stdDevMultiplier': 1.2},
+    'EPIC': {'meanOffset': 45.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.3, 'stdDevMultiplier': 1.3},
+    'LEGENDARY': {'meanOffset': 75.0, 'stdDevOffset': 0.0, 'meanMultiplier': 1.5, 'stdDevMultiplier': 1.5}
 }
 
 # Base distribution parameters (from getSizeDefault)
@@ -28,7 +28,7 @@ colors = {
 }
 
 # Generate x values (size range)
-x = np.linspace(0, 150, 1000)
+x = np.linspace(0, 250, 1000)
 
 # Plot each distribution
 for rarity, modifiers in rarity_modifiers.items():
@@ -52,7 +52,7 @@ plt.xlabel('Fish Size (cm)', fontsize=12)
 plt.ylabel('Probability Density', fontsize=12)
 plt.legend(loc='upper right', fontsize=10)
 plt.grid(True, alpha=0.3, linestyle='--')
-plt.xlim(0, 150)
+plt.xlim(0, 250)
 
 # Add vertical line for base mean
 plt.axvline(x=base_mean, color='black', linestyle='--', alpha=0.5,

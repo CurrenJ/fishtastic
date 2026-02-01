@@ -22,10 +22,10 @@ public class FishtasticFishItem extends Item {
 
     public static Map<FishQuality.Quality, List<GaussianModifier>> QUALITY_SIZE_MODIFIERS = Map.of(
             FishQuality.Quality.COMMON, List.of(new GaussianModifier(0.0f, 0.0f, 1.0f, 1.0f)),
-            FishQuality.Quality.UNCOMMON, List.of(new GaussianModifier(5.0f, 0.0f, 1.1f, 1.1f)),
-            FishQuality.Quality.RARE, List.of(new GaussianModifier(10.0f, 0.0f, 1.2f, 1.2f)),
-            FishQuality.Quality.EPIC, List.of(new GaussianModifier(20.0f, 0.0f, 1.3f, 1.3f)),
-            FishQuality.Quality.LEGENDARY, List.of(new GaussianModifier(30.0f, 0.0f, 1.5f, 1.5f))
+            FishQuality.Quality.UNCOMMON, List.of(new GaussianModifier(10.0f, 0.0f, 1.1f, 1.1f)),
+            FishQuality.Quality.RARE, List.of(new GaussianModifier(20.0f, 0.0f, 1.2f, 1.2f)),
+            FishQuality.Quality.EPIC, List.of(new GaussianModifier(45.0f, 0.0f, 1.3f, 1.3f)),
+            FishQuality.Quality.LEGENDARY, List.of(new GaussianModifier(75.0f, 0.0f, 1.5f, 1.5f))
     );
 
     // ----- Chance Of Each Quality -----
