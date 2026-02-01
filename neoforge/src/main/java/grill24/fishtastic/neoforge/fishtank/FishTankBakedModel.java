@@ -15,7 +15,6 @@ import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.models.model.ModelLocationUtils;
 import net.minecraft.data.models.model.TextureSlot;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -180,10 +179,19 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
      */
     private BakedModel generateFrameModelForBlock(Block frameBlock, Block glassBlock, int permutationIndex) {
         try {
-            var frameBlockModel = (BlockModel) modelGetter.apply(
-                ModelLocationUtils.getModelLocation(frameBlock));
-            var glassBlockModel = (BlockModel) modelGetter.apply(
-                ModelLocationUtils.getModelLocation(glassBlock));
+            // Try to load frame block model with fallback locations
+            BlockModel frameBlockModel = loadBlockModelWithFallback(frameBlock);
+            if (frameBlockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for frame block {}", BuiltInRegistries.BLOCK.getKey(frameBlock));
+                return null;
+            }
+
+            // Try to load glass block model with fallback locations
+            BlockModel glassBlockModel = loadBlockModelWithFallback(glassBlock);
+            if (glassBlockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
+                return null;
+            }
 
             // Build texture map with both frame and glass textures
             var textureMap = buildFrameAndGlassTextureMap(frameBlockModel.textureMap, glassBlockModel.textureMap);
@@ -211,8 +219,12 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
      */
     private BakedModel generateSandModelForBlock(Block sandBlock, int permutationIndex) {
         try {
-            var blockModel = (BlockModel) modelGetter.apply(
-                ModelLocationUtils.getModelLocation(sandBlock));
+            // Try to load block model with fallback locations
+            BlockModel blockModel = loadBlockModelWithFallback(sandBlock);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for sand block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
+                return null;
+            }
 
             // Build texture map with sand block textures
             var textureMap = buildTextureMap(blockModel.textureMap);
@@ -240,8 +252,12 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
      */
     private BakedModel generateModelForBlock(Block block, String modelType) {
         try {
-            var blockModel = (BlockModel) modelGetter.apply(
-                ModelLocationUtils.getModelLocation(block));
+            // Try to load block model with fallback locations
+            BlockModel blockModel = loadBlockModelWithFallback(block);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for {} block {}", modelType, BuiltInRegistries.BLOCK.getKey(block));
+                return null;
+            }
 
             var textureMap = buildTextureMap(blockModel.textureMap);
 
@@ -274,6 +290,30 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
             }
         }
         return parent;
+    }
+
+    /**
+     * Try to load a block model with fallback locations from config overrides.
+     * Returns the first successfully loaded model, or null if all attempts fail.
+     */
+    private BlockModel loadBlockModelWithFallback(Block block) {
+        List<ResourceLocation> locations = BlockModelPathResolver.getModelLocations(block);
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
+
+        for (ResourceLocation location : locations) {
+            try {
+                UnbakedModel unbakedModel = modelGetter.apply(location);
+                if (unbakedModel instanceof BlockModel blockModel) {
+                    Fishtastic.LOGGER.debug("Successfully loaded model for {} from {}", blockId, location);
+                    return blockModel;
+                }
+            } catch (Exception e) {
+                Fishtastic.LOGGER.debug("Failed to load model for {} from {}: {}", blockId, location, e.getMessage());
+            }
+        }
+
+        Fishtastic.LOGGER.warn("Could not load model for block {} from any of {} locations", blockId, locations.size());
+        return null;
     }
 
 

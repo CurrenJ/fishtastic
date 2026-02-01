@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "fishtastic:block/glass/light_gray_clear_stained_glass"
+  }
+}

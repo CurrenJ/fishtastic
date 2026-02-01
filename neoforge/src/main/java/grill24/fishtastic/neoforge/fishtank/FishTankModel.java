@@ -17,17 +17,17 @@ import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.data.models.model.ModelLocationUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
@@ -136,8 +136,17 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                                           Function<Material, TextureAtlasSprite> spriteGetter,
                                           ModelState modelState, int permutationIndex) {
         try {
-            var frameBlockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(frameBlock));
-            var glassBlockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(glassBlock));
+            BlockModel frameBlockModel = loadBlockModelWithFallback(frameBlock);
+            if (frameBlockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for frame block {}", BuiltInRegistries.BLOCK.getKey(frameBlock));
+                return null;
+            }
+
+            BlockModel glassBlockModel = loadBlockModelWithFallback(glassBlock);
+            if (glassBlockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
+                return null;
+            }
 
             var textureMap = buildFrameAndGlassTextureMap(frameBlockModel.textureMap, glassBlockModel.textureMap);
 
@@ -166,7 +175,11 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                                          Function<Material, TextureAtlasSprite> spriteGetter,
                                          ModelState modelState, int permutationIndex) {
         try {
-            var blockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(sandBlock));
+            BlockModel blockModel = loadBlockModelWithFallback(sandBlock);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for sand block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
+                return null;
+            }
 
             var textureMap = buildTextureMap(blockModel.textureMap);
 
@@ -195,7 +208,11 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                                      Function<Material, TextureAtlasSprite> spriteGetter,
                                      ModelState modelState, String modelType) {
         try {
-            var blockModel = (BlockModel) modelGetter.apply(ModelLocationUtils.getModelLocation(block));
+            BlockModel blockModel = loadBlockModelWithFallback(block);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for {} block {}", modelType, BuiltInRegistries.BLOCK.getKey(block));
+                return null;
+            }
 
             var textureMap = buildTextureMap(blockModel.textureMap);
 
@@ -213,6 +230,30 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                 modelType, BuiltInRegistries.BLOCK.getKey(block), e);
             return null;
         }
+    }
+
+    /**
+     * Try to load a block model with fallback locations from config overrides.
+     * Returns the first successfully loaded model, or null if all attempts fail.
+     */
+    private BlockModel loadBlockModelWithFallback(Block block) {
+        List<ResourceLocation> locations = BlockModelPathResolver.getModelLocations(block);
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
+
+        for (ResourceLocation location : locations) {
+            try {
+                UnbakedModel unbakedModel = modelGetter.apply(location);
+                if (unbakedModel instanceof BlockModel blockModel) {
+                    Fishtastic.LOGGER.debug("Successfully loaded model for {} from {}", blockId, location);
+                    return blockModel;
+                }
+            } catch (Exception e) {
+                Fishtastic.LOGGER.debug("Failed to load model for {} from {}: {}", blockId, location, e.getMessage());
+            }
+        }
+
+        Fishtastic.LOGGER.warn("Could not load model for block {} from any of {} locations", blockId, locations.size());
+        return null;
     }
 
     public enum Loader implements IGeometryLoader<FishTankModel> {

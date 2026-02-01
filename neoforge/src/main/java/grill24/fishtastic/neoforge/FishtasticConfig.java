@@ -17,6 +17,7 @@ public final class FishtasticConfig {
      */
     public static class Startup {
         public final ModConfigSpec.ConfigValue<List<? extends Config>> customFishTankFrameTypes;
+        public final ModConfigSpec.ConfigValue<List<? extends Config>> blockModelPathOverrides;
 
         Startup(ModConfigSpec.Builder builder) {
             //TODO: See if/how this can be made to work with the config GUI
@@ -39,6 +40,32 @@ public final class FishtasticConfig {
                     .translation("fishtastic.config.customFishTankFrameTypes")
                     .gameRestart()
                     .defineList("customFishTankFrameTypes", () -> List.of(emptyConfig), null, o -> o instanceof Config);
+
+            blockModelPathOverrides = builder
+                    .comment("""
+                          \s
+                            Model path overrides for blocks or block tags.
+                            Use this when blocks have models in non-standard locations (e.g., in subdirectories).
+                            Supports both individual blocks and block tags.
+                               \s
+                            The {name} placeholder will be replaced with the block's registry name (without namespace).
+                               \s""")
+                    .translation("fishtastic.config.blockModelPathOverrides")
+                    .gameRestart()
+                    .defineList("blockModelPathOverrides", () -> {
+                        // Default overrides for Fishtastic's custom glass blocks
+                        var borderlessGlassOverride = Config.wrap(Map.of(
+                            "pattern", "fishtastic:*_borderless_stained_glass",
+                            "modelPath", "fishtastic:block/glass/{name}"
+                        ), InMemoryFormat.defaultInstance());
+
+                        var clearGlassOverride = Config.wrap(Map.of(
+                            "pattern", "fishtastic:*_clear_stained_glass",
+                            "modelPath", "fishtastic:block/glass/{name}"
+                        ), InMemoryFormat.defaultInstance());
+
+                        return List.of(borderlessGlassOverride, clearGlassOverride);
+                    }, null, o -> o instanceof Config);
         }
     }
 
@@ -55,4 +82,3 @@ public final class FishtasticConfig {
         container.registerConfig(ModConfig.Type.STARTUP, startupSpec);
     }
 }
-
