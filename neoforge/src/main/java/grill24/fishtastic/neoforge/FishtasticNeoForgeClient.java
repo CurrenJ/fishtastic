@@ -87,8 +87,13 @@ public final class FishtasticNeoForgeClient {
     public static void onClientSetup(final FMLClientSetupEvent event) {
         // Ensure this runs on the client thread
         event.enqueueWork(() -> {
-            // Set render layer for clear blue stained glass
-            ItemBlockRenderTypes.setRenderLayer(FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), RenderType.translucent());
+            // Set render layer for all borderless and clear stained glass blocks
+            for (var entry : FishtasticBlocks.BORDERLESS_STAINED_GLASS.entrySet()) {
+                ItemBlockRenderTypes.setRenderLayer(entry.getValue().value(), RenderType.translucent());
+            }
+            for (var entry : FishtasticBlocks.CLEAR_STAINED_GLASS.entrySet()) {
+                ItemBlockRenderTypes.setRenderLayer(entry.getValue().value(), RenderType.translucent());
+            }
 
             // Register cast property for copper fishing rod
             ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), ResourceLocation.withDefaultNamespace("cast"), (stack, level, entity, seed) -> {

@@ -1,16 +1,13 @@
 package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.FishtasticBlocks;
-import grill24.fishtastic.FishtasticItems;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricModelProvider;
+import net.minecraft.core.Holder;
 import net.minecraft.data.models.BlockModelGenerators;
 import net.minecraft.data.models.ItemModelGenerators;
-import net.minecraft.data.models.model.ModelLocationUtils;
-import net.minecraft.data.models.model.ModelTemplates;
-import net.minecraft.data.models.model.TextureMapping;
-import net.minecraft.data.models.model.TextureSlot;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.block.Block;
 
 public class FishtasticModelProvider extends FabricModelProvider {
     public FishtasticModelProvider(FabricDataOutput output) {
@@ -19,9 +16,17 @@ public class FishtasticModelProvider extends FabricModelProvider {
 
     @Override
     public void generateBlockStateModels(BlockModelGenerators blockModelGenerators) {
-        // Example block model generation for TEST_BLOCK
-//        TextureMapping testBlockTexMap = new TextureMapping().put(TextureSlot.ALL, TextureMapping.getBlockTexture(Blocks.COBBLESTONE));
-//        blockModelGenerators.createTrivialBlock(FishtasticBlocks.FISH_TANK.value(), testBlockTexMap, ModelTemplates.CUBE_ALL);
+        // Generate models for borderless stained glass (all colors)
+        for (DyeColor color : DyeColor.values()) {
+            Holder<Block> borderlessBlock = FishtasticBlocks.BORDERLESS_STAINED_GLASS.get(color);
+            blockModelGenerators.createTrivialCube(borderlessBlock.value());
+        }
+
+        // Generate models for clear stained glass (all colors)
+        for (DyeColor color : DyeColor.values()) {
+            Holder<Block> clearBlock = FishtasticBlocks.CLEAR_STAINED_GLASS.get(color);
+            blockModelGenerators.createTrivialCube(clearBlock.value());
+        }
     }
 
     @Override

@@ -18,6 +18,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -51,7 +52,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     private Block sandBlock = Blocks.SAND; // Default sand block
 
     // Store the glass block for edges
-    private Block glassBlock = FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(); // Default glass block
+    private Block glassBlock = FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(); // Default glass block
 
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
@@ -246,7 +247,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             if (blockId != null && BuiltInRegistries.BLOCK.containsKey(blockId)) {
                 glassBlock = BuiltInRegistries.BLOCK.get(blockId);
             } else {
-                glassBlock = FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(); // Graceful fallback
+                glassBlock = FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(); // Graceful fallback
             }
         }
 

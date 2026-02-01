@@ -26,7 +26,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.models.model.ModelLocationUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
@@ -90,14 +91,14 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
 
                 // Generate all 64 permutations of frame models for this block
                 for (int permutation = 0; permutation < 64; permutation++) {
-                    BakedModel frameModel = generateFrameModelForBlock(frameBlock, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), bakery, spriteGetter, modelState, permutation);
+                    BakedModel frameModel = generateFrameModelForBlock(frameBlock, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), bakery, spriteGetter, modelState, permutation);
                     // Generate sand model with the same permutation index
                     BakedModel sandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, permutation);
 
                     if (frameModel != null && sandModel != null) {
                         var composite = new FishTankBakedModel.CompositeModelData(frameModel, sandModel);
                         var openFaces = FishTankModelData.openFacesFromIndex(permutation);
-                        bakedModels.put(new FishTankModelData(frameBlock, Blocks.SAND, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), openFaces), composite);
+                        bakedModels.put(new FishTankModelData(frameBlock, Blocks.SAND, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), openFaces), composite);
                     }
                 }
             }
@@ -106,7 +107,7 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         // Ensure DEFAULT model exists (permutation 0 - all faces closed)
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {
             Fishtastic.LOGGER.info("Pre-generating default Fish Tank model");
-            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), bakery, spriteGetter, modelState, 0);
+            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), bakery, spriteGetter, modelState, 0);
             BakedModel defaultSandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, 0);
 
             if (defaultFrameModel != null && defaultSandModel != null) {

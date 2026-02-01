@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.FishtasticBlocks;
 import net.minecraft.core.Direction;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.client.model.data.ModelProperty;
@@ -12,7 +13,7 @@ import java.util.Set;
 public record FishTankModelData(Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces) {
     public static final ModelProperty<FishTankModelData> DATA_PROPERTY = new ModelProperty<>();
 
-    public static final FishTankModelData DEFAULT = new FishTankModelData(Blocks.OAK_PLANKS, Blocks.SAND, FishtasticBlocks.CLEAR_BLUE_STAINED_GLASS.value(), EnumSet.noneOf(Direction.class));
+    public static final FishTankModelData DEFAULT = new FishTankModelData(Blocks.OAK_PLANKS, Blocks.SAND, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), EnumSet.noneOf(Direction.class));
 
     /**
      * Create a FishTankModelData with all faces closed (standalone tank)
