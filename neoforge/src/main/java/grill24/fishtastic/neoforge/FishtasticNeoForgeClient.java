@@ -12,13 +12,16 @@ import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.FishingRodItem;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -27,6 +30,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -45,6 +49,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerBlockColors);
         modEventBus.addListener((RegisterShadersEvent event) -> {
             try {
                 registerShaders(event);
@@ -78,6 +83,45 @@ public final class FishtasticNeoForgeClient {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
+    }
+
+    public static void registerBlockColors(RegisterColorHandlersEvent.Block event) {
+        BlockColors blockColors = event.getBlockColors();
+
+        // Register color handler for fish tank
+        event.register((state, level, pos, tintIndex) -> {
+            if (level == null || pos == null) {
+                return -1; // White (no tint)
+            }
+
+            // Get the block entity to read the frame/sand/glass block
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (!(blockEntity instanceof FishTankBlockEntity fishTank)) {
+                return -1;
+            }
+
+            // Determine which block to get color from based on tint index
+            // tintIndex 0 = frame blocks
+            // tintIndex 1 = sand blocks
+            // tintIndex 2 = glass blocks
+            BlockState sourceBlock = null;
+            if (tintIndex == 0) {
+                sourceBlock = fishTank.getFrameBlock().defaultBlockState();
+            } else if (tintIndex == 1) {
+                sourceBlock = fishTank.getSandBlock().defaultBlockState();
+            } else if (tintIndex == 2) {
+                sourceBlock = fishTank.getGlassBlock().defaultBlockState();
+            }
+
+            if (sourceBlock == null) {
+                return -1;
+            }
+
+            // Get the color from the source block's color handler
+            return blockColors.getColor(sourceBlock, level, pos, tintIndex);
+        }, FishtasticBlocks.FISH_TANK.value());
+
+        Fishtastic.LOGGER.info("Fishtastic block colors registered.");
     }
 
     public static void registerShaders(RegisterShadersEvent event) throws IOException {

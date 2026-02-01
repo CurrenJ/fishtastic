@@ -15,8 +15,7 @@
     }
   ],
   "textures": {
-    "frame": "block/oak_planks",
-    "glass": "block/blue_stained_glass",
-    "particle": "#glass"
+    "all": "block/oak_planks",
+    "particle": "#all"
   }
 }

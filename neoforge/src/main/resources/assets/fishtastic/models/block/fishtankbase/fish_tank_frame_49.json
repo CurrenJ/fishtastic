@@ -5,7 +5,7 @@
     {
       "faces": {
         "down": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -14,7 +14,7 @@
           ]
         },
         "east": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -23,7 +23,7 @@
           ]
         },
         "north": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -32,7 +32,7 @@
           ]
         },
         "south": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -41,7 +41,7 @@
           ]
         },
         "up": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -50,7 +50,7 @@
           ]
         },
         "west": {
-          "texture": "#frame",
+          "texture": "#all",
           "uv": [
             0,
             0,
@@ -70,72 +70,6 @@
         16,
         16
       ]
-    },
-    {
-      "faces": {
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            15
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            15
-          ]
-        }
-      },
-      "from": [
-        0,
-        0,
-        0
-      ],
-      "name": "edge_north",
-      "to": [
-        16,
-        15,
-        1
-      ]
-    },
-    {
-      "faces": {
-        "north": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            15
-          ]
-        },
-        "south": {
-          "texture": "#glass",
-          "uv": [
-            0,
-            0,
-            16,
-            15
-          ]
-        }
-      },
-      "from": [
-        0,
-        0,
-        15
-      ],
-      "name": "edge_south",
-      "to": [
-        16,
-        15,
-        16
-      ]
     }
   ],
   "format_version": "1.21.1",
@@ -151,8 +85,7 @@
     }
   ],
   "textures": {
-    "frame": "block/oak_planks",
-    "glass": "block/blue_stained_glass",
-    "particle": "#glass"
+    "all": "block/oak_planks",
+    "particle": "#all"
   }
 }

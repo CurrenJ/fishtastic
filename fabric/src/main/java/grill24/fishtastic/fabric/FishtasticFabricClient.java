@@ -13,11 +13,14 @@ import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
@@ -61,5 +64,43 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), ResourceLocation.withDefaultNamespace("cast"),
                 (stack, level, entity, seed) ->
                         entity != null && entity.isUsingItem() && entity.getUseItem() == stack ? 1.0F : 0.0F);
+
+        // Register block color handler for fish tank
+        ColorProviderRegistry.BLOCK.register((state, level, pos, tintIndex) -> {
+            if (level == null || pos == null) {
+                return -1; // White (no tint)
+            }
+
+            // Get the block entity to read the frame/sand/glass block
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (!(blockEntity instanceof FishTankBlockEntity fishTank)) {
+                return -1;
+            }
+
+            // Determine which block to get color from based on tint index
+            // tintIndex 0 = frame blocks
+            // tintIndex 1 = sand blocks
+            // tintIndex 2 = glass blocks
+            BlockState sourceBlock = null;
+            if (tintIndex == 0) {
+                sourceBlock = fishTank.getFrameBlock().defaultBlockState();
+            } else if (tintIndex == 1) {
+                sourceBlock = fishTank.getSandBlock().defaultBlockState();
+            } else if (tintIndex == 2) {
+                sourceBlock = fishTank.getGlassBlock().defaultBlockState();
+            }
+
+            if (sourceBlock == null) {
+                return -1;
+            }
+
+            // Get the color from the source block's color handler
+            var blockColor = ColorProviderRegistry.BLOCK.get(sourceBlock.getBlock());
+            if (blockColor != null) {
+                return blockColor.getColor(sourceBlock, level, pos, tintIndex);
+            }
+
+            return -1;
+        }, FishtasticBlocks.FISH_TANK.value());
     }
 }

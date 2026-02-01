@@ -42,14 +42,16 @@ import java.util.function.Function;
 import static grill24.fishtastic.util.Utility.ft;
 
 public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
-    // Cache structure to hold both frame and sand models
+    // Cache structure to hold frame, sand, and glass models
     static class CompositeModelData {
         final BakedModel frameModel;
         final BakedModel sandModel;
+        final BakedModel glassModel;
 
-        CompositeModelData(BakedModel frameModel, BakedModel sandModel) {
+        CompositeModelData(BakedModel frameModel, BakedModel sandModel, BakedModel glassModel) {
             this.frameModel = frameModel;
             this.sandModel = sandModel;
+            this.glassModel = glassModel;
         }
     }
 
@@ -141,7 +143,7 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
     }
 
     /**
-     * Generate a composite model with both frame and sand models.
+     * Generate a composite model with frame, sand, and glass models.
      */
     private CompositeModelData generateCompositeModel(FishTankModelData data) {
         Block frameBlock = data.frameBlock();
@@ -153,31 +155,37 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
             BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(sandBlock),
             BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
 
-        // Generate frame model with correct permutation (includes glass textures)
-        Fishtastic.LOGGER.info("Generating FRAME model for block {} and glass {} with permutation {}",
-            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
-        BakedModel frameModel = generateFrameModelForBlock(frameBlock, glassBlock, permutationIndex);
+        // Generate frame model with correct permutation
+        Fishtastic.LOGGER.info("Generating FRAME model for block {} with permutation {}",
+            BuiltInRegistries.BLOCK.getKey(frameBlock), permutationIndex);
+        BakedModel frameModel = generateFrameModelForBlock(frameBlock, permutationIndex);
 
         // Generate sand model with correct permutation
         Fishtastic.LOGGER.info("Generating SAND model for block {} with permutation {}",
             BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex);
         BakedModel sandModel = generateSandModelForBlock(sandBlock, permutationIndex);
 
-        if (frameModel == null || sandModel == null) {
-            Fishtastic.LOGGER.error("Failed to generate one or both models: frame={}, sand={}",
-                frameModel != null, sandModel != null);
+        // Generate glass model with correct permutation
+        Fishtastic.LOGGER.info("Generating GLASS model for block {} with permutation {}",
+            BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
+        BakedModel glassModel = generateGlassModelForBlock(glassBlock, permutationIndex);
+
+        if (frameModel == null || sandModel == null || glassModel == null) {
+            Fishtastic.LOGGER.error("Failed to generate one or more models: frame={}, sand={}, glass={}",
+                frameModel != null, sandModel != null, glassModel != null);
             return null;
         }
 
-        Fishtastic.LOGGER.info("Successfully created composite model with frame={} and sand={}",
-            frameModel.getClass().getSimpleName(), sandModel.getClass().getSimpleName());
-        return new CompositeModelData(frameModel, sandModel);
+        Fishtastic.LOGGER.info("Successfully created composite model with frame={}, sand={}, glass={}",
+            frameModel.getClass().getSimpleName(), sandModel.getClass().getSimpleName(),
+            glassModel.getClass().getSimpleName());
+        return new CompositeModelData(frameModel, sandModel, glassModel);
     }
 
     /**
      * Generate a frame model for a specific block with a given permutation index.
      */
-    private BakedModel generateFrameModelForBlock(Block frameBlock, Block glassBlock, int permutationIndex) {
+    private BakedModel generateFrameModelForBlock(Block frameBlock, int permutationIndex) {
         try {
             // Try to load frame block model with fallback locations
             BlockModel frameBlockModel = loadBlockModelWithFallback(frameBlock);
@@ -186,15 +194,8 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
                 return null;
             }
 
-            // Try to load glass block model with fallback locations
-            BlockModel glassBlockModel = loadBlockModelWithFallback(glassBlock);
-            if (glassBlockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
-                return null;
-            }
-
-            // Build texture map with both frame and glass textures
-            var textureMap = buildFrameAndGlassTextureMap(frameBlockModel.textureMap, glassBlockModel.textureMap);
+            // Build texture map with frame block textures
+            var textureMap = buildTextureMap(frameBlockModel.textureMap);
 
             // Use the permutation-specific frame model
             ResourceLocation parent = ft("block/fishtankbase/fish_tank_frame_" + permutationIndex);
@@ -202,14 +203,14 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
             var unbakedModel = new BlockModel(parent, List.of(), textureMap,
                 context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
             unbakedModel.name = context.getModelName() + "[frame:" + BuiltInRegistries.BLOCK.getKey(frameBlock) +
-                "_glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) + "_p" + permutationIndex + "]";
+                "_p" + permutationIndex + "]";
             unbakedModel.resolveParents(modelGetter);
 
             // Bake the model
             return unbakedModel.bake(bakery, spriteGetter, modelState);
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate frame model for block {} with glass {} and permutation {}",
-                BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
+            Fishtastic.LOGGER.error("Failed to generate frame model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(frameBlock), permutationIndex, e);
             return null;
         }
     }
@@ -243,6 +244,39 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Failed to generate sand model for block {} with permutation {}",
                 BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a glass model for a specific block with a given permutation index.
+     */
+    private BakedModel generateGlassModelForBlock(Block glassBlock, int permutationIndex) {
+        try {
+            // Try to load block model with fallback locations
+            BlockModel blockModel = loadBlockModelWithFallback(glassBlock);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
+                return null;
+            }
+
+            // Build texture map with glass block textures
+            var textureMap = buildTextureMap(blockModel.textureMap);
+
+            // Use the permutation-specific glass model
+            ResourceLocation parent = ft("block/fishtankbase/fish_tank_glass_" + permutationIndex);
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) +
+                "_p" + permutationIndex + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate glass model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
             return null;
         }
     }
@@ -396,48 +430,52 @@ public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
         return map;
     }
 
-    private Map<String, Either<Material, String>> buildFrameAndGlassTextureMap(
-            Map<String, Either<Material, String>> frameTextureMapping,
-            Map<String, Either<Material, String>> glassTextureMapping) {
-        // Build the texture map with both frame and glass textures
-        Map<String, Either<Material, String>> map = new HashMap<>();
-
-        // Get the frame texture by checking all slots in order
-        ResourceLocation frameTexture = getFirstPresentTexture(frameTextureMapping);
-        if (frameTexture == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Frame block model is missing all texture slots");
-            return map;
-        }
-
-        // Get the glass texture by checking all slots in order
-        ResourceLocation glassTexture = getFirstPresentTexture(glassTextureMapping);
-        if (glassTexture == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Glass block model is missing all texture slots");
-            return map;
-        }
-
-        // Convert ResourceLocations to Materials (the format BlockModel expects)
-        map.put("frame", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, frameTexture)));
-        map.put("glass", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, glassTexture)));
-
-        return map;
-    }
-
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
         CompositeModelData composite = getCompositeModelFor(extraData);
 
-        // Combine quads from frame and sand models
+        // Combine quads from frame, sand, and glass models
         List<BakedQuad> combinedQuads = new java.util.ArrayList<>();
-        combinedQuads.addAll(composite.frameModel.getQuads(state, side, rand, extraData, renderType));
+
+        // Add frame quads with tint index 0
+        for (BakedQuad quad : composite.frameModel.getQuads(state, side, rand, extraData, renderType)) {
+            combinedQuads.add(applyTintIndex(quad, 0));
+        }
+
+        // Add glass quads with tint index 2
+        for (BakedQuad quad : composite.glassModel.getQuads(state, side, rand, extraData, renderType)) {
+            combinedQuads.add(applyTintIndex(quad, 2));
+        }
 
         // Only add sand if bottom face is closed (has a floor)
         FishTankModelData modelData = extraData.get(FishTankModelData.DATA_PROPERTY);
         if (modelData != null && !modelData.openFaces().contains(Direction.DOWN)) {
-            combinedQuads.addAll(composite.sandModel.getQuads(state, side, rand, extraData, renderType));
+            // Add sand quads with tint index 1
+            for (BakedQuad quad : composite.sandModel.getQuads(state, side, rand, extraData, renderType)) {
+                combinedQuads.add(applyTintIndex(quad, 1));
+            }
         }
 
         return combinedQuads;
+    }
+
+    /**
+     * Apply a tint index to a BakedQuad by creating a new quad with the specified tint index.
+     */
+    private BakedQuad applyTintIndex(BakedQuad original, int tintIndex) {
+        // If the quad already has the correct tint index, return it as-is
+        if (original.getTintIndex() == tintIndex) {
+            return original;
+        }
+
+        // Create a new BakedQuad with the specified tint index
+        return new BakedQuad(
+            original.getVertices(),
+            tintIndex,
+            original.getDirection(),
+            original.getSprite(),
+            original.isShade()
+        );
     }
 
     @Override

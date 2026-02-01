@@ -68,18 +68,20 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         // Ensure DEFAULT model exists (permutation 0 - all faces closed)
         if (!bakedModels.containsKey(FishTankModelData.DEFAULT)) {
             Fishtastic.LOGGER.info("Pre-generating default Fish Tank model");
-            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(), bakery, spriteGetter, modelState, 0);
+            Block defaultGlass = FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value();
+            BakedModel defaultFrameModel = generateFrameModelForBlock(Blocks.OAK_PLANKS, bakery, spriteGetter, modelState, 0);
             BakedModel defaultSandModel = generateSandModelForBlock(Blocks.SAND, bakery, spriteGetter, modelState, 0);
+            BakedModel defaultGlassModel = generateGlassModelForBlock(defaultGlass, bakery, spriteGetter, modelState, 0);
 
-            if (defaultFrameModel != null && defaultSandModel != null) {
-                var composite = new FishTankBakedModel.CompositeModelData(defaultFrameModel, defaultSandModel);
+            if (defaultFrameModel != null && defaultSandModel != null && defaultGlassModel != null) {
+                var composite = new FishTankBakedModel.CompositeModelData(defaultFrameModel, defaultSandModel, defaultGlassModel);
                 bakedModels.put(FishTankModelData.DEFAULT, composite);
             } else {
                 // Ultimate fallback
                 Fishtastic.LOGGER.error("Failed to generate default model! Using cube fallback.");
                 var fallbackModel = modelGetter.apply(ResourceLocation.withDefaultNamespace("block/cube"));
                 var bakedFallback = fallbackModel.bake(bakery, spriteGetter, modelState);
-                var composite = new FishTankBakedModel.CompositeModelData(bakedFallback, bakedFallback);
+                var composite = new FishTankBakedModel.CompositeModelData(bakedFallback, bakedFallback, bakedFallback);
                 bakedModels.put(FishTankModelData.DEFAULT, composite);
             }
         }
@@ -92,8 +94,9 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
      */
     private static final String FRAME_MODELS_LOCATION = "block/fishtankbase/fish_tank_frame_";
     private static final String SAND_MODELS_LOCATION = "block/fishtankbase/fish_tank_sand_";
+    private static final String GLASS_MODELS_LOCATION = "block/fishtankbase/fish_tank_glass_";
 
-    BakedModel generateFrameModelForBlock(Block frameBlock, Block glassBlock, ModelBaker bakery,
+    BakedModel generateFrameModelForBlock(Block frameBlock, ModelBaker bakery,
                                           Function<Material, TextureAtlasSprite> spriteGetter,
                                           ModelState modelState, int permutationIndex) {
         try {
@@ -103,13 +106,7 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
                 return null;
             }
 
-            BlockModel glassBlockModel = loadBlockModelWithFallback(glassBlock);
-            if (glassBlockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
-                return null;
-            }
-
-            var textureMap = buildFrameAndGlassTextureMap(frameBlockModel.textureMap, glassBlockModel.textureMap);
+            var textureMap = buildTextureMap(frameBlockModel.textureMap);
 
             // Use the permutation-specific frame model
             ResourceLocation parent = ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, FRAME_MODELS_LOCATION + permutationIndex);
@@ -117,14 +114,14 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
             var unbakedModel = new BlockModel(parent, List.of(), textureMap,
                 context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
             unbakedModel.name = context.getModelName() + "[frame:" + BuiltInRegistries.BLOCK.getKey(frameBlock) +
-                "_glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) + "_p" + permutationIndex + "]";
+                "_p" + permutationIndex + "]";
             unbakedModel.resolveParents(modelGetter);
 
             // Bake the model
             return unbakedModel.bake(bakery, spriteGetter, modelState);
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate Fish Tank frame model for block {} with glass {} and permutation {}",
-                BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
+            Fishtastic.LOGGER.error("Failed to generate Fish Tank frame model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(frameBlock), permutationIndex, e);
             return null;
         }
     }
@@ -158,6 +155,39 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Failed to generate Fish Tank sand model for block {} with permutation {}",
                 BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a glass model for a specific block with a given permutation index.
+     */
+    BakedModel generateGlassModelForBlock(Block glassBlock, ModelBaker bakery,
+                                          Function<Material, TextureAtlasSprite> spriteGetter,
+                                          ModelState modelState, int permutationIndex) {
+        try {
+            BlockModel blockModel = loadBlockModelWithFallback(glassBlock);
+            if (blockModel == null) {
+                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
+                return null;
+            }
+
+            var textureMap = buildTextureMap(blockModel.textureMap);
+
+            // Use the permutation-specific glass model
+            ResourceLocation parent = ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, GLASS_MODELS_LOCATION + permutationIndex);
+
+            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
+                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
+            unbakedModel.name = context.getModelName() + "[glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) +
+                "_p" + permutationIndex + "]";
+            unbakedModel.resolveParents(modelGetter);
+
+            // Bake the model
+            return unbakedModel.bake(bakery, spriteGetter, modelState);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Failed to generate Fish Tank glass model for block {} with permutation {}",
+                BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
             return null;
         }
     }
@@ -243,49 +273,9 @@ public final class FishTankModel implements IUnbakedGeometry<FishTankModel> {
             blockTexture = ResourceLocation.withDefaultNamespace(blockTextureEither.right().get());
         }
 
-        // Convert ResourceLocations to Materials (the format BlockModel expects)
-        map.put("side", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
-        map.put("bottom", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
-        map.put("top", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
-
-        return map;
-    }
-
-    private Map<String, Either<Material, String>> buildFrameAndGlassTextureMap(
-            Map<String, Either<Material, String>> frameTextureMapping,
-            Map<String, Either<Material, String>> glassTextureMapping) {
-        // Build the texture map with both frame and glass textures
-        Map<String, Either<Material, String>> map = new HashMap<>();
-
-        // Get the frame texture from the source block model
-        Either<Material, String> frameTextureEither = frameTextureMapping.get("all");
-        if (frameTextureEither == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Frame block model is missing 'all' texture");
-            return map;
-        }
-        ResourceLocation frameTexture;
-        if (frameTextureEither.left().isPresent()) {
-            frameTexture = frameTextureEither.left().get().texture();
-        } else {
-            frameTexture = ResourceLocation.withDefaultNamespace(frameTextureEither.right().get());
-        }
-
-        // Get the glass texture from the source block model
-        Either<Material, String> glassTextureEither = glassTextureMapping.get("all");
-        if (glassTextureEither == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Glass block model is missing 'all' texture");
-            return map;
-        }
-        ResourceLocation glassTexture;
-        if (glassTextureEither.left().isPresent()) {
-            glassTexture = glassTextureEither.left().get().texture();
-        } else {
-            glassTexture = ResourceLocation.withDefaultNamespace(glassTextureEither.right().get());
-        }
-
-        // Convert ResourceLocations to Materials (the format BlockModel expects)
-        map.put("frame", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, frameTexture)));
-        map.put("glass", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, glassTexture)));
+        // Convert ResourceLocation to Material (the format BlockModel expects)
+        // Use 'all' texture slot to match the model structure
+        map.put("all", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
 
         return map;
     }
