@@ -6,6 +6,7 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -38,8 +39,22 @@ public class FishtasticFishItem extends Item {
     );
     public static int TOTAL_BASE_WEIGHT = QUALITY_WEIGHTS.values().stream().mapToInt(Integer::intValue).sum();
 
+    // ----- Size Calculation -----
+
+    private static final float DEFAULT_BASE_MEAN_SIZE = 50.0f;
+    private static final float DEFAULT_BASE_STDDEV_SIZE = 15.0f;
+
+    private final float baseMeanSize;
+    private final float baseStdDevSize;
+
     public FishtasticFishItem(Properties properties) {
+        this(properties, DEFAULT_BASE_MEAN_SIZE, DEFAULT_BASE_STDDEV_SIZE);
+    }
+
+    public FishtasticFishItem(Properties properties, float baseMeanSize, float baseStdDevSize) {
         super(properties);
+        this.baseMeanSize = baseMeanSize;
+        this.baseStdDevSize = baseStdDevSize;
     }
 
     // ----- Fishing Loot Weight Calculation -----
@@ -50,14 +65,11 @@ public class FishtasticFishItem extends Item {
 
     // ----- Size Calculation -----
 
-    public static final float DEFAULT_BASE_MEAN_SIZE = 50.0f;
-    public static final float DEFAULT_BASE_STDDEV_SIZE = 15.0f;
-
     protected float getBaseMeanSize() {
-        return DEFAULT_BASE_MEAN_SIZE;
+        return baseMeanSize;
     }
     protected float getBaseStdDevSize() {
-        return DEFAULT_BASE_STDDEV_SIZE;
+        return baseStdDevSize;
     }
 
     public static float getRandomSize(RandomSource randomSource, FishQuality.Quality quality, float baseMeanSize, float baseStdDevSize) {
@@ -131,5 +143,13 @@ public class FishtasticFishItem extends Item {
 
         // Fallback (should not reach here)
         return FishQuality.Quality.COMMON;
+    }
+
+    public static FishtasticFishItem create(float baseMeanSize, float baseStdDevSize) {
+        return new FishtasticFishItem(new Item.Properties(), baseMeanSize, baseStdDevSize);
+    }
+
+    public static FishtasticFishItem createDefault(ResourceLocation id) {
+        return new FishtasticFishItem(new Item.Properties());
     }
 }

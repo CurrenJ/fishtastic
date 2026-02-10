@@ -50,28 +50,27 @@ public class FishtasticItems {
         REWARD_CHEST = RegistrationApiSided.getInstance().registerItem("reward_chest", loc -> new Item(new Item.Properties().stacksTo(1)));
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new CopperFishingRod(new Item.Properties().durability(250)));
-
-        ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(new Item.Properties()));
-        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> new FishtasticFishItem(new Item.Properties()));
-        BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(new Item.Properties()));
-        FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(new Item.Properties()));
-        FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> new FishtasticFishItem(new Item.Properties()));
-        GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> new FishtasticFishItem(new Item.Properties()));
-        GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> new FishtasticFishItem(new Item.Properties()));
-        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms", loc -> new FishtasticFishItem(new Item.Properties()));
-        LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", loc -> new FishtasticFishItem(new Item.Properties()));
-        LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> new FishtasticFishItem(new Item.Properties()));
-        MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> new FishtasticFishItem(new Item.Properties()));
-        MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("moorish_idol", loc -> new FishtasticFishItem(new Item.Properties()));
-        NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> new FishtasticFishItem(new Item.Properties()));
-        NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> new FishtasticFishItem(new Item.Properties()));
-        OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(new Item.Properties()));
-        PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> new FishtasticFishItem(new Item.Properties()));
-        PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> new FishtasticFishItem(new Item.Properties()));
-        RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> new FishtasticFishItem(new Item.Properties()));
-        ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> new FishtasticFishItem(new Item.Properties()));
-        SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> new FishtasticFishItem(new Item.Properties()));
-        STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFishItem(new Item.Properties()));
-        WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> new FishtasticFishItem(new Item.Properties()));
+        ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> FishtasticFishItem.create(45, 15));
+        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> FishtasticFishItem.create(30, 10));
+        BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", FishtasticFishItem::createDefault);
+        FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> FishtasticFishItem.create(25, 5));
+        FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> FishtasticFishItem.create(80, 15));
+        GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> FishtasticFishItem.create(35, 10));
+        GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> FishtasticFishItem.create(75, 15));
+        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms", loc -> FishtasticFishItem.create(35, 5));
+        LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", FishtasticFishItem::createDefault);
+        LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> FishtasticFishItem.create(70, 15));
+        MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> FishtasticFishItem.create(55, 10));
+        MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("moorish_idol", loc -> FishtasticFishItem.create(55, 15));
+        NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> FishtasticFishItem.create(30, 5));
+        NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> FishtasticFishItem.create(70, 15));
+        OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> FishtasticFishItem.create(90, 20));
+        PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", FishtasticFishItem::createDefault);
+        PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> FishtasticFishItem.create(40, 10));
+        RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", FishtasticFishItem::createDefault);
+        ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> FishtasticFishItem.create(40, 10));
+        SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> FishtasticFishItem.create(25, 5));
+        STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> FishtasticFishItem.create(40, 10));
+        WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> FishtasticFishItem.create(35, 5));
     }
 }

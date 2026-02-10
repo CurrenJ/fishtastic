@@ -648,27 +648,24 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             return false;
         }
 
-        // Find the bounds of the tank structure
+        Direction.Axis fixedAxis = getFixedAxis(axis1, axis2);
+
+        // Find the bounds of the tank structure along all three axes
         int min1 = Integer.MAX_VALUE, max1 = Integer.MIN_VALUE;
         int min2 = Integer.MAX_VALUE, max2 = Integer.MIN_VALUE;
-        int fixedAxis = -1;
+        int minFixed = Integer.MAX_VALUE, maxFixed = Integer.MIN_VALUE;
 
         for (BlockPos pos : tankPositions) {
             int val1 = getAxisValue(pos, axis1);
             int val2 = getAxisValue(pos, axis2);
-            int valFixed = getAxisValue(pos, getFixedAxis(axis1, axis2));
+            int valFixed = getAxisValue(pos, fixedAxis);
 
             min1 = Math.min(min1, val1);
             max1 = Math.max(max1, val1);
             min2 = Math.min(min2, val2);
             max2 = Math.max(max2, val2);
-
-            if (fixedAxis == -1) {
-                fixedAxis = valFixed;
-            } else if (fixedAxis != valFixed) {
-                // Positions span multiple values on the fixed axis - not a valid plane
-                return false;
-            }
+            minFixed = Math.min(minFixed, valFixed);
+            maxFixed = Math.max(maxFixed, valFixed);
         }
 
         // Check if the overall bounds are large enough
@@ -676,11 +673,15 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             return false;
         }
 
-        // Check all possible positions for a solid rectangle
-        for (int start1 = min1; start1 <= max1 - size1 + 1; start1++) {
-            for (int start2 = min2; start2 <= max2 - size2 + 1; start2++) {
-                if (isSolidRectangle(tankPositions, axis1, axis2, fixedAxis, start1, start2, size1, size2)) {
-                    return true;
+        // Check all slices along the fixed axis
+        // We need to find at least one slice that has a solid size1 x size2 rectangle
+        for (int fixedValue = minFixed; fixedValue <= maxFixed; fixedValue++) {
+            // Check all possible positions for a solid rectangle in this slice
+            for (int start1 = min1; start1 <= max1 - size1 + 1; start1++) {
+                for (int start2 = min2; start2 <= max2 - size2 + 1; start2++) {
+                    if (isSolidRectangle(tankPositions, axis1, axis2, fixedValue, start1, start2, size1, size2)) {
+                        return true;
+                    }
                 }
             }
         }
