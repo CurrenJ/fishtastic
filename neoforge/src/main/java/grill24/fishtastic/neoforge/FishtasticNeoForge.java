@@ -1,11 +1,13 @@
 package grill24.fishtastic.neoforge;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
+import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.network.FishtasticPackets;
 import grill24.fishtastic.server.ServerTickHandler;
 import net.neoforged.bus.api.IEventBus;
@@ -14,7 +16,9 @@ import net.neoforged.fml.common.Mod;
 
 import grill24.fishtastic.Fishtastic;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.registries.DataPackRegistryEvent;
 
 @Mod(Fishtastic.MOD_ID)
 public final class FishtasticNeoForge {
@@ -39,6 +43,12 @@ public final class FishtasticNeoForge {
 
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
+
+        // Register datapack registries
+        modEventBus.addListener((DataPackRegistryEvent.NewRegistry event) -> {
+            Fishtastic.LOGGER.info("Registering ItemEffect datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC, ItemEffect.CODEC);
+        });
 
         // Register network packets
         modEventBus.addListener(NeoForgePacketRegistrar::register);

@@ -3,6 +3,7 @@ package grill24.fishtastic.mixin;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
+import grill24.fishtastic.itemeffect.ItemEffectManager;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -40,14 +41,12 @@ public abstract class ItemStackMixin {
     }
 
     /**
-     * Make high-quality fish items shimmer with the enchantment glint effect.
+     * Make items with matching item effects shimmer with the foil/glint effect.
      */
     @Inject(method = "hasFoil", at = @At("HEAD"), cancellable = true)
     public void addQualityFoilEffect(CallbackInfoReturnable<Boolean> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
-        FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
-
-        if (fishQuality != null && fishQuality.shouldRenderEffect()) {
+        if (ItemEffectManager.shouldShowEffect(itemStack)) {
             cir.setReturnValue(true);
         }
     }

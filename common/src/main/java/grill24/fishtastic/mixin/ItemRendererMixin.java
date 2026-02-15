@@ -3,9 +3,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexMultiConsumer;
-import grill24.fishtastic.FishtasticDataComponents;
-import grill24.fishtastic.client.renderer.FishtasticRenderTypes;
-import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.itemeffect.ItemEffect;
+import grill24.fishtastic.itemeffect.ItemEffectManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -20,17 +19,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-/**
- * Mixin to ItemRenderer to replace the default foil effect with our custom quality glow shader
- * for fish items that have quality components.
- */
+
 @Mixin(ItemRenderer.class)
 public class ItemRendererMixin {
     @Unique
     private static final ThreadLocal<ItemStack> fishtastic$currentItemStack = new ThreadLocal<>();
-    /**
-     * Capture the ItemStack being rendered so we can use it in the foil buffer methods.
-     */
+
     @Inject(
             method = "render",
             at = @At("HEAD")
@@ -48,9 +42,7 @@ public class ItemRendererMixin {
     ) {
         fishtastic$currentItemStack.set(itemStack);
     }
-    /**
-     * Clear the captured ItemStack after rendering.
-     */
+
     @Inject(
             method = "render",
             at = @At("RETURN")
@@ -68,9 +60,7 @@ public class ItemRendererMixin {
     ) {
         fishtastic$currentItemStack.remove();
     }
-    /**
-     * Replace the RenderType used for foil rendering with our custom quality glow for fish items.
-     */
+
     @Inject(
             method = "getFoilBuffer",
             at = @At("HEAD"),
@@ -84,21 +74,17 @@ public class ItemRendererMixin {
             CallbackInfoReturnable<VertexConsumer> cir
     ) {
         ItemStack itemStack = fishtastic$currentItemStack.get();
-        if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
-            FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
-            if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                FishQuality.Quality quality = fishQuality.quality();
-                // Use VertexMultiConsumer.create() just like vanilla does, with quality-specific render types
+        if (itemStack != null) {
+            ItemEffect effect = ItemEffectManager.getEffectForItem(itemStack);
+            if (effect != null) {
                 cir.setReturnValue(Minecraft.useShaderTransparency() && renderType == Sheets.translucentItemSheet()
-                        ? VertexMultiConsumer.create(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlowTranslucent(quality)), bufferSource.getBuffer(renderType))
-                        : VertexMultiConsumer.create(bufferSource.getBuffer(solid ? FishtasticRenderTypes.qualityGlow(quality) : FishtasticRenderTypes.entityQualityGlow(quality)), bufferSource.getBuffer(renderType))
+                        ? VertexMultiConsumer.create(bufferSource.getBuffer(effect.qualityGlowTranslucent()), bufferSource.getBuffer(renderType))
+                        : VertexMultiConsumer.create(bufferSource.getBuffer(solid ? effect.qualityGlow() : effect.entityQualityGlow()), bufferSource.getBuffer(renderType))
                 );
             }
         }
     }
-    /**
-     * Replace the RenderType used for direct foil rendering with our custom quality glow for fish items.
-     */
+
     @Inject(
             method = "getFoilBufferDirect",
             at = @At("HEAD"),
@@ -112,14 +98,10 @@ public class ItemRendererMixin {
             CallbackInfoReturnable<VertexConsumer> cir
     ) {
         ItemStack itemStack = fishtastic$currentItemStack.get();
-        if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
-            FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
-            if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                FishQuality.Quality quality = fishQuality.quality();
-                // Use our custom quality glow shader instead of the default glint, with quality-specific render types
-                RenderType customRenderType = solid ? FishtasticRenderTypes.qualityGlow(quality) : FishtasticRenderTypes.entityQualityGlowDirect(quality);
-
-                // Use VertexMultiConsumer.create() just like vanilla does
+        if (itemStack != null) {
+            ItemEffect effect = ItemEffectManager.getEffectForItem(itemStack);
+            if (effect != null) {
+                RenderType customRenderType = solid ? effect.qualityGlow() : effect.entityQualityGlowDirect();
                 cir.setReturnValue(VertexMultiConsumer.create(
                         bufferSource.getBuffer(customRenderType),
                         bufferSource.getBuffer(renderType)
@@ -131,14 +113,12 @@ public class ItemRendererMixin {
     @Inject(method = "getCompassFoilBuffer", at = @At("HEAD"), cancellable = true)
     private static void replaceCompassFoilBuffer(MultiBufferSource multiBufferSource, RenderType renderType, PoseStack.Pose pose, CallbackInfoReturnable<VertexConsumer> cir) {
         ItemStack itemStack = fishtastic$currentItemStack.get();
-        if (itemStack != null && itemStack.has(FishtasticDataComponents.FISH_QUALITY.value())) {
-            FishQuality fishQuality = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
-            if (fishQuality != null && fishQuality.shouldRenderEffect()) {
-                FishQuality.Quality quality = fishQuality.quality();
+        if (itemStack != null) {
+            ItemEffect effect = ItemEffectManager.getEffectForItem(itemStack);
+            if (effect != null) {
                 cir.setReturnValue(VertexMultiConsumer.create(
-                        new SheetedDecalTextureGenerator(multiBufferSource.getBuffer(FishtasticRenderTypes.qualityGlow(quality)), pose, 0.0078125F), multiBufferSource.getBuffer(renderType)));
+                        new SheetedDecalTextureGenerator(multiBufferSource.getBuffer(effect.qualityGlow()), pose, 0.0078125F), multiBufferSource.getBuffer(renderType)));
             }
         }
     }
-
 }

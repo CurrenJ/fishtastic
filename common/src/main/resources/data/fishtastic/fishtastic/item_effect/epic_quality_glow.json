@@ -1,0 +1,12 @@
+{
+    "texture": "fishtastic:textures/misc/epic_quality_glow.png",
+    "conditions": [
+        {
+            "type": "component_value",
+            "component": "fishtastic:fish_quality",
+            "field": "quality",
+            "value": "epic"
+        }
+    ],
+    "priority": 30
+}

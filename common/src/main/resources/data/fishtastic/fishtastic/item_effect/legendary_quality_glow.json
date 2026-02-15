@@ -1,0 +1,12 @@
+{
+    "texture": "fishtastic:textures/misc/legendary_quality_glow.png",
+    "conditions": [
+        {
+            "type": "component_value",
+            "component": "fishtastic:fish_quality",
+            "field": "quality",
+            "value": "legendary"
+        }
+    ],
+    "priority": 40
+}
