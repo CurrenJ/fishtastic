@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fishtastic Sticker Sheet Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: #252525;
+      padding: 10px 16px;
+      border-bottom: 1px solid #333;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Controls panel ─────────────────────────────────────────────────── */
+    .controls {
+      width: 280px;
+      flex-shrink: 0;
+      background: #222;
+      border-right: 1px solid #333;
+      overflow-y: auto;
+      padding: 14px 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    /* slider rows */
+    .slider-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+    .slider-row:last-child { margin-bottom: 0; }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+    }
+    .slider-label .val {
+      color: #7eb8f7;
+      font-weight: 600;
+      min-width: 38px;
+      text-align: right;
+    }
+
+    input[type=range] { width: 100%; accent-color: #7eb8f7; cursor: pointer; }
+
+    /* fish list */
+    .fish-list-header { display: flex; gap: 6px; margin-bottom: 6px; }
+
+    .btn-sm {
+      padding: 3px 10px;
+      font-size: 11px;
+      border: 1px solid #444;
+      background: #2e2e2e;
+      color: #bbb;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-sm:hover { background: #383838; }
+
+    .fish-checklist {
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #191919;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .fish-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-bottom: 1px solid #252525;
+      cursor: pointer;
+      user-select: none;
+    }
+    .fish-item:last-child { border-bottom: none; }
+    .fish-item:hover { background: #242424; }
+    .fish-item input[type=checkbox] { accent-color: #7eb8f7; cursor: pointer; flex-shrink: 0; }
+
+    .fish-thumb {
+      width: 22px;
+      height: 22px;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .fish-name {
+      font-size: 11.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #ccc;
+    }
+
+    .empty-msg {
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    /* load button */
+    .btn-load-label {
+      display: block;
+      padding: 8px 12px;
+      background: #2a2a2a;
+      border: 1px dashed #444;
+      border-radius: 4px;
+      font-size: 12.5px;
+      cursor: pointer;
+      text-align: center;
+      color: #aaa;
+    }
+    .btn-load-label:hover { background: #323232; border-color: #555; }
+
+    /* export */
+    .btn-export {
+      width: 100%;
+      padding: 10px;
+      background: #2d6a38;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-export:hover:not(:disabled) { background: #3a8046; }
+    .btn-export:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+
+    #export-status {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    /* ── Preview area ───────────────────────────────────────────────────── */
+    .preview-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #141414;
+      padding: 24px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .paper-wrapper {
+      box-shadow:
+        0 4px 16px rgba(0,0,0,0.5),
+        0 12px 40px rgba(0,0,0,0.4),
+        0 1px 3px rgba(0,0,0,0.6);
+      flex-shrink: 0;
+    }
+
+    #preview { display: block; }
+
+    /* ── Status bar ─────────────────────────────────────────────────────── */
+    .status-bar {
+      background: #202020;
+      border-top: 1px solid #2e2e2e;
+      padding: 5px 16px;
+      font-size: 11.5px;
+      color: #666;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>Fishtastic Sticker Sheet Generator</header>
+
+<div class="main">
+
+  <!-- ── Controls ── -->
+  <div class="controls">
+
+    <div>
+      <div class="section-title">Fish Textures</div>
+      <label class="btn-load-label">
+        Load Fish Folder
+        <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+      </label>
+    </div>
+
+    <div>
+      <div class="section-title">Layout</div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Fish per Row</span><span class="val" id="val-cols">4</span></div>
+        <input type="range" id="sl-cols" min="1" max="20" step="1" value="4">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Fish per Col</span><span class="val" id="val-rows">5</span></div>
+        <input type="range" id="sl-rows" min="1" max="20" step="1" value="5">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Margin (mm)</span><span class="val" id="val-margin">5</span></div>
+        <input type="range" id="sl-margin" min="0" max="20" step="0.5" value="5">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Fish Size</div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Size Scalar</span><span class="val" id="val-scalar">0.85</span></div>
+        <input type="range" id="sl-scalar" min="0.1" max="2.0" step="0.05" value="0.85">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Pixel Scale (NN)</span><span class="val" id="val-pxscale">10</span></div>
+        <input type="range" id="sl-pxscale" min="1" max="32" step="1" value="10">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Fish Selection</div>
+      <div class="fish-list-header">
+        <button class="btn-sm" id="btn-all">All</button>
+        <button class="btn-sm" id="btn-none">None</button>
+      </div>
+      <div class="fish-checklist" id="fish-checklist">
+        <div class="empty-msg">No fish loaded.<br>Select the fish textures folder above.</div>
+      </div>
+    </div>
+
+    <div>
+      <button class="btn-export" id="btn-export" disabled>Export PNG (300 DPI)</button>
+      <div id="export-status"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Preview ── -->
+  <div class="preview-area" id="preview-area">
+    <div class="paper-wrapper" id="paper-wrapper">
+      <canvas id="preview"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<div class="status-bar" id="status-bar">Load fish textures to begin.</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const EXPORT_W   = 2480;
+const EXPORT_H   = 3508;
+const A4_W_MM    = 210;
+const A4_H_MM    = 297;
+const MM_TO_PX   = EXPORT_W / A4_W_MM; // px per mm in export space
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let fishImages   = []; // { name, img, checked }
+let debounceTimer = null;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const folderInput   = document.getElementById('folderInput');
+const previewCanvas = document.getElementById('preview');
+const previewCtx    = previewCanvas.getContext('2d');
+const paperWrapper  = document.getElementById('paper-wrapper');
+const previewArea   = document.getElementById('preview-area');
+const statusBar     = document.getElementById('status-bar');
+const fishChecklist = document.getElementById('fish-checklist');
+const exportBtn     = document.getElementById('btn-export');
+const exportStatus  = document.getElementById('export-status');
+
+const sliders = {
+  cols:    document.getElementById('sl-cols'),
+  rows:    document.getElementById('sl-rows'),
+  margin:  document.getElementById('sl-margin'),
+  scalar:  document.getElementById('sl-scalar'),
+  pxscale: document.getElementById('sl-pxscale'),
+};
+const valLabels = {
+  cols:    document.getElementById('val-cols'),
+  rows:    document.getElementById('val-rows'),
+  margin:  document.getElementById('val-margin'),
+  scalar:  document.getElementById('val-scalar'),
+  pxscale: document.getElementById('val-pxscale'),
+};
+
+// ── Slider bindings ───────────────────────────────────────────────────────────
+function getParams() {
+  return {
+    cols:    parseInt(sliders.cols.value),
+    rows:    parseInt(sliders.rows.value),
+    margin:  parseFloat(sliders.margin.value),
+    scalar:  parseFloat(sliders.scalar.value),
+    pxscale: parseInt(sliders.pxscale.value),
+  };
+}
+
+Object.keys(sliders).forEach(key => {
+  sliders[key].addEventListener('input', () => {
+    valLabels[key].textContent = sliders[key].value;
+    scheduleRedraw();
+  });
+});
+
+// ── Fish selection buttons ────────────────────────────────────────────────────
+document.getElementById('btn-all').addEventListener('click', () => {
+  fishImages.forEach(f => f.checked = true);
+  updateChecklist();
+  scheduleRedraw();
+});
+document.getElementById('btn-none').addEventListener('click', () => {
+  fishImages.forEach(f => f.checked = false);
+  updateChecklist();
+  scheduleRedraw();
+});
+
+// ── Folder loading ────────────────────────────────────────────────────────────
+folderInput.addEventListener('change', async e => {
+  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.png'));
+  if (!files.length) return;
+
+  // Release old object URLs
+  fishImages.forEach(f => URL.revokeObjectURL(f.url));
+  fishImages = [];
+
+  const loaded = await Promise.all(files.map(file => new Promise(resolve => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload  = () => resolve({ name: file.name.replace(/\.png$/i, ''), img, checked: true, url });
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  })));
+
+  fishImages = loaded.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+
+  updateChecklist();
+  exportBtn.disabled = fishImages.length === 0;
+  scheduleRedraw();
+});
+
+// ── Spritesheet detection ─────────────────────────────────────────────────────
+// Minecraft vertical animation strips: height > width, height divisible by width.
+// Return the size of the first (square) frame.
+function firstFrameSize(img) {
+  if (img.naturalHeight > img.naturalWidth && img.naturalHeight % img.naturalWidth === 0) {
+    return img.naturalWidth;
+  }
+  return Math.min(img.naturalWidth, img.naturalHeight);
+}
+
+// ── Checklist rendering ───────────────────────────────────────────────────────
+function updateChecklist() {
+  if (!fishImages.length) {
+    fishChecklist.innerHTML = '<div class="empty-msg">No fish loaded.<br>Select the fish textures folder above.</div>';
+    return;
+  }
+
+  fishChecklist.innerHTML = '';
+
+  fishImages.forEach((fish, i) => {
+    const row = document.createElement('div');
+    row.className = 'fish-item';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = fish.checked;
+    cb.addEventListener('change', () => { fishImages[i].checked = cb.checked; scheduleRedraw(); });
+
+    // Thumbnail canvas (first frame, nearest-neighbor)
+    const thumb = document.createElement('canvas');
+    thumb.width  = 22;
+    thumb.height = 22;
+    thumb.className = 'fish-thumb';
+    const tc = thumb.getContext('2d');
+    tc.imageSmoothingEnabled = false;
+    const fs = firstFrameSize(fish.img);
+    tc.drawImage(fish.img, 0, 0, fs, fs, 0, 0, 22, 22);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'fish-name';
+    lbl.textContent = fish.name;
+
+    row.appendChild(cb);
+    row.appendChild(thumb);
+    row.appendChild(lbl);
+    row.addEventListener('click', e => { if (e.target !== cb) { cb.checked = !cb.checked; fishImages[i].checked = cb.checked; scheduleRedraw(); } });
+    fishChecklist.appendChild(row);
+  });
+}
+
+// ── Debounced redraw ──────────────────────────────────────────────────────────
+function scheduleRedraw() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(drawPreview, 60);
+}
+
+// ── Core render ───────────────────────────────────────────────────────────────
+/**
+ * Renders the sticker sheet onto ctx.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} canvasW   pixel width of target canvas
+ * @param {number} canvasH   pixel height of target canvas
+ * @param {object} params    { cols, rows, margin (mm), scalar, pxscale }
+ * @param {Array}  fish      filtered (checked) fish entries
+ */
+function renderSheet(ctx, canvasW, canvasH, params, fish) {
+  const { cols, rows, margin, scalar, pxscale } = params;
+
+  // Scale factor from export space (2480×3508) to this canvas
+  const scale = canvasW / EXPORT_W;
+
+  const marginPx = margin * MM_TO_PX * scale;
+  const gridW    = canvasW - 2 * marginPx;
+  const gridH    = canvasH - 2 * marginPx;
+  const cellW    = gridW / cols;
+  const cellH    = gridH / rows;
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  ctx.imageSmoothingEnabled = false;
+
+  const capacity = cols * rows;
+  fish.slice(0, capacity).forEach((entry, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+
+    const cellX = marginPx + col * cellW;
+    const cellY = marginPx + row * cellH;
+
+    const fs = firstFrameSize(entry.img);
+
+    // final size in canvas px: source × pixelScale × sizeScalar × preview_scale
+    const finalSize = fs * pxscale * scalar * scale;
+
+    // Center within cell
+    const drawX = cellX + (cellW - finalSize) / 2;
+    const drawY = cellY + (cellH - finalSize) / 2;
+
+    ctx.drawImage(entry.img, 0, 0, fs, fs, drawX, drawY, finalSize, finalSize);
+  });
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+function drawPreview() {
+  const params     = getParams();
+  const activeFish = fishImages.filter(f => f.checked);
+
+  // Fit A4 into the preview area
+  const area    = previewArea.getBoundingClientRect();
+  const padding = 48;
+  const maxW    = Math.max(area.width  - padding, 100);
+  const maxH    = Math.max(area.height - padding, 100);
+  const aspect  = EXPORT_W / EXPORT_H; // ~0.707
+
+  let pw, ph;
+  if (maxW / maxH > aspect) { ph = maxH; pw = ph * aspect; }
+  else                       { pw = maxW; ph = pw / aspect; }
+
+  pw = Math.floor(pw);
+  ph = Math.floor(ph);
+
+  previewCanvas.width  = pw;
+  previewCanvas.height = ph;
+  paperWrapper.style.width  = pw + 'px';
+  paperWrapper.style.height = ph + 'px';
+
+  renderSheet(previewCtx, pw, ph, params, activeFish);
+
+  // Status bar
+  const shown   = Math.min(activeFish.length, params.cols * params.rows);
+  const cellWmm = (A4_W_MM - 2 * params.margin) / params.cols;
+  const cellHmm = (A4_H_MM - 2 * params.margin) / params.rows;
+  statusBar.textContent =
+    `${shown} / ${activeFish.length} fish shown  |  ${params.cols} \u00d7 ${params.rows} grid  |  ~${cellWmm.toFixed(1)} \u00d7 ${cellHmm.toFixed(1)} mm / cell`;
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+exportBtn.addEventListener('click', async () => {
+  const params     = getParams();
+  const activeFish = fishImages.filter(f => f.checked);
+
+  exportBtn.disabled = true;
+  exportStatus.textContent = 'Rendering\u2026';
+  await tick();
+
+  try {
+    const off   = document.createElement('canvas');
+    off.width   = EXPORT_W;
+    off.height  = EXPORT_H;
+    const ctx   = off.getContext('2d');
+    renderSheet(ctx, EXPORT_W, EXPORT_H, params, activeFish);
+
+    exportStatus.textContent = 'Encoding PNG\u2026';
+    await tick();
+
+    const blob        = await new Promise(res => off.toBlob(res, 'image/png'));
+    const buf         = await blob.arrayBuffer();
+    const withDpi     = injectPNGDpi(new Uint8Array(buf), 300);
+    const downloadUrl = URL.createObjectURL(new Blob([withDpi], { type: 'image/png' }));
+
+    const a    = document.createElement('a');
+    a.href     = downloadUrl;
+    a.download = 'fishtastic_stickers.png';
+    a.click();
+    URL.revokeObjectURL(downloadUrl);
+
+    exportStatus.textContent = '\u2713 Saved 2480 \u00d7 3508 px @ 300 DPI';
+  } catch (err) {
+    exportStatus.textContent = '\u2717 Export failed: ' + err.message;
+    console.error(err);
+  } finally {
+    exportBtn.disabled = false;
+  }
+});
+
+function tick() { return new Promise(r => setTimeout(r, 0)); }
+
+// ── PNG DPI injection (pHYs chunk) ────────────────────────────────────────────
+// PNG structure: 8-byte signature, then chunks.
+// IHDR chunk: 4 (len) + 4 (type) + 13 (data) + 4 (CRC) = 25 bytes → ends at byte 33.
+// We insert pHYs immediately after IHDR.
+
+function buildCRCTable() {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+}
+const CRC_TABLE = buildCRCTable();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function injectPNGDpi(pngBytes, dpi) {
+  // 1 inch = 0.0254 m  →  ppm = dpi / 0.0254 = dpi * 39.3701
+  const ppm = Math.round(dpi * 39.3701);
+
+  // pHYs data: 4 bytes X ppm, 4 bytes Y ppm, 1 byte unit (1 = metre)
+  const data = new Uint8Array(9);
+  const dv   = new DataView(data.buffer);
+  dv.setUint32(0, ppm, false);
+  dv.setUint32(4, ppm, false);
+  data[8] = 1;
+
+  const type = [0x70, 0x48, 0x59, 0x73]; // "pHYs"
+
+  // CRC covers type + data
+  const crcSrc = new Uint8Array(4 + 9);
+  crcSrc.set(type, 0);
+  crcSrc.set(data, 4);
+  const checksum = crc32(crcSrc);
+
+  // Assemble chunk: 4 (len) + 4 (type) + 9 (data) + 4 (CRC) = 21 bytes
+  const chunk = new Uint8Array(21);
+  const cv    = new DataView(chunk.buffer);
+  cv.setUint32(0, 9, false);       // data length = 9
+  chunk.set(type, 4);              // chunk type
+  chunk.set(data, 8);              // chunk data
+  cv.setUint32(17, checksum, false); // CRC
+
+  // Splice into PNG after IHDR (offset 33)
+  const out = new Uint8Array(pngBytes.length + 21);
+  out.set(pngBytes.slice(0, 33), 0);
+  out.set(chunk, 33);
+  out.set(pngBytes.slice(33), 54);
+  return out;
+}
+
+// ── Resize observer ───────────────────────────────────────────────────────────
+new ResizeObserver(() => scheduleRedraw()).observe(previewArea);
+
+// Initial draw
+drawPreview();
+</script>
+</body>
+</html>

@@ -130,6 +130,7 @@ public class FishingMinigameManager {
 
         // Validate caught indices and award items
         List<ItemStack> rewards = new ArrayList<>();
+        FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
         for (Integer index : caughtTargetIndices) {
             if (index >= 0 && index < session.targets.size()) {
                 ServerFishingTarget target = session.targets.get(index);
@@ -137,6 +138,7 @@ public class FishingMinigameManager {
                 for (ItemStack rewardStack : target.rewardStacks()) {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
+                        catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
                         player.getInventory().add(reward);
                         rewards.add(reward);
                     }

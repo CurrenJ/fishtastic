@@ -1,6 +1,8 @@
 package grill24.fishtastic.compat;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.LeaderboardScreen;
+import io.github.currenj.gelatinui.example.TestScreen;
 import io.github.currenj.gelatinui.registration.menu.ScreenRegistrationEvent;
 
 public class GelatinScreens {
@@ -16,6 +18,8 @@ public class GelatinScreens {
 
     private static void _registerScreens(ScreenRegistrationEvent.ScreenRegistrar registrar) {
         // ----- REGISTER CUSTOM SCREENS USING REGISTRAR HERE -----
-        Fishtastic.LOGGER.info("Registered {} screen with Gelatin UI.", Fishtastic.MOD_ID);
+        registrar.register("fishtastic", TestScreen::new);
+        registrar.register("leaderboard", LeaderboardScreen::new);
+        Fishtastic.LOGGER.info("Registered {} screens with Gelatin UI.", Fishtastic.MOD_ID);
     }
 }

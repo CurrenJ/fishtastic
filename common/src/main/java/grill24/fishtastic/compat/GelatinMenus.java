@@ -28,6 +28,7 @@ public class GelatinMenus {
 
     private static void _registerMenus(MenuRegistrationEvent.MenuRegistrar registrar) {
         registrar.registerDebugMenu("fishtastic");
+        registrar.registerDebugMenu("leaderboard");
         GelatinUi.LOGGER.info("Registered Fishtastic menu with Gelatin UI.");
     }
 }

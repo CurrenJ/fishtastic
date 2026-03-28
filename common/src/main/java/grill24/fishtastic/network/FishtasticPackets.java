@@ -12,6 +12,8 @@ public class FishtasticPackets {
     // Packet IDs
     public static final ResourceLocation START_FISHING_MINIGAME_ID = Fishtastic.id("start_fishing_minigame");
     public static final ResourceLocation FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
+    public static final ResourceLocation REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
+    public static final ResourceLocation LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -30,6 +32,11 @@ public class FishtasticPackets {
                 FinishFishingMinigamePacket.STREAM_CODEC,
                 FinishFishingMinigamePacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                RequestLeaderboardPacket.TYPE,
+                RequestLeaderboardPacket.STREAM_CODEC,
+                RequestLeaderboardPacket::handleClientToServer
+        );
     }
 
     /**
@@ -40,6 +47,11 @@ public class FishtasticPackets {
                 StartFishingMinigamePacket.TYPE,
                 StartFishingMinigamePacket.STREAM_CODEC,
                 StartFishingMinigamePacket::handle
+        );
+        registrar.registerServerToClient(
+                LeaderboardResponsePacket.TYPE,
+                LeaderboardResponsePacket.STREAM_CODEC,
+                LeaderboardResponsePacket::handleServerToClient
         );
     }
 
