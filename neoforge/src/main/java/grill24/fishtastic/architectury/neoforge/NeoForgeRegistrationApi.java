@@ -7,9 +7,11 @@ import grill24.fishtastic.neoforge.FishtasticRegistriesNeoForge;
 import grill24.fishtastic.neoforge.blockentity.FishTankBlockEntityNeoForge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -47,6 +49,36 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
         @SuppressWarnings("unchecked")
         Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) FishtasticRegistriesNeoForge.DATA_COMPONENT_TYPES.register(name, () -> builderOperator.apply(DataComponentType.<T>builder()).build());
         return holder;
+    }
+
+    @Override
+    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<ResourceLocation, ? extends CreativeModeTab> func) {
+        return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(name, func);
+    }
+
+    @Override
+    public Registry<Block> blocks() {
+        return FishtasticRegistriesNeoForge.BLOCKS.getRegistry().get();
+    }
+
+    @Override
+    public Registry<Item> items() {
+        return FishtasticRegistriesNeoForge.ITEMS.getRegistry().get();
+    }
+
+    @Override
+    public Registry<BlockEntityType<?>> blockEntityTypes() {
+        return FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.getRegistry().get();
+    }
+
+    @Override
+    public Registry<DataComponentType<?>> dataComponentTypes() {
+        return FishtasticRegistriesNeoForge.DATA_COMPONENT_TYPES.getRegistry().get();
+    }
+
+    @Override
+    public Registry<CreativeModeTab> creativeModeTabs() {
+        return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.getRegistry().get();
     }
 
     // ----- Registries ----- //

@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
@@ -28,6 +29,7 @@ public final class FishtasticFabric implements ModInitializer {
         FishtasticItems.registerItems();
         FishtasticBlocks.registerBlocks();
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
+        FishtasticCreativeTabs.registerCreativeTabs();
 
         // Register network packets (server-side)
         FabricPacketRegistrar.registerServerReceiver();

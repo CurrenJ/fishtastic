@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
@@ -40,6 +41,9 @@ public final class FishtasticNeoForge {
 
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
         FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(modEventBus);
+
+        FishtasticCreativeTabs.registerCreativeTabs();
+        FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(modEventBus);
 
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);

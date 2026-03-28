@@ -12,6 +12,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -59,6 +60,38 @@ public class FabricRegistrationApi implements IRegistrationApi {
         @SuppressWarnings("unchecked")
         Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, (ResourceKey<DataComponentType<?>>) key, componentType);
         return holder;
+    }
+
+    @Override
+    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<ResourceLocation, ? extends CreativeModeTab> func) {
+        return register(BuiltInRegistries.CREATIVE_MODE_TAB, name, func);
+    }
+
+    // ----- Registry Accessors ----- //
+
+    @Override
+    public Registry<Block> blocks() {
+        return BuiltInRegistries.BLOCK;
+    }
+
+    @Override
+    public Registry<Item> items() {
+        return BuiltInRegistries.ITEM;
+    }
+
+    @Override
+    public Registry<BlockEntityType<?>> blockEntityTypes() {
+        return BuiltInRegistries.BLOCK_ENTITY_TYPE;
+    }
+
+    @Override
+    public Registry<DataComponentType<?>> dataComponentTypes() {
+        return BuiltInRegistries.DATA_COMPONENT_TYPE;
+    }
+
+    @Override
+    public Registry<CreativeModeTab> creativeModeTabs() {
+        return BuiltInRegistries.CREATIVE_MODE_TAB;
     }
 
     private static <T> Holder<T> register(Registry<T> registry, String name, Function<ResourceLocation, ? extends T> func) {
