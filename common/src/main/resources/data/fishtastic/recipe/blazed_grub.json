@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:worms",
+    "minecraft:blaze_powder"
+  ],
+  "result": {
+    "id": "fishtastic:blazed_grub"
+  }
+}

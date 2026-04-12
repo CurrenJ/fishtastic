@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:tropical_fish",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "fishtastic:portuguese_man_o_war"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "minecraft:cyan_stained_glass",
+    "minecraft:glass"
+  ],
+  "result": {
+    "id": "fishtastic:cyan_clear_stained_glass"
+  }
+}

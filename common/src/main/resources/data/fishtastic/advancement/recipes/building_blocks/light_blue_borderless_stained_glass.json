@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_stained_glass": {
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:light_blue_stained_glass"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "fishtastic:light_blue_borderless_stained_glass"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_stained_glass"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "fishtastic:light_blue_borderless_stained_glass"
+    ]
+  }
+}

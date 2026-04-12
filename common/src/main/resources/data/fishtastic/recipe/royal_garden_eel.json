@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:garden_eel",
+    "minecraft:gold_ingot"
+  ],
+  "result": {
+    "id": "fishtastic:royal_garden_eel"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:giant_manta_ray",
+    "minecraft:ice"
+  ],
+  "result": {
+    "id": "fishtastic:frozen_giant_manta_ray"
+  }
+}

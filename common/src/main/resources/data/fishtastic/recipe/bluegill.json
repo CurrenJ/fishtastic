@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:cod",
+    "minecraft:lapis_lazuli"
+  ],
+  "result": {
+    "id": "fishtastic:bluegill"
+  }
+}

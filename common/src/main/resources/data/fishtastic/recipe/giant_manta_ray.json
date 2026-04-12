@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:cod",
+    "minecraft:phantom_membrane"
+  ],
+  "result": {
+    "id": "fishtastic:giant_manta_ray"
+  }
+}

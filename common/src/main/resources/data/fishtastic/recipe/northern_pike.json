@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:salmon",
+    "minecraft:iron_ingot"
+  ],
+  "result": {
+    "id": "fishtastic:northern_pike"
+  }
+}

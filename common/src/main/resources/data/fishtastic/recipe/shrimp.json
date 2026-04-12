@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:seagrass",
+    "minecraft:seagrass",
+    "minecraft:gravel"
+  ],
+  "result": {
+    "id": "fishtastic:shrimp"
+  }
+}

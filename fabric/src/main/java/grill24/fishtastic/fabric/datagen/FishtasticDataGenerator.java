@@ -17,6 +17,9 @@ public class FishtasticDataGenerator implements DataGeneratorEntrypoint {
         pack.addProvider(FishTankSandModelProvider::new);
         pack.addProvider(FishTankGlassModelProvider::new);
         pack.addProvider(FishtasticItemTagProvider::new);
+        pack.addProvider(FishtasticBlockTagProvider::new);
         pack.addProvider(ItemEffectProvider::new);
+        pack.addProvider(FishtasticRecipeProvider::new);
+        pack.addProvider(FishtasticBlockLootTableProvider::new);
     }
 }

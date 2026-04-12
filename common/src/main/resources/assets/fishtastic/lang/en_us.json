@@ -27,5 +27,41 @@
   "tooltip.fishtastic.item_size.cm": "%s cm",
 
   "key.categories.fishtastic": "Fishtastic",
-  "key.fishtastic.fishing_minigame_impulse": "Fishing Minigame Impulse"
+  "key.fishtastic.fishing_minigame_impulse": "Fishing Minigame Impulse",
+
+  "block.fishtastic.fish_tank": "Fish Tank",
+
+  "block.fishtastic.white_borderless_stained_glass": "White Borderless Stained Glass",
+  "block.fishtastic.orange_borderless_stained_glass": "Orange Borderless Stained Glass",
+  "block.fishtastic.magenta_borderless_stained_glass": "Magenta Borderless Stained Glass",
+  "block.fishtastic.light_blue_borderless_stained_glass": "Light Blue Borderless Stained Glass",
+  "block.fishtastic.yellow_borderless_stained_glass": "Yellow Borderless Stained Glass",
+  "block.fishtastic.lime_borderless_stained_glass": "Lime Borderless Stained Glass",
+  "block.fishtastic.pink_borderless_stained_glass": "Pink Borderless Stained Glass",
+  "block.fishtastic.gray_borderless_stained_glass": "Gray Borderless Stained Glass",
+  "block.fishtastic.light_gray_borderless_stained_glass": "Light Gray Borderless Stained Glass",
+  "block.fishtastic.cyan_borderless_stained_glass": "Cyan Borderless Stained Glass",
+  "block.fishtastic.purple_borderless_stained_glass": "Purple Borderless Stained Glass",
+  "block.fishtastic.blue_borderless_stained_glass": "Blue Borderless Stained Glass",
+  "block.fishtastic.brown_borderless_stained_glass": "Brown Borderless Stained Glass",
+  "block.fishtastic.green_borderless_stained_glass": "Green Borderless Stained Glass",
+  "block.fishtastic.red_borderless_stained_glass": "Red Borderless Stained Glass",
+  "block.fishtastic.black_borderless_stained_glass": "Black Borderless Stained Glass",
+
+  "block.fishtastic.white_clear_stained_glass": "White Clear Stained Glass",
+  "block.fishtastic.orange_clear_stained_glass": "Orange Clear Stained Glass",
+  "block.fishtastic.magenta_clear_stained_glass": "Magenta Clear Stained Glass",
+  "block.fishtastic.light_blue_clear_stained_glass": "Light Blue Clear Stained Glass",
+  "block.fishtastic.yellow_clear_stained_glass": "Yellow Clear Stained Glass",
+  "block.fishtastic.lime_clear_stained_glass": "Lime Clear Stained Glass",
+  "block.fishtastic.pink_clear_stained_glass": "Pink Clear Stained Glass",
+  "block.fishtastic.gray_clear_stained_glass": "Gray Clear Stained Glass",
+  "block.fishtastic.light_gray_clear_stained_glass": "Light Gray Clear Stained Glass",
+  "block.fishtastic.cyan_clear_stained_glass": "Cyan Clear Stained Glass",
+  "block.fishtastic.purple_clear_stained_glass": "Purple Clear Stained Glass",
+  "block.fishtastic.blue_clear_stained_glass": "Blue Clear Stained Glass",
+  "block.fishtastic.brown_clear_stained_glass": "Brown Clear Stained Glass",
+  "block.fishtastic.green_clear_stained_glass": "Green Clear Stained Glass",
+  "block.fishtastic.red_clear_stained_glass": "Red Clear Stained Glass",
+  "block.fishtastic.black_clear_stained_glass": "Black Clear Stained Glass"
 }

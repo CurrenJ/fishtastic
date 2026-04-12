@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:worms",
+    "minecraft:slime_ball"
+  ],
+  "result": {
+    "id": "fishtastic:gummy_worms"
+  }
+}
