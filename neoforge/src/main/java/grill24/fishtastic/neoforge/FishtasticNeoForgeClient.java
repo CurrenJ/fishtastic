@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishTankCustomizationHandler;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
@@ -84,6 +85,9 @@ public final class FishtasticNeoForgeClient {
     // TODO MC-26.1: ItemProperties is removed - fishing rod "cast" property needs data-driven item model
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
+        // Register custom item model types
+        FishtasticClientSetup.registerItemModelTypes();
+
         // TODO MC-26.1: ItemProperties.register is removed in 26.1
         // The fishing rod "cast" property must now be defined via data-driven item models
         Fishtastic.LOGGER.info("Fishtastic client setup complete.");

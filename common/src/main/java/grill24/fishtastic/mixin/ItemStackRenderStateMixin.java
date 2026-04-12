@@ -62,5 +62,15 @@ public abstract class ItemStackRenderStateMixin implements FishtasticItemStackRe
             FishtasticGlintState.SUBMIT_EFFECT_MAP.remove(layers[i].prepareQuadList());
         }
     }
+
+    @Override
+    public int fishtastic$getActiveLayerCount() {
+        return activeLayerCount;
+    }
+
+    @Override
+    public ItemStackRenderState.LayerRenderState fishtastic$getLayer(int index) {
+        return layers[index];
+    }
 }
 

@@ -4,6 +4,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -21,6 +22,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Register custom item model types
+        FishtasticClientSetup.registerItemModelTypes();
+
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
 

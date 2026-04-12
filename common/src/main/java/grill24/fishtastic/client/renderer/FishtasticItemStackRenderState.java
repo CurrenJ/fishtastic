@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.itemeffect.ItemEffect;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -21,5 +22,15 @@ public interface FishtasticItemStackRenderState {
      * Called at the head of {@code ItemStackRenderState.clear()}.
      */
     void fishtastic$cleanupGlintEffects();
+
+    /**
+     * Returns the current number of active layers.
+     */
+    int fishtastic$getActiveLayerCount();
+
+    /**
+     * Returns the layer render state at the given index.
+     */
+    ItemStackRenderState.LayerRenderState fishtastic$getLayer(int index);
 }
 

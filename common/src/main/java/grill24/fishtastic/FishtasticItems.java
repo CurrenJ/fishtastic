@@ -3,12 +3,15 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
+import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.component.BundleContents;
 
 public class FishtasticItems {
     /** Helper to create Item.Properties with the item ID already set (required in MC 26.1.2+). */
@@ -28,6 +31,9 @@ public class FishtasticItems {
 
     // ----- Fish Items -----
     public static Holder<Item> ACUTE_IASPIS;
+
+    // ----- Pile of Fish -----
+    public static Holder<Item> PILE_OF_FISH;
     public static Holder<Item> BLAZED_GRUB;
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
@@ -80,5 +86,13 @@ public class FishtasticItems {
         SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> FishtasticFishItem.create(props(loc), 25, 5));
         STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> FishtasticFishItem.create(props(loc), 40, 10));
         WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> FishtasticFishItem.create(props(loc), 35, 5));
+
+        PILE_OF_FISH = RegistrationApiSided.getInstance().registerItem("pile_of_fish",
+                loc -> new PileOfFishItem(
+                        props(loc)
+                                .stacksTo(1)
+                                .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
+                )
+        );
     }
 }
