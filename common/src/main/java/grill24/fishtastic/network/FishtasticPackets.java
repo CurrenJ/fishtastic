@@ -2,7 +2,7 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Central registry for all Fishtastic network packets.
@@ -10,10 +10,10 @@ import net.minecraft.resources.ResourceLocation;
  */
 public class FishtasticPackets {
     // Packet IDs
-    public static final ResourceLocation START_FISHING_MINIGAME_ID = Fishtastic.id("start_fishing_minigame");
-    public static final ResourceLocation FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
-    public static final ResourceLocation REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
-    public static final ResourceLocation LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
+    public static final Identifier START_FISHING_MINIGAME_ID = Fishtastic.id("start_fishing_minigame");
+    public static final Identifier FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
+    public static final Identifier REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
+    public static final Identifier LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
 
     /**
      * Initialize packet registration. Called during mod initialization.

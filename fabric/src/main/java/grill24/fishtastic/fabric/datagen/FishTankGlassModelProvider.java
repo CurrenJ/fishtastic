@@ -3,12 +3,12 @@ package grill24.fishtastic.fabric.datagen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.core.Direction;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 public class FishTankGlassModelProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public FishTankGlassModelProvider(FabricDataOutput output) {
+    public FishTankGlassModelProvider(FabricPackOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "models/block");
     }
 
@@ -86,7 +86,7 @@ public class FishTankGlassModelProvider implements DataProvider {
         model.add("elements", elements);
 
         // Save the model file
-        Path outputPath = pathProvider.json(ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, "fishtankbase/fish_tank_glass_" + permutationIndex));
+        Path outputPath = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "fishtankbase/fish_tank_glass_" + permutationIndex));
         return DataProvider.saveStable(cache, model, outputPath);
     }
 

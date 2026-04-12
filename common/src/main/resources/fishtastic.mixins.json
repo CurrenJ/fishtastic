@@ -1,12 +1,14 @@
 {
   "required": true,
   "package": "grill24.fishtastic.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "minVersion": "0.8",
   "client": [
     "GameRendererMixin",
     "GuiGraphicsMixin",
-    "ItemRendererMixin",
+    "ItemFeatureRendererMixin",
+    "ItemModelResolverMixin",
+    "ItemStackRenderStateMixin",
     "LevelRendererMixin",
     "RenderBuffersMixin",
     "accessor.BufferSourceAccessor"

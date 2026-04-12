@@ -1,26 +1,29 @@
 package grill24.fishtastic.fabric.datagen;
 
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
-import net.fabricmc.fabric.api.datagen.v1.provider.FabricModelProvider;
+import grill24.fishtastic.FishtasticItems;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.minecraft.core.Holder;
-import net.minecraft.data.models.BlockModelGenerators;
-import net.minecraft.data.models.ItemModelGenerators;
-import net.minecraft.data.models.blockstates.MultiVariantGenerator;
-import net.minecraft.data.models.blockstates.Variant;
-import net.minecraft.data.models.blockstates.VariantProperties;
-import net.minecraft.data.models.model.ModelTemplates;
-import net.minecraft.data.models.model.TextureMapping;
+import net.minecraft.client.data.models.BlockModelGenerators;
+import net.minecraft.client.data.models.ItemModelGenerators;
+import net.minecraft.client.data.models.model.ItemModelUtils;
+import net.minecraft.client.data.models.model.ModelLocationUtils;
+import net.minecraft.client.data.models.model.ModelTemplates;
+import net.minecraft.client.data.models.model.TextureMapping;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 
 import java.util.Map;
 import java.util.Optional;
 
 public class FishtasticModelProvider extends FabricModelProvider {
-    public FishtasticModelProvider(FabricDataOutput output) {
+    public FishtasticModelProvider(FabricPackOutput output) {
         super(output);
     }
 
@@ -36,46 +39,99 @@ public class FishtasticModelProvider extends FabricModelProvider {
     private void generateGlassModels(BlockModelGenerators blockModelGenerators, Map<DyeColor, Holder<Block>> glassBlocks) {
         for (DyeColor color : DyeColor.values()) {
             Holder<Block> block = glassBlocks.get(color);
-            ResourceLocation textureLoc = getGlassTextureLoc(block);
-            ResourceLocation modelLoc = getGlassModelLoc(block);
+            Identifier textureLoc = getGlassTextureLoc(block);
+            Identifier modelLoc = getGlassModelLoc(block);
 
             generateModelsForGlassBlock(blockModelGenerators, modelLoc, textureLoc, block);
         }
     }
 
-    private static void generateModelsForGlassBlock(BlockModelGenerators blockModelGenerators, ResourceLocation modelLoc, ResourceLocation textureLoc, Holder<Block> block) {
-        // Create block model in glass/ subdirectory
-        ModelTemplates.CUBE_ALL.create(modelLoc, TextureMapping.cube(textureLoc), blockModelGenerators.modelOutput);
+    private static void generateModelsForGlassBlock(BlockModelGenerators blockModelGenerators, Identifier modelLoc, Identifier textureLoc, Holder<Block> block) {
+        // Create block model in glass/ subdirectory using Material for texture
+        ModelTemplates.CUBE_ALL.create(modelLoc, TextureMapping.cube(new Material(textureLoc)), blockModelGenerators.modelOutput);
 
         // Create blockstate pointing to the model in glass subdirectory
         blockModelGenerators.blockStateOutput.accept(
-            MultiVariantGenerator.multiVariant(block.value(),
-                Variant.variant().with(VariantProperties.MODEL, modelLoc))
+            BlockModelGenerators.createSimpleBlock(block.value(),
+                BlockModelGenerators.plainVariant(modelLoc))
         );
 
         // Create item model in default directory (required by Minecraft's hardcoded item model lookup)
-        // The item model will reference the block model in the glass subdirectory
-        // This changes in a later Minecraft version, but is required for 1.21.1.
-        blockModelGenerators.delegateItemModel(block.value(), modelLoc);
+        blockModelGenerators.registerSimpleItemModel(block.value(), modelLoc);
     }
 
     @Override
     public void generateItemModels(ItemModelGenerators itemModelGenerators) {
+        // ----- Rendering-only items with custom texture paths -----
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND.value(), Fishtastic.id("item/fishing_bar"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_BOBBER.value(), Fishtastic.id("item/fishing_bobber"));
+
+        // Standard flat items
+        itemModelGenerators.generateFlatItem(FishtasticItems.SPARKLE.value(), ModelTemplates.FLAT_ITEM);
+        itemModelGenerators.generateFlatItem(FishtasticItems.REWARD_CHEST.value(), ModelTemplates.FLAT_ITEM);
+
+        // ----- Copper fishing rod (fishing rod style with _cast variant) -----
+        itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
+
+        // ----- Fish items (textures in item/fish/ subdirectory) -----
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GENERIC_FISH.value(), "generic_fish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.ACUTE_IASPIS.value(), "acute_iaspis");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.BLAZED_GRUB.value(), "blazed_grub");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.BLUEGILL.value(), "bluegill");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.FRIED_SHRIMP.value(), "fried_shrimp");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.FROZEN_GIANT_MANTA_RAY.value(), "frozen_giant_manta_ray");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GARDEN_EEL.value(), "garden_eel");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GIANT_MANTA_RAY.value(), "giant_manta_ray");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GUMMY_WORMS.value(), "gummy_worms");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.LIZARDFISH.value(), "lizardfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.LONGNOSE_GAR.value(), "longnose_gar");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.MOLTEN_MOORISH_IDOL.value(), "molten_moorish_idol");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.MOORISH_IDOL.value(), "moorish_idol");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.NEON_TETRA.value(), "neon_tetra");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.NORTHERN_PIKE.value(), "northern_pike");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.OCEAN_SUNFISH.value(), "ocean_sunfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.PARROTFISH.value(), "parrotfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.PORTUGUESE_MAN_O_WAR.value(), "portuguese_man_o_war");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.RAINFORDIA.value(), "rainfordia");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.ROYAL_GARDEN_EEL.value(), "royal_garden_eel");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.SHRIMP.value(), "shrimp");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");
+
+        // ----- Block items -----
+        // Fish tank: declare as custom model (uses custom block model / renderer)
+        itemModelGenerators.declareCustomModelItem(FishtasticBlocks.FISH_TANK.value().asItem());
     }
 
-    private static ResourceLocation getGlassTextureLoc(Holder<Block> block) {
+    /**
+     * Generate a flat item model for a fish item whose texture is in the item/fish/ subdirectory.
+     */
+    private static void generateFishItemModel(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
+        generateFlatItemWithCustomTexture(itemModelGenerators, item, Fishtastic.id("item/fish/" + textureName));
+    }
+
+    /**
+     * Generate a flat item model with a custom texture path.
+     */
+    private static void generateFlatItemWithCustomTexture(ItemModelGenerators itemModelGenerators, Item item, Identifier texturePath) {
+        Identifier modelLoc = ModelLocationUtils.getModelLocation(item);
+        Identifier createdModel = ModelTemplates.FLAT_ITEM.create(modelLoc, TextureMapping.layer0(new Material(texturePath)), itemModelGenerators.modelOutput);
+        itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.plainModel(createdModel));
+    }
+
+    private static Identifier getGlassTextureLoc(Holder<Block> block) {
         Optional<ResourceKey<Block>> key = block.unwrapKey();
         if (key.isPresent()) {
-            return key.get().location().withPrefix("block/glass/");
+            return key.get().identifier().withPrefix("block/glass/");
         } else {
             throw new RuntimeException("Failed to access block holder.");
         }
     }
 
-    private static ResourceLocation getGlassModelLoc(Holder<Block> block) {
+    private static Identifier getGlassModelLoc(Holder<Block> block) {
         Optional<ResourceKey<Block>> key = block.unwrapKey();
         if (key.isPresent()) {
-            return key.get().location().withPrefix("block/glass/");
+            return key.get().identifier().withPrefix("block/glass/");
         } else {
             throw new RuntimeException("Failed to access block holder.");
         }

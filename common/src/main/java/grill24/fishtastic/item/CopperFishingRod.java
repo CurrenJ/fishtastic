@@ -4,7 +4,7 @@ import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.ItemStack;
@@ -16,12 +16,10 @@ public class CopperFishingRod extends FishingRodItem {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         super.use(level, player, hand);
 
-        ItemStack itemStack = player.getItemInHand(hand);
-
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             // Client side - handle minigame display and input
             Minecraft minecraft = Minecraft.getInstance();
             IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
@@ -34,6 +32,6 @@ public class CopperFishingRod extends FishingRodItem {
             }
         }
 
-        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide);
+        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }
 }

@@ -4,15 +4,15 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.itemeffect.ItemEffectCondition;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-public record ItemTagCondition(ResourceLocation tag) implements ItemEffectCondition {
+public record ItemTagCondition(Identifier tag) implements ItemEffectCondition {
     public static final MapCodec<ItemTagCondition> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
-                    ResourceLocation.CODEC.fieldOf("tag").forGetter(ItemTagCondition::tag)
+                    Identifier.CODEC.fieldOf("tag").forGetter(ItemTagCondition::tag)
             ).apply(instance, ItemTagCondition::new)
     );
 

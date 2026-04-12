@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.component.FishQuality;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class ItemEffectProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public ItemEffectProvider(FabricDataOutput output) {
+    public ItemEffectProvider(FabricPackOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.DATA_PACK, "item_effect");
     }
 

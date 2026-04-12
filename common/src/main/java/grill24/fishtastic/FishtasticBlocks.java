@@ -3,6 +3,8 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.block.FishTankBlock;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -28,18 +30,19 @@ public class FishtasticBlocks {
             // Borderless stained glass
             Holder<Block> borderless = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_borderless_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
+                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass).setId(ResourceKey.create(Registries.BLOCK, loc))));
             BORDERLESS_STAINED_GLASS.put(color, borderless);
 
             // Clear stained glass
             Holder<Block> clear = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_clear_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
+                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass).setId(ResourceKey.create(Registries.BLOCK, loc))));
             CLEAR_STAINED_GLASS.put(color, clear);
         }
 
         FISH_TANK = RegistrationApiSided.getInstance().registerBlock("fish_tank",
             loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
+                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .noOcclusion()  // Allow transparent rendering
         ));
     }

@@ -34,12 +34,10 @@ repositories {
 dependencies {
     neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
 
-    // Architectury API. This is optional, and you can comment it out if you don't need it.
-//    modImplementation "dev.architectury:architectury-neoforge:$rootProject.architectury_api_version"
+    implementation("io.github.currenj.gelatinui:gelatinui-neoforge:${gelatinui_version}")
 
-    modImplementation("io.github.currenj.gelatinui:gelatinui-neoforge:${gelatinui_version}")
-
-    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    // namedElements no longer exists in loom-no-remap; reference common directly.
+    common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 }
 
@@ -47,9 +45,6 @@ processResources {
     inputs.property 'version', project.version
 
     from project(":common").sourceSets.main.resources
-    from(project(":common").buildDir) {
-        include "resources/main/fishtastic.refmap.json"
-    }
 
     filesMatching('META-INF/neoforge.mods.toml') {
         expand([
@@ -67,13 +62,30 @@ processResources {
     }
 }
 
-shadowJar {
-    configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
+// loom-no-remap: remapJar is gone. Mark the default jar as raw so shadowJar can
+// build on top of the Loom-modified output.
+jar {
+    archiveClassifier = 'raw'
 }
 
-remapJar {
-    inputFile.set shadowJar.archiveFile
+shadowJar {
+    dependsOn(jar)
+    mainSpec.sourcePaths.clear()           // don't re-include source set output directly
+    from(zipTree(jar.archiveFile))         // unpack the Loom-processed jar as the base
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = null               // shadowJar becomes the primary artifact
+}
+
+// Redirect components.java to publish the shadow jar instead of the plain jar.
+configurations {
+    apiElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
+    runtimeElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
 }
 
 // neoforge/build.gradle

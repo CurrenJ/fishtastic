@@ -5,14 +5,14 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.neoforge.FishtasticConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.data.models.model.ModelLocationUtils;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
 
 /**
  * Resolves model locations for blocks, taking into account config overrides for non-standard paths.
@@ -23,12 +23,12 @@ public class BlockModelPathResolver {
      * Get all possible model locations for a block, including overrides from config.
      * Returns a list with the primary location first, followed by any override locations.
      */
-    public static List<ResourceLocation> getModelLocations(Block block) {
-        List<ResourceLocation> locations = new ArrayList<>();
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
+    public static List<Identifier> getModelLocations(Block block) {
+        List<Identifier> locations = new ArrayList<>();
+        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
 
         // Check config for overrides
-        List<ResourceLocation> overrides = getOverrideLocations(block, blockId);
+        List<Identifier> overrides = getOverrideLocations(block, blockId);
 
         if (!overrides.isEmpty()) {
             // Add override locations first (they take priority)
@@ -36,7 +36,7 @@ public class BlockModelPathResolver {
         }
 
         // Always add the standard location as a fallback
-        locations.add(ModelLocationUtils.getModelLocation(block));
+        locations.add(blockId.withPrefix("block/"));
 
         return locations;
     }
@@ -44,8 +44,8 @@ public class BlockModelPathResolver {
     /**
      * Get override locations from config for a specific block.
      */
-    private static List<ResourceLocation> getOverrideLocations(Block block, ResourceLocation blockId) {
-        List<ResourceLocation> overrides = new ArrayList<>();
+    private static List<Identifier> getOverrideLocations(Block block, Identifier blockId) {
+        List<Identifier> overrides = new ArrayList<>();
 
         for (Config entry : FishtasticConfig.STARTUP.blockModelPathOverrides.get()) {
             if (entry.isEmpty()) {
@@ -62,7 +62,7 @@ public class BlockModelPathResolver {
                 // Replace placeholder with block name
                 String path = modelPath.replace("{name}", blockId.getPath());
                 try {
-                    ResourceLocation location = ResourceLocation.parse(path);
+                    Identifier location = Identifier.parse(path);
                     overrides.add(location);
                     Fishtastic.LOGGER.debug("Found model path override for {}: {}", blockId, location);
                 } catch (Exception e) {
@@ -77,7 +77,7 @@ public class BlockModelPathResolver {
     /**
      * Check if a config override entry applies to the given block.
      */
-    private static boolean doesOverrideApply(Config entry, Block block, ResourceLocation blockId) {
+    private static boolean doesOverrideApply(Config entry, Block block, Identifier blockId) {
         // Check pattern matching
         String pattern = entry.get("pattern");
         if (pattern != null && !pattern.isEmpty()) {
@@ -92,18 +92,17 @@ public class BlockModelPathResolver {
             if (blocks.startsWith("#")) {
                 // Tag reference
                 try {
-                    ResourceLocation tagId = ResourceLocation.parse(blocks.substring(1));
+                    Identifier tagId = Identifier.parse(blocks.substring(1));
                     TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, tagId);
-                    return BuiltInRegistries.BLOCK.getTag(tagKey)
-                            .map(tag -> tag.stream().anyMatch(holder -> holder.value() == block))
-                            .orElse(false);
+                    return StreamSupport.stream(BuiltInRegistries.BLOCK.getTagOrEmpty(tagKey).spliterator(), false)
+                            .anyMatch(holder -> holder.value() == block);
                 } catch (Exception e) {
                     Fishtastic.LOGGER.error("Invalid tag reference in config: {}", blocks, e);
                 }
             } else {
                 // Single block ID
                 try {
-                    ResourceLocation targetId = ResourceLocation.parse(blocks);
+                    Identifier targetId = Identifier.parse(blocks);
                     return blockId.equals(targetId);
                 } catch (Exception e) {
                     Fishtastic.LOGGER.error("Invalid block ID in config: {}", blocks, e);
@@ -118,7 +117,7 @@ public class BlockModelPathResolver {
      * Check if a block ID matches a wildcard pattern.
      * Supports * as a wildcard character.
      */
-    private static boolean matchesPattern(ResourceLocation blockId, String patternStr) {
+    private static boolean matchesPattern(Identifier blockId, String patternStr) {
         try {
             // Convert the pattern to a regex
             // Escape regex special characters except *

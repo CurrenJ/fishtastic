@@ -5,7 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.renderer.RenderBuffersHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBuffers;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.ItemStack;
 
@@ -125,7 +125,7 @@ public class ItemEffectManager {
         }
 
         try {
-            Registry<ItemEffect> registry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY);
+            Registry<ItemEffect> registry = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY);
             Fishtastic.LOGGER.debug("Successfully accessed ItemEffect registry");
             return registry;
         } catch (Exception e) {

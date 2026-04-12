@@ -16,7 +16,7 @@ public class MouseHandlerMixin {
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void onMouseScroll(long window, double xOffset, double yOffset, CallbackInfo ci) {
-        if (this.minecraft.getOverlay() == null && window == this.minecraft.getWindow().getWindow()) {
+        if (this.minecraft.getOverlay() == null && window == this.minecraft.getWindow().handle()) {
             double scrollDelta = yOffset * this.minecraft.options.mouseWheelSensitivity().get();
 
             if (FishTankCustomizationHandler.handleMouseScroll(scrollDelta)) {

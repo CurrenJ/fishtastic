@@ -10,18 +10,11 @@ import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
+import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockColors;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.FishingRodItem;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -30,12 +23,9 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.common.NeoForge;
-
-import java.io.IOException;
 
 import static grill24.fishtastic.util.Utility.ft;
 
@@ -46,18 +36,10 @@ public final class FishtasticNeoForgeClient {
         GelatinScreensCompat.init();
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerBlockColors);
-        modEventBus.addListener((RegisterShadersEvent event) -> {
-            try {
-                registerShaders(event);
-                Fishtastic.LOGGER.info("Fishtastic shaders registered.");
-            } catch (IOException e) {
-                Fishtastic.LOGGER.error("Failed to register shaders", e);
-            }
-        });
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -66,9 +48,16 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onMouseScroll);
     }
 
-    public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
+    public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
         event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE);
         Fishtastic.LOGGER.info("Fishtastic model loaders registered.");
+    }
+
+    public static void registerBlockStateModels(RegisterBlockStateModels event) {
+        // Register the custom block state model type for the fish tank.
+        // Referenced in blockstates/fish_tank.json as "type": "fishtastic:fish_tank"
+        event.registerModel(ft("fish_tank"), FishTankBlockStateModel.CODEC);
+        Fishtastic.LOGGER.info("Fishtastic block state models registered.");
     }
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -85,75 +74,13 @@ public final class FishtasticNeoForgeClient {
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 
-    public static void registerBlockColors(RegisterColorHandlersEvent.Block event) {
-        BlockColors blockColors = event.getBlockColors();
-
-        // Register color handler for fish tank
-        event.register((state, level, pos, tintIndex) -> {
-            if (level == null || pos == null) {
-                return -1; // White (no tint)
-            }
-
-            // Get the block entity to read the frame/sand/glass block
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (!(blockEntity instanceof FishTankBlockEntity fishTank)) {
-                return -1;
-            }
-
-            // Determine which block to get color from based on tint index
-            // tintIndex 0 = frame blocks
-            // tintIndex 1 = sand blocks
-            // tintIndex 2 = glass blocks
-            BlockState sourceBlock = null;
-            if (tintIndex == 0) {
-                sourceBlock = fishTank.getFrameBlock().defaultBlockState();
-            } else if (tintIndex == 1) {
-                sourceBlock = fishTank.getSandBlock().defaultBlockState();
-            } else if (tintIndex == 2) {
-                sourceBlock = fishTank.getGlassBlock().defaultBlockState();
-            }
-
-            if (sourceBlock == null) {
-                return -1;
-            }
-
-            // Get the color from the source block's color handler
-            return blockColors.getColor(sourceBlock, level, pos, tintIndex);
-        }, FishtasticBlocks.FISH_TANK.value());
-
-        Fishtastic.LOGGER.info("Fishtastic block colors registered.");
-    }
-
-    public static void registerShaders(RegisterShadersEvent event) throws IOException {
-
-    }
+    // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
+    // TODO MC-26.1: ItemProperties is removed - fishing rod "cast" property needs data-driven item model
 
     public static void onClientSetup(final FMLClientSetupEvent event) {
-        // Ensure this runs on the client thread
-        event.enqueueWork(() -> {
-            // Set render layer for all borderless and clear stained glass blocks
-            for (var entry : FishtasticBlocks.BORDERLESS_STAINED_GLASS.entrySet()) {
-                ItemBlockRenderTypes.setRenderLayer(entry.getValue().value(), RenderType.translucent());
-            }
-            for (var entry : FishtasticBlocks.CLEAR_STAINED_GLASS.entrySet()) {
-                ItemBlockRenderTypes.setRenderLayer(entry.getValue().value(), RenderType.translucent());
-            }
-
-            // Register cast property for copper fishing rod
-            ItemProperties.register(FishtasticItems.COPPER_FISHING_ROD.value(), ResourceLocation.withDefaultNamespace("cast"), (stack, level, entity, seed) -> {
-                if (entity == null) {
-                    return 0.0F;
-                } else {
-                    boolean bl = entity.getMainHandItem() == stack;
-                    boolean bl2 = entity.getOffhandItem() == stack;
-                    if (entity.getMainHandItem().getItem() instanceof FishingRodItem) {
-                        bl2 = false;
-                    }
-
-                    return (bl || bl2) && entity instanceof Player && ((Player)entity).fishing != null ? 1.0F : 0.0F;
-                }
-            });
-        });
+        // TODO MC-26.1: ItemProperties.register is removed in 26.1
+        // The fishing rod "cast" property must now be defined via data-driven item models
+        Fishtastic.LOGGER.info("Fishtastic client setup complete.");
     }
 
     public static void onClientTick(ClientTickEvent.Pre event) {

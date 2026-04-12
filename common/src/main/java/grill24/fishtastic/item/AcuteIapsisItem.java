@@ -14,10 +14,14 @@ public class AcuteIapsisItem extends FishtasticFishItem {
 
     @Override
     public int getAdditionalWeight(LootParams lootParams) {
-        Entity entityOpt = lootParams.getOptionalParameter(LootContextParams.ATTACKING_ENTITY);
-        if (entityOpt instanceof Player player) {
+        Entity hookEntity = lootParams.contextMap().getOptional(LootContextParams.THIS_ENTITY);
+        Player player = null;
+        if (hookEntity instanceof net.minecraft.world.entity.projectile.FishingHook hook && hook.getOwner() instanceof Player p) {
+            player = p;
+        }
+        if (player != null) {
             // 10 extra weight per diamond in the player's inventory
-            return player.getInventory().items.stream()
+            return player.getInventory().getNonEquipmentItems().stream()
                     .filter(itemStack -> itemStack.is(Items.DIAMOND))
                     .mapToInt(ItemStack::getCount)
                     .sum();

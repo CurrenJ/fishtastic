@@ -12,7 +12,6 @@ import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.HBox;
-import io.github.currenj.gelatinui.gui.components.ItemButton;
 import io.github.currenj.gelatinui.gui.components.Label;
 import io.github.currenj.gelatinui.gui.components.ManualContainer;
 import io.github.currenj.gelatinui.gui.components.VBox;
@@ -21,7 +20,6 @@ import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -44,8 +42,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     private boolean isCount = true;
     private boolean isAnimating = false;
 
-    private MinecraftRenderContext uiContext;
-
     // Root container for absolute positioning
     private ManualContainer rootContainer;
 
@@ -59,10 +55,13 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox listWrapper;
 
     // Settings buttons, kept for highlight updates
-    private ItemButton personalBtn;
-    private ItemButton globalBtn;
-    private ItemButton countBtn;
-    private ItemButton sizeBtn;
+    private SelectableItemButton personalBtn;
+    private SelectableItemButton globalBtn;
+    private SelectableItemButton countBtn;
+    private SelectableItemButton sizeBtn;
+
+    // Title label, updated when personal/global changes
+    private Label titleLabel;
 
     public LeaderboardScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Leaderboards"));
@@ -72,11 +71,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     protected void buildUI() {
         LeaderboardResponsePacket.registerClientHandler(this::onLeaderboardResponse);
 
-        uiContext = new MinecraftRenderContext(
-                new GuiGraphics(this.minecraft, this.minecraft.renderBuffers().bufferSource()),
-                this.font
-        );
-
         // --- Settings panel (two rows of item buttons) ---
         settingsVBox = buildSettingsPanel();
 
@@ -84,11 +78,11 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         listWrapper = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
         listWrapper.addChild(label("Loading...", 0xFF888888));
 
-        Label title = UI.label(uiContext, "Fishing Leaderboards", 0xFFFFFFFF);
-        title.scale(1.2f);
+        titleLabel = new Label(titleText(), 0xFFFFFFFF);
+        titleLabel.scale(1.2f);
 
         contentVBox = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
-        contentVBox.addChild(title);
+        contentVBox.addChild(titleLabel);
         contentVBox.addChild(listWrapper);
 
         // --- Root: ManualContainer covering the full screen ---
@@ -129,12 +123,12 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            playerHead.set(DataComponents.PROFILE, new ResolvableProfile(mc.player.getGameProfile()));
+            playerHead.set(DataComponents.PROFILE, ResolvableProfile.createResolved(mc.player.getGameProfile()));
         }
 
         // Row 1: Personal | Global
-        personalBtn = UI.itemButton(playerHead);
-        globalBtn   = UI.itemButton(new ItemStack(Items.GRASS_BLOCK));
+        personalBtn = new SelectableItemButton(playerHead);
+        globalBtn   = new SelectableItemButton(new ItemStack(Items.GRASS_BLOCK));
 
         personalBtn.onClick(e -> onPersonalGlobalChanged(true));
         globalBtn.onClick(e -> onPersonalGlobalChanged(false));
@@ -144,8 +138,8 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         personalGlobalRow.addChild(globalBtn);
 
         // Row 2: Count | Size
-        countBtn = UI.itemButton(new ItemStack(Items.FISHING_ROD));
-        sizeBtn  = UI.itemButton(new ItemStack(Items.COD));
+        countBtn = new SelectableItemButton(new ItemStack(Items.FISHING_ROD));
+        sizeBtn  = new SelectableItemButton(new ItemStack(Items.COD));
 
         countBtn.onClick(e -> onCountSizeChanged(true));
         sizeBtn.onClick(e -> onCountSizeChanged(false));
@@ -177,10 +171,16 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private void updateButtonHighlights() {
-        if (personalBtn != null) personalBtn.itemScale(isPersonal ? 1.2f : 0.8f);
-        if (globalBtn   != null) globalBtn.itemScale(isPersonal   ? 0.8f : 1.2f);
-        if (countBtn    != null) countBtn.itemScale(isCount  ? 1.2f : 0.8f);
-        if (sizeBtn     != null) sizeBtn.itemScale(isCount   ? 0.8f : 1.2f);
+        if (personalBtn != null) { personalBtn.itemScale(isPersonal ? 1.2f : 0.8f); personalBtn.setSelected(isPersonal); }
+        if (globalBtn   != null) { globalBtn.itemScale(isPersonal   ? 0.8f : 1.2f); globalBtn.setSelected(!isPersonal); }
+        if (countBtn    != null) { countBtn.itemScale(isCount  ? 1.2f : 0.8f); countBtn.setSelected(isCount); }
+        if (sizeBtn     != null) { sizeBtn.itemScale(isCount   ? 0.8f : 1.2f); sizeBtn.setSelected(!isCount); }
+
+        if (titleLabel  != null) titleLabel.text(titleText());
+    }
+
+    private String titleText() {
+        return isPersonal ? "Personal Best" : "Fishing Leaderboard";
     }
 
     // -------------------------------------------------------------------------
@@ -301,7 +301,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     private static ItemStack playerHeadStack(UUID uuid, String name) {
         ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-        head.set(DataComponents.PROFILE, new ResolvableProfile(new GameProfile(uuid, name)));
+        head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(new GameProfile(uuid, name)));
         return head;
     }
 
@@ -330,6 +330,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private Label label(String text, int color) {
-        return new Label(text, color).init(uiContext);
+        return new Label(text, color);
     }
 }

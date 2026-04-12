@@ -1,13 +1,12 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FastColor;
+import net.minecraft.resources.Identifier;
 import org.joml.Vector3f;
 
 public class Utility {
-    public static ResourceLocation ft(String id) {
-        return ResourceLocation.fromNamespaceAndPath(Fishtastic.MOD_ID, id);
+    public static Identifier ft(String id) {
+        return Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, id);
     }
 
     public static Vector3f interpolateColor(Vector3f colorStart, Vector3f colorEnd, float t) {

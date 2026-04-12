@@ -10,7 +10,9 @@ import net.minecraft.client.Minecraft;
  * Manages custom key bindings for Fishtastic
  */
 public class FishtasticKeyBinds {
-    public static final String CATEGORY = "key.categories.fishtastic";
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
+        net.minecraft.resources.Identifier.fromNamespaceAndPath("fishtastic", "fishtastic")
+    );
 
     public static KeyMapping fishingMinigameImpulse;
 

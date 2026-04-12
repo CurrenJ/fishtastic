@@ -30,7 +30,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         if(itemStack.is(FishtasticItems.COPPER_FISHING_ROD)) {
             if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
                 grill24.fishtastic.server.FishingMinigameManager manager =
-                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.serverLevel());
+                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
                 manager.startSession(serverPlayer, 1.0f, false);
                 cir.setReturnValue(0); // Prevent normal loot retrieval
             }
@@ -43,7 +43,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         Player player = fishingHook.getPlayerOwner();
 
         if(player instanceof ServerPlayer serverPlayer) {
-            FishingMinigameManager manager = FishingMinigameManager.get(serverPlayer.serverLevel());
+            FishingMinigameManager manager = FishingMinigameManager.get(serverPlayer.level());
             boolean isFishingMinigameActive = manager.isPlayerInActiveSession(serverPlayer.getUUID());
 
             if (itemStack.is(FishtasticItems.COPPER_FISHING_ROD) && isFishingMinigameActive) {

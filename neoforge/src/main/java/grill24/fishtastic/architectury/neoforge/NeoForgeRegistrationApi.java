@@ -1,5 +1,6 @@
 package grill24.fishtastic.architectury.neoforge;
 
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.FishTankFrameType;
@@ -9,7 +10,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -18,6 +21,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -28,20 +32,22 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     // ----- Registration Methods ----- //
 
     @Override
-    public <I extends Item> Holder<Item> registerItem(final String name, final Function<ResourceLocation, ? extends I> func) {
+    public <I extends Item> Holder<Item> registerItem(final String name, final Function<Identifier, ? extends I> func) {
         return FishtasticRegistriesNeoForge.ITEMS.register(name, func);
     }
 
     @Override
-    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> func) {
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func) {
         Holder<Block> blockHolder = FishtasticRegistriesNeoForge.BLOCKS.register(name, func);
-        FishtasticRegistriesNeoForge.ITEMS.register(name, loc -> new BlockItem(blockHolder.value(), new Item.Properties()));
+        FishtasticRegistriesNeoForge.ITEMS.register(name, loc -> new BlockItem(blockHolder.value(), new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
         return blockHolder;
     }
 
     @Override
-    public Holder<BlockEntityType<?>> registerBlockEntityType(String name, Supplier<BlockEntityType.Builder<?>> builder) {
-        return FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(name, () -> builder.get().build(null));
+    public Holder<BlockEntityType<?>> registerBlockEntityType(String name, BiFunction<BlockPos, BlockState, ? extends BlockEntity> factory, Supplier<Block[]> validBlocksSupplier) {
+        return FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(name, () ->
+                new BlockEntityType<>(factory::apply, validBlocksSupplier.get())
+        );
     }
 
     @Override
@@ -52,7 +58,7 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     }
 
     @Override
-    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<ResourceLocation, ? extends CreativeModeTab> func) {
+    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
         return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(name, func);
     }
 
@@ -97,7 +103,13 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
 
     @Override
     public void requestModelDataUpdate(BlockEntity blockEntity) {
-        if (blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().isClientSide) {
+        boolean hasLevel = blockEntity != null && blockEntity.getLevel() != null;
+        boolean isClientSide = hasLevel && blockEntity.getLevel().isClientSide();
+        Fishtastic.LOGGER.info("[NeoForgeRegApi.requestModelDataUpdate] pos={}, hasLevel={}, isClientSide={}, willCall={}",
+                blockEntity != null ? blockEntity.getBlockPos() : "null",
+                hasLevel, isClientSide, isClientSide);
+        if (blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().isClientSide()) {
+            Fishtastic.LOGGER.info("[NeoForgeRegApi.requestModelDataUpdate] CALLING blockEntity.requestModelDataUpdate() for pos={}", blockEntity.getBlockPos());
             blockEntity.requestModelDataUpdate();
         }
     }

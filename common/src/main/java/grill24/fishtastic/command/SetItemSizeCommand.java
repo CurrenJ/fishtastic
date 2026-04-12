@@ -18,7 +18,7 @@ public class SetItemSizeCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
                 Commands.literal("setitemsize")
-                        .requires(source -> source.hasPermission(2)) // Requires operator permission
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
                         .then(Commands.argument("size", FloatArgumentType.floatArg(0.01f, 1000.0f))
                                 .executes(SetItemSizeCommand::execute))
         );

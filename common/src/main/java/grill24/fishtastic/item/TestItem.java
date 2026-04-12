@@ -4,7 +4,7 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -17,10 +17,8 @@ public class TestItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        ItemStack itemStack = player.getItemInHand(hand);
-
-        if (level.isClientSide) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        if (level.isClientSide()) {
             // Client side - handle minigame display and input
             Minecraft minecraft = Minecraft.getInstance();
             IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
@@ -35,11 +33,11 @@ public class TestItem extends Item {
             // Server side - start the minigame session
             if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
                 grill24.fishtastic.server.FishingMinigameManager manager =
-                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.serverLevel());
+                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
                 manager.startSession(serverPlayer, 1.0f, false);
             }
         }
 
-        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide);
+        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }
 }

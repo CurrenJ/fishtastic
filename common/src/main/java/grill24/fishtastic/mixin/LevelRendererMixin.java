@@ -1,31 +1,16 @@
 package grill24.fishtastic.mixin;
 
-import grill24.fishtastic.itemeffect.ItemEffectManager;
-import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.RenderBuffers;
-import net.minecraft.client.renderer.RenderType;
-import org.joml.Matrix4f;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Placeholder mixin on LevelRenderer.
+ *
+ * The old inject that flushed custom quality-glow RenderTypes just before the
+ * vanilla glint pass is no longer needed: in the 26.1 pipeline,
+ * ItemFeatureRendererMixin replaces the foil RenderType directly inside
+ * ItemFeatureRenderer.getFoilRenderType(), so no separate flush step is required.
+ */
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin {
-    @Shadow
-    @Final
-    private RenderBuffers renderBuffers;
-
-    @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderType;glint()Lnet/minecraft/client/renderer/RenderType;"))
-    private void fishtastic$beforeGlintRender(DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci) {
-        for (RenderType renderType : ItemEffectManager.getAllRenderTypes()) {
-            this.renderBuffers.bufferSource().endBatch(renderType);
-        }
-    }
 }

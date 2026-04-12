@@ -1,13 +1,11 @@
 package grill24.fishtastic.util;
 
-import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
-import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -154,7 +152,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     @Override
-    public void render(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick) {
+    public void render(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick) {
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
@@ -170,15 +168,15 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 //        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
     }
 
-    private void render(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
+    private void render(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
         // ----- Render Fishing Bar + Bobber -----
-        guiGraphics.pose().pushPose();
+        guiGraphics.pose().pushMatrix();
         renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenHeight);
         renderTargets(guiGraphics, partialTick);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
-    private void renderFishingBar(Minecraft minecraft, GuiGraphics guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
+    private void renderFishingBar(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
         float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
 
         // Calculate vertical offset for intro and hide animations
@@ -202,24 +200,24 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             verticalOffset = hideProgress * screenHeight; // Slide down by screen height
         }
 
-        guiGraphics.pose().translate(x, y + verticalOffset, 0);
+        guiGraphics.pose().translate(x, y + verticalOffset);
 
         float scale = 2 * screenHeight / 3f;
-        guiGraphics.pose().scale(scale, scale, scale);
+        guiGraphics.pose().scale(scale, scale);
 
         renderItem(BAR, guiGraphics, minecraft, angle, 0);
 
-        guiGraphics.pose().pushPose();
+        guiGraphics.pose().pushMatrix();
         float bobberMaxYOffset = 28f / 32f; // Max Y offset in item texture units
         // Use physics-based bobber position from minigame state with interpolation for smooth rendering
         float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
         float yOffset = normalizedBobberPosition * bobberMaxYOffset;
-        guiGraphics.pose().translate(0, -yOffset, 0);
+        guiGraphics.pose().translate(0, -yOffset);
         renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
-    private void renderTargets(GuiGraphics guiGraphics, float partialTick) {
+    private void renderTargets(GuiGraphicsExtractor guiGraphics, float partialTick) {
         // Render all targets from the minigame state
         final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
@@ -231,7 +229,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // ----- Render Targets -----
         int zOffset = 2;
         for (FishingTarget target : minigameState.getTargets()) {
-            guiGraphics.pose().pushPose();
+            guiGraphics.pose().pushMatrix();
 
             FishingTarget.TargetState targetState = target.getState();
 
@@ -270,12 +268,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                         prog
                 );
 
-                guiGraphics.pose().translate(0, -targetYOffset, zOffset);
-                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(shakeAngle));
-                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
-                guiGraphics.setColor(color.x, color.y, color.z, 1f);
+                guiGraphics.pose().translate(0, -targetYOffset);
+                guiGraphics.pose().rotate((float) Math.toRadians(shakeAngle));
+                guiGraphics.pose().scale(itemScale, itemScale);
+                // setColor removed in 26.1 - render without tinting
                 extension.fishtastic$renderItem(displayItem, 0, 0);
-                guiGraphics.setColor(1f, 1f, 1f, 1f);
 
             } else if (targetState == FishingTarget.TargetState.ANIMATING_SUCCESS) {
                 // Collection animation: physics-based movement with rotation on all axes
@@ -286,20 +283,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 final float itemScale = (2 / 16f);
 
                 for (PhysicsSimulation simulation : target.getPhysicsSimulations()) {
-                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().pushMatrix();
 
                     Vector2f successPhysSim = simulation.getInterpolatedPosition(partialTick);
                     Vector3f successRotation = simulation.getInterpolatedRotation(partialTick);
 
-                    guiGraphics.pose().translate(successPhysSim.x(), -targetYOffset - successPhysSim.y(), zOffset);
-                    // Apply rotation on all three axes
-                    guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(successRotation.x));
-                    guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(successRotation.y));
-                    guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(successRotation.z));
-                    guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                    guiGraphics.pose().translate(successPhysSim.x(), -targetYOffset - successPhysSim.y());
+                    // In 2D, only Z-axis rotation is meaningful
+                    guiGraphics.pose().rotate((float) Math.toRadians(successRotation.z));
+                    guiGraphics.pose().scale(itemScale, itemScale);
                     extension.fishtastic$renderItem(simulation.getItemStack(), 0, 0);
 
-                    guiGraphics.pose().popPose();
+                    guiGraphics.pose().popMatrix();
                     zOffset++; // Each item gets its own z-level to prevent z-fighting
                 }
 
@@ -312,27 +307,28 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 float collectScale = target.getCollectionScale(partialTick);
                 final float itemScale = (2 / 16f) * collectScale;
 
-                guiGraphics.pose().translate(0, -targetYOffset, zOffset);
-                guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(spinAngle)); // Spin on Y-axis
-                guiGraphics.pose().scale(itemScale, itemScale, itemScale);
+                guiGraphics.pose().translate(0, -targetYOffset);
+                // Y-axis spin doesn't apply in 2D - use scale-x for a flip effect
+                float flipScale = (float) Math.cos(Math.toRadians(spinAngle));
+                guiGraphics.pose().scale(itemScale * flipScale, itemScale);
                 extension.fishtastic$renderItem(displayItem, 0, 0);
             }
 
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().popMatrix();
             zOffset++; // Increment z-offset for each target so they don't z-fight
         }
     }
 
-    private static void renderRewardsDisplay(GuiGraphics guiGraphics, int x, int y, int screenWidth, int screenHeight) {
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(x - (screenHeight / 3f), y, 0);
+    private static void renderRewardsDisplay(GuiGraphicsExtractor guiGraphics, int x, int y, int screenWidth, int screenHeight) {
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(x - (screenHeight / 3f), y);
 
         float rewardDisplayScale = screenHeight / 3f;
-        guiGraphics.pose().scale(rewardDisplayScale, rewardDisplayScale, rewardDisplayScale);
+        guiGraphics.pose().scale(rewardDisplayScale, rewardDisplayScale);
 
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
         extension.fishtastic$renderItem(new ItemStack(Blocks.BRICKS), 0, 0);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
     /**
@@ -359,24 +355,20 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         return new Vector2f(x, y);
     }
 
-    private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics, Minecraft minecraft, float angle, int zOffset) {
-        renderItem(guiTextureItem, guiGraphics, minecraft, Axis.YP.rotationDegrees(angle), zOffset);
-    }
-
-    private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics, Minecraft minecraft, Quaternionf quaternion, int zOffset) {
-        guiGraphics.pose().pushPose();
+    private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphicsExtractor guiGraphics, Minecraft minecraft, float angle, int zOffset) {
+        guiGraphics.pose().pushMatrix();
 
         Vector2f pivot = guiTextureItem.localPivot();
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y(), zOffset); // Adjust position so that pivot is center-origin
+        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Adjust position so that pivot is center-origin
 
-        guiGraphics.pose().translate(pivot.x(), pivot.y(), 0); // Translate to local pivot so that rotation occurs around pivot
-        guiGraphics.pose().mulPose(quaternion); // Apply rotation
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y(), 0); // Translate back after rotation
+        guiGraphics.pose().translate(pivot.x(), pivot.y()); // Translate to local pivot so that rotation occurs around pivot
+        guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Apply rotation (2D Z-axis)
+        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Translate back after rotation
 
         // Render the item
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
         extension.fishtastic$renderItem(guiTextureItem.itemStack(), 0, 0);
 
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 }

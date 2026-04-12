@@ -6,6 +6,7 @@ import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,19 +24,21 @@ public abstract class ItemStackMixin {
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
-        if(player == null || player.isCreative() || !itemStack.has(DataComponents.HIDE_TOOLTIP)) {
+        TooltipDisplay tooltipDisplay = itemStack.get(DataComponents.TOOLTIP_DISPLAY);
+        boolean tooltipHidden = tooltipDisplay != null && tooltipDisplay.hideTooltip();
+        if (player == null || player.isCreative() || !tooltipHidden) {
             List<Component> tooltipLines = cir.getReturnValue();
 
             // Append item size information to the tooltip.
             ItemSize sizeProvider = itemStack.get(FishtasticDataComponents.ITEM_SIZE.value());
             if (sizeProvider != null) {
-                sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
+                sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
 
             // Append fish quality information to the tooltip.
             FishQuality qualityProvider = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (qualityProvider != null) {
-                qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
+                qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
         }
     }

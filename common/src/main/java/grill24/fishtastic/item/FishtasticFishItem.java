@@ -6,7 +6,6 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -145,11 +144,11 @@ public class FishtasticFishItem extends Item {
         return FishQuality.Quality.COMMON;
     }
 
-    public static FishtasticFishItem create(float baseMeanSize, float baseStdDevSize) {
-        return new FishtasticFishItem(new Item.Properties(), baseMeanSize, baseStdDevSize);
+    public static FishtasticFishItem create(Item.Properties properties, float baseMeanSize, float baseStdDevSize) {
+        return new FishtasticFishItem(properties, baseMeanSize, baseStdDevSize);
     }
 
-    public static FishtasticFishItem createDefault(ResourceLocation id) {
-        return new FishtasticFishItem(new Item.Properties());
+    public static FishtasticFishItem createDefault(Item.Properties properties) {
+        return new FishtasticFishItem(properties);
     }
 }

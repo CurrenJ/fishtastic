@@ -52,7 +52,7 @@ public record RequestLeaderboardPacket(
         context.enqueueWork(() -> {
             if (!(context.getPlayer() instanceof ServerPlayer serverPlayer)) return;
 
-            FishCatchSavedData db = FishCatchSavedData.getOrCreate(serverPlayer.server);
+            FishCatchSavedData db = FishCatchSavedData.getOrCreate(serverPlayer.level().getServer());
             List<LeaderboardEntry> entries = buildEntries(packet, db, serverPlayer);
 
             LeaderboardResponsePacket response = new LeaderboardResponsePacket(

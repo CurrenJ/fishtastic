@@ -9,13 +9,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.itemeffect.ItemEffectCondition;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
-public record ComponentValueCondition(ResourceLocation component, String field, String value) implements ItemEffectCondition {
+public record ComponentValueCondition(Identifier component, String field, String value) implements ItemEffectCondition {
     public static final MapCodec<ComponentValueCondition> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
-                    ResourceLocation.CODEC.fieldOf("component").forGetter(ComponentValueCondition::component),
+                    Identifier.CODEC.fieldOf("component").forGetter(ComponentValueCondition::component),
                     Codec.STRING.fieldOf("field").forGetter(ComponentValueCondition::field),
                     Codec.STRING.fieldOf("value").forGetter(ComponentValueCondition::value)
             ).apply(instance, ComponentValueCondition::new)
@@ -23,7 +23,7 @@ public record ComponentValueCondition(ResourceLocation component, String field, 
 
     @Override
     public boolean matches(ItemStack stack) {
-        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(component);
+        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(component);
         if (type == null) return false;
 
         Object componentValue = stack.get(type);

@@ -8,7 +8,8 @@ import grill24.fishtastic.mixin.accessor.BufferSourceAccessor;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderBuffers;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,7 +41,7 @@ public class RenderBuffersMixin implements RenderBuffersHelper {
     private static void addQualityGlowRenderTypes(
             Object2ObjectLinkedOpenHashMap<RenderType, ByteBufferBuilder> object2ObjectLinkedOpenHashMap, RenderType renderType, CallbackInfo ci
     ) {
-        if(renderType == RenderType.glint()) {
+        if(renderType == RenderTypes.glint()) {
             // Add any ItemEffect render types that are already available
             // This might be empty on first construction, but we'll add more later
             for (RenderType qualityRenderType : ItemEffectManager.getAllRenderTypes()) {

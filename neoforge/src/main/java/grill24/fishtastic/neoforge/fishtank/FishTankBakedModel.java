@@ -1,502 +1,413 @@
 package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockModel;
-import net.minecraft.client.renderer.block.model.ItemOverrides;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ModelState;
-import net.minecraft.client.resources.model.UnbakedModel;
+import net.minecraft.client.resources.model.ResolvedModel;
+import net.minecraft.client.resources.model.SimpleModelWrapper;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.QuadCollection;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.client.resources.model.sprite.TextureSlots;
+import net.neoforged.neoforge.client.extensions.ResolvedModelExtension;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.models.model.TextureSlot;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.BakedModelWrapper;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
+import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
+import net.neoforged.neoforge.model.data.ModelData;
+import org.jspecify.annotations.Nullable;
 
-import com.mojang.datafixers.util.Either;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
-import static grill24.fishtastic.util.Utility.ft;
+/**
+ * Runtime block state model for the Fish Tank that dynamically composites
+ * frame, sand, and glass sub-models with retextured faces based on per-block-entity
+ * {@link FishTankModelData}.
+ * <p>
+ * Implements {@link DynamicBlockStateModel} so that {@code collectParts} receives
+ * world context (level + position), from which it reads the block entity's
+ * {@link ModelData} to determine the correct sub-model textures and permutation.
+ */
+public class FishTankBakedModel implements DynamicBlockStateModel {
 
-public final class FishTankBakedModel extends BakedModelWrapper<BakedModel> {
-    // Cache structure to hold frame, sand, and glass models
-    static class CompositeModelData {
-        final BakedModel frameModel;
-        final BakedModel sandModel;
-        final BakedModel glassModel;
+    // ── Identity ModelState (all defaults return identity transforms) ──────
+    // NOTE: Do NOT use this with bakeTopGeometry — ModelWrapper caches by ModelState identity,
+    // ignoring TextureSlots. Use BlockModelRotation.IDENTITY directly with getTopGeometry().bake().
 
-        CompositeModelData(BakedModel frameModel, BakedModel sandModel, BakedModel glassModel) {
-            this.frameModel = frameModel;
-            this.sandModel = sandModel;
-            this.glassModel = glassModel;
+    // ── Resolved sub-models (pre-loaded at bake time) ─────────────────────
+
+    private final ModelBaker baker;
+    private final ResolvedModel[] frameModels;   // [0..63]
+    private final ResolvedModel[] sandModels;    // [0..63]
+    private final ResolvedModel[] glassModels;   // [0..63]
+
+    // ── Default (fallback) model ──────────────────────────────────────────
+
+    private final List<BlockStateModelPart> defaultParts;
+    private final Material.Baked defaultParticleMaterial;
+    @BakedQuad.MaterialFlags
+    private final int defaultMaterialFlags;
+
+    // ── Cache of per-configuration composite parts ────────────────────────
+
+    private final ConcurrentHashMap<CacheKey, CachedModel> modelCache = new ConcurrentHashMap<>();
+
+    // ── Synchronisation lock for lazy baking (baker may not be thread-safe) ─
+    private final Object bakeLock = new Object();
+
+    // ── Cache key record ──────────────────────────────────────────────────
+
+    private record CacheKey(Block frame, Block sand, Block glass, int permutation) {}
+
+    private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial,
+                                @BakedQuad.MaterialFlags int materialFlags) {}
+
+    // ── Constructor ───────────────────────────────────────────────────────
+
+    public FishTankBakedModel(ModelBaker baker,
+                              ResolvedModel[] frameModels,
+                              ResolvedModel[] sandModels,
+                              ResolvedModel[] glassModels) {
+        this.baker = baker;
+        this.frameModels = frameModels;
+        this.sandModels = sandModels;
+        this.glassModels = glassModels;
+
+        // Pre-bake the default model (permutation 0, default textures).
+        FishTankModelData defaultData = FishTankModelData.DEFAULT;
+        CachedModel defaultModel = generateCompositeModel(defaultData);
+
+        if (defaultModel != null) {
+            CacheKey defaultKey = new CacheKey(
+                    defaultData.frameBlock(), defaultData.sandBlock(),
+                    defaultData.glassBlock(), defaultData.getPermutationIndex());
+            modelCache.put(defaultKey, defaultModel);
+            this.defaultParts = defaultModel.parts();
+            this.defaultParticleMaterial = defaultModel.particleMaterial();
+            this.defaultMaterialFlags = defaultModel.materialFlags();
+        } else {
+            // Should never happen with DEFAULT (vanilla oak_planks / sand / blue glass),
+            // but guard against a broken baking environment at startup.
+            Fishtastic.LOGGER.error("Fish Tank: failed to pre-generate default model — rendering will fall back to missing.");
+            TextureSlots fallbackSlots = frameModels[0].getTopTextureSlots();
+            this.defaultParticleMaterial = frameModels[0].resolveParticleMaterial(fallbackSlots, baker);
+            this.defaultMaterialFlags = 0;
+            this.defaultParts = List.of(baker.missingBlockModelPart());
         }
     }
 
-    private final Map<FishTankModelData, CompositeModelData> bakedFishTankModels;
-    // Thread-safe cache for on-demand generated models
-    private final ConcurrentHashMap<FishTankModelData, CompositeModelData> onDemandCache = new ConcurrentHashMap<>();
+    // ── DynamicBlockStateModel ────────────────────────────────────────────
 
-    // Context for on-demand model generation
-    private final Function<ResourceLocation, UnbakedModel> modelGetter;
-    private final IGeometryBakingContext context;
-    private final ModelBaker bakery;
-    private final Function<Material, TextureAtlasSprite> spriteGetter;
-    private final ModelState modelState;
+    @Override
+    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state,
+                             RandomSource random, List<BlockStateModelPart> parts) {
 
-    private final ItemOverrides itemOverrides;
+        // Read the block entity's model data.
+        ModelData modelData = level.getModelData(pos);
+        FishTankModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
 
-    FishTankBakedModel(
-            Map<FishTankModelData, CompositeModelData> bakedFishTankModels,
-            Function<ResourceLocation, UnbakedModel> modelGetter,
-            IGeometryBakingContext context,
-            ModelBaker bakery,
-            Function<Material, TextureAtlasSprite> spriteGetter,
-            ModelState modelState) {
-        super(Objects.requireNonNull(bakedFishTankModels.get(FishTankModelData.DEFAULT)).frameModel); //default model
-        this.bakedFishTankModels = bakedFishTankModels;
-        this.modelGetter = modelGetter;
-        this.context = context;
-        this.bakery = bakery;
-        this.spriteGetter = spriteGetter;
-        this.modelState = modelState;
+        Fishtastic.LOGGER.info("[FishTankBakedModel.collectParts] pos={}, modelData={}, fishTankData={}",
+                pos,
+                modelData != ModelData.EMPTY ? "present" : "EMPTY",
+                data != null ? String.format("frame=%s,sand=%s,glass=%s,perm=%d",
+                        BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
+                        BuiltInRegistries.BLOCK.getKey(data.sandBlock()),
+                        BuiltInRegistries.BLOCK.getKey(data.glassBlock()),
+                        data.getPermutationIndex()) : "NULL (using default)");
 
-        this.itemOverrides = new ItemOverrides() {
-            @Override
-            public BakedModel resolve(BakedModel pModel, ItemStack pStack, ClientLevel pLevel, LivingEntity pEntity, int pSeed) {
-                // TODO: Read frame block from item NBT when implemented
-                return FishTankBakedModel.this;
+        if (data == null) {
+            data = FishTankModelData.DEFAULT;
+        }
+
+        CacheKey key = new CacheKey(
+                data.frameBlock(), data.sandBlock(),
+                data.glassBlock(), data.getPermutationIndex());
+
+        // Fast path: check cache without locking.
+        CachedModel cached = modelCache.get(key);
+        boolean wasCacheHit = cached != null;
+        if (cached == null) {
+            // Slow path: generate the model under a lock.
+            final FishTankModelData finalData = data;
+            synchronized (bakeLock) {
+                cached = modelCache.get(key);
+                if (cached == null) {
+                    CachedModel generated = generateCompositeModel(finalData);
+                    if (generated != null) {
+                        // ── FIX: only cache successful generations ──────────────
+                        // A null result means texture lookup failed (e.g. unresolved
+                        // mod block).  Don't poison the cache — allow retry on the
+                        // next chunk re-mesh once models are available.
+                        modelCache.put(key, generated);
+                        cached = generated;
+                    } else {
+                        Fishtastic.LOGGER.warn(
+                                "[FishTankBakedModel] Could not generate model for key {}/{}/{} perm={}; "
+                                        + "using default fallback this frame.",
+                                BuiltInRegistries.BLOCK.getKey(key.frame()),
+                                BuiltInRegistries.BLOCK.getKey(key.sand()),
+                                BuiltInRegistries.BLOCK.getKey(key.glass()),
+                                key.permutation());
+                        cached = new CachedModel(defaultParts, defaultParticleMaterial, defaultMaterialFlags);
+                        // Intentionally NOT stored in modelCache so the next remesh retries.
+                    }
+                }
             }
-        };
+        }
+
+        Fishtastic.LOGGER.info("[FishTankBakedModel.collectParts] pos={}, cacheHit={}, partsCount={}",
+                pos, wasCacheHit, cached.parts().size());
+
+        parts.addAll(cached.parts());
     }
 
-    private CompositeModelData getCompositeModelFor(ModelData modelData) {
-        var data = Objects.requireNonNullElse(modelData.get(FishTankModelData.DATA_PROPERTY), FishTankModelData.DEFAULT);
-        return getOrGenerateCompositeModel(data);
+    @Override
+    @Deprecated
+    public void collectParts(RandomSource random, List<BlockStateModelPart> parts) {
+        // Fallback without world context — use the default model.
+        parts.addAll(defaultParts);
     }
+
+    @Override
+    public Material.Baked particleMaterial() {
+        return defaultParticleMaterial;
+    }
+
+    @Override
+    public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        ModelData modelData = level.getModelData(pos);
+        FishTankModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
+        if (data == null) return defaultParticleMaterial;
+
+        CacheKey key = new CacheKey(
+                data.frameBlock(), data.sandBlock(),
+                data.glassBlock(), data.getPermutationIndex());
+        CachedModel cached = modelCache.get(key);
+        return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
+    }
+
+    @Override
+    @BakedQuad.MaterialFlags
+    public int materialFlags() {
+        return defaultMaterialFlags;
+    }
+
+    @Override
+    @BakedQuad.MaterialFlags
+    public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        ModelData modelData = level.getModelData(pos);
+        FishTankModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
+        if (data == null) return defaultMaterialFlags;
+
+        CacheKey key = new CacheKey(
+                data.frameBlock(), data.sandBlock(),
+                data.glassBlock(), data.getPermutationIndex());
+        CachedModel cached = modelCache.get(key);
+        return cached != null ? cached.materialFlags() : defaultMaterialFlags;
+    }
+
+    @Override
+    @Nullable
+    public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state,
+                                    RandomSource random) {
+        ModelData modelData = level.getModelData(pos);
+        FishTankModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
+        if (data == null) data = FishTankModelData.DEFAULT;
+        CacheKey key = new CacheKey(
+                data.frameBlock(), data.sandBlock(),
+                data.glassBlock(), data.getPermutationIndex());
+        Fishtastic.LOGGER.info("[FishTankBakedModel.createGeometryKey] pos={}, key=CacheKey[frame={},sand={},glass={},perm={}]",
+                pos,
+                BuiltInRegistries.BLOCK.getKey(key.frame()),
+                BuiltInRegistries.BLOCK.getKey(key.sand()),
+                BuiltInRegistries.BLOCK.getKey(key.glass()),
+                key.permutation());
+        return key;
+    }
+
+    // ── Model generation ──────────────────────────────────────────────────
 
     /**
-     * Get a composite model, generating it on-demand if it doesn't exist yet.
+     * Generates a composite model for the given fish tank configuration.
+     * <p>
+     * Resolves all three block textures first; if any lookup fails the method
+     * returns {@code null} so the caller can use a fallback <em>without</em>
+     * caching the result (preventing cache poisoning).
+     *
+     * @return the freshly baked {@link CachedModel}, or {@code null} if any
+     *         texture could not be resolved or any geometry bake failed.
      */
-    private CompositeModelData getOrGenerateCompositeModel(FishTankModelData data) {
-        // Check if we already have it pre-baked
-        CompositeModelData composite = bakedFishTankModels.get(data);
-        if (composite != null) {
-//            Fishtastic.LOGGER.info("Found pre-baked composite model for frame={}, sand={}",
-//                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-//                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
-            return composite;
-        }
+    @Nullable
+    private CachedModel generateCompositeModel(FishTankModelData data) {
+        int perm = data.getPermutationIndex();
 
-        // Check on-demand cache
-        composite = onDemandCache.get(data);
-        if (composite != null) {
-//            Fishtastic.LOGGER.info("Found cached on-demand composite model for frame={}, sand={}",
-//                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-//                BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
-            return composite;
-        }
-
-        // Generate on-demand
-        Fishtastic.LOGGER.info("Generating composite model on-demand for frame={}, sand={}",
-            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
         try {
-            composite = generateCompositeModel(data);
-            if (composite != null) {
-                onDemandCache.put(data, composite);
-                return composite;
-            }
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate Fish Tank composite model on-demand for frame={}, sand={}",
-                BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-                BuiltInRegistries.BLOCK.getKey(data.sandBlock()), e);
-        }
+            Material frameTex = getBlockTexture(data.frameBlock());
+            Material sandTex  = getBlockTexture(data.sandBlock());
+            Material glassTex = getBlockTexture(data.glassBlock());
 
-        // Fallback to default
-        Fishtastic.LOGGER.warn("Using fallback default composite model for frame={}, sand={}",
-            BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-            BuiltInRegistries.BLOCK.getKey(data.sandBlock()));
-        return bakedFishTankModels.get(FishTankModelData.DEFAULT);
-    }
+            Fishtastic.LOGGER.info("[FishTankBakedModel.generateCompositeModel] frame={} → frameTex={} | sand={} → sandTex={} | glass={} → glassTex={}",
+                    BuiltInRegistries.BLOCK.getKey(data.frameBlock()), frameTex,
+                    BuiltInRegistries.BLOCK.getKey(data.sandBlock()),  sandTex,
+                    BuiltInRegistries.BLOCK.getKey(data.glassBlock()), glassTex);
 
-    /**
-     * Generate a composite model with frame, sand, and glass models.
-     */
-    private CompositeModelData generateCompositeModel(FishTankModelData data) {
-        Block frameBlock = data.frameBlock();
-        Block sandBlock = data.sandBlock();
-        Block glassBlock = data.glassBlock();
-        int permutationIndex = data.getPermutationIndex();
-
-        Fishtastic.LOGGER.info("Generating Fish Tank composite model on-demand for frame={}, sand={}, glass={}, permutation={}",
-            BuiltInRegistries.BLOCK.getKey(frameBlock), BuiltInRegistries.BLOCK.getKey(sandBlock),
-            BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
-
-        // Generate frame model with correct permutation
-        Fishtastic.LOGGER.info("Generating FRAME model for block {} with permutation {}",
-            BuiltInRegistries.BLOCK.getKey(frameBlock), permutationIndex);
-        BakedModel frameModel = generateFrameModelForBlock(frameBlock, permutationIndex);
-
-        // Generate sand model with correct permutation
-        Fishtastic.LOGGER.info("Generating SAND model for block {} with permutation {}",
-            BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex);
-        BakedModel sandModel = generateSandModelForBlock(sandBlock, permutationIndex);
-
-        // Generate glass model with correct permutation
-        Fishtastic.LOGGER.info("Generating GLASS model for block {} with permutation {}",
-            BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex);
-        BakedModel glassModel = generateGlassModelForBlock(glassBlock, permutationIndex);
-
-        if (frameModel == null || sandModel == null || glassModel == null) {
-            Fishtastic.LOGGER.error("Failed to generate one or more models: frame={}, sand={}, glass={}",
-                frameModel != null, sandModel != null, glassModel != null);
-            return null;
-        }
-
-        Fishtastic.LOGGER.info("Successfully created composite model with frame={}, sand={}, glass={}",
-            frameModel.getClass().getSimpleName(), sandModel.getClass().getSimpleName(),
-            glassModel.getClass().getSimpleName());
-        return new CompositeModelData(frameModel, sandModel, glassModel);
-    }
-
-    /**
-     * Generate a frame model for a specific block with a given permutation index.
-     */
-    private BakedModel generateFrameModelForBlock(Block frameBlock, int permutationIndex) {
-        try {
-            // Try to load frame block model with fallback locations
-            BlockModel frameBlockModel = loadBlockModelWithFallback(frameBlock);
-            if (frameBlockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for frame block {}", BuiltInRegistries.BLOCK.getKey(frameBlock));
+            if (frameTex == null || sandTex == null || glassTex == null) {
+                Fishtastic.LOGGER.warn(
+                        "Fish Tank: could not resolve texture(s) for frame={} sand={} glass={} — skipping cache.",
+                        frameTex == null ? BuiltInRegistries.BLOCK.getKey(data.frameBlock()) : "ok",
+                        sandTex  == null ? BuiltInRegistries.BLOCK.getKey(data.sandBlock())  : "ok",
+                        glassTex == null ? BuiltInRegistries.BLOCK.getKey(data.glassBlock()) : "ok");
                 return null;
             }
 
-            // Build texture map with frame block textures
-            var textureMap = buildTextureMap(frameBlockModel.textureMap);
+            // ── FIX: build TextureSlots that chain through the sub-model's own
+            //         texture hierarchy as a fallback for any non-overridden slots.
+            TextureSlots frameSlots = overrideAllTexture(frameTex, frameModels[perm]);
+            TextureSlots sandSlots  = overrideAllTexture(sandTex,  sandModels[perm]);
+            TextureSlots glassSlots = overrideAllTexture(glassTex, glassModels[perm]);
 
-            // Use the permutation-specific frame model
-            ResourceLocation parent = ft("block/fishtankbase/fish_tank_frame_" + permutationIndex);
+            QuadCollection frameQuads = bakeGeometry(frameModels[perm], frameSlots);
+            QuadCollection sandQuads  = bakeGeometry(sandModels[perm],  sandSlots);
+            QuadCollection glassQuads = bakeGeometry(glassModels[perm], glassSlots);
 
-            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
-                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-            unbakedModel.name = context.getModelName() + "[frame:" + BuiltInRegistries.BLOCK.getKey(frameBlock) +
-                "_p" + permutationIndex + "]";
-            unbakedModel.resolveParents(modelGetter);
+            if (frameQuads == null || sandQuads == null || glassQuads == null) {
+                return null;
+            }
 
-            // Bake the model
-            return unbakedModel.bake(bakery, spriteGetter, modelState);
+            // Combine quads into a single QuadCollection.
+            QuadCollection.Builder compositeBuilder = new QuadCollection.Builder();
+            compositeBuilder.addAll(frameQuads);
+            compositeBuilder.addAll(sandQuads);
+            compositeBuilder.addAll(glassQuads);
+            QuadCollection composite = compositeBuilder.build();
+
+            // Use the STATIC resolveParticleMaterial to bypass ModelWrapper's KEY_PARTICLE_SPRITE
+            // cache, which also ignores TextureSlots after the first call.
+            Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModels[perm]);
+
+            BlockStateModelPart part = new SimpleModelWrapper(composite, true, particleMat);
+            int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
+
+            return new CachedModel(List.of(part), particleMat, flags);
+
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate frame model for block {} with permutation {}",
-                BuiltInRegistries.BLOCK.getKey(frameBlock), permutationIndex, e);
+            Fishtastic.LOGGER.error("Fish Tank: error generating composite model for {}", data, e);
             return null;
         }
     }
 
     /**
-     * Generate a sand model for a specific block with a given permutation index.
+     * Bakes the geometry of {@code model} using the supplied {@link TextureSlots}.
+     *
+     * <p><b>IMPORTANT:</b> We intentionally bypass {@link ResolvedModel#bakeTopGeometry} here.
+     * {@code ModelWrapper.bakeTopGeometry} (the concrete MC implementation) has two internal
+     * caches keyed by {@link ModelState} only — completely ignoring {@code TextureSlots}:
+     * <ul>
+     *   <li>{@code bakeDefaultState} stores the result for {@link BlockModelRotation#IDENTITY}
+     *       permanently in a fixed slot on the first call.  Our constructor bakes the default
+     *       oak_planks model first, permanently poisoning that slot.</li>
+     *   <li>{@code modelBakeCache.computeIfAbsent(state, …)} caches by {@code ModelState}
+     *       object identity.  Any reused static {@code ModelState} would return the first
+     *       result forever.</li>
+     * </ul>
+     * Calling {@code model.getTopGeometry().bake()} directly bypasses both caches and always
+     * produces fresh quads using the {@code TextureSlots} we actually want.
+     *
+     * @return the baked quads, or {@code null} if an exception was thrown.
      */
-    private BakedModel generateSandModelForBlock(Block sandBlock, int permutationIndex) {
+    @Nullable
+    private QuadCollection bakeGeometry(ResolvedModel model, TextureSlots slots) {
         try {
-            // Try to load block model with fallback locations
-            BlockModel blockModel = loadBlockModelWithFallback(sandBlock);
-            if (blockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for sand block {}", BuiltInRegistries.BLOCK.getKey(sandBlock));
-                return null;
-            }
-
-            // Build texture map with sand block textures
-            var textureMap = buildTextureMap(blockModel.textureMap);
-
-            // Use the permutation-specific sand model
-            ResourceLocation parent = ft("block/fishtankbase/fish_tank_sand_" + permutationIndex);
-
-            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
-                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-            unbakedModel.name = context.getModelName() + "[sand:" + BuiltInRegistries.BLOCK.getKey(sandBlock) +
-                "_p" + permutationIndex + "]";
-            unbakedModel.resolveParents(modelGetter);
-
-            // Bake the model
-            return unbakedModel.bake(bakery, spriteGetter, modelState);
+            // Call the underlying geometry bake directly — no ModelWrapper cache involved.
+            return model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model,
+                    ResolvedModelExtension.findTopAdditionalProperties(model));
         } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate sand model for block {} with permutation {}",
-                BuiltInRegistries.BLOCK.getKey(sandBlock), permutationIndex, e);
+            Fishtastic.LOGGER.error("Fish Tank: error baking geometry for model {}", model.debugName(), e);
             return null;
         }
     }
 
     /**
-     * Generate a glass model for a specific block with a given permutation index.
+     * Gets the primary texture {@link Material} from a block's model.
+     * Tries {@code "all"} first (cube_all), then common multi-texture slot names.
      */
-    private BakedModel generateGlassModelForBlock(Block glassBlock, int permutationIndex) {
-        try {
-            // Try to load block model with fallback locations
-            BlockModel blockModel = loadBlockModelWithFallback(glassBlock);
-            if (blockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for glass block {}", BuiltInRegistries.BLOCK.getKey(glassBlock));
-                return null;
-            }
+    @Nullable
+    private Material getBlockTexture(Block block) {
+        List<Identifier> locations = BlockModelPathResolver.getModelLocations(block);
+        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
 
-            // Build texture map with glass block textures
-            var textureMap = buildTextureMap(blockModel.textureMap);
-
-            // Use the permutation-specific glass model
-            ResourceLocation parent = ft("block/fishtankbase/fish_tank_glass_" + permutationIndex);
-
-            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
-                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-            unbakedModel.name = context.getModelName() + "[glass:" + BuiltInRegistries.BLOCK.getKey(glassBlock) +
-                "_p" + permutationIndex + "]";
-            unbakedModel.resolveParents(modelGetter);
-
-            // Bake the model
-            return unbakedModel.bake(bakery, spriteGetter, modelState);
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate glass model for block {} with permutation {}",
-                BuiltInRegistries.BLOCK.getKey(glassBlock), permutationIndex, e);
-            return null;
-        }
-    }
-
-    /**
-     * Generate a baked model for a specific block with a given label.
-     */
-    private BakedModel generateModelForBlock(Block block, String modelType) {
-        try {
-            // Try to load block model with fallback locations
-            BlockModel blockModel = loadBlockModelWithFallback(block);
-            if (blockModel == null) {
-                Fishtastic.LOGGER.error("Failed to load model for {} block {}", modelType, BuiltInRegistries.BLOCK.getKey(block));
-                return null;
-            }
-
-            var textureMap = buildTextureMap(blockModel.textureMap);
-
-            // Create new BlockModel with parent and textures - select parent based on model type
-            ResourceLocation parent = getBaseModel(modelType);
-            if (parent == null) return null;
-
-            var unbakedModel = new BlockModel(parent, List.of(), textureMap,
-                context.useAmbientOcclusion(), null, context.getTransforms(), List.of());
-            unbakedModel.name = context.getModelName() + "[" + modelType + ":" + BuiltInRegistries.BLOCK.getKey(block) + "]";
-            unbakedModel.resolveParents(modelGetter);
-
-            // Bake the model
-            return unbakedModel.bake(bakery, spriteGetter, modelState);
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to generate {} model for block {}",
-                modelType, BuiltInRegistries.BLOCK.getKey(block), e);
-            return null;
-        }
-    }
-
-    public static @org.jetbrains.annotations.Nullable ResourceLocation getBaseModel(String modelType) {
-        ResourceLocation parent;
-        switch (modelType) {
-            case "frame" -> parent = ft("block/fish_tank_frame");
-            case "sand" -> parent = ft("block/fish_tank_sand");
-            default -> {
-                Fishtastic.LOGGER.error("Unknown model type '{}' for Fish Tank model generation", modelType);
-                return null;
-            }
-        }
-        return parent;
-    }
-
-    /**
-     * Try to load a block model with fallback locations from config overrides.
-     * Returns the first successfully loaded model, or null if all attempts fail.
-     */
-    private BlockModel loadBlockModelWithFallback(Block block) {
-        List<ResourceLocation> locations = BlockModelPathResolver.getModelLocations(block);
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
-
-        for (ResourceLocation location : locations) {
+        for (Identifier location : locations) {
             try {
-                UnbakedModel unbakedModel = modelGetter.apply(location);
-                if (unbakedModel instanceof BlockModel blockModel) {
-                    Fishtastic.LOGGER.debug("Successfully loaded model for {} from {}", blockId, location);
-                    return blockModel;
+                ResolvedModel blockModel = baker.getModel(location);
+                TextureSlots slots = blockModel.getTopTextureSlots();
+
+                Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} → location={} → model.debugName={}",
+                        blockId, location, blockModel.debugName());
+
+                // Try "all" first (cube_all style).
+                Material mat = slots.getMaterial("all");
+                if (mat != null) {
+                    Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} matched slot 'all' → {}", blockId, mat);
+                    return mat;
                 }
+
+                // Try common slot names as fallbacks.
+                for (String slotName : new String[]{"top", "side", "front", "end", "particle"}) {
+                    mat = slots.getMaterial(slotName);
+                    if (mat != null) {
+                        Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} matched slot '{}' → {}", blockId, slotName, mat);
+                        return mat;
+                    }
+                }
+
+                Fishtastic.LOGGER.warn("[FishTankBakedModel.getBlockTexture] block={} location={} model has no usable texture slot!", blockId, location);
+
             } catch (Exception e) {
-                Fishtastic.LOGGER.debug("Failed to load model for {} from {}: {}", blockId, location, e.getMessage());
+                Fishtastic.LOGGER.debug("Fish Tank: could not resolve model {} for texture lookup: {}",
+                        location, e.getMessage());
             }
         }
 
-        Fishtastic.LOGGER.warn("Could not load model for block {} from any of {} locations", blockId, locations.size());
+        Fishtastic.LOGGER.warn("[FishTankBakedModel.getBlockTexture] block={} — no texture found across {} locations", blockId, locations);
         return null;
     }
 
-
-    private static final TextureSlot[] ALL_SLOTS = {
-        TextureSlot.ALL,
-        TextureSlot.TEXTURE,
-        TextureSlot.PARTICLE,
-        TextureSlot.END,
-        TextureSlot.BOTTOM,
-        TextureSlot.TOP,
-        TextureSlot.FRONT,
-        TextureSlot.BACK,
-        TextureSlot.SIDE,
-        TextureSlot.NORTH,
-        TextureSlot.SOUTH,
-        TextureSlot.EAST,
-        TextureSlot.WEST,
-        TextureSlot.UP,
-        TextureSlot.DOWN,
-        TextureSlot.CROSS,
-        TextureSlot.PLANT,
-        TextureSlot.WALL,
-        TextureSlot.RAIL,
-        TextureSlot.WOOL,
-        TextureSlot.PATTERN,
-        TextureSlot.PANE,
-        TextureSlot.EDGE,
-        TextureSlot.FAN,
-        TextureSlot.STEM,
-        TextureSlot.UPPER_STEM,
-        TextureSlot.CROP,
-        TextureSlot.DIRT,
-        TextureSlot.FIRE,
-        TextureSlot.LANTERN,
-        TextureSlot.PLATFORM,
-        TextureSlot.UNSTICKY,
-        TextureSlot.TORCH,
-        TextureSlot.LAYER0,
-        TextureSlot.LAYER1,
-        TextureSlot.LAYER2,
-        TextureSlot.LIT_LOG,
-        TextureSlot.CANDLE,
-        TextureSlot.INSIDE,
-        TextureSlot.CONTENT,
-        TextureSlot.INNER_TOP,
-        TextureSlot.FLOWERBED
-    };
-
     /**
-     * Helper method to get the first present texture from a texture mapping by checking all slots in order.
+     * Creates a {@link TextureSlots} that overrides {@code "all"} and
+     * {@code "particle"} with {@code texture}, while chaining through
+     * {@code baseModel}'s full texture hierarchy as a fallback for any other
+     * slots the geometry may reference.
+     *
+     * <p>Previously this method created an <em>isolated</em> TextureSlots
+     * containing only "all" and "particle".  That worked by accident because all
+     * current fish-tank sub-models reference only {@code #all}, but it would
+     * silently break any sub-model that introduces additional texture variables.
      */
-    private ResourceLocation getFirstPresentTexture(Map<String, Either<Material, String>> textureMapping) {
-        for (TextureSlot slot : ALL_SLOTS) {
-            Either<Material, String> textureEither = textureMapping.get(slot.getId());
-            if (textureEither != null) {
-                if (textureEither.left().isPresent()) {
-                    return textureEither.left().get().texture();
-                } else {
-                    return ResourceLocation.withDefaultNamespace(textureEither.right().get());
-                }
-            }
-        }
-        return null;
-    }
+    private static TextureSlots overrideAllTexture(Material texture, ResolvedModel baseModel) {
+        TextureSlots.Data.Builder builder = new TextureSlots.Data.Builder();
+        builder.addTexture("all", texture);
+        builder.addTexture("particle", texture);
 
-    private Map<String, Either<Material, String>> buildTextureMap(Map<String, Either<Material, String>> textureMapping) {
-        // Build the texture map that would normally come from JSON
-        Map<String, Either<Material, String>> map = new HashMap<>();
+        TextureSlots.Resolver resolver = new TextureSlots.Resolver().addFirst(builder.build());
 
-        ResourceLocation blockTexture = getFirstPresentTexture(textureMapping);
-
-        if (blockTexture == null) {
-            Fishtastic.LOGGER.error("Error building Fish Tank model: Source block model is missing all texture slots");
-            return map;
+        for (ResolvedModel m = baseModel; m != null; m = m.parent()) {
+            resolver.addLast(m.wrapped().textureSlots());
         }
 
-        // Convert ResourceLocations to Materials (the format BlockModel expects)
-        map.put("all", Either.left(new Material(InventoryMenu.BLOCK_ATLAS, blockTexture)));
+        TextureSlots result = resolver.resolve(() -> "fish_tank_override");
 
-        return map;
-    }
+        // Log the resolved "all" and "particle" slots so we can verify the override took effect.
+        Fishtastic.LOGGER.info("[FishTankBakedModel.overrideAllTexture] baseModel={} | input texture={} | resolved all={} | resolved particle={}",
+                baseModel.debugName(), texture,
+                result.getMaterial("all"),
+                result.getMaterial("particle"));
 
-    @Override
-    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
-        CompositeModelData composite = getCompositeModelFor(extraData);
-
-        // Combine quads from frame, sand, and glass models
-        List<BakedQuad> combinedQuads = new java.util.ArrayList<>();
-
-        // Add frame quads with tint index 0
-        for (BakedQuad quad : composite.frameModel.getQuads(state, side, rand, extraData, renderType)) {
-            combinedQuads.add(applyTintIndex(quad, 0));
-        }
-
-        // Add glass quads with tint index 2
-        for (BakedQuad quad : composite.glassModel.getQuads(state, side, rand, extraData, renderType)) {
-            combinedQuads.add(applyTintIndex(quad, 2));
-        }
-
-        // Only add sand if bottom face is closed (has a floor)
-        FishTankModelData modelData = extraData.get(FishTankModelData.DATA_PROPERTY);
-        if (modelData != null && !modelData.openFaces().contains(Direction.DOWN)) {
-            // Add sand quads with tint index 1
-            for (BakedQuad quad : composite.sandModel.getQuads(state, side, rand, extraData, renderType)) {
-                combinedQuads.add(applyTintIndex(quad, 1));
-            }
-        }
-
-        return combinedQuads;
-    }
-
-    /**
-     * Apply a tint index to a BakedQuad by creating a new quad with the specified tint index.
-     */
-    private BakedQuad applyTintIndex(BakedQuad original, int tintIndex) {
-        // If the quad already has the correct tint index, return it as-is
-        if (original.getTintIndex() == tintIndex) {
-            return original;
-        }
-
-        // Create a new BakedQuad with the specified tint index
-        return new BakedQuad(
-            original.getVertices(),
-            tintIndex,
-            original.getDirection(),
-            original.getSprite(),
-            original.isShade()
-        );
-    }
-
-    @Override
-    public TextureAtlasSprite getParticleIcon(ModelData data) {
-        // Use frame model for particle
-        return getCompositeModelFor(data).frameModel.getParticleIcon(data);
-    }
-
-    @Override
-    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
-        // Fish tank needs translucent render type for glass transparency
-        return ChunkRenderTypeSet.of(RenderType.translucent());
-    }
-
-    @Override
-    public ItemOverrides getOverrides() {
-        return itemOverrides;
-    }
-
-    @Override
-    public ModelData getModelData(BlockAndTintGetter level, BlockPos pos, BlockState state, ModelData modelData) {
-        return modelData;
+        return result;
     }
 }

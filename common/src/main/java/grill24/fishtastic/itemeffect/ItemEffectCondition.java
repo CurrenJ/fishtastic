@@ -8,8 +8,8 @@ import grill24.fishtastic.itemeffect.condition.ComponentValueCondition;
 import grill24.fishtastic.itemeffect.condition.ItemTagCondition;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public interface ItemEffectCondition {
@@ -22,7 +22,7 @@ public interface ItemEffectCondition {
                 "and", () -> AndCondition.CODEC
         );
 
-        private static final Map<String, MapCodec<? extends ItemEffectCondition>> CONDITION_TYPES = new HashMap<>();
+        private static final Map<String, MapCodec<? extends ItemEffectCondition>> CONDITION_TYPES = new ConcurrentHashMap<>();
 
         private static MapCodec<? extends ItemEffectCondition> getConditionCodec(String type) {
             return CONDITION_TYPES.computeIfAbsent(type, k -> {

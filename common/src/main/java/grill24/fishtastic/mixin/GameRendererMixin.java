@@ -3,7 +3,6 @@ package grill24.fishtastic.mixin;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
@@ -31,19 +30,7 @@ public class GameRendererMixin implements IGameRendererExtension {
         }
     }
 
-    @Inject(method = "renderItemActivationAnimation", at = @At("HEAD"), cancellable = true)
-    private void renderItemActivation(GuiGraphics guiGraphics, float partialTick, CallbackInfo ci) {
-        if (this.activeAnimation != null) {
-            if(this.activeAnimation.isActive()) {
-                // If we have an active animation, render it
-                this.activeAnimation.render(this.minecraft, guiGraphics, partialTick);
-                ci.cancel();
-            } else {
-                // Animation is no longer active, clear it
-                this.activeAnimation = null;
-            }
-        } // Else pass to the original method
-    }
+    // TODO MC-26.1: renderItemActivationAnimation moved to ScreenEffectRenderer; re-implement there.
 
     @Inject(method = "displayItemActivation", at = @At("HEAD"))
     private void displayItemActivation(ItemStack stack, CallbackInfo ci) {

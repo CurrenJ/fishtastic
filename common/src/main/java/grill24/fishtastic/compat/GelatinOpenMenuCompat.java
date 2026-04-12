@@ -22,7 +22,7 @@ public final class GelatinOpenMenuCompat {
             GELATIN_MENUS_CLASS,
             GELATIN_MENUS_OPEN_METHOD,
             player,
-            "fishtastic"
+            "leaderboard"
         );
 
         if (success) {

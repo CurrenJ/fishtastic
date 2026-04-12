@@ -195,11 +195,10 @@ public class FishingMinigameManager {
         FishingHook hook = player.fishing;
         IFishingHookExtension hookExt = (IFishingHookExtension) hook;
         if (hook == null) return targets;
-        LootParams lootparams = new LootParams.Builder(player.serverLevel())
+        LootParams lootparams = new LootParams.Builder(player.level())
                 .withParameter(LootContextParams.ORIGIN, hook.position())
                 .withParameter(LootContextParams.TOOL, player.getUseItem())
                 .withParameter(LootContextParams.THIS_ENTITY, hook)
-                .withParameter(LootContextParams.ATTACKING_ENTITY, hook.getOwner())
                 .withLuck(hookExt.getLuck() + player.getLuck())
                 .create(LootContextParamSets.FISHING);
 
@@ -270,17 +269,18 @@ public class FishingMinigameManager {
     }
 
     private static @NotNull List<ItemStack> getFishRewards(ServerPlayer player) {
-        return player.registryAccess().registryOrThrow(Registries.ITEM).getOrCreateTag(ItemTags.FISHES).stream()
-                .map(Holder::value)
-                .map(ItemStack::new)
-                .toList();
+        List<ItemStack> result = new ArrayList<>();
+        for (Holder<net.minecraft.world.item.Item> holder : player.registryAccess().lookupOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
+            result.add(new ItemStack(holder.value()));
+        }
+        return result;
     }
 
     private static List<ItemStack> generateFishRewards(RandomSource randomSource, LootParams lootParams, List<ItemStack> possibleFish, int numRewards) {
         List<ItemStack> rewardStacks = new ArrayList<>();
 
         for(int n = 0; n < numRewards; n++) {
-            ItemStack reward = FishtasticFishItem.sampleRandomFish(randomSource, lootParams, possibleFish.stream().map(ItemStack::getItemHolder).toList());
+            ItemStack reward = FishtasticFishItem.sampleRandomFish(randomSource, lootParams, possibleFish.stream().map(ItemStack::typeHolder).toList());
             rewardStacks.add(reward);
         }
         return rewardStacks;

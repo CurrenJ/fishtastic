@@ -10,6 +10,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.ClickEvent;
+import java.net.URI;
 
 /**
  * Command to open the Fishtastic UI screen.
@@ -34,7 +35,7 @@ public class FishtasticCommand {
                     .append(Component.literal("Gelatin UI")
                         .withStyle(style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://www.curseforge.com/minecraft/mc-mods/gelatin-ui"))
+                            .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://www.curseforge.com/minecraft/mc-mods/gelatin-ui")))
                             .withUnderlined(true)))
                     .append(Component.literal(" for a visual display.")
                         .withStyle(ChatFormatting.YELLOW));

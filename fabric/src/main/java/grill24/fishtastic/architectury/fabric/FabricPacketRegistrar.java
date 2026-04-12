@@ -45,7 +45,7 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
             FishtasticPackets.IPacketHandler<T> handler) {
 
         // Register the payload type
-        PayloadTypeRegistry.playC2S().register(type, codec);
+        PayloadTypeRegistry.serverboundPlay().register(type, codec);
 
         // Register the handler
         ServerPlayNetworking.registerGlobalReceiver(
@@ -61,7 +61,7 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
             FishtasticPackets.IPacketHandler<T> handler) {
 
         // Register the payload type
-        PayloadTypeRegistry.playS2C().register(type, codec);
+        PayloadTypeRegistry.clientboundPlay().register(type, codec);
 
         // Register the handler - this is done on the client side
         // The actual handler registration happens in the client initializer

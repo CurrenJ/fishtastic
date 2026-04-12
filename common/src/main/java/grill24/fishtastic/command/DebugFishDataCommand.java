@@ -28,7 +28,7 @@ public class DebugFishDataCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
                 Commands.literal("fishcatchdata")
-                        .requires(source -> source.hasPermission(2))
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(ctx -> execute(ctx, null))
                         .then(Commands.argument("player", EntityArgument.player())
                                 .executes(ctx -> execute(ctx, EntityArgument.getPlayer(ctx, "player"))))

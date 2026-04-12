@@ -22,7 +22,7 @@ public class SetFishQualityCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
                 Commands.literal("setfishquality")
-                        .requires(source -> source.hasPermission(2)) // Requires operator permission
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
                         .then(Commands.argument("quality", StringArgumentType.word())
                                 .suggests((context, builder) -> {
                                     // Add suggestions for all quality levels
