@@ -177,7 +177,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     private void renderFishingBar(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
-        float angle = (float) (Math.sin(progress * (float)Math.PI * 2) * 12f); // Swing back and forth
+        float angle = 0f; // Can use to add a slight rotation effect if desired
 
         // Calculate vertical offset for intro and hide animations
         float verticalOffset = 0f;

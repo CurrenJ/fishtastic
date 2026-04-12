@@ -120,3 +120,4 @@ __pycache__/
 debug_src/**
 
 CLAUDE.md
+.claude/

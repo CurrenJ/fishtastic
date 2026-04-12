@@ -30,7 +30,7 @@ public class GameRendererMixin implements IGameRendererExtension {
         }
     }
 
-    // TODO MC-26.1: renderItemActivationAnimation moved to ScreenEffectRenderer; re-implement there.
+    // The render call is now hooked via HUD events in FishtasticFabricClient / FishtasticNeoForgeClient.
 
     @Inject(method = "displayItemActivation", at = @At("HEAD"))
     private void displayItemActivation(ItemStack stack, CallbackInfo ci) {

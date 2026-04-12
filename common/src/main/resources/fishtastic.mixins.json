@@ -8,6 +8,7 @@
     "GuiGraphicsMixin",
     "ItemFeatureRendererMixin",
     "ItemModelResolverMixin",
+    "ItemStackMixin",
     "ItemStackRenderStateMixin",
     "LevelRendererMixin",
     "RenderBuffersMixin",
@@ -17,7 +18,6 @@
     "defaultRequire": 1
   },
   "mixins": [
-    "FishingHookMixin",
-    "ItemStackMixin"
+    "FishingHookMixin"
   ]
 }

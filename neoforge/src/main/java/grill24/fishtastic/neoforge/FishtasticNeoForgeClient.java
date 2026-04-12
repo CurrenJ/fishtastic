@@ -12,6 +12,8 @@ import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
+import grill24.fishtastic.util.IGameRendererExtension;
+import grill24.fishtastic.util.ItemActivationAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -25,6 +27,7 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -46,6 +49,9 @@ public final class FishtasticNeoForgeClient {
 
         // Register mouse scroll event handler for fish tank customization
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onMouseScroll);
+
+        // Register HUD render hook for the fishing minigame overlay
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
@@ -96,6 +102,15 @@ public final class FishtasticNeoForgeClient {
     public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
         if (FishTankCustomizationHandler.handleMouseScroll(event.getScrollDeltaY())) {
             event.setCanceled(true);
+        }
+    }
+
+    public static void onRenderGui(RenderGuiEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gameRenderer == null) return;
+        ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
+        if (animation != null && animation.isActive()) {
+            animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
     }
 }
