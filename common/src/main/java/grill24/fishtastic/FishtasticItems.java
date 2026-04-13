@@ -34,6 +34,7 @@ public class FishtasticItems {
 
     // ----- Pile of Fish -----
     public static Holder<Item> PILE_OF_FISH;
+
     public static Holder<Item> BLAZED_GRUB;
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
