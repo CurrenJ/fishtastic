@@ -124,6 +124,25 @@ public class FishTankBlock extends Block implements EntityBlock {
         Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][{}] Called at pos={}, item={}, hand={}",
                 side, blockPos, itemStack.getItem(), hand);
 
+        // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires
+        // even with an empty hand. Delegate withdrawal here when the hand is empty.
+        if (itemStack.isEmpty()) {
+            // Only act on the main hand to avoid double-firing with the offhand.
+            if (hand != InteractionHand.MAIN_HAND) {
+                return InteractionResult.PASS;
+            }
+            if (level.isClientSide()) {
+                // Return SUCCESS so the hand swings and the interaction is consumed.
+                BlockEntity be = level.getBlockEntity(blockPos);
+                if (be instanceof FishTankBlockEntity) {
+                    return InteractionResult.SUCCESS;
+                }
+                return InteractionResult.PASS;
+            }
+            // Server: delegate to withdrawal logic.
+            return useWithoutItem(blockState, level, blockPos, player, blockHitResult);
+        }
+
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] BlockEntity at pos={}: type={}, class={}",

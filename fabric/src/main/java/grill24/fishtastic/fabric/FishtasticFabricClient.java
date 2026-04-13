@@ -1,5 +1,6 @@
 package grill24.fishtastic.fabric;
 
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
@@ -48,7 +49,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         });
 
         // Register HUD render hook for the fishing minigame overlay
-        HudElementRegistry.addLast(Identifier.of("fishtastic", "fishing_minigame"), (graphics, deltaTracker) -> {
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "fishing_minigame"), (graphics, deltaTracker) -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.gameRenderer == null) return;
             ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();

@@ -4,8 +4,10 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.block.FishTankCustomizationMode;
 import grill24.fishtastic.block.FishTankCustomizationModeManager;
+import grill24.fishtastic.network.SetCustomizationModePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -46,6 +48,13 @@ public class FishTankCustomizationHandler {
         boolean forward = scrollDelta > 0;
         Fishtastic.LOGGER.info("[FishTankCustomizationHandler][CLIENT] Cycling mode, forward={}, scrollDelta={}", forward, scrollDelta);
         FishTankCustomizationMode newMode = FishTankCustomizationModeManager.cycleMode(player.getUUID(), forward);
+
+        // Sync the new mode to the server so it applies the correct property on right-click
+        mc.player.connection.send(
+            new ServerboundCustomPayloadPacket(
+                new SetCustomizationModePacket(newMode.ordinal())
+            )
+        );
 
         // Display feedback to player
         Fishtastic.LOGGER.info("[FishTankCustomizationHandler][CLIENT] New mode={}", newMode);
