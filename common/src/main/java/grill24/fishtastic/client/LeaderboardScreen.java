@@ -63,12 +63,16 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     // Title label, updated when personal/global changes
     private Label titleLabel;
 
+    // Temp render context for measuring text during label construction (graphics can be null)
+    private MinecraftRenderContext tempContext;
+
     public LeaderboardScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Leaderboards"));
     }
 
     @Override
     protected void buildUI() {
+        tempContext = new MinecraftRenderContext(null, this.font);
         LeaderboardResponsePacket.registerClientHandler(this::onLeaderboardResponse);
 
         // --- Settings panel (two rows of item buttons) ---
@@ -78,7 +82,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         listWrapper = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
         listWrapper.addChild(label("Loading...", 0xFF888888));
 
-        titleLabel = new Label(titleText(), 0xFFFFFFFF);
+        titleLabel = new Label(titleText(), 0xFFFFFFFF).init(tempContext);
         titleLabel.scale(1.2f);
 
         contentVBox = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
@@ -330,6 +334,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private Label label(String text, int color) {
-        return new Label(text, color);
+        return new Label(text, color).init(tempContext);
     }
 }
