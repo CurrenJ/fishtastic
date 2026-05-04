@@ -44,6 +44,10 @@ public class FishtasticCreativeTabs {
                     // Fish tank
                     output.accept(FishtasticBlocks.FISH_TANK.value());
 
+                    // Undyed glass
+                    output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());
+                    output.accept(FishtasticBlocks.CLEAR_GLASS.value());
+
                     // Borderless stained glass (all colors)
                     for (DyeColor color : DyeColor.values()) {
                         output.accept(FishtasticBlocks.BORDERLESS_STAINED_GLASS.get(color).value());

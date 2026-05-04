@@ -81,6 +81,24 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
             // -----------------------------------------------------------------
 
             private void buildGlassRecipes(HolderGetter<Item> items) {
+                // Undyed glass variants
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.BUILDING_BLOCKS, FishtasticBlocks.BORDERLESS_GLASS.value())
+                        .requires(Items.GLASS)
+                        .unlockedBy("has_glass", has(Items.GLASS))
+                        .save(this.output);
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.BUILDING_BLOCKS, FishtasticBlocks.CLEAR_GLASS.value())
+                        .requires(Items.GLASS)
+                        .requires(Items.GLASS)
+                        .unlockedBy("has_glass", has(Items.GLASS))
+                        .save(this.output);
+
+                // Also allow crafting clear glass from borderless glass + plain glass
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.BUILDING_BLOCKS, FishtasticBlocks.CLEAR_GLASS.value())
+                        .requires(FishtasticBlocks.BORDERLESS_GLASS.value())
+                        .requires(Items.GLASS)
+                        .unlockedBy("has_borderless_glass", has(FishtasticBlocks.BORDERLESS_GLASS.value()))
+                        .save(this.output, "borderless_glass_plus_glass_to_clear_glass");
+
                 for (DyeColor color : DyeColor.values()) {
                     Block vanilla = getVanillaStainedGlass(color);
                     Holder<Block> borderless = FishtasticBlocks.BORDERLESS_STAINED_GLASS.get(color);
@@ -98,6 +116,13 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                             .requires(Items.GLASS)
                             .unlockedBy("has_stained_glass", has(vanilla))
                             .save(this.output);
+
+                    // Also allow crafting clear from borderless + plain glass
+                    ShapelessRecipeBuilder.shapeless(items, RecipeCategory.BUILDING_BLOCKS, clear.value())
+                            .requires(borderless.value())
+                            .requires(Items.GLASS)
+                            .unlockedBy("has_borderless_stained_glass", has(borderless.value()))
+                            .save(this.output, borderless.getRegisteredName() + "_plus_glass_to_clear");
                 }
             }
 

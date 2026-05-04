@@ -215,6 +215,7 @@ public class PileOfFishItem extends BundleItem {
             } else if (updatedContents.items().size() == 1) {
                 // Only 1 item left — decompose pile into that item
                 ItemStack singleItem = updatedContents.items().getFirst().create();
+                self.shrink(1);
                 slot.setByPlayer(singleItem);
             } else {
                 self.set(DataComponents.BUNDLE_CONTENTS, updatedContents);
@@ -235,11 +236,12 @@ public class PileOfFishItem extends BundleItem {
      */
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
-        super.inventoryTick(stack, level, entity, slot);
         BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
         if (contents.isEmpty()) {
             stack.shrink(1);
-        } else if (contents.items().size() == 1) {
+            return;
+        }
+        if (contents.items().size() == 1) {
             // Pile has exactly 1 item — replace the pile with that item
             ItemStack singleItem = contents.items().getFirst().create();
             if (entity instanceof Player player) {
@@ -252,7 +254,9 @@ public class PileOfFishItem extends BundleItem {
             }
             // Fallback: couldn't locate the stack — just destroy it
             stack.shrink(1);
+            return;
         }
+        super.inventoryTick(stack, level, entity, slot);
     }
 
     private static void playRemoveOneSound(Entity entity) {

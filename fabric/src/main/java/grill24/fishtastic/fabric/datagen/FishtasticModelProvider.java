@@ -29,6 +29,16 @@ public class FishtasticModelProvider extends FabricModelProvider {
 
     @Override
     public void generateBlockStateModels(BlockModelGenerators blockModelGenerators) {
+        // Generate models for undyed glass
+        generateModelsForGlassBlock(blockModelGenerators,
+                Fishtastic.id("block/glass/borderless_glass"),
+                Fishtastic.id("block/glass/borderless_glass"),
+                FishtasticBlocks.BORDERLESS_GLASS);
+        generateModelsForGlassBlock(blockModelGenerators,
+                Fishtastic.id("block/glass/clear_glass"),
+                Fishtastic.id("block/glass/clear_glass"),
+                FishtasticBlocks.CLEAR_GLASS);
+
         // Generate models for borderless stained glass (all colors)
         generateGlassModels(blockModelGenerators, FishtasticBlocks.BORDERLESS_STAINED_GLASS);
 

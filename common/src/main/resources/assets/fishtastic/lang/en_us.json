@@ -34,6 +34,11 @@
   "block.fishtastic.fish_tank": "Fish Tank",
   "item.fishtastic.fish_tank": "Fish Tank",
 
+  "block.fishtastic.borderless_glass": "Borderless Glass",
+  "item.fishtastic.borderless_glass": "Borderless Glass",
+  "block.fishtastic.clear_glass": "Clear Glass",
+  "item.fishtastic.clear_glass": "Clear Glass",
+
   ".fishtastic.white_borderless_stained_glass": "White Borderless Stained Glass",
   "block.fishtastic.orange_borderless_stained_glass": "Orange Borderless Stained Glass",
   "block.fishtastic.magenta_borderless_stained_glass": "Magenta Borderless Stained Glass",

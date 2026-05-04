@@ -16,6 +16,10 @@ import java.util.Map;
 public class FishtasticBlocks {
     public static Holder<Block> FISH_TANK;
 
+    // Undyed glass variants (no color)
+    public static Holder<Block> BORDERLESS_GLASS;
+    public static Holder<Block> CLEAR_GLASS;
+
     // Borderless stained glass blocks (no visible frame/border)
     public static final Map<DyeColor, Holder<Block>> BORDERLESS_STAINED_GLASS = new EnumMap<>(DyeColor.class);
 
@@ -23,6 +27,12 @@ public class FishtasticBlocks {
     public static final Map<DyeColor, Holder<Block>> CLEAR_STAINED_GLASS = new EnumMap<>(DyeColor.class);
 
     public static void registerBlocks() {
+        // Undyed glass variants
+        BORDERLESS_GLASS = RegistrationApiSided.getInstance().registerBlock("borderless_glass",
+                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS).setId(ResourceKey.create(Registries.BLOCK, loc))));
+        CLEAR_GLASS = RegistrationApiSided.getInstance().registerBlock("clear_glass",
+                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS).setId(ResourceKey.create(Registries.BLOCK, loc))));
+
         // Register borderless and clear stained glass for all colors
         for (DyeColor color : DyeColor.values()) {
             Block vanillaStainedGlass = getVanillaStainedGlass(color);
