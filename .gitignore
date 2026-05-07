@@ -38,6 +38,7 @@ Fabric/.vscode/*
  
 ## Private Stuffs
 /private.properties
+/local.properties
 
 ## Jars
 *.jar

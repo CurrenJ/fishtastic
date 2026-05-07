@@ -8,8 +8,8 @@
     "${mod_authors}"
   ],
   "contact": {
-    "homepage": "",
-    "sources": "https://github.com/CurrenJ/adaptive-ores"
+    "homepage": "https://github.com/CurrenJ/fishtastic",
+    "sources": "https://github.com/CurrenJ/fishtastic"
   },
   "license": "${mod_license}",
   "icon": "${mod_icon}",

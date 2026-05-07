@@ -2,6 +2,14 @@ plugins {
     id 'dev.architectury.loom-no-remap' version '1.14-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.5-SNAPSHOT'
     id 'com.gradleup.shadow' version '8.3.6' apply false
+    id 'net.darkhax.curseforgegradle' version '1.1.26' apply false
+}
+
+// Load local.properties for CurseForge token (git-ignored)
+if (file('local.properties').exists()) {
+    def localProps = new Properties()
+    file('local.properties').withInputStream { localProps.load(it) }
+    localProps.each { key, value -> ext.set(key, value) }
 }
 
 architectury {
@@ -67,4 +75,42 @@ subprojects {
             // retrieving dependencies.
         }
     }
+}
+
+// ── CurseForge Publishing ────────────────────────────────────────────────
+
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
+tasks.register('publishCurseForge', TaskPublishCurseForge) {
+    apiToken = System.getenv('CURSEFORGE_TOKEN') ?: findProperty('curseforge_token') ?: ''
+
+    def projectId = findProperty('curseforge_project_id') ?: '0'
+    def releaseType = findProperty('release_type') ?: 'release'
+    def changelogText = findProperty('changelog_override')
+            ?: (file('CHANGELOG.md').exists() ? file('CHANGELOG.md').text : 'No changelog provided.')
+
+    // ── Fabric ──
+    def fabricJar = project(':fabric').tasks.named('shadowJar').get().archiveFile
+    def fabricUpload = upload(projectId, fabricJar)
+    fabricUpload.changelog = changelogText
+    fabricUpload.changelogType = 'markdown'
+    fabricUpload.releaseType = releaseType
+    fabricUpload.addGameVersion(minecraft_version)
+    fabricUpload.addModLoader('Fabric')
+    fabricUpload.displayName = "${mod_name} ${mod_version} for Fabric ${minecraft_version}"
+
+    // ── NeoForge ──
+    def neoJar = project(':neoforge').tasks.named('shadowJar').get().archiveFile
+    def neoUpload = upload(projectId, neoJar)
+    neoUpload.changelog = changelogText
+    neoUpload.changelogType = 'markdown'
+    neoUpload.releaseType = releaseType
+    neoUpload.addGameVersion(minecraft_version)
+    neoUpload.addModLoader('NeoForge')
+    neoUpload.displayName = "${mod_name} ${mod_version} for NeoForge ${minecraft_version}"
+}
+
+// Ensure publish depends on both platforms being built.
+tasks.named('publishCurseForge') {
+    dependsOn(':fabric:build', ':neoforge:build')
 }
