@@ -40,6 +40,7 @@ dependencies {
 processResources {
     dependsOn ':common:processResources'
     inputs.property 'version', project.version
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     from project(":common").sourceSets.main.resources
     from file("src/main/generated")
