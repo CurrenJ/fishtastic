@@ -112,15 +112,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         ModelData modelData = level.getModelData(pos);
         FishTankModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
 
-        Fishtastic.LOGGER.info("[FishTankBakedModel.collectParts] pos={}, modelData={}, fishTankData={}",
-                pos,
-                modelData != ModelData.EMPTY ? "present" : "EMPTY",
-                data != null ? String.format("frame=%s,sand=%s,glass=%s,perm=%d",
-                        BuiltInRegistries.BLOCK.getKey(data.frameBlock()),
-                        BuiltInRegistries.BLOCK.getKey(data.sandBlock()),
-                        BuiltInRegistries.BLOCK.getKey(data.glassBlock()),
-                        data.getPermutationIndex()) : "NULL (using default)");
-
         if (data == null) {
             data = FishTankModelData.DEFAULT;
         }
@@ -131,7 +122,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
         // Fast path: check cache without locking.
         CachedModel cached = modelCache.get(key);
-        boolean wasCacheHit = cached != null;
         if (cached == null) {
             // Slow path: generate the model under a lock.
             final FishTankModelData finalData = data;
@@ -160,9 +150,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 }
             }
         }
-
-        Fishtastic.LOGGER.info("[FishTankBakedModel.collectParts] pos={}, cacheHit={}, partsCount={}",
-                pos, wasCacheHit, cached.parts().size());
 
         parts.addAll(cached.parts());
     }
@@ -222,12 +209,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         CacheKey key = new CacheKey(
                 data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
-        Fishtastic.LOGGER.info("[FishTankBakedModel.createGeometryKey] pos={}, key=CacheKey[frame={},sand={},glass={},perm={}]",
-                pos,
-                BuiltInRegistries.BLOCK.getKey(key.frame()),
-                BuiltInRegistries.BLOCK.getKey(key.sand()),
-                BuiltInRegistries.BLOCK.getKey(key.glass()),
-                key.permutation());
         return key;
     }
 
@@ -251,11 +232,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
             Material glassTex = getBlockTexture(data.glassBlock());
-
-            Fishtastic.LOGGER.info("[FishTankBakedModel.generateCompositeModel] frame={} → frameTex={} | sand={} → sandTex={} | glass={} → glassTex={}",
-                    BuiltInRegistries.BLOCK.getKey(data.frameBlock()), frameTex,
-                    BuiltInRegistries.BLOCK.getKey(data.sandBlock()),  sandTex,
-                    BuiltInRegistries.BLOCK.getKey(data.glassBlock()), glassTex);
 
             if (frameTex == null || sandTex == null || glassTex == null) {
                 Fishtastic.LOGGER.warn(
@@ -347,13 +323,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 ResolvedModel blockModel = baker.getModel(location);
                 TextureSlots slots = blockModel.getTopTextureSlots();
 
-                Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} → location={} → model.debugName={}",
-                        blockId, location, blockModel.debugName());
-
                 // Try "all" first (cube_all style).
                 Material mat = slots.getMaterial("all");
                 if (mat != null) {
-                    Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} matched slot 'all' → {}", blockId, mat);
                     return mat;
                 }
 
@@ -361,7 +333,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 for (String slotName : new String[]{"top", "side", "front", "end", "particle"}) {
                     mat = slots.getMaterial(slotName);
                     if (mat != null) {
-                        Fishtastic.LOGGER.info("[FishTankBakedModel.getBlockTexture] block={} matched slot '{}' → {}", blockId, slotName, mat);
                         return mat;
                     }
                 }
@@ -400,14 +371,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             resolver.addLast(m.wrapped().textureSlots());
         }
 
-        TextureSlots result = resolver.resolve(() -> "fish_tank_override");
-
-        // Log the resolved "all" and "particle" slots so we can verify the override took effect.
-        Fishtastic.LOGGER.info("[FishTankBakedModel.overrideAllTexture] baseModel={} | input texture={} | resolved all={} | resolved particle={}",
-                baseModel.debugName(), texture,
-                result.getMaterial("all"),
-                result.getMaterial("particle"));
-
-        return result;
+        return resolver.resolve(() -> "fish_tank_override");
     }
 }

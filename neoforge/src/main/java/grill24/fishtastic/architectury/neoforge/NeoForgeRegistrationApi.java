@@ -1,6 +1,5 @@
 package grill24.fishtastic.architectury.neoforge;
 
-import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.FishTankFrameType;
@@ -103,13 +102,7 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
 
     @Override
     public void requestModelDataUpdate(BlockEntity blockEntity) {
-        boolean hasLevel = blockEntity != null && blockEntity.getLevel() != null;
-        boolean isClientSide = hasLevel && blockEntity.getLevel().isClientSide();
-        Fishtastic.LOGGER.info("[NeoForgeRegApi.requestModelDataUpdate] pos={}, hasLevel={}, isClientSide={}, willCall={}",
-                blockEntity != null ? blockEntity.getBlockPos() : "null",
-                hasLevel, isClientSide, isClientSide);
         if (blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().isClientSide()) {
-            Fishtastic.LOGGER.info("[NeoForgeRegApi.requestModelDataUpdate] CALLING blockEntity.requestModelDataUpdate() for pos={}", blockEntity.getBlockPos());
             blockEntity.requestModelDataUpdate();
         }
     }

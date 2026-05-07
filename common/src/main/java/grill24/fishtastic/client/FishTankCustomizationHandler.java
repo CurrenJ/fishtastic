@@ -1,6 +1,5 @@
 package grill24.fishtastic.client;
 
-import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.block.FishTankCustomizationMode;
 import grill24.fishtastic.block.FishTankCustomizationModeManager;
@@ -46,7 +45,6 @@ public class FishTankCustomizationHandler {
 
         // Cycle the customization mode
         boolean forward = scrollDelta > 0;
-        Fishtastic.LOGGER.info("[FishTankCustomizationHandler][CLIENT] Cycling mode, forward={}, scrollDelta={}", forward, scrollDelta);
         FishTankCustomizationMode newMode = FishTankCustomizationModeManager.cycleMode(player.getUUID(), forward);
 
         // Sync the new mode to the server so it applies the correct property on right-click
@@ -57,7 +55,6 @@ public class FishTankCustomizationHandler {
         );
 
         // Display feedback to player
-        Fishtastic.LOGGER.info("[FishTankCustomizationHandler][CLIENT] New mode={}", newMode);
         player.sendSystemMessage(
             Component.literal("Fish Tank Customization: " + newMode.getDisplayName())
         );

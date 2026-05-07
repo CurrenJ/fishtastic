@@ -1,6 +1,5 @@
 package grill24.fishtastic.block;
 
-import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -36,8 +35,6 @@ public class FishTankBlock extends Block implements EntityBlock {
     @Override
     protected void onPlace(BlockState blockState, Level level, BlockPos blockPos, BlockState oldState, boolean movedByPiston) {
         super.onPlace(blockState, level, blockPos, oldState, movedByPiston);
-        String side = level.isClientSide() ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBlock.onPlace][{}] pos={}, oldState={}", side, blockPos, oldState);
 
         if (!level.isClientSide()) {
             // Update connections for this tank
@@ -57,9 +54,6 @@ public class FishTankBlock extends Block implements EntityBlock {
     protected BlockState updateShape(BlockState blockState, LevelReader level, ScheduledTickAccess ticks,
                                      BlockPos blockPos, Direction direction, BlockPos neighborPos,
                                      BlockState neighborState, RandomSource random) {
-        String side = level.isClientSide() ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBlock.updateShape][{}] pos={}, direction={}, neighborPos={}, neighborState={}",
-                side, blockPos, direction, neighborPos, neighborState.getBlock());
         if (!level.isClientSide()) {
             // Update connections when a neighboring block changes
             if (level instanceof Level worldLevel) {
@@ -93,8 +87,6 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
-        String side = level.isClientSide() ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBlock.useWithoutItem][{}] pos={}", side, blockPos);
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity fishTank) {
@@ -120,10 +112,6 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
-        String side = level.isClientSide() ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][{}] Called at pos={}, item={}, hand={}",
-                side, blockPos, itemStack.getItem(), hand);
-
         // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires
         // even with an empty hand. Delegate withdrawal here when the hand is empty.
         if (itemStack.isEmpty()) {
@@ -145,37 +133,22 @@ public class FishTankBlock extends Block implements EntityBlock {
 
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
-            Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] BlockEntity at pos={}: type={}, class={}",
-                    blockPos,
-                    be != null ? be.getType() : "null",
-                    be != null ? be.getClass().getSimpleName() : "null");
             if (be instanceof FishTankBlockEntity fishTank) {
                 // Check if the player is holding a block item
                 if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
                     Block heldBlock = blockItem.getBlock();
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] Player holding BlockItem: block={}",
-                            BuiltInRegistries.BLOCK.getKey(heldBlock));
 
                     // Get the player's current customization mode
                     FishTankCustomizationMode mode = FishTankCustomizationModeManager.getMode(player.getUUID());
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] Customization mode={}", mode);
 
                     // Check if the block is blacklisted for this part
                     String partName = mode.name().toLowerCase();
                     if (RegistrationApiSided.getInstance().isBlockBlacklisted(heldBlock, partName)) {
-                        Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] Block is BLACKLISTED for part={}, returning FAIL", partName);
                         player.sendSystemMessage(
                             Component.literal("§cThis block cannot be used for fish tank " + partName + " (blacklisted in config)")
                         );
                         return InteractionResult.FAIL;
                     }
-
-                    // Log current state BEFORE change
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] BEFORE change: frame={}, sand={}, glass={}, openFaces={}",
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getFrameBlock()),
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getSandBlock()),
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getGlassBlock()),
-                            fishTank.getOpenFaces());
 
                     // Apply the block based on the current mode
                     switch (mode) {
@@ -202,18 +175,9 @@ public class FishTankBlock extends Block implements EntityBlock {
                             break;
                     }
 
-                    // Log state AFTER change
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] AFTER change: frame={}, sand={}, glass={}, openFaces={}",
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getFrameBlock()),
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getSandBlock()),
-                            BuiltInRegistries.BLOCK.getKey(fishTank.getGlassBlock()),
-                            fishTank.getOpenFaces());
-
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] Returning SUCCESS for block customization");
                     return InteractionResult.SUCCESS;
                 } else if (!itemStack.isEmpty()) {
                     // Non-block item - try to add it to the tank
-                    Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][SERVER] Non-block item, attempting to add to tank");
                     ItemStack toAdd = itemStack.copy();
                     toAdd.setCount(1);
 
@@ -258,12 +222,10 @@ public class FishTankBlock extends Block implements EntityBlock {
         if (level.isClientSide() && !itemStack.isEmpty()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity) {
-                Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][CLIENT] Returning SUCCESS to consume interaction (prevents BlockItem placement)");
                 return InteractionResult.SUCCESS;
             }
         }
 
-        Fishtastic.LOGGER.info("[FishTankBlock.useItemOn][{}] Returning PASS (end of method)", side);
         return InteractionResult.PASS;
     }
 

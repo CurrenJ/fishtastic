@@ -152,19 +152,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      * Set the frame block for this fish tank.
      */
     public void setFrameBlock(Block block) {
-        String side = (level != null && level.isClientSide()) ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBE.setFrameBlock][{}] pos={}, old={}, new={}",
-                side, worldPosition,
-                BuiltInRegistries.BLOCK.getKey(this.frameBlock),
-                BuiltInRegistries.BLOCK.getKey(block));
         this.frameBlock = block;
         setChanged();
         if (level != null && !level.isClientSide()) {
-            Fishtastic.LOGGER.info("[FishTankBE.setFrameBlock][SERVER] Calling sendBlockUpdated for pos={}", worldPosition);
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
-        // Request model data update for re-rendering
-        Fishtastic.LOGGER.info("[FishTankBE.setFrameBlock][{}] Requesting model data update", side);
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
@@ -172,19 +164,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      * Set the sand block for this fish tank.
      */
     public void setSandBlock(Block block) {
-        String side = (level != null && level.isClientSide()) ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBE.setSandBlock][{}] pos={}, old={}, new={}",
-                side, worldPosition,
-                BuiltInRegistries.BLOCK.getKey(this.sandBlock),
-                BuiltInRegistries.BLOCK.getKey(block));
         this.sandBlock = block;
         setChanged();
         if (level != null && !level.isClientSide()) {
-            Fishtastic.LOGGER.info("[FishTankBE.setSandBlock][SERVER] Calling sendBlockUpdated for pos={}", worldPosition);
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
-        // Request model data update for re-rendering
-        Fishtastic.LOGGER.info("[FishTankBE.setSandBlock][{}] Requesting model data update", side);
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
@@ -192,19 +176,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      * Set the glass block for this fish tank edges.
      */
     public void setGlassBlock(Block block) {
-        String side = (level != null && level.isClientSide()) ? "CLIENT" : "SERVER";
-        Fishtastic.LOGGER.info("[FishTankBE.setGlassBlock][{}] pos={}, old={}, new={}",
-                side, worldPosition,
-                BuiltInRegistries.BLOCK.getKey(this.glassBlock),
-                BuiltInRegistries.BLOCK.getKey(block));
         this.glassBlock = block;
         setChanged();
         if (level != null && !level.isClientSide()) {
-            Fishtastic.LOGGER.info("[FishTankBE.setGlassBlock][SERVER] Calling sendBlockUpdated for pos={}", worldPosition);
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
-        // Request model data update for re-rendering
-        Fishtastic.LOGGER.info("[FishTankBE.setGlassBlock][{}] Requesting model data update", side);
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
@@ -214,8 +190,6 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         String frameId = BuiltInRegistries.BLOCK.getKey(frameBlock).toString();
         String sandId = BuiltInRegistries.BLOCK.getKey(sandBlock).toString();
         String glassId = BuiltInRegistries.BLOCK.getKey(glassBlock).toString();
-        Fishtastic.LOGGER.info("[FishTankBE.saveAdditional] pos={}, frame={}, sand={}, glass={}, openFaces={}",
-                worldPosition, frameId, sandId, glassId, openFaces);
         output.putString("FrameBlock", frameId);
         output.putString("SandBlock", sandId);
         output.putString("GlassBlock", glassId);
@@ -245,64 +219,51 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        String side = (level != null && level.isClientSide()) ? "CLIENT" : (level != null ? "SERVER" : "UNKNOWN_SIDE");
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, BEFORE: frame={}, sand={}, glass={}",
-                side, worldPosition,
-                BuiltInRegistries.BLOCK.getKey(frameBlock),
-                BuiltInRegistries.BLOCK.getKey(sandBlock),
-                BuiltInRegistries.BLOCK.getKey(glassBlock));
-
         // Load frame block
         String frameBlockStr = input.getStringOr("FrameBlock", "");
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, raw FrameBlock string='{}'", side, worldPosition, frameBlockStr);
         if (!frameBlockStr.isEmpty()) {
             Identifier blockId = Identifier.tryParse(frameBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
                     frameBlock = b;
-                    Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, loaded frameBlock={}", side, worldPosition, blockId);
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, frameBlock registry lookup returned null for id={}", side, worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, frameBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, failed to parse FrameBlock id='{}'", side, worldPosition, frameBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse FrameBlock id='{}'", worldPosition, frameBlockStr);
             }
         }
 
         // Load sand block
         String sandBlockStr = input.getStringOr("SandBlock", "");
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, raw SandBlock string='{}'", side, worldPosition, sandBlockStr);
         if (!sandBlockStr.isEmpty()) {
             Identifier blockId = Identifier.tryParse(sandBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
                     sandBlock = b;
-                    Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, loaded sandBlock={}", side, worldPosition, blockId);
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, sandBlock registry lookup returned null for id={}", side, worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, sandBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, failed to parse SandBlock id='{}'", side, worldPosition, sandBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse SandBlock id='{}'", worldPosition, sandBlockStr);
             }
         }
 
         // Load glass block
         String glassBlockStr = input.getStringOr("GlassBlock", "");
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, raw GlassBlock string='{}'", side, worldPosition, glassBlockStr);
         if (!glassBlockStr.isEmpty()) {
             Identifier blockId = Identifier.tryParse(glassBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
                     glassBlock = b;
-                    Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, loaded glassBlock={}", side, worldPosition, blockId);
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, glassBlock registry lookup returned null for id={}", side, worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, glassBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional][{}] pos={}, failed to parse GlassBlock id='{}'", side, worldPosition, glassBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
             }
         }
 
@@ -329,31 +290,17 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         // Load first item rotation
         firstItemRotation = input.getFloatOr("FirstItemRotation", 0f);
 
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, AFTER: frame={}, sand={}, glass={}, openFaces={}",
-                side, worldPosition,
-                BuiltInRegistries.BLOCK.getKey(frameBlock),
-                BuiltInRegistries.BLOCK.getKey(sandBlock),
-                BuiltInRegistries.BLOCK.getKey(glassBlock),
-                openFaces);
-        Fishtastic.LOGGER.info("[FishTankBE.loadAdditional][{}] pos={}, calling requestModelDataUpdate", side, worldPosition);
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
     @Override
     public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
-        net.minecraft.nbt.CompoundTag tag = saveWithoutMetadata(registries);
-        Fishtastic.LOGGER.info("[FishTankBE.getUpdateTag] pos={}, tag={}", worldPosition, tag);
-        return tag;
+        return saveWithoutMetadata(registries);
     }
 
     @Override
     @Nullable
     public Packet<ClientGamePacketListener> getUpdatePacket() {
-        Fishtastic.LOGGER.info("[FishTankBE.getUpdatePacket] pos={}, frame={}, sand={}, glass={}",
-                worldPosition,
-                BuiltInRegistries.BLOCK.getKey(frameBlock),
-                BuiltInRegistries.BLOCK.getKey(sandBlock),
-                BuiltInRegistries.BLOCK.getKey(glassBlock));
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
