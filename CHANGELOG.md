@@ -2,7 +2,7 @@
 
 ## [1.0.5] — 2026-05-07
 
-- Add borderless and clear unstained glass
+- Add borderless and Buclear unstained glass
 - Remove spammy debug logs
 
 ## [1.0.4] — 2026-04-14
