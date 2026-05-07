@@ -97,7 +97,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     fabricUpload.releaseType = releaseType
     fabricUpload.addGameVersion(minecraft_version)
     fabricUpload.addModLoader('Fabric')
-    fabricUpload.displayName = "${mod_name} ${mod_version} for Fabric ${minecraft_version}"
+    fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
 
     // ── NeoForge ──
     def neoJar = project(':neoforge').tasks.named('shadowJar').get().archiveFile
@@ -107,7 +107,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     neoUpload.releaseType = releaseType
     neoUpload.addGameVersion(minecraft_version)
     neoUpload.addModLoader('NeoForge')
-    neoUpload.displayName = "${mod_name} ${mod_version} for NeoForge ${minecraft_version}"
+    neoUpload.displayName = neoJar.get().asFile.name.replace('.jar', '')
 }
 
 // Ensure publish depends on both platforms being built.
