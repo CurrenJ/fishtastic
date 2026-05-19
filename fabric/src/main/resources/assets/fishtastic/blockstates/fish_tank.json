@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "type": "fishtastic:fish_tank"
+      "fabric:type": "fishtastic:fish_tank"
     }
   }
 }

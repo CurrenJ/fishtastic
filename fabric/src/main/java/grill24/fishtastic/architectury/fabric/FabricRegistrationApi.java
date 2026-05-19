@@ -3,6 +3,7 @@ package grill24.fishtastic.architectury.fabric;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.fabric.blockentity.FishTankBlockEntityFabric;
 import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -124,7 +125,7 @@ public class FabricRegistrationApi implements IRegistrationApi {
 
     @Override
     public FishTankBlockEntity createFishTankBlockEntity(BlockPos pos, BlockState state) {
-        return new FishTankBlockEntity(pos, state);
+        return new FishTankBlockEntityFabric(pos, state);
     }
 
     @Override

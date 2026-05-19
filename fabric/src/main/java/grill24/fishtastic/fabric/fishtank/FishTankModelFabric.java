@@ -23,7 +23,7 @@ import static grill24.fishtastic.util.Utility.ft;
  * Custom {@link UnbakedModel} for the Fish Tank item form on Fabric.
  * <p>
  * Loaded via {@link UnbakedModelDeserializer} from the JSON
- * {@code assets/fishtastic/models/block/fish_tank.json} ({@code "loader": "fishtastic:fish_tank"}).
+ * {@code assets/fishtastic/models/block/fish_tank.json} ({@code "fabric:type": "fishtastic:fish_tank"}).
  * <p>
  * During baking, produces a default composite of frame_0 + sand_0 + glass_0 for the item display.
  * Also declares all 192 base sub-model dependencies so the model bakery loads them.

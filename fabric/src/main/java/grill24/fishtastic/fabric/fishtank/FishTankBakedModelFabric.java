@@ -1,7 +1,7 @@
 package grill24.fishtastic.fabric.fishtank;
 
 import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import net.fabricmc.fabric.api.blockgetter.v2.FabricBlockGetter;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart;
 import net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter;
@@ -21,7 +21,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
 
@@ -170,10 +169,9 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private FishTankModelDataFabric readBlockEntityData(BlockAndTintGetter level, BlockPos pos) {
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof FishTankBlockEntity tank) {
-            return new FishTankModelDataFabric(
-                    tank.getFrameBlock(), tank.getSandBlock(), tank.getGlassBlock(), tank.getOpenFaces());
+        Object renderData = ((FabricBlockGetter) level).getBlockEntityRenderData(pos);
+        if (renderData instanceof FishTankModelDataFabric data) {
+            return data;
         }
         return FishTankModelDataFabric.DEFAULT;
     }
