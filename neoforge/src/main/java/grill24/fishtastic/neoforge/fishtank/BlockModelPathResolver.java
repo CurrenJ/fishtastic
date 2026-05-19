@@ -20,23 +20,26 @@ import java.util.stream.StreamSupport;
 public class BlockModelPathResolver {
 
     /**
-     * Get all possible model locations for a block, including overrides from config.
-     * Returns a list with the primary location first, followed by any override locations.
+     * Get all possible model locations for a block.
+     * Returns a list with the highest-priority location first: blockstate redirect, then any
+     * config overrides, then the standard path as a final fallback.
      */
     public static List<Identifier> getModelLocations(Block block) {
         List<Identifier> locations = new ArrayList<>();
         Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+        Identifier standardPath = blockId.withPrefix("block/");
 
-        // Check config for overrides
-        List<Identifier> overrides = getOverrideLocations(block, blockId);
-
-        if (!overrides.isEmpty()) {
-            // Add override locations first (they take priority)
-            locations.addAll(overrides);
+        // Check blockstate redirect first (automatic, built from blockstate JSON scanning).
+        Identifier redirect = BlockstateRedirectRegistry.getRedirect(standardPath);
+        if (redirect != null) {
+            locations.add(redirect);
         }
 
-        // Always add the standard location as a fallback
-        locations.add(blockId.withPrefix("block/"));
+        // Then check config overrides (manual escape hatch for edge cases).
+        locations.addAll(getOverrideLocations(block, blockId));
+
+        // Always add the standard location as a final fallback.
+        locations.add(standardPath);
 
         return locations;
     }

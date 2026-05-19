@@ -11,6 +11,7 @@ import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
+import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
 import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -25,8 +26,10 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
+import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -39,6 +42,7 @@ public final class FishtasticNeoForgeClient {
         // Try to register GelatinUI screens, if GelatinUI is present.
         GelatinScreensCompat.init();
 
+        modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
@@ -65,6 +69,13 @@ public final class FishtasticNeoForgeClient {
         // Referenced in blockstates/fish_tank.json as "type": "fishtastic:fish_tank"
         event.registerModel(ft("fish_tank"), FishTankBlockStateModel.CODEC);
         Fishtastic.LOGGER.info("Fishtastic block state models registered.");
+    }
+
+    public static void registerClientReloadListeners(AddClientReloadListenersEvent event) {
+        Identifier key = ft("blockstate_redirect");
+        event.addListener(key, BlockstateModelReloadListener.INSTANCE);
+        // Must complete before model baking so the redirect map is ready when FishTankBakedModel resolves textures.
+        event.addDependency(key, VanillaClientListeners.MODELS);
     }
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
