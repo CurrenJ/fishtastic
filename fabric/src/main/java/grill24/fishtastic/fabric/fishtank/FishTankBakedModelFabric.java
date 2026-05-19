@@ -238,9 +238,12 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         }
     }
 
+    private static final String MISSING_MODEL_DEBUG_NAME = "minecraft:builtin/missing";
+
     /**
      * Gets the primary texture {@link Material} from a block's model.
      * Tries {@code "all"} first (cube_all), then common multi-texture slot names.
+     * Skips any location that resolves to the missing model placeholder.
      */
     @Nullable
     private Material getBlockTexture(Block block) {
@@ -250,6 +253,11 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         for (Identifier location : locations) {
             try {
                 ResolvedModel blockModel = baker.getModel(location);
+
+                if (MISSING_MODEL_DEBUG_NAME.equals(blockModel.debugName())) {
+                    continue;
+                }
+
                 TextureSlots slots = blockModel.getTopTextureSlots();
 
                 Material mat = slots.getMaterial("all");

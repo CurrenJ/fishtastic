@@ -8,13 +8,21 @@ import java.util.List;
 
 /**
  * Resolves model locations for blocks.
- * Simplified version of the NeoForge BlockModelPathResolver — returns the standard
- * block model path without config-based overrides (no config system on Fabric yet).
+ * Checks {@link BlockstateRedirectRegistry} (populated by {@link BlockstateModelRedirectPlugin}
+ * before baking begins) so that blocks whose blockstate JSON points to a non-standard model path
+ * (e.g. {@code block/glass/borderless_glass} instead of {@code block/borderless_glass}) are
+ * found correctly.
  */
 public class BlockModelPathResolverFabric {
 
     public static List<Identifier> getModelLocations(Block block) {
         Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
-        return List.of(blockId.withPrefix("block/"));
+        Identifier standardPath = blockId.withPrefix("block/");
+
+        Identifier redirect = BlockstateRedirectRegistry.getRedirect(standardPath);
+        if (redirect != null) {
+            return List.of(redirect, standardPath);
+        }
+        return List.of(standardPath);
     }
 }
