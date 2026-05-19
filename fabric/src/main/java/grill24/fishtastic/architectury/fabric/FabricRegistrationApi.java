@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.minecraft.client.Minecraft;
 
 public class FabricRegistrationApi implements IRegistrationApi {
     public static FabricRegistrationApi INSTANCE = new FabricRegistrationApi();
@@ -123,14 +124,22 @@ public class FabricRegistrationApi implements IRegistrationApi {
 
     @Override
     public FishTankBlockEntity createFishTankBlockEntity(BlockPos pos, BlockState state) {
-        // Fabric uses the common implementation directly
         return new FishTankBlockEntity(pos, state);
     }
 
     @Override
     public void requestModelDataUpdate(BlockEntity blockEntity) {
-        // Fabric may handle model data updates differently - implement if needed
-        // For now, this is a no-op on Fabric
+        net.minecraft.world.level.Level level = blockEntity.getLevel();
+        if (level == null || !level.isClientSide()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.levelRenderer != null) {
+            BlockPos pos = blockEntity.getBlockPos();
+            mc.execute(() -> mc.levelRenderer.setBlocksDirty(
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    pos.getX(), pos.getY(), pos.getZ()
+            ));
+        }
     }
 
     @Override
