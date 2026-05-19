@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fish Tank Rendering Architecture — Fabric vs NeoForge</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --fabric: #3c9c92;
+    --fabric-light: #5cc4b8;
+    --neoforge: #e43fa0;
+    --neoforge-light: #f070b8;
+    --common: #d2a8ff;
+    --common-light: #e0c4ff;
+    --accent: #79c0ff;
+    --warn: #d29922;
+    --danger: #f85149;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.3rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem; }
+  p { margin-bottom: 0.75rem; }
+  code { background: var(--surface); padding: 0.15em 0.4em; border-radius: 3px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9em; color: var(--accent); }
+  .subtitle { color: var(--text-dim); margin-bottom: 2rem; }
+  .legend { display: flex; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .section { margin-bottom: 3rem; }
+
+  /* ── Flow diagram ── */
+  .flow-container { display: flex; gap: 0; align-items: stretch; overflow-x: auto; padding: 1rem 0; }
+  .flow-column { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 0; }
+  .flow-column-title { text-align: center; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.4rem; margin-bottom: 0.5rem; }
+  .flow-node { border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.3rem 0; font-size: 0.85rem; position: relative; transition: transform 0.15s; }
+  .flow-node:hover { transform: translateY(-1px); }
+  .flow-node .label { font-weight: 600; }
+  .flow-node .desc { color: var(--text-dim); font-size: 0.8rem; margin-top: 0.2rem; }
+  .flow-node.fabric { border-left: 3px solid var(--fabric); background: rgba(60,156,146,0.08); }
+  .flow-node.neoforge { border-left: 3px solid var(--neoforge); background: rgba(228,63,160,0.08); }
+  .flow-node.common { border-left: 3px solid var(--common); background: rgba(210,168,255,0.08); }
+  .flow-arrow { display: flex; justify-content: center; padding: 0.2rem 0; color: var(--text-dim); font-size: 1.2rem; }
+
+  /* ── Comparison table ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .compare-header { background: var(--surface); padding: 0.6rem 1rem; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+  .compare-cell { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; min-height: 2.5rem; }
+  .compare-cell:first-child { background: var(--surface); color: var(--text-dim); font-style: italic; }
+  .compare-cell.fabric-cell { border-left: 2px solid var(--fabric); }
+  .compare-cell.neoforge-cell { border-left: 2px solid var(--neoforge); }
+  .compare-row:last-child .compare-cell { border-bottom: none; }
+
+  /* ── Sub-model grid ── */
+  .submodel-grid { display: grid; grid-template-columns: repeat(64, 1fr); gap: 1px; margin: 1rem 0; }
+  .submodel-cell { aspect-ratio: 1; border-radius: 2px; }
+  .submodel-cell.frame { background: #8B6914; }
+  .submodel-cell.sand { background: #d2b48c; }
+  .submodel-cell.glass { background: #87ceeb; }
+  .submodel-legend { display: flex; gap: 1rem; margin: 0.5rem 0; font-size: 0.85rem; }
+  .submodel-legend-item { display: flex; align-items: center; gap: 0.3rem; }
+  .submodel-legend-swatch { width: 14px; height: 14px; border-radius: 2px; }
+
+  /* ── Divergence callouts ── */
+  .divergence { border: 1px solid var(--border); border-radius: 8px; margin: 1rem 0; overflow: hidden; }
+  .divergence-header { background: var(--surface); padding: 0.5rem 1rem; font-weight: 600; font-size: 0.9rem; }
+  .divergence-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .divergence-col { padding: 0.8rem 1rem; font-size: 0.85rem; }
+  .divergence-col.fabric-col { border-right: 1px solid var(--border); }
+  .divergence-col code { display: inline-block; margin-top: 0.3rem; }
+
+  /* ── Badge ── */
+  .badge { display: inline-block; padding: 0.15em 0.5em; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+  .badge-fabric { background: rgba(60,156,146,0.2); color: var(--fabric-light); }
+  .badge-neoforge { background: rgba(228,63,160,0.2); color: var(--neoforge-light); }
+  .badge-common { background: rgba(210,168,255,0.2); color: var(--common-light); }
+  .badge-warn { background: rgba(210,153,34,0.2); color: var(--warn); }
+  .badge-danger { background: rgba(248,81,73,0.2); color: var(--danger); }
+
+  /* ── Code block ── */
+  .code-block { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.8rem 1rem; overflow-x: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem; line-height: 1.5; margin: 0.5rem 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    .compare-cell.fabric-cell, .compare-cell.neoforge-cell { border-left: none; border-bottom: 1px solid var(--border); }
+    .divergence-body { grid-template-columns: 1fr; }
+    .divergence-col.fabric-col { border-right: none; border-bottom: 1px solid var(--border); }
+    .flow-container { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Fish Tank Rendering Architecture</h1>
+<p class="subtitle">How Fabric and NeoForge dynamically retexture fish tank blocks at chunk-meshing time</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--common)"></div> Common (shared)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--fabric)"></div> Fabric</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neoforge)"></div> NeoForge</div>
+</div>
+
+<!-- ═══════════════════ CORE PROBLEM ═══════════════════ -->
+<div class="section">
+  <h2>The Core Problem</h2>
+  <p>A normal Minecraft block model is baked once at resource-load time with static textures. The fish tank cannot do this because:</p>
+  <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+    <li>Two tanks in the same chunk may have <strong>different frame/sand/glass choices</strong>.</li>
+    <li>Players can <strong>change customization at any time</strong> — no full resource reload required.</li>
+    <li>The texture is a property of the <strong>block entity</strong>, not the block state.</li>
+  </ol>
+  <p><strong>Solution:</strong> Both platforms use a <em>dynamic block state model</em> that emits geometry at chunk-meshing time with world context, reads the block entity's current configuration, and retextures on the fly.</p>
+</div>
+
+<!-- ═══════════════════ SUB-MODEL SYSTEM ═══════════════════ -->
+<div class="section">
+  <h2>Sub-Model System (Shared)</h2>
+  <p>The fish tank is composed of three parts, each with <strong>64 geometric permutations</strong> (2&sup6; = 64) for every combination of open/closed faces:</p>
+
+  <div class="submodel-legend">
+    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#8B6914"></div> Frame (64 models)</div>
+    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#d2b48c"></div> Sand (64 models)</div>
+    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#87ceeb"></div> Glass (64 models)</div>
+  </div>
+  <p style="font-size:0.85rem; color:var(--text-dim);">Total: <strong>192 sub-models</strong> pre-loaded at resource load time</p>
+
+  <div class="code-block">
+    fishtastic:block/fishtankbase/fish_tank_frame_0  .. fish_tank_frame_63<br>
+    fishtastic:block/fishtankbase/fish_tank_sand_0   .. fish_tank_sand_63<br>
+    fishtastic:block/fishtankbase/fish_tank_glass_0  .. fish_tank_glass_63
+  </div>
+
+  <p style="font-size:0.85rem;">The permutation index is derived from the <code>openFaces</code> bitmask. At runtime, the correct permutation is selected and retextured from the chosen blocks.</p>
+</div>
+
+<!-- ═══════════════════ RUNTIME DATA FLOW ═══════════════════ -->
+<div class="section">
+  <h2>Runtime Data Flow</h2>
+  <p>Both platforms follow the same logical flow, but use different APIs to cross the main-thread → chunk-meshing-thread boundary.</p>
+
+  <div class="flow-container">
+    <!-- Common column -->
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--common)">Common (Shared)</div>
+
+      <div class="flow-node common">
+        <div class="label">FishTankBlock</div>
+        <div class="desc">The block class itself</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node common">
+        <div class="label">FishTankBlockEntity</div>
+        <div class="desc">Stores frame/sand/glass blocks, open faces, item data</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node common">
+        <div class="label">FishTankModelData</div>
+        <div class="desc">record(Block frame, sand, glass, openFaces) — the snapshot payload</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node common">
+        <div class="label">Composite Generation</div>
+        <div class="desc">Select permutation → lookup textures → bake geometry → combine quads</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node common">
+        <div class="label">Chunk Mesh / Render</div>
+        <div class="desc">Batched with adjacent blocks, correct lighting</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem;">&#8594;</div>
+
+    <!-- Fabric column -->
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--fabric)">Fabric Platform</div>
+
+      <div class="flow-node fabric">
+        <div class="label">FishTankBlockEntityFabric</div>
+        <div class="desc">Implements <code>RenderDataBlockEntity</code></div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric">
+        <div class="label"><code>getRenderData()</code></div>
+        <div class="desc">Returns <code>FishTankModelDataFabric</code> snapshot on main thread</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric">
+        <div class="label"><code>FabricBlockGetter.getBlockEntityRenderData(pos)</code></div>
+        <div class="desc">Retrieves snapshot on meshing thread</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric">
+        <div class="label"><code>FabricBlockStateModel.emitQuads(...)</code></div>
+        <div class="desc">Fabric API chunk mesher calls with world context</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric">
+        <div class="label"><code>FishTankBakedModelFabric</code></div>
+        <div class="desc">Composites frame/sand/glass quads</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem;">&#8594;</div>
+
+    <!-- NeoForge column -->
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--neoforge)">NeoForge Platform</div>
+
+      <div class="flow-node neoforge">
+        <div class="label">FishTankBlockEntityNeoForge</div>
+        <div class="desc">Extends common BE, overrides <code>getModelData()</code></div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node neoforge">
+        <div class="label"><code>ModelData</code> (property bag)</div>
+        <div class="desc">Contains <code>FishTankModelData</code> as a typed property</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node neoforge">
+        <div class="label"><code>level.getModelData(pos)</code></div>
+        <div class="desc">NeoForge's ModelData system returns snapshot</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node neoforge">
+        <div class="label"><code>DynamicBlockStateModel.collectParts(...)</code></div>
+        <div class="desc">NeoForge chunk mesher calls with world context</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node neoforge">
+        <div class="label"><code>FishTankBakedModel</code></div>
+        <div class="desc">Composites frame/sand/glass quads</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ KEY DIVERGENCE POINTS ═══════════════════ -->
+<div class="section">
+  <h2>Key Divergence Points</h2>
+
+  <div class="divergence">
+    <div class="divergence-header">1. World-Context API</div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric</span>
+        <p style="margin-top:0.4rem"><code>FabricBlockStateModel.emitQuads(QuadEmitter, BlockAndTintGetter, BlockPos, ...)</code></p>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-top:0.3rem;">QuadEmitter-based — quads are emitted directly into the quad buffer.</p>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge</span>
+        <p style="margin-top:0.4rem"><code>DynamicBlockStateModel.collectParts(BlockAndTintGetter, BlockPos, ...)</code></p>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-top:0.3rem;">List-based — returns <code>List&lt;BlockStateModelPart&gt;</code> to be collected.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divergence">
+    <div class="divergence-header">2. Block Entity Data Access</div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric</span>
+        <p style="margin-top:0.4rem"><code>RenderDataBlockEntity.getRenderData()</code></p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Interface injected by Fabric API. Snapshot captured on main thread before meshing job dispatch — no explicit synchronization needed.</p>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge</span>
+        <p style="margin-top:0.4rem"><code>ModelData</code> property bag</p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Typed property system. Block entity overrides <code>getModelData()</code> to contribute properties.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divergence">
+    <div class="divergence-header">3. Blockstate JSON Syntax</div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric</span>
+        <div class="code-block" style="margin-top:0.4rem">{
+  "variants": {
+    "": {
+      "fabric:type": "fishtastic:fish_tank"
+    }
+  }
+}</div>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge</span>
+        <div class="code-block" style="margin-top:0.4rem">{
+  "variants": {
+    "": {
+      "type": "fishtastic:fish_tank"
+    }
+  }
+}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divergence">
+    <div class="divergence-header">4. Item Model Loader</div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric</span>
+        <p style="margin-top:0.4rem"><code>UnbakedModelDeserializer.register()</code></p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Registered in client init. Uses <code>"fabric:type"</code> in JSON.</p>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge</span>
+        <p style="margin-top:0.4rem"><code>UnbakedModelLoader</code> via <code>ModelEvent.RegisterLoaders</code></p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Standard Forge event. Uses <code>"loader"</code> in JSON.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divergence">
+    <div class="divergence-header">5. Blockstate Redirect Resolution <span class="badge badge-warn">Critical</span></div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric — Automatic</span>
+        <p style="margin-top:0.4rem"><code>PreparableModelLoadingPlugin</code></p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Runs off-thread during resource reload. Reads all blockstate JSONs, builds a <code>Map&lt;standardPath, actualPath&gt;</code> redirect map. <code>BlockModelPathResolverFabric</code> checks it at texture-lookup time. Missing models are skipped to prevent fallback short-circuit.</p>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge — Config-driven</span>
+        <p style="margin-top:0.4rem"><code>FishtasticConfig.STARTUP.blockModelPathOverrides</code></p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">User-editable config entries with wildcard pattern matching. Standard <code>block/&lt;name&gt;</code> path is always the fallback.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ COMPARISON TABLE ═══════════════════ -->
+<div class="section">
+  <h2>Side-by-Side Comparison</h2>
+
+  <div class="compare-grid">
+    <div class="compare-header"></div>
+    <div class="compare-header" style="color:var(--fabric)">Fabric</div>
+    <div class="compare-header" style="color:var(--neoforge)">NeoForge</div>
+
+    <div class="compare-cell">Baked Model Interface</div>
+    <div class="compare-cell fabric-cell">
+      <code>BlockStateModel</code> + <code>FabricBlockStateModel</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>DynamicBlockStateModel</code>
+    </div>
+
+    <div class="compare-cell">World-Context Method</div>
+    <div class="compare-cell fabric-cell">
+      <code>emitQuads(QuadEmitter, ...)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>collectParts(BlockAndTintGetter, ...)</code>
+    </div>
+
+    <div class="compare-cell">Block Entity Data</div>
+    <div class="compare-cell fabric-cell">
+      <code>RenderDataBlockEntity.getRenderData()</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>ModelData</code> property bag
+    </div>
+
+    <div class="compare-cell">Data Snapshot Class</div>
+    <div class="compare-cell fabric-cell">
+      <code>FishTankModelDataFabric</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>FishTankModelData</code> + <code>ModelProperty&lt;T&gt;</code>
+    </div>
+
+    <div class="compare-cell">Unbaked Block State Model</div>
+    <div class="compare-cell fabric-cell">
+      <code>FishTankBlockStateModelFabric</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>FishTankBlockStateModel</code>
+    </div>
+
+    <div class="compare-cell">Item Model Loader</div>
+    <div class="compare-cell fabric-cell">
+      <code>UnbakedModelDeserializer</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>UnbakedModelLoader</code> + <code>ModelEvent</code>
+    </div>
+
+    <div class="compare-cell">Redirect Resolution</div>
+    <div class="compare-cell fabric-cell">
+      <code>PreparableModelLoadingPlugin</code> (automatic)
+    </div>
+    <div class="compare-cell neoforge-cell">
+      Config-driven <code>blockModelPathOverrides</code>
+    </div>
+
+    <div class="compare-cell">Particle Material Fix</div>
+    <div class="compare-cell fabric-cell">
+      <code>model.resolveParticleMaterial(slots, baker)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>ResolvedModel.resolveParticleMaterial(slots, baker, model)</code>
+    </div>
+
+    <div class="compare-cell">Missing Model Handling</div>
+    <div class="compare-cell fabric-cell">
+      Skip <code>debugName()</code> == <code>builtin/missing</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      Config fallback to standard path
+    </div>
+
+    <div class="compare-cell">Model Cache</div>
+    <div class="compare-cell fabric-cell">
+      <code>ConcurrentHashMap&lt;CacheKey, CachedModel&gt;</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>ConcurrentHashMap&lt;CacheKey, CachedModel&gt;</code>
+    </div>
+
+    <div class="compare-cell">Thread Safety</div>
+    <div class="compare-cell fabric-cell">
+      Snapshot captured by Fabric API before meshing
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>ModelData</code> system captures on main thread
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ THE bAKE TOP GEOMETRY BUG ═══════════════════ -->
+<div class="section">
+  <h2>The <code>bakeTopGeometry</code> Cache Bug <span class="badge badge-danger">Fixed</span></h2>
+  <p>Both platforms had to work around a bug in Minecraft's <code>ModelWrapper.bakeTopGeometry()</code>:</p>
+
+  <div class="code-block">
+    // BROKEN: caches by ModelState only, ignoring TextureSlots
+    model.bakeTopGeometry(textureSlots, baker, state)
+    //  ┌─ ModelWrapper stores result in fixed slot for IDENTITY
+    //  │  forever after first call (wrong texture returned)
+    //  └─ Other ModelState values cached by object identity
+    //     — reused static states return first result forever
+  </div>
+
+  <p><strong>The fix on both platforms:</strong> bypass <code>ResolvedModel</code> entirely and call the underlying geometry bake directly:</p>
+
+  <div class="code-block">
+    // WORKAROUND: go straight to UnbakedGeometry implementation
+    model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model, ...)
+  </div>
+
+  <p>The particle material has the same issue — both platforms call the static <code>resolveParticleMaterial(slots, baker, model)</code> overload to bypass the cached <code>KERNEL_PARTICLE_SPRITE</code> slot.</p>
+</div>
+
+<!-- ═══════════════════ MODEL GENERATION FLOW ═══════════════════ -->
+<div class="section">
+  <h2>Composite Model Generation (Identical Logic)</h2>
+  <p>Despite the different APIs, the model generation pipeline is structurally identical on both platforms:</p>
+
+  <div class="flow-container">
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 1: Read Data</div>
+      <div class="flow-node common">
+        <div class="label">Get FishTankModelData</div>
+        <div class="desc">frameBlock, sandBlock, glassBlock, openFaces</div>
+      </div>
+    </div>
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 2: Select Permutation</div>
+      <div class="flow-node common">
+        <div class="label">Compute permutation index</div>
+        <div class="desc">openFaces bitmask → 0..63</div>
+      </div>
+    </div>
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 3: Lookup Textures</div>
+      <div class="flow-node common">
+        <div class="label">getBlockTexture(frame)</div>
+        <div class="desc">getBlockTexture(sand) → Material[]</div>
+      </div>
+    </div>
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 4: Build TextureSlots</div>
+      <div class="flow-node common">
+        <div class="label">overrideAllTexture(tex, model)</div>
+        <div class="desc">Override "all" + "particle", chain parent hierarchy</div>
+      </div>
+    </div>
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 5: Bake Geometry</div>
+      <div class="flow-node common">
+        <div class="label">getTopGeometry().bake(slots, ...)</div>
+        <div class="desc">Bypass ModelWrapper cache → QuadCollection</div>
+      </div>
+    </div>
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--text)">Step 6: Composite</div>
+      <div class="flow-node common">
+        <div class="label">Combine frame + sand + glass</div>
+        <div class="desc">QuadCollection → BlockStateModelPart → cache</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ REGISTRATION COMPARISON ═══════════════════ -->
+<div class="section">
+  <h2>Client Registration</h2>
+
+  <div class="compare-grid">
+    <div class="compare-header"></div>
+    <div class="compare-header" style="color:var(--fabric)">Fabric</div>
+    <div class="compare-header" style="color:var(--neoforge)">NeoForge</div>
+
+    <div class="compare-cell">Block State Model</div>
+    <div class="compare-cell fabric-cell">
+      <code>CustomUnbakedBlockStateModel.register(ft("fish_tank"), ...)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>RegisterBlockStateModels</code> event → <code>event.registerModel(...)</code>
+    </div>
+
+    <div class="compare-cell">Item Model</div>
+    <div class="compare-cell fabric-cell">
+      <code>UnbakedModelDeserializer.register(ft("fish_tank"), ...)</code><br>
+      <code>CustomItemModelTypes.register(...)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>ModelEvent.RegisterLoaders</code> → <code>event.register(...)</code>
+    </div>
+
+    <div class="compare-cell">Block Entity Renderer</div>
+    <div class="compare-cell fabric-cell">
+      <code>BlockEntityRendererRegistry.register(...)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>EntityRenderersEvent.RegisterRenderers</code>
+    </div>
+
+    <div class="compare-cell">Redirect Plugin</div>
+    <div class="compare-cell fabric-cell">
+      <code>PreparableModelLoadingPlugin.register(LOADER, PLUGIN)</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <em>Not needed — uses config-driven overrides</em>
+    </div>
+
+    <div class="compare-cell">Registration Entry Point</div>
+    <div class="compare-cell fabric-cell">
+      <code>FishtasticFabricClient.onInitializeClient()</code>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>FishtasticNeoForgeClient</code> event handlers
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ THREAD SAFETY ═══════════════════ -->
+<div class="section">
+  <h2>Thread Safety Boundary</h2>
+  <p>The block entity lives on the <strong>main thread</strong>. Chunk meshing runs on a <strong>background thread</strong>. Both platforms must cross this boundary safely.</p>
+
+  <div class="flow-container">
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--fabric)">Fabric — Snapshot API</div>
+      <div class="flow-node fabric">
+        <div class="label">Main Thread</div>
+        <div class="desc"><code>getRenderData()</code> returns <code>FishTankModelDataFabric</code> snapshot</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric" style="border-left-color:var(--warn);">
+        <div class="label" style="color:var(--warn);">&#9888; Boundary</div>
+        <div class="desc">Fabric API captures snapshot before dispatching meshing job</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node fabric">
+        <div class="label">Meshing Thread</div>
+        <div class="desc"><code>FabricBlockGetter.getBlockEntityRenderData(pos)</code> reads snapshot — no locking needed</div>
+      </div>
+    </div>
+
+    <div class="flow-column">
+      <div class="flow-column-title" style="color:var(--neoforge)">NeoForge — ModelData</div>
+      <div class="flow-node neoforge">
+        <div class="label">Main Thread</div>
+        <div class="desc"><code>getModelData()</code> builds <code>ModelData</code> with <code>FishTankModelData</code> property</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node neoforge" style="border-left-color:var(--warn);">
+        <div class="label" style="color:var(--warn);">&#9888; Boundary</div>
+        <div class="desc">Forge's ModelData system captures properties before meshing</div>
+      </div>
+      <div class="flow-node neoforge">
+        <div class="label">Meshing Thread</div>
+        <div class="desc"><code>level.getModelData(pos)</code> reads from captured <code>ModelData</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
