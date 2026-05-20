@@ -3,7 +3,6 @@ package grill24.fishtastic.neoforge.fishtank;
 import grill24.fishtastic.client.util.BlockstateModelScanner;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
-import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -24,10 +23,10 @@ public final class BlockstateModelReloadListener implements PreparableReloadList
     private BlockstateModelReloadListener() {}
 
     @Override
-    public CompletableFuture<Void> reload(PreparationBarrier barrier, ResourceManager resourceManager,
-                                          Executor backgroundExecutor, Executor gameExecutor) {
+    public CompletableFuture<Void> reload(PreparableReloadListener.SharedState sharedState, Executor backgroundExecutor,
+                                          PreparableReloadListener.PreparationBarrier barrier, Executor gameExecutor) {
         return CompletableFuture
-                .supplyAsync(() -> BlockstateModelScanner.buildRedirectMap(resourceManager), backgroundExecutor)
+                .supplyAsync(() -> BlockstateModelScanner.buildRedirectMap(sharedState.resourceManager()), backgroundExecutor)
                 .thenCompose(barrier::wait)
                 .thenAcceptAsync(BlockstateRedirectRegistry::update, gameExecutor);
     }
