@@ -20,6 +20,25 @@ The solution on both platforms is a **dynamic block state model** that is called
 
 ---
 
+## Shared Utilities (`client/compositemodel` package)
+
+The logic common to both platforms lives in `common/src/main/java/grill24/fishtastic/client/compositemodel/`:
+
+| Class | Role |
+|---|---|
+| `BlockstateRedirectRegistry` | Shared volatile map of `standardPath → actualPath`; populated at resource reload by each platform's adapter |
+| `BlockstateModelScanner` | Scans all `assets/*/blockstates/*.json` to build the redirect map; used by both platform adapters |
+| `BlockModelPathResolver` | Base path resolution: redirect → standard path fallback; Fabric uses this directly |
+| `CompositeTextureHelper` | `resolveBlockTexture()` and `overrideAllTexture()` — extracted from both baked model classes where they were previously duplicated |
+
+The fish-tank-specific data record also lives in common:
+
+| Class | Role |
+|---|---|
+| `fishtank/FishTankCompositeModelData` | `record(Block frame, Block sand, Block glass, Set<Direction> openFaces)` — the snapshot passed across the thread boundary on both platforms |
+
+---
+
 ## Sub-Model System (shared)
 
 Rather than one monolithic mesh, the fish tank is broken into three composited parts:
@@ -48,16 +67,17 @@ All 192 sub-models are declared as dependencies during the `resolveDependencies`
 Block entity (main thread)
     │  getFrameBlock() / getSandBlock() / getGlassBlock() / getOpenFaces()
     ▼
-Platform-specific render-data snapshot  ← captured on main thread before meshing
+FishTankCompositeModelData  ← immutable snapshot, safe to hand to meshing thread
     │
     ▼
 Chunk meshing thread
-    │  reads snapshot (FishTankModelData / FishTankModelDataFabric)
+    │  reads snapshot (via platform-specific API — see below)
     ▼
 Dynamic block state model
-    │  selects permutation index → picks sub-model geometry
-    │  looks up texture from baker for each of the three blocks
-    │  builds TextureSlots override → bakes composite QuadCollection
+    │  getPermutationIndex() → picks sub-model geometry [0..63]
+    │  CompositeTextureHelper.resolveBlockTexture() for each of the three blocks
+    │  CompositeTextureHelper.overrideAllTexture() → builds TextureSlots override
+    │  getTopGeometry().bake() directly → QuadCollection  (bypasses ModelWrapper cache)
     ▼
 Chunk mesh / render
 ```
@@ -86,7 +106,14 @@ Implements NeoForge's `CustomUnbakedBlockStateModel`. Referenced in `blockstates
 
 Implements NeoForge's `DynamicBlockStateModel`, which extends `BlockStateModel` and adds `collectParts(BlockAndTintGetter, BlockPos, …)`. This overload is called by NeoForge's chunk mesher when it detects that the model is dynamic, giving it world context.
 
-**Data access:** NeoForge uses `ModelData` — a typed property bag. `FishTankBlockEntityNeoForge.getModelData()` constructs a `ModelData` containing a `FishTankModelData` property. The mesher calls `level.getModelData(pos)` to retrieve it.
+**Data access:** NeoForge uses `ModelData` — a typed property bag. `FishTankBlockEntityNeoForge.getModelData()` constructs a `ModelData` containing a `FishTankCompositeModelData` value, stored under the `FishTankModelData.DATA_PROPERTY` key. The mesher calls `level.getModelData(pos)` to retrieve it.
+
+Note: `FishTankModelData` (NeoForge-only) is now just the property key holder:
+```java
+public final class FishTankModelData {
+    public static final ModelProperty<FishTankCompositeModelData> DATA_PROPERTY = new ModelProperty<>();
+}
+```
 
 **Model cache:** Composite models are keyed by `CacheKey(frame, sand, glass, permutation)` in a `ConcurrentHashMap`. Cache misses generate the composite under a `synchronized` lock. Failed generations (null texture) are intentionally **not** cached so the next chunk re-mesh retries.
 
@@ -94,9 +121,9 @@ Implements NeoForge's `DynamicBlockStateModel`, which extends `BlockStateModel` 
 
 A separate `UnbakedModel` for the fish tank item, baked once at load time into a static default composite (permutation 0, oak planks / sand / blue glass). It also calls `resolveDependencies` for all 192 sub-models, so loading the item model is sufficient to guarantee all sub-models are resolved regardless of load order.
 
-### Model Path Resolution (`BlockModelPathResolver`)
+### Model Path Resolution (`BlockModelPathResolver` — NeoForge)
 
-NeoForge reads `FishtasticConfig.STARTUP.blockModelPathOverrides` — a user-configurable list of `{pattern, blocks, modelPath}` entries — to map blocks whose blockstate-declared model path is not `namespace:block/<blockname>`. Config entries support wildcard patterns and tag references. The standard path is always included as a final fallback.
+NeoForge's `BlockModelPathResolver` extends the common base with `FishtasticConfig.STARTUP.blockModelPathOverrides` — a user-configurable list of `{pattern, blocks, modelPath}` entries. Config entries support wildcard patterns and tag references. Priority order: blockstate redirect (from common `BlockstateRedirectRegistry`) → config overrides → standard path.
 
 ---
 
@@ -125,9 +152,13 @@ Implements both vanilla `BlockStateModel` and Fabric API's `FabricBlockStateMode
 
 `FabricBlockStateModel` adds `emitQuads(QuadEmitter, BlockAndTintGetter, BlockPos, …)`, which is the Fabric equivalent of NeoForge's `DynamicBlockStateModel.collectParts`. When this interface is present, Fabric's chunk mesher calls it with world context instead of the vanilla `collectParts(RandomSource, List)`.
 
-**Data access:** Fabric uses `RenderDataBlockEntity` — an interface injected by Fabric API. `FishTankBlockEntityFabric.getRenderData()` returns a `FishTankModelDataFabric` snapshot. During meshing, `((FabricBlockGetter) level).getBlockEntityRenderData(pos)` retrieves it. The snapshot is captured on the main thread before the meshing job is dispatched, providing thread safety without any explicit synchronisation.
+**Data access:** Fabric uses `RenderDataBlockEntity` — an interface injected by Fabric API. `FishTankBlockEntityFabric.getRenderData()` returns a `FishTankCompositeModelData` snapshot. During meshing, `((FabricBlockGetter) level).getBlockEntityRenderData(pos)` retrieves it. The snapshot is captured on the main thread before the meshing job is dispatched, providing thread safety without any explicit synchronisation.
 
 **Model cache:** Identical structure to NeoForge (`ConcurrentHashMap<CacheKey, CachedModel>`, synchronized lazy generation, failed generations not cached).
+
+### Model Path Resolution (Fabric)
+
+Fabric uses the common `BlockModelPathResolver` directly (redirect → standard path). There is no config override system — the automatic redirect map from `BlockstateModelScanner` covers all cases.
 
 ### Why `FabricBlockStateModel` Instead of a Block Entity Renderer
 
@@ -163,16 +194,27 @@ Each platform ships its own copy of this file.
 
 ### 4. Blockstate Redirect Resolution
 
-When `getBlockTexture(block)` looks up a block's texture, it calls `baker.getModel(path)` where `path` is the model location. The expected path is `namespace:block/<blockname>`, but many blocks (311 in vanilla alone, and all of fishtastic's glass blocks) have their blockstate JSON point to a model at a different path (e.g., `fishtastic:block/glass/borderless_glass` instead of `fishtastic:block/borderless_glass`). In this case `baker.getModel` returns the missing model placeholder instead of the real one.
+When `CompositeTextureHelper.resolveBlockTexture()` looks up a block's texture, it calls `baker.getModel(path)` where `path` is the model location. The expected path is `namespace:block/<blockname>`, but many blocks (311 in vanilla alone, and all of fishtastic's glass blocks) have their blockstate JSON point to a model at a different path. In this case `baker.getModel` returns the missing model placeholder.
 
-**NeoForge** solves this with `FishtasticConfig.STARTUP.blockModelPathOverrides` — a user-editable config list of `{pattern, modelPath}` entries read by `BlockModelPathResolver`. Pattern matching supports wildcards and tag references.
+Both platforms now share `BlockstateRedirectRegistry` and `BlockstateModelScanner` from the `compositemodel` package — the scanner reads every `assets/*/blockstates/*.json` at resource-reload time to build the redirect map. The platform difference is only in how the scan is triggered:
 
-**Fabric** has no equivalent config system, so we solve it automatically using `PreparableModelLoadingPlugin`:
+- **Fabric:** `BlockstateModelRedirectPlugin` (a `PreparableModelLoadingPlugin`) triggers the scan off-thread during resource reload, before baking begins.
+- **NeoForge:** `BlockstateModelReloadListener` (a `PreparableReloadListener` registered before `MODELS`) triggers the same scan.
 
-- `BlockstateModelRedirectPlugin.LOADER` runs off-thread during resource reload, reads every `assets/*/blockstates/*.json` via `FileToIdConverter.listMatchingResources`, parses both `variants` and `multipart` formats to extract the first model reference, and builds a `Map<standardPath, actualPath>` for all blocks where the two differ.
-- `BlockstateModelRedirectPlugin.PLUGIN` stores the result in `BlockstateRedirectRegistry`.
-- `BlockModelPathResolverFabric.getModelLocations` checks the registry first and returns `[redirectPath, standardPath]` so the correct path is tried first with the standard as a fallback.
-- `FishTankBakedModelFabric.getBlockTexture` skips any `ResolvedModel` whose `debugName()` equals `"minecraft:builtin/missing"` (the sentinel value for `MissingCuboidModel.LOCATION`) before trying the next candidate path. Without this check, the missing model's `particle` texture slot would return a non-null missing-texture material and short-circuit the fallback.
+After the scan, both platforms call `BlockstateRedirectRegistry.update(map)` to store the result, and both use it through their respective `BlockModelPathResolver` implementations.
+
+**NeoForge only:** additionally reads `FishtasticConfig.STARTUP.blockModelPathOverrides` as a manual escape hatch for edge cases not caught by the scanner.
+
+`CompositeTextureHelper.resolveBlockTexture()` skips any `ResolvedModel` whose `debugName()` equals `"minecraft:builtin/missing"` (the sentinel for `MissingCuboidModel`) before trying the next candidate path — preventing a missing-texture material from short-circuiting the fallback chain.
+
+### 5. Geometry Bake Call
+
+The one line that cannot be shared between platforms:
+
+- **Fabric:** `model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model)`
+- **NeoForge:** `model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model, ResolvedModelExtension.findTopAdditionalProperties(model))`
+
+NeoForge extends the `UnbakedGeometry.bake` signature with an additional properties argument. This is why `bakeGeometry()` stays as a private method in each platform's baked model class rather than moving to `CompositeTextureHelper`.
 
 ---
 

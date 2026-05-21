@@ -1,6 +1,9 @@
 package grill24.fishtastic.fabric.fishtank;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
+import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
+import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import net.fabricmc.fabric.api.blockgetter.v2.FabricBlockGetter;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart;
@@ -18,7 +21,6 @@ import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -63,7 +65,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         this.sandModels = sandModels;
         this.glassModels = glassModels;
 
-        FishTankModelDataFabric defaultData = FishTankModelDataFabric.DEFAULT;
+        FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
         CachedModel defaultModel = generateCompositeModel(defaultData);
 
         if (defaultModel != null) {
@@ -88,7 +90,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     @Override
     public void emitQuads(QuadEmitter emitter, BlockAndTintGetter level, BlockPos pos, BlockState state,
                           RandomSource random, Predicate<Direction> cullTest) {
-        FishTankModelDataFabric data = readBlockEntityData(level, pos);
+        FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
@@ -123,7 +125,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
     @Override
     public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
-        FishTankModelDataFabric data = readBlockEntityData(level, pos);
+        FishTankCompositeModelData data = readBlockEntityData(level, pos);
         return new CacheKey(
                 data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
@@ -131,7 +133,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
     @Override
     public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
-        FishTankModelDataFabric data = readBlockEntityData(level, pos);
+        FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
@@ -141,7 +143,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
     @Override
     public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
-        FishTankModelDataFabric data = readBlockEntityData(level, pos);
+        FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
@@ -168,18 +170,23 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private FishTankModelDataFabric readBlockEntityData(BlockAndTintGetter level, BlockPos pos) {
+    private FishTankCompositeModelData readBlockEntityData(BlockAndTintGetter level, BlockPos pos) {
         Object renderData = ((FabricBlockGetter) level).getBlockEntityRenderData(pos);
-        if (renderData instanceof FishTankModelDataFabric data) {
+        if (renderData instanceof FishTankCompositeModelData data) {
             return data;
         }
-        return FishTankModelDataFabric.DEFAULT;
+        return FishTankCompositeModelData.DEFAULT;
     }
 
-    // ── Model generation (same logic as NeoForge) ─────────────────────────
+    @Nullable
+    private Material getBlockTexture(Block block) {
+        return CompositeTextureHelper.resolveBlockTexture(block, baker, BlockModelPathResolver.getModelLocations(block));
+    }
+
+    // ── Model generation ──────────────────────────────────────────────────
 
     @Nullable
-    private CachedModel generateCompositeModel(FishTankModelDataFabric data) {
+    private CachedModel generateCompositeModel(FishTankCompositeModelData data) {
         int perm = data.getPermutationIndex();
         try {
             Material frameTex = getBlockTexture(data.frameBlock());
@@ -195,9 +202,9 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                 return null;
             }
 
-            TextureSlots frameSlots = overrideAllTexture(frameTex, frameModels[perm]);
-            TextureSlots sandSlots  = overrideAllTexture(sandTex,  sandModels[perm]);
-            TextureSlots glassSlots = overrideAllTexture(glassTex, glassModels[perm]);
+            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModels[perm]);
+            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModels[perm]);
+            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModels[perm]);
 
             QuadCollection frameQuads = bakeGeometry(frameModels[perm], frameSlots);
             QuadCollection sandQuads  = bakeGeometry(sandModels[perm],  sandSlots);
@@ -236,63 +243,5 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
             Fishtastic.LOGGER.error("Fish Tank (Fabric): error baking geometry for model {}", model.debugName(), e);
             return null;
         }
-    }
-
-    private static final String MISSING_MODEL_DEBUG_NAME = "minecraft:builtin/missing";
-
-    /**
-     * Gets the primary texture {@link Material} from a block's model.
-     * Tries {@code "all"} first (cube_all), then common multi-texture slot names.
-     * Skips any location that resolves to the missing model placeholder.
-     */
-    @Nullable
-    private Material getBlockTexture(Block block) {
-        List<Identifier> locations = BlockModelPathResolverFabric.getModelLocations(block);
-        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
-
-        for (Identifier location : locations) {
-            try {
-                ResolvedModel blockModel = baker.getModel(location);
-
-                if (MISSING_MODEL_DEBUG_NAME.equals(blockModel.debugName())) {
-                    continue;
-                }
-
-                TextureSlots slots = blockModel.getTopTextureSlots();
-
-                Material mat = slots.getMaterial("all");
-                if (mat != null) return mat;
-
-                for (String slotName : new String[]{"top", "side", "front", "end", "particle"}) {
-                    mat = slots.getMaterial(slotName);
-                    if (mat != null) return mat;
-                }
-
-                Fishtastic.LOGGER.warn("[FishTankBakedModelFabric.getBlockTexture] block={} location={} has no usable texture slot!", blockId, location);
-            } catch (Exception e) {
-                Fishtastic.LOGGER.debug("Fish Tank (Fabric): could not resolve model {} for texture lookup: {}", location, e.getMessage());
-            }
-        }
-
-        Fishtastic.LOGGER.warn("[FishTankBakedModelFabric.getBlockTexture] block={} — no texture found across {} locations", blockId, locations);
-        return null;
-    }
-
-    /**
-     * Creates a {@link TextureSlots} that overrides {@code "all"} and {@code "particle"} with
-     * {@code texture}, while chaining through {@code baseModel}'s full texture hierarchy as fallback.
-     */
-    private static TextureSlots overrideAllTexture(Material texture, ResolvedModel baseModel) {
-        TextureSlots.Data.Builder builder = new TextureSlots.Data.Builder();
-        builder.addTexture("all", texture);
-        builder.addTexture("particle", texture);
-
-        TextureSlots.Resolver resolver = new TextureSlots.Resolver().addFirst(builder.build());
-
-        for (ResolvedModel m = baseModel; m != null; m = m.parent()) {
-            resolver.addLast(m.wrapped().textureSlots());
-        }
-
-        return resolver.resolve(() -> "fish_tank_override");
     }
 }

@@ -1,7 +1,7 @@
 package grill24.fishtastic.neoforge.fishtank;
 
-import grill24.fishtastic.client.util.BlockstateModelScanner;
-import net.minecraft.resources.Identifier;
+import grill24.fishtastic.client.compositemodel.BlockstateModelScanner;
+import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 
 import java.util.Map;

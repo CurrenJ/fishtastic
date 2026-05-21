@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.blockentity;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.neoforge.fishtank.FishTankModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -23,7 +24,7 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
     @Override
     @NotNull
     public ModelData getModelData() {
-        FishTankModelData data = new FishTankModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
+        FishTankCompositeModelData data = new FishTankCompositeModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
         return ModelData.builder()
                 .with(FishTankModelData.DATA_PROPERTY, data)
                 .build();
@@ -51,4 +52,3 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
         }
     }
 }
-

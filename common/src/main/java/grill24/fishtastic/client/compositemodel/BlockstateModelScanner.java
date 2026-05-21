@@ -1,4 +1,4 @@
-package grill24.fishtastic.client.util;
+package grill24.fishtastic.client.compositemodel;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -20,7 +20,7 @@ import java.util.Map;
  * standard model path ({@code namespace:block/name}) to the actual model path declared in its
  * blockstate JSON.
  *
- * <p>Used by both Fabric and NeoForge to populate their platform-specific redirect registries
+ * <p>Used by both Fabric and NeoForge to populate {@link BlockstateRedirectRegistry}
  * before model baking begins.
  */
 public final class BlockstateModelScanner {

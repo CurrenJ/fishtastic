@@ -1,7 +1,7 @@
 package grill24.fishtastic.fabric.blockentity;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.fabric.fishtank.FishTankModelDataFabric;
+import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * snapshot of model customization data for chunk meshing via Fabric's render data API.
  *
  * <p>{@link #getRenderData()} is called on the main thread when the render region is built;
- * the returned {@link FishTankModelDataFabric} is then returned by
+ * the returned {@link FishTankCompositeModelData} is then returned by
  * {@code FabricBlockGetter.getBlockEntityRenderData()} during background chunk meshing,
  * avoiding race conditions on the live block entity state.
  */
@@ -23,6 +23,6 @@ public class FishTankBlockEntityFabric extends FishTankBlockEntity {
     // Overrides the default RenderDataBlockEntity.getRenderData() (interface-injected by Fabric API).
     // Returns an immutable snapshot safe for background-thread chunk meshing.
     public Object getRenderData() {
-        return new FishTankModelDataFabric(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
+        return new FishTankCompositeModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
     }
 }

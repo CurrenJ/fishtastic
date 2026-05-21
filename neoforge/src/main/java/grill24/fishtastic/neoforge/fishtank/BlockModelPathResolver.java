@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.fishtank;
 
 import com.electronwill.nightconfig.core.Config;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import grill24.fishtastic.neoforge.FishtasticConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -16,6 +17,10 @@ import java.util.stream.StreamSupport;
 
 /**
  * Resolves model locations for blocks, taking into account config overrides for non-standard paths.
+ *
+ * <p>Priority order: blockstate redirect → config overrides → standard path.
+ * The base redirect→standard logic lives in {@link grill24.fishtastic.client.compositemodel.BlockModelPathResolver};
+ * this class extends it with NeoForge config-driven overrides.
  */
 public class BlockModelPathResolver {
 

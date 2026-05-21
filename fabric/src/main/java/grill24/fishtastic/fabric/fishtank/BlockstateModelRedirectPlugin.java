@@ -1,6 +1,7 @@
 package grill24.fishtastic.fabric.fishtank;
 
-import grill24.fishtastic.client.util.BlockstateModelScanner;
+import grill24.fishtastic.client.compositemodel.BlockstateModelScanner;
+import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
 import net.minecraft.resources.Identifier;
 
@@ -13,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
  * actual model path declared in its blockstate JSON.
  *
  * <p>Runs off-thread during the prepare phase, before model baking, so the map is ready when
- * {@link BlockModelPathResolverFabric} is first consulted during baking.
+ * {@link grill24.fishtastic.client.compositemodel.BlockModelPathResolver} is first consulted during baking.
  */
 public final class BlockstateModelRedirectPlugin {
     private BlockstateModelRedirectPlugin() {}

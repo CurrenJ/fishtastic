@@ -56,15 +56,13 @@
   .compare-cell.neoforge-cell { border-left: 2px solid var(--neoforge); }
   .compare-row:last-child .compare-cell { border-bottom: none; }
 
-  /* ── Sub-model grid ── */
-  .submodel-grid { display: grid; grid-template-columns: repeat(64, 1fr); gap: 1px; margin: 1rem 0; }
-  .submodel-cell { aspect-ratio: 1; border-radius: 2px; }
-  .submodel-cell.frame { background: #8B6914; }
-  .submodel-cell.sand { background: #d2b48c; }
-  .submodel-cell.glass { background: #87ceeb; }
-  .submodel-legend { display: flex; gap: 1rem; margin: 0.5rem 0; font-size: 0.85rem; }
-  .submodel-legend-item { display: flex; align-items: center; gap: 0.3rem; }
-  .submodel-legend-swatch { width: 14px; height: 14px; border-radius: 2px; }
+  /* ── Package table ── */
+  .pkg-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 0.85rem; margin: 0.75rem 0; }
+  .pkg-table th { background: var(--surface); padding: 0.5rem 0.8rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .pkg-table td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .pkg-table tr:last-child td { border-bottom: none; }
+  .pkg-table td:first-child { font-family: 'SF Mono', 'Fira Code', monospace; color: var(--accent); white-space: nowrap; }
+  .pkg-table td:last-child { color: var(--text-dim); }
 
   /* ── Divergence callouts ── */
   .divergence { border: 1px solid var(--border); border-radius: 8px; margin: 1rem 0; overflow: hidden; }
@@ -118,15 +116,54 @@
   <p><strong>Solution:</strong> Both platforms use a <em>dynamic block state model</em> that emits geometry at chunk-meshing time with world context, reads the block entity's current configuration, and retextures on the fly.</p>
 </div>
 
+<!-- ═══════════════════ SHARED UTILITIES ═══════════════════ -->
+<div class="section">
+  <h2>Shared Utilities <span class="badge badge-common">common</span></h2>
+  <p>Platform-agnostic logic lives in <code>common/…/client/compositemodel/</code> and <code>common/…/fishtank/</code>:</p>
+
+  <table class="pkg-table">
+    <tr><th>Class</th><th>Package</th><th>Role</th></tr>
+    <tr>
+      <td>BlockstateRedirectRegistry</td>
+      <td>client/compositemodel</td>
+      <td>Shared volatile map of standardPath → actualPath; updated at resource reload by each platform's adapter</td>
+    </tr>
+    <tr>
+      <td>BlockstateModelScanner</td>
+      <td>client/compositemodel</td>
+      <td>Scans all assets/*/blockstates/*.json to build the redirect map; called by both platform reload hooks</td>
+    </tr>
+    <tr>
+      <td>BlockModelPathResolver</td>
+      <td>client/compositemodel</td>
+      <td>Base path resolution: redirect → standard path fallback. Fabric uses this directly; NeoForge extends it with config overrides</td>
+    </tr>
+    <tr>
+      <td>CompositeTextureHelper</td>
+      <td>client/compositemodel</td>
+      <td><code>resolveBlockTexture()</code> and <code>overrideAllTexture()</code> — previously duplicated in both baked model classes</td>
+    </tr>
+    <tr>
+      <td>FishTankCompositeModelData</td>
+      <td>fishtank</td>
+      <td><code>record(Block frame, sand, glass, Set&lt;Direction&gt; openFaces)</code> — immutable snapshot passed across the main→meshing-thread boundary on both platforms</td>
+    </tr>
+  </table>
+
+  <p style="font-size:0.85rem; color:var(--text-dim);">
+    Previously each platform had its own <code>BlockstateRedirectRegistry</code> (identical copies), its own model data record (<code>FishTankModelDataFabric</code> / <code>FishTankModelData</code>), and its own private copies of the texture helper methods. These are now all in one place.
+  </p>
+</div>
+
 <!-- ═══════════════════ SUB-MODEL SYSTEM ═══════════════════ -->
 <div class="section">
   <h2>Sub-Model System (Shared)</h2>
   <p>The fish tank is composed of three parts, each with <strong>64 geometric permutations</strong> (2&sup6; = 64) for every combination of open/closed faces:</p>
 
-  <div class="submodel-legend">
-    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#8B6914"></div> Frame (64 models)</div>
-    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#d2b48c"></div> Sand (64 models)</div>
-    <div class="submodel-legend-item"><div class="submodel-legend-swatch" style="background:#87ceeb"></div> Glass (64 models)</div>
+  <div style="display:flex; gap:1rem; margin:0.5rem 0; font-size:0.85rem; flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:14px;height:14px;border-radius:2px;background:#8B6914"></div> Frame (64 models)</div>
+    <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:14px;height:14px;border-radius:2px;background:#d2b48c"></div> Sand (64 models)</div>
+    <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:14px;height:14px;border-radius:2px;background:#87ceeb"></div> Glass (64 models)</div>
   </div>
   <p style="font-size:0.85rem; color:var(--text-dim);">Total: <strong>192 sub-models</strong> pre-loaded at resource load time</p>
 
@@ -136,7 +173,7 @@
     fishtastic:block/fishtankbase/fish_tank_glass_0  .. fish_tank_glass_63
   </div>
 
-  <p style="font-size:0.85rem;">The permutation index is derived from the <code>openFaces</code> bitmask. At runtime, the correct permutation is selected and retextured from the chosen blocks.</p>
+  <p style="font-size:0.85rem;">The permutation index is derived from the <code>openFaces</code> bitmask (<code>Direction.ordinal()</code> → bit position). At runtime, the correct permutation is selected and retextured from the chosen blocks.</p>
 </div>
 
 <!-- ═══════════════════ RUNTIME DATA FLOW ═══════════════════ -->
@@ -150,23 +187,23 @@
       <div class="flow-column-title" style="color:var(--common)">Common (Shared)</div>
 
       <div class="flow-node common">
-        <div class="label">FishTankBlock</div>
-        <div class="desc">The block class itself</div>
-      </div>
-      <div class="flow-arrow">&#8595;</div>
-      <div class="flow-node common">
         <div class="label">FishTankBlockEntity</div>
         <div class="desc">Stores frame/sand/glass blocks, open faces, item data</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node common">
-        <div class="label">FishTankModelData</div>
-        <div class="desc">record(Block frame, sand, glass, openFaces) — the snapshot payload</div>
+        <div class="label">FishTankCompositeModelData</div>
+        <div class="desc">record(Block frame, sand, glass, openFaces) — immutable snapshot</div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-node common">
+        <div class="label">CompositeTextureHelper</div>
+        <div class="desc">resolveBlockTexture() + overrideAllTexture()</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node common">
         <div class="label">Composite Generation</div>
-        <div class="desc">Select permutation → lookup textures → bake geometry → combine quads</div>
+        <div class="desc">Select permutation → bake geometry → combine quads</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node common">
@@ -176,7 +213,7 @@
     </div>
 
     <!-- Arrow -->
-    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem;">&#8594;</div>
+    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem; padding:0 0.5rem;">&#8594;</div>
 
     <!-- Fabric column -->
     <div class="flow-column">
@@ -189,7 +226,7 @@
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node fabric">
         <div class="label"><code>getRenderData()</code></div>
-        <div class="desc">Returns <code>FishTankModelDataFabric</code> snapshot on main thread</div>
+        <div class="desc">Returns <code>FishTankCompositeModelData</code> snapshot on main thread</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node fabric">
@@ -209,7 +246,7 @@
     </div>
 
     <!-- Arrow -->
-    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem;">&#8594;</div>
+    <div style="display:flex; align-items:center; color:var(--text-dim); font-size:1.5rem; padding:0 0.5rem;">&#8594;</div>
 
     <!-- NeoForge column -->
     <div class="flow-column">
@@ -222,7 +259,7 @@
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node neoforge">
         <div class="label"><code>ModelData</code> (property bag)</div>
-        <div class="desc">Contains <code>FishTankModelData</code> as a typed property</div>
+        <div class="desc">Contains <code>FishTankCompositeModelData</code> under <code>FishTankModelData.DATA_PROPERTY</code></div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node neoforge">
@@ -269,12 +306,12 @@
       <div class="divergence-col fabric-col">
         <span class="badge badge-fabric">Fabric</span>
         <p style="margin-top:0.4rem"><code>RenderDataBlockEntity.getRenderData()</code></p>
-        <p style="margin-top:0.3rem; font-size:0.8rem;">Interface injected by Fabric API. Snapshot captured on main thread before meshing job dispatch — no explicit synchronization needed.</p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Interface injected by Fabric API. Returns <code>FishTankCompositeModelData</code> snapshot captured on main thread before meshing job dispatch — no explicit synchronization needed.</p>
       </div>
       <div class="divergence-col">
         <span class="badge badge-neoforge">NeoForge</span>
         <p style="margin-top:0.4rem"><code>ModelData</code> property bag</p>
-        <p style="margin-top:0.3rem; font-size:0.8rem;">Typed property system. Block entity overrides <code>getModelData()</code> to contribute properties.</p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Typed property system. Block entity overrides <code>getModelData()</code> to contribute <code>FishTankCompositeModelData</code> under <code>FishTankModelData.DATA_PROPERTY</code>.<br><br><code>FishTankModelData</code> is now just the property key holder — all data fields live in the common record.</p>
       </div>
     </div>
   </div>
@@ -325,14 +362,37 @@
     <div class="divergence-header">5. Blockstate Redirect Resolution <span class="badge badge-warn">Critical</span></div>
     <div class="divergence-body">
       <div class="divergence-col fabric-col">
-        <span class="badge badge-fabric">Fabric — Automatic</span>
-        <p style="margin-top:0.4rem"><code>PreparableModelLoadingPlugin</code></p>
-        <p style="margin-top:0.3rem; font-size:0.8rem;">Runs off-thread during resource reload. Reads all blockstate JSONs, builds a <code>Map&lt;standardPath, actualPath&gt;</code> redirect map. <code>BlockModelPathResolverFabric</code> checks it at texture-lookup time. Missing models are skipped to prevent fallback short-circuit.</p>
+        <span class="badge badge-fabric">Fabric</span>
+        <p style="margin-top:0.4rem">Triggered by <code>BlockstateModelRedirectPlugin</code> (<code>PreparableModelLoadingPlugin</code>)</p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Calls shared <code>BlockstateModelScanner.buildRedirectMap()</code> off-thread during resource reload, then stores the result in shared <code>BlockstateRedirectRegistry</code>. Path resolution uses common <code>BlockModelPathResolver</code> directly.</p>
       </div>
       <div class="divergence-col">
-        <span class="badge badge-neoforge">NeoForge — Config-driven</span>
-        <p style="margin-top:0.4rem"><code>FishtasticConfig.STARTUP.blockModelPathOverrides</code></p>
-        <p style="margin-top:0.3rem; font-size:0.8rem;">User-editable config entries with wildcard pattern matching. Standard <code>block/&lt;name&gt;</code> path is always the fallback.</p>
+        <span class="badge badge-neoforge">NeoForge</span>
+        <p style="margin-top:0.4rem">Triggered by <code>BlockstateModelReloadListener</code> (<code>PreparableReloadListener</code> before MODELS)</p>
+        <p style="margin-top:0.3rem; font-size:0.8rem;">Same shared scanner + registry. NeoForge <code>BlockModelPathResolver</code> extends the common base with config-driven overrides (<code>blockModelPathOverrides</code>) for edge cases not caught by automatic scanning.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divergence">
+    <div class="divergence-header">6. Geometry Bake Call <span class="badge badge-warn">Cannot Share</span></div>
+    <div class="divergence-body">
+      <div class="divergence-col fabric-col">
+        <span class="badge badge-fabric">Fabric</span>
+        <div class="code-block" style="margin-top:0.4rem">model.getTopGeometry().bake(
+  slots, baker,
+  BlockModelRotation.IDENTITY,
+  model)</div>
+      </div>
+      <div class="divergence-col">
+        <span class="badge badge-neoforge">NeoForge</span>
+        <div class="code-block" style="margin-top:0.4rem">model.getTopGeometry().bake(
+  slots, baker,
+  BlockModelRotation.IDENTITY,
+  model,
+  ResolvedModelExtension
+    .findTopAdditionalProperties(model))</div>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-top:0.4rem;">NeoForge extends the bake signature with additional properties. This is why <code>bakeGeometry()</code> stays in each platform's baked model class rather than moving to <code>CompositeTextureHelper</code>.</p>
       </div>
     </div>
   </div>
@@ -371,12 +431,45 @@
       <code>ModelData</code> property bag
     </div>
 
-    <div class="compare-cell">Data Snapshot Class</div>
+    <div class="compare-cell">Data Snapshot Type</div>
     <div class="compare-cell fabric-cell">
-      <code>FishTankModelDataFabric</code>
+      <code>FishTankCompositeModelData</code> <span class="badge badge-common">common</span>
     </div>
     <div class="compare-cell neoforge-cell">
-      <code>FishTankModelData</code> + <code>ModelProperty&lt;T&gt;</code>
+      <code>FishTankCompositeModelData</code> <span class="badge badge-common">common</span><br>
+      <span style="font-size:0.8rem; color:var(--text-dim);">stored under <code>FishTankModelData.DATA_PROPERTY</code></span>
+    </div>
+
+    <div class="compare-cell">Texture Resolution</div>
+    <div class="compare-cell fabric-cell">
+      <code>CompositeTextureHelper</code> <span class="badge badge-common">common</span>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>CompositeTextureHelper</code> <span class="badge badge-common">common</span>
+    </div>
+
+    <div class="compare-cell">Path Resolver</div>
+    <div class="compare-cell fabric-cell">
+      <code>BlockModelPathResolver</code> <span class="badge badge-common">common</span>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      NeoForge <code>BlockModelPathResolver</code> extends common + adds config overrides
+    </div>
+
+    <div class="compare-cell">Redirect Registry</div>
+    <div class="compare-cell fabric-cell">
+      <code>BlockstateRedirectRegistry</code> <span class="badge badge-common">common</span>
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>BlockstateRedirectRegistry</code> <span class="badge badge-common">common</span>
+    </div>
+
+    <div class="compare-cell">Redirect Trigger</div>
+    <div class="compare-cell fabric-cell">
+      <code>BlockstateModelRedirectPlugin</code> (<code>PreparableModelLoadingPlugin</code>)
+    </div>
+    <div class="compare-cell neoforge-cell">
+      <code>BlockstateModelReloadListener</code> (<code>PreparableReloadListener</code> before MODELS)
     </div>
 
     <div class="compare-cell">Unbaked Block State Model</div>
@@ -395,28 +488,12 @@
       <code>UnbakedModelLoader</code> + <code>ModelEvent</code>
     </div>
 
-    <div class="compare-cell">Redirect Resolution</div>
-    <div class="compare-cell fabric-cell">
-      <code>PreparableModelLoadingPlugin</code> (automatic)
-    </div>
-    <div class="compare-cell neoforge-cell">
-      Config-driven <code>blockModelPathOverrides</code>
-    </div>
-
     <div class="compare-cell">Particle Material Fix</div>
     <div class="compare-cell fabric-cell">
       <code>model.resolveParticleMaterial(slots, baker)</code>
     </div>
     <div class="compare-cell neoforge-cell">
       <code>ResolvedModel.resolveParticleMaterial(slots, baker, model)</code>
-    </div>
-
-    <div class="compare-cell">Missing Model Handling</div>
-    <div class="compare-cell fabric-cell">
-      Skip <code>debugName()</code> == <code>builtin/missing</code>
-    </div>
-    <div class="compare-cell neoforge-cell">
-      Config fallback to standard path
     </div>
 
     <div class="compare-cell">Model Cache</div>
@@ -426,18 +503,10 @@
     <div class="compare-cell neoforge-cell">
       <code>ConcurrentHashMap&lt;CacheKey, CachedModel&gt;</code>
     </div>
-
-    <div class="compare-cell">Thread Safety</div>
-    <div class="compare-cell fabric-cell">
-      Snapshot captured by Fabric API before meshing
-    </div>
-    <div class="compare-cell neoforge-cell">
-      <code>ModelData</code> system captures on main thread
-    </div>
   </div>
 </div>
 
-<!-- ═══════════════════ THE bAKE TOP GEOMETRY BUG ═══════════════════ -->
+<!-- ═══════════════════ THE bakeTopGeometry BUG ═══════════════════ -->
 <div class="section">
   <h2>The <code>bakeTopGeometry</code> Cache Bug <span class="badge badge-danger">Fixed</span></h2>
   <p>Both platforms had to work around a bug in Minecraft's <code>ModelWrapper.bakeTopGeometry()</code>:</p>
@@ -458,48 +527,48 @@
     model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model, ...)
   </div>
 
-  <p>The particle material has the same issue — both platforms call the static <code>resolveParticleMaterial(slots, baker, model)</code> overload to bypass the cached <code>KERNEL_PARTICLE_SPRITE</code> slot.</p>
+  <p>The particle material has the same issue — both platforms call the static <code>resolveParticleMaterial(slots, baker, model)</code> overload to bypass the cached <code>KEY_PARTICLE_SPRITE</code> slot.</p>
 </div>
 
 <!-- ═══════════════════ MODEL GENERATION FLOW ═══════════════════ -->
 <div class="section">
-  <h2>Composite Model Generation (Identical Logic)</h2>
-  <p>Despite the different APIs, the model generation pipeline is structurally identical on both platforms:</p>
+  <h2>Composite Model Generation</h2>
+  <p>Despite the different platform APIs for world-context access and geometry baking, steps 1–4 are now fully shared via <code>CompositeTextureHelper</code>. Only step 5 (the actual <code>bake()</code> call) differs.</p>
 
   <div class="flow-container">
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--text)">Step 1: Read Data</div>
       <div class="flow-node common">
-        <div class="label">Get FishTankModelData</div>
+        <div class="label">FishTankCompositeModelData</div>
         <div class="desc">frameBlock, sandBlock, glassBlock, openFaces</div>
       </div>
     </div>
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--text)">Step 2: Select Permutation</div>
       <div class="flow-node common">
-        <div class="label">Compute permutation index</div>
+        <div class="label">getPermutationIndex()</div>
         <div class="desc">openFaces bitmask → 0..63</div>
       </div>
     </div>
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--text)">Step 3: Lookup Textures</div>
       <div class="flow-node common">
-        <div class="label">getBlockTexture(frame)</div>
-        <div class="desc">getBlockTexture(sand) → Material[]</div>
+        <div class="label">CompositeTextureHelper<br>.resolveBlockTexture()</div>
+        <div class="desc">redirect → standard → slot priority: all, top, side…</div>
       </div>
     </div>
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--text)">Step 4: Build TextureSlots</div>
       <div class="flow-node common">
-        <div class="label">overrideAllTexture(tex, model)</div>
+        <div class="label">CompositeTextureHelper<br>.overrideAllTexture()</div>
         <div class="desc">Override "all" + "particle", chain parent hierarchy</div>
       </div>
     </div>
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--text)">Step 5: Bake Geometry</div>
-      <div class="flow-node common">
-        <div class="label">getTopGeometry().bake(slots, ...)</div>
-        <div class="desc">Bypass ModelWrapper cache → QuadCollection</div>
+      <div class="flow-node common" style="border-left-color:var(--warn);">
+        <div class="label" style="color:var(--warn);">Platform-specific</div>
+        <div class="desc">getTopGeometry().bake(slots, ...) — NeoForge adds extra properties arg</div>
       </div>
     </div>
     <div class="flow-column">
@@ -531,8 +600,7 @@
 
     <div class="compare-cell">Item Model</div>
     <div class="compare-cell fabric-cell">
-      <code>UnbakedModelDeserializer.register(ft("fish_tank"), ...)</code><br>
-      <code>CustomItemModelTypes.register(...)</code>
+      <code>UnbakedModelDeserializer.register(ft("fish_tank"), ...)</code>
     </div>
     <div class="compare-cell neoforge-cell">
       <code>ModelEvent.RegisterLoaders</code> → <code>event.register(...)</code>
@@ -546,12 +614,13 @@
       <code>EntityRenderersEvent.RegisterRenderers</code>
     </div>
 
-    <div class="compare-cell">Redirect Plugin</div>
+    <div class="compare-cell">Redirect Plugin / Listener</div>
     <div class="compare-cell fabric-cell">
-      <code>PreparableModelLoadingPlugin.register(LOADER, PLUGIN)</code>
+      <code>PreparableModelLoadingPlugin.register(LOADER, PLUGIN)</code><br>
+      <span style="font-size:0.8rem;color:var(--text-dim);">Both call shared <code>BlockstateModelScanner</code> + <code>BlockstateRedirectRegistry</code></span>
     </div>
     <div class="compare-cell neoforge-cell">
-      <em>Not needed — uses config-driven overrides</em>
+      <code>AddClientReloadListenersEvent</code> (before MODELS)
     </div>
 
     <div class="compare-cell">Registration Entry Point</div>
@@ -567,14 +636,14 @@
 <!-- ═══════════════════ THREAD SAFETY ═══════════════════ -->
 <div class="section">
   <h2>Thread Safety Boundary</h2>
-  <p>The block entity lives on the <strong>main thread</strong>. Chunk meshing runs on a <strong>background thread</strong>. Both platforms must cross this boundary safely.</p>
+  <p>The block entity lives on the <strong>main thread</strong>. Chunk meshing runs on a <strong>background thread</strong>. Both platforms must cross this boundary safely using <code>FishTankCompositeModelData</code> as the immutable snapshot.</p>
 
   <div class="flow-container">
     <div class="flow-column">
       <div class="flow-column-title" style="color:var(--fabric)">Fabric — Snapshot API</div>
       <div class="flow-node fabric">
         <div class="label">Main Thread</div>
-        <div class="desc"><code>getRenderData()</code> returns <code>FishTankModelDataFabric</code> snapshot</div>
+        <div class="desc"><code>getRenderData()</code> returns new <code>FishTankCompositeModelData</code> snapshot</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node fabric" style="border-left-color:var(--warn);">
@@ -592,13 +661,14 @@
       <div class="flow-column-title" style="color:var(--neoforge)">NeoForge — ModelData</div>
       <div class="flow-node neoforge">
         <div class="label">Main Thread</div>
-        <div class="desc"><code>getModelData()</code> builds <code>ModelData</code> with <code>FishTankModelData</code> property</div>
+        <div class="desc"><code>getModelData()</code> builds <code>ModelData</code> with <code>FishTankCompositeModelData</code> property</div>
       </div>
       <div class="flow-arrow">&#8595;</div>
       <div class="flow-node neoforge" style="border-left-color:var(--warn);">
         <div class="label" style="color:var(--warn);">&#9888; Boundary</div>
         <div class="desc">Forge's ModelData system captures properties before meshing</div>
       </div>
+      <div class="flow-arrow">&#8595;</div>
       <div class="flow-node neoforge">
         <div class="label">Meshing Thread</div>
         <div class="desc"><code>level.getModelData(pos)</code> reads from captured <code>ModelData</code></div>
