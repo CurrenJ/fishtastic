@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.7] — 2026-06-01
+
+- Fix copper fishing rod not working on Fabric (hook immediately discarded, rod stays reeled-in)
+
 ## [1.0.6] — 2026-06-01
 
 - Port fish tank rendering to Fabric with blockstate redirect parity
