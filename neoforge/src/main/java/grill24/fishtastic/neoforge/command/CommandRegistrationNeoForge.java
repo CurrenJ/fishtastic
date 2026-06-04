@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.command;
 import com.mojang.brigadier.CommandDispatcher;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.command.DebugFishDataCommand;
+import grill24.fishtastic.command.FishProfileCommand;
 import grill24.fishtastic.command.FishtasticCommand;
 import grill24.fishtastic.command.SetFishQualityCommand;
 import grill24.fishtastic.command.SetItemSizeCommand;
@@ -24,5 +25,6 @@ public class CommandRegistrationNeoForge {
         SetItemSizeCommand.register(dispatcher);
         SetFishQualityCommand.register(dispatcher);
         DebugFishDataCommand.register(dispatcher);
+        FishProfileCommand.register(dispatcher);
     }
 }

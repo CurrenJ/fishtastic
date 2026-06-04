@@ -1,0 +1,14 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 40.0, "std_dev": 10.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 2.5 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 2.5 },
+    { "weather": "thunder", "multiplier": 3.0 }
+  ]
+}

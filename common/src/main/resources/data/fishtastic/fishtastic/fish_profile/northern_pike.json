@@ -1,0 +1,11 @@
+{
+  "base_weight": 7,
+  "size": { "mean": 70.0, "std_dev": 15.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_river", "multiplier": 3.0 }
+  ],
+  "time_weights": [
+    { "time": "dawn", "multiplier": 3.0 },
+    { "time": "dusk", "multiplier": 2.0 }
+  ]
+}

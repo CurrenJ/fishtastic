@@ -1,6 +1,7 @@
 package grill24.fishtastic.fabric.command;
 
 import grill24.fishtastic.command.DebugFishDataCommand;
+import grill24.fishtastic.command.FishProfileCommand;
 import grill24.fishtastic.command.FishtasticCommand;
 import grill24.fishtastic.command.SetFishQualityCommand;
 import grill24.fishtastic.command.SetItemSizeCommand;
@@ -17,6 +18,7 @@ public class CommandRegistrationFabric {
             SetItemSizeCommand.register(dispatcher);
             SetFishQualityCommand.register(dispatcher);
             DebugFishDataCommand.register(dispatcher);
+            FishProfileCommand.register(dispatcher);
         });
     }
 }

@@ -9,6 +9,8 @@ import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
+import grill24.fishtastic.client.tooltip.RodBaitTooltip;
 import grill24.fishtastic.fabric.fishtank.BlockstateModelRedirectPlugin;
 import grill24.fishtastic.fabric.fishtank.FishTankBlockStateModelFabric;
 import grill24.fishtastic.fabric.fishtank.FishTankModelFabric;
@@ -21,6 +23,7 @@ import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateMo
 import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -31,6 +34,14 @@ import static grill24.fishtastic.util.Utility.ft;
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Register visual tooltip renderer for rod bait slot
+        ClientTooltipComponentCallback.EVENT.register(component -> {
+            if (component instanceof RodBaitTooltip tooltip) {
+                return new ClientRodBaitTooltip(tooltip.bait());
+            }
+            return null;
+        });
+
         // Build blockstate → model path redirect map before baking starts
         PreparableModelLoadingPlugin.register(BlockstateModelRedirectPlugin.LOADER, BlockstateModelRedirectPlugin.PLUGIN);
 

@@ -1,0 +1,11 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 80.0, "std_dev": 15.0 },
+  "time_weights": [
+    { "time": "night", "multiplier": 2.0 },
+    { "time": "dawn", "multiplier": 1.5 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 1.5 }
+  ]
+}

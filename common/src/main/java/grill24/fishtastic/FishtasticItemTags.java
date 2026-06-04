@@ -11,6 +11,7 @@ public class FishtasticItemTags {
     public static final TagKey<Item> FISHING_RODS = create("fishing_rods");
     public static final TagKey<Item> FISH = create("fish");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");
+    public static final TagKey<Item> EXOTIC_FISH = create("exotic_fish");
 
     private static TagKey<Item> create(String name) {
         return TagKey.create(Registries.ITEM, Fishtastic.id(name));

@@ -1,8 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
 import com.mojang.serialization.MapCodec;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModelResolver;
@@ -23,7 +21,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-@Environment(EnvType.CLIENT)
 public class PileOfFishItemModel implements ItemModel {
     private static final int MAX_LAYERS = 3;
 
@@ -87,8 +84,7 @@ public class PileOfFishItemModel implements ItemModel {
         }
     }
 
-    @Environment(EnvType.CLIENT)
-    public record Unbaked() implements ItemModel.Unbaked {
+        public record Unbaked() implements ItemModel.Unbaked {
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
         @Override

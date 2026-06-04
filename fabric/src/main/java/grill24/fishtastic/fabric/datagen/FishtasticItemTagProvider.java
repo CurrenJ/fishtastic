@@ -60,5 +60,15 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         valueLookupBuilder(ItemTags.DURABILITY_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
+
+        // Exotic fish: eligible when using blazed grub bait
+        valueLookupBuilder(FishtasticItemTags.EXOTIC_FISH)
+                .add(FishtasticItems.GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.LONGNOSE_GAR.value())
+                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
+                .add(FishtasticItems.NORTHERN_PIKE.value())
+                .add(FishtasticItems.OCEAN_SUNFISH.value())
+                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
     }
 }

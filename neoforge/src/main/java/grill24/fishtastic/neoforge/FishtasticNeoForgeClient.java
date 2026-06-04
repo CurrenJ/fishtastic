@@ -12,6 +12,8 @@ import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
+import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
+import grill24.fishtastic.client.tooltip.RodBaitTooltip;
 import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -29,6 +31,7 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
@@ -48,6 +51,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -90,6 +94,10 @@ public final class FishtasticNeoForgeClient {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
+    }
+
+    public static void registerTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(RodBaitTooltip.class, tooltip -> new ClientRodBaitTooltip(tooltip.bait()));
     }
 
     // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
