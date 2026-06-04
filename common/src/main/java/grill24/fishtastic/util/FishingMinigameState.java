@@ -19,8 +19,9 @@ public class FishingMinigameState {
     private static final float CATCH_PROGRESS_GAIN = 0.0025f; // Progress gain per tick when item is in bobber
     private static final float CATCH_PROGRESS_LOSS = 0.0001f; // Progress loss per tick when item is outside bobber
 
-    // Bobber state
-    private static final float BOBBER_SIZE = 9 / 28f; // Size of the bobber (normalized to max valid bobber bar length) for collision calculations
+    // Bobber state — size supplied by caller (derived from texture layout, not hardcoded here)
+    private final float bobberSize;
+    private final float maxPosition;
     private float bobberPosition; // 0 = default/bottom, 1 = max/top
     private float bobberVelocity; // Velocity in position units per tick
     private float previousVelocity; // Velocity from previous tick for smooth interpolation
@@ -33,13 +34,14 @@ public class FishingMinigameState {
 
     // Boundaries
     private static final float MIN_POSITION = 0.0f;
-    private static float MAX_POSITION = 1.0f;
 
     /**
-     * Creates a new fishing minigame state with bobber at default position
+     * Creates a new fishing minigame state with bobber at default position.
+     * @param bobberSize Bobber height as a fraction of the travel zone (from FishingBarLayout.bobberSize())
      */
-    public FishingMinigameState() {
-        MAX_POSITION = 1.0f - BOBBER_SIZE;
+    public FishingMinigameState(float bobberSize) {
+        this.bobberSize = bobberSize;
+        this.maxPosition = 1.0f - bobberSize;
         this.bobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.previousVelocity = 0.0f;
@@ -48,12 +50,14 @@ public class FishingMinigameState {
     }
 
     /**
-     * Creates a new fishing minigame state with a specific initial position
+     * Creates a new fishing minigame state with a specific initial position.
+     * @param bobberSize      Bobber height as a fraction of the travel zone (from FishingBarLayout.bobberSize())
      * @param initialPosition Initial bobber position (0-1)
      */
-    public FishingMinigameState(float initialPosition) {
-        MAX_POSITION = 1.0f - BOBBER_SIZE;
-        this.bobberPosition = Math.max(MIN_POSITION, Math.min(MAX_POSITION, initialPosition));
+    public FishingMinigameState(float bobberSize, float initialPosition) {
+        this.bobberSize = bobberSize;
+        this.maxPosition = 1.0f - bobberSize;
+        this.bobberPosition = Math.max(MIN_POSITION, Math.min(maxPosition, initialPosition));
         this.bobberVelocity = 0.0f;
         this.previousVelocity = 0.0f;
         this.catchProgress = 0.0f;
@@ -81,8 +85,8 @@ public class FishingMinigameState {
             bobberPosition = MIN_POSITION;
             bobberVelocity = Math.abs(bobberVelocity) * BOUNCINESS; // Bounce up
             previousVelocity = bobberVelocity; // Update previous velocity to avoid interpolation snap
-        } else if (bobberPosition > MAX_POSITION) {
-            bobberPosition = MAX_POSITION;
+        } else if (bobberPosition > maxPosition) {
+            bobberPosition = maxPosition;
             bobberVelocity = -Math.abs(bobberVelocity) * BOUNCINESS; // Bounce down
             previousVelocity = bobberVelocity; // Update previous velocity to avoid interpolation snap
         }
@@ -166,7 +170,7 @@ public class FishingMinigameState {
         float interpolatedPosition = startPosition + (bobberPosition - startPosition) * partialTick;
 
         // Clamp to valid range
-        return Math.max(MIN_POSITION, Math.min(MAX_POSITION, interpolatedPosition));
+        return Math.max(MIN_POSITION, Math.min(maxPosition, interpolatedPosition));
     }
 
     /**
@@ -182,7 +186,7 @@ public class FishingMinigameState {
      * @param position New position (0-1)
      */
     public void setBobberPosition(float position) {
-        this.bobberPosition = Math.max(MIN_POSITION, Math.min(MAX_POSITION, position));
+        this.bobberPosition = Math.max(MIN_POSITION, Math.min(maxPosition, position));
     }
 
     /**
@@ -219,11 +223,11 @@ public class FishingMinigameState {
      * @return true if at or very close to top
      */
     public boolean isAtTop() {
-        return bobberPosition >= MAX_POSITION - 0.01f;
+        return bobberPosition >= maxPosition - 0.01f;
     }
 
     public float getBobberSize() {
-        return BOBBER_SIZE;
+        return bobberSize;
     }
 
     /**

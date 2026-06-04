@@ -31,7 +31,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
 
     public FishingMinigameAnimation() {
-        this.minigameState = new FishingMinigameState();
+        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize());
 
         // Add some example targets
         Random random = new Random();
@@ -205,21 +205,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale);
 
-        renderItem(BAR, guiGraphics, minecraft, angle, 0);
+        renderItem(LAYOUT.bar(), guiGraphics, minecraft, angle, 0);
 
         guiGraphics.pose().pushMatrix();
-        float bobberMaxYOffset = 28f / 32f; // Max Y offset in item texture units
-        // Use physics-based bobber position from minigame state with interpolation for smooth rendering
-        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
-        float yOffset = normalizedBobberPosition * bobberMaxYOffset;
+        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick);
+        float yOffset = normalizedBobberPosition * LAYOUT.bobberMaxYOffset();
         guiGraphics.pose().translate(0, -yOffset);
-        renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
+        renderItem(LAYOUT.bobber(), guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popMatrix();
     }
 
     private void renderTargets(GuiGraphicsExtractor guiGraphics, float partialTick) {
         // Render all targets from the minigame state
-        final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
+        final float itemMaxYOffset = LAYOUT.itemMaxYOffset();
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
         // Calculate bobber bounds for shake effect
@@ -331,41 +329,76 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().popMatrix();
     }
 
+    // -------------------------------------------------------------------------
+    // Sprite layout — single source of truth for all sizing constants.
+    // To resize or reshape the bar/bobber textures, only edit LAYOUT below.
+    // -------------------------------------------------------------------------
+
     /**
-     * Helper record to store texture coordinates and associated item stack
-     * @param u Starting pixel coordinate of gui tex within item texture
-     * @param v Starting pixel coordinate of gui tex within item texture
-     * @param uw Width of gui tex within item texture
-     * @param vh Height of gui tex within item texture
-     * @param texWidth Width of the full item texture
-     * @param texHeight Height of the full item texture
-     * @param itemStack
+     * Texture coordinates and associated item stack for one sprite.
+     *
+     * @param u        Left edge of the sprite content within the texture (px)
+     * @param v        Top edge of the sprite content within the texture (px)
+     * @param uw       Width of the sprite content (px)
+     * @param vh       Height of the sprite content (px)
+     * @param texWidth  Full texture width (px)
+     * @param texHeight Full texture height (px)
      */
-    public static final GuiTextureItem BAR = new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND));
-    public static final GuiTextureItem BOBBER = new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_BOBBER));
     public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack, Vector2f localPivot) {
         public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack) {
             this(u, v, uw, vh, texWidth, texHeight, itemStack, calculateLocalPivot(u, v, uw, vh, texWidth, texHeight));
         }
+
+        private static Vector2f calculateLocalPivot(int u, int v, int uw, int vh, int texWidth, int texHeight) {
+            float x = (u + uw / 2f) / texWidth - 0.5f;
+            float y = (v + vh / 2f) / texHeight - 0.5f;
+            return new Vector2f(x, y);
+        }
     }
 
-    private static Vector2f calculateLocalPivot(int u, int v, int uw, int vh, int texWidth, int texHeight) {
-        float x = (u + uw / 2f) / texWidth - 0.5f;
-        float y = (v + vh / 2f) / texHeight - 0.5f;
-        return new Vector2f(x, y);
+    /**
+     * All sizing parameters for the fishing bar overlay in one place.
+     *
+     * @param bar           Bar sprite definition
+     * @param bobber        Bobber sprite definition
+     * @param travelZonePx  Pixel height of the bobber's playable travel area within the bar
+     *                      (texture height minus top + bottom decorative margins)
+     * @param bobberHeightPx Pixel height of the bobber sprite within that travel zone
+     * @param targetZonePx  Pixel height of the zone target icons may appear in
+     *                      (typically slightly tighter than travelZonePx)
+     */
+    public record FishingBarLayout(
+            GuiTextureItem bar,
+            GuiTextureItem bobber,
+            int travelZonePx,
+            int bobberHeightPx,
+            int targetZonePx
+    ) {
+        /** Fraction of bar texture height the bobber can travel — passed to the renderer. */
+        public float bobberMaxYOffset() { return (float) travelZonePx / bar.texHeight(); }
+
+        /** Bobber size as a fraction of the travel zone — passed to FishingMinigameState. */
+        public float bobberSize()       { return (float) bobberHeightPx / travelZonePx; }
+
+        /** Fraction of bar texture height target icons may travel — passed to the renderer. */
+        public float itemMaxYOffset()   { return (float) targetZonePx / bar.texHeight(); }
     }
+
+    public static final FishingBarLayout LAYOUT = new FishingBarLayout(
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND)),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_BOBBER)),
+            28,  // travel zone: 32px texture minus ~2px margin at each end
+            9,   // bobber height in pixels
+            26   // target zone: slightly tighter margins than the bobber travel zone
+    );
 
     private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphicsExtractor guiGraphics, Minecraft minecraft, float angle, int zOffset) {
         guiGraphics.pose().pushMatrix();
 
         Vector2f pivot = guiTextureItem.localPivot();
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Adjust position so that pivot is center-origin
+        guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Rotate around sprite center
+        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Center sprite content at screen origin
 
-        guiGraphics.pose().translate(pivot.x(), pivot.y()); // Translate to local pivot so that rotation occurs around pivot
-        guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Apply rotation (2D Z-axis)
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Translate back after rotation
-
-        // Render the item
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
         extension.fishtastic$renderItem(guiTextureItem.itemStack(), 0, 0);
 
