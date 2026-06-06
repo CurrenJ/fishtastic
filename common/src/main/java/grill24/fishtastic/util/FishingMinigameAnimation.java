@@ -1,6 +1,8 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
@@ -10,6 +12,7 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -48,6 +51,26 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     public boolean isActive() {
         // Animation is active until hide animation completes
         return !isHiding || hideAnimationTick < HIDE_ANIMATION_DURATION;
+    }
+
+    private static int sparkleCountForTarget(FishingTarget target) {
+        if (target.getCategory() == FishingTarget.TargetCategory.TREASURE) {
+            return 16;
+        }
+        FishQuality.Quality best = target.getAllRewardItems().stream()
+                .map(stack -> stack.get(FishtasticDataComponents.FISH_QUALITY.value()))
+                .filter(q -> q != null)
+                .map(FishQuality::quality)
+                .max(Comparator.comparingInt(Enum::ordinal))
+                .orElse(null);
+        if (best == null) return 4; // vanilla fish
+        return switch (best) {
+            case COMMON    -> 0;
+            case UNCOMMON  -> 3;
+            case RARE      -> 12;
+            case EPIC      -> 30;
+            case LEGENDARY -> 75;
+        };
     }
 
     private void tickSparkles() {
@@ -103,8 +126,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 if (target.isCaught()) {
                     float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
-                    int baseCount = target.getCategory() == FishingTarget.TargetCategory.TREASURE ? 16 : 3;
-                    int sparkleCount = baseCount + Math.round(target.getDifficulty() * 17);
+                    int sparkleCount = sparkleCountForTarget(target);
                     List<SparkleParticle> burst = new ArrayList<>();
                     for (int i = 0; i < sparkleCount; i++) {
                         burst.add(new SparkleParticle(0, 0, sparkleRandom, 20 + sparkleRandom.nextInt(15)));
