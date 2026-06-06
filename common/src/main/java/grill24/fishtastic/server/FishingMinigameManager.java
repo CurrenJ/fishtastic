@@ -263,7 +263,7 @@ public class FishingMinigameManager {
             } else {
                 difficulty = baseDifficulties[randomSource.nextInt(baseDifficulties.length)] * difficultyModifier;
                 FishingTarget.MovementPattern pattern = FishingTarget.pickRandom(difficulty, randomSource.nextFloat());
-                phases = List.of(new PhaseRule(0f, List.of(pattern), Optional.empty()));
+                phases = List.of(new PhaseRule(0f, List.of(pattern), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
             }
 
             float initialPosition = randomSource.nextFloat();

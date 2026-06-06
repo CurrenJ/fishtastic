@@ -72,43 +72,37 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         final float normalizedBobberMinY = minigameState.getBobberPosition();
         final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
 
-        // Use iterator to safely remove targets while iterating
-        var iterator = minigameState.getTargets().iterator();
+        // Never remove targets from the list — doing so shifts indices and breaks the caught-index
+        // tracking that is sent to the server.  Targets stay in their original slot forever; we
+        // just stop updating them once they are no longer ACTIVE.
         boolean anyOngoing = false;
-        int targetIndex = 0;
-        while (iterator.hasNext()) {
-            FishingTarget target = iterator.next();
+        List<FishingTarget> targets = minigameState.getTargets();
+        for (int targetIndex = 0; targetIndex < targets.size(); targetIndex++) {
+            FishingTarget target = targets.get(targetIndex);
 
-            // Only update active targets
             if (target.getState() == FishingTarget.TargetState.ACTIVE) {
                 float targetPosition = target.getPosition();
-                boolean isTargetWithinBobber =
-                        targetPosition >= normalizedBobberMinY &&
-                        targetPosition <= normalizedBobberMaxY;
-                target.updateCatchProgress(isTargetWithinBobber);
+                float bobberCenter = normalizedBobberMinY + minigameState.getBobberSize() * 0.5f;
+                float bobberRadius = minigameState.getBobberSize() * 0.5f;
+                float distToCenter = Math.abs(targetPosition - bobberCenter);
+                float overlapQuality = distToCenter < bobberRadius ? 1f - distToCenter / bobberRadius : 0f;
+                target.updateCatchProgress(overlapQuality);
 
-                // Check if target was caught or failed
                 if (target.isCaught()) {
                     target.startCollectionAnimation(0, 0);
-                    // Track this target as caught BEFORE it gets removed
-                    if (!caughtTargetIndices.contains(targetIndex)) {
-                        caughtTargetIndices.add(targetIndex);
-                    }
+                    caughtTargetIndices.add(targetIndex);
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
                 } else {
                     anyOngoing = true;
                 }
-            } else if (target.isAnimationComplete()) {
-                // Remove only when animation is complete
-                iterator.remove();
             }
-
-            targetIndex++;
         }
 
-        // If no ongoing targets and all targets are cleared, start hide animation
-        if (!anyOngoing && minigameState.getTargets().isEmpty()) {
+        // Hide once every target has fully completed its animation
+        boolean allComplete = !targets.isEmpty()
+                && targets.stream().allMatch(FishingTarget::isAnimationComplete);
+        if (!anyOngoing && allComplete) {
             if (!isHiding) {
                 // Send results to server before hiding (via reflection to avoid client dependency)
                 try {
@@ -266,9 +260,32 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                         prog
                 );
 
+                // Squash-and-stretch telegraph cues
+                float dartCoil       = target.getDartCoilProgress();
+                float dartBurst      = target.getDartBurstProgress();
+                float lungeTelegraph = target.getLungeTelegraphProgress();
+                float squashX, squashY;
+                if (dartCoil > 0f) {
+                    // DART coil: widen + flatten as tension builds
+                    squashX = 1f + dartCoil * 0.35f;
+                    squashY = 1f - dartCoil * 0.35f;
+                } else if (dartBurst > 0f && dartBurst < 0.3f) {
+                    // DART release: brief stretch in direction of travel
+                    float t = dartBurst / 0.3f;
+                    squashX = 1f - t * 0.30f;
+                    squashY = 1f + t * 0.40f;
+                } else if (lungeTelegraph > 0f) {
+                    // LUNGE coil: compress horizontally, extend vertically
+                    squashX = 1f - lungeTelegraph * 0.30f;
+                    squashY = 1f + lungeTelegraph * 0.40f;
+                } else {
+                    squashX = 1f;
+                    squashY = 1f;
+                }
+
                 guiGraphics.pose().translate(0, -targetYOffset);
                 guiGraphics.pose().rotate((float) Math.toRadians(shakeAngle));
-                guiGraphics.pose().scale(itemScale, itemScale);
+                guiGraphics.pose().scale(itemScale * squashX, itemScale * squashY);
                 // setColor removed in 26.1 - render without tinting
                 extension.fishtastic$renderItem(displayItem, 0, 0);
 
@@ -303,7 +320,10 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 float spinAngle = target.getFailSpinAngle(partialTick);
                 float collectScale = target.getCollectionScale(partialTick);
-                final float itemScale = (2 / 16f) * collectScale;
+                // Match the active-state scale (0.5 + catchProgress*0.5) so there's no pop on transition.
+                // catchProgress is 0 at failure time, so this is always 0.5× — matching the smallest active size.
+                float scaleMultiplier = 0.5f + (target.getCatchProgress() * 0.5f);
+                final float itemScale = (2 / 16f) * scaleMultiplier * collectScale;
 
                 guiGraphics.pose().translate(0, -targetYOffset);
                 // Y-axis spin doesn't apply in 2D - use scale-x for a flip effect

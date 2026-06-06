@@ -20,12 +20,18 @@ import java.util.Optional;
 public record PhaseRule(
         float threshold,
         List<FishingTarget.MovementPattern> patterns,
-        Optional<MovementParams> params
+        Optional<MovementParams> params,
+        Optional<Float> patternDurationMin,
+        Optional<Float> patternDurationMax,
+        Optional<Float> minCatchProgress
 ) {
     public static final Codec<PhaseRule> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.fieldOf("threshold").forGetter(PhaseRule::threshold),
             listOrSingle(FishingTarget.MovementPattern.CODEC).fieldOf("patterns").forGetter(PhaseRule::patterns),
-            MovementParams.CODEC.optionalFieldOf("params").forGetter(PhaseRule::params)
+            MovementParams.CODEC.optionalFieldOf("params").forGetter(PhaseRule::params),
+            Codec.FLOAT.optionalFieldOf("pattern_duration_min").forGetter(PhaseRule::patternDurationMin),
+            Codec.FLOAT.optionalFieldOf("pattern_duration_max").forGetter(PhaseRule::patternDurationMax),
+            Codec.FLOAT.optionalFieldOf("min_catch_progress").forGetter(PhaseRule::minCatchProgress)
     ).apply(i, PhaseRule::new));
 
     /** Accepts either a single element or an array; always serialises as an array. */
@@ -49,6 +55,9 @@ public record PhaseRule(
         if (p.params().isPresent()) {
             MovementParams.STREAM_CODEC.encode(buf, p.params().get());
         }
+        writeOptFloat(buf, p.patternDurationMin());
+        writeOptFloat(buf, p.patternDurationMax());
+        writeOptFloat(buf, p.minCatchProgress());
     }
 
     private static PhaseRule decode(FriendlyByteBuf buf) {
@@ -62,7 +71,19 @@ public record PhaseRule(
         Optional<MovementParams> params = buf.readBoolean()
                 ? Optional.of(MovementParams.STREAM_CODEC.decode(buf))
                 : Optional.empty();
-        return new PhaseRule(threshold, patterns, params);
+        Optional<Float> patternDurationMin = readOptFloat(buf);
+        Optional<Float> patternDurationMax = readOptFloat(buf);
+        Optional<Float> minCatchProgress   = readOptFloat(buf);
+        return new PhaseRule(threshold, patterns, params, patternDurationMin, patternDurationMax, minCatchProgress);
+    }
+
+    private static void writeOptFloat(FriendlyByteBuf buf, Optional<Float> opt) {
+        buf.writeBoolean(opt.isPresent());
+        if (opt.isPresent()) buf.writeFloat(opt.get());
+    }
+
+    private static Optional<Float> readOptFloat(FriendlyByteBuf buf) {
+        return buf.readBoolean() ? Optional.of(buf.readFloat()) : Optional.empty();
     }
 
     /**
@@ -73,6 +94,6 @@ public record PhaseRule(
         Optional<MovementParams> merged = params.isPresent()
                 ? Optional.of(global.mergedWith(params.get()))
                 : Optional.of(global);
-        return new PhaseRule(threshold, patterns, merged);
+        return new PhaseRule(threshold, patterns, merged, patternDurationMin, patternDurationMax, minCatchProgress);
     }
 }
