@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.8] — 2026-06-06
+
+- Add data-driven fish profiles with configurable stats and bait behaviour
+- Add fish temperament system with configurable movement-pattern phases and default temperaments
+- Add more personality variety to temperaments
+- Add temperament debug commands
+- Add sparkle particle to fishing minigame
+- Refactor fishing minigame rendering
+- Fix Fabric-side impulse jitteriness bug in fishing minigame
+- Port fishing rod bait inventory to common
+- Adjust bait effects and balancing
+- Tweak gummy worm recipe
+
 ## [1.0.7] — 2026-06-01
 
 - Fix copper fishing rod not working on Fabric (hook immediately discarded, rod stays reeled-in)
