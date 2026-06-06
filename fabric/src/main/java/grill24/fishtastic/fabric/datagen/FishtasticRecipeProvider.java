@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
  *   <li>Clear Stained Glass (×16) – shapeless, 1 vanilla stained glass + 1 glass → 1 clear</li>
  *   <li>Bait items – shapeless, themed vanilla ingredients</li>
  *   <li>Fried Shrimp – smelting shrimp</li>
- *   <li>Fish items – shapeless, vanilla fish + thematic modifier</li>
  * </ul>
  */
 public class FishtasticRecipeProvider extends FabricRecipeProvider {
@@ -47,7 +46,6 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 buildEquipmentRecipes(items);
                 buildGlassRecipes(items);
                 buildBaitAndFoodRecipes(items);
-                buildFishRecipes(items);
             }
 
             // -----------------------------------------------------------------
@@ -174,130 +172,6 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .save(this.output);
             }
 
-            // -----------------------------------------------------------------
-            // Fish
-            // -----------------------------------------------------------------
-
-            private void buildFishRecipes(HolderGetter<Item> items) {
-                // Bluegill: cod + lapis lazuli (blue coloring)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.BLUEGILL.value())
-                        .requires(Items.COD)
-                        .requires(Items.LAPIS_LAZULI)
-                        .unlockedBy("has_cod", has(Items.COD))
-                        .save(this.output);
-
-                // Garden Eel: tropical fish + vine (hides in seagrass gardens)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.GARDEN_EEL.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.VINE)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Royal Garden Eel: garden eel + gold ingot (gilded)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.ROYAL_GARDEN_EEL.value())
-                        .requires(FishtasticItems.GARDEN_EEL.value())
-                        .requires(Items.GOLD_INGOT)
-                        .unlockedBy("has_garden_eel", has(FishtasticItems.GARDEN_EEL.value()))
-                        .save(this.output);
-
-                // Giant Manta Ray: cod + phantom membrane (large, wing-like)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.GIANT_MANTA_RAY.value())
-                        .requires(Items.COD)
-                        .requires(Items.PHANTOM_MEMBRANE)
-                        .unlockedBy("has_phantom_membrane", has(Items.PHANTOM_MEMBRANE))
-                        .save(this.output);
-
-                // Frozen Giant Manta Ray: giant manta ray + ice
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
-                        .requires(FishtasticItems.GIANT_MANTA_RAY.value())
-                        .requires(Items.ICE)
-                        .unlockedBy("has_giant_manta_ray", has(FishtasticItems.GIANT_MANTA_RAY.value()))
-                        .save(this.output);
-
-                // Lizardfish: tropical fish + cactus (spiky appearance)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.LIZARDFISH.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.CACTUS)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Longnose Gar: salmon + arrow (long pointed snout)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.LONGNOSE_GAR.value())
-                        .requires(Items.SALMON)
-                        .requires(Items.ARROW)
-                        .unlockedBy("has_salmon", has(Items.SALMON))
-                        .save(this.output);
-
-                // Moorish Idol: tropical fish + gold ingot (regal black-and-gold stripes)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.MOORISH_IDOL.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.GOLD_INGOT)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Molten Moorish Idol: moorish idol + blaze powder (fiery variant)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.MOLTEN_MOORISH_IDOL.value())
-                        .requires(FishtasticItems.MOORISH_IDOL.value())
-                        .requires(Items.BLAZE_POWDER)
-                        .unlockedBy("has_moorish_idol", has(FishtasticItems.MOORISH_IDOL.value()))
-                        .save(this.output);
-
-                // Neon Tetra: tropical fish + glowstone dust (bioluminescent)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.NEON_TETRA.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.GLOWSTONE_DUST)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Northern Pike: salmon + iron ingot (tough northern predator)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.NORTHERN_PIKE.value())
-                        .requires(Items.SALMON)
-                        .requires(Items.IRON_INGOT)
-                        .unlockedBy("has_salmon", has(Items.SALMON))
-                        .save(this.output);
-
-                // Ocean Sunfish: cod + sunflower (round sun-shaped body)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.OCEAN_SUNFISH.value())
-                        .requires(Items.COD)
-                        .requires(Items.SUNFLOWER)
-                        .unlockedBy("has_cod", has(Items.COD))
-                        .save(this.output);
-
-                // Parrotfish: tropical fish + feather (vibrant parrot-like colors)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.PARROTFISH.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.FEATHER)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Portuguese Man O' War: tropical fish + string (long trailing tentacles)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Rainfordia: tropical fish + emerald (rare and exotic)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.RAINFORDIA.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.EMERALD)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Starfish: tropical fish + redstone (five-armed star shape)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.STARFISH.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.REDSTONE)
-                        .unlockedBy("has_tropical_fish", has(Items.TROPICAL_FISH))
-                        .save(this.output);
-
-                // Acute Iaspis: tropical fish + amethyst shard (iaspis = precious gemstone)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.ACUTE_IASPIS.value())
-                        .requires(Items.TROPICAL_FISH)
-                        .requires(Items.AMETHYST_SHARD)
-                        .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
-                        .save(this.output);
-            }
         };
     }
 
