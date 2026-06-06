@@ -43,7 +43,7 @@ public class FishingMinigameClientHandler {
                     random,
                     targetData.initialPosition(),
                     targetData.difficulty(),
-                    targetData.pattern()
+                    targetData.phases()
             );
             animation.getMinigameState().addTarget(target);
         }

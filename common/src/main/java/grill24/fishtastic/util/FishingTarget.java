@@ -1,13 +1,17 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.data.MovementParams;
+import grill24.fishtastic.data.PhaseRule;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Random;
 
 public class FishingTarget {
@@ -43,43 +47,54 @@ public class FishingTarget {
     }
 
     // -------------------------------------------------------------------------
-    // Difficulty-scaled constants (set in constructor, final)
+    // Difficulty (fixed for the lifetime of the target)
     // -------------------------------------------------------------------------
 
     private final float difficulty;
 
+    // -------------------------------------------------------------------------
+    // Movement parameters (re-applied on phase transition)
+    // -------------------------------------------------------------------------
+
     // DRIFT
-    private final float minMoveIntervalTicks;
-    private final float maxMoveIntervalTicks;
-    private final float minSpeed;
-    private final float maxSpeed;
+    private float minMoveIntervalTicks;
+    private float maxMoveIntervalTicks;
+    private float minSpeed;
+    private float maxSpeed;
 
     // DART
-    private final float dartPauseMin;
-    private final float dartPauseMax;
-    private final float dartBurstProgressPerTick;
+    private float dartPauseMin;
+    private float dartPauseMax;
+    private float dartBurstProgressPerTick;
 
     // OSCILLATE
-    private final float oscBaseFrequency;
-    private final float oscRePeriodMin;
-    private final float oscRePeriodMax;
+    private float oscBaseFrequency;
+    private float oscRePeriodMin;
+    private float oscRePeriodMax;
+    private float oscAmplitudeMin;
+    private float oscAmplitudeMax;
 
     // FLEE
-    private final float fleeThreshold;
-    private final float fleeSpeed;
+    private float fleeThreshold;
+    private float fleeSpeed;
 
-    // Catch progress
+    // Catch progress rates
     private final float catchProgressGain;
-    private final float catchProgressLoss;
-    private final float initialCatchProgress;
+    private float catchProgressLoss;
+    private float initialCatchProgress;
 
     // -------------------------------------------------------------------------
-    // Per-target state
+    // Phase / pattern tracking
     // -------------------------------------------------------------------------
 
-    private final MovementPattern pattern;
+    private final List<PhaseRule> phases; // sorted ascending by threshold
+    private int activePhaseIndex;
+    private MovementPattern currentPattern;
 
-    // General position state
+    // -------------------------------------------------------------------------
+    // Per-target movement state
+    // -------------------------------------------------------------------------
+
     private float currentPosition;
     private float targetPosition;
     private float previousPosition;
@@ -128,95 +143,164 @@ public class FishingTarget {
     // -------------------------------------------------------------------------
 
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random) {
-        this(rewardItems, category, random, random.nextFloat(), 0.5f, null);
+        this(rewardItems, category, random, random.nextFloat(), 0.5f, List.of());
     }
 
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random, float initialPosition) {
-        this(rewardItems, category, random, initialPosition, 0.5f, null);
+        this(rewardItems, category, random, initialPosition, 0.5f, List.of());
     }
 
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random, float initialPosition, float difficulty) {
-        this(rewardItems, category, random, initialPosition, difficulty, null);
+        this(rewardItems, category, random, initialPosition, difficulty, List.of());
     }
 
     /**
-     * @param difficulty      0.0 = easiest, 1.0 = hardest.
-     * @param explicitPattern If non-null, overrides the difficulty-based random pattern roll.
-     *                        Pass null to let difficulty drive the pattern probability.
+     * @param difficulty 0.0 = easiest, 1.0 = hardest.
+     * @param phases     Phase rules defining movement patterns and optional param overrides.
+     *                   Empty list falls back to difficulty-weighted random pattern selection.
      */
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random,
-                         float initialPosition, float difficulty, @Nullable MovementPattern explicitPattern) {
+                         float initialPosition, float difficulty, List<PhaseRule> phases) {
         this.rewardItems = new ArrayList<>(rewardItems);
         this.category = category;
         this.random = random;
 
         float d = Math.max(0f, Math.min(1f, difficulty));
         this.difficulty = d;
-
-        // DRIFT
-        this.minMoveIntervalTicks = lerp(60f, 5f, d);
-        this.maxMoveIntervalTicks = lerp(120f, 25f, d);
-        this.minSpeed = lerp(0.002f, 0.012f, d);
-        this.maxSpeed = lerp(0.008f, 0.040f, d);
-
-        // DART — burst lasts 18→8 ticks (0.9→0.4 s)
-        this.dartPauseMin = lerp(50f, 20f, d);
-        this.dartPauseMax = lerp(100f, 45f, d);
-        this.dartBurstProgressPerTick = 1f / lerp(18f, 8f, d);
-
-        // OSCILLATE
-        this.oscBaseFrequency = lerp(0.025f, 0.055f, d);
-        this.oscRePeriodMin = lerp(100f, 50f, d);
-        this.oscRePeriodMax = lerp(160f, 80f, d);
-
-        // FLEE
-        this.fleeThreshold = lerp(0.18f, 0.28f, d);
-        this.fleeSpeed = lerp(0.008f, 0.025f, d);
-
-        // Catch progress
         this.catchProgressGain = 0.008f;
-        this.catchProgressLoss = lerp(0.004f, 0.018f, d);
-        this.initialCatchProgress = lerp(0.6f, 0.25f, d);
 
-        this.pattern = resolvePattern(d, random.nextFloat(), explicitPattern);
+        // Fill empty phases with a single default phase using difficulty-weighted random pattern
+        this.phases = phases.isEmpty()
+                ? List.of(new PhaseRule(0f, List.of(resolvePattern(d, random.nextFloat(), null)), Optional.empty()))
+                : phases.stream().sorted(Comparator.comparingDouble(PhaseRule::threshold)).toList();
 
+        // Apply difficulty-scaled defaults first
+        applyDifficultyDefaults(d);
+
+        // Position state
         this.currentPosition = Math.max(0f, Math.min(1f, initialPosition));
         this.targetPosition = currentPosition;
         this.previousPosition = currentPosition;
         this.speed = 0f;
 
-        this.ticksSinceLastMove = 0;
-        this.ticksUntilNextMove = getRandomMoveInterval();
-
-        this.dartIsBursting = false;
-        this.dartPauseTicks = 0;
-        this.dartNextPauseDuration = getRandomDartPause();
-        this.dartBurstStart = 0f;
-        this.dartBurstEnd = 0f;
-        this.dartBurstProgress = 0f;
-
-        this.oscCenter = 0.25f + random.nextFloat() * 0.5f;
-        this.oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
-        this.oscPhase = random.nextFloat() * (float) (Math.PI * 2);
-        this.oscTicksSinceAnchor = 0;
-        this.oscNextRePeriod = getRandomOscPeriod();
-
-        this.catchProgress = this.initialCatchProgress;
-        this.shakeTick = 0;
         this.state = TargetState.ACTIVE;
         this.animationTick = 0;
         this.previousAnimationTick = 0;
         this.physicsSimulations = new ArrayList<>();
+        this.shakeTick = 0;
+
+        // Initialize phase 0 — applies phase params, picks initial pattern, inits movement state
+        this.activePhaseIndex = -1;
+        this.currentPattern = MovementPattern.DRIFT; // overwritten immediately by applyPhase
+        applyPhase(0);
+
+        // Set catch progress after phase 0 may have overridden initialCatchProgress
+        this.catchProgress = this.initialCatchProgress;
     }
 
     // -------------------------------------------------------------------------
-    // Pattern selection
+    // Phase management
     // -------------------------------------------------------------------------
 
     /**
-     * Resolves the movement pattern. If {@code explicit} is non-null it is returned directly;
-     * otherwise a difficulty-weighted random pattern is chosen using {@code roll}.
+     * Returns the index of the highest-threshold phase whose threshold is &le; catchProgress.
+     * Phases must be sorted ascending by threshold.
      */
+    private int resolvePhaseIndex() {
+        int result = 0;
+        for (int i = 0; i < phases.size(); i++) {
+            if (catchProgress >= phases.get(i).threshold()) {
+                result = i;
+            } else {
+                break;
+            }
+        }
+        return result;
+    }
+
+    private void applyPhase(int idx) {
+        boolean isInit = activePhaseIndex == -1;
+        if (!isInit && idx == activePhaseIndex) return;
+
+        PhaseRule phase = phases.get(idx);
+        applyParams(phase.params().orElse(null));
+
+        MovementPattern prevPattern = currentPattern;
+        List<MovementPattern> patterns = phase.patterns();
+        currentPattern = patterns.isEmpty() ? MovementPattern.DRIFT
+                : patterns.get(random.nextInt(patterns.size()));
+
+        activePhaseIndex = idx;
+        if (isInit || currentPattern != prevPattern) {
+            reinitPatternState();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Parameter application
+    // -------------------------------------------------------------------------
+
+    private void applyDifficultyDefaults(float d) {
+        minMoveIntervalTicks      = lerp(60f, 5f, d);
+        maxMoveIntervalTicks      = lerp(120f, 25f, d);
+        minSpeed                  = lerp(0.002f, 0.012f, d);
+        maxSpeed                  = lerp(0.008f, 0.040f, d);
+        dartPauseMin              = lerp(50f, 20f, d);
+        dartPauseMax              = lerp(100f, 45f, d);
+        dartBurstProgressPerTick  = 1f / lerp(18f, 8f, d);
+        oscBaseFrequency          = lerp(0.025f, 0.055f, d);
+        oscRePeriodMin            = lerp(100f, 50f, d);
+        oscRePeriodMax            = lerp(160f, 80f, d);
+        oscAmplitudeMin           = 0.08f;
+        oscAmplitudeMax           = 0.25f;
+        fleeThreshold             = lerp(0.18f, 0.28f, d);
+        fleeSpeed                 = lerp(0.008f, 0.025f, d);
+        catchProgressLoss         = lerp(0.004f, 0.018f, d);
+        initialCatchProgress      = lerp(0.6f, 0.25f, d);
+    }
+
+    private void applyParams(@Nullable MovementParams p) {
+        if (p == null) return;
+        p.driftIntervalMin().ifPresent(v -> minMoveIntervalTicks = v);
+        p.driftIntervalMax().ifPresent(v -> maxMoveIntervalTicks = v);
+        p.driftSpeedMin().ifPresent(v -> minSpeed = v);
+        p.driftSpeedMax().ifPresent(v -> maxSpeed = v);
+        p.dartPauseMin().ifPresent(v -> dartPauseMin = v);
+        p.dartPauseMax().ifPresent(v -> dartPauseMax = v);
+        p.dartBurstTicks().ifPresent(v -> dartBurstProgressPerTick = 1f / v);
+        p.oscFrequency().ifPresent(v -> oscBaseFrequency = v);
+        p.oscRePeriodMin().ifPresent(v -> oscRePeriodMin = v);
+        p.oscRePeriodMax().ifPresent(v -> oscRePeriodMax = v);
+        p.oscAmplitudeMin().ifPresent(v -> oscAmplitudeMin = v);
+        p.oscAmplitudeMax().ifPresent(v -> oscAmplitudeMax = v);
+        p.fleeThreshold().ifPresent(v -> fleeThreshold = v);
+        p.fleeSpeed().ifPresent(v -> fleeSpeed = v);
+        p.catchProgressLoss().ifPresent(v -> catchProgressLoss = v);
+        p.initialCatchProgress().ifPresent(v -> initialCatchProgress = v);
+    }
+
+    private void reinitPatternState() {
+        ticksSinceLastMove = 0;
+        ticksUntilNextMove = getRandomMoveInterval();
+
+        dartIsBursting = false;
+        dartPauseTicks = 0;
+        dartNextPauseDuration = getRandomDartPause();
+        dartBurstStart = currentPosition;
+        dartBurstEnd = currentPosition;
+        dartBurstProgress = 0f;
+
+        oscCenter = 0.25f + random.nextFloat() * 0.5f;
+        oscAmplitude = oscAmplitudeMin + random.nextFloat() * (oscAmplitudeMax - oscAmplitudeMin);
+        oscPhase = random.nextFloat() * (float) (Math.PI * 2);
+        oscTicksSinceAnchor = 0;
+        oscNextRePeriod = getRandomOscPeriod();
+    }
+
+    // -------------------------------------------------------------------------
+    // Pattern selection (for fallback single-phase construction)
+    // -------------------------------------------------------------------------
+
     private static MovementPattern resolvePattern(float d, float roll, @Nullable MovementPattern explicit) {
         if (explicit != null) return explicit;
         float driftWeight     = lerp(0.70f, 0.10f, d);
@@ -230,13 +314,6 @@ public class FishingTarget {
         return MovementPattern.FLEE;
     }
 
-    /**
-     * Picks a difficulty-weighted random pattern. Useful server-side where no
-     * explicit temperament is available but the same probability distribution is desired.
-     *
-     * @param difficulty 0–1 difficulty value
-     * @param roll       pre-rolled float in [0, 1)
-     */
     public static MovementPattern pickRandom(float difficulty, float roll) {
         return resolvePattern(Math.max(0f, Math.min(1f, difficulty)), roll, null);
     }
@@ -255,7 +332,11 @@ public class FishingTarget {
 
         switch (state) {
             case ACTIVE -> {
-                switch (pattern) {
+                int newPhaseIdx = resolvePhaseIndex();
+                if (newPhaseIdx != activePhaseIndex) {
+                    applyPhase(newPhaseIdx);
+                }
+                switch (currentPattern) {
                     case DRIFT     -> tickDrift();
                     case DART      -> tickDart();
                     case OSCILLATE -> tickOscillate();
@@ -316,7 +397,7 @@ public class FishingTarget {
         oscTicksSinceAnchor++;
         if (oscTicksSinceAnchor >= oscNextRePeriod) {
             oscCenter = 0.25f + random.nextFloat() * 0.5f;
-            oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
+            oscAmplitude = oscAmplitudeMin + random.nextFloat() * (oscAmplitudeMax - oscAmplitudeMin);
             oscTicksSinceAnchor = 0;
             oscNextRePeriod = getRandomOscPeriod();
         }
@@ -408,7 +489,7 @@ public class FishingTarget {
 
     public boolean hasFailed() { return catchProgress <= 0.0f; }
 
-    public MovementPattern getMovementPattern() { return pattern; }
+    public MovementPattern getMovementPattern() { return currentPattern; }
 
     public TargetState getState() { return state; }
 
@@ -481,23 +562,13 @@ public class FishingTarget {
         targetPosition = currentPosition;
         previousPosition = currentPosition;
         speed = 0f;
-        ticksSinceLastMove = 0;
-        ticksUntilNextMove = getRandomMoveInterval();
-        catchProgress = initialCatchProgress;
         shakeTick = 0;
 
-        dartIsBursting = false;
-        dartPauseTicks = 0;
-        dartNextPauseDuration = getRandomDartPause();
-        dartBurstStart = 0f;
-        dartBurstEnd = 0f;
-        dartBurstProgress = 0f;
+        applyDifficultyDefaults(difficulty);
+        activePhaseIndex = -1;
+        applyPhase(0);
 
-        oscCenter = 0.25f + random.nextFloat() * 0.5f;
-        oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
-        oscPhase = random.nextFloat() * (float) (Math.PI * 2);
-        oscTicksSinceAnchor = 0;
-        oscNextRePeriod = getRandomOscPeriod();
+        catchProgress = initialCatchProgress;
     }
 
     public void setPosition(float position) {

@@ -1,5 +1,7 @@
 {
   "difficulty_min": 0.25,
   "difficulty_max": 0.45,
-  "patterns": ["drift", "flee"]
+  "phases": [
+    { "threshold": 0.0, "patterns": ["drift", "flee"] }
+  ]
 }

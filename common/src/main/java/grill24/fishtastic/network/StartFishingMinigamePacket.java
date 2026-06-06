@@ -1,6 +1,7 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.data.PhaseRule;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -54,14 +55,15 @@ public record StartFishingMinigamePacket(
     }
 
     /**
-     * Data structure for a single fishing target
+     * Data structure for a single fishing target.
+     * Phases carry the full movement personality — pattern selection and param overrides.
      */
     public record TargetData(
             List<ItemStack> rewardStacks,
             grill24.fishtastic.util.FishingTarget.TargetCategory category,
             float initialPosition,
             float difficulty,
-            grill24.fishtastic.util.FishingTarget.MovementPattern pattern
+            List<PhaseRule> phases
     ) {
         public static final StreamCodec<RegistryFriendlyByteBuf, TargetData> STREAM_CODEC = StreamCodec.composite(
                 ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
@@ -75,11 +77,8 @@ public record StartFishingMinigamePacket(
                 TargetData::initialPosition,
                 ByteBufCodecs.FLOAT,
                 TargetData::difficulty,
-                ByteBufCodecs.INT.map(
-                        i -> grill24.fishtastic.util.FishingTarget.MovementPattern.values()[i],
-                        Enum::ordinal
-                ),
-                TargetData::pattern,
+                PhaseRule.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                TargetData::phases,
                 TargetData::new
         );
     }

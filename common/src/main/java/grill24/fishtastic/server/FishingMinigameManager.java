@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -36,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
 
 /**
  * Server-side manager for fishing minigame sessions (TRUST-BASED).
@@ -44,6 +46,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class FishingMinigameManager {
     private static final Map<ServerLevel, FishingMinigameManager> INSTANCES = new WeakHashMap<>();
+
+    // Debug: per-player forced temperament override, applied to all fish targets in a session.
+    private static final Map<UUID, net.minecraft.resources.ResourceKey<Temperament>> FORCED_TEMPERAMENTS = new HashMap<>();
+
+    public static void setForcedTemperament(UUID playerId, net.minecraft.resources.ResourceKey<Temperament> key) {
+        FORCED_TEMPERAMENTS.put(playerId, key);
+    }
+
+    public static void clearForcedTemperament(UUID playerId) {
+        FORCED_TEMPERAMENTS.remove(playerId);
+    }
+
+    public static Optional<net.minecraft.resources.ResourceKey<Temperament>> getForcedTemperament(UUID playerId) {
+        return Optional.ofNullable(FORCED_TEMPERAMENTS.get(playerId));
+    }
 
     private final Map<UUID, ActiveSession> activeSessions = new HashMap<>();
     private final AtomicInteger sessionIdGenerator = new AtomicInteger(0);
@@ -92,7 +109,7 @@ public class FishingMinigameManager {
                     target.category(),
                     target.initialPosition(),
                     target.difficulty(),
-                    target.pattern()
+                    target.phases()
             ));
         }
 
@@ -207,6 +224,13 @@ public class FishingMinigameManager {
         Registry<Temperament> temperamentRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
 
+        Temperament forcedTemperament = getForcedTemperament(player.getUUID())
+                .flatMap(key -> temperamentRegistry.getOptional(key))
+                .orElse(null);
+        if (forcedTemperament != null) {
+            Fishtastic.LOGGER.info("Applying forced temperament override for player {}", player.getName().getString());
+        }
+
         for (int i = 0; i < targetCount; i++) {
             boolean isFishReward = randomSource.nextFloat() >= treasureChance;
             int numRewards = isFishReward ? 1 : MathUtil.clamp((int) MathUtil.randomGaussian(randomSource, 1, 1), 1, 3);
@@ -227,22 +251,23 @@ public class FishingMinigameManager {
                     : FishingTarget.TargetCategory.TREASURE;
 
             float difficulty;
-            FishingTarget.MovementPattern pattern;
+            List<PhaseRule> phases;
 
             Temperament temperament = isFishReward
-                    ? resolveTemperament(reward, fishProfileRegistry, temperamentRegistry)
+                    ? (forcedTemperament != null ? forcedTemperament : resolveTemperament(reward, fishProfileRegistry, temperamentRegistry))
                     : null;
 
             if (temperament != null) {
                 difficulty = temperament.sampleDifficulty(randomSource) * difficultyModifier;
-                pattern = temperament.samplePattern(randomSource);
+                phases = temperament.resolvedPhases();
             } else {
                 difficulty = baseDifficulties[randomSource.nextInt(baseDifficulties.length)] * difficultyModifier;
-                pattern = FishingTarget.pickRandom(difficulty, randomSource.nextFloat());
+                FishingTarget.MovementPattern pattern = FishingTarget.pickRandom(difficulty, randomSource.nextFloat());
+                phases = List.of(new PhaseRule(0f, List.of(pattern), Optional.empty()));
             }
 
             float initialPosition = randomSource.nextFloat();
-            targets.add(new ServerFishingTarget(rewardStacks, category, difficulty, initialPosition, pattern));
+            targets.add(new ServerFishingTarget(rewardStacks, category, difficulty, initialPosition, phases));
         }
 
         return targets;
@@ -359,6 +384,6 @@ public class FishingMinigameManager {
             grill24.fishtastic.util.FishingTarget.TargetCategory category,
             float difficulty,
             float initialPosition,
-            grill24.fishtastic.util.FishingTarget.MovementPattern pattern
+            List<PhaseRule> phases
     ) {}
 }

@@ -5,6 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.command.DebugFishDataCommand;
 import grill24.fishtastic.command.FishProfileCommand;
 import grill24.fishtastic.command.FishtasticCommand;
+import grill24.fishtastic.command.TemperamentCommand;
 import grill24.fishtastic.command.SetFishQualityCommand;
 import grill24.fishtastic.command.SetItemSizeCommand;
 import net.minecraft.commands.CommandSourceStack;
@@ -26,5 +27,6 @@ public class CommandRegistrationNeoForge {
         SetFishQualityCommand.register(dispatcher);
         DebugFishDataCommand.register(dispatcher);
         FishProfileCommand.register(dispatcher);
+        TemperamentCommand.register(dispatcher);
     }
 }
