@@ -2,21 +2,25 @@ package grill24.fishtastic.data;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.FishtasticRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 public record FishProfile(
         int baseWeight,
         SizeParams size,
         List<BiomeWeight> biomeWeights,
         List<TimeWeight> timeWeights,
-        List<WeatherWeight> weatherWeights
+        List<WeatherWeight> weatherWeights,
+        Optional<ResourceKey<Temperament>> temperament
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -27,7 +31,8 @@ public record FishProfile(
             SizeParams.CODEC.optionalFieldOf("size", SizeParams.DEFAULT).forGetter(FishProfile::size),
             BiomeWeight.CODEC.listOf().optionalFieldOf("biome_weights", List.of()).forGetter(FishProfile::biomeWeights),
             TimeWeight.CODEC.listOf().optionalFieldOf("time_weights", List.of()).forGetter(FishProfile::timeWeights),
-            WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights)
+            WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights),
+            ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament)
     ).apply(i, FishProfile::new));
 
     public record SizeParams(float mean, float stdDev) {
@@ -92,29 +97,20 @@ public record FishProfile(
 
     /**
      * Computes the weight multiplier for this fish given current environmental conditions.
-     * All matching biome tags multiply together; first matching time/weather entry wins.
      */
     public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather) {
         float multiplier = 1.0f;
 
         for (BiomeWeight bw : biomeWeights) {
-            if (biome.is(bw.biome())) {
-                multiplier *= bw.multiplier();
-            }
+            if (biome.is(bw.biome())) multiplier *= bw.multiplier();
         }
 
         for (TimeWeight tw : timeWeights) {
-            if (tw.time() == timeOfDay) {
-                multiplier *= tw.multiplier();
-                break;
-            }
+            if (tw.time() == timeOfDay) { multiplier *= tw.multiplier(); break; }
         }
 
         for (WeatherWeight ww : weatherWeights) {
-            if (ww.weather() == weather) {
-                multiplier *= ww.multiplier();
-                break;
-            }
+            if (ww.weather() == weather) { multiplier *= ww.multiplier(); break; }
         }
 
         return multiplier;

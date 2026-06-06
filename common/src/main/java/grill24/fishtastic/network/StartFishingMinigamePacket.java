@@ -60,7 +60,8 @@ public record StartFishingMinigamePacket(
             List<ItemStack> rewardStacks,
             grill24.fishtastic.util.FishingTarget.TargetCategory category,
             float initialPosition,
-            float difficulty
+            float difficulty,
+            grill24.fishtastic.util.FishingTarget.MovementPattern pattern
     ) {
         public static final StreamCodec<RegistryFriendlyByteBuf, TargetData> STREAM_CODEC = StreamCodec.composite(
                 ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
@@ -74,6 +75,11 @@ public record StartFishingMinigamePacket(
                 TargetData::initialPosition,
                 ByteBufCodecs.FLOAT,
                 TargetData::difficulty,
+                ByteBufCodecs.INT.map(
+                        i -> grill24.fishtastic.util.FishingTarget.MovementPattern.values()[i],
+                        Enum::ordinal
+                ),
+                TargetData::pattern,
                 TargetData::new
         );
     }

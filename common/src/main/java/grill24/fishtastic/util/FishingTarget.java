@@ -1,123 +1,207 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticItems;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
-/**
- * Represents a target item in the fishing minigame that moves along the bar.
- * Each target has its own position, movement behavior, and associated ItemStack.
- */
 public class FishingTarget {
-    /**
-     * Represents the current state of the target in its lifecycle
-     */
     public enum TargetState {
-        ACTIVE,                 // Target is actively in play
-        ANIMATING_FAIL,   // Target was caught and is playing collection animation
-        ANIMATING_SUCCESS,         // Target failed and is playing fail animation
-        COMPLETE                // Animation finished, ready to be removed
+        ACTIVE,
+        ANIMATING_FAIL,
+        ANIMATING_SUCCESS,
+        COMPLETE
+    }
+
+    public enum TargetCategory {
+        FISH,
+        TREASURE
     }
 
     /**
-     * Category of target for determining display icon
+     * Controls how the target moves along the bar.
+     * DRIFT     — slow random wandering.
+     * DART      — long pauses followed by eased fast bursts.
+     * OSCILLATE — rhythmic sine-wave bounce that speeds up as it's being caught.
+     * FLEE      — drifts lazily until the bobber gets close, then darts away.
      */
-    public enum TargetCategory {
-        FISH,       // Shows generic fish icon
-        TREASURE    // Shows chest icon
+    public enum MovementPattern implements StringRepresentable {
+        DRIFT, DART, OSCILLATE, FLEE;
+
+        public static final com.mojang.serialization.Codec<MovementPattern> CODEC =
+                StringRepresentable.fromEnum(MovementPattern::values);
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
     }
 
-    // Movement constants
-    private static final float MIN_MOVE_INTERVAL_TICKS = 20f; // 1 second
-    private static final float MAX_MOVE_INTERVAL_TICKS = 120f; // 6 seconds
-    private static final float MIN_SPEED = 0.002f; // Minimum interpolation speed per tick
-    private static final float MAX_SPEED = 0.02f; // Maximum interpolation speed per tick
+    // -------------------------------------------------------------------------
+    // Difficulty-scaled constants (set in constructor, final)
+    // -------------------------------------------------------------------------
 
-    // Position state
-    private float currentPosition; // Current position on the bar (0-1)
-    private float targetPosition; // Target position we're moving towards (0-1)
-    private float previousPosition; // Position from previous tick for interpolation
-    private float speed; // Current movement speed
+    private final float difficulty;
 
-    // Timing state
+    // DRIFT
+    private final float minMoveIntervalTicks;
+    private final float maxMoveIntervalTicks;
+    private final float minSpeed;
+    private final float maxSpeed;
+
+    // DART
+    private final float dartPauseMin;
+    private final float dartPauseMax;
+    private final float dartBurstProgressPerTick;
+
+    // OSCILLATE
+    private final float oscBaseFrequency;
+    private final float oscRePeriodMin;
+    private final float oscRePeriodMax;
+
+    // FLEE
+    private final float fleeThreshold;
+    private final float fleeSpeed;
+
+    // Catch progress
+    private final float catchProgressGain;
+    private final float catchProgressLoss;
+    private final float initialCatchProgress;
+
+    // -------------------------------------------------------------------------
+    // Per-target state
+    // -------------------------------------------------------------------------
+
+    private final MovementPattern pattern;
+
+    // General position state
+    private float currentPosition;
+    private float targetPosition;
+    private float previousPosition;
+    private float speed;
+
+    // DRIFT / FLEE drift timing
     private int ticksSinceLastMove;
     private int ticksUntilNextMove;
 
-    // Associated data
-    private final List<ItemStack> rewardItems;
-    private final TargetCategory category;
-    private final Random random;
+    // DART state
+    private boolean dartIsBursting;
+    private int dartPauseTicks;
+    private int dartNextPauseDuration;
+    private float dartBurstStart;
+    private float dartBurstEnd;
+    private float dartBurstProgress;
 
-    // Catch progress for this specific target
+    // OSCILLATE state
+    private float oscCenter;
+    private float oscAmplitude;
+    private float oscPhase;
+    private int oscTicksSinceAnchor;
+    private int oscNextRePeriod;
+
+    // Catch progress
     private float catchProgress;
-    private static final float CATCH_PROGRESS_GAIN = 0.01f;
-    private static final float CATCH_PROGRESS_LOSS = 0.005f;
-    private static final float INITIAL_CATCH_PROGRESS = 0.5f;
 
-    // Shaking effect for active capture
-    private static final float SHAKE_INTENSITY = 0.002f; // Maximum shake offset
-    private int shakeTick; // Counter for shake animation
+    private static final float SHAKE_INTENSITY = 0.002f;
+    private int shakeTick;
 
     // Animation state
     private TargetState state;
-    private int animationTick; // Tracks animation progress
-    private int previousAnimationTick; // For interpolation
+    private int animationTick;
+    private int previousAnimationTick;
 
-    // Collection animation constants
-    private static final int COLLECTION_ANIMATION_DURATION = 30; // 1.5 seconds at 20 TPS
+    private static final int COLLECTION_ANIMATION_DURATION = 30;
+    private static final int SUCCESS_ANIMATION_MAX_DURATION = 100;
 
-    // Success animation constants
-    private static final int SUCCESS_ANIMATION_MAX_DURATION = 100; // Max duration before forced completion
-
-    // Physics simulations for success animation (one per reward item)
+    private final List<ItemStack> rewardItems;
+    private final TargetCategory category;
+    private final Random random;
     private List<PhysicsSimulation> physicsSimulations;
 
-    /**
-     * Creates a new fishing target with a random initial position
-     * @param rewardItems The ItemStacks to award when this target is caught
-     * @param category The category (FISH or TREASURE) for display purposes
-     * @param random Random instance for generating movement patterns
-     */
+    // -------------------------------------------------------------------------
+    // Constructors
+    // -------------------------------------------------------------------------
+
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random) {
-        this.rewardItems = new ArrayList<>(rewardItems);
-        this.category = category;
-        this.random = random;
-        this.currentPosition = random.nextFloat();
-        this.targetPosition = currentPosition;
-        this.previousPosition = currentPosition;
-        this.speed = 0;
-        this.ticksSinceLastMove = 0;
-        this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = INITIAL_CATCH_PROGRESS;
-        this.shakeTick = 0;
-        this.state = TargetState.ACTIVE;
-        this.animationTick = 0;
-        this.previousAnimationTick = 0;
-        this.physicsSimulations = new ArrayList<>();
+        this(rewardItems, category, random, random.nextFloat(), 0.5f, null);
     }
 
-    /**
-     * Creates a new fishing target with a specific initial position
-     * @param rewardItems The ItemStacks to award when this target is caught
-     * @param category The category (FISH or TREASURE) for display purposes
-     * @param random Random instance for generating movement patterns
-     * @param initialPosition Initial position (0-1)
-     */
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random, float initialPosition) {
+        this(rewardItems, category, random, initialPosition, 0.5f, null);
+    }
+
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random, float initialPosition, float difficulty) {
+        this(rewardItems, category, random, initialPosition, difficulty, null);
+    }
+
+    /**
+     * @param difficulty      0.0 = easiest, 1.0 = hardest.
+     * @param explicitPattern If non-null, overrides the difficulty-based random pattern roll.
+     *                        Pass null to let difficulty drive the pattern probability.
+     */
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random,
+                         float initialPosition, float difficulty, @Nullable MovementPattern explicitPattern) {
         this.rewardItems = new ArrayList<>(rewardItems);
         this.category = category;
         this.random = random;
-        this.currentPosition = Math.max(0, Math.min(1, initialPosition));
+
+        float d = Math.max(0f, Math.min(1f, difficulty));
+        this.difficulty = d;
+
+        // DRIFT
+        this.minMoveIntervalTicks = lerp(60f, 5f, d);
+        this.maxMoveIntervalTicks = lerp(120f, 25f, d);
+        this.minSpeed = lerp(0.002f, 0.012f, d);
+        this.maxSpeed = lerp(0.008f, 0.040f, d);
+
+        // DART — burst lasts 18→8 ticks (0.9→0.4 s)
+        this.dartPauseMin = lerp(50f, 20f, d);
+        this.dartPauseMax = lerp(100f, 45f, d);
+        this.dartBurstProgressPerTick = 1f / lerp(18f, 8f, d);
+
+        // OSCILLATE
+        this.oscBaseFrequency = lerp(0.025f, 0.055f, d);
+        this.oscRePeriodMin = lerp(100f, 50f, d);
+        this.oscRePeriodMax = lerp(160f, 80f, d);
+
+        // FLEE
+        this.fleeThreshold = lerp(0.18f, 0.28f, d);
+        this.fleeSpeed = lerp(0.008f, 0.025f, d);
+
+        // Catch progress
+        this.catchProgressGain = 0.008f;
+        this.catchProgressLoss = lerp(0.004f, 0.018f, d);
+        this.initialCatchProgress = lerp(0.6f, 0.25f, d);
+
+        this.pattern = resolvePattern(d, random.nextFloat(), explicitPattern);
+
+        this.currentPosition = Math.max(0f, Math.min(1f, initialPosition));
         this.targetPosition = currentPosition;
         this.previousPosition = currentPosition;
-        this.speed = 0;
+        this.speed = 0f;
+
         this.ticksSinceLastMove = 0;
         this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = INITIAL_CATCH_PROGRESS;
+
+        this.dartIsBursting = false;
+        this.dartPauseTicks = 0;
+        this.dartNextPauseDuration = getRandomDartPause();
+        this.dartBurstStart = 0f;
+        this.dartBurstEnd = 0f;
+        this.dartBurstProgress = 0f;
+
+        this.oscCenter = 0.25f + random.nextFloat() * 0.5f;
+        this.oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
+        this.oscPhase = random.nextFloat() * (float) (Math.PI * 2);
+        this.oscTicksSinceAnchor = 0;
+        this.oscNextRePeriod = getRandomOscPeriod();
+
+        this.catchProgress = this.initialCatchProgress;
         this.shakeTick = 0;
         this.state = TargetState.ACTIVE;
         this.animationTick = 0;
@@ -125,328 +209,307 @@ public class FishingTarget {
         this.physicsSimulations = new ArrayList<>();
     }
 
+    // -------------------------------------------------------------------------
+    // Pattern selection
+    // -------------------------------------------------------------------------
+
     /**
-     * Updates the target's position for one tick
+     * Resolves the movement pattern. If {@code explicit} is non-null it is returned directly;
+     * otherwise a difficulty-weighted random pattern is chosen using {@code roll}.
      */
-    public void tick() {
+    private static MovementPattern resolvePattern(float d, float roll, @Nullable MovementPattern explicit) {
+        if (explicit != null) return explicit;
+        float driftWeight     = lerp(0.70f, 0.10f, d);
+        float dartWeight      = lerp(0.10f, 0.35f, d);
+        float oscillateWeight = lerp(0.15f, 0.30f, d);
+        if (roll < driftWeight) return MovementPattern.DRIFT;
+        roll -= driftWeight;
+        if (roll < dartWeight) return MovementPattern.DART;
+        roll -= dartWeight;
+        if (roll < oscillateWeight) return MovementPattern.OSCILLATE;
+        return MovementPattern.FLEE;
+    }
+
+    /**
+     * Picks a difficulty-weighted random pattern. Useful server-side where no
+     * explicit temperament is available but the same probability distribution is desired.
+     *
+     * @param difficulty 0–1 difficulty value
+     * @param roll       pre-rolled float in [0, 1)
+     */
+    public static MovementPattern pickRandom(float difficulty, float roll) {
+        return resolvePattern(Math.max(0f, Math.min(1f, difficulty)), roll, null);
+    }
+
+    private static float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
+
+    // -------------------------------------------------------------------------
+    // Tick
+    // -------------------------------------------------------------------------
+
+    public void tick(float bobberPosition, float bobberSize) {
         previousPosition = currentPosition;
         previousAnimationTick = animationTick;
 
         switch (state) {
-            case ACTIVE:
-                // Normal active target behavior
-                ticksSinceLastMove++;
-                // Note: shakeTick is now incremented only when being captured, see updateCatchProgress
-
-                // Check if it's time to pick a new target position
-                if (ticksSinceLastMove >= ticksUntilNextMove) {
-                    pickNewTargetPosition();
-                    ticksSinceLastMove = 0;
-                    ticksUntilNextMove = getRandomMoveInterval();
+            case ACTIVE -> {
+                switch (pattern) {
+                    case DRIFT     -> tickDrift();
+                    case DART      -> tickDart();
+                    case OSCILLATE -> tickOscillate();
+                    case FLEE      -> tickFlee(bobberPosition, bobberSize);
                 }
-
-                // Move towards target position
-                if (currentPosition != targetPosition) {
-                    float distance = targetPosition - currentPosition;
-                    float movement = Math.signum(distance) * Math.min(Math.abs(distance), speed);
-                    currentPosition += movement;
-
-                    // Clamp to valid range
-                    currentPosition = Math.max(0, Math.min(1, currentPosition));
-
-                    // Snap to target if very close
-                    if (Math.abs(currentPosition - targetPosition) < 0.001f) {
-                        currentPosition = targetPosition;
-                    }
-                }
-                break;
-
-            case ANIMATING_FAIL:
-                // Collection animation: spin and shrink
+            }
+            case ANIMATING_FAIL -> {
                 animationTick++;
-                if (animationTick >= COLLECTION_ANIMATION_DURATION) {
-                    state = TargetState.COMPLETE;
-                }
-                break;
-
-            case ANIMATING_SUCCESS:
-                // Success animation: physics simulation for each item
+                if (animationTick >= COLLECTION_ANIMATION_DURATION) state = TargetState.COMPLETE;
+            }
+            case ANIMATING_SUCCESS -> {
                 animationTick++;
-
-                // Update all physics simulations
-                for (PhysicsSimulation simulation : physicsSimulations) {
-                    simulation.tick();
-                }
-
-                // Check if all items are off-screen or max duration reached
+                for (PhysicsSimulation sim : physicsSimulations) sim.tick();
                 boolean allOffScreen = physicsSimulations.stream().allMatch(PhysicsSimulation::isOffScreen);
-                if (allOffScreen || animationTick >= SUCCESS_ANIMATION_MAX_DURATION) {
-                    state = TargetState.COMPLETE;
-                }
-                break;
-
-            case COMPLETE:
-                // Do nothing, waiting to be removed
-                break;
+                if (allOffScreen || animationTick >= SUCCESS_ANIMATION_MAX_DURATION) state = TargetState.COMPLETE;
+            }
+            case COMPLETE -> { /* waiting to be removed */ }
         }
     }
 
-    /**
-     * Picks a new random target position and speed
-     */
-    private void pickNewTargetPosition() {
-        targetPosition = random.nextFloat();
-        speed = MIN_SPEED + random.nextFloat() * (MAX_SPEED - MIN_SPEED);
+    // -------------------------------------------------------------------------
+    // Movement pattern implementations
+    // -------------------------------------------------------------------------
+
+    private void tickDrift() {
+        ticksSinceLastMove++;
+        if (ticksSinceLastMove >= ticksUntilNextMove) {
+            targetPosition = random.nextFloat();
+            speed = minSpeed + random.nextFloat() * (maxSpeed - minSpeed);
+            ticksSinceLastMove = 0;
+            ticksUntilNextMove = getRandomMoveInterval();
+        }
+        moveToward(targetPosition, speed);
     }
 
-    /**
-     * Gets a random interval between movements (in ticks)
-     */
+    private void tickDart() {
+        if (!dartIsBursting) {
+            dartPauseTicks++;
+            if (dartPauseTicks >= dartNextPauseDuration) {
+                dartBurstStart = currentPosition;
+                dartBurstEnd = pickDistantPosition(0.3f);
+                dartBurstProgress = 0f;
+                dartIsBursting = true;
+                dartPauseTicks = 0;
+            }
+        } else {
+            dartBurstProgress = Math.min(1f, dartBurstProgress + dartBurstProgressPerTick);
+            currentPosition = lerp(dartBurstStart, dartBurstEnd, MathUtil.easeInOutQuad(dartBurstProgress));
+            if (dartBurstProgress >= 1f) {
+                currentPosition = dartBurstEnd;
+                dartIsBursting = false;
+                dartNextPauseDuration = getRandomDartPause();
+            }
+        }
+    }
+
+    private void tickOscillate() {
+        oscTicksSinceAnchor++;
+        if (oscTicksSinceAnchor >= oscNextRePeriod) {
+            oscCenter = 0.25f + random.nextFloat() * 0.5f;
+            oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
+            oscTicksSinceAnchor = 0;
+            oscNextRePeriod = getRandomOscPeriod();
+        }
+        float frequency = oscBaseFrequency + catchProgress * difficulty * 0.04f;
+        oscPhase += frequency;
+        currentPosition = Math.max(0f, Math.min(1f, oscCenter + oscAmplitude * (float) Math.sin(oscPhase)));
+    }
+
+    private void tickFlee(float bobberPosition, float bobberSize) {
+        float bobberCenter = bobberPosition + bobberSize * 0.5f;
+        float dist = Math.abs(currentPosition - bobberCenter);
+
+        if (dist < fleeThreshold) {
+            float fleeDir = Math.signum(currentPosition - bobberCenter);
+            if (fleeDir == 0f) fleeDir = (random.nextFloat() > 0.5f) ? 1f : -1f;
+            currentPosition = Math.max(0f, Math.min(1f, currentPosition + fleeDir * fleeSpeed));
+        } else {
+            ticksSinceLastMove++;
+            if (ticksSinceLastMove >= ticksUntilNextMove) {
+                targetPosition = random.nextFloat();
+                speed = minSpeed * (0.5f + random.nextFloat() * 0.5f);
+                ticksSinceLastMove = 0;
+                ticksUntilNextMove = getRandomMoveInterval();
+            }
+            moveToward(targetPosition, speed);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared movement helpers
+    // -------------------------------------------------------------------------
+
+    private void moveToward(float target, float moveSpeed) {
+        if (currentPosition == target) return;
+        float distance = target - currentPosition;
+        float movement = Math.signum(distance) * Math.min(Math.abs(distance), moveSpeed);
+        currentPosition += movement;
+        currentPosition = Math.max(0f, Math.min(1f, currentPosition));
+        if (Math.abs(currentPosition - target) < 0.001f) currentPosition = target;
+    }
+
+    private float pickDistantPosition(float minDist) {
+        for (int i = 0; i < 5; i++) {
+            float candidate = random.nextFloat();
+            if (Math.abs(candidate - currentPosition) >= minDist) return candidate;
+        }
+        return random.nextFloat();
+    }
+
     private int getRandomMoveInterval() {
-        return (int) (MIN_MOVE_INTERVAL_TICKS + random.nextFloat() * (MAX_MOVE_INTERVAL_TICKS - MIN_MOVE_INTERVAL_TICKS));
+        return (int) (minMoveIntervalTicks + random.nextFloat() * (maxMoveIntervalTicks - minMoveIntervalTicks));
     }
 
-    /**
-     * Updates catch progress for this target
-     * @param isInBobber Whether this target is currently inside the bobber
-     */
+    private int getRandomDartPause() {
+        return (int) (dartPauseMin + random.nextFloat() * (dartPauseMax - dartPauseMin));
+    }
+
+    private int getRandomOscPeriod() {
+        return (int) (oscRePeriodMin + random.nextFloat() * (oscRePeriodMax - oscRePeriodMin));
+    }
+
+    // -------------------------------------------------------------------------
+    // Catch progress
+    // -------------------------------------------------------------------------
+
     public void updateCatchProgress(boolean isInBobber) {
         if (isInBobber) {
-            catchProgress += CATCH_PROGRESS_GAIN;
-            catchProgress = Math.min(1.0f, catchProgress);
-            shakeTick++; // Increment shake animation only when being captured
+            catchProgress = Math.min(1.0f, catchProgress + catchProgressGain);
+            shakeTick++;
         } else {
-            catchProgress -= CATCH_PROGRESS_LOSS;
-            catchProgress = Math.max(0.0f, catchProgress);
-            shakeTick = 0; // Reset shake animation when not being captured
+            catchProgress = Math.max(0.0f, catchProgress - catchProgressLoss);
+            shakeTick = 0;
         }
     }
 
-    /**
-     * Gets the current position
-     * @return Position value between 0 and 1
-     */
-    public float getPosition() {
-        return currentPosition;
-    }
+    // -------------------------------------------------------------------------
+    // Public accessors
+    // -------------------------------------------------------------------------
 
-    /**
-     * Gets the interpolated position for smooth rendering
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Interpolated position value between 0 and 1
-     */
+    public float getPosition() { return currentPosition; }
+
     public float getInterpolatedPosition(float partialTick) {
         return previousPosition + (currentPosition - previousPosition) * partialTick;
     }
 
-    /**
-     * Gets all reward items associated with this target
-     * @return List of ItemStacks to award when caught
-     */
-    public List<ItemStack> getAllRewardItems() {
-        return new ArrayList<>(rewardItems);
-    }
+    public float getCatchProgress() { return catchProgress; }
 
-    /**
-     * Gets the physics simulations for rendering success animation
-     * @return List of PhysicsSimulation instances
-     */
-    public List<PhysicsSimulation> getPhysicsSimulations() {
-        return physicsSimulations;
-    }
+    public boolean isCaught() { return catchProgress >= 1.0f; }
 
-    /**
-     * Gets the catch progress for this target
-     * @return Progress value between 0 (no progress) and 1 (caught)
-     */
-    public float getCatchProgress() {
-        return catchProgress;
-    }
+    public boolean hasFailed() { return catchProgress <= 0.0f; }
 
-    /**
-     * Checks if this target has been caught
-     * @return true if catch progress is at maximum
-     */
-    public boolean isCaught() {
-        return catchProgress >= 1.0f;
-    }
+    public MovementPattern getMovementPattern() { return pattern; }
 
-    /**
-     * Checks if this target capture has failed
-     * @return true if catch progress is at minimum
-     */
-    public boolean hasFailed() {
-        return catchProgress <= 0.0f;
-    }
+    public TargetState getState() { return state; }
 
-    /**
-     * Gets the shake offset for rendering when being actively captured
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Shake offset value for Y position
-     */
+    public boolean isAnimationComplete() { return state == TargetState.COMPLETE; }
+
+    public List<ItemStack> getAllRewardItems() { return new ArrayList<>(rewardItems); }
+
+    public List<PhysicsSimulation> getPhysicsSimulations() { return physicsSimulations; }
+
+    // -------------------------------------------------------------------------
+    // Shake / rotation for rendering
+    // -------------------------------------------------------------------------
+
     public float getShakeOffset(float partialTick) {
-        // Calculate shake based on tick counter and partial tick
-        float totalTick = shakeTick + partialTick;
-        // Use sine wave for smooth shaking motion, frequency increases with progress
-        return (float) Math.sin(totalTick * 2) * SHAKE_INTENSITY;
+        return (float) Math.sin((shakeTick + partialTick) * 2) * SHAKE_INTENSITY;
     }
 
-    /**
-     * Gets the shake angle for rotation when being actively captured
-     * @param partialTick Progress between current and next tick (0-1)
-     * @param baseFrequency Base oscillation frequency
-     * @param frequencyMultiplier Multiplier applied to catch progress for dynamic frequency
-     * @param amplitude Maximum rotation amplitude in degrees
-     * @return Shake angle in degrees
-     */
     public float getShakeAngle(float partialTick, float baseFrequency, float frequencyMultiplier, float amplitude) {
-        float totalTick = shakeTick + partialTick;
         float frequency = baseFrequency + catchProgress * frequencyMultiplier;
-        return (float) (Math.sin(totalTick * frequency * (Math.PI * 2)) * amplitude);
+        return (float) (Math.sin((shakeTick + partialTick) * frequency * (Math.PI * 2)) * amplitude);
     }
 
-    /**
-     * Resets the target to a new random position with initial progress
-     */
-    public void reset() {
-        this.currentPosition = random.nextFloat();
-        this.targetPosition = currentPosition;
-        this.previousPosition = currentPosition;
-        this.speed = 0;
-        this.ticksSinceLastMove = 0;
-        this.ticksUntilNextMove = getRandomMoveInterval();
-        this.catchProgress = INITIAL_CATCH_PROGRESS;
-        this.shakeTick = 0;
-    }
+    // -------------------------------------------------------------------------
+    // Animation
+    // -------------------------------------------------------------------------
 
-    /**
-     * Sets the position directly (clamped to valid range)
-     * @param position New position (0-1)
-     */
-    public void setPosition(float position) {
-        this.currentPosition = Math.max(0, Math.min(1, position));
-        this.previousPosition = currentPosition;
-    }
-
-    /**
-     * Sets the target position for movement
-     * @param position Target position (0-1)
-     */
-    public void setTargetPosition(float position) {
-        this.targetPosition = Math.max(0, Math.min(1, position));
-    }
-
-    /**
-     * Sets the movement speed
-     * @param speed Movement speed per tick
-     */
-    public void setSpeed(float speed) {
-        this.speed = Math.max(0, speed);
-    }
-
-    /**
-     * Starts the failure animation (called when target is unsuccessfully captured)
-     */
     public void startFailAnimation() {
         state = TargetState.ANIMATING_FAIL;
         animationTick = 0;
         previousAnimationTick = 0;
     }
 
-    /**
-     * Starts the collection animation (called when target capture succeeds)
-     * @param x Starting X position in screen space (normalized 0-1)
-     * @param y Starting Y position in screen space (normalized 0-1)
-     */
     public void startCollectionAnimation(float x, float y) {
         state = TargetState.ANIMATING_SUCCESS;
         animationTick = 0;
         previousAnimationTick = 0;
-
-        // Initialize physics state
-        // Create a physics simulation for each reward item
         physicsSimulations.clear();
         for (ItemStack item : rewardItems) {
             physicsSimulations.add(new PhysicsSimulation(item, 0, 0, random));
         }
     }
 
-    /**
-     * Gets the current state of the target
-     * @return The target's current state
-     */
-    public TargetState getState() {
-        return state;
-    }
-
-    /**
-     * Checks if the animation is complete and target can be removed
-     * @return true if animation is complete
-     */
-    public boolean isAnimationComplete() {
-        return state == TargetState.COMPLETE;
-    }
-
-    /**
-     * Gets the collection animation spin angle with interpolation
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Rotation angle in degrees (0-720 for two full rotations)
-     */
     public float getFailSpinAngle(float partialTick) {
-        if (state != TargetState.ANIMATING_FAIL) {
-            return 0;
-        }
-
+        if (state != TargetState.ANIMATING_FAIL) return 0f;
         float interpolatedTick = previousAnimationTick + (animationTick - previousAnimationTick) * partialTick;
-        float progress = Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION);
-
-        // Apply easing for smooth spin
-        float easedProgress = MathUtil.easeInOutQuad(progress);
-
-        // Two full rotations (720 degrees)
-        return easedProgress * 720f;
+        return MathUtil.easeInOutQuad(Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION)) * 720f;
     }
 
-    /**
-     * Gets the collection animation scale with interpolation
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Scale value (1.0 to 0.0)
-     */
     public float getCollectionScale(float partialTick) {
-        if (state != TargetState.ANIMATING_FAIL) {
-            return 1.0f;
-        }
-
+        if (state != TargetState.ANIMATING_FAIL) return 1.0f;
         float interpolatedTick = previousAnimationTick + (animationTick - previousAnimationTick) * partialTick;
-        float progress = Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION);
-
-        // Apply easing for smooth shrink
-        float easedProgress = MathUtil.easeInOutQuad(progress);
-
-        // Scale from 1.0 to 0.0
-        return 1.0f - easedProgress;
+        return 1.0f - MathUtil.easeInOutQuad(Math.min(1.0f, interpolatedTick / COLLECTION_ANIMATION_DURATION));
     }
 
-    /**
-     * Gets the display ItemStack for a fishing target.
-     * For FishtasticFish items in ACTIVE or ANIMATING_FAIL states, returns the generic fish item
-     * to hide the actual reward until it's caught.
-     * For caught items (ANIMATING_SUCCESS), returns the actual item to reveal the reward.
-     *
-     * @return The ItemStack to display in the minigame
-     */
     public ItemStack getDisplayItemStack() {
-        // Only hide FishtasticFish items during ACTIVE and ANIMATING_FAIL states
-        // Show the actual item during ANIMATING_SUCCESS (when caught)
-        if ((state == FishingTarget.TargetState.ACTIVE || state == FishingTarget.TargetState.ANIMATING_FAIL)) {
-            if(category == TargetCategory.FISH) {
-                return new ItemStack(FishtasticItems.GENERIC_FISH);
-            } else {
-                return new ItemStack(FishtasticItems.REWARD_CHEST);
-            }
+        if (state == TargetState.ACTIVE || state == TargetState.ANIMATING_FAIL) {
+            return new ItemStack(category == TargetCategory.FISH
+                    ? FishtasticItems.GENERIC_FISH
+                    : FishtasticItems.REWARD_CHEST);
         }
-
-        // During success animation, show first reward item (or empty if no rewards)
         return rewardItems.isEmpty() ? ItemStack.EMPTY : rewardItems.get(0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Reset / mutation helpers
+    // -------------------------------------------------------------------------
+
+    public void reset() {
+        currentPosition = random.nextFloat();
+        targetPosition = currentPosition;
+        previousPosition = currentPosition;
+        speed = 0f;
+        ticksSinceLastMove = 0;
+        ticksUntilNextMove = getRandomMoveInterval();
+        catchProgress = initialCatchProgress;
+        shakeTick = 0;
+
+        dartIsBursting = false;
+        dartPauseTicks = 0;
+        dartNextPauseDuration = getRandomDartPause();
+        dartBurstStart = 0f;
+        dartBurstEnd = 0f;
+        dartBurstProgress = 0f;
+
+        oscCenter = 0.25f + random.nextFloat() * 0.5f;
+        oscAmplitude = 0.08f + random.nextFloat() * 0.17f;
+        oscPhase = random.nextFloat() * (float) (Math.PI * 2);
+        oscTicksSinceAnchor = 0;
+        oscNextRePeriod = getRandomOscPeriod();
+    }
+
+    public void setPosition(float position) {
+        currentPosition = Math.max(0f, Math.min(1f, position));
+        previousPosition = currentPosition;
+    }
+
+    public void setTargetPosition(float position) {
+        targetPosition = Math.max(0f, Math.min(1f, position));
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = Math.max(0f, speed);
     }
 }

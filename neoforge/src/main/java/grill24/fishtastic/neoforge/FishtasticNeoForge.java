@@ -54,6 +54,8 @@ public final class FishtasticNeoForge {
             event.dataPackRegistry(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC, ItemEffect.CODEC);
             Fishtastic.LOGGER.info("Registering FishProfile datapack registry");
             event.dataPackRegistry(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, grill24.fishtastic.data.FishProfile.CODEC, grill24.fishtastic.data.FishProfile.CODEC);
+            Fishtastic.LOGGER.info("Registering Temperament datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, grill24.fishtastic.data.Temperament.CODEC, grill24.fishtastic.data.Temperament.CODEC);
         });
 
         // Register network packets

@@ -7,5 +7,6 @@
   ],
   "weather_weights": [
     { "weather": "rain", "multiplier": 1.5 }
-  ]
+  ],
+  "temperament": "fishtastic:erratic"
 }

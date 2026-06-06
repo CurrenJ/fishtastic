@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
@@ -15,6 +16,7 @@ import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -89,7 +91,8 @@ public class FishingMinigameManager {
                     target.rewardStacks(),
                     target.category(),
                     target.initialPosition(),
-                    target.difficulty()
+                    target.difficulty(),
+                    target.pattern()
             ));
         }
 
@@ -201,6 +204,7 @@ public class FishingMinigameManager {
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
         int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
+        Registry<Temperament> temperamentRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
 
         for (int i = 0; i < targetCount; i++) {
@@ -217,18 +221,41 @@ public class FishingMinigameManager {
 
             if (rewardStacks.isEmpty()) continue;
 
-            float difficulty = baseDifficulties[randomSource.nextInt(baseDifficulties.length)] * difficultyModifier;
-            float initialPosition = randomSource.nextFloat();
-
             ItemStack reward = rewardStacks.getFirst();
             FishingTarget.TargetCategory category = reward.is(ItemTags.FISHES)
                     ? FishingTarget.TargetCategory.FISH
                     : FishingTarget.TargetCategory.TREASURE;
 
-            targets.add(new ServerFishingTarget(rewardStacks, category, difficulty, initialPosition));
+            float difficulty;
+            FishingTarget.MovementPattern pattern;
+
+            Temperament temperament = isFishReward
+                    ? resolveTemperament(reward, fishProfileRegistry, temperamentRegistry)
+                    : null;
+
+            if (temperament != null) {
+                difficulty = temperament.sampleDifficulty(randomSource) * difficultyModifier;
+                pattern = temperament.samplePattern(randomSource);
+            } else {
+                difficulty = baseDifficulties[randomSource.nextInt(baseDifficulties.length)] * difficultyModifier;
+                pattern = FishingTarget.pickRandom(difficulty, randomSource.nextFloat());
+            }
+
+            float initialPosition = randomSource.nextFloat();
+            targets.add(new ServerFishingTarget(rewardStacks, category, difficulty, initialPosition, pattern));
         }
 
         return targets;
+    }
+
+    @Nullable
+    private Temperament resolveTemperament(ItemStack stack, Registry<FishProfile> fishProfileRegistry, Registry<Temperament> temperamentRegistry) {
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) return null;
+        var profileKey = net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+        FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
+        if (profile == null || profile.temperament().isEmpty()) return null;
+        return temperamentRegistry.getOptional(profile.temperament().get()).orElse(null);
     }
 
     private @NotNull List<ItemStack> getTreasureRewards(LootParams lootparams) {
@@ -331,6 +358,7 @@ public class FishingMinigameManager {
             List<ItemStack> rewardStacks,
             grill24.fishtastic.util.FishingTarget.TargetCategory category,
             float difficulty,
-            float initialPosition
+            float initialPosition,
+            grill24.fishtastic.util.FishingTarget.MovementPattern pattern
     ) {}
 }

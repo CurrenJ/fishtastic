@@ -91,9 +91,9 @@ public class FishingMinigameState {
             previousVelocity = bobberVelocity; // Update previous velocity to avoid interpolation snap
         }
 
-        // Update all targets
+        // Update all targets — pass current bobber state so FLEE targets can react
         for (FishingTarget target : targets) {
-            target.tick();
+            target.tick(bobberPosition, bobberSize);
         }
     }
 

@@ -7,5 +7,6 @@
   "time_weights": [
     { "time": "dawn", "multiplier": 3.0 },
     { "time": "dusk", "multiplier": 2.5 }
-  ]
+  ],
+  "temperament": "fishtastic:wily"
 }

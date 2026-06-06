@@ -24,6 +24,7 @@ public final class FishtasticFabric implements ModInitializer {
         // Register synced datapack registries
         DynamicRegistries.registerSynced(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC);
         DynamicRegistries.registerSynced(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, grill24.fishtastic.data.FishProfile.CODEC);
+        DynamicRegistries.registerSynced(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, grill24.fishtastic.data.Temperament.CODEC);
 
         // Modloader-common item registration call, registers items using modloader-specific registration method
         FishtasticDataComponents.registerDataComponents();

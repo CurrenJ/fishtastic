@@ -41,7 +41,9 @@ public class FishingMinigameClientHandler {
                     targetData.rewardStacks(),
                     targetData.category(),
                     random,
-                    targetData.initialPosition()
+                    targetData.initialPosition(),
+                    targetData.difficulty(),
+                    targetData.pattern()
             );
             animation.getMinigameState().addTarget(target);
         }

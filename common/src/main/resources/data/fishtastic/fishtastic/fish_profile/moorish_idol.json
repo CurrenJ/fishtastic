@@ -6,5 +6,6 @@
   ],
   "time_weights": [
     { "time": "day", "multiplier": 2.0 }
-  ]
+  ],
+  "temperament": "fishtastic:skittish"
 }
