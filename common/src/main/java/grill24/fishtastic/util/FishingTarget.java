@@ -786,6 +786,10 @@ public class FishingTarget {
 
     public boolean isAnimationComplete() { return state == TargetState.COMPLETE; }
 
+    public float getDifficulty() { return difficulty; }
+
+    public TargetCategory getCategory() { return category; }
+
     public List<ItemStack> getAllRewardItems() { return new ArrayList<>(rewardItems); }
 
     public List<PhysicsSimulation> getPhysicsSimulations() { return physicsSimulations; }

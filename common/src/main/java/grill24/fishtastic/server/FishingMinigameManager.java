@@ -66,9 +66,9 @@ public class FishingMinigameManager {
     private final AtomicInteger sessionIdGenerator = new AtomicInteger(0);
 
     private static final int SESSION_TIMEOUT_TICKS = 6000;
-    private static final int MAX_TARGETS = 5;
+    private static final int MAX_TARGETS = 4;
     private static final float DEFAULT_TREASURE_CHANCE = 1.0f / 6.0f;
-    private static final int DEFAULT_TARGET_COUNT_MEAN = 2;
+    private static final int DEFAULT_TARGET_COUNT_MEAN = 1;
 
     private final ServerLevel level;
 
@@ -95,7 +95,7 @@ public class FishingMinigameManager {
 
         ItemStack rod = findCopperRod(player);
         ItemStack bait = CopperFishingRod.getBait(rod);
-        BaitEffect baitEffect = bait.isEmpty() ? null : bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect);
 

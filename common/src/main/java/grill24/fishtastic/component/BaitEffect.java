@@ -21,9 +21,13 @@ public record BaitEffect(
         float qualityBias,
         Optional<TagKey<Item>> exclusiveFishPool
 ) {
-    // Worms: volume bait — more targets, vanilla fish dominate, mod fish very rare
+    // No bait: vanilla fishing — mod fish are rare finds
+    public static final BaitEffect NO_BAIT = new BaitEffect(
+            0.0f, 0.167f, 0, 1.0f, 0.15f, 0.0f, Optional.empty());
+
+    // Worms: slightly boosts mod fish above the bare-hook baseline
     public static final BaitEffect WORMS = new BaitEffect(
-            0.5f, 0.10f, 1, 1.0f, 0.08f, 0.0f, Optional.empty());
+            0.5f, 0.10f, 1, 1.0f, 0.6f, 0.0f, Optional.empty());
 
     // Gummy Worms: mod fish unlock — pool shifted heavily toward mod fish, quality boost
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(

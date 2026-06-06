@@ -16,6 +16,10 @@ import java.util.Random;
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
     private final FishingMinigameState minigameState;
+    private final Random sparkleRandom = new Random();
+
+    private record SparkleBurst(List<SparkleParticle> particles, float targetYOffset) {}
+    private final List<SparkleBurst> sparkleBursts = new ArrayList<>();
 
     // Intro animation state
     private boolean isIntro = true;
@@ -46,9 +50,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         return !isHiding || hideAnimationTick < HIDE_ANIMATION_DURATION;
     }
 
+    private void tickSparkles() {
+        for (SparkleBurst burst : sparkleBursts) {
+            burst.particles().forEach(SparkleParticle::tick);
+            burst.particles().removeIf(p -> !p.isAlive());
+        }
+        sparkleBursts.removeIf(burst -> burst.particles().isEmpty());
+    }
+
     @Override
     public void tick() {
         tickCount++;
+        tickSparkles();
 
         // If in intro, advance intro animation
         if (isIntro) {
@@ -89,6 +102,15 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 target.updateCatchProgress(overlapQuality);
 
                 if (target.isCaught()) {
+                    float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
+                    int baseCount = target.getCategory() == FishingTarget.TargetCategory.TREASURE ? 16 : 3;
+                    int sparkleCount = baseCount + Math.round(target.getDifficulty() * 17);
+                    List<SparkleParticle> burst = new ArrayList<>();
+                    for (int i = 0; i < sparkleCount; i++) {
+                        burst.add(new SparkleParticle(0, 0, sparkleRandom, 20 + sparkleRandom.nextInt(15)));
+                    }
+                    sparkleBursts.add(new SparkleBurst(burst, targetYOffset));
+
                     target.startCollectionAnimation(0, 0);
                     caughtTargetIndices.add(targetIndex);
                 } else if (target.hasFailed()) {
@@ -167,7 +189,27 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().pushMatrix();
         renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenHeight);
         renderTargets(guiGraphics, partialTick);
+        renderSparkles(guiGraphics, partialTick);
         guiGraphics.pose().popMatrix();
+    }
+
+    private void renderSparkles(GuiGraphicsExtractor guiGraphics, float partialTick) {
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+        final float sparkleScale = 1f / 16f;
+
+        for (SparkleBurst burst : sparkleBursts) {
+            for (SparkleParticle sparkle : burst.particles()) {
+                guiGraphics.pose().pushMatrix();
+                Vector2f pos = sparkle.getInterpolatedPosition(partialTick);
+                float rotZ = sparkle.getInterpolatedRotationZ(partialTick);
+                float scale = sparkleScale * (1f - sparkle.getLifetimeProgress());
+                guiGraphics.pose().translate(pos.x(), -burst.targetYOffset() - pos.y());
+                guiGraphics.pose().rotate((float) Math.toRadians(rotZ));
+                guiGraphics.pose().scale(scale, scale);
+                extension.fishtastic$renderItem(sparkle.getItemStack(), 0, 0);
+                guiGraphics.pose().popMatrix();
+            }
+        }
     }
 
     private void renderFishingBar(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
