@@ -160,7 +160,9 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 // Gummy Worms: worms + slime ball
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.GUMMY_WORMS.value())
                         .requires(FishtasticItems.WORMS.value())
-                        .requires(Items.SLIME_BALL)
+                        .requires(Items.GOLDEN_CARROT)
+                        .requires(Items.SUGAR)
+                        .requires(Items.DIAMOND)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
 
