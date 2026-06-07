@@ -25,10 +25,14 @@ void main() {
 
     vec2 step = 1.0 / vec2(textureSize(Sampler0, 0));
 
-    // Decode alpha byte: bits 7-6 = outlineWidth-1 (0-3), bits 5-0 = solidness (0-63).
+    // Decode alpha byte:
+    //   bits 7-6 = outlineWidth-1 (0-3 → 1-4 item pixels)
+    //   bits 5-3 = solidness       (0-7 → 0.0–1.0, where 7 = solid / no falloff)
+    //   bits 2-0 = opacity         (0-7 → 0.0–1.0)
     int packedAlpha = int(round(vertexColor.a * 255.0));
-    int outlineWidth = (packedAlpha >> 6) + 1;          // 1-4 item pixels
-    float solidness  = float(packedAlpha & 63) / 63.0;
+    int outlineWidth     = (packedAlpha >> 6) + 1;
+    float solidness      = float((packedAlpha >> 3) & 7) / 7.0;
+    float opacity        = float(packedAlpha & 7) / 7.0;
     float falloffStrength = 1.0 - solidness;
 
     // Infer GUI scale: the blit spans 16 GUI units across 16*guiScale physical pixels,
@@ -71,7 +75,7 @@ void main() {
     if (maxNeighbourAlpha > 0.5) {
         // t = 0 at the innermost ring (adjacent to item), 1 at the outermost ring.
         float t = (minDist - 1.0) / float(max(radius - 1, 1));
-        float alpha = 1.0 - falloffStrength * t;
+        float alpha = opacity * (1.0 - falloffStrength * t);
         fragColor = vec4(vertexColor.rgb, alpha) * ColorModulator;
     } else {
         discard;

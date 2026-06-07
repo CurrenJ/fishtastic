@@ -22,7 +22,8 @@ public class ItemEffect {
                     Codec.BOOL.optionalFieldOf("enabled", true).forGetter(e -> e.enabled),
                     Codec.INT.optionalFieldOf("outline_color", 0).forGetter(e -> e.outlineColor),
                     Codec.FLOAT.optionalFieldOf("outline_falloff", 0.0f).forGetter(e -> e.outlineFalloff),
-                    Codec.INT.optionalFieldOf("outline_width", 1).forGetter(e -> e.outlineWidth)
+                    Codec.INT.optionalFieldOf("outline_width", 1).forGetter(e -> e.outlineWidth),
+                    Codec.FLOAT.optionalFieldOf("outline_opacity", 1.0f).forGetter(e -> e.outlineOpacity)
             ).apply(instance, ItemEffect::new)
     );
 
@@ -36,6 +37,8 @@ public class ItemEffect {
     private final float outlineFalloff;
     /** Outline thickness in item pixels (1 item pixel = guiScale atlas texels). Clamped to [1, 4]. */
     private final int outlineWidth;
+    /** Overall outline opacity multiplier, 0.0–1.0. Applied on top of any falloff gradient. */
+    private final float outlineOpacity;
 
     // Lazily created render types
     private RenderType qualityGlow;
@@ -43,7 +46,7 @@ public class ItemEffect {
     private RenderType entityQualityGlowDirect;
     private RenderType qualityGlowTranslucent;
 
-    public ItemEffect(Identifier texture, List<ItemEffectCondition> conditions, int priority, boolean enabled, int outlineColor, float outlineFalloff, int outlineWidth) {
+    public ItemEffect(Identifier texture, List<ItemEffectCondition> conditions, int priority, boolean enabled, int outlineColor, float outlineFalloff, int outlineWidth, float outlineOpacity) {
         this.texture = texture;
         this.conditions = conditions;
         this.priority = priority;
@@ -51,7 +54,8 @@ public class ItemEffect {
         this.outlineColor = outlineColor;
         this.outlineFalloff = Math.clamp(outlineFalloff, 0.0f, 1.0f);
         this.outlineWidth = Math.clamp(outlineWidth, 1, 4);
-        Fishtastic.LOGGER.debug("ItemEffect created: texture={}, conditions={}, priority={}, enabled={}, outlineColor={}, outlineFalloff={}, outlineWidth={}", texture, conditions, priority, enabled, outlineColor, outlineFalloff, outlineWidth);
+        this.outlineOpacity = Math.clamp(outlineOpacity, 0.0f, 1.0f);
+        Fishtastic.LOGGER.debug("ItemEffect created: texture={}, conditions={}, priority={}, enabled={}, outlineColor={}, outlineFalloff={}, outlineWidth={}, outlineOpacity={}", texture, conditions, priority, enabled, outlineColor, outlineFalloff, outlineWidth, outlineOpacity);
     }
 
     public Identifier texture() {
@@ -84,19 +88,22 @@ public class ItemEffect {
     }
 
     /**
-     * Packs width and falloff into the alpha byte so the shader can decode both
-     * from the single {@code vertexColor} parameter.
+     * Packs width, falloff, and opacity into the alpha byte for the shader.
      *
      * <p>Alpha byte layout (8 bits):
      * <ul>
-     *   <li>Bits 7–6 (2 bits): {@code outlineWidth - 1}  →  widths 1–4 item pixels</li>
-     *   <li>Bits 5–0 (6 bits): solidness  →  0 = full falloff, 63 = solid</li>
+     *   <li>Bits 7–6 (2 bits): {@code outlineWidth - 1}  →  1–4 item pixels</li>
+     *   <li>Bits 5–3 (3 bits): solidness (1 − falloff)  →  0 = full falloff, 7 = solid</li>
+     *   <li>Bits 2–0 (3 bits): opacity  →  0 = transparent, 7 = fully opaque</li>
      * </ul>
+     * Defaults (width=1, falloff=0, opacity=1) pack to 0x3F = 63, same as the
+     * previous two-field encoding so existing items are unaffected.
      */
     public int outlinePackedColor() {
-        int w = (Math.clamp(outlineWidth, 1, 4) - 1) & 0x3;      // 0-3
-        int s = Math.clamp((int) ((1.0f - outlineFalloff) * 63f), 0, 63); // 0-63
-        return ((w << 6 | s) << 24) | (outlineColor & 0x00FFFFFF);
+        int w = (Math.clamp(outlineWidth, 1, 4) - 1) & 0x3;           // bits 7-6
+        int s = Math.clamp((int) ((1.0f - outlineFalloff) * 7f), 0, 7); // bits 5-3
+        int o = Math.clamp((int) (outlineOpacity * 7f), 0, 7);          // bits 2-0
+        return ((w << 6 | s << 3 | o) << 24) | (outlineColor & 0x00FFFFFF);
     }
 
     public RenderType qualityGlow() {

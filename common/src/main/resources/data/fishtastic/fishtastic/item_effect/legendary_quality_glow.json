@@ -9,5 +9,7 @@
         }
     ],
     "priority": 40,
-    "outline_color": -22016
+    "outline_color": -22016,
+    "outline_falloff": 0.5,
+    "outline_width": 1
 }
