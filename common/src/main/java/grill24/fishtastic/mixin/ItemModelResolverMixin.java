@@ -1,5 +1,6 @@
 package grill24.fishtastic.mixin;
 
+import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticItemStackRenderState;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -38,8 +39,13 @@ public class ItemModelResolverMixin {
             CallbackInfo ci) {
 
         ItemEffect effect = ItemEffectManager.getEffectForItem(item);
-        // effect may be null — captureGlintEffects handles both cases (add or remove)
-        ((FishtasticItemStackRenderState) output).fishtastic$captureGlintEffects(effect);
+        FishtasticItemStackRenderState fishtasticOutput = (FishtasticItemStackRenderState) output;
+        fishtasticOutput.fishtastic$captureGlintEffects(effect);
+        if (effect != null) {
+            FishtasticGlintState.GUI_EFFECT_MAP.put(output, effect);
+        } else {
+            FishtasticGlintState.GUI_EFFECT_MAP.remove(output);
+        }
     }
 }
 

@@ -8,5 +8,6 @@
             "value": "legendary"
         }
     ],
-    "priority": 40
+    "priority": 40,
+    "outline_color": -22016
 }

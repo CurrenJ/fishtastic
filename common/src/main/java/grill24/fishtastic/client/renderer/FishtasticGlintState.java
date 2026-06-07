@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.itemeffect.ItemEffect;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -32,6 +33,14 @@ public final class FishtasticGlintState {
      * the head of {@code ItemStackRenderState.clear()}.
      */
     public static final IdentityHashMap<List<?>, ItemEffect> SUBMIT_EFFECT_MAP = new IdentityHashMap<>();
+
+    /**
+     * Maps an {@link ItemStackRenderState} identity to the {@link ItemEffect} for GUI
+     * outline rendering.  Populated by {@code ItemModelResolverMixin} and consumed by
+     * {@code GuiRendererMixin}.  Entries are removed in
+     * {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, ItemEffect> GUI_EFFECT_MAP = new IdentityHashMap<>();
 
     /**
      * Thread-local holding the active {@link ItemEffect} during a single

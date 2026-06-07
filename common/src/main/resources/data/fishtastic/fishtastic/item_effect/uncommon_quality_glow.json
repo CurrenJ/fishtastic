@@ -8,5 +8,8 @@
             "value": "uncommon"
         }
     ],
-    "priority": 10
+    "priority": 10,
+    "outline_color": -16711936,
+    "outline_falloff": 0.75,
+    "outline_width": 0.5
 }

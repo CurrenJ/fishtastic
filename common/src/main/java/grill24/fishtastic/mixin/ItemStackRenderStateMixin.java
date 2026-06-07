@@ -42,6 +42,7 @@ public abstract class ItemStackRenderStateMixin implements FishtasticItemStackRe
     @Inject(method = "clear", at = @At("HEAD"))
     private void fishtastic$onClear(CallbackInfo ci) {
         fishtastic$cleanupGlintEffects();
+        FishtasticGlintState.GUI_EFFECT_MAP.remove((ItemStackRenderState)(Object)this);
     }
 
     @Override
@@ -72,5 +73,6 @@ public abstract class ItemStackRenderStateMixin implements FishtasticItemStackRe
     public ItemStackRenderState.LayerRenderState fishtastic$getLayer(int index) {
         return layers[index];
     }
+
 }
 
