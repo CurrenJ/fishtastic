@@ -24,7 +24,8 @@ public class ItemEffect {
                     Codec.FLOAT.optionalFieldOf("outline_falloff", 0.0f).forGetter(e -> e.outlineFalloff),
                     Codec.INT.optionalFieldOf("outline_width", 1).forGetter(e -> e.outlineWidth),
                     Codec.FLOAT.optionalFieldOf("outline_opacity", 1.0f).forGetter(e -> e.outlineOpacity),
-                    Codec.BOOL.optionalFieldOf("outline_pinwheel", false).forGetter(e -> e.outlinePinwheel)
+                    Codec.BOOL.optionalFieldOf("outline_pinwheel", false).forGetter(e -> e.outlinePinwheel),
+                    Codec.BOOL.optionalFieldOf("outline_debug_uv", false).forGetter(e -> e.outlineDebugUv)
             ).apply(instance, ItemEffect::new)
     );
 
@@ -42,6 +43,8 @@ public class ItemEffect {
     private final float outlineOpacity;
     /** When true, uses the animated pinwheel shader instead of the basic outline shader. */
     private final boolean outlinePinwheel;
+    /** When true, uses the UV debug shader (slot-relative UV as RG). Overrides outlinePinwheel. */
+    private final boolean outlineDebugUv;
 
     // Lazily created render types
     private RenderType qualityGlow;
@@ -49,7 +52,7 @@ public class ItemEffect {
     private RenderType entityQualityGlowDirect;
     private RenderType qualityGlowTranslucent;
 
-    public ItemEffect(Identifier texture, List<ItemEffectCondition> conditions, int priority, boolean enabled, int outlineColor, float outlineFalloff, int outlineWidth, float outlineOpacity, boolean outlinePinwheel) {
+    public ItemEffect(Identifier texture, List<ItemEffectCondition> conditions, int priority, boolean enabled, int outlineColor, float outlineFalloff, int outlineWidth, float outlineOpacity, boolean outlinePinwheel, boolean outlineDebugUv) {
         this.texture = texture;
         this.conditions = conditions;
         this.priority = priority;
@@ -59,7 +62,8 @@ public class ItemEffect {
         this.outlineWidth = Math.clamp(outlineWidth, 1, 4);
         this.outlineOpacity = Math.clamp(outlineOpacity, 0.0f, 1.0f);
         this.outlinePinwheel = outlinePinwheel;
-        Fishtastic.LOGGER.debug("ItemEffect created: texture={}, conditions={}, priority={}, enabled={}, outlineColor={}, outlineFalloff={}, outlineWidth={}, outlineOpacity={}, outlinePinwheel={}", texture, conditions, priority, enabled, outlineColor, outlineFalloff, outlineWidth, outlineOpacity, outlinePinwheel);
+        this.outlineDebugUv = outlineDebugUv;
+        Fishtastic.LOGGER.debug("ItemEffect created: texture={}, conditions={}, priority={}, enabled={}, outlineColor={}, outlineFalloff={}, outlineWidth={}, outlineOpacity={}, outlinePinwheel={}, outlineDebugUv={}", texture, conditions, priority, enabled, outlineColor, outlineFalloff, outlineWidth, outlineOpacity, outlinePinwheel, outlineDebugUv);
     }
 
     public Identifier texture() {
@@ -95,6 +99,10 @@ public class ItemEffect {
         return outlinePinwheel;
     }
 
+    public boolean outlineDebugUv() {
+        return outlineDebugUv;
+    }
+
     /**
      * Packs width, falloff, and opacity into the alpha byte for the shader.
      *
@@ -115,15 +123,15 @@ public class ItemEffect {
     }
 
     /**
-     * Variant for the legendary pinwheel shader: repurposes bits 7-6 to carry the actual
-     * guiScale (1-4) so the shader can compute the correct atlas slot UV width.
-     * Outline width is hardcoded to 1 in the legendary shader.
+     * Packed colour for the legendary/debug-UV shaders. guiScale is no longer packed here —
+     * both shaders derive it from dFdx(modelViewPos.x) to avoid the 2-bit cap.
+     *   bits 5-3 = solidness (0-7 → 0.0–1.0)
+     *   bits 2-0 = opacity   (0-7 → 0.0–1.0)
      */
-    public int outlineLegendaryPackedColor(int guiScale) {
-        int g = (Math.clamp(guiScale, 1, 4) - 1) & 0x3;               // bits 7-6: guiScale-1
+    public int outlineLegendaryPackedColor() {
         int s = Math.clamp((int) ((1.0f - outlineFalloff) * 7f), 0, 7); // bits 5-3
         int o = Math.clamp((int) (outlineOpacity * 7f), 0, 7);          // bits 2-0
-        return ((g << 6 | s << 3 | o) << 24) | (outlineColor & 0x00FFFFFF);
+        return ((s << 3 | o) << 24) | (outlineColor & 0x00FFFFFF);
     }
 
     public RenderType qualityGlow() {

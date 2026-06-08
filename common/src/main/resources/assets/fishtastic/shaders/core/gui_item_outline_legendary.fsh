@@ -51,13 +51,16 @@ void main() {
 
     vec2 step = 1.0 / vec2(textureSize(Sampler0, 0));
 
+    // Derive guiScale from screen-space derivative (same approach as gui_item_outline.fsh).
+    // dFdx(modelViewPos.x) = 1/guiScale since the blit spans 16 GUI units over 16*guiScale fragments.
+    float dvx = abs(dFdx(modelViewPos.x));
+    int guiScale = (dvx > 0.0001) ? clamp(int(round(1.0 / dvx)), 1, 8) : 1;
+
     // Decode packed alpha byte (legendary variant):
-    //   bits 7-6 = guiScale-1      (0-3 → 1-4, passed from Java — fixes atlas slot UV computation)
-    //   bits 5-3 = solidness        (0-7 → 0.0–1.0)
-    //   bits 2-0 = opacity          (0-7 → 0.0–1.0)
-    // Outline width is hardcoded to 1 for the legendary shader.
+    //   bits 5-3 = solidness  (0-7 → 0.0–1.0)
+    //   bits 2-0 = opacity    (0-7 → 0.0–1.0)
+    // Outline width is hardcoded to 1; guiScale is no longer packed here.
     int packedAlpha = int(round(vertexColor.a * 255.0));
-    int guiScale          = (packedAlpha >> 6) + 1;
     float solidness       = float((packedAlpha >> 3) & 7) / 7.0;
     float opacity         = float(packedAlpha & 7) / 7.0;
     float falloffStrength = 1.0 - solidness;

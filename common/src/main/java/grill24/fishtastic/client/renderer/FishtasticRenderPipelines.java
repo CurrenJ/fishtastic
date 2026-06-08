@@ -44,5 +44,17 @@ public final class FishtasticRenderPipelines {
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
             .build();
 
+    /** Debug shader that renders slot-relative UV as red/green over the full 16×16 item slot. */
+    public static final RenderPipeline GUI_ITEM_OUTLINE_DEBUG_UV = RenderPipeline.builder()
+            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+            .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_debug_uv"))
+            .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+            .build();
+
     private FishtasticRenderPipelines() {}
 }

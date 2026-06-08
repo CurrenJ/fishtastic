@@ -71,19 +71,15 @@ public abstract class GuiRendererMixin {
         }
 
         boolean legendary = effect.outlinePinwheel();
-        var pipeline = legendary
-                ? FishtasticRenderPipelines.GUI_ITEM_OUTLINE_LEGENDARY
-                : FishtasticRenderPipelines.GUI_ITEM_OUTLINE;
+        boolean debugUv   = effect.outlineDebugUv();
 
-        int packedColor;
-        if (legendary) {
-            int guiScale = Math.clamp(
-                    Minecraft.getInstance().gameRenderer.getGameRenderState().windowRenderState.guiScale,
-                    1, 4);
-            packedColor = effect.outlineLegendaryPackedColor(guiScale);
-        } else {
-            packedColor = effect.outlinePackedColor();
-        }
+        var pipeline = debugUv   ? FishtasticRenderPipelines.GUI_ITEM_OUTLINE_DEBUG_UV
+                     : legendary ? FishtasticRenderPipelines.GUI_ITEM_OUTLINE_LEGENDARY
+                     :             FishtasticRenderPipelines.GUI_ITEM_OUTLINE;
+
+        int packedColor = (debugUv || legendary)
+                ? effect.outlineLegendaryPackedColor()
+                : effect.outlinePackedColor();
 
         this.renderState.addBlitToCurrentLayer(new BlitRenderState(
                 pipeline,

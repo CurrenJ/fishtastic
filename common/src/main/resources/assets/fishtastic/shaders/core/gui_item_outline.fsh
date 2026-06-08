@@ -39,7 +39,7 @@ void main() {
     // so dFdx(modelViewPos.x) = 1/guiScale.
     // Clamp to [1,4] to guard against near-zero derivatives (-> inf -> GPU crash).
     float dvx = abs(dFdx(modelViewPos.x));
-    int guiScale = (dvx > 0.0001) ? clamp(int(round(1.0 / dvx)), 1, 4) : 1;
+    int guiScale = (dvx > 0.0001) ? clamp(int(round(1.0 / dvx)), 1, 8) : 1;
 
     // radius = outlineWidth item pixels, each item pixel = guiScale atlas texels.
     // Hard cap at 16 to bound loop size (worst case: 4px * guiScale 4 = 16 → 33x33).
