@@ -5,6 +5,7 @@ import com.mojang.blaze3d.textures.FilterMode;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticRenderPipelines;
 import grill24.fishtastic.itemeffect.ItemEffect;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.GuiItemAtlas;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.gui.render.TextureSetup;
@@ -69,8 +70,23 @@ public abstract class GuiRendererMixin {
             return;
         }
 
+        boolean legendary = effect.outlinePinwheel();
+        var pipeline = legendary
+                ? FishtasticRenderPipelines.GUI_ITEM_OUTLINE_LEGENDARY
+                : FishtasticRenderPipelines.GUI_ITEM_OUTLINE;
+
+        int packedColor;
+        if (legendary) {
+            int guiScale = Math.clamp(
+                    Minecraft.getInstance().gameRenderer.getGameRenderState().windowRenderState.guiScale,
+                    1, 4);
+            packedColor = effect.outlineLegendaryPackedColor(guiScale);
+        } else {
+            packedColor = effect.outlinePackedColor();
+        }
+
         this.renderState.addBlitToCurrentLayer(new BlitRenderState(
-                FishtasticRenderPipelines.GUI_ITEM_OUTLINE,
+                pipeline,
                 TextureSetup.singleTexture(
                         slotView.textureView(),
                         RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
@@ -83,7 +99,7 @@ public abstract class GuiRendererMixin {
                 slotView.u1(),
                 slotView.v0(),
                 slotView.v1(),
-                effect.outlinePackedColor(),
+                packedColor,
                 itemState.scissorArea()
         ));
     }

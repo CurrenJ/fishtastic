@@ -31,5 +31,18 @@ public final class FishtasticRenderPipelines {
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
             .build();
 
+    /** Animated pinwheel outline for legendary1-rarity items. Requires the {@code Globals} UBO for {@code GameTime}. */
+    public static final RenderPipeline GUI_ITEM_OUTLINE_LEGENDARY = RenderPipeline.builder()
+            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+            .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+            .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_legendary"))
+            .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
+            .withSampler("Sampler0")
+            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+            .build();
+
     private FishtasticRenderPipelines() {}
 }
