@@ -8,6 +8,7 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
+import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
@@ -99,7 +100,18 @@ public class FishingMinigameManager {
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect);
 
-        ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime());
+        // Capture environment context at hook position for quest tracking
+        FishingHook sessionHook = player.fishing;
+        Holder<Biome> sessionBiome = sessionHook != null
+                ? level.getBiome(BlockPos.containing(sessionHook.position()))
+                : level.getBiome(player.blockPosition());
+        FishProfile.TimeOfDay sessionTimeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.WeatherCondition sessionWeather = level.isThundering() ? FishProfile.WeatherCondition.THUNDER
+                : level.isRaining() ? FishProfile.WeatherCondition.RAIN
+                : FishProfile.WeatherCondition.CLEAR;
+
+        ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
+                sessionBiome, sessionTimeOfDay, sessionWeather);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -147,6 +159,8 @@ public class FishingMinigameManager {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
                         catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
+                        QuestTracker.onCatch(level.getServer(), player, reward,
+                                session.hookBiome, session.hookTimeOfDay, session.hookWeather);
                         player.getInventory().add(reward);
                         rewards.add(reward);
                     }
@@ -370,12 +384,19 @@ public class FishingMinigameManager {
         final UUID playerId;
         final List<ServerFishingTarget> targets;
         final long startTime;
+        final Holder<Biome> hookBiome;
+        final FishProfile.TimeOfDay hookTimeOfDay;
+        final FishProfile.WeatherCondition hookWeather;
 
-        ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime) {
+        ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
+                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
             this.startTime = startTime;
+            this.hookBiome = hookBiome;
+            this.hookTimeOfDay = hookTimeOfDay;
+            this.hookWeather = hookWeather;
         }
     }
 

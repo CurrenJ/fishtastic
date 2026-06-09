@@ -35,7 +35,7 @@ public class ItemEffect {
                     Codec.BOOL.optionalFieldOf("outline_pinwheel", false).forGetter(e -> e.outlinePinwheel),
                     Codec.BOOL.optionalFieldOf("outline_debug_uv", false).forGetter(e -> e.outlineDebugUv),
                     Codec.FLOAT.optionalFieldOf("outline_anim_speed", 150.0f).forGetter(e -> e.outlineAnimSpeed),
-                    Codec.INT.optionalFieldOf("outline_num_blades", 3).forGetter(e -> e.outlineNumBlades),
+                    Codec.INT.optionalFieldOf("outline_num_blades", 5).forGetter(e -> e.outlineNumBlades),
                     Codec.FLOAT.optionalFieldOf("outline_blade_fill", 0.65f).forGetter(e -> e.outlineBladeFill)
             ).apply(instance, ItemEffect::new)
     );

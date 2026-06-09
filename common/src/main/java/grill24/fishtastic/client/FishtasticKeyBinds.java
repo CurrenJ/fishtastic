@@ -1,10 +1,12 @@
 package grill24.fishtastic.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 
 /**
  * Manages custom key bindings for Fishtastic
@@ -15,6 +17,7 @@ public class FishtasticKeyBinds {
     );
 
     public static KeyMapping fishingMinigameImpulse;
+    public static KeyMapping openQuestLog;
 
     /**
      * Initialize key mappings. Called during client initialization.
@@ -23,7 +26,13 @@ public class FishtasticKeyBinds {
         fishingMinigameImpulse = new KeyMapping(
             "key.fishtastic.fishing_minigame_impulse",
             InputConstants.Type.KEYSYM,
-            InputConstants.KEY_SPACE, // Default to spacebar
+            InputConstants.KEY_SPACE,
+            CATEGORY
+        );
+        openQuestLog = new KeyMapping(
+            "key.fishtastic.open_quest_log",
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_J,
             CATEGORY
         );
     }
@@ -33,12 +42,15 @@ public class FishtasticKeyBinds {
      */
     public static void handleKeyPress(Minecraft minecraft) {
         if (fishingMinigameImpulse.consumeClick()) {
-            // Check if there's an active fishing minigame animation
             IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
             var activeAnimation = gameRendererExt.fishtastic$getActiveAnimation();
             if (activeAnimation instanceof FishingMinigameAnimation animation) {
-                // Apply impulse when key is pressed
                 animation.applyPlayerImpulse();
+            }
+        }
+        if (openQuestLog != null && openQuestLog.consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
             }
         }
     }

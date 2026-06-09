@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:worms",
+    "minecraft:kelp"
+  ],
+  "result": {
+    "id": "fishtastic:ocean_bait",
+    "count": 3
+  }
+}

@@ -2,11 +2,16 @@ package grill24.fishtastic.server;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
+import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.datafix.DataFixTypes;
@@ -138,6 +143,7 @@ public class FishCatchSavedData extends SavedData {
     }
 
     private final Map<UUID, PlayerCatchData> playerData = new HashMap<>();
+    private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
 
     // -------------------------------------------------------------------------
     // Codec and SavedDataType
@@ -145,10 +151,13 @@ public class FishCatchSavedData extends SavedData {
 
     public static final Codec<FishCatchSavedData> CODEC = RecordCodecBuilder.create(instance ->
         instance.group(
-            PlayerCatchData.CODEC.listOf().fieldOf("players").forGetter(d -> new ArrayList<>(d.playerData.values()))
-        ).apply(instance, playerList -> {
+            PlayerCatchData.CODEC.listOf().fieldOf("players").forGetter(d -> new ArrayList<>(d.playerData.values())),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, PlayerQuestState.CODEC)
+                    .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates))
+        ).apply(instance, (playerList, questMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
+            data.questStates.putAll(questMap);
             return data;
         })
     );
@@ -238,5 +247,29 @@ public class FishCatchSavedData extends SavedData {
                 .map(pd -> new GlobalCatchCountEntry(pd.uuid, pd.lastKnownName, pd.totalCatches()))
                 .sorted(order)
                 .toList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Quest state API
+    // -------------------------------------------------------------------------
+
+    public PlayerQuestState getOrCreateQuestState(UUID uuid) {
+        return questStates.computeIfAbsent(uuid, k -> new PlayerQuestState());
+    }
+
+    public void resetDailyQuestsIfNeeded(MinecraftServer server, long currentDay) {
+        Registry<Quest> questRegistry;
+        try {
+            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        } catch (Exception e) {
+            return;
+        }
+        questRegistry.entrySet().stream()
+                .filter(e -> e.getValue().category() == QuestCategory.DAILY)
+                .forEach(e -> {
+                    ResourceKey<Quest> key = e.getKey();
+                    questStates.values().forEach(state -> state.resetDailyIfNeeded(key, currentDay));
+                });
+        setDirty();
     }
 }

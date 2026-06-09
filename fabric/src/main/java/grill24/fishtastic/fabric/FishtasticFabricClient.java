@@ -2,7 +2,9 @@ package grill24.fishtastic.fabric;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
+import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -60,9 +62,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
 
+        // Register quest sync packet client handler
+        QuestSyncPacket.registerClientHandler(packet ->
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance()));
+
         // Initialize and register key bindings
         FishtasticKeyBinds.init();
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
+        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
 
         // Register block entity renderer
         BlockEntityRendererRegistry.register(

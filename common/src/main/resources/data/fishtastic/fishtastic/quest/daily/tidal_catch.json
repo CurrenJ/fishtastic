@@ -1,0 +1,11 @@
+{
+  "category": "daily",
+  "objective": {
+    "target_species_tag": "fishtastic:ocean_fish",
+    "target_count": 5
+  },
+  "reward": { "quest_tokens": 5, "items": [] },
+  "hidden": false,
+  "display_name": "Tidal Catch",
+  "description": "Catch 5 fish from ocean waters."
+}

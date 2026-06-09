@@ -2,7 +2,9 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
+import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -47,6 +49,10 @@ public final class FishtasticNeoForgeClient {
     public FishtasticNeoForgeClient(IEventBus modEventBus) {
         // Try to register GelatinUI screens, if GelatinUI is present.
         GelatinScreensCompat.init();
+
+        // Register quest sync packet client handler
+        QuestSyncPacket.registerClientHandler(packet ->
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance()));
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
@@ -100,6 +106,7 @@ public final class FishtasticNeoForgeClient {
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
+        event.register(FishtasticKeyBinds.openQuestLog);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 

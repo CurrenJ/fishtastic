@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "fishtastic:worms",
+    "minecraft:beef"
+  ],
+  "result": {
+    "id": "fishtastic:predator_bait",
+    "count": 3
+  }
+}

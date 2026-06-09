@@ -1,0 +1,12 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species": "fishtastic:bluegill",
+    "target_count": 25
+  },
+  "reward": { "quest_tokens": 25, "items": [] },
+  "hidden": true,
+  "prerequisite": "fishtastic:mastery/bluegill_novice",
+  "display_name": "Bluegill Adept",
+  "description": "Catch 25 Bluegill total."
+}

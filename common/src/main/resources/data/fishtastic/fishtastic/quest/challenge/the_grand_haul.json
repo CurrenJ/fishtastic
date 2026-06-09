@@ -1,0 +1,11 @@
+{
+  "category": "challenge",
+  "objective": {
+    "target_count": 5,
+    "min_quality": "legendary"
+  },
+  "reward": { "quest_tokens": 75, "items": [] },
+  "hidden": false,
+  "display_name": "The Grand Haul",
+  "description": "Catch 5 fish at Legendary quality."
+}

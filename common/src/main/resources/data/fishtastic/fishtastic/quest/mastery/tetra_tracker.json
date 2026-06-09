@@ -1,0 +1,11 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species": "fishtastic:neon_tetra",
+    "target_count": 10
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "Tetra Tracker",
+  "description": "Catch 10 Neon Tetra."
+}

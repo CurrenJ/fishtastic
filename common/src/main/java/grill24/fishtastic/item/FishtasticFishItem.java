@@ -132,7 +132,13 @@ public class FishtasticFishItem extends Item {
             }
 
             float baitMult = baitEffect != null ? baitEffect.modFishMultiplier() : 1.0f;
-            return Math.max(1, (int) (baseWeight * environmentMult * baitMult));
+            float groupMult = 1.0f;
+            if (baitEffect != null) {
+                for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {
+                    if (item.is(affinity.group())) groupMult *= affinity.multiplier();
+                }
+            }
+            return Math.max(1, (int) (baseWeight * environmentMult * baitMult * groupMult));
         }
 
         // Vanilla fish weights with bait multiplier applied
