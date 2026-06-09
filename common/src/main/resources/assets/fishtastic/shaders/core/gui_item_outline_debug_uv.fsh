@@ -7,6 +7,19 @@ layout(std140) uniform DynamicTransforms {
     mat4 TextureMat;
 };
 
+// Declared for pipeline compatibility — not used in the debug shader logic.
+layout(std140) uniform DebugUvOutlineParams {
+    vec4  color;
+    float falloff;
+    float opacity;
+    float width;
+    float animSpeed;
+    int   numBlades;
+    float bladeFill;
+    float _reserved0;
+    float _reserved1;
+};
+
 uniform sampler2D Sampler0;
 
 in vec2 texCoord0;
@@ -31,7 +44,7 @@ void main() {
 
     // Slot-relative UV (0..1 within this item's 16-px atlas slot).
     // Red  = U: 0 (left) → 1 (right)
-    // Green = V: 0 (top)  → 1 (bottom)  — matches atlas V convention
+    // Green = V: 0 (top)  → 1 (bottom)
     float u = (texCoord0.x - uSlotMin) / (uSlotMax - uSlotMin);
     float v = (texCoord0.y - vSlotMin) / (vSlotMax - vSlotMin);
 

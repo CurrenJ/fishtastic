@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -29,6 +30,8 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
@@ -52,6 +55,10 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
+
+        // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -110,6 +117,16 @@ public final class FishtasticNeoForgeClient {
         // TODO MC-26.1: ItemProperties.register is removed in 26.1
         // The fishing rod "cast" property must now be defined via data-driven item models
         Fishtastic.LOGGER.info("Fishtastic client setup complete.");
+    }
+
+    public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
+        ItemEffectManager.clearCache();
+    }
+
+    public static void onTagsUpdated(TagsUpdatedEvent event) {
+        if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
+            ItemEffectManager.clearCache();
+        }
     }
 
     public static void onClientTick(ClientTickEvent.Pre event) {

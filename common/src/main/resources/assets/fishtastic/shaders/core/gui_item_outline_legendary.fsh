@@ -7,14 +7,6 @@ layout(std140) uniform DynamicTransforms {
     mat4 TextureMat;
 };
 
-// Globals UBO — layout matches GlobalSettingsUniform.java (std140):
-//   ivec3  CameraPosition      (16 bytes: 12 data + 4 implicit pad)
-//   vec3   CameraPositionFract (16 bytes: 12 data + 4 implicit pad)
-//   vec2   ScreenSize          (8 bytes)
-//   float  GlintAlpha          (4 bytes, offset 40)
-//   float  GameTime            (4 bytes, offset 44) — 0..1 over one in-game day (1200 s)
-//   int    MenuBlurRadius      (4 bytes)
-//   int    UseRgss             (4 bytes)
 layout(std140) uniform Globals {
     ivec3 CameraPosition;
     vec3  CameraPositionFract;
@@ -23,6 +15,19 @@ layout(std140) uniform Globals {
     float GameTime;
     int   MenuBlurRadius;
     int   UseRgss;
+};
+
+// All outline params — uploaded once per effect type via ItemEffect.buildOutlineParamsBuffer().
+layout(std140) uniform LegendaryOutlineParams {
+    vec4  color;        // outline tint (RGB; W unused)
+    float falloff;      // 0 = solid, 1 = full gradient fade at outer edge
+    float opacity;      // overall opacity multiplier
+    float width;        // outline thickness in item pixels; fractional values allowed (e.g. 0.5 = half item pixel)
+    float animSpeed;    // full rotations per in-game day (default 150)
+    int   numBlades;    // pinwheel blade count (default 3)
+    float bladeFill;    // fraction of each sector that is filled (default 0.65)
+    float _reserved0;
+    float _reserved1;
 };
 
 uniform sampler2D Sampler0;
@@ -51,21 +56,16 @@ void main() {
 
     vec2 step = 1.0 / vec2(textureSize(Sampler0, 0));
 
-    // Derive guiScale from screen-space derivative (same approach as gui_item_outline.fsh).
+    // Derive guiScale from screen-space derivative — no packing limit.
     // dFdx(modelViewPos.x) = 1/guiScale since the blit spans 16 GUI units over 16*guiScale fragments.
     float dvx = abs(dFdx(modelViewPos.x));
     int guiScale = (dvx > 0.0001) ? clamp(int(round(1.0 / dvx)), 1, 8) : 1;
 
-    // Decode packed alpha byte (legendary variant):
-    //   bits 5-3 = solidness  (0-7 → 0.0–1.0)
-    //   bits 2-0 = opacity    (0-7 → 0.0–1.0)
-    // Outline width is hardcoded to 1; guiScale is no longer packed here.
-    int packedAlpha = int(round(vertexColor.a * 255.0));
-    float solidness       = float((packedAlpha >> 3) & 7) / 7.0;
-    float opacity         = float(packedAlpha & 7) / 7.0;
+    float solidness       = 1.0 - falloff;
     float falloffStrength = 1.0 - solidness;
 
-    int radius = clamp(guiScale, 1, 16);
+    // radius in screen pixels: width is fractional item pixels, guiScale converts to texels (1 texel = 1 px).
+    int radius = clamp(int(round(width * float(guiScale))), 1, 16);
 
     // Atlas slot bounds — prevents bleed across adjacent items.
     float slotW    = 16.0 * float(guiScale) * step.x;
@@ -97,8 +97,7 @@ void main() {
     // ---- Pinwheel effect ----
 
     // GameTime: 0→1 per in-game day (24 000 ticks ≈ 1200 real seconds).
-    // 150 rotations/day → 1 full rotation every 8 real seconds.
-    float rotation = mod(GameTime * 150.0, 1.0) * 2.0 * PI;
+    float rotation = mod(GameTime * animSpeed, 1.0) * 2.0 * PI;
 
     // Angle from the slot centre to this outline fragment.
     float uCenter = (uSlotMin + uSlotMax) * 0.5;
@@ -109,29 +108,24 @@ void main() {
     // Counter-clockwise spin: subtract the rotation offset.
     float rotatedAngle = mod(angle - rotation + 4.0 * PI, 2.0 * PI);
 
-    // 3-blade pinwheel — each blade fills 65 % of its 120° sector; 35 % is the gap.
-    // Three large blades read clearly as one rotating shape vs. 5 thin arcs.
-    const int   NUM_BLADES = 3;
-    const float BLADE_FILL = 0.65;
-    float sectorSize  = 2.0 * PI / float(NUM_BLADES);
+    float sectorSize  = 2.0 * PI / float(numBlades);
     float posInSector = mod(rotatedAngle, sectorSize) / sectorSize;  // 0..1
 
-    if (posInSector >= BLADE_FILL) {
+    if (posInSector >= bladeFill) {
         discard;
     }
 
     // Sweep brightness: full at the leading edge, 50 % at the trailing edge.
-    float sweepT    = posInSector / BLADE_FILL;
+    float sweepT     = posInSector / bladeFill;
     float brightness = 1.0 - 0.5 * sweepT * sweepT;
 
     // Subtle iridescent shimmer: mostly preserves the item-defined colour,
     // with a small rainbow tint that drifts slowly over time.
     float hue      = fract(angle / (2.0 * PI) + mod(GameTime * 15.0, 1.0));
     vec3 rainbow   = hsvToRgb(vec3(hue, 0.7, 1.0));
-    // 20 % rainbow shimmer + 80 % item-defined colour, modulated by sweep brightness.
-    vec3 blendedColor = mix(vertexColor.rgb, rainbow, 0.2) * brightness;
+    vec3 blendedColor = mix(color.rgb, rainbow, 0.2) * brightness;
 
-    // Outline alpha with falloff (identical to basic outline).
+    // Outline alpha with falloff.
     float t     = (minDist - 1.0) / float(max(radius - 1, 1));
     float alpha = opacity * (1.0 - falloffStrength * t);
 

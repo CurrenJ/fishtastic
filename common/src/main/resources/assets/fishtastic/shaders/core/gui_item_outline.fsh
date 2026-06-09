@@ -7,6 +7,20 @@ layout(std140) uniform DynamicTransforms {
     mat4 TextureMat;
 };
 
+// All outline params — uploaded once per effect type via ItemEffect.buildOutlineParamsBuffer().
+// Layout matches FishtasticRenderPipelines.OUTLINE_PARAMS_UBO_SIZE (std140, 48 bytes).
+layout(std140) uniform BasicOutlineParams {
+    vec4  color;        // outline tint (RGB; W unused)
+    float falloff;      // 0 = solid, 1 = full gradient fade at outer edge
+    float opacity;      // overall opacity multiplier
+    float width;        // outline thickness in item pixels; fractional values allowed (e.g. 0.5 = half item pixel)
+    float animSpeed;    // unused for basic outline
+    int   numBlades;    // unused for basic outline
+    float bladeFill;    // unused for basic outline
+    float _reserved0;
+    float _reserved1;
+};
+
 uniform sampler2D Sampler0;
 
 in vec2 texCoord0;
@@ -25,43 +39,30 @@ void main() {
 
     vec2 step = 1.0 / vec2(textureSize(Sampler0, 0));
 
-    // Decode alpha byte:
-    //   bits 7-6 = outlineWidth-1 (0-3 → 1-4 item pixels)
-    //   bits 5-3 = solidness       (0-7 → 0.0–1.0, where 7 = solid / no falloff)
-    //   bits 2-0 = opacity         (0-7 → 0.0–1.0)
-    int packedAlpha = int(round(vertexColor.a * 255.0));
-    int outlineWidth     = (packedAlpha >> 6) + 1;
-    float solidness      = float((packedAlpha >> 3) & 7) / 7.0;
-    float opacity        = float(packedAlpha & 7) / 7.0;
-    float falloffStrength = 1.0 - solidness;
-
-    // Infer GUI scale: the blit spans 16 GUI units across 16*guiScale physical pixels,
-    // so dFdx(modelViewPos.x) = 1/guiScale.
-    // Clamp to [1,4] to guard against near-zero derivatives (-> inf -> GPU crash).
+    // Infer GUI scale from screen-space derivative.
+    // dFdx(modelViewPos.x) = 1/guiScale since the blit spans 16 GUI units over 16*guiScale fragments.
     float dvx = abs(dFdx(modelViewPos.x));
     int guiScale = (dvx > 0.0001) ? clamp(int(round(1.0 / dvx)), 1, 8) : 1;
 
-    // radius = outlineWidth item pixels, each item pixel = guiScale atlas texels.
-    // Hard cap at 16 to bound loop size (worst case: 4px * guiScale 4 = 16 → 33x33).
-    int radius = clamp(outlineWidth * guiScale, 1, 16);
+    float solidness     = 1.0 - falloff;
+    float falloffStrength = 1.0 - solidness;
 
-    // Compute the atlas-slot UV bounds so neighbour samples don't bleed into
-    // adjacent slots (which hold different items).
+    // radius in screen pixels: width is fractional item pixels, guiScale converts to texels (1 texel = 1 px).
+    int radius = clamp(int(round(width * float(guiScale))), 1, 16);
+
+    // Atlas-slot UV bounds to prevent neighbour bleed.
     float slotW = 16.0 * float(guiScale) * step.x;
     float uSlotMin = floor(texCoord0.x / slotW) * slotW;
     float uSlotMax = uSlotMin + slotW;
-    // v is inverted in the atlas (v0 > v1), so work in (1 - v) space.
     float vSlotMax = 1.0 - floor((1.0 - texCoord0.y) / slotW) * slotW;
     float vSlotMin = vSlotMax - slotW;
 
     float maxNeighbourAlpha = 0.0;
-    float minDist = float(radius + 1); // Chebyshev distance to nearest opaque neighbour
+    float minDist = float(radius + 1);
     for (int dx = -radius; dx <= radius; dx++) {
         for (int dy = -radius; dy <= radius; dy++) {
             if (dx == 0 && dy == 0) continue;
             vec2 sampleUV = texCoord0 + vec2(float(dx), float(dy)) * step;
-            // Skip samples that land in a neighbouring slot — they belong to a
-            // different item and would cause outline bleed across atlas boundaries.
             if (sampleUV.x < uSlotMin || sampleUV.x > uSlotMax ||
                 sampleUV.y < vSlotMin || sampleUV.y > vSlotMax) continue;
             float a = texture(Sampler0, sampleUV).a;
@@ -73,10 +74,9 @@ void main() {
     }
 
     if (maxNeighbourAlpha > 0.5) {
-        // t = 0 at the innermost ring (adjacent to item), 1 at the outermost ring.
         float t = (minDist - 1.0) / float(max(radius - 1, 1));
         float alpha = opacity * (1.0 - falloffStrength * t);
-        fragColor = vec4(vertexColor.rgb, alpha) * ColorModulator;
+        fragColor = vec4(color.rgb, alpha) * ColorModulator;
     } else {
         discard;
     }

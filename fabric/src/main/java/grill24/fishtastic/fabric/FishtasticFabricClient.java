@@ -2,6 +2,7 @@ package grill24.fishtastic.fabric;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -18,6 +19,8 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
 import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
@@ -66,6 +69,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
             FishTankBlockEntityRenderer::new
         );
+
+        // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
+        CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
+            if (isClient) ItemEffectManager.clearCache();
+        });
 
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

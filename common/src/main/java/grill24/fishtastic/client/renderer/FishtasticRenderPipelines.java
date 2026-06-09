@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
+import com.mojang.blaze3d.buffers.Std140SizeCalculator;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
@@ -11,50 +12,74 @@ import net.minecraft.resources.Identifier;
 public final class FishtasticRenderPipelines {
 
     /**
-     * Outline blit pipeline for GUI items.
-     *
-     * Shares the same vertex format and sampler setup as {@code GUI_TEXTURED_PREMULTIPLIED_ALPHA}
-     * so it can be used as a drop-in additional blit call on the same atlas texture.
-     *
-     * The fragment shader discards opaque item pixels and instead draws the outline colour
-     * (passed via the blit's {@code color} parameter → {@code vertexColor}) only in the
-     * transparent pixels that are 8-connected to an opaque item pixel.
+     * std140 size of the {@code ItemOutlineParams} UBO shared by all outline shaders.
+     * Layout: vec4 color | float falloff | float opacity | float width | float animSpeed
+     *         | int numBlades | float bladeFill | float _reserved0 | float _reserved1
      */
-    public static final RenderPipeline GUI_ITEM_OUTLINE = RenderPipeline.builder()
-            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-            .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
-            .withSampler("Sampler0")
-            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .build();
+    public static final int OUTLINE_PARAMS_UBO_SIZE = new Std140SizeCalculator()
+            .putVec4()   // color (RGBA)
+            .putFloat()  // falloff
+            .putFloat()  // opacity
+            .putFloat()  // width
+            .putFloat()  // animSpeed
+            .putInt()    // numBlades
+            .putFloat()  // bladeFill
+            .putFloat()  // _reserved0
+            .putFloat()  // _reserved1
+            .get();
 
-    /** Animated pinwheel outline for legendary1-rarity items. Requires the {@code Globals} UBO for {@code GameTime}. */
-    public static final RenderPipeline GUI_ITEM_OUTLINE_LEGENDARY = RenderPipeline.builder()
-            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-            .withUniform("Globals", UniformType.UNIFORM_BUFFER)
-            .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_legendary"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
-            .withSampler("Sampler0")
-            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .build();
+    /** UBO name declared in {@code gui_item_outline.fsh}. */
+    public static final String BASIC_OUTLINE_UBO_NAME = "BasicOutlineParams";
+    /** UBO name declared in {@code gui_item_outline_legendary.fsh}. */
+    public static final String LEGENDARY_OUTLINE_UBO_NAME = "LegendaryOutlineParams";
+    /** UBO name declared in {@code gui_item_outline_debug_uv.fsh}. */
+    public static final String DEBUG_UV_UBO_NAME = "DebugUvOutlineParams";
 
-    /** Debug shader that renders slot-relative UV as red/green over the full 16×16 item slot. */
-    public static final RenderPipeline GUI_ITEM_OUTLINE_DEBUG_UV = RenderPipeline.builder()
-            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-            .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_debug_uv"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
-            .withSampler("Sampler0")
-            .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .build();
+    /** Creates a per-effect basic outline pipeline with a unique location ID. */
+    public static RenderPipeline createOutlinePipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
+
+    /** Creates a per-effect legendary (animated pinwheel) outline pipeline with a unique location ID. */
+    public static RenderPipeline createLegendaryOutlinePipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                .withUniform(LEGENDARY_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
+
+    /** Creates a per-effect debug-UV pipeline with a unique location ID. */
+    public static RenderPipeline createDebugUvPipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform(DEBUG_UV_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
 
     private FishtasticRenderPipelines() {}
 }
