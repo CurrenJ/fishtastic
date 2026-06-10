@@ -9,12 +9,15 @@
     "GuiGraphicsMixin",
     "GuiRendererExecuteDrawMixin",
     "GuiRendererMixin",
+    "ItemEntityRendererMixin",
     "ItemFeatureRendererMixin",
+    "ItemFrameRendererMixin",
     "ItemModelResolverMixin",
     "ItemStackMixin",
     "ItemStackRenderStateMixin",
     "LevelRendererMixin",
     "RenderBuffersMixin",
+    "RenderTypeMixin",
     "accessor.BufferSourceAccessor"
   ],
   "injectors": {

@@ -2,6 +2,7 @@ package grill24.fishtastic.itemeffect;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.client.renderer.RenderBuffersHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBuffers;
@@ -58,6 +59,9 @@ public class ItemEffectManager {
     public static void clearCache() {
         CACHE.clear();
         sortedEffects = null;
+        // Effect definitions (and possibly item models) changed — baked outline-atlas
+        // slots are stale. GPU-side clearing is deferred to the render thread.
+        FishtasticItemOutlineAtlas.getInstance().invalidate();
     }
 
     private static List<ItemEffect> getSortedEffects() {

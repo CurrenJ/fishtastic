@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.client.renderer.FishtasticOutlineUboRegistry;
 import grill24.fishtastic.client.renderer.FishtasticRenderPipelines;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -65,6 +66,8 @@ public class ItemEffect {
 
     // Lazily created on the render thread — null until first use.
     private RenderPipeline outlinePipeline;
+    private RenderPipeline worldOutlinePipeline;
+    private RenderType worldOutlineRenderType;
     private GpuBuffer outlineParamsBuffer;
 
     // Lazily created render types for entity/world rendering.
@@ -151,11 +154,62 @@ public class ItemEffect {
                 uboName = FishtasticRenderPipelines.BASIC_OUTLINE_UBO_NAME;
             }
 
-            GpuBuffer paramsBuffer = buildOutlineParamsBuffer();
-            FishtasticOutlineUboRegistry.register(outlinePipeline, uboName, paramsBuffer);
-            this.outlineParamsBuffer = paramsBuffer;
+            FishtasticOutlineUboRegistry.register(outlinePipeline, uboName, getOrCreateOutlineParamsBuffer());
         }
         return outlinePipeline;
+    }
+
+    /**
+     * Returns the outline {@link RenderPipeline} for in-world item entity / item frame
+     * rendering, creating it on first call.  Must be called on the render thread.
+     *
+     * <p>Shares the params {@link GpuBuffer} with the GUI pipeline — both UBO layouts are
+     * identical; only the pipeline (vertex format, depth state, slot-geometry defines) differs.
+     * The debug-UV variant has no world equivalent and falls back to the basic shader.
+     */
+    public RenderPipeline getOrCreateWorldOutlinePipeline() {
+        if (worldOutlinePipeline == null) {
+            String texPath = texture.getNamespace() + "_" + texture.getPath().replace('/', '_');
+            Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/world_item_outline_" + texPath);
+
+            String uboName;
+            if (outlinePinwheel) {
+                worldOutlinePipeline = FishtasticRenderPipelines.createWorldLegendaryOutlinePipeline(pipelineId);
+                uboName = FishtasticRenderPipelines.LEGENDARY_OUTLINE_UBO_NAME;
+            } else {
+                worldOutlinePipeline = FishtasticRenderPipelines.createWorldOutlinePipeline(pipelineId);
+                uboName = FishtasticRenderPipelines.BASIC_OUTLINE_UBO_NAME;
+            }
+
+            FishtasticOutlineUboRegistry.register(worldOutlinePipeline, uboName, getOrCreateOutlineParamsBuffer());
+        }
+        return worldOutlinePipeline;
+    }
+
+    /**
+     * Returns the {@link RenderType} used to draw the in-world outline quad, creating it on
+     * first call.  Must be called on the render thread (creates the pipeline + params buffer).
+     * Binds the {@link FishtasticItemOutlineAtlas} texture and targets the item-entity output
+     * like vanilla item entity render types.
+     */
+    public RenderType worldOutlineRenderType() {
+        if (worldOutlineRenderType == null) {
+            worldOutlineRenderType = RenderType.create(
+                    RenderTypeFactory.makeName("world_item_outline_", texture),
+                    RenderSetup.builder(getOrCreateWorldOutlinePipeline())
+                            .withTexture("Sampler0", FishtasticItemOutlineAtlas.TEXTURE_ID)
+                            .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
+                            .createRenderSetup()
+            );
+        }
+        return worldOutlineRenderType;
+    }
+
+    private GpuBuffer getOrCreateOutlineParamsBuffer() {
+        if (outlineParamsBuffer == null) {
+            outlineParamsBuffer = buildOutlineParamsBuffer();
+        }
+        return outlineParamsBuffer;
     }
 
     private GpuBuffer buildOutlineParamsBuffer() {

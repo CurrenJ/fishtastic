@@ -1,7 +1,9 @@
 package grill24.fishtastic.mixin;
 
+import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +33,16 @@ public class GameRendererMixin implements IGameRendererExtension {
     }
 
     // The render call is now hooked via HUD events in FishtasticFabricClient / FishtasticNeoForgeClient.
+
+    /**
+     * Bakes queued items into the world-outline atlas at the head of the frame, before any
+     * level or GUI submission — the shared SubmitNodeStorage / FeatureRenderDispatcher /
+     * BufferSource borrowed by the bake are idle only at this point.
+     */
+    @Inject(method = "render(Lnet/minecraft/client/DeltaTracker;Z)V", at = @At("HEAD"))
+    private void fishtastic$processOutlineAtlasBakes(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci) {
+        FishtasticItemOutlineAtlas.getInstance().processBakeQueue(this.minecraft);
+    }
 
     @Inject(method = "displayItemActivation", at = @At("HEAD"))
     private void displayItemActivation(ItemStack stack, CallbackInfo ci) {

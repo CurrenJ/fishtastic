@@ -48,6 +48,16 @@ public final class FishtasticGlintState {
      */
     public static final ThreadLocal<ItemEffect> ACTIVE_EFFECT = new ThreadLocal<>();
 
+    /**
+     * Maps an {@link ItemStackRenderState} identity to its in-world outline data (effect +
+     * baked atlas slot UVs).  Populated at render-state extraction by
+     * {@code ItemEntityRendererMixin} / {@code ItemFrameRendererMixin} (the only points where
+     * the {@code ItemStack} is still in scope) and consumed at submission in the same frame.
+     * Entries are removed in {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, FishtasticWorldOutlineRenderer.Entry> WORLD_OUTLINE_MAP =
+            new IdentityHashMap<>();
+
     private FishtasticGlintState() {}
 }
 
