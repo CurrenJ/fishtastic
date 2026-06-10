@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
 import grill24.fishtastic.data.Quest;
@@ -48,6 +49,9 @@ public final class FishtasticNeoForge {
 
         FishtasticCreativeTabs.registerCreativeTabs();
         FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(modEventBus);
+
+        FishtasticSounds.registerSounds();
+        FishtasticRegistriesNeoForge.SOUND_EVENTS.register(modEventBus);
 
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);

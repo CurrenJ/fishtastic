@@ -9,13 +9,15 @@ import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public record QuestSyncPacket(
         Map<Identifier, PlayerQuestState.QuestProgress> questProgress,
-        int tokenBalance
+        int tokenBalance,
+        Map<Identifier, ItemStack> triggeringItems
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -27,6 +29,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::questProgress,
                     ByteBufCodecs.VAR_INT,
                     QuestSyncPacket::tokenBalance,
+                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ItemStack.STREAM_CODEC),
+                    QuestSyncPacket::triggeringItems,
                     QuestSyncPacket::new
             );
 
@@ -35,9 +39,16 @@ public record QuestSyncPacket(
         return TYPE;
     }
 
+    /** Send a sync packet without triggering items (e.g. initial sync on join). */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data) {
-        PlayerQuestState state = data.getOrCreateQuestState(player.getUUID());
-        QuestSyncPacket packet = new QuestSyncPacket(state.getProgressSnapshot(), state.getTokenBalance());
+        sendToPlayer(player, data, Map.of());
+    }
+
+    /** Send a sync packet with the items that triggered quest progress. */
+    public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
+                                    Map<Identifier, ItemStack> triggeringItems) {
+        PlayerQuestState state = data.getOrCreateQuestState(player);
+        QuestSyncPacket packet = new QuestSyncPacket(state.getProgressSnapshot(), state.getTokenBalance(), triggeringItems);
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.QuestClientCache;
+import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticItems;
@@ -64,7 +65,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance()));
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems()));
+
+        // Install quest progress notification system
+        QuestProgressNotificationManager.getInstance().install();
 
         // Initialize and register key bindings
         FishtasticKeyBinds.init();
@@ -77,8 +81,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             FishTankBlockEntityRenderer::new
         );
 
-        // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
+        // Clear caches on world join
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
+        // Reset quest client cache on disconnect so stale data doesn't persist across worlds
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> QuestClientCache.reset());
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
         });
@@ -89,6 +95,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 ClientTickHandler.tick(1.0f);
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
+                // Tick quest progress notifications
+                QuestProgressNotificationManager.getInstance().tick();
             }
         });
 
@@ -100,6 +108,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (animation != null && animation.isActive()) {
                 animation.render(mc, graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }
+        });
+
+        // Register HUD render hook for quest progress notifications (renders after fishing minigame)
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
+            QuestProgressNotificationManager.getInstance().render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // TODO MC-26.1: ItemProperties.register is removed in 26.1

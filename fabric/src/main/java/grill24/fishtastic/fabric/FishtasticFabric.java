@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.fabric.command.CommandRegistrationFabric;
 import grill24.fishtastic.data.Quest;
@@ -37,6 +38,7 @@ public final class FishtasticFabric implements ModInitializer {
         FishtasticBlocks.registerBlocks();
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
         FishtasticCreativeTabs.registerCreativeTabs();
+        FishtasticSounds.registerSounds();
 
         // Register network packets (server-side)
         FabricPacketRegistrar.registerServerReceiver();

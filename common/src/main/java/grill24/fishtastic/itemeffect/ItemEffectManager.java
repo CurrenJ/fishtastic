@@ -27,17 +27,13 @@ public class ItemEffectManager {
         if (cached != null) return cached;
 
         List<ItemEffect> effects = getSortedEffects();
-        Fishtastic.LOGGER.debug("Checking {} effects for item: {}", effects.size(), stack.getItem());
 
         for (ItemEffect effect : effects) {
             if (effect.matches(stack)) {
-                Fishtastic.LOGGER.info("Item {} matched effect: texture={}, priority={}",
-                        stack.getItem(), effect.texture(), effect.priority());
                 CACHE.put(stack, effect);
                 return effect;
             }
         }
-        Fishtastic.LOGGER.debug("No effects matched for item: {}", stack.getItem());
         return null;
     }
 

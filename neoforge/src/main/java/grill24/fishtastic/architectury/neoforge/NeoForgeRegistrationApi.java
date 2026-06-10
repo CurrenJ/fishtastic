@@ -1,5 +1,6 @@
 package grill24.fishtastic.architectury.neoforge;
 
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.FishTankFrameType;
@@ -12,6 +13,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -59,6 +61,12 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
         return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(name, func);
+    }
+
+    @Override
+    public Holder<SoundEvent> registerSoundEvent(String name) {
+        return FishtasticRegistriesNeoForge.SOUND_EVENTS.register(name,
+                () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name)));
     }
 
     @Override

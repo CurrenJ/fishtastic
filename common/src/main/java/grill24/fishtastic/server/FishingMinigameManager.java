@@ -151,6 +151,7 @@ public class FishingMinigameManager {
         }
 
         List<ItemStack> rewards = new ArrayList<>();
+        List<ItemStack> questStacks = new ArrayList<>();
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
         for (Integer index : caughtTargetIndices) {
             if (index >= 0 && index < session.targets.size()) {
@@ -159,8 +160,7 @@ public class FishingMinigameManager {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
                         catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
-                        QuestTracker.onCatch(level.getServer(), player, reward,
-                                session.hookBiome, session.hookTimeOfDay, session.hookWeather);
+                        questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
                         player.getInventory().add(reward);
                         rewards.add(reward);
                     }
@@ -169,6 +169,12 @@ public class FishingMinigameManager {
                 Fishtastic.LOGGER.warn("Player {} reported invalid target index {}",
                         player.getName().getString(), index);
             }
+        }
+
+        // Batch quest tracking — only one sync packet for all catches in this session
+        if (!questStacks.isEmpty()) {
+            QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
+                    session.hookBiome, session.hookTimeOfDay, session.hookWeather);
         }
 
         if (!rewards.isEmpty()) {

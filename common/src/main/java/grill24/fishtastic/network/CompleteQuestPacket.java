@@ -53,7 +53,7 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
             if (quest == null) return;
 
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
-            PlayerQuestState state = data.getOrCreateQuestState(serverPlayer.getUUID());
+            PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
             if (!state.canClaim(questKey, quest)) return;
 

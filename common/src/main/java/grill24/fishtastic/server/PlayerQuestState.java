@@ -56,11 +56,14 @@ public class PlayerQuestState {
         return progress.getOrDefault(questId, new QuestProgress(0, -1, false, false));
     }
 
-    public void incrementCount(ResourceKey<Quest> questId, Quest quest) {
+    public void incrementCount(ResourceKey<Quest> questId, Quest quest, long currentDay) {
         QuestProgress existing = getProgress(questId);
         int newCount = existing.currentCount() + 1;
         boolean completed = newCount >= quest.objective().targetCount();
-        progress.put(questId, new QuestProgress(newCount, existing.lastResetGameDay(), completed, existing.claimed()));
+        // If this quest has never been reset before, anchor it to the current day
+        // so that resetDailyIfNeeded won't wipe the progress on the next server start.
+        long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
+        progress.put(questId, new QuestProgress(newCount, lastReset, completed, existing.claimed()));
     }
 
     public boolean canClaim(ResourceKey<Quest> questId, Quest quest) {

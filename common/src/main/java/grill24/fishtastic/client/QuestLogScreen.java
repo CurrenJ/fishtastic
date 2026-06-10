@@ -43,7 +43,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = QuestSyncPacket.clientHandler;
             handlerInstalled = true;
             QuestSyncPacket.registerClientHandler(packet -> {
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance());
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     this.init();

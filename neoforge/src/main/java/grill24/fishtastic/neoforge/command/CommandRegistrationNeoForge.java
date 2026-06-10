@@ -8,6 +8,7 @@ import grill24.fishtastic.command.FishtasticCommand;
 import grill24.fishtastic.command.TemperamentCommand;
 import grill24.fishtastic.command.SetFishQualityCommand;
 import grill24.fishtastic.command.SetItemSizeCommand;
+import grill24.fishtastic.command.TestQuestNotifyCommand;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -28,5 +29,6 @@ public class CommandRegistrationNeoForge {
         DebugFishDataCommand.register(dispatcher);
         FishProfileCommand.register(dispatcher);
         TemperamentCommand.register(dispatcher);
+        TestQuestNotifyCommand.register(dispatcher);
     }
 }

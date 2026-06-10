@@ -1,0 +1,13 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species_tag": "minecraft:fishes",
+    "target_count": 100,
+    "notification_interval": 10
+  },
+  "reward": { "quest_tokens": 25, "items": [] },
+  "hidden": true,
+  "prerequisite": "fishtastic:mastery/angler_apprentice",
+  "display_name": "Angler Journeyman",
+  "description": "Catch 100 fish total."
+}

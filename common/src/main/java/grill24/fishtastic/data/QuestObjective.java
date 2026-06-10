@@ -18,7 +18,8 @@ public record QuestObjective(
         Optional<FishQuality.Quality> minQuality,
         Optional<TagKey<Biome>> biomeCondition,
         Optional<FishProfile.TimeOfDay> timeCondition,
-        Optional<FishProfile.WeatherCondition> weatherCondition
+        Optional<FishProfile.WeatherCondition> weatherCondition,
+        int notificationInterval
 ) {
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceKey.codec(Registries.ITEM).optionalFieldOf("target_species").forGetter(QuestObjective::targetSpecies),
@@ -27,6 +28,7 @@ public record QuestObjective(
             FishQuality.Quality.CODEC.optionalFieldOf("min_quality").forGetter(QuestObjective::minQuality),
             TagKey.codec(Registries.BIOME).optionalFieldOf("biome_condition").forGetter(QuestObjective::biomeCondition),
             FishProfile.TimeOfDay.CODEC.optionalFieldOf("time_condition").forGetter(QuestObjective::timeCondition),
-            FishProfile.WeatherCondition.CODEC.optionalFieldOf("weather_condition").forGetter(QuestObjective::weatherCondition)
+            FishProfile.WeatherCondition.CODEC.optionalFieldOf("weather_condition").forGetter(QuestObjective::weatherCondition),
+            Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval)
     ).apply(i, QuestObjective::new));
 }

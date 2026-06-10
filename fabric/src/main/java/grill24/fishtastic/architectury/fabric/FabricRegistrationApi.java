@@ -13,6 +13,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -74,6 +75,12 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
         return register(BuiltInRegistries.CREATIVE_MODE_TAB, name, func);
+    }
+
+    @Override
+    public Holder<SoundEvent> registerSoundEvent(String name) {
+        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        return Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
     }
 
     // ----- Registry Accessors ----- //

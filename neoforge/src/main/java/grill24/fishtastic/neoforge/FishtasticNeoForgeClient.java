@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.QuestClientCache;
+import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
@@ -52,7 +53,10 @@ public final class FishtasticNeoForgeClient {
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance()));
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems()));
+
+        // Install quest progress notification system
+        QuestProgressNotificationManager.getInstance().install();
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
@@ -64,6 +68,7 @@ public final class FishtasticNeoForgeClient {
 
         // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
 
         // Register client tick event handler
@@ -130,6 +135,10 @@ public final class FishtasticNeoForgeClient {
         ItemEffectManager.clearCache();
     }
 
+    public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
+        QuestClientCache.reset();
+    }
+
     public static void onTagsUpdated(TagsUpdatedEvent event) {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
             ItemEffectManager.clearCache();
@@ -143,6 +152,8 @@ public final class FishtasticNeoForgeClient {
             ClientTickHandler.tick(1.0f);
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
+            // Tick quest progress notifications
+            QuestProgressNotificationManager.getInstance().tick();
         }
     }
 
@@ -159,5 +170,7 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
+        // Render quest progress notifications (after fishing minigame)
+        QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 }

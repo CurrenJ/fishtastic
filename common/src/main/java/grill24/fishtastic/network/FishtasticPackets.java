@@ -80,6 +80,20 @@ public class FishtasticPackets {
     }
 
     /**
+     * Register only the codecs (no handlers) for server→client packets.
+     * Used by the Fabric server so it knows how to encode outgoing clientbound
+     * payloads. Uses raw types internally because Java lambdas cannot implement
+     * generic methods — the raw register call resolves correctly at runtime.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void registerServerToClientCodecs(
+            java.util.function.BiConsumer<CustomPacketPayload.Type, net.minecraft.network.codec.StreamCodec> registrar) {
+        registrar.accept(StartFishingMinigamePacket.TYPE, StartFishingMinigamePacket.STREAM_CODEC);
+        registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
+        registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
+    }
+
+    /**
      * Interface for platform-specific packet registration
      */
     public interface IPacketRegistrar {

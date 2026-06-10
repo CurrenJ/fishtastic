@@ -13,6 +13,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.item.ItemStack;
@@ -253,8 +254,25 @@ public class FishCatchSavedData extends SavedData {
     // Quest state API
     // -------------------------------------------------------------------------
 
+    /** Sentinel UUID used as quest-state key for singleplayer worlds.
+     *  In singleplayer there is only one player, and Fabric dev-auth rotates
+     *  the player UUID every session, so we key by a constant that never changes. */
+    private static final UUID SINGLEPLAYER_QUEST_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     public PlayerQuestState getOrCreateQuestState(UUID uuid) {
         return questStates.computeIfAbsent(uuid, k -> new PlayerQuestState());
+    }
+
+    /** Overload that resolves the correct key for singleplayer vs multiplayer.
+     *  Uses a stable sentinel UUID for the singleplayer owner so that Fabric
+     *  dev-auth UUID rotation doesn't orphan quest progress. LAN guests and
+     *  multiplayer players use their own Mojang-auth UUID (which is stable). */
+    public PlayerQuestState getOrCreateQuestState(ServerPlayer player) {
+        MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
+        if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
+            return getOrCreateQuestState(SINGLEPLAYER_QUEST_UUID);
+        }
+        return getOrCreateQuestState(player.getUUID());
     }
 
     public void resetDailyQuestsIfNeeded(MinecraftServer server, long currentDay) {
