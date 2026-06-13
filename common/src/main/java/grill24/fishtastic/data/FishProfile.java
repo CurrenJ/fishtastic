@@ -20,7 +20,8 @@ public record FishProfile(
         List<BiomeWeight> biomeWeights,
         List<TimeWeight> timeWeights,
         List<WeatherWeight> weatherWeights,
-        Optional<ResourceKey<Temperament>> temperament
+        Optional<ResourceKey<Temperament>> temperament,
+        Optional<FishAnimationConfig> animation
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -32,7 +33,8 @@ public record FishProfile(
             BiomeWeight.CODEC.listOf().optionalFieldOf("biome_weights", List.of()).forGetter(FishProfile::biomeWeights),
             TimeWeight.CODEC.listOf().optionalFieldOf("time_weights", List.of()).forGetter(FishProfile::timeWeights),
             WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights),
-            ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament)
+            ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament),
+            FishAnimationConfig.CODEC.optionalFieldOf("animation").forGetter(FishProfile::animation)
     ).apply(i, FishProfile::new));
 
     public record SizeParams(float mean, float stdDev) {

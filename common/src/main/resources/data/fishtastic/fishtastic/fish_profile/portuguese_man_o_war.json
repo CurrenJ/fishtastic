@@ -11,5 +11,9 @@
     { "weather": "rain", "multiplier": 2.5 },
     { "weather": "thunder", "multiplier": 3.0 }
   ],
-  "temperament": "fishtastic:erratic"
+  "temperament": "fishtastic:erratic",
+  "animation": {
+    "mode": "upright_float",
+    "spin_rate": 0.25
+  }
 }

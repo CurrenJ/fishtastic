@@ -8,5 +8,8 @@
     { "time": "night", "multiplier": 2.0 },
     { "time": "dusk", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:docile"
+  "temperament": "fishtastic:docile",
+  "animation": {
+    "mode": "floor_sit"
+  }
 }

@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
+import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
@@ -18,4 +19,6 @@ public class FishTankRenderState extends BlockEntityRenderState {
     public int blockPosHash = 0;
     /** Cosmetic decorations placed in this tank's 3×3 floor grid. */
     public Map<CosmeticGridCell, PlacedCosmetic> cosmetics = Collections.emptyMap();
+    /** Animation config resolved from the displayed item's fish profile. */
+    public FishAnimationConfig animationConfig = FishAnimationConfig.HorizontalSwim.DEFAULT;
 }

@@ -2,9 +2,10 @@ package grill24.fishtastic.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.client.renderer.FishtasticGlintState;
-import grill24.fishtastic.client.renderer.FishtasticWorldOutlineRenderer;
+import grill24.fishtastic.data.FishAnimationConfig;
+import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
@@ -22,6 +23,8 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -76,6 +79,7 @@ public class FishTankBlockEntityRenderer
         state.gameTimeTicks = level.getGameTime() + partialTick;
         state.blockPosHash = blockEntity.getBlockPos().hashCode();
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
+        state.animationConfig = resolveAnimationConfig(state.itemToRender, level);
     }
 
     @Override
@@ -96,39 +100,18 @@ public class FishTankBlockEntityRenderer
 
         poseStack.pushPose();
 
-        // Translate to center of tank
-        float yOffset = ITEM_POSITION_OFFSET.y();
-        if (!state.hasOpenDownFace) {
-            yOffset += SAND_BASE_Y_OFFSET.y();
-        }
-        poseStack.translate(ITEM_POSITION_OFFSET.x(), yOffset, ITEM_POSITION_OFFSET.z());
+        // Base position: XZ centre of tank, Y determined by animation mode
+        float baseY = computeBaseY(state);
+        poseStack.translate(ITEM_POSITION_OFFSET.x(), baseY, ITEM_POSITION_OFFSET.z());
 
-        // Bobbing animation
-        float amplitude = 0.125f;
-        float hertz = 0.08f + (random.nextFloat() * 0.04f);
-        float yBobHeight = getBobbingHeight(random, t, amplitude, hertz);
-        poseStack.translate(0f, yBobHeight, 0f);
-
-        // Stored rotation
-        poseStack.mulPose(Axis.YP.rotationDegrees(state.firstItemRotation));
-
-        // Surfing tilt
-        float surfFactor = 0.12f;
-        float surfAngle = getSurfingAngle(random, t, amplitude, hertz) * surfFactor;
-
-        // Y-axis wiggle
-        float wiggleFactor = 0.5f;
-        float yWiggle = getOrganicWiggle(random, t) * wiggleFactor;
-        poseStack.mulPose(Axis.YP.rotationDegrees(yWiggle));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(surfAngle + 45f));
+        // Animation (orientation + positional offset for the mode)
+        FishAnimator.apply(poseStack, state.animationConfig, random, t, state.firstItemRotation);
 
         // Scale by item size
-        float scale = 1f;
+        float scale = 0.5f;
         if (ItemSizeHelper.hasSize(itemToRender)) {
             float size = ItemSizeHelper.getSize(itemToRender);
             scale = 0.01f + (size / 100f) * 0.8f;
-        } else {
-            scale *= 0.5f;
         }
         poseStack.scale(scale, scale, scale);
 
@@ -145,6 +128,41 @@ public class FishTankBlockEntityRenderer
         itemRenderState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
 
         poseStack.popPose();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Y base position for the fish before animation offsets are applied. */
+    private float computeBaseY(FishTankRenderState state) {
+        return switch (state.animationConfig) {
+            case FishAnimationConfig.FloorSit fs -> COSMETIC_FLOOR_Y + fs.floorOffset();
+            // plantDepth = how far the bottom edge sits below the floor.
+            // baseY must be PLANTED_PIVOT_Y above the desired bottom-edge position so the
+            // pivot trick (translate up → rotate → translate down) leaves the bottom at FLOOR - plantDepth.
+            case FishAnimationConfig.Planted  p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y;
+            default -> {
+                float y = ITEM_POSITION_OFFSET.y();
+                if (!state.hasOpenDownFace) y += SAND_BASE_Y_OFFSET.y();
+                yield y;
+            }
+        };
+    }
+
+    /** Resolves the animation config from the fish profile registry, falling back to HORIZONTAL_SWIM. */
+    private static FishAnimationConfig resolveAnimationConfig(ItemStack stack, Level level) {
+        if (stack.isEmpty()) return FishAnimationConfig.HorizontalSwim.DEFAULT;
+
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) return FishAnimationConfig.HorizontalSwim.DEFAULT;
+
+        ResourceKey<FishProfile> profileKey = ResourceKey.create(
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+
+        return level.registryAccess()
+                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(profileKey)
+                .flatMap(FishProfile::animation)
+                .orElse(FishAnimationConfig.HorizontalSwim.DEFAULT);
     }
 
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
@@ -196,29 +214,5 @@ public class FishTankBlockEntityRenderer
 
             poseStack.popPose();
         }
-    }
-
-    // ── Animation helpers ─────────────────────────────────────────────────────
-
-    private static float getBobbingHeight(Random random, float gameTimeTicks, float amplitude, float hertz) {
-        float time = gameTimeTicks / (20f / hertz);
-        time += (float) (random.nextFloat() * 2 * Math.PI);
-        return (float) (Math.sin(time * 2 * Math.PI) * amplitude);
-    }
-
-    private static float getSurfingAngle(Random random, float gameTimeTicks, float amplitude, float hertz) {
-        float time = gameTimeTicks / (20f / hertz);
-        time += (float) (random.nextFloat() * 2 * Math.PI);
-        float derivative = (float) (Math.cos(time * 2 * Math.PI) * amplitude * 2 * Math.PI);
-        return (float) Math.toDegrees(Math.atan(derivative));
-    }
-
-    private static float getOrganicWiggle(Random random, float gameTimeTicks) {
-        float randomOffset = (float) (random.nextFloat() * 2 * Math.PI);
-        float slowWave   = (float) Math.sin((gameTimeTicks / 60f  + randomOffset) * 2 * Math.PI) * 15f;
-        float mediumWave = (float) Math.sin((gameTimeTicks / 35f  + randomOffset * 1.3f) * 2 * Math.PI) * 8f;
-        float fastWave   = (float) Math.sin((gameTimeTicks / 18f  + randomOffset * 0.7f) * 2 * Math.PI) * 4f;
-        float drift      = (float) Math.sin((gameTimeTicks / 120f + randomOffset * 0.5f) * 2 * Math.PI) * 10f;
-        return slowWave + mediumWave + fastWave + drift;
     }
 }

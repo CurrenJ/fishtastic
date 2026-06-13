@@ -1,0 +1,106 @@
+package grill24.fishtastic.data;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+public sealed interface FishAnimationConfig
+        permits FishAnimationConfig.HorizontalSwim, FishAnimationConfig.UprightFloat,
+                FishAnimationConfig.FloorSit, FishAnimationConfig.Planted {
+
+    Codec<FishAnimationConfig> CODEC = Codec.STRING.dispatch(
+            "mode",
+            FishAnimationConfig::modeName,
+            mode -> switch (mode) {
+                case "horizontal_swim" -> HorizontalSwim.MAP_CODEC;
+                case "upright_float"   -> UprightFloat.MAP_CODEC;
+                case "floor_sit"       -> FloorSit.MAP_CODEC;
+                case "planted"         -> Planted.MAP_CODEC;
+                default -> throw new IllegalArgumentException("Unknown fish animation mode: " + mode);
+            }
+    );
+
+    String modeName();
+
+    /**
+     * Default swimming mode: fish lies horizontal with bobbing, surfing tilt, and organic Y-axis wiggle.
+     * Matches pre-existing behaviour for all fish that do not specify an animation block.
+     */
+    record HorizontalSwim(
+            float bobAmplitude,
+            float bobHertz,
+            float wiggleScale,
+            float surfFactor
+    ) implements FishAnimationConfig {
+        public static final HorizontalSwim DEFAULT = new HorizontalSwim(0.125f, 0.08f, 0.5f, 0.12f);
+
+        static final MapCodec<HorizontalSwim> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("bob_amplitude", 0.125f).forGetter(HorizontalSwim::bobAmplitude),
+                Codec.FLOAT.optionalFieldOf("bob_hertz",     0.08f ).forGetter(HorizontalSwim::bobHertz),
+                Codec.FLOAT.optionalFieldOf("wiggle_scale",  0.5f  ).forGetter(HorizontalSwim::wiggleScale),
+                Codec.FLOAT.optionalFieldOf("surf_factor",   0.12f ).forGetter(HorizontalSwim::surfFactor)
+        ).apply(i, HorizontalSwim::new));
+
+        @Override public String modeName() { return "horizontal_swim"; }
+    }
+
+    /**
+     * Upright floating mode: creature stays vertical, gently bobs, and slowly drifts/spins on Y.
+     * Suitable for jellyfish and similar creatures.
+     */
+    record UprightFloat(
+            float bobAmplitude,
+            float bobHertz,
+            float spinRate
+    ) implements FishAnimationConfig {
+        public static final UprightFloat DEFAULT = new UprightFloat(0.05f, 0.03f, 0.4f);
+
+        static final MapCodec<UprightFloat> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("bob_amplitude", 0.05f).forGetter(UprightFloat::bobAmplitude),
+                Codec.FLOAT.optionalFieldOf("bob_hertz",     0.03f).forGetter(UprightFloat::bobHertz),
+                Codec.FLOAT.optionalFieldOf("spin_rate",     0.4f ).forGetter(UprightFloat::spinRate)
+        ).apply(i, UprightFloat::new));
+
+        @Override public String modeName() { return "upright_float"; }
+    }
+
+    /**
+     * Floor-sitting mode: creature lies flat on the tank floor (X-rotated 90°) and occasionally
+     * rotates slowly around Y. Suitable for starfish and similar benthic creatures.
+     */
+    record FloorSit(
+            float floorOffset,
+            float rotationAmplitude,
+            float rotationHertz
+    ) implements FishAnimationConfig {
+        public static final FloorSit DEFAULT = new FloorSit(0.03f, 8.0f, 0.004f);
+
+        static final MapCodec<FloorSit> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("floor_offset",       0.03f ).forGetter(FloorSit::floorOffset),
+                Codec.FLOAT.optionalFieldOf("rotation_amplitude", 8.0f  ).forGetter(FloorSit::rotationAmplitude),
+                Codec.FLOAT.optionalFieldOf("rotation_hertz",     0.004f).forGetter(FloorSit::rotationHertz)
+        ).apply(i, FloorSit::new));
+
+        @Override public String modeName() { return "floor_sit"; }
+    }
+
+    /**
+     * Planted mode: creature stays upright with its base fixed at the tank floor, swaying slowly
+     * side-to-side with the base as the pivot. Suitable for garden eels.
+     */
+    record Planted(
+            float plantDepth,
+            float wiggleAmplitude,
+            float wiggleHertz
+    ) implements FishAnimationConfig {
+        public static final Planted DEFAULT = new Planted(1f / 16f, 3.0f, 0.018f);
+
+        static final MapCodec<Planted> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("plant_depth",      1f / 16f).forGetter(Planted::plantDepth),
+                Codec.FLOAT.optionalFieldOf("wiggle_amplitude", 3.0f  ).forGetter(Planted::wiggleAmplitude),
+                Codec.FLOAT.optionalFieldOf("wiggle_hertz",     0.018f).forGetter(Planted::wiggleHertz)
+        ).apply(i, Planted::new));
+
+        @Override public String modeName() { return "planted"; }
+    }
+}
