@@ -10,5 +10,12 @@
   "temperament": "fishtastic:skittish",
   "animation": {
     "mode": "planted"
+  },
+  "swarm": {
+    "count": 5,
+    "depth_layers": 3,
+    "xz_spread": 0.28,
+    "y_range": 0.0,
+    "rotation_jitter": 0.0
   }
 }

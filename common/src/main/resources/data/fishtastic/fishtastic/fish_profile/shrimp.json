@@ -4,5 +4,11 @@
   "biome_weights": [
     { "biome": "minecraft:is_ocean", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:docile"
+  "temperament": "fishtastic:docile",
+  "swarm": {
+    "count": 6,
+    "depth_layers": 3,
+    "xz_spread": 0.22,
+    "y_range": 0.25
+  }
 }

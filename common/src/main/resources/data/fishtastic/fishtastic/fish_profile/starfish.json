@@ -11,5 +11,11 @@
   "temperament": "fishtastic:docile",
   "animation": {
     "mode": "floor_sit"
+  },
+  "swarm": {
+    "count": 5,
+    "depth_layers": 3,
+    "xz_spread": 0.28,
+    "y_range": 0.0
   }
 }
