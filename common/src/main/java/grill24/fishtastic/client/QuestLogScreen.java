@@ -347,12 +347,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         inner.addChild(costRow);
 
         // Expanded section — visible when selected and not sold out
-        VBox expandedSection = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
+        VBox expandedSection = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER).scaleFromCenter();
         if (!entry.description().isEmpty()) {
-            expandedSection.addChild(new Label(entry.description(), 0xFFCCCCCC).maxWidth(80).centered(true).init(tempContext));
+            expandedSection.addChild(new Label(entry.description(), 0xFFCCCCCC).maxWidth(80).centered(true).init(tempContext).scaleFromCenter());
         }
 
-        SpriteButton buyBtn = UI.spriteButton(60f, 14f, 0xFF44AA44).text("Buy", 0xFFFFFFFF);
+        SpriteButton buyBtn = UI.spriteButton(60f, 14f, 0xFF44AA44).text("Buy", 0xFFFFFFFF).scaleFromCenter();
         buyBtn.onMouseEnter(e -> buyBtn.setTargetScale(1.12f, true));
         buyBtn.onMouseExit(e -> buyBtn.setTargetScale(1.0f, true));
         final ResourceKey<ShopEntry> fKey = key;
