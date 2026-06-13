@@ -15,11 +15,13 @@ public record SwarmConfig(
         float yRange,
         float rotationJitter
 ) {
+    public static final SwarmConfig DEFAULT = new SwarmConfig(5, 3, 0.22f, 0.25f, 0f);
+
     public static final Codec<SwarmConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.INT.optionalFieldOf("count", 5).forGetter(SwarmConfig::count),
             Codec.INT.optionalFieldOf("depth_layers", 3).forGetter(SwarmConfig::depthLayers),
             Codec.FLOAT.optionalFieldOf("xz_spread", 0.22f).forGetter(SwarmConfig::xzSpread),
             Codec.FLOAT.optionalFieldOf("y_range", 0.25f).forGetter(SwarmConfig::yRange),
-            Codec.FLOAT.optionalFieldOf("rotation_jitter", 180f).forGetter(SwarmConfig::rotationJitter)
+            Codec.FLOAT.optionalFieldOf("rotation_jitter", 0f).forGetter(SwarmConfig::rotationJitter)
     ).apply(i, SwarmConfig::new));
 }

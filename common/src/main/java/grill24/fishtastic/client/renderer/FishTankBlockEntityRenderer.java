@@ -38,7 +38,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 
 public class FishTankBlockEntityRenderer
@@ -91,11 +90,11 @@ public class FishTankBlockEntityRenderer
 
         // Resolve swarm config from the first non-empty item's fish profile.
         ItemStack firstItem = blockEntity.getFirstItem();
-        Optional<SwarmConfig> swarmOpt = resolveSwarmConfig(firstItem, level);
+        SwarmConfig swarm = resolveSwarmConfig(firstItem, level);
 
-        if (swarmOpt.isPresent() && countItems(blockEntity, swarmOpt.get().count()) > 1) {
+        if (countItems(blockEntity, swarm.count()) > 1) {
             state.fishInstances = buildSwarmInstances(
-                    blockEntity, swarmOpt.get(), blockPosHash,
+                    blockEntity, swarm, blockPosHash,
                     blockEntity.getFirstItemRotation(), level);
         } else {
             // Solo fish: single instance at tank centre with no offsets.
@@ -282,11 +281,11 @@ public class FishTankBlockEntityRenderer
                 .orElse(FishAnimationConfig.HorizontalSwim.DEFAULT);
     }
 
-    private static Optional<SwarmConfig> resolveSwarmConfig(ItemStack stack, Level level) {
-        if (stack.isEmpty()) return Optional.empty();
+    private static SwarmConfig resolveSwarmConfig(ItemStack stack, Level level) {
+        if (stack.isEmpty()) return SwarmConfig.DEFAULT;
 
         var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
-        if (itemKey.isEmpty()) return Optional.empty();
+        if (itemKey.isEmpty()) return SwarmConfig.DEFAULT;
 
         ResourceKey<FishProfile> profileKey = ResourceKey.create(
                 FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
@@ -294,7 +293,8 @@ public class FishTankBlockEntityRenderer
         return level.registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(profileKey)
-                .flatMap(FishProfile::swarm);
+                .map(FishProfile::swarm)
+                .orElse(SwarmConfig.DEFAULT);
     }
 
     private static int countItems(FishTankBlockEntity blockEntity, int max) {

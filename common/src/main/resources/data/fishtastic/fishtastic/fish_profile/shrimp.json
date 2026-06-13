@@ -9,6 +9,7 @@
     "count": 6,
     "depth_layers": 3,
     "xz_spread": 0.22,
-    "y_range": 0.25
+    "y_range": 0.25,
+    "rotation_jitter": 5
   }
 }

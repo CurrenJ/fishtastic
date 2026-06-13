@@ -22,7 +22,7 @@ public record FishProfile(
         List<WeatherWeight> weatherWeights,
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
-        Optional<SwarmConfig> swarm
+        SwarmConfig swarm
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -36,7 +36,7 @@ public record FishProfile(
             WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights),
             ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament),
             FishAnimationConfig.CODEC.optionalFieldOf("animation").forGetter(FishProfile::animation),
-            SwarmConfig.CODEC.optionalFieldOf("swarm").forGetter(FishProfile::swarm)
+            SwarmConfig.CODEC.optionalFieldOf("swarm", SwarmConfig.DEFAULT).forGetter(FishProfile::swarm)
     ).apply(i, FishProfile::new));
 
     public record SizeParams(float mean, float stdDev) {
