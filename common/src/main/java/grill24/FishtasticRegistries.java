@@ -2,6 +2,7 @@ package grill24;
 
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.fishtank.FishTankFrameType;
 import grill24.fishtastic.itemeffect.ItemEffect;
@@ -16,4 +17,5 @@ public class FishtasticRegistries {
     public static final ResourceKey<Registry<FishProfile>> FISH_PROFILE_REGISTRY_KEY = ResourceKey.createRegistryKey(ft("fish_profile"));
     public static final ResourceKey<Registry<Temperament>> TEMPERAMENT_REGISTRY_KEY = ResourceKey.createRegistryKey(ft("temperament"));
     public static final ResourceKey<Registry<Quest>> QUEST_REGISTRY_KEY = ResourceKey.createRegistryKey(ft("quest"));
+    public static final ResourceKey<Registry<ShopEntry>> SHOP_ENTRY_REGISTRY_KEY = ResourceKey.createRegistryKey(ft("shop_entry"));
 }

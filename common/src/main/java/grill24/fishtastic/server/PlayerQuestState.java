@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.ShopEntry;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -18,6 +19,7 @@ public class PlayerQuestState {
 
     private final Map<ResourceKey<Quest>, QuestProgress> progress = new HashMap<>();
     private int tokenBalance = 0;
+    private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
 
     public record QuestProgress(int currentCount, long lastResetGameDay, boolean completed, boolean claimed) {
         public static final Codec<QuestProgress> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -43,12 +45,20 @@ public class PlayerQuestState {
                         state.progress.forEach((k, v) -> map.put(k.identifier(), v));
                         return map;
                     }),
-            Codec.INT.optionalFieldOf("token_balance", 0).forGetter(state -> state.tokenBalance)
-    ).apply(i, (identMap, tokens) -> {
+            Codec.INT.optionalFieldOf("token_balance", 0).forGetter(state -> state.tokenBalance),
+            Codec.unboundedMap(Identifier.CODEC, Codec.INT)
+                    .optionalFieldOf("purchase_counts", Map.of()).forGetter(state -> {
+                        Map<Identifier, Integer> map = new HashMap<>();
+                        state.purchaseCounts.forEach((k, v) -> map.put(k.identifier(), v));
+                        return map;
+                    })
+    ).apply(i, (identMap, tokens, purchaseMap) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
         s.tokenBalance = tokens;
+        purchaseMap.forEach((id, count) ->
+                s.purchaseCounts.put(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, id), count));
         return s;
     }));
 
@@ -88,9 +98,28 @@ public class PlayerQuestState {
         return tokenBalance;
     }
 
+    /**
+     * Attempt to purchase a shop entry. Returns false if the player can't afford it
+     * or has already hit the max purchase limit.
+     */
+    public boolean purchase(ResourceKey<ShopEntry> key, ShopEntry entry) {
+        if (tokenBalance < entry.cost()) return false;
+        int current = purchaseCounts.getOrDefault(key, 0);
+        if (entry.maxPurchases() > 0 && current >= entry.maxPurchases()) return false;
+        tokenBalance -= entry.cost();
+        purchaseCounts.put(key, current + 1);
+        return true;
+    }
+
     public Map<Identifier, QuestProgress> getProgressSnapshot() {
         Map<Identifier, QuestProgress> snap = new HashMap<>();
         progress.forEach((k, v) -> snap.put(k.identifier(), v));
+        return snap;
+    }
+
+    public Map<Identifier, Integer> getPurchaseCountSnapshot() {
+        Map<Identifier, Integer> snap = new HashMap<>();
+        purchaseCounts.forEach((k, v) -> snap.put(k.identifier(), v));
         return snap;
     }
 }

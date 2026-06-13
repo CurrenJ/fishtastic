@@ -72,7 +72,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems()));
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts()));
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();

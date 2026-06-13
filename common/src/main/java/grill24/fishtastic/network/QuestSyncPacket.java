@@ -17,7 +17,8 @@ import java.util.Map;
 public record QuestSyncPacket(
         Map<Identifier, PlayerQuestState.QuestProgress> questProgress,
         int tokenBalance,
-        Map<Identifier, ItemStack> triggeringItems
+        Map<Identifier, ItemStack> triggeringItems,
+        Map<Identifier, Integer> purchaseCounts
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -31,6 +32,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::tokenBalance,
                     ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ItemStack.STREAM_CODEC),
                     QuestSyncPacket::triggeringItems,
+                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT),
+                    QuestSyncPacket::purchaseCounts,
                     QuestSyncPacket::new
             );
 
@@ -48,7 +51,9 @@ public record QuestSyncPacket(
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
                                     Map<Identifier, ItemStack> triggeringItems) {
         PlayerQuestState state = data.getOrCreateQuestState(player);
-        QuestSyncPacket packet = new QuestSyncPacket(state.getProgressSnapshot(), state.getTokenBalance(), triggeringItems);
+        QuestSyncPacket packet = new QuestSyncPacket(
+                state.getProgressSnapshot(), state.getTokenBalance(),
+                triggeringItems, state.getPurchaseCountSnapshot());
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

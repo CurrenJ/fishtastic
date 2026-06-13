@@ -10,6 +10,7 @@ import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.fabric.command.CommandRegistrationFabric;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.network.FishtasticPackets;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -31,6 +32,7 @@ public final class FishtasticFabric implements ModInitializer {
         DynamicRegistries.registerSynced(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, grill24.fishtastic.data.FishProfile.CODEC);
         DynamicRegistries.registerSynced(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, grill24.fishtastic.data.Temperament.CODEC);
         DynamicRegistries.registerSynced(FishtasticRegistries.QUEST_REGISTRY_KEY, Quest.CODEC);
+        DynamicRegistries.registerSynced(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, ShopEntry.CODEC);
 
         // Modloader-common item registration call, registers items using modloader-specific registration method
         FishtasticDataComponents.registerDataComponents();

@@ -19,6 +19,7 @@ public class FishtasticPackets {
     public static final Identifier COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
     public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
     public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
+    public static final Identifier PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -61,6 +62,11 @@ public class FishtasticPackets {
                 RequestQuestLogPacket.TYPE,
                 RequestQuestLogPacket.STREAM_CODEC,
                 RequestQuestLogPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                PurchaseShopEntryPacket.TYPE,
+                PurchaseShopEntryPacket.STREAM_CODEC,
+                PurchaseShopEntryPacket::handleClientToServer
         );
     }
 

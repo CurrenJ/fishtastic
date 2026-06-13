@@ -1,0 +1,7 @@
+{
+  "display_name": "Worms",
+  "description": "Classic bait that works on almost anything.",
+  "cost": 5,
+  "reward": [{ "id": "fishtastic:worms", "count": 8 }],
+  "max_purchases": 0
+}

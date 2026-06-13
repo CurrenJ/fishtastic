@@ -10,6 +10,7 @@ import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.network.FishtasticPackets;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -66,6 +67,8 @@ public final class FishtasticNeoForge {
             event.dataPackRegistry(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, grill24.fishtastic.data.Temperament.CODEC, grill24.fishtastic.data.Temperament.CODEC);
             Fishtastic.LOGGER.info("Registering Quest datapack registry");
             event.dataPackRegistry(FishtasticRegistries.QUEST_REGISTRY_KEY, Quest.CODEC, Quest.CODEC);
+            Fishtastic.LOGGER.info("Registering ShopEntry datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, ShopEntry.CODEC, ShopEntry.CODEC);
         });
 
         // Send quest state to player on world join
