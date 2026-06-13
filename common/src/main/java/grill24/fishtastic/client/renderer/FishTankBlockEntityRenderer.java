@@ -3,6 +3,8 @@ package grill24.fishtastic.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.renderer.FishtasticGlintState;
+import grill24.fishtastic.client.renderer.FishtasticWorldOutlineRenderer;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -111,6 +113,12 @@ public class FishTankBlockEntityRenderer
         ItemModelResolver resolver = Minecraft.getInstance().getItemModelResolver();
         ItemStackRenderState itemRenderState = new ItemStackRenderState();
         resolver.updateForTopItem(itemRenderState, itemToRender, ItemDisplayContext.FIXED, null, null, 0);
+
+        // Submit world outline for quality items (same pattern as ItemEntityRenderer / ItemFrameRenderer)
+        FishtasticWorldOutlineRenderer.capture(itemRenderState, itemToRender);
+        FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, itemRenderState, true);
+        FishtasticGlintState.WORLD_OUTLINE_MAP.remove(itemRenderState);
+
         itemRenderState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
 
         poseStack.popPose();

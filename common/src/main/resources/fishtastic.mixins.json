@@ -12,6 +12,7 @@
     "ItemEntityRendererMixin",
     "ItemFeatureRendererMixin",
     "ItemFrameRendererMixin",
+    "ItemInHandRendererMixin",
     "ItemModelResolverMixin",
     "ItemStackMixin",
     "ItemStackRenderStateMixin",
