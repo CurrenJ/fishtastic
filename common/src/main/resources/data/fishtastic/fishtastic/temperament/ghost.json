@@ -1,0 +1,37 @@
+{
+  "difficulty_min": 0.65,
+  "difficulty_max": 0.90,
+  "params": {
+    "initial_catch_progress": 0.05,
+    "catch_progress_loss": 0.012
+  },
+  "phases": [
+    {
+      "threshold": 0.0,
+      "patterns": "flee",
+      "params": {
+        "flee_threshold": 0.30,
+        "flee_speed": 0.010,
+        "drift_interval_min": 40,
+        "drift_interval_max": 80
+      }
+    },
+    {
+      "threshold": 0.40,
+      "patterns": "flee",
+      "params": {
+        "flee_threshold": 0.35,
+        "flee_speed": 0.020
+      }
+    },
+    {
+      "threshold": 0.70,
+      "patterns": "flee",
+      "params": {
+        "flee_threshold": 0.40,
+        "flee_speed": 0.034,
+        "catch_progress_loss": 0.022
+      }
+    }
+  ]
+}

@@ -2,12 +2,18 @@ package grill24.fishtastic.server;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
+import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.item.ItemStack;
@@ -138,6 +144,7 @@ public class FishCatchSavedData extends SavedData {
     }
 
     private final Map<UUID, PlayerCatchData> playerData = new HashMap<>();
+    private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
 
     // -------------------------------------------------------------------------
     // Codec and SavedDataType
@@ -145,10 +152,13 @@ public class FishCatchSavedData extends SavedData {
 
     public static final Codec<FishCatchSavedData> CODEC = RecordCodecBuilder.create(instance ->
         instance.group(
-            PlayerCatchData.CODEC.listOf().fieldOf("players").forGetter(d -> new ArrayList<>(d.playerData.values()))
-        ).apply(instance, playerList -> {
+            PlayerCatchData.CODEC.listOf().fieldOf("players").forGetter(d -> new ArrayList<>(d.playerData.values())),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, PlayerQuestState.CODEC)
+                    .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates))
+        ).apply(instance, (playerList, questMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
+            data.questStates.putAll(questMap);
             return data;
         })
     );
@@ -238,5 +248,46 @@ public class FishCatchSavedData extends SavedData {
                 .map(pd -> new GlobalCatchCountEntry(pd.uuid, pd.lastKnownName, pd.totalCatches()))
                 .sorted(order)
                 .toList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Quest state API
+    // -------------------------------------------------------------------------
+
+    /** Sentinel UUID used as quest-state key for singleplayer worlds.
+     *  In singleplayer there is only one player, and Fabric dev-auth rotates
+     *  the player UUID every session, so we key by a constant that never changes. */
+    private static final UUID SINGLEPLAYER_QUEST_UUID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    public PlayerQuestState getOrCreateQuestState(UUID uuid) {
+        return questStates.computeIfAbsent(uuid, k -> new PlayerQuestState());
+    }
+
+    /** Overload that resolves the correct key for singleplayer vs multiplayer.
+     *  Uses a stable sentinel UUID for the singleplayer owner so that Fabric
+     *  dev-auth UUID rotation doesn't orphan quest progress. LAN guests and
+     *  multiplayer players use their own Mojang-auth UUID (which is stable). */
+    public PlayerQuestState getOrCreateQuestState(ServerPlayer player) {
+        MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
+        if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
+            return getOrCreateQuestState(SINGLEPLAYER_QUEST_UUID);
+        }
+        return getOrCreateQuestState(player.getUUID());
+    }
+
+    public void resetDailyQuestsIfNeeded(MinecraftServer server, long currentDay) {
+        Registry<Quest> questRegistry;
+        try {
+            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        } catch (Exception e) {
+            return;
+        }
+        questRegistry.entrySet().stream()
+                .filter(e -> e.getValue().category() == QuestCategory.DAILY)
+                .forEach(e -> {
+                    ResourceKey<Quest> key = e.getKey();
+                    questStates.values().forEach(state -> state.resetDailyIfNeeded(key, currentDay));
+                });
+        setDirty();
     }
 }

@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.PlayPayloadHandler;
 
 /**
  * Fabric-specific packet registration implementation
@@ -15,13 +14,20 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.PlayPayloadHan
 public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar {
 
     /**
-     * Register all Fishtastic packets for Fabric
+     * Register all Fishtastic packets for Fabric (server-side).
+     * Registers serverbound handlers AND clientbound codecs (so the
+     * server knows how to encode server→client packets).
      */
     public static void registerServerReceiver() {
         FabricPacketRegistrar registrar = new FabricPacketRegistrar();
 
-        // Register client-to-server packets
+        // Register client-to-server packets (full: codec + handler)
         FishtasticPackets.registerClientToServerPackets(registrar);
+
+        // Register server-to-client codecs (server needs these to encode outgoing packets).
+        // No handlers are registered here — those only exist on the client.
+        FishtasticPackets.registerServerToClientCodecs(
+                (type, codec) -> PayloadTypeRegistry.clientboundPlay().register(type, codec));
 
         Fishtastic.LOGGER.info("Registered Fabric server-side network packets");
     }
@@ -60,11 +66,16 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
             StreamCodec<? super RegistryFriendlyByteBuf, T> codec,
             FishtasticPackets.IPacketHandler<T> handler) {
 
-        // Register the payload type
-        PayloadTypeRegistry.clientboundPlay().register(type, codec);
+        // Register the payload type. In an integrated (singleplayer) environment the
+        // server-side init already registered this codec via registerServerToClientCodecs,
+        // so tolerate double-registration.
+        try {
+            PayloadTypeRegistry.clientboundPlay().register(type, codec);
+        } catch (IllegalArgumentException ignored) {
+            // Already registered
+        }
 
-        // Register the handler - this is done on the client side
-        // The actual handler registration happens in the client initializer
+        // Register the client-side handler
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
                 type,
                 (payload, context) -> handler.handle(payload, new FabricClientPacketContext(context))

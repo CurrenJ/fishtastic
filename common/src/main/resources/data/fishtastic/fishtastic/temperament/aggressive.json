@@ -1,0 +1,7 @@
+{
+  "difficulty_min": 0.60,
+  "difficulty_max": 0.80,
+  "phases": [
+    { "threshold": 0.0, "patterns": ["dart", "flee"] }
+  ]
+}

@@ -32,5 +32,6 @@ public interface FishtasticItemStackRenderState {
      * Returns the layer render state at the given index.
      */
     ItemStackRenderState.LayerRenderState fishtastic$getLayer(int index);
+
 }
 

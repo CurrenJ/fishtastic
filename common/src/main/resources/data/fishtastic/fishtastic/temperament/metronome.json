@@ -1,0 +1,30 @@
+{
+  "difficulty_min": 0.30,
+  "difficulty_max": 0.55,
+  "phases": [
+    {
+      "threshold": 0.0,
+      "patterns": "oscillate",
+      "params": {
+        "osc_frequency": 0.020,
+        "osc_re_period_min": 120,
+        "osc_re_period_max": 180,
+        "osc_amplitude_min": 0.12,
+        "osc_amplitude_max": 0.20,
+        "initial_catch_progress": 0.50,
+        "catch_progress_loss": 0.005
+      }
+    },
+    {
+      "threshold": 0.60,
+      "patterns": "oscillate",
+      "params": {
+        "osc_frequency": 0.042,
+        "osc_re_period_min": 50,
+        "osc_re_period_max": 80,
+        "osc_amplitude_min": 0.15,
+        "osc_amplitude_max": 0.28
+      }
+    }
+  ]
+}

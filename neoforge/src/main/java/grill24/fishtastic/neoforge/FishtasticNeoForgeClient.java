@@ -2,6 +2,10 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.QuestClientCache;
+import grill24.fishtastic.client.QuestProgressNotificationManager;
+import grill24.fishtastic.itemeffect.ItemEffectManager;
+import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -11,6 +15,10 @@ import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
+import grill24.fishtastic.client.CosmeticTransformLoader;
+import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
+import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
+import grill24.fishtastic.client.tooltip.RodBaitTooltip;
 import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -25,8 +33,13 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -39,11 +52,25 @@ public final class FishtasticNeoForgeClient {
         // Try to register GelatinUI screens, if GelatinUI is present.
         GelatinScreensCompat.init();
 
+        // Register quest sync packet client handler
+        QuestSyncPacket.registerClientHandler(packet ->
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts()));
+
+        // Install quest progress notification system
+        QuestProgressNotificationManager.getInstance().install();
+
+        modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
+
+        // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -67,6 +94,15 @@ public final class FishtasticNeoForgeClient {
         Fishtastic.LOGGER.info("Fishtastic block state models registered.");
     }
 
+    public static void registerClientReloadListeners(AddClientReloadListenersEvent event) {
+        Identifier key = ft("blockstate_redirect");
+        event.addListener(key, BlockstateModelReloadListener.INSTANCE);
+        // Must complete before model baking so the redirect map is ready when FishTankBakedModel resolves textures.
+        event.addDependency(key, VanillaClientListeners.MODELS);
+
+        event.addListener(ft("cosmetic_transforms"), CosmeticTransformLoader.INSTANCE);
+    }
+
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(
             (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
@@ -78,7 +114,13 @@ public final class FishtasticNeoForgeClient {
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
+        event.register(FishtasticKeyBinds.openQuestLog);
+        event.register(FishtasticKeyBinds.toggleFishTankEditMode);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
+    }
+
+    public static void registerTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(RodBaitTooltip.class, tooltip -> new ClientRodBaitTooltip(tooltip.bait()));
     }
 
     // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
@@ -93,6 +135,20 @@ public final class FishtasticNeoForgeClient {
         Fishtastic.LOGGER.info("Fishtastic client setup complete.");
     }
 
+    public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
+        ItemEffectManager.clearCache();
+    }
+
+    public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
+        QuestClientCache.reset();
+    }
+
+    public static void onTagsUpdated(TagsUpdatedEvent event) {
+        if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
+            ItemEffectManager.clearCache();
+        }
+    }
+
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
@@ -100,6 +156,8 @@ public final class FishtasticNeoForgeClient {
             ClientTickHandler.tick(1.0f);
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
+            // Tick quest progress notifications
+            QuestProgressNotificationManager.getInstance().tick();
         }
     }
 
@@ -116,5 +174,7 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
+        // Render quest progress notifications (after fishing minigame)
+        QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 }

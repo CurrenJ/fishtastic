@@ -1,0 +1,21 @@
+{
+  "base_weight": 10,
+  "size": { "mean": 35.0, "std_dev": 10.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
+  ],
+  "time_weights": [
+    { "time": "day", "multiplier": 1.8 }
+  ],
+  "temperament": "fishtastic:skittish",
+  "animation": {
+    "mode": "planted"
+  },
+  "swarm": {
+    "count": 5,
+    "depth_layers": 3,
+    "xz_spread": 0.28,
+    "y_range": 0.0,
+    "rotation_jitter": 0.0
+  }
+}

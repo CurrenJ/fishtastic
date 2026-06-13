@@ -42,6 +42,7 @@ dependencies {
 }
 
 processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     inputs.property 'version', project.version
 
     from project(":common").sourceSets.main.resources
@@ -90,6 +91,11 @@ configurations {
 
 // neoforge/build.gradle
 sourceSets.main.resources.srcDir("src/main/generated")
+
+// Gradle 9.2+ requires explicit duplicatesStrategy when sources overlap.
+tasks.named('sourcesJar').configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
 
 loom {
     runs {

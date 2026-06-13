@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.itemeffect.ItemEffect;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -34,10 +35,28 @@ public final class FishtasticGlintState {
     public static final IdentityHashMap<List<?>, ItemEffect> SUBMIT_EFFECT_MAP = new IdentityHashMap<>();
 
     /**
+     * Maps an {@link ItemStackRenderState} identity to the {@link ItemEffect} for GUI
+     * outline rendering.  Populated by {@code ItemModelResolverMixin} and consumed by
+     * {@code GuiRendererMixin}.  Entries are removed in
+     * {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, ItemEffect> GUI_EFFECT_MAP = new IdentityHashMap<>();
+
+    /**
      * Thread-local holding the active {@link ItemEffect} during a single
      * {@code ItemFeatureRenderer.renderItem()} call.  Set at HEAD, cleared at RETURN.
      */
     public static final ThreadLocal<ItemEffect> ACTIVE_EFFECT = new ThreadLocal<>();
+
+    /**
+     * Maps an {@link ItemStackRenderState} identity to its in-world outline data (effect +
+     * baked atlas slot UVs).  Populated at render-state extraction by
+     * {@code ItemEntityRendererMixin} / {@code ItemFrameRendererMixin} (the only points where
+     * the {@code ItemStack} is still in scope) and consumed at submission in the same frame.
+     * Entries are removed in {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, FishtasticWorldOutlineRenderer.Entry> WORLD_OUTLINE_MAP =
+            new IdentityHashMap<>();
 
     private FishtasticGlintState() {}
 }

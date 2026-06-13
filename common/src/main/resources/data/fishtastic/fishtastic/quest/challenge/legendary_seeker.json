@@ -1,0 +1,11 @@
+{
+  "category": "challenge",
+  "objective": {
+    "target_count": 1,
+    "min_quality": "legendary"
+  },
+  "reward": { "quest_tokens": 50, "items": [] },
+  "hidden": false,
+  "display_name": "Legendary Seeker",
+  "description": "Catch any fish at Legendary quality."
+}

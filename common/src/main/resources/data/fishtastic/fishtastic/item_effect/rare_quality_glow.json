@@ -8,5 +8,9 @@
             "value": "rare"
         }
     ],
-    "priority": 20
+    "priority": 20,
+    "outline_color": -47992,
+    "outline_falloff": 0.7,
+    "outline_width": 0.5,
+    "outline_opacity": 0.75
 }

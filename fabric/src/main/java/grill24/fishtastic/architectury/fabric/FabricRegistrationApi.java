@@ -3,6 +3,7 @@ package grill24.fishtastic.architectury.fabric;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.fabric.blockentity.FishTankBlockEntityFabric;
 import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -12,6 +13,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -27,6 +29,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
+import net.minecraft.client.Minecraft;
 
 public class FabricRegistrationApi implements IRegistrationApi {
     public static FabricRegistrationApi INSTANCE = new FabricRegistrationApi();
@@ -72,6 +75,12 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
         return register(BuiltInRegistries.CREATIVE_MODE_TAB, name, func);
+    }
+
+    @Override
+    public Holder<SoundEvent> registerSoundEvent(String name) {
+        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        return Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
     }
 
     // ----- Registry Accessors ----- //
@@ -123,14 +132,22 @@ public class FabricRegistrationApi implements IRegistrationApi {
 
     @Override
     public FishTankBlockEntity createFishTankBlockEntity(BlockPos pos, BlockState state) {
-        // Fabric uses the common implementation directly
-        return new FishTankBlockEntity(pos, state);
+        return new FishTankBlockEntityFabric(pos, state);
     }
 
     @Override
     public void requestModelDataUpdate(BlockEntity blockEntity) {
-        // Fabric may handle model data updates differently - implement if needed
-        // For now, this is a no-op on Fabric
+        net.minecraft.world.level.Level level = blockEntity.getLevel();
+        if (level == null || !level.isClientSide()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.levelRenderer != null) {
+            BlockPos pos = blockEntity.getBlockPos();
+            mc.execute(() -> mc.levelRenderer.setBlocksDirty(
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    pos.getX(), pos.getY(), pos.getZ()
+            ));
+        }
     }
 
     @Override

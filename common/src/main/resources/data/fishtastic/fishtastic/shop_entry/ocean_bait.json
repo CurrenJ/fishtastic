@@ -1,0 +1,7 @@
+{
+  "display_name": "Ocean Bait",
+  "description": "Attracts ocean fish to your hook.",
+  "cost": 8,
+  "reward": [{ "id": "fishtastic:ocean_bait", "count": 4 }],
+  "max_purchases": 0
+}

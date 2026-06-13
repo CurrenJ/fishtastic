@@ -20,6 +20,19 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Final
     private int luck;
 
+    // On vanilla/Fabric, shouldStopFishing checks is(Items.FISHING_ROD) which excludes modded rods.
+    // NeoForge patches this to canPerformAction(), so it already works there.
+    @Inject(method = "shouldStopFishing", at = @At("HEAD"), cancellable = true)
+    private void fishtastic$keepCopperRodAlive(Player owner, CallbackInfoReturnable<Boolean> cir) {
+        if (!owner.canInteractWithLevel()) return;
+        ItemStack mainHand = owner.getMainHandItem();
+        ItemStack offHand = owner.getOffhandItem();
+        if ((mainHand.is(FishtasticItems.COPPER_FISHING_ROD) || offHand.is(FishtasticItems.COPPER_FISHING_ROD))
+                && ((FishingHook)(Object)this).distanceToSqr(owner) <= 1024.0) {
+            cir.setReturnValue(false);
+        }
+    }
+
     @Inject(method = "retrieve", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getServer()Lnet/minecraft/server/MinecraftServer;"), cancellable = true)
     private void retrieve(ItemStack itemStack, CallbackInfoReturnable<Integer> cir) {
         FishingHook fishingHook = (FishingHook)(Object)this;

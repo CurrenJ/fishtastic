@@ -1,0 +1,12 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 75.0, "std_dev": 15.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_ocean", "multiplier": 2.5 }
+  ],
+  "time_weights": [
+    { "time": "dawn", "multiplier": 2.0 },
+    { "time": "day", "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:wily"
+}

@@ -1,20 +1,28 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.RodBaitContents;
+import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.item.TestItem;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.BundleContents;
 
+import java.util.List;
+import java.util.Optional;
+
 public class FishtasticItems {
-    /** Helper to create Item.Properties with the item ID already set (required in MC 26.1.2+). */
     private static Item.Properties props(Identifier loc) {
         return new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc));
     }
@@ -35,13 +43,27 @@ public class FishtasticItems {
     // ----- Pile of Fish -----
     public static Holder<Item> PILE_OF_FISH;
 
+    // ----- Bait Items -----
     public static Holder<Item> BLAZED_GRUB;
+    public static Holder<Item> GUMMY_WORMS;
+    public static Holder<Item> WORMS;
+    public static Holder<Item> FRESHWATER_BAIT;
+    public static Holder<Item> OCEAN_BAIT;
+    public static Holder<Item> PREDATOR_BAIT;
+
+    // ----- Quest Items -----
+    public static Holder<Item> QUEST_TOKEN;
+
+    // ----- Fish Tank Cosmetics -----
+    public static Holder<Item> COSMETIC_TREASURE_CHEST;
+    public static Holder<Item> COSMETIC_SEA_LANTERN;
+
+    // ----- Fish Items -----
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
     public static Holder<Item> FROZEN_GIANT_MANTA_RAY;
     public static Holder<Item> GARDEN_EEL;
     public static Holder<Item> GIANT_MANTA_RAY;
-    public static Holder<Item> GUMMY_WORMS;
     public static Holder<Item> LIZARDFISH;
     public static Holder<Item> LONGNOSE_GAR;
     public static Holder<Item> MOLTEN_MOORISH_IDOL;
@@ -55,7 +77,6 @@ public class FishtasticItems {
     public static Holder<Item> ROYAL_GARDEN_EEL;
     public static Holder<Item> SHRIMP;
     public static Holder<Item> STARFISH;
-    public static Holder<Item> WORMS;
 
     public static void registerItems() {
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(props(loc).stacksTo(1)));
@@ -64,29 +85,41 @@ public class FishtasticItems {
         GENERIC_FISH = RegistrationApiSided.getInstance().registerItem("generic_fish", loc -> new FishtasticFishItem(props(loc)));
         REWARD_CHEST = RegistrationApiSided.getInstance().registerItem("reward_chest", loc -> new Item(props(loc).stacksTo(1)));
 
-        COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod", loc -> new CopperFishingRod(props(loc).durability(250)));
-        ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> FishtasticFishItem.create(props(loc), 45, 15));
-        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> FishtasticFishItem.create(props(loc), 30, 10));
-        BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> FishtasticFishItem.createDefault(props(loc)));
-        FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> FishtasticFishItem.create(props(loc), 25, 5));
-        FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> FishtasticFishItem.create(props(loc), 80, 15));
-        GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> FishtasticFishItem.create(props(loc), 35, 10));
-        GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> FishtasticFishItem.create(props(loc), 75, 15));
-        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms", loc -> FishtasticFishItem.create(props(loc), 35, 5));
-        LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", loc -> FishtasticFishItem.createDefault(props(loc)));
-        LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> FishtasticFishItem.create(props(loc), 70, 15));
-        MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> FishtasticFishItem.create(props(loc), 55, 10));
-        MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("moorish_idol", loc -> FishtasticFishItem.create(props(loc), 55, 15));
-        NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> FishtasticFishItem.create(props(loc), 30, 5));
-        NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> FishtasticFishItem.create(props(loc), 70, 15));
-        OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> FishtasticFishItem.create(props(loc), 90, 20));
-        PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> FishtasticFishItem.createDefault(props(loc)));
-        PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> FishtasticFishItem.create(props(loc), 40, 10));
-        RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> FishtasticFishItem.createDefault(props(loc)));
-        ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> FishtasticFishItem.create(props(loc), 40, 10));
-        SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> FishtasticFishItem.create(props(loc), 25, 5));
-        STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> FishtasticFishItem.create(props(loc), 40, 10));
-        WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> FishtasticFishItem.create(props(loc), 35, 5));
+        COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod",
+                loc -> new CopperFishingRod(props(loc).durability(250)
+                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)));
+
+        // Fish items — size/weight now defined in fish_profile data entries
+        ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
+        BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(props(loc)));
+        FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(props(loc)));
+        FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
+        GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> new FishtasticFishItem(props(loc)));
+        GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
+        LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", loc -> new FishtasticFishItem(props(loc)));
+        LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> new FishtasticFishItem(props(loc)));
+        MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> new FishtasticFishItem(props(loc)));
+        MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("moorish_idol", loc -> new FishtasticFishItem(props(loc)));
+        NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> new FishtasticFishItem(props(loc)));
+        NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> new FishtasticFishItem(props(loc)));
+        OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(props(loc)));
+        PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> new FishtasticFishItem(props(loc)));
+        PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> new FishtasticFishItem(props(loc)));
+        RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> new FishtasticFishItem(props(loc)));
+        ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> new FishtasticFishItem(props(loc)));
+        SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> new FishtasticFishItem(props(loc)));
+        STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFishItem(props(loc)));
+
+        // Bait items — BaitEffect component drives fishing behavior
+        WORMS = RegistrationApiSided.getInstance().registerItem("worms",
+                loc -> new FishtasticFishItem(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.WORMS)));
+        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms",
+                loc -> new FishtasticFishItem(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.GUMMY_WORMS)));
+        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub",
+                loc -> new FishtasticFishItem(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.BLAZED_GRUB)));
 
         PILE_OF_FISH = RegistrationApiSided.getInstance().registerItem("pile_of_fish",
                 loc -> new PileOfFishItem(
@@ -95,5 +128,35 @@ public class FishtasticItems {
                                 .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
                 )
         );
+
+        // Group affinity bait items
+        FRESHWATER_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
+                loc -> new Item(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
+                                0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
+                                List.of(new BaitEffect.FishGroupAffinity(
+                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "freshwater_fish")), 2.5f))))));
+        OCEAN_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
+                loc -> new Item(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
+                                0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
+                                List.of(new BaitEffect.FishGroupAffinity(
+                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "ocean_fish")), 2.5f))))));
+        PREDATOR_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
+                loc -> new Item(props(loc)
+                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
+                                0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
+                                List.of(new BaitEffect.FishGroupAffinity(
+                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "predator_fish")), 2.5f))))));
+
+        QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
+                loc -> new Item(props(loc).stacksTo(64)));
+
+        // Fish tank cosmetics — custom items for quest rewards / rare drops
+        COSMETIC_TREASURE_CHEST = RegistrationApiSided.getInstance().registerItem("cosmetic_treasure_chest",
+                loc -> new FishTankCosmeticItem(Blocks.CHEST, props(loc).stacksTo(1)));
+        COSMETIC_SEA_LANTERN = RegistrationApiSided.getInstance().registerItem("cosmetic_sea_lantern",
+                loc -> new FishTankCosmeticItem(Blocks.SEA_LANTERN, props(loc).stacksTo(1)));
+
     }
 }

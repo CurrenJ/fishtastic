@@ -1,0 +1,11 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species": "fishtastic:bluegill",
+    "target_count": 10
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "Bluegill Beginner",
+  "description": "Catch 10 Bluegill."
+}

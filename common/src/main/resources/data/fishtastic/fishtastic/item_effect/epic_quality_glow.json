@@ -8,5 +8,8 @@
             "value": "epic"
         }
     ],
-    "priority": 30
+    "priority": 30,
+    "outline_color": -10074881,
+    "outline_falloff": 0.55,
+    "outline_width": 0.75
 }

@@ -1,0 +1,12 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species": "fishtastic:moorish_idol",
+    "target_count": 50
+  },
+  "reward": { "quest_tokens": 30, "items": [] },
+  "hidden": true,
+  "prerequisite": "fishtastic:mastery/moorish_idol_adept",
+  "display_name": "Idol Master",
+  "description": "Catch 50 Moorish Idol total."
+}

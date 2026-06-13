@@ -4,16 +4,23 @@ import grill24.fishtastic.Fishtastic;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
+import static grill24.fishtastic.server.FishCatchSavedData.getOrCreate;
+
 /**
  * Handles server-side game tick events
  */
 public class ServerTickHandler {
 
-    /**
-     * Called every server tick
-     * @param server The Minecraft server instance
-     */
+    private static long lastResetDay = -1;
+
     public static void onServerTick(MinecraftServer server) {
+        // Daily quest reset check
+        long currentDay = server.overworld().getGameTime() / 24000L;
+        if (currentDay > lastResetDay) {
+            lastResetDay = currentDay;
+            getOrCreate(server).resetDailyQuestsIfNeeded(server, currentDay);
+        }
+
         // Tick fishing minigame managers for all levels
         for (ServerLevel level : server.getAllLevels()) {
             FishingMinigameManager manager = FishingMinigameManager.get(level);

@@ -1,0 +1,11 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 55.0, "std_dev": 10.0 },
+  "time_weights": [
+    { "time": "night", "multiplier": 3.0 }
+  ],
+  "weather_weights": [
+    { "weather": "thunder", "multiplier": 4.0 }
+  ],
+  "temperament": "fishtastic:erratic"
+}

@@ -1,0 +1,11 @@
+{
+  "category": "challenge",
+  "objective": {
+    "target_species_tag": "fishtastic:treasure",
+    "target_count": 15
+  },
+  "reward": { "quest_tokens": 30, "items": [] },
+  "hidden": false,
+  "display_name": "Treasure Hoarder",
+  "description": "Catch 15 treasure items."
+}

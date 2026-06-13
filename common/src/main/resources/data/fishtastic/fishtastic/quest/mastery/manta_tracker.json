@@ -1,0 +1,12 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species": "fishtastic:giant_manta_ray",
+    "target_count": 25
+  },
+  "reward": { "quest_tokens": 35, "items": [] },
+  "hidden": true,
+  "prerequisite": "fishtastic:mastery/manta_spotter",
+  "display_name": "Manta Tracker",
+  "description": "Catch 25 Giant Manta Ray total."
+}

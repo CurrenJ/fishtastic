@@ -119,6 +119,7 @@ __pycache__/
 **generated/
 
 debug_src/**
+debug/**
 
 CLAUDE.md
 .claude/

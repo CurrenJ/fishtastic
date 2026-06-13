@@ -1,0 +1,12 @@
+{
+  "quest_progress": {
+    "sounds": [
+      "fishtastic:quest_progress"
+    ]
+  },
+  "quest_complete": {
+    "sounds": [
+      "fishtastic:quest_complete"
+    ]
+  }
+}

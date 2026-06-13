@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:deep_sea_fish",
+    "target_count": 3
+  },
+  "reward": { "quest_tokens": 10, "items": [] },
+  "hidden": false,
+  "display_name": "Deep Wanderer",
+  "description": "Catch 3 deep sea species."
+}

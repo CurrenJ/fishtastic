@@ -4,6 +4,8 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,12 +25,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SeaPickleBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class FishTankBlockEntity extends BlockEntity implements Container {
@@ -62,6 +69,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
 
     // Store the rotation (in degrees) for the first item based on player direction when placed
     private float firstItemRotation = 0f;
+
+    // Cosmetic decorations placed in the tank's 3×3 floor grid
+    private Map<CosmeticGridCell, PlacedCosmetic> cosmetics = new HashMap<>();
 
     /**
      * Get the frame block for this fish tank.
@@ -214,6 +224,24 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
 
         // Save first item rotation
         output.putFloat("FirstItemRotation", firstItemRotation);
+
+        // Save cosmetics
+        ValueOutput.ValueOutputList cosmeticsList = output.childrenList("Cosmetics");
+        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : cosmetics.entrySet()) {
+            CosmeticGridCell cell = entry.getKey();
+            PlacedCosmetic cosmetic = entry.getValue();
+            String blockId = BuiltInRegistries.BLOCK.getKey(cosmetic.block()).toString();
+            ValueOutput child = cosmeticsList.addChild();
+            child.putInt("GridX", cell.gridX());
+            child.putInt("GridZ", cell.gridZ());
+            child.putString("Block", blockId);
+            if (cosmetic.block() instanceof SeaPickleBlock) {
+                child.putInt("Pickles", cosmetic.blockState().getValue(BlockStateProperties.PICKLES));
+            }
+            if (cosmetic.height() != 1) {
+                child.putInt("Height", cosmetic.height());
+            }
+        }
     }
 
     @Override
@@ -289,6 +317,31 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
 
         // Load first item rotation
         firstItemRotation = input.getFloatOr("FirstItemRotation", 0f);
+
+        // Load cosmetics
+        cosmetics.clear();
+        input.childrenListOrEmpty("Cosmetics").forEach(child -> {
+            int gridX = child.getIntOr("GridX", -1);
+            int gridZ = child.getIntOr("GridZ", -1);
+            String blockStr = child.getStringOr("Block", "");
+            if (CosmeticGridCell.isValid(gridX, gridZ) && !blockStr.isEmpty()) {
+                Identifier blockId = Identifier.tryParse(blockStr);
+                if (blockId != null) {
+                    Block b = BuiltInRegistries.BLOCK.getValue(blockId);
+                    if (b != null) {
+                        BlockState state = b.defaultBlockState();
+                        if (b instanceof SeaPickleBlock) {
+                            int pickles = child.getIntOr("Pickles", 1);
+                            state = state.setValue(BlockStateProperties.PICKLES, Math.min(pickles, SeaPickleBlock.MAX_PICKLES));
+                        }
+                        int height = child.getIntOr("Height", 1);
+                        cosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(state, height));
+                    } else {
+                        Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
+                    }
+                }
+            }
+        });
 
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
@@ -497,6 +550,27 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      */
     public float getFirstItemRotation() {
         return firstItemRotation;
+    }
+
+    public Map<CosmeticGridCell, PlacedCosmetic> getCosmetics() {
+        return Collections.unmodifiableMap(cosmetics);
+    }
+
+    public void setCosmetic(CosmeticGridCell cell, PlacedCosmetic cosmetic) {
+        cosmetics.put(cell, cosmetic);
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    public void removeCosmetic(CosmeticGridCell cell) {
+        if (cosmetics.remove(cell) != null) {
+            setChanged();
+            if (level != null && !level.isClientSide()) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            }
+        }
     }
 
     /**

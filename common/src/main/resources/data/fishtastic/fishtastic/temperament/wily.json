@@ -1,0 +1,7 @@
+{
+  "difficulty_min": 0.40,
+  "difficulty_max": 0.65,
+  "phases": [
+    { "threshold": 0.0, "patterns": ["oscillate", "flee"] }
+  ]
+}

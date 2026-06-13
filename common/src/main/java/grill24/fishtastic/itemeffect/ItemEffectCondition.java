@@ -25,13 +25,21 @@ public interface ItemEffectCondition {
         private static final Map<String, MapCodec<? extends ItemEffectCondition>> CONDITION_TYPES = new ConcurrentHashMap<>();
 
         private static MapCodec<? extends ItemEffectCondition> getConditionCodec(String type) {
-            return CONDITION_TYPES.computeIfAbsent(type, k -> {
-                Supplier<MapCodec<? extends ItemEffectCondition>> supplier = CONDITION_TYPE_SUPPLIERS.get(k);
-                if (supplier == null) {
-                    throw new IllegalArgumentException("Unknown item effect condition type: " + k);
-                }
-                return supplier.get();
-            });
+            // Avoid ConcurrentHashMap.computeIfAbsent — Java 17+ throws
+            // "Recursive update" if a concurrent thread modifies the same hash
+            // bin while the mapping function runs (as happens with ParallelMapTransform).
+            // get → compute → putIfAbsent is safe because the computation is
+            // idempotent and codec objects are stateless.
+            MapCodec<? extends ItemEffectCondition> cached = CONDITION_TYPES.get(type);
+            if (cached != null) return cached;
+
+            Supplier<MapCodec<? extends ItemEffectCondition>> supplier = CONDITION_TYPE_SUPPLIERS.get(type);
+            if (supplier == null) {
+                throw new IllegalArgumentException("Unknown item effect condition type: " + type);
+            }
+            MapCodec<? extends ItemEffectCondition> computed = supplier.get();
+            MapCodec<? extends ItemEffectCondition> winner = CONDITION_TYPES.putIfAbsent(type, computed);
+            return winner != null ? winner : computed;
         }
 
         public static final Codec<ItemEffectCondition> DISPATCH_CODEC = Codec.STRING.dispatch(

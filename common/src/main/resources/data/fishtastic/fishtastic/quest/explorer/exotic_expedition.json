@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:exotic_fish",
+    "target_count": 5
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "Exotic Expedition",
+  "description": "Catch 5 exotic species. Try using Blazed Grub bait!"
+}

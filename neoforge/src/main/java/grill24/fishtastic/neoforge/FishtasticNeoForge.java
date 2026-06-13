@@ -6,10 +6,15 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
+import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.network.FishtasticPackets;
+import grill24.fishtastic.network.QuestSyncPacket;
+import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.ServerTickHandler;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -19,6 +24,7 @@ import grill24.fishtastic.Fishtastic;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.registries.DataPackRegistryEvent;
 
 @Mod(Fishtastic.MOD_ID)
@@ -45,6 +51,9 @@ public final class FishtasticNeoForge {
         FishtasticCreativeTabs.registerCreativeTabs();
         FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(modEventBus);
 
+        FishtasticSounds.registerSounds();
+        FishtasticRegistriesNeoForge.SOUND_EVENTS.register(modEventBus);
+
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
 
@@ -52,6 +61,20 @@ public final class FishtasticNeoForge {
         modEventBus.addListener((DataPackRegistryEvent.NewRegistry event) -> {
             Fishtastic.LOGGER.info("Registering ItemEffect datapack registry");
             event.dataPackRegistry(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC, ItemEffect.CODEC);
+            Fishtastic.LOGGER.info("Registering FishProfile datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, grill24.fishtastic.data.FishProfile.CODEC, grill24.fishtastic.data.FishProfile.CODEC);
+            Fishtastic.LOGGER.info("Registering Temperament datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, grill24.fishtastic.data.Temperament.CODEC, grill24.fishtastic.data.Temperament.CODEC);
+            Fishtastic.LOGGER.info("Registering Quest datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.QUEST_REGISTRY_KEY, Quest.CODEC, Quest.CODEC);
+            Fishtastic.LOGGER.info("Registering ShopEntry datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, ShopEntry.CODEC, ShopEntry.CODEC);
+        });
+
+        // Send quest state to player on world join
+        NeoForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
+            if (event.getPlayer() == null) return;
+            QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
         });
 
         // Register network packets

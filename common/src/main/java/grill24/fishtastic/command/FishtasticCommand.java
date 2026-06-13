@@ -21,6 +21,7 @@ public class FishtasticCommand {
         dispatcher.register(
             Commands.literal("fishtastic")
                 .executes(FishtasticCommand::openScreen)
+                .then(CosmeticCommand.build())
         );
     }
 

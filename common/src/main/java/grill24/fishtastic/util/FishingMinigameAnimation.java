@@ -1,6 +1,8 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
@@ -10,12 +12,17 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
     private final FishingMinigameState minigameState;
+    private final Random sparkleRandom = new Random();
+
+    private record SparkleBurst(List<SparkleParticle> particles, float targetYOffset) {}
+    private final List<SparkleBurst> sparkleBursts = new ArrayList<>();
 
     // Intro animation state
     private boolean isIntro = true;
@@ -31,7 +38,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
 
     public FishingMinigameAnimation() {
-        this.minigameState = new FishingMinigameState();
+        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize());
 
         // Add some example targets
         Random random = new Random();
@@ -46,9 +53,38 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         return !isHiding || hideAnimationTick < HIDE_ANIMATION_DURATION;
     }
 
+    private static int sparkleCountForTarget(FishingTarget target) {
+        if (target.getCategory() == FishingTarget.TargetCategory.TREASURE) {
+            return 16;
+        }
+        FishQuality.Quality best = target.getAllRewardItems().stream()
+                .map(stack -> stack.get(FishtasticDataComponents.FISH_QUALITY.value()))
+                .filter(q -> q != null)
+                .map(FishQuality::quality)
+                .max(Comparator.comparingInt(Enum::ordinal))
+                .orElse(null);
+        if (best == null) return 4; // vanilla fish
+        return switch (best) {
+            case COMMON    -> 0;
+            case UNCOMMON  -> 3;
+            case RARE      -> 12;
+            case EPIC      -> 30;
+            case LEGENDARY -> 75;
+        };
+    }
+
+    private void tickSparkles() {
+        for (SparkleBurst burst : sparkleBursts) {
+            burst.particles().forEach(SparkleParticle::tick);
+            burst.particles().removeIf(p -> !p.isAlive());
+        }
+        sparkleBursts.removeIf(burst -> burst.particles().isEmpty());
+    }
+
     @Override
     public void tick() {
         tickCount++;
+        tickSparkles();
 
         // If in intro, advance intro animation
         if (isIntro) {
@@ -72,43 +108,45 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         final float normalizedBobberMinY = minigameState.getBobberPosition();
         final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
 
-        // Use iterator to safely remove targets while iterating
-        var iterator = minigameState.getTargets().iterator();
+        // Never remove targets from the list — doing so shifts indices and breaks the caught-index
+        // tracking that is sent to the server.  Targets stay in their original slot forever; we
+        // just stop updating them once they are no longer ACTIVE.
         boolean anyOngoing = false;
-        int targetIndex = 0;
-        while (iterator.hasNext()) {
-            FishingTarget target = iterator.next();
+        List<FishingTarget> targets = minigameState.getTargets();
+        for (int targetIndex = 0; targetIndex < targets.size(); targetIndex++) {
+            FishingTarget target = targets.get(targetIndex);
 
-            // Only update active targets
             if (target.getState() == FishingTarget.TargetState.ACTIVE) {
                 float targetPosition = target.getPosition();
-                boolean isTargetWithinBobber =
-                        targetPosition >= normalizedBobberMinY &&
-                        targetPosition <= normalizedBobberMaxY;
-                target.updateCatchProgress(isTargetWithinBobber);
+                float bobberCenter = normalizedBobberMinY + minigameState.getBobberSize() * 0.5f;
+                float bobberRadius = minigameState.getBobberSize() * 0.5f;
+                float distToCenter = Math.abs(targetPosition - bobberCenter);
+                float overlapQuality = distToCenter < bobberRadius ? 1f - distToCenter / bobberRadius : 0f;
+                target.updateCatchProgress(overlapQuality);
 
-                // Check if target was caught or failed
                 if (target.isCaught()) {
-                    target.startCollectionAnimation(0, 0);
-                    // Track this target as caught BEFORE it gets removed
-                    if (!caughtTargetIndices.contains(targetIndex)) {
-                        caughtTargetIndices.add(targetIndex);
+                    float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
+                    int sparkleCount = sparkleCountForTarget(target);
+                    List<SparkleParticle> burst = new ArrayList<>();
+                    for (int i = 0; i < sparkleCount; i++) {
+                        burst.add(new SparkleParticle(0, 0, sparkleRandom, 20 + sparkleRandom.nextInt(15)));
                     }
+                    sparkleBursts.add(new SparkleBurst(burst, targetYOffset));
+
+                    target.startCollectionAnimation(0, 0);
+                    caughtTargetIndices.add(targetIndex);
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
                 } else {
                     anyOngoing = true;
                 }
-            } else if (target.isAnimationComplete()) {
-                // Remove only when animation is complete
-                iterator.remove();
             }
-
-            targetIndex++;
         }
 
-        // If no ongoing targets and all targets are cleared, start hide animation
-        if (!anyOngoing && minigameState.getTargets().isEmpty()) {
+        // Hide once every target has fully completed its animation
+        boolean allComplete = !targets.isEmpty()
+                && targets.stream().allMatch(FishingTarget::isAnimationComplete);
+        if (!anyOngoing && allComplete) {
             if (!isHiding) {
                 // Send results to server before hiding (via reflection to avoid client dependency)
                 try {
@@ -173,7 +211,27 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().pushMatrix();
         renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenHeight);
         renderTargets(guiGraphics, partialTick);
+        renderSparkles(guiGraphics, partialTick);
         guiGraphics.pose().popMatrix();
+    }
+
+    private void renderSparkles(GuiGraphicsExtractor guiGraphics, float partialTick) {
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+        final float sparkleScale = 1f / 16f;
+
+        for (SparkleBurst burst : sparkleBursts) {
+            for (SparkleParticle sparkle : burst.particles()) {
+                guiGraphics.pose().pushMatrix();
+                Vector2f pos = sparkle.getInterpolatedPosition(partialTick);
+                float rotZ = sparkle.getInterpolatedRotationZ(partialTick);
+                float scale = sparkleScale * (1f - sparkle.getLifetimeProgress());
+                guiGraphics.pose().translate(pos.x(), -burst.targetYOffset() - pos.y());
+                guiGraphics.pose().rotate((float) Math.toRadians(rotZ));
+                guiGraphics.pose().scale(scale, scale);
+                extension.fishtastic$renderItem(sparkle.getItemStack(), 0, 0);
+                guiGraphics.pose().popMatrix();
+            }
+        }
     }
 
     private void renderFishingBar(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenHeight) {
@@ -205,21 +263,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale);
 
-        renderItem(BAR, guiGraphics, minecraft, angle, 0);
+        renderItem(LAYOUT.bar(), guiGraphics, minecraft, angle, 0);
 
         guiGraphics.pose().pushMatrix();
-        float bobberMaxYOffset = 28f / 32f; // Max Y offset in item texture units
-        // Use physics-based bobber position from minigame state with interpolation for smooth rendering
-        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick); // 0 to 1
-        float yOffset = normalizedBobberPosition * bobberMaxYOffset;
+        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick);
+        float yOffset = normalizedBobberPosition * LAYOUT.bobberMaxYOffset();
         guiGraphics.pose().translate(0, -yOffset);
-        renderItem(BOBBER, guiGraphics, minecraft, angle, 1);
+        renderItem(LAYOUT.bobber(), guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popMatrix();
     }
 
     private void renderTargets(GuiGraphicsExtractor guiGraphics, float partialTick) {
         // Render all targets from the minigame state
-        final float itemMaxYOffset = 26f / 32f; // Max Y offset in item texture units
+        final float itemMaxYOffset = LAYOUT.itemMaxYOffset();
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
         // Calculate bobber bounds for shake effect
@@ -268,9 +324,32 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                         prog
                 );
 
+                // Squash-and-stretch telegraph cues
+                float dartCoil       = target.getDartCoilProgress();
+                float dartBurst      = target.getDartBurstProgress();
+                float lungeTelegraph = target.getLungeTelegraphProgress();
+                float squashX, squashY;
+                if (dartCoil > 0f) {
+                    // DART coil: widen + flatten as tension builds
+                    squashX = 1f + dartCoil * 0.35f;
+                    squashY = 1f - dartCoil * 0.35f;
+                } else if (dartBurst > 0f && dartBurst < 0.3f) {
+                    // DART release: brief stretch in direction of travel
+                    float t = dartBurst / 0.3f;
+                    squashX = 1f - t * 0.30f;
+                    squashY = 1f + t * 0.40f;
+                } else if (lungeTelegraph > 0f) {
+                    // LUNGE coil: compress horizontally, extend vertically
+                    squashX = 1f - lungeTelegraph * 0.30f;
+                    squashY = 1f + lungeTelegraph * 0.40f;
+                } else {
+                    squashX = 1f;
+                    squashY = 1f;
+                }
+
                 guiGraphics.pose().translate(0, -targetYOffset);
                 guiGraphics.pose().rotate((float) Math.toRadians(shakeAngle));
-                guiGraphics.pose().scale(itemScale, itemScale);
+                guiGraphics.pose().scale(itemScale * squashX, itemScale * squashY);
                 // setColor removed in 26.1 - render without tinting
                 extension.fishtastic$renderItem(displayItem, 0, 0);
 
@@ -305,7 +384,10 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 float spinAngle = target.getFailSpinAngle(partialTick);
                 float collectScale = target.getCollectionScale(partialTick);
-                final float itemScale = (2 / 16f) * collectScale;
+                // Match the active-state scale (0.5 + catchProgress*0.5) so there's no pop on transition.
+                // catchProgress is 0 at failure time, so this is always 0.5× — matching the smallest active size.
+                float scaleMultiplier = 0.5f + (target.getCatchProgress() * 0.5f);
+                final float itemScale = (2 / 16f) * scaleMultiplier * collectScale;
 
                 guiGraphics.pose().translate(0, -targetYOffset);
                 // Y-axis spin doesn't apply in 2D - use scale-x for a flip effect
@@ -331,41 +413,76 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().popMatrix();
     }
 
+    // -------------------------------------------------------------------------
+    // Sprite layout — single source of truth for all sizing constants.
+    // To resize or reshape the bar/bobber textures, only edit LAYOUT below.
+    // -------------------------------------------------------------------------
+
     /**
-     * Helper record to store texture coordinates and associated item stack
-     * @param u Starting pixel coordinate of gui tex within item texture
-     * @param v Starting pixel coordinate of gui tex within item texture
-     * @param uw Width of gui tex within item texture
-     * @param vh Height of gui tex within item texture
-     * @param texWidth Width of the full item texture
-     * @param texHeight Height of the full item texture
-     * @param itemStack
+     * Texture coordinates and associated item stack for one sprite.
+     *
+     * @param u        Left edge of the sprite content within the texture (px)
+     * @param v        Top edge of the sprite content within the texture (px)
+     * @param uw       Width of the sprite content (px)
+     * @param vh       Height of the sprite content (px)
+     * @param texWidth  Full texture width (px)
+     * @param texHeight Full texture height (px)
      */
-    public static final GuiTextureItem BAR = new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND));
-    public static final GuiTextureItem BOBBER = new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_BOBBER));
     public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack, Vector2f localPivot) {
         public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack) {
             this(u, v, uw, vh, texWidth, texHeight, itemStack, calculateLocalPivot(u, v, uw, vh, texWidth, texHeight));
         }
+
+        private static Vector2f calculateLocalPivot(int u, int v, int uw, int vh, int texWidth, int texHeight) {
+            float x = (u + uw / 2f) / texWidth - 0.5f;
+            float y = (v + vh / 2f) / texHeight - 0.5f;
+            return new Vector2f(x, y);
+        }
     }
 
-    private static Vector2f calculateLocalPivot(int u, int v, int uw, int vh, int texWidth, int texHeight) {
-        float x = (u + uw / 2f) / texWidth - 0.5f;
-        float y = (v + vh / 2f) / texHeight - 0.5f;
-        return new Vector2f(x, y);
+    /**
+     * All sizing parameters for the fishing bar overlay in one place.
+     *
+     * @param bar           Bar sprite definition
+     * @param bobber        Bobber sprite definition
+     * @param travelZonePx  Pixel height of the bobber's playable travel area within the bar
+     *                      (texture height minus top + bottom decorative margins)
+     * @param bobberHeightPx Pixel height of the bobber sprite within that travel zone
+     * @param targetZonePx  Pixel height of the zone target icons may appear in
+     *                      (typically slightly tighter than travelZonePx)
+     */
+    public record FishingBarLayout(
+            GuiTextureItem bar,
+            GuiTextureItem bobber,
+            int travelZonePx,
+            int bobberHeightPx,
+            int targetZonePx
+    ) {
+        /** Fraction of bar texture height the bobber can travel — passed to the renderer. */
+        public float bobberMaxYOffset() { return (float) travelZonePx / bar.texHeight(); }
+
+        /** Bobber size as a fraction of the travel zone — passed to FishingMinigameState. */
+        public float bobberSize()       { return (float) bobberHeightPx / travelZonePx; }
+
+        /** Fraction of bar texture height target icons may travel — passed to the renderer. */
+        public float itemMaxYOffset()   { return (float) targetZonePx / bar.texHeight(); }
     }
+
+    public static final FishingBarLayout LAYOUT = new FishingBarLayout(
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND)),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_BOBBER)),
+            28,  // travel zone: 32px texture minus ~2px margin at each end
+            9,   // bobber height in pixels
+            26   // target zone: slightly tighter margins than the bobber travel zone
+    );
 
     private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphicsExtractor guiGraphics, Minecraft minecraft, float angle, int zOffset) {
         guiGraphics.pose().pushMatrix();
 
         Vector2f pivot = guiTextureItem.localPivot();
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Adjust position so that pivot is center-origin
+        guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Rotate around sprite center
+        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Center sprite content at screen origin
 
-        guiGraphics.pose().translate(pivot.x(), pivot.y()); // Translate to local pivot so that rotation occurs around pivot
-        guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Apply rotation (2D Z-axis)
-        guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Translate back after rotation
-
-        // Render the item
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
         extension.fishtastic$renderItem(guiTextureItem.itemStack(), 0, 0);
 

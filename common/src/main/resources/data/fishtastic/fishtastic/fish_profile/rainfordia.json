@@ -1,0 +1,12 @@
+{
+  "base_weight": 8,
+  "size": { "mean": 50.0, "std_dev": 15.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_jungle", "multiplier": 3.0 },
+    { "biome": "minecraft:is_river", "multiplier": 1.5 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 2.0 }
+  ],
+  "temperament": "fishtastic:wily"
+}

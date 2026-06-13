@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.fishtank;
 
 import com.electronwill.nightconfig.core.Config;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import grill24.fishtastic.neoforge.FishtasticConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -16,27 +17,34 @@ import java.util.stream.StreamSupport;
 
 /**
  * Resolves model locations for blocks, taking into account config overrides for non-standard paths.
+ *
+ * <p>Priority order: blockstate redirect → config overrides → standard path.
+ * The base redirect→standard logic lives in {@link grill24.fishtastic.client.compositemodel.BlockModelPathResolver};
+ * this class extends it with NeoForge config-driven overrides.
  */
 public class BlockModelPathResolver {
 
     /**
-     * Get all possible model locations for a block, including overrides from config.
-     * Returns a list with the primary location first, followed by any override locations.
+     * Get all possible model locations for a block.
+     * Returns a list with the highest-priority location first: blockstate redirect, then any
+     * config overrides, then the standard path as a final fallback.
      */
     public static List<Identifier> getModelLocations(Block block) {
         List<Identifier> locations = new ArrayList<>();
         Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+        Identifier standardPath = blockId.withPrefix("block/");
 
-        // Check config for overrides
-        List<Identifier> overrides = getOverrideLocations(block, blockId);
-
-        if (!overrides.isEmpty()) {
-            // Add override locations first (they take priority)
-            locations.addAll(overrides);
+        // Check blockstate redirect first (automatic, built from blockstate JSON scanning).
+        Identifier redirect = BlockstateRedirectRegistry.getRedirect(standardPath);
+        if (redirect != null) {
+            locations.add(redirect);
         }
 
-        // Always add the standard location as a fallback
-        locations.add(blockId.withPrefix("block/"));
+        // Then check config overrides (manual escape hatch for edge cases).
+        locations.addAll(getOverrideLocations(block, blockId));
+
+        // Always add the standard location as a final fallback.
+        locations.add(standardPath);
 
         return locations;
     }

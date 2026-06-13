@@ -1,0 +1,21 @@
+{
+  "difficulty_min": 0.50,
+  "difficulty_max": 0.75,
+  "phases": [
+    {
+      "threshold": 0.0,
+      "patterns": "interval_burst",
+      "params": {
+        "initial_catch_progress": 0.20,
+        "catch_progress_loss": 0.010
+      }
+    },
+    {
+      "threshold": 0.50,
+      "patterns": "interval_burst",
+      "params": {
+        "catch_progress_loss": 0.018
+      }
+    }
+  ]
+}

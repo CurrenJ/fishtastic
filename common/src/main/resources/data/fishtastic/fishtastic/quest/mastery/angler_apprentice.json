@@ -1,0 +1,12 @@
+{
+  "category": "mastery",
+  "objective": {
+    "target_species_tag": "minecraft:fishes",
+    "target_count": 50,
+    "notification_interval": 5
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "Angler Apprentice",
+  "description": "Catch 50 fish total."
+}

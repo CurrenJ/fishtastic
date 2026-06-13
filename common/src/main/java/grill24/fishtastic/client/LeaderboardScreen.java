@@ -17,8 +17,6 @@ import io.github.currenj.gelatinui.gui.components.ManualContainer;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -35,7 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Environment(EnvType.CLIENT)
 public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     private boolean isPersonal = true;

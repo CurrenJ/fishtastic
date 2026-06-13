@@ -3,7 +3,9 @@
   "category": "misc",
   "ingredients": [
     "fishtastic:worms",
-    "minecraft:slime_ball"
+    "minecraft:golden_carrot",
+    "minecraft:sugar",
+    "minecraft:diamond"
   ],
   "result": {
     "id": "fishtastic:gummy_worms"

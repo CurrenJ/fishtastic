@@ -3,8 +3,6 @@ package grill24.fishtastic.client;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModels;
 import net.minecraft.resources.Identifier;
@@ -12,7 +10,6 @@ import net.minecraft.util.ExtraCodecs;
 
 import java.lang.reflect.Field;
 
-@Environment(EnvType.CLIENT)
 public final class FishtasticClientSetup {
     @SuppressWarnings("unchecked")
     public static void registerItemModelTypes() {

@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:treasure",
+    "target_count": 5
+  },
+  "reward": { "quest_tokens": 12, "items": [] },
+  "hidden": false,
+  "display_name": "Sunken Riches",
+  "description": "Catch 5 treasure items."
+}

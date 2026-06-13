@@ -15,6 +15,11 @@ public class FishtasticPackets {
     public static final Identifier REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
     public static final Identifier LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
     public static final Identifier SET_CUSTOMIZATION_MODE_ID = Fishtastic.id("set_customization_mode");
+    public static final Identifier TOGGLE_EDIT_MODE_ID = Fishtastic.id("toggle_edit_mode");
+    public static final Identifier COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
+    public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
+    public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
+    public static final Identifier PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -43,6 +48,26 @@ public class FishtasticPackets {
                 SetCustomizationModePacket.STREAM_CODEC,
                 SetCustomizationModePacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                ToggleEditModePacket.TYPE,
+                ToggleEditModePacket.STREAM_CODEC,
+                ToggleEditModePacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                CompleteQuestPacket.TYPE,
+                CompleteQuestPacket.STREAM_CODEC,
+                CompleteQuestPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                RequestQuestLogPacket.TYPE,
+                RequestQuestLogPacket.STREAM_CODEC,
+                RequestQuestLogPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                PurchaseShopEntryPacket.TYPE,
+                PurchaseShopEntryPacket.STREAM_CODEC,
+                PurchaseShopEntryPacket::handleClientToServer
+        );
     }
 
     /**
@@ -59,6 +84,25 @@ public class FishtasticPackets {
                 LeaderboardResponsePacket.STREAM_CODEC,
                 LeaderboardResponsePacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                QuestSyncPacket.TYPE,
+                QuestSyncPacket.STREAM_CODEC,
+                QuestSyncPacket::handleServerToClient
+        );
+    }
+
+    /**
+     * Register only the codecs (no handlers) for server→client packets.
+     * Used by the Fabric server so it knows how to encode outgoing clientbound
+     * payloads. Uses raw types internally because Java lambdas cannot implement
+     * generic methods — the raw register call resolves correctly at runtime.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void registerServerToClientCodecs(
+            java.util.function.BiConsumer<CustomPacketPayload.Type, net.minecraft.network.codec.StreamCodec> registrar) {
+        registrar.accept(StartFishingMinigamePacket.TYPE, StartFishingMinigamePacket.STREAM_CODEC);
+        registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
+        registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
     }
 
     /**

@@ -4,14 +4,21 @@
   "compatibilityLevel": "JAVA_25",
   "minVersion": "0.8",
   "client": [
+    "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",
+    "GuiRendererExecuteDrawMixin",
+    "GuiRendererMixin",
+    "ItemEntityRendererMixin",
     "ItemFeatureRendererMixin",
+    "ItemFrameRendererMixin",
+    "ItemInHandRendererMixin",
     "ItemModelResolverMixin",
     "ItemStackMixin",
     "ItemStackRenderStateMixin",
     "LevelRendererMixin",
     "RenderBuffersMixin",
+    "RenderTypeMixin",
     "accessor.BufferSourceAccessor"
   ],
   "injectors": {
