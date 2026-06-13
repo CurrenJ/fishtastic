@@ -49,6 +49,10 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.WORM_BIN.value());
 
+                    // Fish tank cosmetics
+                    output.accept(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+                    output.accept(FishtasticItems.COSMETIC_SEA_LANTERN.value());
+
                     // Undyed glass
                     output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());
                     output.accept(FishtasticBlocks.CLEAR_GLASS.value());

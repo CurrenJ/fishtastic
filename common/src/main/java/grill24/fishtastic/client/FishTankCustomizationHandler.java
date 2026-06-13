@@ -54,9 +54,8 @@ public class FishTankCustomizationHandler {
             )
         );
 
-        // Display feedback to player
         player.sendSystemMessage(
-            Component.literal("Fish Tank Customization: " + newMode.getDisplayName())
+            Component.literal("Fish Tank: " + newMode.getDisplayName())
         );
 
         // Cancel the scroll event (prevent hotbar change)

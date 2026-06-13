@@ -7,7 +7,7 @@ package grill24.fishtastic.block;
  */
 public enum FishTankCustomizationMode {
     FRAME("Frame"),
-    SAND("Sand"),
+    SAND("Floor"),
     GLASS("Glass");
 
     private final String displayName;

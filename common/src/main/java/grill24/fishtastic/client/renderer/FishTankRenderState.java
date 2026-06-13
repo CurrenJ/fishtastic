@@ -1,8 +1,12 @@
 package grill24.fishtastic.client.renderer;
 
+import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.Collections;
+import java.util.Map;
 
 public class FishTankRenderState extends BlockEntityRenderState {
     public ItemStack itemToRender = ItemStack.EMPTY;
@@ -12,4 +16,6 @@ public class FishTankRenderState extends BlockEntityRenderState {
     public float gameTimeTicks = 0f;
     /** Block position hash used as per-tank random seed for animation. */
     public int blockPosHash = 0;
+    /** Cosmetic decorations placed in this tank's 3×3 floor grid. */
+    public Map<CosmeticGridCell, PlacedCosmetic> cosmetics = Collections.emptyMap();
 }

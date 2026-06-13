@@ -1,7 +1,12 @@
 package grill24.fishtastic.block;
 
+import grill24.fishtastic.FishtasticBlockTags;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.item.FishTankCosmeticItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,19 +15,34 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.KelpBlock;
+import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
+import java.util.Optional;
+
 public class FishTankBlock extends Block implements EntityBlock {
+    /** At scale 0.25 each kelp segment is 0.25 blocks tall; 3 segments fills the tank interior exactly. */
+    private static final int MAX_KELP_HEIGHT = 3;
+
     public FishTankBlock(Properties properties) {
         super(properties);
     }
@@ -112,6 +132,88 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
+        // Cosmetic placement: custom FishTankCosmeticItem or any vanilla item in the #tank_cosmetics tag.
+        Block cosmeticBlock = getCosmeticBlock(itemStack);
+        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND && cosmeticBlock != null) {
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof FishTankBlockEntity fishTank) {
+                CosmeticGridCell cell = findTargetedCell(player, blockPos, fishTank);
+                if (cell != null) {
+                    PlacedCosmetic existing = fishTank.getCosmetics().get(cell);
+                    // Sea pickle: right-clicking an occupied sea pickle with another sea pickle adds one more pickle.
+                    if (existing != null
+                            && existing.block() instanceof SeaPickleBlock
+                            && cosmeticBlock instanceof SeaPickleBlock) {
+                        int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
+                        if (current < SeaPickleBlock.MAX_PICKLES) {
+                            BlockState newState = existing.blockState()
+                                    .setValue(BlockStateProperties.PICKLES, current + 1);
+                            fishTank.setCosmetic(cell, new PlacedCosmetic(newState));
+                            itemStack.shrink(1);
+                            return InteractionResult.SUCCESS;
+                        }
+                        return InteractionResult.FAIL;
+                    }
+                    // Kelp: right-clicking an existing kelp cosmetic with another kelp extends it upward.
+                    if (existing != null
+                            && existing.block() == Blocks.KELP
+                            && cosmeticBlock == Blocks.KELP) {
+                        if (existing.height() < MAX_KELP_HEIGHT) {
+                            fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState(), existing.height() + 1));
+                            itemStack.shrink(1);
+                            return InteractionResult.SUCCESS;
+                        }
+                        return InteractionResult.FAIL;
+                    }
+                    // Normal placement into an empty cell.
+                    if (existing == null) {
+                        fishTank.setCosmetic(cell, new PlacedCosmetic(cosmeticBlock.defaultBlockState()));
+                        itemStack.shrink(1);
+                        return InteractionResult.SUCCESS;
+                    }
+                }
+                return InteractionResult.FAIL;
+            }
+        }
+
+        // Edit mode: cosmetic removal with empty hand.
+        if (!level.isClientSide() && FishTankEditModeManager.isInEditMode(player.getUUID())
+                && hand == InteractionHand.MAIN_HAND && itemStack.isEmpty()) {
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof FishTankBlockEntity fishTank) {
+                CosmeticGridCell cell = findTargetedCell(player, blockPos, fishTank);
+                if (cell != null && fishTank.getCosmetics().containsKey(cell)) {
+                    PlacedCosmetic existing = fishTank.getCosmetics().get(cell);
+                    // Custom cosmetic item takes priority; fall back to the vanilla block item.
+                    Item returnItem = FishTankCosmeticItem.forBlock(existing.block());
+                    if (returnItem == null) returnItem = existing.block().asItem();
+                    // Sea pickle: decrement one pickle at a time; remove when the last pickle is taken.
+                    // Kelp: remove one segment at a time from the top; remove when the last segment is taken.
+                    if (existing.block() instanceof SeaPickleBlock) {
+                        int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
+                        if (current > 1) {
+                            fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current - 1)));
+                        } else {
+                            fishTank.removeCosmetic(cell);
+                        }
+                    } else if (existing.block() == Blocks.KELP && existing.height() > 1) {
+                        fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState(), existing.height() - 1));
+                    } else {
+                        fishTank.removeCosmetic(cell);
+                    }
+                    if (returnItem != Items.AIR) {
+                        ItemStack returnStack = new ItemStack(returnItem);
+                        if (!player.getInventory().add(returnStack)) {
+                            player.drop(returnStack, false);
+                        }
+                    }
+                    return InteractionResult.SUCCESS;
+                }
+                // No cosmetic targeted in edit mode — consume to prevent display-item extraction.
+                return InteractionResult.SUCCESS_SERVER;
+            }
+        }
+
         // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires
         // even with an empty hand. Delegate withdrawal here when the hand is empty.
         if (itemStack.isEmpty()) {
@@ -227,6 +329,72 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
 
         return InteractionResult.PASS;
+    }
+
+    /**
+     * Returns the block to use as a cosmetic from the held stack, or null if the item
+     * cannot be used as a cosmetic. Accepts custom {@link FishTankCosmeticItem}s and any
+     * vanilla {@link BlockItem} whose block is in the {@code #fishtastic:tank_cosmetics} tag.
+     */
+    @Nullable
+    private static Block getCosmeticBlock(ItemStack stack) {
+        if (stack.getItem() instanceof FishTankCosmeticItem custom) return custom.getRenderBlock();
+        if (stack.getItem() instanceof BlockItem bi
+                && bi.getBlock().defaultBlockState().is(FishtasticBlockTags.TANK_COSMETICS)) return bi.getBlock();
+        return null;
+    }
+
+    /** Returns the grid cell the player is targeting in the given tank, or null. */
+    @Nullable
+    private CosmeticGridCell findTargetedCell(Player player, BlockPos blockPos, FishTankBlockEntity tankBE) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle();
+        double reach = player.blockInteractionRange();
+        Vec3 end = eye.add(look.scale(reach));
+
+        // Check existing cosmetic AABBs first (priority for removal)
+        CosmeticGridCell fromCosmetic = findTargetedCosmetic(tankBE, eye, end, blockPos);
+        if (fromCosmetic != null) return fromCosmetic;
+
+        // Fall back to floor-plane intersection (for placement)
+        return findFloorCell(eye, look, blockPos, reach);
+    }
+
+    @Nullable
+    private CosmeticGridCell findTargetedCosmetic(FishTankBlockEntity be, Vec3 eye, Vec3 end, BlockPos blockPos) {
+        CosmeticGridCell closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : be.getCosmetics().entrySet()) {
+            CosmeticGridCell cell = entry.getKey();
+            CosmeticTransforms.Transform t = CosmeticTransforms.get(entry.getValue().block());
+            double wx = blockPos.getX() + cell.localX() + t.offsetX();
+            double wy = blockPos.getY() + CosmeticGridCell.FLOOR_Y + t.offsetY();
+            double wz = blockPos.getZ() + cell.localZ() + t.offsetZ();
+            float half = t.scale() / 2f;
+            AABB box = new AABB(wx - half, wy, wz - half, wx + half, wy + t.scale(), wz + half);
+            Optional<Vec3> hit = box.clip(eye, end);
+            if (hit.isPresent()) {
+                double dist = hit.get().distanceToSqr(eye);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = cell;
+                }
+            }
+        }
+        return closest;
+    }
+
+    @Nullable
+    private CosmeticGridCell findFloorCell(Vec3 eye, Vec3 look, BlockPos blockPos, double reach) {
+        if (Math.abs(look.y) < 0.001) return null;
+        double t = (blockPos.getY() + CosmeticGridCell.FLOOR_Y - eye.y) / look.y;
+        if (t < 0 || t > reach) return null;
+        double localX = eye.x + t * look.x - blockPos.getX();
+        double localZ = eye.z + t * look.z - blockPos.getZ();
+        if (localX < 0 || localX >= 1 || localZ < 0 || localZ >= 1) return null;
+        int gx = Math.min(CosmeticGridCell.GRID_SIZE - 1, (int)(localX * CosmeticGridCell.GRID_SIZE));
+        int gz = Math.min(CosmeticGridCell.GRID_SIZE - 1, (int)(localZ * CosmeticGridCell.GRID_SIZE));
+        return new CosmeticGridCell(gx, gz);
     }
 
     /**

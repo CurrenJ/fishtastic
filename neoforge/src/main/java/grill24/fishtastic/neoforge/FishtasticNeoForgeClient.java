@@ -15,6 +15,7 @@ import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
+import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
 import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
 import grill24.fishtastic.client.tooltip.RodBaitTooltip;
@@ -98,6 +99,8 @@ public final class FishtasticNeoForgeClient {
         event.addListener(key, BlockstateModelReloadListener.INSTANCE);
         // Must complete before model baking so the redirect map is ready when FishTankBakedModel resolves textures.
         event.addDependency(key, VanillaClientListeners.MODELS);
+
+        event.addListener(ft("cosmetic_transforms"), CosmeticTransformLoader.INSTANCE);
     }
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -112,6 +115,7 @@ public final class FishtasticNeoForgeClient {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         event.register(FishtasticKeyBinds.openQuestLog);
+        event.register(FishtasticKeyBinds.toggleFishTankEditMode);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 

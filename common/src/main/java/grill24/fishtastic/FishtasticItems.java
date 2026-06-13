@@ -3,10 +3,13 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.RodBaitContents;
+import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.item.TestItem;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -50,6 +53,10 @@ public class FishtasticItems {
 
     // ----- Quest Items -----
     public static Holder<Item> QUEST_TOKEN;
+
+    // ----- Fish Tank Cosmetics -----
+    public static Holder<Item> COSMETIC_TREASURE_CHEST;
+    public static Holder<Item> COSMETIC_SEA_LANTERN;
 
     // ----- Fish Items -----
     public static Holder<Item> BLUEGILL;
@@ -144,5 +151,12 @@ public class FishtasticItems {
 
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));
+
+        // Fish tank cosmetics — custom items for quest rewards / rare drops
+        COSMETIC_TREASURE_CHEST = RegistrationApiSided.getInstance().registerItem("cosmetic_treasure_chest",
+                loc -> new FishTankCosmeticItem(Blocks.CHEST, props(loc).stacksTo(1)));
+        COSMETIC_SEA_LANTERN = RegistrationApiSided.getInstance().registerItem("cosmetic_sea_lantern",
+                loc -> new FishTankCosmeticItem(Blocks.SEA_LANTERN, props(loc).stacksTo(1)));
+
     }
 }

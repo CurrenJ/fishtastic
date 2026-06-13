@@ -9,6 +9,7 @@ import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
@@ -25,6 +26,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.minecraft.server.packs.PackType;
 import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
 import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
@@ -47,6 +50,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             }
             return null;
         });
+
+        // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json
+        ResourceLoader.get(PackType.CLIENT_RESOURCES)
+            .registerReloadListener(CosmeticTransformLoader.ID, CosmeticTransformLoader.INSTANCE);
 
         // Build blockstate → model path redirect map before baking starts
         PreparableModelLoadingPlugin.register(BlockstateModelRedirectPlugin.LOADER, BlockstateModelRedirectPlugin.PLUGIN);
@@ -74,6 +81,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         FishtasticKeyBinds.init();
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
+        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.toggleFishTankEditMode);
 
         // Register block entity renderer
         BlockEntityRendererRegistry.register(

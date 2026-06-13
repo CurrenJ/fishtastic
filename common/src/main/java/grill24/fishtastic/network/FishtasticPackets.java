@@ -15,6 +15,7 @@ public class FishtasticPackets {
     public static final Identifier REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
     public static final Identifier LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
     public static final Identifier SET_CUSTOMIZATION_MODE_ID = Fishtastic.id("set_customization_mode");
+    public static final Identifier TOGGLE_EDIT_MODE_ID = Fishtastic.id("toggle_edit_mode");
     public static final Identifier COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
     public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
     public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
@@ -45,6 +46,11 @@ public class FishtasticPackets {
                 SetCustomizationModePacket.TYPE,
                 SetCustomizationModePacket.STREAM_CODEC,
                 SetCustomizationModePacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                ToggleEditModePacket.TYPE,
+                ToggleEditModePacket.STREAM_CODEC,
+                ToggleEditModePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 CompleteQuestPacket.TYPE,
