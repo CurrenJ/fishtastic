@@ -22,6 +22,7 @@ public final class FishAnimator {
             case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t);
             case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation);
+            case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation);
         }
     }
 
@@ -71,6 +72,19 @@ public final class FishAnimator {
         poseStack.translate(0f, PLANTED_PIVOT_Y, 0f);
         poseStack.mulPose(Axis.ZP.rotationDegrees(wiggle));
         poseStack.translate(0f, -PLANTED_PIVOT_Y, 0f);
+    }
+
+    private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,
+                                        Random random, float t, float baseRotation) {
+        float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
+        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
+        poseStack.translate(0f, yBob, 0f);
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
+        float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
+        float bankDeg = (float) (Math.sin(t * cfg.bankHertz() * 2 * Math.PI + randomPhaseRad) * cfg.bankAmplitude());
+        // Rotate -90° around the axis parallel to the swim direction (local X) so the belly faces
+        // world-down; the banking offset rocks the wings gently around that same axis.
+        poseStack.mulPose(Axis.XP.rotationDegrees(-90f + bankDeg));
     }
 
     /** Distance from item centre to its bottom in FIXED display-context world units (pre-custom-scale). */

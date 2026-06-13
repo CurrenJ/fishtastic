@@ -6,7 +6,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 public sealed interface FishAnimationConfig
         permits FishAnimationConfig.HorizontalSwim, FishAnimationConfig.UprightFloat,
-                FishAnimationConfig.FloorSit, FishAnimationConfig.Planted {
+                FishAnimationConfig.FloorSit, FishAnimationConfig.Planted,
+                FishAnimationConfig.BellyDown {
 
     Codec<FishAnimationConfig> CODEC = Codec.STRING.dispatch(
             "mode",
@@ -16,6 +17,7 @@ public sealed interface FishAnimationConfig
                 case "upright_float"   -> UprightFloat.MAP_CODEC;
                 case "floor_sit"       -> FloorSit.MAP_CODEC;
                 case "planted"         -> Planted.MAP_CODEC;
+                case "belly_down"      -> BellyDown.MAP_CODEC;
                 default -> throw new IllegalArgumentException("Unknown fish animation mode: " + mode);
             }
     );
@@ -102,5 +104,27 @@ public sealed interface FishAnimationConfig
         ).apply(i, Planted::new));
 
         @Override public String modeName() { return "planted"; }
+    }
+
+    /**
+     * Belly-down glide mode: creature lies flat with its belly facing world-down, gently bobbing
+     * and slowly banking its wings. Suitable for manta rays and similar pelagic flat fish.
+     */
+    record BellyDown(
+            float bobAmplitude,
+            float bobHertz,
+            float bankAmplitude,
+            float bankHertz
+    ) implements FishAnimationConfig {
+        public static final BellyDown DEFAULT = new BellyDown(0.08f, 0.05f, 10.0f, 0.012f);
+
+        static final MapCodec<BellyDown> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("bob_amplitude",  0.08f ).forGetter(BellyDown::bobAmplitude),
+                Codec.FLOAT.optionalFieldOf("bob_hertz",      0.05f ).forGetter(BellyDown::bobHertz),
+                Codec.FLOAT.optionalFieldOf("bank_amplitude", 10.0f ).forGetter(BellyDown::bankAmplitude),
+                Codec.FLOAT.optionalFieldOf("bank_hertz",     0.012f).forGetter(BellyDown::bankHertz)
+        ).apply(i, BellyDown::new));
+
+        @Override public String modeName() { return "belly_down"; }
     }
 }

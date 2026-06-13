@@ -510,8 +510,8 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      * Remove one item from the tank. Returns the removed item or ItemStack.EMPTY if empty.
      */
     public ItemStack extractItem() {
-        // Find the first non-empty slot
-        for (int i = 0; i < items.size(); i++) {
+        // Find the last non-empty slot (LIFO)
+        for (int i = items.size() - 1; i >= 0; i--) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty()) {
                 ItemStack result = stack.copy();
