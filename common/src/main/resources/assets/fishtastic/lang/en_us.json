@@ -111,5 +111,44 @@
   "item.fishtastic.brown_clear_stained_glass": "Brown Clear Stained Glass",
   "item.fishtastic.green_clear_stained_glass": "Green Clear Stained Glass",
   "item.fishtastic.red_clear_stained_glass": "Red Clear Stained Glass",
-  "item.fishtastic.black_clear_stained_glass": "Black Clear Stained Glass"
+  "item.fishtastic.black_clear_stained_glass": "Black Clear Stained Glass",
+
+  "tutorial.fishtastic.bait_load.title": "Load your bait",
+  "tutorial.fishtastic.bait_load.body": "Shift-click the worms onto your fishing rod in your hotbar to load them.",
+  "tutorial.fishtastic.bait_load.hint": "Shift-click worms onto the rod in your hotbar",
+
+  "tutorial.fishtastic.waiting_for_cast.title": "Cast your line!",
+  "tutorial.fishtastic.waiting_for_cast.body": "Find some water and right-click with your fishing rod to cast your line.",
+  "tutorial.fishtastic.waiting_for_cast.hint": "Right-click with your rod near water",
+
+  "tutorial.fishtastic.hook_in_water.title": "Line is in the water",
+  "tutorial.fishtastic.hook_in_water.body": "Wait for a bite — then reel in!",
+  "tutorial.fishtastic.hook_in_water.hint": "Waiting for a bite...",
+
+  "tutorial.fishtastic.minigame_intro.title": "The fishing minigame",
+  "tutorial.fishtastic.minigame_intro.body": "Your catch zone appears on the green bar. The moving fish is your target.",
+  "tutorial.fishtastic.minigame_intro.hint": "Keep them overlapping to catch it!",
+
+  "tutorial.fishtastic.minigame_control.title": "Controls",
+  "tutorial.fishtastic.minigame_control.body": "Right-click to push the bobber upward. Gravity pulls it down.",
+  "tutorial.fishtastic.minigame_control.hint": "Right-click to continue",
+
+  "tutorial.fishtastic.minigame_catch.title": "Keep the overlap going!",
+  "tutorial.fishtastic.minigame_catch.body": "Keep going to catch the fish!",
+
+  "tutorial.fishtastic.catch_result.title": "You caught one!",
+  "tutorial.fishtastic.catch_result.body": "Fish have a Quality tier shown by their border color — from Common to Legendary.",
+  "tutorial.fishtastic.catch_result.hint": "Higher quality gives bigger worm yields.",
+
+  "tutorial.fishtastic.quest_intro.title": "You made quest progress",
+  "tutorial.fishtastic.quest_intro.body": "Catching fish completes quests and earns Fishing Tokens.",
+  "tutorial.fishtastic.quest_intro.hint": "Press [%s] to open Quest Log",
+
+  "tutorial.fishtastic.quest_claim.title": "Claim your reward",
+  "tutorial.fishtastic.quest_claim.body": "Your tutorial quest is complete! Click Claim to collect your Fishing Tokens and a bonus bait.",
+  "tutorial.fishtastic.quest_claim.hint": "Click Claim in the Quest Log",
+
+  "tutorial.fishtastic.shop_browse.title": "Browse and buy",
+  "tutorial.fishtastic.shop_browse.body": "Each day, different items are available. Check back daily for new stock.",
+  "tutorial.fishtastic.shop_browse.hint": "That's all! Happy fishing!"
 }

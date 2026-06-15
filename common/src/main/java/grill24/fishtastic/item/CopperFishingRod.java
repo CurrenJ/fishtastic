@@ -2,6 +2,8 @@ package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.client.tooltip.RodBaitTooltip;
 import grill24.fishtastic.component.RodBaitContents;
 import grill24.fishtastic.util.FishingMinigameAnimation;
@@ -44,6 +46,7 @@ public class CopperFishingRod extends FishingRodItem {
             var activeAnimation = gameRendererExt.fishtastic$getActiveAnimation();
             if (activeAnimation instanceof FishingMinigameAnimation animation) {
                 animation.applyPlayerImpulse();
+                TutorialClientHandler.onMinigameImpulse();
             }
         }
 
@@ -84,6 +87,7 @@ public class CopperFishingRod extends FishingRodItem {
             setBait(self, newBait);
             other.shrink(toInsert);
 
+            if (player instanceof net.minecraft.server.level.ServerPlayer sp) TutorialManager.onBaitLoaded(sp);
             player.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
             broadcastContainerChanges(player);
             return true;
@@ -133,6 +137,7 @@ public class CopperFishingRod extends FishingRodItem {
                     : currentBait.copyWithCount(existing + toInsert);
             setBait(self, newBait);
             other.shrink(toInsert);
+            if (player instanceof net.minecraft.server.level.ServerPlayer sp) TutorialManager.onBaitLoaded(sp);
 
             player.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
             broadcastContainerChanges(player);

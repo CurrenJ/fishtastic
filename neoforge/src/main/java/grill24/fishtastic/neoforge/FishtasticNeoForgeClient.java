@@ -4,6 +4,8 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
+import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
@@ -42,6 +44,7 @@ import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactori
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -55,6 +58,9 @@ public final class FishtasticNeoForgeClient {
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts()));
+
+        // Register tutorial sync packet client handler
+        TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
@@ -78,6 +84,10 @@ public final class FishtasticNeoForgeClient {
         // Register mouse scroll event handler for fish tank customization
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onMouseScroll);
 
+        // Register tutorial overlay — fires BEFORE the minigame bar so the bar appears on top
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGuiPre);
+        // Render tutorial text on top of quest/shop screen (fires after the screen renders)
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onScreenRenderPost);
         // Register HUD render hook for the fishing minigame overlay
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
     }
@@ -154,6 +164,7 @@ public final class FishtasticNeoForgeClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
+            TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications
@@ -165,6 +176,14 @@ public final class FishtasticNeoForgeClient {
         if (FishTankCustomizationHandler.handleMouseScroll(event.getScrollDeltaY())) {
             event.setCanceled(true);
         }
+    }
+
+    public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
+        TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
+    }
+
+    public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
+        TutorialClientHandler.renderScreenOverlay(event.getGuiGraphics(), event.getPartialTick());
     }
 
     public static void onRenderGui(RenderGuiEvent.Post event) {

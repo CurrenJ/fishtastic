@@ -3,6 +3,7 @@ package grill24.fishtastic.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.network.ToggleEditModePacket;
+import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.KeyMapping;
@@ -54,9 +55,11 @@ public class FishtasticKeyBinds {
             var activeAnimation = gameRendererExt.fishtastic$getActiveAnimation();
             if (activeAnimation instanceof FishingMinigameAnimation animation) {
                 animation.applyPlayerImpulse();
+                TutorialClientHandler.onMinigameImpulse();
             }
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
+            TutorialClientHandler.onQuestLogKeyPressed();
             if (minecraft.player != null && minecraft.screen == null) {
                 minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
             }

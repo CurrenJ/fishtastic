@@ -7,6 +7,7 @@ import grill24.fishtastic.command.FishtasticCommand;
 import grill24.fishtastic.command.SetFishQualityCommand;
 import grill24.fishtastic.command.SetItemSizeCommand;
 import grill24.fishtastic.command.TestQuestNotifyCommand;
+import grill24.fishtastic.command.TutorialCommand;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 
 /**
@@ -23,6 +24,7 @@ public class CommandRegistrationFabric {
             FishProfileCommand.register(dispatcher);
             TemperamentCommand.register(dispatcher);
             TestQuestNotifyCommand.register(dispatcher);
+            TutorialCommand.register(dispatcher);
         });
     }
 }

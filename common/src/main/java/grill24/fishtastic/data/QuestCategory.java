@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Locale;
 
 public enum QuestCategory implements StringRepresentable {
-    DAILY, MASTERY, EXPLORER, CHALLENGE;
+    DAILY, MASTERY, EXPLORER, CHALLENGE, TUTORIAL;
 
     public static final Codec<QuestCategory> CODEC = StringRepresentable.fromEnum(QuestCategory::values);
 

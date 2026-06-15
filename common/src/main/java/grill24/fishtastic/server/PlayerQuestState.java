@@ -87,6 +87,10 @@ public class PlayerQuestState {
         tokenBalance += tokens;
     }
 
+    public void resetProgress(ResourceKey<Quest> questId) {
+        progress.remove(questId);
+    }
+
     public void resetDailyIfNeeded(ResourceKey<Quest> questId, long currentDay) {
         QuestProgress p = getProgress(questId);
         if (p.lastResetGameDay() < currentDay) {

@@ -2,6 +2,7 @@ package grill24.fishtastic.network;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.core.Registry;
@@ -63,6 +64,7 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
             state.claim(questKey, quest.reward().questTokens());
             data.setDirty();
 
+            TutorialManager.onQuestClaimed(serverPlayer, packet.questId());
             QuestSyncPacket.sendToPlayer(serverPlayer, data);
         });
     }

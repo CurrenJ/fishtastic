@@ -121,6 +121,8 @@ public class FishingTarget {
     private int patternTicksRemaining;    // -1 = no duration limit
     private float activeMinCatchProgress; // catch progress floor for this phase
 
+    private boolean noCatchDrain = false;
+
     // -------------------------------------------------------------------------
     // Per-target movement state
     // -------------------------------------------------------------------------
@@ -758,7 +760,7 @@ public class FishingTarget {
                     : 1f;
             catchProgress = Math.min(1.0f, catchProgress + catchProgressGain * centreMultiplier * slowFactor);
             shakeTick++;
-        } else {
+        } else if (!noCatchDrain) {
             catchProgress = Math.max(activeMinCatchProgress, catchProgress - catchProgressLoss);
             shakeTick = 0;
         }
@@ -789,6 +791,8 @@ public class FishingTarget {
     public float getDifficulty() { return difficulty; }
 
     public TargetCategory getCategory() { return category; }
+
+    public void setNoCatchDrain(boolean noCatchDrain) { this.noCatchDrain = noCatchDrain; }
 
     public List<ItemStack> getAllRewardItems() { return new ArrayList<>(rewardItems); }
 

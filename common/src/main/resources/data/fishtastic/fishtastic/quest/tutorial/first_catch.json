@@ -1,0 +1,11 @@
+{
+  "category": "tutorial",
+  "objective": {
+    "target_count": 1,
+    "notification_interval": 1
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "First Catch",
+  "description": "Catch any fish to learn the ropes."
+}

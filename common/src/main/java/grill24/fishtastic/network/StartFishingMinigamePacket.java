@@ -16,7 +16,8 @@ import java.util.List;
  */
 public record StartFishingMinigamePacket(
         int sessionId,
-        List<TargetData> targets
+        List<TargetData> targets,
+        boolean isTutorial
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
@@ -27,6 +28,8 @@ public record StartFishingMinigamePacket(
             StartFishingMinigamePacket::sessionId,
             TargetData.STREAM_CODEC.apply(ByteBufCodecs.list()),
             StartFishingMinigamePacket::targets,
+            ByteBufCodecs.BOOL,
+            StartFishingMinigamePacket::isTutorial,
             StartFishingMinigamePacket::new
     );
 

@@ -9,6 +9,7 @@ import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.server.QuestTracker;
+import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
@@ -125,11 +126,50 @@ public class FishingMinigameManager {
             ));
         }
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData));
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false));
+        TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
                 sessionId, player.getName().getString(), targets.size());
 
+        return sessionId;
+    }
+
+    /** Starts a simplified tutorial session: one slow-moving Bluegill, no difficulty. */
+    public int startTutorialSession(ServerPlayer player) {
+        UUID playerId = player.getUUID();
+        if (activeSessions.containsKey(playerId)) {
+            cancelSession(player);
+        }
+
+        int sessionId = sessionIdGenerator.incrementAndGet();
+
+        StartFishingMinigamePacket.TargetData tutorialTarget = TutorialManager.buildTutorialTarget(player);
+        List<ServerFishingTarget> targets = List.of(new ServerFishingTarget(
+                tutorialTarget.rewardStacks(),
+                tutorialTarget.category(),
+                tutorialTarget.difficulty(),
+                tutorialTarget.initialPosition(),
+                tutorialTarget.phases()
+        ));
+
+        FishingHook hook = player.fishing;
+        Holder<net.minecraft.world.level.biome.Biome> biome = hook != null
+                ? level.getBiome(BlockPos.containing(hook.position()))
+                : level.getBiome(player.blockPosition());
+        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.WeatherCondition weather = level.isThundering() ? FishProfile.WeatherCondition.THUNDER
+                : level.isRaining() ? FishProfile.WeatherCondition.RAIN
+                : FishProfile.WeatherCondition.CLEAR;
+
+        ActiveSession session = new ActiveSession(sessionId, playerId, targets,
+                level.getGameTime(), biome, timeOfDay, weather);
+        activeSessions.put(playerId, session);
+
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true));
+        TutorialManager.onMinigameStarted(player);
+
+        Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
         return sessionId;
     }
 
@@ -176,6 +216,8 @@ public class FishingMinigameManager {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
                     session.hookBiome, session.hookTimeOfDay, session.hookWeather);
         }
+
+        TutorialManager.onMinigameComplete(player);
 
         if (!rewards.isEmpty()) {
             consumeBait(player);

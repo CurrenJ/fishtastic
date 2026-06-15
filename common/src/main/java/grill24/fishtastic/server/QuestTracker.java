@@ -5,6 +5,8 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.tutorial.TutorialManager;
+import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -55,6 +57,7 @@ public class QuestTracker {
             Quest quest = entry.getValue();
 
             if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
+            if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
 
             PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
@@ -119,6 +122,7 @@ public class QuestTracker {
                 Quest quest = entry.getValue();
 
                 if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
+                if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
 
                 PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
@@ -184,6 +188,14 @@ public class QuestTracker {
         }
 
         return true;
+    }
+
+    private static boolean isTutorialQuestActive(ServerPlayer player, ResourceKey<Quest> questKey,
+                                                  PlayerQuestState state) {
+        // Tutorial quests only track during the tutorial's minigame/catch phases
+        TutorialStep step = TutorialManager.getStep(player);
+        return step == TutorialStep.MINIGAME_CATCH || step == TutorialStep.CATCH_RESULT
+                || step == TutorialStep.QUEST_INTRO || step == TutorialStep.QUEST_CLAIM;
     }
 
     public static Set<ResourceKey<Quest>> getActiveDailies(Registry<Quest> questRegistry, long currentDay) {

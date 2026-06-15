@@ -19,6 +19,7 @@ import java.util.Random;
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
     private final FishingMinigameState minigameState;
+    private boolean isTutorial = false;
     private final Random sparkleRandom = new Random();
 
     private record SparkleBurst(List<SparkleParticle> particles, float targetYOffset) {}
@@ -159,6 +160,20 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
             isHiding = true;
         }
+    }
+
+    public void setTutorial(boolean tutorial) {
+        isTutorial = tutorial;
+        minigameState.setNoCatchDrain(tutorial);
+        for (FishingTarget target : minigameState.getTargets()) {
+            target.setNoCatchDrain(tutorial);
+        }
+    }
+
+    public boolean isTutorial() { return isTutorial; }
+
+    public void setPaused(boolean paused) {
+        minigameState.setPaused(paused);
     }
 
     /**

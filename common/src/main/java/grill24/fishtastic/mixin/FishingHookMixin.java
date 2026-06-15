@@ -2,16 +2,19 @@ package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.server.FishingMinigameManager;
+import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.util.IFishingHookExtension;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FishingHook.class)
@@ -19,6 +22,14 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Shadow
     @Final
     private int luck;
+
+    @Inject(method = "<init>(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/level/Level;II)V",
+            at = @At("TAIL"))
+    private void fishtastic$onCreated(Player player, Level level, int luckBonus, int speedBonus, CallbackInfo ci) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            TutorialManager.onHookCast(serverPlayer);
+        }
+    }
 
     // On vanilla/Fabric, shouldStopFishing checks is(Items.FISHING_ROD) which excludes modded rods.
     // NeoForge patches this to canPerformAction(), so it already works there.
@@ -44,7 +55,11 @@ public class FishingHookMixin implements IFishingHookExtension {
             if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
                 grill24.fishtastic.server.FishingMinigameManager manager =
                         grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
-                manager.startSession(serverPlayer, 1.0f, false);
+                if (TutorialManager.isTutorialSession(serverPlayer)) {
+                    manager.startTutorialSession(serverPlayer);
+                } else {
+                    manager.startSession(serverPlayer, 1.0f, false);
+                }
                 cir.setReturnValue(0); // Prevent normal loot retrieval
             }
         }

@@ -29,6 +29,10 @@ public class FishingMinigameState {
     // Catch progress state
     private float catchProgress; // 0 = no progress, 1 = caught (item should be caught)
 
+    // Tutorial flags
+    private boolean paused = false;
+    private boolean noCatchDrain = false;
+
     // Target management
     private final List<FishingTarget> targets;
 
@@ -64,10 +68,15 @@ public class FishingMinigameState {
         this.targets = new ArrayList<>();
     }
 
+    public void setPaused(boolean paused) { this.paused = paused; }
+    public boolean isPaused() { return paused; }
+    public void setNoCatchDrain(boolean noCatchDrain) { this.noCatchDrain = noCatchDrain; }
+
     /**
      * Updates the bobber physics for one tick
      */
     public void tick() {
+        if (paused) return;
         // Snapshot position before physics update so interpolation is impulse-independent
         previousBobberPosition = bobberPosition;
 
@@ -117,11 +126,9 @@ public class FishingMinigameState {
      */
     public void updateCatchProgress(boolean isItemInBobber) {
         if (isItemInBobber) {
-            // Gain progress when item is in bobber
             catchProgress += CATCH_PROGRESS_GAIN;
             catchProgress = Math.min(1.0f, catchProgress);
-        } else {
-            // Lose progress when item is outside bobber
+        } else if (!noCatchDrain) {
             catchProgress -= CATCH_PROGRESS_LOSS;
             catchProgress = Math.max(0.0f, catchProgress);
         }

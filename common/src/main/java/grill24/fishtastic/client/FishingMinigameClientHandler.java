@@ -48,6 +48,10 @@ public class FishingMinigameClientHandler {
             animation.getMinigameState().addTarget(target);
         }
 
+        if (packet.isTutorial()) {
+            animation.setTutorial(true);
+        }
+
         // Display the animation
         IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
         gameRendererExt.fishtastic$displayItemActivation(() -> animation);

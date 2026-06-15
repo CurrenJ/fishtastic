@@ -4,6 +4,8 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
+import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticItems;
@@ -24,6 +26,7 @@ import grill24.fishtastic.util.ItemActivationAnimation;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
@@ -74,6 +77,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts()));
 
+        // Register tutorial sync packet client handler
+        TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
@@ -101,11 +107,17 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
+                TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
                 // Tick quest progress notifications
                 QuestProgressNotificationManager.getInstance().tick();
             }
+        });
+
+        // Register tutorial overlay — must render BEFORE the minigame bar so the bar appears on top
+        HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "tutorial_overlay"), (graphics, deltaTracker) -> {
+            TutorialClientHandler.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // Register HUD render hook for the fishing minigame overlay
@@ -121,6 +133,13 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register HUD render hook for quest progress notifications (renders after fishing minigame)
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
             QuestProgressNotificationManager.getInstance().render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+        });
+
+        // Render tutorial text on top of the quest/shop screen (fires after the screen itself renders)
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
+                TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
+            });
         });
 
         // TODO MC-26.1: ItemProperties.register is removed in 26.1

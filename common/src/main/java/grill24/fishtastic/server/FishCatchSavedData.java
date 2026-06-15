@@ -6,6 +6,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.Registry;
@@ -145,6 +146,7 @@ public class FishCatchSavedData extends SavedData {
 
     private final Map<UUID, PlayerCatchData> playerData = new HashMap<>();
     private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
+    private final Map<UUID, TutorialStep> tutorialSteps = new HashMap<>();
 
     // -------------------------------------------------------------------------
     // Codec and SavedDataType
@@ -154,11 +156,14 @@ public class FishCatchSavedData extends SavedData {
         instance.group(
             PlayerCatchData.CODEC.listOf().fieldOf("players").forGetter(d -> new ArrayList<>(d.playerData.values())),
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, PlayerQuestState.CODEC)
-                    .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates))
-        ).apply(instance, (playerList, questMap) -> {
+                    .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates)),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, TutorialStep.CODEC)
+                    .optionalFieldOf("tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.tutorialSteps))
+        ).apply(instance, (playerList, questMap, tutorialMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
             data.questStates.putAll(questMap);
+            data.tutorialSteps.putAll(tutorialMap);
             return data;
         })
     );
@@ -273,6 +278,29 @@ public class FishCatchSavedData extends SavedData {
             return getOrCreateQuestState(SINGLEPLAYER_QUEST_UUID);
         }
         return getOrCreateQuestState(player.getUUID());
+    }
+
+    // -------------------------------------------------------------------------
+    // Tutorial state API
+    // -------------------------------------------------------------------------
+
+    public TutorialStep getTutorialStep(net.minecraft.server.level.ServerPlayer player) {
+        UUID key = resolvePlayerKey(player);
+        return tutorialSteps.getOrDefault(key, TutorialStep.WAITING_FOR_CAST);
+    }
+
+    public void setTutorialStep(net.minecraft.server.level.ServerPlayer player, TutorialStep step) {
+        UUID key = resolvePlayerKey(player);
+        tutorialSteps.put(key, step);
+        setDirty();
+    }
+
+    private UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
+        MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
+        if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
+            return SINGLEPLAYER_QUEST_UUID;
+        }
+        return player.getUUID();
     }
 
     public void resetDailyQuestsIfNeeded(MinecraftServer server, long currentDay) {

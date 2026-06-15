@@ -71,10 +71,11 @@ public final class FishtasticNeoForge {
             event.dataPackRegistry(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, ShopEntry.CODEC, ShopEntry.CODEC);
         });
 
-        // Send quest state to player on world join
+        // Send quest and tutorial state to player on world join
         NeoForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
             if (event.getPlayer() == null) return;
             QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
+            grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(event.getPlayer());
         });
 
         // Register network packets

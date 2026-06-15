@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.ShopEntry;
+import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.network.CompleteQuestPacket;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -132,6 +133,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             list.sort(Comparator.comparing(e -> e.getValue().displayName()));
         }
 
+        // During the tutorial, pin tutorial quests to the top of the Daily tab.
+        // They are hidden once the tutorial is complete or hasn't started yet.
+        TutorialStep tutorialStep = TutorialClientHandler.getCurrentStep();
+        boolean tutorialActive = tutorialStep != TutorialStep.COMPLETE
+                && tutorialStep != TutorialStep.WAITING_FOR_CAST;
+        if (tutorialActive) {
+            List<Map.Entry<ResourceKey<Quest>, Quest>> tutorialQuests = byCategory.get(QuestCategory.TUTORIAL);
+            if (!tutorialQuests.isEmpty()) {
+                byCategory.get(QuestCategory.DAILY).addAll(0, tutorialQuests);
+            }
+        }
+
         Label titleLabel = new Label("Quest Log", 0xFFFFFFFF).init(tempContext);
         titleLabel.scale(1.3f);
         titleLabel.addBreatheEffect();
@@ -185,7 +198,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         } else {
             for (int i = 0; i < quests.size(); i++) {
                 var entry = quests.get(i);
-                boolean active = !isDailyTab || activeDailies.contains(entry.getKey());
+                boolean active = !isDailyTab || activeDailies.contains(entry.getKey())
+                        || entry.getValue().category() == QuestCategory.TUTORIAL;
                 list.addChild(buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active));
                 if (i < quests.size() - 1) {
                     list.addChild(UI.rectangle(150f, 1f, 0x33FFFFFF));

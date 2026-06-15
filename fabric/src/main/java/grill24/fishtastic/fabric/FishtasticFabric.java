@@ -49,8 +49,10 @@ public final class FishtasticFabric implements ModInitializer {
         // Register server tick handler
         ServerTickEvents.END_SERVER_TICK.register(ServerTickHandler::onServerTick);
 
-        // Send quest state to player on world join
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                QuestSyncPacket.sendToPlayer(handler.getPlayer(), FishCatchSavedData.getOrCreate(server)));
+        // Send quest and tutorial state to player on world join
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            QuestSyncPacket.sendToPlayer(handler.getPlayer(), FishCatchSavedData.getOrCreate(server));
+            grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(handler.getPlayer());
+        });
     }
 }
