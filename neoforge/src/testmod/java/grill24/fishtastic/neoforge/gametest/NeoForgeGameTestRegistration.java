@@ -8,6 +8,7 @@ import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
+import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
 import grill24.fishtastic.gametest.WormBinGameTests;
 import net.minecraft.core.Holder;
@@ -234,6 +235,28 @@ public class NeoForgeGameTestRegistration {
             helper -> TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "on_quest_claimed_only_advances_on_matching_tutorial_quest_id", 200,
             helper -> TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- QuestTracker tests -----
+        register(event, env, "target_species_gates_match_when_present", 200,
+            QuestTrackerGameTests::targetSpeciesGatesMatchWhenPresent);
+        register(event, env, "target_species_tag_gates_match_when_present", 200,
+            QuestTrackerGameTests::targetSpeciesTagGatesMatchWhenPresent);
+        register(event, env, "min_quality_is_ordinal_floor", 200,
+            QuestTrackerGameTests::minQualityIsOrdinalFloor);
+        register(event, env, "biome_condition_gates_match_when_present", 200,
+            QuestTrackerGameTests::biomeConditionGatesMatchWhenPresent);
+        register(event, env, "time_condition_gates_match_when_present", 200,
+            QuestTrackerGameTests::timeConditionGatesMatchWhenPresent);
+        register(event, env, "weather_condition_gates_match_when_present", 200,
+            QuestTrackerGameTests::weatherConditionGatesMatchWhenPresent);
+        register(event, env, "all_conditions_must_match_together", 200,
+            QuestTrackerGameTests::allConditionsMustMatchTogether);
+        register(event, env, "get_active_dailies_is_stable_per_day", 200,
+            QuestTrackerGameTests::getActiveDailiesIsStablePerDay);
+        register(event, env, "get_active_dailies_never_exceeds_cap_and_excludes_non_daily", 200,
+            QuestTrackerGameTests::getActiveDailiesNeverExceedsCapAndExcludesNonDaily);
+        register(event, env, "get_active_dailies_caps_at_registry_size_when_smaller_than_count", 200,
+            QuestTrackerGameTests::getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount);
     }
 
     private static void register(

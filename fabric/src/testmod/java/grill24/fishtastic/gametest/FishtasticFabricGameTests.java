@@ -473,4 +473,58 @@ public class FishtasticFabricGameTests {
     public void onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(GameTestHelper helper) {
         TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, helper::makeMockServerPlayerInLevel);
     }
+
+    // -------------------------------------------------------------------------
+    // QuestTracker tests  (pure matching logic + throwaway registry, no player needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void targetSpeciesGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.targetSpeciesGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void targetSpeciesTagGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.targetSpeciesTagGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void minQualityIsOrdinalFloor(GameTestHelper helper) {
+        QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void biomeConditionGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.biomeConditionGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void timeConditionGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.timeConditionGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void weatherConditionGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.weatherConditionGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void allConditionsMustMatchTogether(GameTestHelper helper) {
+        QuestTrackerGameTests.allConditionsMustMatchTogether(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailiesIsStablePerDay(GameTestHelper helper) {
+        QuestTrackerGameTests.getActiveDailiesIsStablePerDay(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailiesNeverExceedsCapAndExcludesNonDaily(GameTestHelper helper) {
+        QuestTrackerGameTests.getActiveDailiesNeverExceedsCapAndExcludesNonDaily(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
+        QuestTrackerGameTests.getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(helper);
+    }
 }

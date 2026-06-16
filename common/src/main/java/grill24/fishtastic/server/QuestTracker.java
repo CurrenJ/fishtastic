@@ -158,7 +158,7 @@ public class QuestTracker {
         QuestSyncPacket.sendToPlayer(player, catchData, triggeringItems);
     }
 
-    private static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
+    public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather) {
         if (obj.targetSpecies().isPresent()) {
             Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
