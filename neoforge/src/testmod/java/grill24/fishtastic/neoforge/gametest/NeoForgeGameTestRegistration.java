@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.gametest;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
 import grill24.fishtastic.gametest.FishTankGameTests;
+import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
@@ -267,6 +268,24 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::purchaseShopEntryPacketRoundTrips);
         register(event, env, "quest_sync_packet_round_trips", 200,
             PacketRoundTripGameTests::questSyncPacketRoundTrips);
+
+        // ----- FishingMinigameManager tests -----
+        register(event, env, "start_session_end_to_end_returns_valid_session_id", 200,
+            helper -> FishingMinigameManagerGameTests.startSessionEndToEndReturnsValidSessionId(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "start_session_when_already_active_returns_negative_one_unless_cancelled", 200,
+            helper -> FishingMinigameManagerGameTests.startSessionWhenAlreadyActiveReturnsNegativeOneUnlessCancelled(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "cancel_session_removes_active_session", 200,
+            helper -> FishingMinigameManagerGameTests.cancelSessionRemovesActiveSession(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_awards_only_rewards_for_valid_indices_and_ignores_others", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteAwardsOnlyRewardsForValidIndicesAndIgnoresOthers(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_is_no_op_for_unknown_or_mismatched_session", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteIsNoOpForUnknownOrMismatchedSession(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_session_is_single_use_even_when_indices_are_invalid", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteSessionIsSingleUseEvenWhenIndicesAreInvalid(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_grants_rewards_even_when_completed_in_under_twenty_ticks", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_consumes_bait_only_when_rewards_were_actually_awarded", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,

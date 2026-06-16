@@ -427,6 +427,27 @@ public class FishingMinigameManager {
         return activeSessions.containsKey(uuid);
     }
 
+    /**
+     * Test-only seam: seeds a deterministic active session for {@code player}, bypassing the
+     * RNG-driven, registry-dependent {@link #generateTargets} so {@link #handleMinigameComplete}'s
+     * validation logic — the actual trust boundary — can be tested directly with known reward
+     * contents instead of real loot/fish-profile data.
+     */
+    public int seedSessionForTest(ServerPlayer player, List<List<ItemStack>> targetRewardStacks) {
+        UUID playerId = player.getUUID();
+        int sessionId = sessionIdGenerator.incrementAndGet();
+
+        List<ServerFishingTarget> targets = new ArrayList<>();
+        for (List<ItemStack> rewards : targetRewardStacks) {
+            targets.add(new ServerFishingTarget(rewards, FishingTarget.TargetCategory.FISH, 0.5f, 0f, List.of()));
+        }
+
+        Holder<Biome> biome = level.getBiome(player.blockPosition());
+        activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
+                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR));
+        return sessionId;
+    }
+
     private static class ActiveSession {
         final int sessionId;
         final UUID playerId;
