@@ -527,4 +527,23 @@ public class FishtasticFabricGameTests {
     public void getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
         QuestTrackerGameTests.getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(helper);
     }
+
+    // -------------------------------------------------------------------------
+    // Packet round-trip tests  (pure StreamCodec encode/decode, no player needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void startFishingMinigamePacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.startFishingMinigamePacketRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void purchaseShopEntryPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.purchaseShopEntryPacketRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void questSyncPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.questSyncPacketRoundTrips(helper);
+    }
 }

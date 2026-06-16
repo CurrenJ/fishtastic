@@ -7,6 +7,7 @@ import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
+import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
@@ -257,6 +258,14 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::getActiveDailiesNeverExceedsCapAndExcludesNonDaily);
         register(event, env, "get_active_dailies_caps_at_registry_size_when_smaller_than_count", 200,
             QuestTrackerGameTests::getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount);
+
+        // ----- Packet round-trip tests -----
+        register(event, env, "start_fishing_minigame_packet_round_trips", 200,
+            PacketRoundTripGameTests::startFishingMinigamePacketRoundTrips);
+        register(event, env, "purchase_shop_entry_packet_round_trips", 200,
+            PacketRoundTripGameTests::purchaseShopEntryPacketRoundTrips);
+        register(event, env, "quest_sync_packet_round_trips", 200,
+            PacketRoundTripGameTests::questSyncPacketRoundTrips);
     }
 
     private static void register(
