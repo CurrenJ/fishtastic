@@ -2,8 +2,10 @@ package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
+import grill24.fishtastic.gametest.FishTankGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
+import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.WormBinGameTests;
@@ -187,6 +189,34 @@ public class NeoForgeGameTestRegistration {
             PlayerQuestStateGameTests::purchaseSucceedsDeductsAndIncrementsCount);
         register(event, env, "snapshots_reflect_mutations", 200,
             PlayerQuestStateGameTests::snapshotsReflectMutations);
+
+        // ----- ItemEffect condition tests -----
+        register(event, env, "item_tag_condition_matches_real_tag", 200,
+            ItemEffectConditionGameTests::itemTagConditionMatchesRealTag);
+        register(event, env, "component_condition_matches_presence_only", 200,
+            ItemEffectConditionGameTests::componentConditionMatchesPresenceOnly);
+        register(event, env, "component_value_condition_matches_field_value", 200,
+            ItemEffectConditionGameTests::componentValueConditionMatchesFieldValue);
+        register(event, env, "and_condition_semantics", 200,
+            ItemEffectConditionGameTests::andConditionSemantics);
+        register(event, env, "item_effect_matches_respects_enabled_and_conditions", 200,
+            ItemEffectConditionGameTests::itemEffectMatchesRespectsEnabledAndConditions);
+
+        // ----- Fish Tank tests -----
+        register(event, env, "add_item_into_empty_tank_succeeds", 200,
+            FishTankGameTests::addItemIntoEmptyTankSucceeds);
+        register(event, env, "add_item_merges_into_existing_stack_before_new_slot", 200,
+            FishTankGameTests::addItemMergesIntoExistingStackBeforeNewSlot);
+        register(event, env, "add_item_fails_when_all_slots_full", 200,
+            FishTankGameTests::addItemFailsWhenAllSlotsFull);
+        register(event, env, "extract_item_removes_last_slot_lifo_order", 200,
+            FishTankGameTests::extractItemRemovesLastSlotLifoOrder);
+        register(event, env, "first_item_rotation_reflects_slot_zero_insert", 200,
+            FishTankGameTests::firstItemRotationReflectsSlotZeroInsert);
+        register(event, env, "cosmetics_round_trip", 200,
+            FishTankGameTests::cosmeticsRoundTrip);
+        register(event, env, "open_faces_round_trip", 200,
+            FishTankGameTests::openFacesRoundTrip);
     }
 
     private static void register(

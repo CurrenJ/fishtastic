@@ -366,4 +366,72 @@ public class FishtasticFabricGameTests {
     public void snapshotsReflectMutations(GameTestHelper helper) {
         PlayerQuestStateGameTests.snapshotsReflectMutations(helper);
     }
+
+    // -------------------------------------------------------------------------
+    // ItemEffect condition tests  (pure ItemStack + registry logic, no datapack needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void itemTagConditionMatchesRealTag(GameTestHelper helper) {
+        ItemEffectConditionGameTests.itemTagConditionMatchesRealTag(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void componentConditionMatchesPresenceOnly(GameTestHelper helper) {
+        ItemEffectConditionGameTests.componentConditionMatchesPresenceOnly(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void componentValueConditionMatchesFieldValue(GameTestHelper helper) {
+        ItemEffectConditionGameTests.componentValueConditionMatchesFieldValue(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void andConditionSemantics(GameTestHelper helper) {
+        ItemEffectConditionGameTests.andConditionSemantics(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void itemEffectMatchesRespectsEnabledAndConditions(GameTestHelper helper) {
+        ItemEffectConditionGameTests.itemEffectMatchesRespectsEnabledAndConditions(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // Fish Tank tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void addItemIntoEmptyTankSucceeds(GameTestHelper helper) {
+        FishTankGameTests.addItemIntoEmptyTankSucceeds(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void addItemMergesIntoExistingStackBeforeNewSlot(GameTestHelper helper) {
+        FishTankGameTests.addItemMergesIntoExistingStackBeforeNewSlot(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void addItemFailsWhenAllSlotsFull(GameTestHelper helper) {
+        FishTankGameTests.addItemFailsWhenAllSlotsFull(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void extractItemRemovesLastSlotLifoOrder(GameTestHelper helper) {
+        FishTankGameTests.extractItemRemovesLastSlotLifoOrder(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void firstItemRotationReflectsSlotZeroInsert(GameTestHelper helper) {
+        FishTankGameTests.firstItemRotationReflectsSlotZeroInsert(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void cosmeticsRoundTrip(GameTestHelper helper) {
+        FishTankGameTests.cosmeticsRoundTrip(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void openFacesRoundTrip(GameTestHelper helper) {
+        FishTankGameTests.openFacesRoundTrip(helper);
+    }
 }
