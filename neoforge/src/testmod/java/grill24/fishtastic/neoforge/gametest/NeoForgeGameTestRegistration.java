@@ -8,6 +8,7 @@ import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
+import grill24.fishtastic.gametest.TutorialManagerGameTests;
 import grill24.fishtastic.gametest.WormBinGameTests;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -217,6 +218,22 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::cosmeticsRoundTrip);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
+
+        // ----- TutorialManager tests -----
+        register(event, env, "crafting_rod_from_default_step_grants_worms_and_advances", 200,
+            helper -> TutorialManagerGameTests.craftingRodFromDefaultStepGrantsWormsAndAdvances(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "crafting_rod_again_after_advancing_is_no_op", 200,
+            helper -> TutorialManagerGameTests.craftingRodAgainAfterAdvancingIsNoOp(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "on_bait_loaded_only_advances_from_bait_load_step", 200,
+            helper -> TutorialManagerGameTests.onBaitLoadedOnlyAdvancesFromBaitLoadStep(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "on_hook_cast_only_advances_from_castable_steps", 200,
+            helper -> TutorialManagerGameTests.onHookCastOnlyAdvancesFromCastableSteps(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "advance_step_no_op_when_from_step_does_not_match_current", 200,
+            helper -> TutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "tutorial_walks_full_documented_chain_to_completion", 200,
+            helper -> TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "on_quest_claimed_only_advances_on_matching_tutorial_quest_id", 200,
+            helper -> TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
     }
 
     private static void register(
