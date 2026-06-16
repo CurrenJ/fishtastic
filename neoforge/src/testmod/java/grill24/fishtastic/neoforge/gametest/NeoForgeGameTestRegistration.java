@@ -2,7 +2,10 @@ package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
+import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
+import grill24.fishtastic.gametest.MathUtilGameTests;
+import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.WormBinGameTests;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -118,6 +121,72 @@ public class NeoForgeGameTestRegistration {
             ItemComponentGameTests::baitEffectComponentRoundTrip);
         register(event, env, "bait_effect_no_bait_defaults", 200,
             ItemComponentGameTests::baitEffectNoBaitDefaults);
+        register(event, env, "rod_bait_contents_empty_is_empty", 200,
+            ItemComponentGameTests::rodBaitContentsEmptyIsEmpty);
+        register(event, env, "rod_bait_contents_non_empty_stack_is_not_empty", 200,
+            ItemComponentGameTests::rodBaitContentsNonEmptyStackIsNotEmpty);
+        register(event, env, "rod_bait_contents_copy_stack_is_distinct", 200,
+            ItemComponentGameTests::rodBaitContentsCopyStackIsDistinct);
+
+        // ----- MathUtil / Utility tests -----
+        register(event, env, "lerp_float_boundaries", 200,
+            MathUtilGameTests::lerpFloatBoundaries);
+        register(event, env, "lerp_double_boundaries", 200,
+            MathUtilGameTests::lerpDoubleBoundaries);
+        register(event, env, "clamp_float_bounds", 200,
+            MathUtilGameTests::clampFloatBounds);
+        register(event, env, "clamp_double_bounds", 200,
+            MathUtilGameTests::clampDoubleBounds);
+        register(event, env, "clamp_int_bounds", 200,
+            MathUtilGameTests::clampIntBounds);
+        register(event, env, "ease_in_out_quad_shape", 200,
+            MathUtilGameTests::easeInOutQuadShape);
+        register(event, env, "ease_out_cubic_shape", 200,
+            MathUtilGameTests::easeOutCubicShape);
+        register(event, env, "eased_lerp_identity_matches_plain_lerp", 200,
+            MathUtilGameTests::easedLerpIdentityMatchesPlainLerp);
+        register(event, env, "eased_lerp_applies_easing_function", 200,
+            MathUtilGameTests::easedLerpAppliesEasingFunction);
+        register(event, env, "utility_ft_creates_namespaced_identifier", 200,
+            MathUtilGameTests::utilityFtCreatesNamespacedIdentifier);
+        register(event, env, "utility_interpolate_color_boundaries", 200,
+            MathUtilGameTests::utilityInterpolateColorBoundaries);
+
+        // ----- FishingTarget tests -----
+        register(event, env, "high_overlap_eventually_catches", 200,
+            FishingTargetGameTests::highOverlapEventuallyCatches);
+        register(event, env, "zero_overlap_eventually_fails", 200,
+            FishingTargetGameTests::zeroOverlapEventuallyFails);
+        register(event, env, "pick_random_boundary_rolls", 200,
+            FishingTargetGameTests::pickRandomBoundaryRolls);
+        register(event, env, "all_movement_patterns_tick_without_throwing", 200,
+            FishingTargetGameTests::allMovementPatternsTickWithoutThrowing);
+        register(event, env, "collection_animation_lifecycle", 200,
+            FishingTargetGameTests::collectionAnimationLifecycle);
+        register(event, env, "fail_animation_lifecycle", 200,
+            FishingTargetGameTests::failAnimationLifecycle);
+
+        // ----- PlayerQuestState tests -----
+        register(event, env, "get_progress_defaults_for_untouched_quest", 200,
+            PlayerQuestStateGameTests::getProgressDefaultsForUntouchedQuest);
+        register(event, env, "increment_count_raises_count_and_flips_completed", 200,
+            PlayerQuestStateGameTests::incrementCountRaisesCountAndFlipsCompleted);
+        register(event, env, "can_claim_true_only_between_completion_and_claim", 200,
+            PlayerQuestStateGameTests::canClaimTrueOnlyBetweenCompletionAndClaim);
+        register(event, env, "claim_adds_tokens_without_resetting_count", 200,
+            PlayerQuestStateGameTests::claimAddsTokensWithoutResettingCount);
+        register(event, env, "reset_daily_if_needed_only_on_new_day", 200,
+            PlayerQuestStateGameTests::resetDailyIfNeededOnlyOnNewDay);
+        register(event, env, "purchase_fails_when_balance_too_low", 200,
+            PlayerQuestStateGameTests::purchaseFailsWhenBalanceTooLow);
+        register(event, env, "purchase_fails_when_max_purchases_reached", 200,
+            PlayerQuestStateGameTests::purchaseFailsWhenMaxPurchasesReached);
+        register(event, env, "purchase_zero_max_purchases_is_unlimited", 200,
+            PlayerQuestStateGameTests::purchaseZeroMaxPurchasesIsUnlimited);
+        register(event, env, "purchase_succeeds_deducts_and_increments_count", 200,
+            PlayerQuestStateGameTests::purchaseSucceedsDeductsAndIncrementsCount);
+        register(event, env, "snapshots_reflect_mutations", 200,
+            PlayerQuestStateGameTests::snapshotsReflectMutations);
     }
 
     private static void register(

@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
+import grill24.fishtastic.component.RodBaitContents;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -13,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 
 /**
- * Game tests for ItemSize, FishQuality, and BaitEffect data components.
+ * Game tests for ItemSize, FishQuality, BaitEffect, and RodBaitContents data components.
  * All logic is pure in-memory — no blocks or world state needed.
  */
 public final class ItemComponentGameTests {
@@ -216,6 +217,48 @@ public final class ItemComponentGameTests {
         helper.assertTrue(none.luckBonus() == 0.0f,         "NO_BAIT luckBonus must be 0.0");
         helper.assertTrue(none.modFishMultiplier() == 0.15f, "NO_BAIT modFishMultiplier must be 0.15");
         helper.assertTrue(none.fishGroupAffinities().isEmpty(), "NO_BAIT must have no group affinities");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // RodBaitContents
+    // -------------------------------------------------------------------------
+
+    /**
+     * RodBaitContents.EMPTY wraps an empty ItemStack, so isEmpty() is true.
+     */
+    public static void rodBaitContentsEmptyIsEmpty(GameTestHelper helper) {
+        helper.assertTrue(RodBaitContents.EMPTY.isEmpty(), "EMPTY must report isEmpty() true");
+        helper.assertTrue(RodBaitContents.EMPTY.stack().isEmpty(), "EMPTY must wrap an empty ItemStack");
+        helper.succeed();
+    }
+
+    /**
+     * Wrapping a non-empty ItemStack makes isEmpty() false.
+     */
+    public static void rodBaitContentsNonEmptyStackIsNotEmpty(GameTestHelper helper) {
+        ItemStack worms = new ItemStack(FishtasticItems.WORMS.value());
+        RodBaitContents contents = new RodBaitContents(worms);
+        helper.assertTrue(!contents.isEmpty(), "Wrapping a non-empty stack must make isEmpty() false");
+        helper.succeed();
+    }
+
+    /**
+     * copyStack() returns an equal-but-distinct ItemStack — mutating the copy must not
+     * affect the original stack held by the RodBaitContents.
+     */
+    public static void rodBaitContentsCopyStackIsDistinct(GameTestHelper helper) {
+        ItemStack worms = new ItemStack(FishtasticItems.WORMS.value(), 5);
+        RodBaitContents contents = new RodBaitContents(worms);
+
+        ItemStack copy = contents.copyStack();
+        helper.assertTrue(copy != worms, "copyStack() must not return the same instance");
+        helper.assertTrue(copy.getItem() == worms.getItem() && copy.getCount() == worms.getCount(),
+            "copyStack() must be equal in item and count to the original");
+
+        copy.setCount(1);
+        helper.assertTrue(worms.getCount() == 5,
+            "Mutating the copy must not affect the original stack, original count was " + worms.getCount());
         helper.succeed();
     }
 }

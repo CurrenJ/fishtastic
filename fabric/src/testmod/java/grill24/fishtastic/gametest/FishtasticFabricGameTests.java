@@ -204,4 +204,166 @@ public class FishtasticFabricGameTests {
     public void baitEffectNoBaitDefaults(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectNoBaitDefaults(helper);
     }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void rodBaitContentsEmptyIsEmpty(GameTestHelper helper) {
+        ItemComponentGameTests.rodBaitContentsEmptyIsEmpty(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void rodBaitContentsNonEmptyStackIsNotEmpty(GameTestHelper helper) {
+        ItemComponentGameTests.rodBaitContentsNonEmptyStackIsNotEmpty(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void rodBaitContentsCopyStackIsDistinct(GameTestHelper helper) {
+        ItemComponentGameTests.rodBaitContentsCopyStackIsDistinct(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // MathUtil / Utility tests  (pure logic, zero Minecraft world dependency)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lerpFloatBoundaries(GameTestHelper helper) {
+        MathUtilGameTests.lerpFloatBoundaries(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lerpDoubleBoundaries(GameTestHelper helper) {
+        MathUtilGameTests.lerpDoubleBoundaries(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void clampFloatBounds(GameTestHelper helper) {
+        MathUtilGameTests.clampFloatBounds(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void clampDoubleBounds(GameTestHelper helper) {
+        MathUtilGameTests.clampDoubleBounds(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void clampIntBounds(GameTestHelper helper) {
+        MathUtilGameTests.clampIntBounds(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void easeInOutQuadShape(GameTestHelper helper) {
+        MathUtilGameTests.easeInOutQuadShape(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void easeOutCubicShape(GameTestHelper helper) {
+        MathUtilGameTests.easeOutCubicShape(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void easedLerpIdentityMatchesPlainLerp(GameTestHelper helper) {
+        MathUtilGameTests.easedLerpIdentityMatchesPlainLerp(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void easedLerpAppliesEasingFunction(GameTestHelper helper) {
+        MathUtilGameTests.easedLerpAppliesEasingFunction(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void utilityFtCreatesNamespacedIdentifier(GameTestHelper helper) {
+        MathUtilGameTests.utilityFtCreatesNamespacedIdentifier(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void utilityInterpolateColorBoundaries(GameTestHelper helper) {
+        MathUtilGameTests.utilityInterpolateColorBoundaries(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // FishingTarget tests  (pure logic, zero Minecraft world dependency)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void highOverlapEventuallyCatches(GameTestHelper helper) {
+        FishingTargetGameTests.highOverlapEventuallyCatches(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void zeroOverlapEventuallyFails(GameTestHelper helper) {
+        FishingTargetGameTests.zeroOverlapEventuallyFails(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pickRandomBoundaryRolls(GameTestHelper helper) {
+        FishingTargetGameTests.pickRandomBoundaryRolls(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void allMovementPatternsTickWithoutThrowing(GameTestHelper helper) {
+        FishingTargetGameTests.allMovementPatternsTickWithoutThrowing(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void collectionAnimationLifecycle(GameTestHelper helper) {
+        FishingTargetGameTests.collectionAnimationLifecycle(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void failAnimationLifecycle(GameTestHelper helper) {
+        FishingTargetGameTests.failAnimationLifecycle(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // PlayerQuestState tests  (pure in-memory, no world state needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getProgressDefaultsForUntouchedQuest(GameTestHelper helper) {
+        PlayerQuestStateGameTests.getProgressDefaultsForUntouchedQuest(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void incrementCountRaisesCountAndFlipsCompleted(GameTestHelper helper) {
+        PlayerQuestStateGameTests.incrementCountRaisesCountAndFlipsCompleted(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void canClaimTrueOnlyBetweenCompletionAndClaim(GameTestHelper helper) {
+        PlayerQuestStateGameTests.canClaimTrueOnlyBetweenCompletionAndClaim(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void claimAddsTokensWithoutResettingCount(GameTestHelper helper) {
+        PlayerQuestStateGameTests.claimAddsTokensWithoutResettingCount(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void resetDailyIfNeededOnlyOnNewDay(GameTestHelper helper) {
+        PlayerQuestStateGameTests.resetDailyIfNeededOnlyOnNewDay(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void purchaseFailsWhenBalanceTooLow(GameTestHelper helper) {
+        PlayerQuestStateGameTests.purchaseFailsWhenBalanceTooLow(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void purchaseFailsWhenMaxPurchasesReached(GameTestHelper helper) {
+        PlayerQuestStateGameTests.purchaseFailsWhenMaxPurchasesReached(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void purchaseZeroMaxPurchasesIsUnlimited(GameTestHelper helper) {
+        PlayerQuestStateGameTests.purchaseZeroMaxPurchasesIsUnlimited(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void purchaseSucceedsDeductsAndIncrementsCount(GameTestHelper helper) {
+        PlayerQuestStateGameTests.purchaseSucceedsDeductsAndIncrementsCount(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void snapshotsReflectMutations(GameTestHelper helper) {
+        PlayerQuestStateGameTests.snapshotsReflectMutations(helper);
+    }
 }
