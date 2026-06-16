@@ -546,4 +546,23 @@ public class FishtasticFabricGameTests {
     public void questSyncPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.questSyncPacketRoundTrips(helper);
     }
+
+    // -------------------------------------------------------------------------
+    // ShopEntry tests  (pure registry-only logic, no player needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopIsStablePerDay(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopIsStablePerDay(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopNeverExceedsCap(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopNeverExceedsCap(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(helper);
+    }
 }

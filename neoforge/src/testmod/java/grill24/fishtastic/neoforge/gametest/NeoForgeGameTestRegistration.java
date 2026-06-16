@@ -10,6 +10,7 @@ import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
+import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
 import grill24.fishtastic.gametest.WormBinGameTests;
 import net.minecraft.core.Holder;
@@ -266,6 +267,14 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::purchaseShopEntryPacketRoundTrips);
         register(event, env, "quest_sync_packet_round_trips", 200,
             PacketRoundTripGameTests::questSyncPacketRoundTrips);
+
+        // ----- ShopEntry tests -----
+        register(event, env, "get_active_daily_shop_is_stable_per_day", 200,
+            ShopEntryGameTests::getActiveDailyShopIsStablePerDay);
+        register(event, env, "get_active_daily_shop_never_exceeds_cap", 200,
+            ShopEntryGameTests::getActiveDailyShopNeverExceedsCap);
+        register(event, env, "get_active_daily_shop_caps_at_registry_size_when_smaller_than_count", 200,
+            ShopEntryGameTests::getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount);
     }
 
     private static void register(
