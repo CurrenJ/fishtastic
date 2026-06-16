@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "fishtastic_testmod",
+  "version": "1.0.0",
+  "name": "Fishtastic Testmod",
+  "description": "In-game game tests for Fishtastic.",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "grill24.fishtastic.gametest.FishtasticFabricGameTests"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.1",
+    "fishtastic": "*",
+    "fabric-gametest-api-v1": "*"
+  }
+}

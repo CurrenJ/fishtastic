@@ -24,6 +24,15 @@ configurations {
     }
 }
 
+sourceSets {
+    testmod {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
+        // Platform-agnostic GameTest logic lives in common/ so NeoForge can share it too.
+        java.srcDir(project(':common').file('src/testmod/java'))
+    }
+}
+
 dependencies {
     implementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
@@ -35,6 +44,9 @@ dependencies {
     // namedElements no longer exists in loom-no-remap; reference common directly.
     common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
+
+    // Testmod: access the compiled main classes (fabric-api is inherited via main.compileClasspath).
+    testmodImplementation sourceSets.main.output
 }
 
 processResources {
@@ -96,5 +108,21 @@ loom {
 
             runDir "build/datagen"
         }
+
+        gametest {
+            server()
+            source sourceSets.testmod
+            name "Game Test"
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.file('junit.xml').get().asFile}"
+            runDir "build/gametest"
+        }
     }
 }
+
+// Custom (non-default) runDirs aren't auto-created by Loom before the run task
+// executes — unlike the default "run" dir, which gets created during IDE sync.
+// Without this, a fresh checkout fails the first runDatagen/runGametest invocation
+// with "Working directory '...\build\datagen' does not exist".
+file("build/datagen").mkdirs()
+file("build/gametest").mkdirs()

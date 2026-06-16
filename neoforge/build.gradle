@@ -24,6 +24,15 @@ configurations {
     }
 }
 
+sourceSets {
+    testmod {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
+        // Platform-agnostic GameTest logic lives in common/ so Fabric can share it too.
+        java.srcDir(project(':common').file('src/testmod/java'))
+    }
+}
+
 repositories {
     maven {
         name = 'NeoForged'
@@ -39,6 +48,9 @@ dependencies {
     // namedElements no longer exists in loom-no-remap; reference common directly.
     common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+
+    // Testmod: access the compiled main classes.
+    testmodImplementation sourceSets.main.output
 }
 
 processResources {
@@ -98,12 +110,48 @@ tasks.named('sourcesJar').configure {
 }
 
 loom {
+    // Without this, Loom only ever associates sourceSets.main with the "fishtastic"
+    // mod's class roots (MOD_CLASSES env var), so FML's per-mod composite classloader
+    // never sees testmod's compiled classes — @EventBusSubscriber-annotated classes
+    // there (e.g. NeoForgeGameTestRegistration) silently never get discovered/fired,
+    // even though they're on the JVM classpath for the gametest run.
+    mods {
+        fishtastic {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.testmod
+        }
+    }
+
     runs {
         data {
-            data()
+            // Despite NeoForge's userdev config.json listing the run template under
+            // the key "serverData", Architectury Loom 1.14.476 internally re-keys it
+            // as "dataServer" (and "clientData" -> "dataClient"). serverData() looks
+            // up the correct ("dataServer") name, so prefer it over forgeTemplate().
+            serverData()
             programArgs "--mod", "fishtastic",
                         "--all",
                         "--output", file("src/main/generated").absolutePath
         }
+
+        // Headless game test server — runs all registered tests then exits.
+        // Run with: ./gradlew :neoforge:runGametest
+        // NOTE: Generate test structure files first with: ./gradlew :neoforge:runData
+        gametest {
+            // No gameTestServer() convenience method exists on RunConfigSettings in
+            // this Loom version; use the generic forgeTemplate() lookup instead.
+            environment("gameTestServer")
+            forgeTemplate("gameTestServer")
+            source sourceSets.testmod
+            name "Game Test Server"
+            vmArg "-Dneoforge.enabledGameTestNamespaces=fishtastic"
+            runDir "build/gametest"
+        }
     }
 }
+
+// Custom (non-default) runDirs aren't auto-created by Loom/Architectury before the
+// run task executes — unlike the default "run" dir, which gets created during IDE
+// sync. Without this, a fresh checkout fails the first `runGametest` invocation with
+// "Working directory '...\build\gametest' does not exist".
+file("build/gametest").mkdirs()
