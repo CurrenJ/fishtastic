@@ -78,8 +78,8 @@ public class WormBinBlock extends Block implements EntityBlock {
 
         WormBinPhase phase = state.getValue(PHASE);
 
-        if (phase == WormBinPhase.CONVERTING && bin.canAerate()) {
-            bin.aerate();
+        if (phase == WormBinPhase.CONVERTING && bin.canAerate(level.getGameTime())) {
+            bin.aerate(level.getGameTime());
             bin.setChanged();
             level.sendBlockUpdated(pos, state, state, 3);
             return InteractionResult.SUCCESS_SERVER;

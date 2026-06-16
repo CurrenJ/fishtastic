@@ -78,6 +78,10 @@ public class NeoForgeGameTestRegistration {
             WormBinGameTests::harvestResetsToEmpty);
         register(event, env, "deposited_fish_list_retains_order", 200,
             WormBinGameTests::depositedFishListRetainsOrder);
+        register(event, env, "aeration_cooldown_blocks_too_early_attempt", 200,
+            WormBinGameTests::aerationCooldownBlocksTooEarlyAttempt);
+        register(event, env, "aeration_cooldown_allows_after_cooldown", 200,
+            WormBinGameTests::aerationCooldownAllowsAfterCooldown);
 
         // ----- Fish Catch Data tests -----
         register(event, env, "recording_non_fish_is_ignored", 200,

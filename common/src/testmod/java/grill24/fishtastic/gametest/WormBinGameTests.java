@@ -97,10 +97,32 @@ public final class WormBinGameTests {
     public static void aerationCapAtFive(GameTestHelper helper) {
         WormBinBlockEntity bin = placeWormBin(helper);
         for (int i = 0; i < 5; i++) {
-            helper.assertTrue(bin.canAerate(), "Should be able to aerate turn " + (i + 1));
-            bin.aerate();
+            long tick = (long) i * 1200;
+            helper.assertTrue(bin.canAerate(tick), "Should be able to aerate turn " + (i + 1));
+            bin.aerate(tick);
         }
-        helper.assertTrue(!bin.canAerate(), "canAerate() must return false after 5 turns");
+        helper.assertTrue(!bin.canAerate(6000L), "canAerate() must return false after 5 turns");
+        helper.succeed();
+    }
+
+    /**
+     * A second aeration attempt within 1200 ticks of the first must be rejected.
+     */
+    public static void aerationCooldownBlocksTooEarlyAttempt(GameTestHelper helper) {
+        WormBinBlockEntity bin = placeWormBin(helper);
+        helper.assertTrue(bin.canAerate(0L), "First aeration must be allowed");
+        bin.aerate(0L);
+        helper.assertTrue(!bin.canAerate(1199L), "Aeration at tick 1199 must be blocked by cooldown");
+        helper.succeed();
+    }
+
+    /**
+     * Aeration is allowed once exactly 1200 ticks have elapsed since the last aeration.
+     */
+    public static void aerationCooldownAllowsAfterCooldown(GameTestHelper helper) {
+        WormBinBlockEntity bin = placeWormBin(helper);
+        bin.aerate(0L);
+        helper.assertTrue(bin.canAerate(1200L), "Aeration must be allowed after exactly 1200 ticks");
         helper.succeed();
     }
 
@@ -143,7 +165,7 @@ public final class WormBinGameTests {
      */
     public static void aerationReducesConversionTime(GameTestHelper helper) {
         WormBinBlockEntity bin = placeWormBin(helper);
-        for (int i = 0; i < 5; i++) bin.aerate();
+        for (int i = 0; i < 5; i++) bin.aerate((long) i * 1200);
         setConverting(helper, bin);
 
         helper.runAfterDelay(4799, () ->
@@ -205,7 +227,7 @@ public final class WormBinGameTests {
     public static void aerationAddsToYield(GameTestHelper helper) {
         WormBinBlockEntity bin = placeWormBin(helper);
         for (int i = 0; i < 5; i++) bin.depositFish(fishWithQuality(FishQuality.Quality.COMMON));
-        for (int i = 0; i < 5; i++) bin.aerate();
+        for (int i = 0; i < 5; i++) bin.aerate((long) i * 1200);
         helper.getLevel().setBlockAndUpdate(
             helper.absolutePos(BIN_POS),
             helper.getBlockState(BIN_POS).setValue(WormBinBlock.PHASE, WormBinPhase.CONVERTING)
@@ -269,7 +291,7 @@ public final class WormBinGameTests {
             helper.assertTrue(bin.getPendingWorms() == 0, "After reset, pending worms must be 0");
             helper.assertTrue(bin.getDepositedFish().isEmpty(), "After reset, deposited fish must be empty");
             helper.assertTrue(bin.canDeposit(), "After reset, canDeposit() must be true");
-            helper.assertTrue(bin.canAerate(), "After reset, canAerate() must be true");
+            helper.assertTrue(bin.canAerate(0L), "After reset, canAerate() must be true");
             helper.assertTrue(
                 helper.getBlockState(BIN_POS).getValue(WormBinBlock.PHASE) == WormBinPhase.EMPTY,
                 "After reset block state must be EMPTY"
@@ -289,8 +311,8 @@ public final class WormBinGameTests {
         WormBinBlockEntity bin = placeWormBin(helper);
         bin.depositFish(fishWithQuality(FishQuality.Quality.RARE));
         bin.depositFish(fishWithQuality(FishQuality.Quality.EPIC));
-        bin.aerate();
-        bin.aerate();
+        bin.aerate(0L);
+        bin.aerate(1200L);
 
         List<ItemStack> fish = bin.getDepositedFish();
         helper.assertTrue(fish.size() == 2, "Must have 2 deposited fish");

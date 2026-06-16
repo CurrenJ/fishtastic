@@ -82,6 +82,16 @@ public class FishtasticFabricGameTests {
         WormBinGameTests.depositedFishListRetainsOrder(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aerationCooldownBlocksTooEarlyAttempt(GameTestHelper helper) {
+        WormBinGameTests.aerationCooldownBlocksTooEarlyAttempt(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aerationCooldownAllowsAfterCooldown(GameTestHelper helper) {
+        WormBinGameTests.aerationCooldownAllowsAfterCooldown(helper);
+    }
+
     // -------------------------------------------------------------------------
     // Fish Catch Data tests  (pure in-memory, no world state needed)
     // -------------------------------------------------------------------------

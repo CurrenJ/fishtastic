@@ -21,11 +21,13 @@ public class WormBinBlockEntity extends BlockEntity {
     private static final int MAX_AERATION_TURNS = 5;
     private static final int BASE_CONVERSION_TICKS = 6000;
     private static final int AERATION_TICK_REDUCTION = 240;
+    static final int AERATION_COOLDOWN_TICKS = 1200;
 
     private final List<ItemStack> depositedFish = new ArrayList<>();
     private int conversionTicks = 0;
     private int aerationTurns = 0;
     private int pendingWorms = 0;
+    private long lastAerationTick = -AERATION_COOLDOWN_TICKS;
 
     public WormBinBlockEntity(BlockPos pos, BlockState state) {
         super(FishtasticBlockEntityTypes.WORM_BIN.value(), pos, state);
@@ -66,16 +68,20 @@ public class WormBinBlockEntity extends BlockEntity {
         return depositedFish.size() < MAX_FISH_SLOTS;
     }
 
-    public boolean canAerate() {
-        return aerationTurns < MAX_AERATION_TURNS;
+    public boolean canAerate(long currentTick) {
+        return aerationTurns < MAX_AERATION_TURNS
+            && currentTick - lastAerationTick >= AERATION_COOLDOWN_TICKS;
     }
 
     public void depositFish(ItemStack fish) {
         if (canDeposit()) depositedFish.add(fish.copy());
     }
 
-    public void aerate() {
-        if (canAerate()) aerationTurns++;
+    public void aerate(long currentTick) {
+        if (canAerate(currentTick)) {
+            aerationTurns++;
+            lastAerationTick = currentTick;
+        }
     }
 
     public int getPendingWorms() {
@@ -91,6 +97,7 @@ public class WormBinBlockEntity extends BlockEntity {
         conversionTicks = 0;
         aerationTurns = 0;
         pendingWorms = 0;
+        lastAerationTick = -AERATION_COOLDOWN_TICKS;
     }
 
     @Override
@@ -99,6 +106,7 @@ public class WormBinBlockEntity extends BlockEntity {
         output.putInt("conversion_ticks", conversionTicks);
         output.putInt("aeration_turns", aerationTurns);
         output.putInt("pending_worms", pendingWorms);
+        output.putLong("last_aeration_tick", lastAerationTick);
         ValueOutput.ValueOutputList fishList = output.childrenList("deposited_fish");
         for (ItemStack fish : depositedFish) {
             fishList.addChild().store("stack", ItemStack.CODEC, fish);
@@ -111,6 +119,7 @@ public class WormBinBlockEntity extends BlockEntity {
         conversionTicks = input.getIntOr("conversion_ticks", 0);
         aerationTurns = input.getIntOr("aeration_turns", 0);
         pendingWorms = input.getIntOr("pending_worms", 0);
+        lastAerationTick = input.getLongOr("last_aeration_tick", -AERATION_COOLDOWN_TICKS);
         depositedFish.clear();
         input.childrenListOrEmpty("deposited_fish").forEach(e ->
                 e.read("stack", ItemStack.CODEC).ifPresent(depositedFish::add));
