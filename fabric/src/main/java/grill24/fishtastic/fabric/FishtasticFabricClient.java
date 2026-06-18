@@ -2,9 +2,11 @@ package grill24.fishtastic.fabric;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -80,6 +82,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
+        // Register fish encyclopedia sync packet client handler
+        FishEncyclopediaSyncPacket.registerClientHandler(packet ->
+                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes()));
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
@@ -88,6 +94,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.toggleFishTankEditMode);
+        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openFishEncyclopedia);
 
         // Register block entity renderer
         BlockEntityRendererRegistry.register(
@@ -97,8 +104,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Clear caches on world join
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
-        // Reset quest client cache on disconnect so stale data doesn't persist across worlds
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> QuestClientCache.reset());
+        // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            QuestClientCache.reset();
+            TutorialClientHandler.reset();
+            FishEncyclopediaClientCache.reset();
+        });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
         });

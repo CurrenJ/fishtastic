@@ -22,6 +22,8 @@ public class FishtasticPackets {
     public static final Identifier PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
     public static final Identifier TUTORIAL_SYNC_ID = Fishtastic.id("tutorial_sync");
     public static final Identifier TUTORIAL_ADVANCE_ID = Fishtastic.id("tutorial_advance");
+    public static final Identifier REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
+    public static final Identifier FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -75,6 +77,11 @@ public class FishtasticPackets {
                 TutorialAdvancePacket.STREAM_CODEC,
                 TutorialAdvancePacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                RequestFishEncyclopediaPacket.TYPE,
+                RequestFishEncyclopediaPacket.STREAM_CODEC,
+                RequestFishEncyclopediaPacket::handleClientToServer
+        );
     }
 
     /**
@@ -101,6 +108,11 @@ public class FishtasticPackets {
                 TutorialSyncPacket.STREAM_CODEC,
                 TutorialSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                FishEncyclopediaSyncPacket.TYPE,
+                FishEncyclopediaSyncPacket.STREAM_CODEC,
+                FishEncyclopediaSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -116,6 +128,7 @@ public class FishtasticPackets {
         registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
         registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
         registrar.accept(TutorialSyncPacket.TYPE, TutorialSyncPacket.STREAM_CODEC);
+        registrar.accept(FishEncyclopediaSyncPacket.TYPE, FishEncyclopediaSyncPacket.STREAM_CODEC);
     }
 
     /**

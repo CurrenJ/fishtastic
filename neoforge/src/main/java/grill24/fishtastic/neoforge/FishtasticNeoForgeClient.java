@@ -2,9 +2,11 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -61,6 +63,10 @@ public final class FishtasticNeoForgeClient {
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
+
+        // Register fish encyclopedia sync packet client handler
+        FishEncyclopediaSyncPacket.registerClientHandler(packet ->
+                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes()));
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
@@ -126,6 +132,7 @@ public final class FishtasticNeoForgeClient {
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         event.register(FishtasticKeyBinds.openQuestLog);
         event.register(FishtasticKeyBinds.toggleFishTankEditMode);
+        event.register(FishtasticKeyBinds.openFishEncyclopedia);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 
@@ -151,6 +158,8 @@ public final class FishtasticNeoForgeClient {
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
         QuestClientCache.reset();
+        TutorialClientHandler.reset();
+        FishEncyclopediaClientCache.reset();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {

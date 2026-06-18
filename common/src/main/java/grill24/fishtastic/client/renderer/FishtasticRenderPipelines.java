@@ -36,6 +36,20 @@ public final class FishtasticRenderPipelines {
     public static final String LEGENDARY_OUTLINE_UBO_NAME = "LegendaryOutlineParams";
     /** UBO name declared in {@code gui_item_outline_debug_uv.fsh}. */
     public static final String DEBUG_UV_UBO_NAME = "DebugUvOutlineParams";
+    /** UBO name declared in {@code gui_item_silhouette.fsh}. */
+    public static final String SILHOUETTE_UBO_NAME = "SilhouetteParams";
+
+    /**
+     * std140 size of the {@code SilhouetteParams} UBO.
+     * Layout: vec4 color | float opacity | float pulseSpeed | float pulseAmount | float _reserved0
+     */
+    public static final int SILHOUETTE_PARAMS_UBO_SIZE = new Std140SizeCalculator()
+            .putVec4()   // color (RGBA)
+            .putFloat()  // opacity
+            .putFloat()  // pulseSpeed
+            .putFloat()  // pulseAmount
+            .putFloat()  // _reserved0
+            .get();
 
     /** Creates a per-effect basic outline pipeline with a unique location ID. */
     public static RenderPipeline createOutlinePipeline(Identifier location) {
@@ -121,6 +135,22 @@ public final class FishtasticRenderPipelines {
                 .withLocation(location)
                 .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
                 .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
+
+    /** Creates the GUI item silhouette fill pipeline. Only one instance is ever needed (see {@link FishtasticSilhouetteEffect}). */
+    public static RenderPipeline createSilhouettePipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                .withUniform(SILHOUETTE_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_silhouette"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_silhouette"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)

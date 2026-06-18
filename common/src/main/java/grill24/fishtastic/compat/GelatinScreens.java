@@ -1,6 +1,7 @@
 package grill24.fishtastic.compat;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.FishEncyclopediaScreen;
 import grill24.fishtastic.client.LeaderboardScreen;
 import grill24.fishtastic.client.QuestLogScreen;
 import io.github.currenj.gelatinui.example.TestScreen;
@@ -22,6 +23,7 @@ public class GelatinScreens {
         registrar.register("fishtastic", TestScreen::new);
         registrar.register("leaderboard", LeaderboardScreen::new);
         registrar.register("quest_log", QuestLogScreen::new);
+        registrar.register("fish_encyclopedia", FishEncyclopediaScreen::new);
         Fishtastic.LOGGER.info("Registered {} screens with Gelatin UI.", Fishtastic.MOD_ID);
     }
 }

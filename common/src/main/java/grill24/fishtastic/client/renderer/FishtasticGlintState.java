@@ -58,6 +58,25 @@ public final class FishtasticGlintState {
     public static final IdentityHashMap<ItemStackRenderState, FishtasticWorldOutlineRenderer.Entry> WORLD_OUTLINE_MAP =
             new IdentityHashMap<>();
 
+    /**
+     * Maps an {@link ItemStackRenderState} identity to "render this as a solid silhouette"
+     * for the GUI item-button silhouette effect (fish encyclopedia "never caught" icons).
+     * Populated by {@code ItemModelResolverMixin} when {@link #SILHOUETTE_REQUESTED} is set,
+     * consumed by {@code GuiRendererMixin}. Entries are removed in
+     * {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, Boolean> GUI_SILHOUETTE_MAP = new IdentityHashMap<>();
+
+    /**
+     * Thread-local flag set by {@code SilhouetteItemButton} immediately before calling the
+     * real item renderer (which synchronously resolves the item model within that same call),
+     * and cleared immediately after. Read by {@code ItemModelResolverMixin} at the tail of
+     * {@code updateForTopItem} to populate {@link #GUI_SILHOUETTE_MAP} — this is UI-context
+     * state (has the player caught this fish?), not a property of the {@code ItemStack} itself,
+     * so it can't be looked up purely from the stack the way {@code ItemEffect} is.
+     */
+    public static final ThreadLocal<Boolean> SILHOUETTE_REQUESTED = new ThreadLocal<>();
+
     private FishtasticGlintState() {}
 }
 

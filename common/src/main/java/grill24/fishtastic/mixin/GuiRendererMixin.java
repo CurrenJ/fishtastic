@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
+import grill24.fishtastic.client.renderer.FishtasticSilhouetteEffect;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import net.minecraft.client.gui.render.GuiItemAtlas;
 import net.minecraft.client.gui.render.GuiRenderer;
@@ -32,6 +33,45 @@ public abstract class GuiRendererMixin {
 
     @Shadow
     private GuiRenderState renderState;
+
+    /**
+     * Fish encyclopedia "never caught" silhouette: replaces the normal item blit entirely
+     * (rather than adding an extra layer like the outline below) with a fill that samples the
+     * exact same already-baked atlas slot — i.e. the real itemstack renderer's output for this
+     * item, whatever its model — through {@code gui_item_silhouette.fsh}.
+     */
+    @Inject(method = "submitBlitFromItemAtlas", at = @At("HEAD"), cancellable = true)
+    private void fishtastic$renderSilhouette(
+            GuiItemRenderState itemState,
+            GuiItemAtlas.SlotView slotView,
+            CallbackInfo ci) {
+
+        if (!FishtasticGlintState.GUI_SILHOUETTE_MAP.containsKey(itemState.itemStackRenderState())) {
+            return;
+        }
+
+        RenderPipeline pipeline = FishtasticSilhouetteEffect.getOrCreatePipeline();
+
+        this.renderState.addBlitToCurrentLayer(new BlitRenderState(
+                pipeline,
+                TextureSetup.singleTexture(
+                        slotView.textureView(),
+                        RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
+                itemState.pose(),
+                itemState.x(),
+                itemState.y(),
+                itemState.x() + 16,
+                itemState.y() + 16,
+                slotView.u0(),
+                slotView.u1(),
+                slotView.v0(),
+                slotView.v1(),
+                0xFF000000,
+                itemState.scissorArea()
+        ));
+
+        ci.cancel();
+    }
 
     @Inject(method = "submitBlitFromItemAtlas", at = @At("HEAD"))
     private void fishtastic$addOutlineBlit(

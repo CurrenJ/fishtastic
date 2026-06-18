@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.network.ToggleEditModePacket;
 import grill24.fishtastic.client.TutorialClientHandler;
@@ -20,6 +21,7 @@ public class FishtasticKeyBinds {
 
     public static KeyMapping fishingMinigameImpulse;
     public static KeyMapping openQuestLog;
+    public static KeyMapping openFishEncyclopedia;
     public static KeyMapping toggleFishTankEditMode;
 
     /**
@@ -42,6 +44,12 @@ public class FishtasticKeyBinds {
             "key.fishtastic.toggle_fish_tank_edit_mode",
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
+            CATEGORY
+        );
+        openFishEncyclopedia = new KeyMapping(
+            "key.fishtastic.open_fish_encyclopedia",
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_K,
             CATEGORY
         );
     }
@@ -67,6 +75,11 @@ public class FishtasticKeyBinds {
         if (toggleFishTankEditMode != null && toggleFishTankEditMode.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
                 minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new ToggleEditModePacket()));
+            }
+        }
+        if (openFishEncyclopedia != null && openFishEncyclopedia.consumeClick()) {
+            if (minecraft.player != null && minecraft.screen == null) {
+                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket()));
             }
         }
     }

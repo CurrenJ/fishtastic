@@ -8,6 +8,7 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 
@@ -20,6 +21,7 @@ public class TutorialClientHandler {
     private static TutorialStep currentStep = TutorialStep.COMPLETE;
     private static int stepTicks = 0;
     private static boolean sentAdvanceThisStep = false;
+    private static boolean minigameControlAdvancePending = false;
 
     // Slide animation — 0 = fully shown, 1 = fully hidden (start/end position)
     private static float animOffset = 1.0f;
@@ -31,6 +33,7 @@ public class TutorialClientHandler {
     private static final int MINIGAME_INTRO_AUTO_ADVANCE_TICKS = 140; // 7 seconds
     private static final int CATCH_RESULT_AUTO_ADVANCE_TICKS = 200;  // 10 seconds
     private static final int SHOP_BROWSE_AUTO_ADVANCE_TICKS = 200;   // 15 seconds
+    private static final int MINIGAME_CONTROL_MIN_SHOW_TICKS = 60;   // 3 seconds, even if right-click is pressed early
 
     // -------------------------------------------------------------------------
     // Packet handler (registered in platform client inits)
@@ -41,6 +44,7 @@ public class TutorialClientHandler {
         currentStep = packet.step();
         stepTicks = 0;
         sentAdvanceThisStep = false;
+        minigameControlAdvancePending = false;
         animOffset = 1.0f;
         prevAnimOffset = 1.0f;
         isExiting = false;
@@ -77,6 +81,9 @@ public class TutorialClientHandler {
             case MINIGAME_INTRO -> {
                 if (stepTicks >= MINIGAME_INTRO_AUTO_ADVANCE_TICKS) sendAdvance();
             }
+            case MINIGAME_CONTROL -> {
+                if (minigameControlAdvancePending && stepTicks >= MINIGAME_CONTROL_MIN_SHOW_TICKS) sendAdvance();
+            }
             case CATCH_RESULT -> {
                 if (stepTicks >= CATCH_RESULT_AUTO_ADVANCE_TICKS) sendAdvance();
             }
@@ -100,8 +107,11 @@ public class TutorialClientHandler {
 
     /** Called when the player applies an impulse during the minigame. */
     public static void onMinigameImpulse() {
-        if (currentStep == TutorialStep.MINIGAME_CONTROL && !sentAdvanceThisStep) {
+        if (currentStep != TutorialStep.MINIGAME_CONTROL || sentAdvanceThisStep) return;
+        if (stepTicks >= MINIGAME_CONTROL_MIN_SHOW_TICKS) {
             sendAdvance();
+        } else {
+            minigameControlAdvancePending = true;
         }
     }
 
@@ -113,6 +123,17 @@ public class TutorialClientHandler {
     }
 
     public static TutorialStep getCurrentStep() { return currentStep; }
+
+    /** Call on disconnect/world-leave so the overlay doesn't persist into the main menu. */
+    public static void reset() {
+        currentStep = TutorialStep.COMPLETE;
+        stepTicks = 0;
+        sentAdvanceThisStep = false;
+        minigameControlAdvancePending = false;
+        animOffset = 1.0f;
+        prevAnimOffset = 1.0f;
+        isExiting = false;
+    }
 
     private static boolean isMinigameStep() {
         return currentStep == TutorialStep.MINIGAME_INTRO
@@ -137,6 +158,7 @@ public class TutorialClientHandler {
         if (isScreenStep()) return;  // rendered on top of screen via renderScreenOverlay()
 
         Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.screen instanceof PauseScreen) return;
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
@@ -156,7 +178,11 @@ public class TutorialClientHandler {
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
-        renderTextBox(graphics, mc, sw, sh, partialTick);
+        // Screen render hooks hand us Screen.render's "partial tick" param, which on this MC version is actually
+        // deltaTracker.getGameTimeDeltaTicks() (a frame-to-frame tick delta) — not the 0-1 interpolation fraction
+        // our slide animation needs. Pull the real interpolation fraction directly instead.
+        float realPartialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        renderTextBox(graphics, mc, sw, sh, realPartialTick);
     }
 
     private static void renderDarkOverlay(GuiGraphicsExtractor graphics, int sw, int sh) {

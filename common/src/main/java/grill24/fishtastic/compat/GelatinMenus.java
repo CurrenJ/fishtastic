@@ -30,6 +30,7 @@ public class GelatinMenus {
         registrar.registerDebugMenu("fishtastic");
         registrar.registerDebugMenu("leaderboard");
         registrar.registerDebugMenu("quest_log");
+        registrar.registerDebugMenu("fish_encyclopedia");
         GelatinUi.LOGGER.info("Registered Fishtastic menu with Gelatin UI.");
     }
 }

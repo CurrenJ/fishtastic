@@ -45,4 +45,18 @@ public final class GelatinOpenMenuCompat {
             Fishtastic.LOGGER.warn("Failed to open Quest Log menu; Gelatin UI not present.");
         }
     }
+
+    public static void openFishEncyclopediaMenu(ServerPlayer player) {
+        boolean success = CompatUtil.invokeIfDependencyPresent(
+            CompatUtil.GELATIN_UI_CLASS,
+            GELATIN_MENUS_CLASS,
+            GELATIN_MENUS_OPEN_METHOD,
+            player,
+            "fish_encyclopedia"
+        );
+
+        if (!success) {
+            Fishtastic.LOGGER.warn("Failed to open Fish Encyclopedia menu; Gelatin UI not present.");
+        }
+    }
 }
