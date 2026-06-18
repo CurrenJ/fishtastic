@@ -557,6 +557,74 @@ public class FishtasticFabricGameTests {
         PacketRoundTripGameTests.questSyncPacketRoundTrips(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.fishEncyclopediaSyncPacketRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void requestFishEncyclopediaPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.requestFishEncyclopediaPacketRoundTrips(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void emptyObjectDecodesToAllDefaults(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.emptyObjectDecodesToAllDefaults(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void partialThresholdsFillRemainingDefaults(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.partialThresholdsFillRemainingDefaults(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void fullEntryRoundTripsThroughJson(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.fullEntryRoundTripsThroughJson(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // FishEncyclopediaClientCache / FishEncyclopediaClientHelper tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void cacheStartsEmpty(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.cacheStartsEmpty(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void updatePopulatesCatchCountsByFishType(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.updatePopulatesCatchCountsByFishType(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void updateIndexesBestSizesByFishType(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.updateIndexesBestSizesByFishType(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void updateReplacesPriorContentsRatherThanMerging(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.updateReplacesPriorContentsRatherThanMerging(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void resetClearsAllMaps(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.resetClearsAllMaps(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getEncyclopediaEntryFallsBackToDefaultForUnregisteredFish(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.getEncyclopediaEntryFallsBackToDefaultForUnregisteredFish(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getAllFishProfilesSortedMatchesRegistryEntrySet(GameTestHelper helper) {
+        FishEncyclopediaClientGameTests.getAllFishProfilesSortedMatchesRegistryEntrySet(helper);
+    }
+
     // -------------------------------------------------------------------------
     // FishingMinigameManager tests
     // -------------------------------------------------------------------------

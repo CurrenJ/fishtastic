@@ -1,0 +1,32 @@
+#!/bin/sh
+# Blocks the commit if the common unit tests or either loader's game tests fail.
+
+echo ""
+echo "=== Pre-commit: running unit tests ==="
+
+if ! ./gradlew :common:test; then
+    echo ""
+    echo "COMMIT BLOCKED: common unit tests failed."
+    exit 1
+fi
+
+echo ""
+echo "=== Pre-commit: running game tests ==="
+
+echo "--- Fabric ---"
+if ! ./gradlew :fabric:runGametest; then
+    echo ""
+    echo "COMMIT BLOCKED: Fabric game tests failed."
+    exit 1
+fi
+
+echo ""
+echo "--- NeoForge ---"
+if ! ./gradlew :neoforge:runGametest; then
+    echo ""
+    echo "COMMIT BLOCKED: NeoForge game tests failed."
+    exit 1
+fi
+
+echo ""
+echo "All game tests passed."

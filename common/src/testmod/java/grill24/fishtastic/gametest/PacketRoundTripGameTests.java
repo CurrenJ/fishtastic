@@ -4,9 +4,13 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.PhaseRule;
+import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
+import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
+import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.util.FishingTarget;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Round-trip tests for Fishtastic's custom StreamCodec payloads.
@@ -152,6 +157,54 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decodedTriggerStack != null, "triggeringItems key must round-trip");
         assertStacksMatch(helper, triggeringStack, decodedTriggerStack, "triggeringItems[questA]");
 
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // FishEncyclopediaSyncPacket — Map<Identifier, Integer> and two List<LeaderboardEntry>
+    // -------------------------------------------------------------------------
+
+    public static void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
+        Identifier bluegill = Identifier.fromNamespaceAndPath("fishtastic", "bluegill");
+        Identifier trout = Identifier.fromNamespaceAndPath("fishtastic", "trout");
+
+        Map<Identifier, Integer> catchCounts = new HashMap<>();
+        catchCounts.put(bluegill, 12);
+        catchCounts.put(trout, 3);
+
+        List<LeaderboardEntry> personalBest = List.of(
+            LeaderboardEntry.personalBestSize(bluegill, 18.5f, FishQuality.Quality.RARE)
+        );
+        UUID otherPlayer = UUID.randomUUID();
+        List<LeaderboardEntry> globalBest = List.of(
+            LeaderboardEntry.globalBestSize(trout, otherPlayer, "SomePlayer", 24f, FishQuality.Quality.LEGENDARY)
+        );
+
+        FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest);
+
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        FishEncyclopediaSyncPacket.STREAM_CODEC.encode(buf, original);
+        FishEncyclopediaSyncPacket decoded = FishEncyclopediaSyncPacket.STREAM_CODEC.decode(buf);
+
+        helper.assertTrue(decoded.personalCatchCounts().equals(original.personalCatchCounts()), "personalCatchCounts map must round-trip via equals()");
+        helper.assertTrue(decoded.personalBestSizes().equals(original.personalBestSizes()), "personalBestSizes (clean record list) must round-trip via equals()");
+        helper.assertTrue(decoded.globalBestSizes().equals(original.globalBestSizes()), "globalBestSizes (clean record list) must round-trip via equals()");
+
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // RequestFishEncyclopediaPacket — empty record, StreamCodec.unit()
+    // -------------------------------------------------------------------------
+
+    public static void requestFishEncyclopediaPacketRoundTrips(GameTestHelper helper) {
+        RequestFishEncyclopediaPacket original = new RequestFishEncyclopediaPacket();
+
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        RequestFishEncyclopediaPacket.STREAM_CODEC.encode(buf, original);
+        RequestFishEncyclopediaPacket decoded = RequestFishEncyclopediaPacket.STREAM_CODEC.decode(buf);
+
+        helper.assertTrue(decoded.equals(original), "RequestFishEncyclopediaPacket must round-trip (unit codec)");
         helper.succeed();
     }
 }

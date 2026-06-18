@@ -2,6 +2,8 @@ package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
+import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
+import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
 import grill24.fishtastic.gametest.FishTankGameTests;
 import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
@@ -272,6 +274,34 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::purchaseShopEntryPacketRoundTrips);
         register(event, env, "quest_sync_packet_round_trips", 200,
             PacketRoundTripGameTests::questSyncPacketRoundTrips);
+        register(event, env, "fish_encyclopedia_sync_packet_round_trips", 200,
+            PacketRoundTripGameTests::fishEncyclopediaSyncPacketRoundTrips);
+        register(event, env, "request_fish_encyclopedia_packet_round_trips", 200,
+            PacketRoundTripGameTests::requestFishEncyclopediaPacketRoundTrips);
+
+        // ----- FishEncyclopediaEntry tests -----
+        register(event, env, "empty_object_decodes_to_all_defaults", 200,
+            FishEncyclopediaEntryGameTests::emptyObjectDecodesToAllDefaults);
+        register(event, env, "partial_thresholds_fill_remaining_defaults", 200,
+            FishEncyclopediaEntryGameTests::partialThresholdsFillRemainingDefaults);
+        register(event, env, "full_entry_round_trips_through_json", 200,
+            FishEncyclopediaEntryGameTests::fullEntryRoundTripsThroughJson);
+
+        // ----- FishEncyclopediaClientCache / FishEncyclopediaClientHelper tests -----
+        register(event, env, "cache_starts_empty", 200,
+            FishEncyclopediaClientGameTests::cacheStartsEmpty);
+        register(event, env, "update_populates_catch_counts_by_fish_type", 200,
+            FishEncyclopediaClientGameTests::updatePopulatesCatchCountsByFishType);
+        register(event, env, "update_indexes_best_sizes_by_fish_type", 200,
+            FishEncyclopediaClientGameTests::updateIndexesBestSizesByFishType);
+        register(event, env, "update_replaces_prior_contents_rather_than_merging", 200,
+            FishEncyclopediaClientGameTests::updateReplacesPriorContentsRatherThanMerging);
+        register(event, env, "reset_clears_all_maps", 200,
+            FishEncyclopediaClientGameTests::resetClearsAllMaps);
+        register(event, env, "get_encyclopedia_entry_falls_back_to_default_for_unregistered_fish", 200,
+            FishEncyclopediaClientGameTests::getEncyclopediaEntryFallsBackToDefaultForUnregisteredFish);
+        register(event, env, "get_all_fish_profiles_sorted_matches_registry_entry_set", 200,
+            FishEncyclopediaClientGameTests::getAllFishProfilesSortedMatchesRegistryEntrySet);
 
         // ----- FishingMinigameManager tests -----
         register(event, env, "start_session_end_to_end_returns_valid_session_id", 200,

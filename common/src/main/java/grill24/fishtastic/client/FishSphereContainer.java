@@ -34,7 +34,6 @@ import java.util.function.BiConsumer;
  */
 public class FishSphereContainer extends UIContainer<FishSphereContainer> {
     private static final float GOLDEN_ANGLE = (float) (Math.PI * (3.0 - Math.sqrt(5.0)));
-    private static final float SHRINK_DURATION = 0.2f;
 
     private float discRadius = 64f;
     private float defaultItemScale = 1.0f;
@@ -57,7 +56,6 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
     private IUIElement hoveredChild = null;
     private IUIElement selectedChild = null;
     private boolean shrinking = false;
-    private float shrinkElapsed = 0f;
 
     private BiConsumer<IUIElement, ResourceKey<FishProfile>> onFishSelected = (icon, key) -> {};
 
@@ -111,7 +109,6 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         hoveredChild = null;
         selectedChild = null;
         shrinking = false;
-        shrinkElapsed = 0f;
 
         for (Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton> item : items) {
             SilhouetteItemButton button = item.getValue();
@@ -144,18 +141,38 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         // Position management happens entirely in onUpdate; nothing to do on a layout pass.
     }
 
+    /**
+     * Overridden (rather than relying solely on {@code onUpdate}) so the all-shrunk check below
+     * runs against this frame's child scales, not last frame's: {@code UIContainer.update} calls
+     * {@code onUpdate} on this container *before* it loops over children to advance their own
+     * {@code currentScale} via {@code animate()}, so a check made from inside {@code onUpdate}
+     * would always be reading the scale as it stood at the end of the previous frame.
+     */
+    @Override
+    public void update(float deltaTime) {
+        super.update(deltaTime);
+
+        if (shrinking) {
+            boolean allShrunk = true;
+            for (IUIElement child : children) {
+                if (child != selectedChild && child instanceof UIElement<?> uiChild
+                        && uiChild.getCurrentScale() > 0.001f) {
+                    allShrunk = false;
+                    break;
+                }
+            }
+            if (allShrunk) {
+                for (IUIElement child : children) {
+                    child.setVisible(false);
+                }
+                shrinking = false;
+            }
+        }
+    }
+
     @Override
     protected void onUpdate(float deltaTime) {
         if (selectedChild != null) {
-            if (shrinking) {
-                shrinkElapsed += deltaTime;
-                if (shrinkElapsed >= SHRINK_DURATION) {
-                    for (IUIElement child : children) {
-                        child.setVisible(false);
-                    }
-                    shrinking = false;
-                }
-            }
             return;
         }
 
@@ -239,7 +256,6 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         selectedChild = clicked;
         hoveredChild = null;
         shrinking = true;
-        shrinkElapsed = 0f;
 
         for (IUIElement child : children) {
             if (child != clicked && child instanceof UIElement uiChild) {
@@ -268,7 +284,6 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         }
         selectedChild = null;
         shrinking = false;
-        shrinkElapsed = 0f;
 
         for (IUIElement c : children) {
             c.setVisible(true);

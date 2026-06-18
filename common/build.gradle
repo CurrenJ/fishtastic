@@ -16,4 +16,16 @@ dependencies {
     implementation "dev.architectury:architectury-injectables:1.0.13"
 
     compileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+
+    // Unit testing — gelatinui is compileOnly above (provided by the platform jar at
+    // runtime), but JUnit tests run outside any platform, so the test source set needs
+    // its own real dependency on it to construct UIElement/UIContainer instances.
+    testImplementation("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Use JUnit Platform for unit tests
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
