@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/worms"
+    "layer0": "fishtastic:item/fish/ocean_bait"
   }
 }

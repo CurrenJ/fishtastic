@@ -27,6 +27,16 @@
 
   "item.fishtastic.pile_of_fish": "Pile of Fish",
 
+  "item.fishtastic.fishing_minigame_rod_background": "Fishing Minigame Rod Background",
+  "item.fishtastic.fishing_minigame_bobber": "Fishing Minigame Bobber",
+  "item.fishtastic.sparkle": "Sparkle",
+  "item.fishtastic.generic_fish": "Fish",
+  "item.fishtastic.reward_chest": "Reward Chest",
+  "item.fishtastic.freshwater_bait": "Freshwater Bait",
+  "item.fishtastic.ocean_bait": "Ocean Bait",
+  "item.fishtastic.predator_bait": "Predator Bait",
+  "item.fishtastic.quest_token": "Fishing Token",
+
   "tooltip.fishtastic.item_size.cm": "%s cm",
 
   "key.categories.fishtastic": "Fishtastic",

@@ -3,10 +3,10 @@
   "category": "misc",
   "ingredients": [
     "fishtastic:worms",
-    "minecraft:kelp"
+    "minecraft:kelp",
+    "minecraft:seagrass"
   ],
   "result": {
-    "id": "fishtastic:ocean_bait",
-    "count": 3
+    "id": "fishtastic:ocean_bait"
   }
 }

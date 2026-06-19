@@ -3,10 +3,10 @@
   "category": "misc",
   "ingredients": [
     "fishtastic:worms",
-    "minecraft:lily_pad"
+    "minecraft:brown_mushroom",
+    "minecraft:red_mushroom"
   ],
   "result": {
-    "id": "fishtastic:freshwater_bait",
-    "count": 3
+    "id": "fishtastic:freshwater_bait"
   }
 }

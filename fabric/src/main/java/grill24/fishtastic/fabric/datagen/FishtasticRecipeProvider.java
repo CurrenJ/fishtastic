@@ -9,6 +9,7 @@ import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.*;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -137,25 +138,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_dirt", has(Items.DIRT))
                         .save(this.output);
 
-                // Shrimp: seagrass + gravel (found on sandy ocean floors)
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.FOOD, FishtasticItems.SHRIMP.value())
-                        .requires(Items.SEAGRASS)
-                        .requires(Items.SEAGRASS)
-                        .requires(Items.GRAVEL)
-                        .unlockedBy("has_seagrass", has(Items.SEAGRASS))
-                        .save(this.output);
-
-                // Fried Shrimp: cook shrimp in a furnace
-                SimpleCookingRecipeBuilder.smelting(
-                                Ingredient.of(FishtasticItems.SHRIMP.value()),
-                                RecipeCategory.FOOD,
-                                CookingBookCategory.FOOD,
-                                FishtasticItems.FRIED_SHRIMP.value(),
-                                0.35f, 200)
-                        .unlockedBy("has_shrimp", has(FishtasticItems.SHRIMP.value()))
-                        .save(this.output);
-
-                // Gummy Worms: worms + slime ball
+                // Gummy Worms
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.GUMMY_WORMS.value())
                         .requires(FishtasticItems.WORMS.value())
                         .requires(Items.GOLDEN_CARROT)
@@ -168,6 +151,30 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.BLAZED_GRUB.value())
                         .requires(FishtasticItems.WORMS.value())
                         .requires(Items.BLAZE_POWDER)
+                        .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
+                        .save(this.output);
+
+                // Ocean Bait: worms + kelp
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.OCEAN_BAIT.value())
+                        .requires(FishtasticItems.WORMS.value())
+                        .requires(Items.KELP)
+                        .requires(Items.SEAGRASS)
+                        .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
+                        .save(this.output);
+
+                // Freshwater Bait: worms + mushrooms
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FRESHWATER_BAIT.value())
+                        .requires(FishtasticItems.WORMS.value())
+                        .requires(Items.BROWN_MUSHROOM)
+                        .requires(Items.RED_MUSHROOM)
+                        .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
+                        .save(this.output);
+
+                // Predator Bait: worms + raw meat
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.PREDATOR_BAIT.value())
+                        .requires(FishtasticItems.WORMS.value())
+                        .requires(ItemTags.MEAT)
+                        .requires(ItemTags.MEAT)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
             }

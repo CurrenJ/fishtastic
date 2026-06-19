@@ -3,10 +3,10 @@
   "category": "misc",
   "ingredients": [
     "fishtastic:worms",
-    "minecraft:beef"
+    "#minecraft:meat",
+    "#minecraft:meat"
   ],
   "result": {
-    "id": "fishtastic:predator_bait",
-    "count": 3
+    "id": "fishtastic:predator_bait"
   }
 }
