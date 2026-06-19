@@ -41,13 +41,18 @@ public final class FishtasticRenderPipelines {
 
     /**
      * std140 size of the {@code SilhouetteParams} UBO.
-     * Layout: vec4 color | float opacity | float pulseSpeed | float pulseAmount | float _reserved0
+     * Layout: vec4 color | float opacity | float pulseSpeed | float pulseAmount | float edgeBlurTexels
+     *         | float dissolveScale | float dissolveSpeed | float dissolveStrength | float _reserved0
      */
     public static final int SILHOUETTE_PARAMS_UBO_SIZE = new Std140SizeCalculator()
             .putVec4()   // color (RGBA)
             .putFloat()  // opacity
             .putFloat()  // pulseSpeed
             .putFloat()  // pulseAmount
+            .putFloat()  // edgeBlurTexels
+            .putFloat()  // dissolveScale
+            .putFloat()  // dissolveSpeed
+            .putFloat()  // dissolveStrength
             .putFloat()  // _reserved0
             .get();
 

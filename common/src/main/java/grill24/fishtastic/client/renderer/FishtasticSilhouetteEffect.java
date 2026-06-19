@@ -29,6 +29,12 @@ public final class FishtasticSilhouetteEffect {
     /** Gentle breathing alpha — 0 disables the pulse entirely. Cycles per in-game day. */
     private static final float PULSE_SPEED = 0.0f;
     private static final float PULSE_AMOUNT = 0.35f;
+    /** Rounds off fin/tail spikes that would otherwise give away the species at a glance. */
+    private static final float EDGE_BLUR_TEXELS = 2.5f;
+    /** Per-icon dissolve noise: fine grain, slow drift, moderate erosion of the boundary only. */
+    private static final float DISSOLVE_SCALE = 0.35f;
+    private static final float DISSOLVE_SPEED = 0.015f;
+    private static final float DISSOLVE_STRENGTH = 0.6f;
 
     private static RenderPipeline pipeline;
     private static GpuBuffer paramsBuffer;
@@ -64,6 +70,10 @@ public final class FishtasticSilhouetteEffect {
                     .putFloat(OPACITY)
                     .putFloat(PULSE_SPEED)
                     .putFloat(PULSE_AMOUNT)
+                    .putFloat(EDGE_BLUR_TEXELS)
+                    .putFloat(DISSOLVE_SCALE)
+                    .putFloat(DISSOLVE_SPEED)
+                    .putFloat(DISSOLVE_STRENGTH)
                     .putFloat(0.0f) // _reserved0
                     .get();
             RenderSystem.getDevice().createCommandEncoder().writeToBuffer(buffer.slice(), data);
