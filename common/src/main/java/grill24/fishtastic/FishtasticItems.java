@@ -15,7 +15,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.BundleContents;
 
@@ -131,23 +130,20 @@ public class FishtasticItems {
 
         // Group affinity bait items
         FRESHWATER_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
-                loc -> new Item(props(loc)
+                loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
-                                List.of(new BaitEffect.FishGroupAffinity(
-                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "freshwater_fish")), 2.5f))))));
+                                List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRESHWATER_FISH, 2.5f))))));
         OCEAN_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
-                loc -> new Item(props(loc)
+                loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
-                                List.of(new BaitEffect.FishGroupAffinity(
-                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "ocean_fish")), 2.5f))))));
+                                List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.OCEAN_FISH, 2.5f))))));
         PREDATOR_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
-                loc -> new Item(props(loc)
+                loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.3f, 0.10f, 0, 1.0f, 0.8f, 0.0f, Optional.empty(),
-                                List.of(new BaitEffect.FishGroupAffinity(
-                                        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fishtastic", "predator_fish")), 2.5f))))));
+                                List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.PREDATOR_FISH, 2.5f))))));
 
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));

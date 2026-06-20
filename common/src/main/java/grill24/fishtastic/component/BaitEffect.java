@@ -2,14 +2,18 @@ package grill24.fishtastic.component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.util.Utility;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,7 +52,7 @@ public record BaitEffect(
     // Blazed Grub: treasure hunter + exotic fish only pool
     public static final BaitEffect BLAZED_GRUB = new BaitEffect(
             2.0f, 0.50f, 0, 1.0f, 1.0f, 0.5f,
-            Optional.of(TagKey.create(Registries.ITEM, Fishtastic.id("exotic_fish"))), List.of());
+            Optional.of(FishtasticItemTags.EXOTIC_FISH), List.of());
 
     public static final Codec<BaitEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("luck_bonus", 0.0f).forGetter(BaitEffect::luckBonus),
@@ -62,4 +66,38 @@ public record BaitEffect(
     ).apply(i, BaitEffect::new));
 
     public static final StreamCodec<ByteBuf, BaitEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+    /** Player-facing description of this bait's effects, for use in item/rod tooltips. */
+    public List<Component> tooltipLines() {
+        List<Component> lines = new ArrayList<>();
+        if (luckBonus != 0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.luck", luckBonus).withStyle(ChatFormatting.GRAY));
+        }
+        lines.add(Component.translatable("tooltip.fishtastic.bait_effect.treasure_chance", (int) (treasureChance * 100))
+                .withStyle(ChatFormatting.GRAY));
+        if (targetCountBonus != 0) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.target_count_bonus", targetCountBonus)
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        if (vanillaFishMultiplier != 1.0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.vanilla_fish_multiplier", vanillaFishMultiplier)
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        if (modFishMultiplier != 1.0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.mod_fish_multiplier", modFishMultiplier)
+                    .withStyle(ChatFormatting.GREEN));
+        }
+        if (qualityBias != 0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.quality_bias", qualityBias)
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        exclusiveFishPool.ifPresent(tag -> lines.add(Component.translatable("tooltip.fishtastic.bait_effect.exclusive_pool",
+                Utility.prettyName(tag.location().getPath())).withStyle(ChatFormatting.GOLD)));
+        for (FishGroupAffinity affinity : fishGroupAffinities) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.group_affinity",
+                            Utility.prettyName(affinity.group().location().getPath()), affinity.multiplier())
+                    .withStyle(ChatFormatting.AQUA));
+        }
+        return lines;
+    }
 }

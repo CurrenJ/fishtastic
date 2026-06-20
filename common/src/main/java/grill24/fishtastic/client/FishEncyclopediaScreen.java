@@ -1,10 +1,12 @@
 package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
+import grill24.fishtastic.util.Utility;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.IUIElement;
@@ -23,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -69,6 +72,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private Label caughtCountLabel;
     private VBox recordsContainer;
     private VBox statsContainer;
+    private VBox typesContainer;
     private VBox spawnContainer;
     private VBox loreContainer;
 
@@ -119,6 +123,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         caughtCountLabel = null;
         recordsContainer = null;
         statsContainer = null;
+        typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
 
@@ -291,6 +296,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         caughtCountLabel = null;
         recordsContainer = null;
         statsContainer = null;
+        typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
 
@@ -345,6 +351,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         statsContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(statsContainer);
 
+        typesContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
+        page.addChild(typesContainer);
+
         spawnContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(spawnContainer);
 
@@ -367,7 +376,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaEntry.UnlockThresholds thresholds = selectedEntry.thresholds();
 
         boolean nameRevealed = catchCount >= thresholds.nameRevealCatches();
-        String displayName = nameRevealed ? prettyName(fishId.getPath()) : "???";
+        String displayName = nameRevealed ? Utility.prettyName(fishId.getPath()) : "???";
         nameLabel.text(displayName).color(nameRevealed ? 0xFFFFFFFF : 0xFF888888);
         caughtCountLabel.text(nameRevealed ? "Caught " + catchCount + " times" : "");
         caughtCountLabel.setVisible(nameRevealed);
@@ -376,6 +385,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         statsContainer.clearChildren();
         statsContainer.addChild(buildGatedSection("Stats", catchCount, thresholds.statsCatches(),
                 () -> buildStatsContent(selectedProfile)));
+        typesContainer.clearChildren();
+        typesContainer.addChild(buildGatedSection("Types", catchCount, thresholds.typesCatches(),
+                () -> buildTypesContent(fishId)));
         spawnContainer.clearChildren();
         spawnContainer.addChild(buildGatedSection("Spawn Conditions", catchCount, thresholds.spawnConditionsCatches(),
                 () -> buildSpawnConditionsContent(selectedProfile)));
@@ -413,16 +425,32 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return content;
     }
 
+    private VBox buildTypesContent(Identifier fishId) {
+        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+        Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
+        List<TagKey<Item>> groups = FishtasticItemTags.FISH_GROUPS.stream()
+                .filter(item.builtInRegistryHolder()::is)
+                .toList();
+        if (groups.isEmpty()) {
+            content.addChild(label("No bait affinities.", 0xFF888888));
+        } else {
+            for (TagKey<Item> group : groups) {
+                content.addChild(label(Utility.prettyName(group.location().getPath()), 0xFFCCCCCC));
+            }
+        }
+        return content;
+    }
+
     private VBox buildSpawnConditionsContent(FishProfile profile) {
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         for (FishProfile.BiomeWeight bw : profile.biomeWeights()) {
-            content.addChild(label(prettyName(bw.biome().location().getPath()) + ": x" + bw.multiplier(), 0xFFCCCCCC));
+            content.addChild(label(Utility.prettyName(bw.biome().location().getPath()) + ": x" + bw.multiplier(), 0xFFCCCCCC));
         }
         for (FishProfile.TimeWeight tw : profile.timeWeights()) {
-            content.addChild(label(prettyName(tw.time().name()) + ": x" + tw.multiplier(), 0xFFCCCCCC));
+            content.addChild(label(Utility.prettyName(tw.time().name()) + ": x" + tw.multiplier(), 0xFFCCCCCC));
         }
         for (FishProfile.WeatherWeight ww : profile.weatherWeights()) {
-            content.addChild(label(prettyName(ww.weather().name()) + ": x" + ww.multiplier(), 0xFFCCCCCC));
+            content.addChild(label(Utility.prettyName(ww.weather().name()) + ": x" + ww.multiplier(), 0xFFCCCCCC));
         }
         if (profile.biomeWeights().isEmpty() && profile.timeWeights().isEmpty() && profile.weatherWeights().isEmpty()) {
             content.addChild(label("No special conditions.", 0xFF888888));
@@ -467,13 +495,4 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return new Label(text, color).init(tempContext);
     }
 
-    private static String prettyName(String path) {
-        String[] parts = path.split("_");
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (!sb.isEmpty()) sb.append(' ');
-            if (!part.isEmpty()) sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1).toLowerCase());
-        }
-        return sb.toString();
-    }
 }

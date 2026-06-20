@@ -43,7 +43,8 @@ public final class FishEncyclopediaEntryGameTests {
 
         FishEncyclopediaEntry.UnlockThresholds t = decoded.thresholds();
         helper.assertTrue(t.nameRevealCatches() == 2, "explicit nameRevealCatches must override default, got " + t.nameRevealCatches());
-        helper.assertTrue(t.statsCatches() == 5, "unset statsCatches must fall back to default 5, got " + t.statsCatches());
+        helper.assertTrue(t.statsCatches() == 1, "unset statsCatches must fall back to default 1, got " + t.statsCatches());
+        helper.assertTrue(t.typesCatches() == 5, "unset typesCatches must fall back to default 5, got " + t.typesCatches());
         helper.assertTrue(t.spawnConditionsCatches() == 10, "unset spawnConditionsCatches must fall back to default 10, got " + t.spawnConditionsCatches());
         helper.assertTrue(t.loreCatches() == 25, "unset loreCatches must fall back to default 25, got " + t.loreCatches());
         helper.succeed();
@@ -52,7 +53,7 @@ public final class FishEncyclopediaEntryGameTests {
     public static void fullEntryRoundTripsThroughJson(GameTestHelper helper) {
         FishEncyclopediaEntry original = new FishEncyclopediaEntry(
             Optional.of("A shy fish that hides in caves."),
-            new FishEncyclopediaEntry.UnlockThresholds(1, 2, 3, 4)
+            new FishEncyclopediaEntry.UnlockThresholds(1, 2, 3, 4, 5)
         );
 
         JsonElement encoded = FishEncyclopediaEntry.CODEC.encodeStart(JsonOps.INSTANCE, original)

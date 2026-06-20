@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.client.tooltip.RodBaitTooltip;
+import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.RodBaitContents;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -174,9 +175,15 @@ public class CopperFishingRod extends FishingRodItem {
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
                                  Consumer<Component> builder, TooltipFlag flag) {
         super.appendHoverText(stack, context, display, builder, flag);
-        if (getBait(stack).isEmpty()) {
+        ItemStack bait = getBait(stack);
+        if (bait.isEmpty()) {
             builder.accept(Component.translatable("item.fishtastic.copper_fishing_rod.no_bait")
                     .withStyle(ChatFormatting.GRAY));
+        } else {
+            BaitEffect baitEffect = bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
+            if (baitEffect != null) {
+                baitEffect.tooltipLines().forEach(builder);
+            }
         }
     }
 

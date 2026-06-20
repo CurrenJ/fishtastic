@@ -10,11 +10,14 @@ import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.LootParams;
 import org.jetbrains.annotations.Nullable;
@@ -22,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class FishtasticFishItem extends Item {
 
@@ -52,6 +56,16 @@ public class FishtasticFishItem extends Item {
 
     protected int getAdditionalWeight(LootParams lootParams) {
         return 0;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
+                                 Consumer<Component> builder, TooltipFlag flag) {
+        super.appendHoverText(stack, context, display, builder, flag);
+        BaitEffect baitEffect = stack.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        if (baitEffect != null) {
+            baitEffect.tooltipLines().forEach(builder);
+        }
     }
 
     // ----- Loot Sampling -----

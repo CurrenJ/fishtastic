@@ -2,6 +2,15 @@
   "item.fishtastic.copper_fishing_rod": "Copper Fishing Rod",
   "item.fishtastic.copper_fishing_rod.no_bait": "No Bait Loaded",
 
+  "tooltip.fishtastic.bait_effect.luck": "Luck: +%s",
+  "tooltip.fishtastic.bait_effect.treasure_chance": "Treasure Chance: %s%%",
+  "tooltip.fishtastic.bait_effect.target_count_bonus": "+%s Catch Targets",
+  "tooltip.fishtastic.bait_effect.vanilla_fish_multiplier": "Vanilla Fish: x%s",
+  "tooltip.fishtastic.bait_effect.mod_fish_multiplier": "Mod Fish: x%s",
+  "tooltip.fishtastic.bait_effect.quality_bias": "Quality Bias: +%s",
+  "tooltip.fishtastic.bait_effect.exclusive_pool": "Only catches: %s",
+  "tooltip.fishtastic.bait_effect.group_affinity": "%s: x%s",
+
   "item.fishtastic.acute_iaspis": "Acute Iaspis",
   "item.fishtastic.blazed_grub": "Blazed Grub",
   "item.fishtastic.bluegill": "Bluegill",
