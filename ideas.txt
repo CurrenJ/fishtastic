@@ -5,7 +5,3 @@
 - REEL! the big fish
 - Rod upgrades (dur, size params, bobber bounciness, fish escape speed, catch speed) Maybe some are mutually exclusive?
 - Some fish only available if stats are high enough ( > 100 diamond ores mined)
-
-x Fish > 100cm 3x3 detection only working in one cardinal dir, fix
-- FIsh > 100cm blocking; add to config
-x Per fish default size gaussian params

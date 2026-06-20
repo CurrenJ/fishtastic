@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fishtastic — Automated Test Coverage Overview</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --border:#2a2f3a;
+    --text:#e8eaf0; --muted:#9aa3b2; --muted2:#6b7383;
+    --green:#3ddc84; --green-d:#1c8a52;
+    --amber:#f5b942; --amber-d:#9a6f0e;
+    --orange:#f08a3c; --orange-d:#a8541a;
+    --red:#ef5165; --red-d:#9c1f30;
+    --gray:#6b7383; --gray-d:#444b59;
+    --blue:#5aa9ff;
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:linear-gradient(180deg,#0c0e12,#11141b 400px,var(--bg));
+    color:var(--text); padding:0 0 60px;
+  }
+  header{
+    padding:40px 48px 28px; border-bottom:1px solid var(--border);
+    background:radial-gradient(1200px 300px at 15% 0%, rgba(61,220,132,0.08), transparent),
+               radial-gradient(1200px 300px at 85% 0%, rgba(239,81,101,0.08), transparent);
+  }
+  header h1{margin:0 0 6px; font-size:28px; letter-spacing:.2px;}
+  header .sub{color:var(--muted); font-size:14px; line-height:1.6; max-width:880px;}
+  header .meta{margin-top:14px; display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted2);}
+  header .meta span b{color:var(--text); font-weight:600;}
+  main{max-width:1180px; margin:0 auto; padding:36px 48px;}
+  section{margin-bottom:48px;}
+  h2{font-size:18px; margin:0 0 4px; display:flex; align-items:center; gap:10px;}
+  h2 .tag{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--muted2); border:1px solid var(--border); border-radius:20px; padding:3px 10px;}
+  .lede{color:var(--muted); font-size:13.5px; margin:0 0 22px; max-width:820px; line-height:1.6;}
+
+  /* stat cards */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; position:relative; overflow:hidden;}
+  .stat .num{font-size:30px; font-weight:700; line-height:1;}
+  .stat .lbl{margin-top:6px; font-size:12.5px; color:var(--muted);}
+  .stat::after{content:""; position:absolute; right:-20px; top:-20px; width:90px; height:90px; border-radius:50%; opacity:.12;}
+  .stat.c1::after{background:var(--green);} .stat.c1 .num{color:var(--green);}
+  .stat.c2::after{background:var(--red);} .stat.c2 .num{color:var(--red);}
+  .stat.c3::after{background:var(--blue);} .stat.c3 .num{color:var(--blue);}
+  .stat.c4::after{background:var(--gray);} .stat.c4 .num{color:#c7cdda;}
+
+  /* donut */
+  .donut-row{display:flex; gap:36px; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:26px 30px; flex-wrap:wrap;}
+  .donut{position:relative; width:200px; height:200px; border-radius:50%; flex:0 0 auto;
+    background:conic-gradient(var(--green) 0% 5.1%, var(--gray) 5.1% 28.57%, var(--red) 28.57% 100%);}
+  .donut .hole{position:absolute; inset:30px; background:var(--panel); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .donut .hole b{font-size:26px;} .donut .hole span{font-size:11px; color:var(--muted); margin-top:2px; text-align:center; max-width:120px;}
+  .legend{display:flex; flex-direction:column; gap:12px; flex:1; min-width:260px;}
+  .legend .row{display:flex; align-items:flex-start; gap:10px; font-size:13px;}
+  .legend .dot{width:12px; height:12px; border-radius:3px; margin-top:3px; flex:0 0 auto;}
+  .legend .row b{display:block; color:var(--text); font-size:13.5px;}
+  .legend .row .d{color:var(--muted); font-size:12.5px; margin-top:2px;}
+
+  /* bar chart */
+  .barchart{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:26px 28px;}
+  .bar-row{display:grid; grid-template-columns:230px 1fr 46px; align-items:center; gap:12px; margin-bottom:10px;}
+  .bar-row .name{font-size:12.8px; color:#cfd4de;}
+  .bar-track{height:16px; background:#11141b; border-radius:8px; overflow:hidden; border:1px solid var(--border);}
+  .bar-fill{height:100%; border-radius:8px 0 0 8px;}
+  .bar-row .count{font-size:12.5px; color:var(--muted); text-align:right;}
+  .chart-legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--muted);}
+  .chart-legend .item{display:flex; align-items:center; gap:6px;}
+  .chart-legend .sw{width:10px; height:10px; border-radius:2px;}
+
+  /* risk matrix */
+  .matrix{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:26px 28px;}
+  .matrix-grid{display:grid; grid-template-columns:120px 1fr 1fr 1fr; grid-template-rows:auto 1fr 1fr 1fr; gap:8px;}
+  .matrix-grid .axis-label{font-size:11px; color:var(--muted2); text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; justify-content:center; text-align:center;}
+  .matrix-grid .col-head{font-size:12px; font-weight:600; color:var(--muted); text-align:center; padding-bottom:4px;}
+  .matrix-grid .row-head{font-size:12px; font-weight:600; color:var(--muted); display:flex; align-items:center; justify-content:flex-end; padding-right:8px; text-align:right;}
+  .cell{border-radius:10px; padding:12px; min-height:96px; display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px; border:1px solid var(--border);}
+  .cell.danger{background:rgba(239,81,101,0.10); border-color:rgba(239,81,101,0.45);}
+  .cell.warn{background:rgba(245,185,66,0.08); border-color:rgba(245,185,66,0.30);}
+  .cell.safe{background:rgba(61,220,132,0.08); border-color:rgba(61,220,132,0.30);}
+  .cell.neutral{background:#11141b;}
+  .chip{font-size:11.5px; padding:4px 9px; border-radius:20px; background:#23272f; border:1px solid var(--border); color:#dfe3ea; white-space:nowrap;}
+  .chip.strong{background:rgba(61,220,132,0.16); border-color:var(--green-d); color:#bdf5d4;}
+  .chip.critical{background:rgba(239,81,101,0.18); border-color:var(--red-d); color:#ffd0d6;}
+  .chip.high{background:rgba(240,138,60,0.18); border-color:var(--orange-d); color:#ffdcc0;}
+  .chip.med{background:rgba(245,185,66,0.16); border-color:var(--amber-d); color:#fbe3ad;}
+  .chip.low{background:rgba(107,115,131,0.18); border-color:var(--gray-d); color:#cfd4de;}
+
+  /* tables */
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  table caption{display:none;}
+  th{text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted2); padding:10px 12px; border-bottom:1px solid var(--border);}
+  td{padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:top; color:#d6dae3;}
+  tr:last-child td{border-bottom:none;}
+  .domain-table{background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+  .badge{display:inline-block; font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600;}
+  .badge.strong{background:rgba(61,220,132,0.18); color:#7fe9ab;}
+  .badge.none-critical{background:rgba(239,81,101,0.18); color:#ff96a3;}
+  .badge.none-high{background:rgba(240,138,60,0.18); color:#ffb27a;}
+  .badge.none-med{background:rgba(245,185,66,0.18); color:#ffd479;}
+  .badge.none-low{background:rgba(107,115,131,0.22); color:#b9bfcc;}
+  .badge.outscope{background:rgba(90,169,255,0.16); color:#9cc9ff;}
+  .badge.na{background:rgba(107,115,131,0.14); color:#8c93a3;}
+  .num-cell{font-weight:600; color:#cfd4de;}
+
+  /* gap cards */
+  .gap-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+  .gap-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px;}
+  .gap-card .pri{font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; font-weight:700; padding:3px 9px; border-radius:6px; display:inline-block; margin-bottom:10px;}
+  .pri.critical{background:rgba(239,81,101,0.2); color:#ff96a3;}
+  .pri.high{background:rgba(240,138,60,0.2); color:#ffb27a;}
+  .pri.medium{background:rgba(245,185,66,0.2); color:#ffd479;}
+  .pri.low{background:rgba(107,115,131,0.25); color:#c7cdda;}
+  .gap-card h3{margin:0 0 8px; font-size:15px;}
+  .gap-card p{margin:0 0 10px; font-size:13px; color:#c4c9d3; line-height:1.55;}
+  .gap-card .qa{font-size:12.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:10px; margin-top:10px;}
+  .gap-card .qa b{color:#cfd4de;}
+
+  .strengths-list{display:grid; gap:12px;}
+  .strength{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--green); border-radius:8px; padding:14px 18px;}
+  .strength b{display:block; margin-bottom:4px; font-size:13.5px;}
+  .strength span{font-size:12.8px; color:var(--muted); line-height:1.5;}
+
+  footer{color:var(--muted2); font-size:12px; max-width:880px; line-height:1.7; border-top:1px solid var(--border); padding-top:20px;}
+  code{background:#11141b; border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:12px; color:#bcd6ff;}
+
+  @media (max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .gap-grid{grid-template-columns:1fr;}
+    .matrix-grid{grid-template-columns:80px 1fr 1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fishtastic — Automated Test Coverage Overview</h1>
+  <div class="sub">A structural assessment of what the project's new GameTest suite actually exercises, mapped against the full common/fabric/neoforge source tree — built to tell you where the automated net catches bugs, and where you're flying on manual QA alone.</div>
+  <div class="meta">
+    <span>Branch: <b>26.1.2</b></span>
+    <span>Sources scanned: <b>196 Java files</b> (common + fabric + neoforge)</span>
+    <span>Test framework: <b>Minecraft GameTest</b> (server-integration style, no JUnit/JaCoCo wired in)</span>
+    <span>Test suite status: <b>newly added, currently staged/uncommitted</b></span>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <h2>Headline numbers</h2>
+    <p class="lede">There is no line-coverage instrumentation in this build (no JaCoCo/JUnit task) — coverage here is measured structurally: which classes are exercised by at least one test, grouped by feature domain.</p>
+    <div class="stats">
+      <div class="stat c1"><div class="num">35</div><div class="lbl">shared test methods, each run on both Fabric &amp; NeoForge (70 executions total)</div></div>
+      <div class="stat c3"><div class="num">~10 / 196</div><div class="lbl">source files with direct automated coverage (≈5%)</div></div>
+      <div class="stat c2"><div class="num">4</div><div class="lbl">high-importance domains at zero coverage (minigame, fish tank, quests/tutorial, item effects)</div></div>
+      <div class="stat c4"><div class="num">46</div><div class="lbl">files that are inherently out of reach for this framework (client rendering + mixins)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Coverage at a glance</h2>
+    <div class="donut-row">
+      <div class="donut"><div class="hole"><b>196</b><span>total Java sources</span></div></div>
+      <div class="legend">
+        <div class="row"><span class="dot" style="background:var(--green)"></span><div><b>Tested — 10 files (5%)</b><div class="d">Worm Bin lifecycle, fish-catch leaderboards, and the core item data components (ItemSize, FishQuality, BaitEffect) plus their helpers. All pure logic, no rendering.</div></div></div>
+        <div class="row"><span class="dot" style="background:var(--gray)"></span><div><b>Out of framework scope — 46 files (23%)</b><div class="d">Mixins and client-only rendering/GUI code. GameTest runs headless on a server — these need manual play-testing or a separate visual-regression approach, no amount of GameTest effort reaches them.</div></div></div>
+        <div class="row"><span class="dot" style="background:var(--red)"></span><div><b>Untested but testable — 140 files (71%)</b><div class="d">Server-side logic that <i>could</i> be covered the same way Worm Bin was, but isn't yet — this is the actionable gap.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Files per domain, by coverage status</h2>
+    <p class="lede">Sorted by size. Bar color is coverage status, not importance — cross-reference with the risk matrix below before prioritizing.</p>
+    <div class="barchart" id="barchart">
+      <!-- rows injected via inline data below -->
+    </div>
+  </section>
+
+  <section>
+    <h2>Risk matrix — where coverage gaps actually hurt</h2>
+    <p class="lede">Gameplay importance/complexity vs. current coverage. The top-right cell is where an undetected bug does the most damage — that's your manual QA priority list.</p>
+    <div class="matrix">
+      <div class="matrix-grid">
+        <div></div>
+        <div class="col-head">Low importance</div>
+        <div class="col-head">Medium importance</div>
+        <div class="col-head">High importance / complexity</div>
+
+        <div class="row-head">Strong coverage</div>
+        <div class="cell neutral"></div>
+        <div class="cell safe"><span class="chip strong">Fish Catch Data / Leaderboards</span></div>
+        <div class="cell safe"><span class="chip strong">Worm Bin</span><span class="chip strong">Item Data Components</span></div>
+
+        <div class="row-head">Partial coverage</div>
+        <div class="cell neutral"></div>
+        <div class="cell neutral"></div>
+        <div class="cell neutral" style="font-size:11.5px;color:var(--muted2);align-content:center;justify-content:center;text-align:center;">RodBaitContents (1 component) sits in an otherwise-tested file group, untouched itself</div>
+
+        <div class="row-head">Zero coverage</div>
+        <div class="cell warn">
+          <span class="chip low">Commands</span>
+          <span class="chip low">Registration / Compat glue</span>
+          <span class="chip low">Misc items + dead code</span>
+        </div>
+        <div class="cell warn">
+          <span class="chip med">Networking (Packets)</span>
+          <span class="chip med">Shop / Economy</span>
+          <span class="chip med">Datagen</span>
+          <span class="chip low">Pure Utility / Math</span>
+        </div>
+        <div class="cell danger">
+          <span class="chip critical">Fishing Minigame Core</span>
+          <span class="chip critical">Fish Tank System</span>
+          <span class="chip high">Quests &amp; Tutorial</span>
+          <span class="chip high">Item Effects Engine</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Domain-by-domain breakdown</h2>
+    <div class="domain-table">
+      <table>
+        <thead>
+          <tr><th>Domain</th><th>Files</th><th>Automated tests</th><th>Status</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="domain-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What's solid <span class="tag">strengths</span></h2>
+    <div class="strengths-list">
+      <div class="strength"><b>Worm Bin economy is the best-tested feature in the mod</b><span>12 shared test methods cover phase transitions (EMPTY → CONVERTING → READY), the 5-fish deposit cap, the 5-turn aeration cap, base vs. aeration-reduced conversion timing (6000 → 4800 ticks), per-quality worm yield math, mixed-quality batches, and harvest/reset. This is the template the rest of the mod should follow.</span></div>
+      <div class="strength"><b>Fish-catch leaderboards have real edge-case coverage</b><span>Guard clauses (non-fish items, zero-size fish), personal-vs-global isolation by UUID, sort-order correctness (asc/desc), and unknown-player handling are all explicitly asserted — exactly the kind of off-by-one / data-isolation bug that's painful to catch by hand.</span></div>
+      <div class="strength"><b>Core data components are verified end-to-end</b><span>ItemSize and FishQuality round-trip through get/set/remove/copy and the empty-stack no-op guard; all 5 quality tiers and their render-effect thresholds and intensity values are checked; BaitEffect presets (WORMS, BLAZED_GRUB, GUMMY_WORMS, NO_BAIT) are pinned to documented numeric values.</span></div>
+      <div class="strength"><b>Genuine cross-platform parity, not just "compiles on both"</b><span>All 35 test methods live once in <code>common/src/testmod</code> and run unmodified on both Fabric (<code>@GameTest</code> + fabric-gametest-api-v1) and NeoForge (programmatic <code>RegisterGameTestsEvent</code>) — a Fabric-only regression in shared logic would still be caught on NeoForge's run and vice versa.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where to focus manual QA <span class="tag">gaps, prioritized</span></h2>
+    <div class="gap-grid">
+      <div class="gap-card">
+        <span class="pri critical">Critical</span>
+        <h3>Fishing minigame core (session generation &amp; trust validation)</h3>
+        <p><code>FishingMinigameManager</code> (458 lines) implements a trust-based model: the server generates and caches loot for a session, the client plays the minigame locally, and the server validates the client's reported results before awarding anything. That validation boundary is exactly the kind of logic an automated test should pin down — right now nothing does. <code>FishingTarget</code> (907 lines, the largest util class in the mod), <code>FishingMinigameAnimation</code> (506 lines), and <code>FishingMinigameState</code> (268 lines) are all likewise untested.</p>
+        <div class="qa"><b>Manual QA focus:</b> try to win the minigame with implausible inputs (replayed/edited client reports if you can simulate them), check reward correctness across temperaments/biomes, and watch for any path where a session can be double-claimed or left dangling across a disconnect.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri critical">Critical</span>
+        <h3>Fish Tank system</h3>
+        <p><code>FishTankBlockEntity</code> (848 lines) is the largest block entity in the mod and has zero automated coverage, alongside customization-mode management, edit-mode state, and the composite-model/cosmetic-grid placement logic (31 files total in this domain). This is exactly the size/complexity profile where regressions hide.</p>
+        <div class="qa"><b>Manual QA focus:</b> customization mode entry/exit, cosmetic placement at grid edges, save/reload of tank contents, and behavior when the tank block is broken/moved mid-edit.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri high">High</span>
+        <h3>Quests &amp; Tutorial (newest feature, no tests yet)</h3>
+        <p>The most recent commit on this branch ("Implement fishing and quests flow tutorial") shipped <code>QuestTracker</code>, <code>PlayerQuestState</code>, <code>TutorialManager</code>, and their packet/UI plumbing — 21 files — with no automated coverage at all. New code is statistically where the next bug lives.</p>
+        <div class="qa"><b>Manual QA focus:</b> daily quest reset boundary (midnight rollover, server restart mid-day), quest progress sync after reconnect, and tutorial step skipping/replay.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri high">High</span>
+        <h3>Item Effects engine</h3>
+        <p><code>ItemEffect</code> (323 lines) plus a small condition-combinator system (<code>AndCondition</code>, <code>ComponentCondition</code>, <code>ComponentValueCondition</code>, <code>ItemTagCondition</code>) forms a little rule engine. This is the kind of branchy, deterministic logic that's cheapest to unit-test and most expensive to verify by hand — the gap here is more about effort than risk.</p>
+        <div class="qa"><b>Manual QA focus:</b> stack conditions that should AND together but might short-circuit wrong; verify effects keyed on item tags still apply after a tag-data change.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri medium">Medium</span>
+        <h3>Networking — no packet round-trip tests</h3>
+        <p>10 custom payload classes (leaderboard request/response, quest sync, tutorial sync, minigame start/finish, shop purchase, customization mode) all use hand-written <code>StreamCodec</code>s with no encode→decode round-trip assertions. Bugs here are silent on a single-player test and only surface as multiplayer desync.</p>
+        <div class="qa"><b>Manual QA focus:</b> test specifically in a real client/server split (not single-player integrated server) — desync bugs don't reproduce there.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri medium">Medium</span>
+        <h3>Shop / Economy &amp; Datagen validation</h3>
+        <p><code>ShopEntry</code> + <code>PurchaseShopEntryPacket</code> (the fishing token shop from a recent commit) have no tests around price/affordability/double-spend edge cases. Separately, the 8 datagen providers (recipes, loot tables, tags, models) have no "did this generate something sane" check.</p>
+        <div class="qa"><b>Manual QA focus:</b> rapid double-click purchase attempts; spend-to-exactly-zero balance; regenerate datagen output after any item/recipe change and diff it.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri low">Low</span>
+        <h3>Pure utility math — untested but trivial to fix</h3>
+        <p><code>MathUtil</code> (110 lines) and <code>Utility</code> have no world-state dependency at all — they're the cheapest possible GameTest (or even plain static-method) candidates and currently sit at zero coverage for no good reason.</p>
+        <div class="qa"><b>Manual QA focus:</b> low priority — this is better spent as a quick automated-test addition than manual checking.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri low">Low</span>
+        <h3>Client rendering, GUI &amp; Mixins — out of scope by design</h3>
+        <p>46 files (25 client rendering/GUI, 21 mixins) cannot be reached by the GameTest framework at all — it runs headless against a server, never a render thread. This isn't a hole in effort, it's a hole in what this tool can ever cover.</p>
+        <div class="qa"><b>Manual QA focus:</b> this is genuinely the right tool for the job. Visual checks on fish tank rendering, item glint/outline effects, GUI screens (quest log, leaderboard), and HUD notifications belong here permanently.</div>
+      </div>
+      <div class="gap-card">
+        <span class="pri low">Low</span>
+        <h3>Housekeeping: one dead file</h3>
+        <p><code>common/src/main/java/grill24/fishtastic/server/FishingLootHelper.java</code> is a 0-byte file with no references anywhere in the codebase — not a coverage gap, just leftover scaffolding worth deleting.</p>
+        <div class="qa"><b>Manual QA focus:</b> none — delete it.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b style="color:#aab1c0;">Methodology.</b> This project has no instrumented line-coverage tool (no JaCoCo/JUnit task in any <code>build.gradle</code>); its only automated tests are Minecraft's GameTest framework, run server-side via <code>./gradlew :fabric:runGametest</code> / <code>:neoforge:runGametest</code> against the shared <code>common/src/testmod</code> source set. "Coverage" above means structural domain coverage — whether at least one test exercises a class — derived by reading all 196 main-source files across <code>common/</code>, <code>fabric/</code>, and <code>neoforge/</code> and cross-referencing them against every class referenced from <code>FishCatchDataGameTests.java</code>, <code>ItemComponentGameTests.java</code>, and <code>WormBinGameTests.java</code> (the three shared test files, currently staged/uncommitted on branch <code>26.1.2</code>). Two stale agent worktrees contain an abandoned <code>MultiItemPhysicsTest.java</code> for <code>PhysicsSimulation</code> that never landed on this branch — physics testing was attempted but isn't part of the current suite. Domain buckets are mutually exclusive by file path/name pattern and sum exactly to 196.
+  </footer>
+
+</main>
+
+<script>
+const domains = [
+  // name, files, testMethods, statusKey, statusLabel, notes
+  {n:"Fish Tank System", f:31, t:0, k:"none-critical", s:"No coverage — critical", note:"848-line block entity (largest BE in the mod) + customization modes, edit-mode state, composite model data, cosmetic grid placement."},
+  {n:"Registration / Compat / Architectury glue", f:31, t:0, k:"none-low", s:"No coverage — low risk", note:"Mostly declarative DeferredRegister-style registration and gelatin-ui compat shims. Low complexity, low blast radius."},
+  {n:"Client Rendering & GUI", f:25, t:0, k:"outscope", s:"Out of framework scope", note:"Renderers, screens, HUD notifications, composite model resolution. GameTest is server-only — needs manual/visual QA."},
+  {n:"Mixins", f:21, t:0, k:"outscope", s:"Out of framework scope", note:"15 render/GUI mixins + 3 extension interfaces + 1 ItemStack mixin. Inherently outside server-side GameTest reach."},
+  {n:"Quests & Tutorial", f:21, t:0, k:"none-high", s:"No coverage — high", note:"Brand new feature (most recent commit on this branch). QuestTracker, PlayerQuestState, TutorialManager + sync packets/UI."},
+  {n:"Fishing Minigame Core", f:15, t:0, k:"none-critical", s:"No coverage — critical", note:"FishingMinigameManager (trust-based session validation), FishingTarget (907 lines), FishingMinigameAnimation, ServerTickHandler."},
+  {n:"Networking (Packets)", f:10, t:0, k:"none-med", s:"No coverage — medium", note:"10 StreamCodec payloads, no encode/decode round-trip tests. Desync bugs are invisible in single-player testing."},
+  {n:"Commands", f:9, t:0, k:"none-low", s:"No coverage — low risk", note:"Admin/debug commands (set quality, set size, temperament override, cosmetics). Low player-facing risk."},
+  {n:"Datagen", f:8, t:0, k:"none-med", s:"No coverage — medium", note:"Recipe/loot table/tag/model providers — no check that generated output is well-formed."},
+  {n:"Item Effects Engine", f:7, t:0, k:"none-high", s:"No coverage — high", note:"Conditional effect rule engine (And/Component/ComponentValue/ItemTag conditions) — cheap to unit test, currently unverified."},
+  {n:"Item Data Components", f:6, t:13, k:"strong", s:"Strong", note:"ItemSize, FishQuality, BaitEffect + their helpers fully tested. RodBaitContents is the one component in this group still untouched."},
+  {n:"Items (misc, incl. 1 dead file)", f:4, t:0, k:"na", s:"Low priority / dead code", note:"AcuteIapsisItem, PileOfFishItem, TestItem, plus the empty FishingLootHelper.java (0 bytes, no references — delete it)."},
+  {n:"Worm Bin", f:3, t:12, k:"strong", s:"Strong", note:"Full lifecycle: phases, deposit/aeration caps, conversion timing, yield math, harvest/reset."},
+  {n:"Pure Utility / Math", f:2, t:0, k:"none-low", s:"No coverage — quick win", note:"MathUtil, Utility — zero world-state dependency, the cheapest possible tests to add."},
+  {n:"Shop / Economy", f:1, t:0, k:"none-med", s:"No coverage — medium", note:"ShopEntry data model (purchase packet counted under Networking) — no affordability/double-spend tests."},
+  {n:"Fish Catch Data / Leaderboards", f:1, t:10, k:"strong", s:"Strong", note:"Recording, guard clauses, personal/global isolation, sort order, unknown-player handling."},
+  {n:"Examples (demo code)", f:1, t:0, k:"na", s:"N/A", note:"FishTankConnectionExample-style demo code, not a shipped feature."},
+];
+
+const colors = {
+  "strong":"#3ddc84", "none-critical":"#ef5165", "none-high":"#f08a3c",
+  "none-med":"#f5b942", "none-low":"#8089a0", "outscope":"#5aa9ff", "na":"#4a5160"
+};
+const badgeClass = {
+  "strong":"strong","none-critical":"none-critical","none-high":"none-high",
+  "none-med":"none-med","none-low":"none-low","outscope":"outscope","na":"na"
+};
+
+const maxFiles = Math.max(...domains.map(d=>d.f));
+const chart = document.getElementById('barchart');
+const sorted = [...domains].sort((a,b)=>b.f-a.f);
+sorted.forEach(d=>{
+  const row = document.createElement('div');
+  row.className = 'bar-row';
+  row.innerHTML = `
+    <div class="name">${d.n}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${(d.f/maxFiles*100).toFixed(1)}%; background:${colors[d.k]}"></div></div>
+    <div class="count">${d.f}</div>
+  `;
+  chart.appendChild(row);
+});
+const legendWrap = document.createElement('div');
+legendWrap.className = 'chart-legend';
+legendWrap.innerHTML = `
+  <div class="item"><span class="sw" style="background:${colors.strong}"></span>Strong coverage</div>
+  <div class="item"><span class="sw" style="background:${colors["none-critical"]}"></span>No coverage — critical importance</div>
+  <div class="item"><span class="sw" style="background:${colors["none-high"]}"></span>No coverage — high importance</div>
+  <div class="item"><span class="sw" style="background:${colors["none-med"]}"></span>No coverage — medium importance</div>
+  <div class="item"><span class="sw" style="background:${colors["none-low"]}"></span>No coverage — low risk</div>
+  <div class="item"><span class="sw" style="background:${colors.outscope}"></span>Out of framework scope (client/mixin)</div>
+  <div class="item"><span class="sw" style="background:${colors.na}"></span>N/A / dead code</div>
+`;
+chart.appendChild(legendWrap);
+
+const tbody = document.getElementById('domain-tbody');
+domains.forEach(d=>{
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${d.n}</td>
+    <td class="num-cell">${d.f}</td>
+    <td class="num-cell">${d.t > 0 ? d.t+" methods" : "—"}</td>
+    <td><span class="badge ${badgeClass[d.k]}">${d.s}</span></td>
+    <td style="color:#aab1c0;font-size:12.5px;">${d.note}</td>
+  `;
+  tbody.appendChild(tr);
+});
+</script>
+
+</body>
+</html>
