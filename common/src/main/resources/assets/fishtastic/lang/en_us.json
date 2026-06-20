@@ -44,6 +44,7 @@
   "item.fishtastic.freshwater_bait": "Freshwater Bait",
   "item.fishtastic.ocean_bait": "Ocean Bait",
   "item.fishtastic.predator_bait": "Predator Bait",
+  "item.fishtastic.deep_sea_bait": "Deep Sea Bait",
   "item.fishtastic.quest_token": "Fishing Token",
 
   "tooltip.fishtastic.item_size.cm": "%s cm",

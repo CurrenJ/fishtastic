@@ -172,7 +172,7 @@ public final class ItemComponentGameTests {
         helper.assertTrue(worms.treasureChance() == 0.10f,  "WORMS treasureChance must be 0.10");
         helper.assertTrue(worms.targetCountBonus() == 1,    "WORMS targetCountBonus must be 1");
         helper.assertTrue(worms.vanillaFishMultiplier() == 1.0f, "WORMS vanillaFishMultiplier must be 1.0");
-        helper.assertTrue(worms.modFishMultiplier() == 0.6f, "WORMS modFishMultiplier must be 0.6");
+        helper.assertTrue(worms.modFishMultiplier() == 1.25f, "WORMS modFishMultiplier must be 1.25");
         helper.assertTrue(worms.qualityBias() == 0.0f,      "WORMS qualityBias must be 0.0");
         helper.assertTrue(worms.exclusiveFishPool().isEmpty(), "WORMS must have no exclusive pool");
         helper.succeed();

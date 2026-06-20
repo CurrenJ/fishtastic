@@ -386,8 +386,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         statsContainer.addChild(buildGatedSection("Stats", catchCount, thresholds.statsCatches(),
                 () -> buildStatsContent(selectedProfile)));
         typesContainer.clearChildren();
-        typesContainer.addChild(buildGatedSection("Types", catchCount, thresholds.typesCatches(),
-                () -> buildTypesContent(fishId)));
+        typesContainer.addChild(buildUngatedSection("Types", () -> buildTypesContent(fishId)));
         spawnContainer.clearChildren();
         spawnContainer.addChild(buildGatedSection("Spawn Conditions", catchCount, thresholds.spawnConditionsCatches(),
                 () -> buildSpawnConditionsContent(selectedProfile)));
@@ -463,6 +462,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         String lore = entry.lore().orElse("No lore recorded yet.");
         content.addChild(new Label(lore, 0xFFDDDDDD).maxWidth(150).centered(true).init(tempContext));
         return content;
+    }
+
+    /**
+     * Renders {@code contentBuilder}'s content under a title, with no catch-count gate.
+     * Used for sections that tell the player how to catch a fish (e.g. Types) — that
+     * information must be available before the grind it would shorten, not after.
+     */
+    private VBox buildUngatedSection(String title, Supplier<VBox> contentBuilder) {
+        VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
+        section.addChild(new Label(title, 0xFFFFD700).init(tempContext));
+        section.addChild(contentBuilder.get());
+        return section;
     }
 
     /**

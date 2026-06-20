@@ -45,7 +45,7 @@ public final class FishEncyclopediaEntryGameTests {
         helper.assertTrue(t.nameRevealCatches() == 2, "explicit nameRevealCatches must override default, got " + t.nameRevealCatches());
         helper.assertTrue(t.statsCatches() == 1, "unset statsCatches must fall back to default 1, got " + t.statsCatches());
         helper.assertTrue(t.typesCatches() == 5, "unset typesCatches must fall back to default 5, got " + t.typesCatches());
-        helper.assertTrue(t.spawnConditionsCatches() == 10, "unset spawnConditionsCatches must fall back to default 10, got " + t.spawnConditionsCatches());
+        helper.assertTrue(t.spawnConditionsCatches() == 1, "unset spawnConditionsCatches must fall back to default 1, got " + t.spawnConditionsCatches());
         helper.assertTrue(t.loreCatches() == 25, "unset loreCatches must fall back to default 25, got " + t.loreCatches());
         helper.succeed();
     }

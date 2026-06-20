@@ -2,6 +2,10 @@
   "values": [
     "fishtastic:worms",
     "fishtastic:gummy_worms",
-    "fishtastic:blazed_grub"
+    "fishtastic:blazed_grub",
+    "fishtastic:freshwater_bait",
+    "fishtastic:ocean_bait",
+    "fishtastic:predator_bait",
+    "fishtastic:deep_sea_bait"
   ]
 }

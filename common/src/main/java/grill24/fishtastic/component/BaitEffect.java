@@ -43,11 +43,14 @@ public record BaitEffect(
 
     // Worms: slightly boosts mod fish above the bare-hook baseline
     public static final BaitEffect WORMS = new BaitEffect(
-            0.5f, 0.10f, 1, 1.0f, 0.6f, 0.0f, Optional.empty(), List.of());
+            0.5f, 0.10f, 1, 1.0f, 1.25f, 0.0f, Optional.empty(), List.of());
 
-    // Gummy Worms: mod fish unlock — pool shifted heavily toward mod fish, quality boost
+    // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
+    // Deliberately weaker on raw mod-fish weight than the exclusive-pool specialist baits
+    // (Freshwater/Ocean/Predator/Deep Sea Bait), so it stays the generalist "biggest catch"
+    // tool rather than also being the best way to farm any one species.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            1.0f, 0.10f, 0, 0.2f, 4.0f, 1.5f, Optional.empty(), List.of());
+            1.0f, 0.10f, 0, 0.3f, 2.0f, 2.0f, Optional.empty(), List.of());
 
     // Blazed Grub: treasure hunter + exotic fish only pool
     public static final BaitEffect BLAZED_GRUB = new BaitEffect(

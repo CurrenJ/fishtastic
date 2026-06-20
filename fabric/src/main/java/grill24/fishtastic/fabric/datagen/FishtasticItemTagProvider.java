@@ -50,7 +50,11 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
                 .add(FishtasticItems.WORMS.value())
                 .add(FishtasticItems.GUMMY_WORMS.value())
-                .add(FishtasticItems.BLAZED_GRUB.value());
+                .add(FishtasticItems.BLAZED_GRUB.value())
+                .add(FishtasticItems.FRESHWATER_BAIT.value())
+                .add(FishtasticItems.OCEAN_BAIT.value())
+                .add(FishtasticItems.PREDATOR_BAIT.value())
+                .add(FishtasticItems.DEEP_SEA_BAIT.value());
 
         valueLookupBuilder(ItemTags.FISHING_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
