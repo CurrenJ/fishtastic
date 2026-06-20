@@ -134,29 +134,27 @@ public class FishtasticItems {
                 )
         );
 
-        // Specialist bait items — exclusive-pool, like Blazed Grub: guarantee a catch from
-        // one affinity group rather than just reweighting toward it, so they hold a niche
-        // that a flat-multiplier generalist (Gummy Worms) can never make obsolete.
+        // Specialist bait items — heavily bias toward one affinity group via a strong weight multiplier
         FRESHWATER_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.05f, 0.05f, 1, 1.0f, 1.0f, 0.0f,
-                                Optional.of(FishtasticItemTags.FRESHWATER_FISH), List.of()))));
+                                0.3f, 0.05f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRESHWATER_FISH, 2.0f))))));
         OCEAN_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.10f, 0.05f, 0, 1.0f, 1.0f, 0.5f,
-                                Optional.of(FishtasticItemTags.OCEAN_FISH), List.of()))));
+                                0.3f, 0.10f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.OCEAN_FISH, 2.0f))))));
         PREDATOR_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.0f, 0.10f, 0.05f, 0, 1.0f, 1.0f, 0.5f,
-                                Optional.of(FishtasticItemTags.PREDATOR_FISH), List.of()))));
+                                1.0f, 0.10f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.PREDATOR_FISH, 2.0f))))));
         DEEP_SEA_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.5f, 0.20f, 0.05f, -1, 1.0f, 1.0f, 1.0f,
-                                Optional.of(FishtasticItemTags.DEEP_SEA_FISH), List.of()))));
+                                1.5f, 0.15f, 0.1f, -1, 1.0f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.DEEP_SEA_FISH, 2.0f))))));
 
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));
