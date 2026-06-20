@@ -7,7 +7,7 @@
   "time_weights": [
     { "time": "day", "multiplier": 1.8 }
   ],
-  "temperament": "fishtastic:skittish",
+  "temperament": "fishtastic:metronome",
   "animation": {
     "mode": "planted"
   },

@@ -6,7 +6,7 @@
       "threshold": 0.0,
       "patterns": "pulse",
       "params": {
-        "osc_frequency": 0.070,
+        "osc_frequency": 0.080,
         "osc_amplitude_min": 0.06,
         "osc_amplitude_max": 0.14,
         "osc_re_period_min": 60,
@@ -19,7 +19,7 @@
       "threshold": 0.55,
       "patterns": "pulse",
       "params": {
-        "osc_frequency": 0.095,
+        "osc_frequency": 0.105,
         "osc_amplitude_min": 0.10,
         "osc_amplitude_max": 0.22,
         "catch_progress_loss": 0.014

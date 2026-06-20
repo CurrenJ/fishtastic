@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
@@ -15,6 +16,7 @@ import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingTarget;
+import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.IFishingHookExtension;
 import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.BlockPos;
@@ -65,6 +67,22 @@ public class FishingMinigameManager {
         return Optional.ofNullable(FORCED_TEMPERAMENTS.get(playerId));
     }
 
+    // Debug: per-player forced exact difficulty override, bypassing temperament sampling
+    // and the quality difficulty boost so a session is fully reproducible for testing.
+    private static final Map<UUID, Float> FORCED_DIFFICULTIES = new HashMap<>();
+
+    public static void setForcedDifficulty(UUID playerId, float difficulty) {
+        FORCED_DIFFICULTIES.put(playerId, difficulty);
+    }
+
+    public static void clearForcedDifficulty(UUID playerId) {
+        FORCED_DIFFICULTIES.remove(playerId);
+    }
+
+    public static Optional<Float> getForcedDifficulty(UUID playerId) {
+        return Optional.ofNullable(FORCED_DIFFICULTIES.get(playerId));
+    }
+
     private final Map<UUID, ActiveSession> activeSessions = new HashMap<>();
     private final AtomicInteger sessionIdGenerator = new AtomicInteger(0);
 
@@ -72,6 +90,10 @@ public class FishingMinigameManager {
     private static final int MAX_TARGETS = 4;
     private static final float DEFAULT_TREASURE_CHANCE = 1.0f / 6.0f;
     private static final float DEFAULT_TRASH_CHANCE = 0.12f;
+    // How strongly a fish's rolled quality pushes its minigame difficulty toward the max,
+    // independent of its species' base temperament. 0 = no effect, 1 = quality alone can
+    // drive difficulty all the way to 1.0 regardless of species.
+    private static final float QUALITY_DIFFICULTY_BOOST_STRENGTH = 0.6f;
     private static final int DEFAULT_TARGET_COUNT_MEAN = 1;
 
     private final ServerLevel level;
@@ -304,6 +326,10 @@ public class FishingMinigameManager {
         if (forcedTemperament != null) {
             Fishtastic.LOGGER.info("Applying forced temperament override for player {}", player.getName().getString());
         }
+        Float forcedDifficulty = getForcedDifficulty(player.getUUID()).orElse(null);
+        if (forcedDifficulty != null) {
+            Fishtastic.LOGGER.info("Applying forced difficulty override ({}) for player {}", forcedDifficulty, player.getName().getString());
+        }
 
         for (int i = 0; i < targetCount; i++) {
             float roll = randomSource.nextFloat();
@@ -332,17 +358,29 @@ public class FishingMinigameManager {
                             : FishingTarget.TargetCategory.TREASURE;
 
             float difficulty;
-            List<PhaseRule> phases;
+            List<PhaseRule> phases = null;
 
             Temperament temperament = isFishReward
                     ? (forcedTemperament != null ? forcedTemperament : resolveTemperament(reward, fishProfileRegistry, temperamentRegistry))
                     : null;
 
             if (temperament != null) {
-                difficulty = temperament.sampleDifficulty(randomSource) * difficultyModifier;
                 phases = temperament.resolvedPhases();
+            }
+
+            if (forcedDifficulty != null) {
+                difficulty = forcedDifficulty;
+            } else if (temperament != null) {
+                difficulty = temperament.sampleDifficulty(randomSource) * difficultyModifier;
             } else {
                 difficulty = baseDifficulties[randomSource.nextInt(baseDifficulties.length)] * difficultyModifier;
+            }
+
+            if (isFishReward && forcedDifficulty == null) {
+                difficulty = applyQualityDifficultyBoost(difficulty, reward);
+            }
+
+            if (temperament == null) {
                 FishingTarget.MovementPattern pattern = FishingTarget.pickRandom(difficulty, randomSource.nextFloat());
                 phases = List.of(new PhaseRule(0f, List.of(pattern), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
             }
@@ -352,6 +390,19 @@ public class FishingMinigameManager {
         }
 
         return targets;
+    }
+
+    /**
+     * Quality is rolled independently of species/temperament, so without this a Legendary
+     * catch of an easy species (e.g. cod) would play through the same trivial minigame as
+     * a Common one. Push difficulty toward the max proportionally to quality, scaled down
+     * as the species' own difficulty approaches 1 so it never exceeds the [0,1] range.
+     */
+    private static float applyQualityDifficultyBoost(float difficulty, ItemStack reward) {
+        FishQuality.Quality quality = FishQualityHelper.getQuality(reward);
+        if (quality == null) return difficulty;
+        float intensity = new FishQuality(quality).getEffectIntensity();
+        return difficulty + intensity * (1f - difficulty) * QUALITY_DIFFICULTY_BOOST_STRENGTH;
     }
 
     @Nullable

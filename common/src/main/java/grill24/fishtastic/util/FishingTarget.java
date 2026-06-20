@@ -137,6 +137,11 @@ public class FishingTarget {
     private int ticksSinceLastMove;
     private int ticksUntilNextMove;
 
+    // FLEE: commits to a randomized escape destination for the duration of one flee
+    // episode rather than re-deriving a direction every tick.
+    private boolean fleeActive;
+    private float fleeTargetPosition;
+
     // DART state
     private boolean dartIsBursting;
     private int dartPauseTicks;
@@ -361,7 +366,7 @@ public class FishingTarget {
         lungeBurstProgressPerTick = 1f / lerp(8f, 3f, d);
 
         // PULSE
-        pulseFrequency            = lerp(0.008f, 0.030f, d);
+        pulseFrequency            = lerp(0.015f, 0.075f, d);
 
         // STUTTER
         stutterStepSize           = lerp(0.025f, 0.080f, d);
@@ -376,6 +381,20 @@ public class FishingTarget {
         ibPauseAfterMax           = lerp(100f,  45f,   d);
     }
 
+    // An explicit osc_frequency in a fish's JSON is authored as the speed it should reach at
+    // difficulty 1.0. Without scaling, it would flatly override the difficulty-scaled default
+    // and ignore the difficulty dial entirely (e.g. a forced difficulty 1.0 session would still
+    // oscillate at the slow authored value). Scale it down toward this floor fraction as
+    // difficulty drops, so the dial stays meaningful for every temperament.
+    private static final float OSCILLATION_DIFFICULTY_FLOOR = 0.35f;
+    // PULSE's breathing envelope speed isn't independently authored - it's derived from the
+    // (difficulty-scaled) inner wiggle frequency so a fish that wiggles faster also breathes faster.
+    private static final float PULSE_BREATH_TO_WIGGLE_RATIO = 0.75f;
+
+    private float scaleFrequencyByDifficulty(float authoredAtMaxDifficulty) {
+        return authoredAtMaxDifficulty * lerp(OSCILLATION_DIFFICULTY_FLOOR, 1f, difficulty);
+    }
+
     private void applyParams(@Nullable MovementParams p) {
         if (p == null) return;
         p.driftIntervalMin().ifPresent(v -> minMoveIntervalTicks = v);
@@ -385,7 +404,10 @@ public class FishingTarget {
         p.dartPauseMin().ifPresent(v -> dartPauseMin = v);
         p.dartPauseMax().ifPresent(v -> dartPauseMax = v);
         p.dartBurstTicks().ifPresent(v -> dartBurstProgressPerTick = 1f / v);
-        p.oscFrequency().ifPresent(v -> oscBaseFrequency = v);
+        p.oscFrequency().ifPresent(v -> {
+            oscBaseFrequency = scaleFrequencyByDifficulty(v);
+            pulseFrequency = oscBaseFrequency * PULSE_BREATH_TO_WIGGLE_RATIO;
+        });
         p.oscRePeriodMin().ifPresent(v -> oscRePeriodMin = v);
         p.oscRePeriodMax().ifPresent(v -> oscRePeriodMax = v);
         p.oscAmplitudeMin().ifPresent(v -> oscAmplitudeMin = v);
@@ -399,6 +421,7 @@ public class FishingTarget {
     private void reinitPatternState() {
         ticksSinceLastMove  = 0;
         ticksUntilNextMove  = getRandomMoveInterval();
+        fleeActive          = false;
 
         dartIsBursting           = false;
         dartPauseTicks           = 0;
@@ -568,19 +591,62 @@ public class FishingTarget {
         float dist = Math.abs(currentPosition - bobberCenter);
 
         if (dist < fleeThreshold) {
-            float fleeDir = Math.signum(currentPosition - bobberCenter);
-            if (fleeDir == 0f) fleeDir = (random.nextFloat() > 0.5f) ? 1f : -1f;
-            currentPosition = clampPos(currentPosition + fleeDir * fleeSpeed);
+            if (!fleeActive) {
+                // Episode start: commit to a randomized escape destination instead of just
+                // a direction, so the fish doesn't run a perfectly straight, constant-speed
+                // line to the literal far wall every time - that read as a robotic, fully
+                // predictable top-to-bottom sweep rather than a reactive dodge.
+                fleeActive = true;
+                fleeTargetPosition = pickFleeTarget(bobberCenter);
+            } else if (Math.abs(currentPosition - fleeTargetPosition) < 0.01f) {
+                // Reached the old target but the bobber is still close (it kept chasing) -
+                // pick a fresh escape destination off the bobber's current position.
+                fleeTargetPosition = pickFleeTarget(bobberCenter);
+            }
+            moveToward(fleeTargetPosition, fleeSpeed);
         } else {
+            fleeActive = false;
             ticksSinceLastMove++;
             if (ticksSinceLastMove >= ticksUntilNextMove) {
-                targetPosition = randPos();
+                targetPosition = randPosAwayFrom(bobberCenter);
                 speed = minSpeed * (0.5f + random.nextFloat() * 0.5f);
                 ticksSinceLastMove = 0;
                 ticksUntilNextMove = getRandomMoveInterval();
             }
             moveToward(targetPosition, speed);
         }
+    }
+
+    /** Rolls a randomized escape point on the far side of the bobber, away from the boundary. */
+    private float pickFleeTarget(float bobberCenter) {
+        float dir = Math.signum(currentPosition - bobberCenter);
+        if (dir == 0f) dir = (random.nextFloat() > 0.5f) ? 1f : -1f;
+
+        float minEscapeDist = fleeThreshold * 1.2f;
+        float maxEscapeDist = fleeThreshold * 2.2f;
+        float escapeDist = minEscapeDist + random.nextFloat() * (maxEscapeDist - minEscapeDist);
+
+        float target = bobberCenter + dir * escapeDist;
+        boolean outOfRoom = (dir > 0f && target > POSITION_MAX) || (dir < 0f && target < POSITION_MIN);
+        if (outOfRoom) {
+            // Not enough room on this side (bobber is pinned near a wall) - flee the other way.
+            dir = -dir;
+            target = bobberCenter + dir * escapeDist;
+        }
+        return clampPos(target);
+    }
+
+    /** Like {@link #randPos()}, but biased away from the bobber so a calm retarget doesn't
+     *  immediately wander back into range and re-trigger an identical flee sweep. */
+    private float randPosAwayFrom(float bobberCenter) {
+        float candidate = randPos();
+        float minDist = fleeThreshold * 0.8f;
+        if (Math.abs(candidate - bobberCenter) < minDist) {
+            float dir = Math.signum(candidate - bobberCenter);
+            if (dir == 0f) dir = (random.nextFloat() > 0.5f) ? 1f : -1f;
+            candidate = clampPos(bobberCenter + dir * minDist);
+        }
+        return candidate;
     }
 
     private void tickLunge() {

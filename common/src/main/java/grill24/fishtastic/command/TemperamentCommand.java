@@ -1,5 +1,6 @@
 package grill24.fishtastic.command;
 
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -29,13 +30,16 @@ public class TemperamentCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("temperament")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
-                        .then(Commands.argument("id", IdentifierArgument.id())
-                                .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
-                                .executes(TemperamentCommand::execute))
+                        .then(Commands.literal("info")
+                                .then(Commands.argument("id", IdentifierArgument.id())
+                                        .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
+                                        .executes(TemperamentCommand::execute)))
                         .then(Commands.literal("force")
                                 .then(Commands.argument("id", IdentifierArgument.id())
                                         .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
-                                        .executes(TemperamentCommand::executeForce))
+                                        .executes(TemperamentCommand::executeForce)
+                                        .then(Commands.argument("difficulty", FloatArgumentType.floatArg(0f, 1f))
+                                                .executes(TemperamentCommand::executeForceWithDifficulty)))
                                 .then(Commands.literal("clear")
                                         .executes(TemperamentCommand::executeForceClear)));
     }
@@ -145,22 +149,46 @@ public class TemperamentCommand {
     }
 
     private static int executeForce(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ResourceKey<Temperament> key = resolveForcedKey(ctx);
+        java.util.UUID playerId = ctx.getSource().getPlayerOrException().getUUID();
+
+        FishingMinigameManager.setForcedTemperament(playerId, key);
+        // A bare `force <id>` reverts difficulty to sampling within the temperament's own
+        // range, so a stale value from an earlier `force <id> <difficulty>` doesn't linger.
+        FishingMinigameManager.clearForcedDifficulty(playerId);
+        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament set to: " + key.identifier())
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int executeForceWithDifficulty(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ResourceKey<Temperament> key = resolveForcedKey(ctx);
+        float difficulty = FloatArgumentType.getFloat(ctx, "difficulty");
+        java.util.UUID playerId = ctx.getSource().getPlayerOrException().getUUID();
+
+        FishingMinigameManager.setForcedTemperament(playerId, key);
+        FishingMinigameManager.setForcedDifficulty(playerId, difficulty);
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                String.format("Forced temperament set to: %s, difficulty: %.2f", key.identifier(), difficulty))
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static ResourceKey<Temperament> resolveForcedKey(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         Identifier id = IdentifierArgument.getId(ctx, "id");
         Registry<Temperament> registry = ctx.getSource().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
 
         ResourceKey<Temperament> key = ResourceKey.create(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, id);
         if (registry.getOptional(key).isEmpty()) throw NOT_FOUND.create(id);
-
-        FishingMinigameManager.setForcedTemperament(ctx.getSource().getPlayerOrException().getUUID(), key);
-        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament set to: " + id)
-                .withStyle(ChatFormatting.GREEN), false);
-        return 1;
+        return key;
     }
 
     private static int executeForceClear(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        FishingMinigameManager.clearForcedTemperament(ctx.getSource().getPlayerOrException().getUUID());
-        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament cleared.")
+        java.util.UUID playerId = ctx.getSource().getPlayerOrException().getUUID();
+        FishingMinigameManager.clearForcedTemperament(playerId);
+        FishingMinigameManager.clearForcedDifficulty(playerId);
+        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament and difficulty cleared.")
                 .withStyle(ChatFormatting.YELLOW), false);
         return 1;
     }

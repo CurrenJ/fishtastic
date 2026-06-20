@@ -8,6 +8,6 @@
     { "time": "dawn", "multiplier": 2.0 },
     { "time": "day", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:wily",
+  "temperament": "fishtastic:ghost",
   "animation": { "mode": "belly_down" }
 }
