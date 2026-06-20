@@ -142,7 +142,8 @@ public final class PacketRoundTripGameTests {
         Map<Identifier, Integer> purchaseCounts = new HashMap<>();
         purchaseCounts.put(Identifier.fromNamespaceAndPath("fishtastic", "shop_entry_x"), 2);
 
-        QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts);
+        QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
+                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0));
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -157,6 +158,30 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decodedTriggerStack != null, "triggeringItems key must round-trip");
         assertStacksMatch(helper, triggeringStack, decodedTriggerStack, "triggeringItems[questA]");
 
+        helper.assertTrue(decoded.cleanupGoal().equals(original.cleanupGoal()),
+            "cleanupGoal (CleanupGoalProgress) must round-trip via equals(), expected " + original.cleanupGoal() + " got " + decoded.cleanupGoal());
+
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // QuestSyncPacket.cleanupGoal — milestoneReached is the field most likely to be
+    // accidentally dropped, since it's 0 on most syncs and only non-zero on announcements.
+    // -------------------------------------------------------------------------
+
+    public static void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
+        QuestSyncPacket original = new QuestSyncPacket(
+            Map.of(), 0, Map.of(), Map.of(),
+            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400));
+
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        QuestSyncPacket.STREAM_CODEC.encode(buf, original);
+        QuestSyncPacket decoded = QuestSyncPacket.STREAM_CODEC.decode(buf);
+
+        helper.assertTrue(decoded.cleanupGoal().total() == 400, "cleanupGoal.total must round-trip, got " + decoded.cleanupGoal().total());
+        helper.assertTrue(decoded.cleanupGoal().threshold() == 200, "cleanupGoal.threshold must round-trip, got " + decoded.cleanupGoal().threshold());
+        helper.assertTrue(decoded.cleanupGoal().milestoneReached() == 400,
+            "cleanupGoal.milestoneReached must round-trip non-zero, got " + decoded.cleanupGoal().milestoneReached());
         helper.succeed();
     }
 

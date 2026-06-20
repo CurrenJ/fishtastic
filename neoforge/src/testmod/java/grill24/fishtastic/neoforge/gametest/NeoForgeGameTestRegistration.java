@@ -106,6 +106,18 @@ public class NeoForgeGameTestRegistration {
             FishCatchDataGameTests::personalBestSizeSortOrder);
         register(event, env, "unknown_player_returns_empty", 200,
             FishCatchDataGameTests::unknownPlayerReturnsEmpty);
+        register(event, env, "record_trash_contribution_accumulates_total", 200,
+            helper -> FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "record_trash_contribution_can_cross_multiple_thresholds_at_once", 200,
+            helper -> FishCatchDataGameTests.recordTrashContributionCanCrossMultipleThresholdsAtOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "record_trash_contribution_ignores_non_positive_amounts", 200,
+            helper -> FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "crossing_threshold_pays_out_tokens_proportionally", 200,
+            helper -> FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "reset_cleanup_goal_if_needed_wipes_contributions_on_new_week", 200,
+            helper -> FishCatchDataGameTests.resetCleanupGoalIfNeededWipesContributionsOnNewWeek(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "get_cleanup_goal_contributors_lists_all_contributors", 200,
+            helper -> FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- Item Component tests -----
         register(event, env, "item_size_set_and_get", 200,
@@ -134,6 +146,10 @@ public class NeoForgeGameTestRegistration {
             ItemComponentGameTests::baitEffectComponentRoundTrip);
         register(event, env, "bait_effect_no_bait_defaults", 200,
             ItemComponentGameTests::baitEffectNoBaitDefaults);
+        register(event, env, "bait_effect_trash_chance_presets", 200,
+            ItemComponentGameTests::baitEffectTrashChancePresets);
+        register(event, env, "bait_effect_trash_chance_component_round_trip", 200,
+            ItemComponentGameTests::baitEffectTrashChanceComponentRoundTrip);
         register(event, env, "rod_bait_contents_empty_is_empty", 200,
             ItemComponentGameTests::rodBaitContentsEmptyIsEmpty);
         register(event, env, "rod_bait_contents_non_empty_stack_is_not_empty", 200,
@@ -274,6 +290,8 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::purchaseShopEntryPacketRoundTrips);
         register(event, env, "quest_sync_packet_round_trips", 200,
             PacketRoundTripGameTests::questSyncPacketRoundTrips);
+        register(event, env, "quest_sync_packet_cleanup_goal_milestone_round_trips", 200,
+            PacketRoundTripGameTests::questSyncPacketCleanupGoalMilestoneRoundTrips);
         register(event, env, "fish_encyclopedia_sync_packet_round_trips", 200,
             PacketRoundTripGameTests::fishEncyclopediaSyncPacketRoundTrips);
         register(event, env, "request_fish_encyclopedia_packet_round_trips", 200,
@@ -320,6 +338,10 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "handle_minigame_complete_consumes_bait_only_when_rewards_were_actually_awarded", 200,
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "trash_chance_one_always_awards_trash_items", 200,
+            helper -> FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "treasure_chance_one_with_zero_trash_never_awards_trash", 200,
+            helper -> FishingMinigameManagerGameTests.treasureChanceOneWithZeroTrashNeverAwardsTrash(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,

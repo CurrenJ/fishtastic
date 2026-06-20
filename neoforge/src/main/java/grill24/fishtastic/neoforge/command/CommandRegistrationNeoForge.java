@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.command.CleanupGoalCommand;
 import grill24.fishtastic.command.DebugFishDataCommand;
 import grill24.fishtastic.command.FishProfileCommand;
 import grill24.fishtastic.command.FishtasticCommand;
@@ -32,5 +33,6 @@ public class CommandRegistrationNeoForge {
         TemperamentCommand.register(dispatcher);
         TestQuestNotifyCommand.register(dispatcher);
         TutorialCommand.register(dispatcher);
+        CleanupGoalCommand.register(dispatcher);
     }
 }

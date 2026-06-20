@@ -43,6 +43,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
     private Label tokenBalanceLabel;
+    private Label cleanupGoalTotalLabel;
+    private Label cleanupGoalCountLabel;
+    private SpriteProgressBar cleanupGoalBar;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, Boolean> expandedStates = new HashMap<>();
@@ -81,7 +84,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = QuestSyncPacket.clientHandler;
             handlerInstalled = true;
             QuestSyncPacket.registerClientHandler(packet -> {
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts());
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
+                        packet.purchaseCounts(), packet.cleanupGoal());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     updateInPlace();
@@ -97,6 +101,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         shopCardRefs.clear();
         expandedStates.clear();
         tokenBalanceLabel = null;
+        cleanupGoalTotalLabel = null;
+        cleanupGoalCountLabel = null;
+        cleanupGoalBar = null;
 
         tempContext = new MinecraftRenderContext(null, this.font);
 
@@ -173,6 +180,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 buildQuestList(byCategory.get(QuestCategory.CHALLENGE), null, false));
         tabs.addTab(new ItemStack(Items.EMERALD),
                 buildShopPanel(shopRegistry, currentDay));
+        tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
+                buildCleanupGoalPanel());
         tabs.onSelectionChanged(i -> activeTabIndex = i);
         tabs.select(activeTabIndex);
 
@@ -285,6 +294,39 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             row.addChild(new Label(quest.reward().items().size() + " item(s)", 0xFFFFAA00).init(tempContext));
         }
         return row;
+    }
+
+    private VBox buildCleanupGoalPanel() {
+        VBox panel = UI.vbox().spacing(8).padding(4).alignment(VBox.Alignment.CENTER);
+
+        Label title = new Label("Clean Up the Waters", 0xFFFFFFFF).init(tempContext);
+        title.scale(1.1f);
+        panel.addChild(title);
+
+        panel.addChild(new Label("A shared, server-wide goal — every trash catch counts toward it, by anyone.", 0xFF888888)
+                .maxWidth(160).centered(true).init(tempContext));
+
+        int total = QuestClientCache.getCleanupGoalTotal();
+        int threshold = Math.max(1, QuestClientCache.getCleanupGoalThreshold());
+        int intoCurrentTier = total % threshold;
+        float fraction = (float) intoCurrentTier / threshold;
+
+        cleanupGoalBar = UI.progressBar();
+        cleanupGoalBar.progressImmediate(fraction);
+        cleanupGoalCountLabel = new Label(intoCurrentTier + " / " + threshold, 0xFFAAAAAA).init(tempContext);
+
+        HBox progressRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
+        progressRow.addChild(cleanupGoalBar);
+        progressRow.addChild(cleanupGoalCountLabel);
+        panel.addChild(progressRow);
+
+        cleanupGoalTotalLabel = new Label("Total cleaned so far: " + total, 0xFFFFAA00).init(tempContext);
+        panel.addChild(cleanupGoalTotalLabel);
+
+        panel.addChild(new Label("Tokens are split between every contributor each time a milestone is reached.", 0xFF888888)
+                .maxWidth(160).centered(true).init(tempContext));
+
+        return panel;
     }
 
     private VBox buildShopPanel(Registry<ShopEntry> shopRegistry, long currentDay) {
@@ -480,6 +522,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private void updateInPlace() {
         if (tokenBalanceLabel != null) {
             tokenBalanceLabel.text(QuestClientCache.getTokenBalance() + " tokens");
+        }
+
+        if (cleanupGoalTotalLabel != null) {
+            int total = QuestClientCache.getCleanupGoalTotal();
+            int threshold = Math.max(1, QuestClientCache.getCleanupGoalThreshold());
+            int intoCurrentTier = total % threshold;
+            float fraction = (float) intoCurrentTier / threshold;
+            cleanupGoalTotalLabel.text("Total cleaned so far: " + total);
+            cleanupGoalCountLabel.text(intoCurrentTier + " / " + threshold);
+            cleanupGoalBar.progressImmediate(fraction);
         }
 
         for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {

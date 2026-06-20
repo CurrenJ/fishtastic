@@ -18,7 +18,8 @@ public record QuestSyncPacket(
         Map<Identifier, PlayerQuestState.QuestProgress> questProgress,
         int tokenBalance,
         Map<Identifier, ItemStack> triggeringItems,
-        Map<Identifier, Integer> purchaseCounts
+        Map<Identifier, Integer> purchaseCounts,
+        CleanupGoalProgress cleanupGoal
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -34,6 +35,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::triggeringItems,
                     ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT),
                     QuestSyncPacket::purchaseCounts,
+                    CleanupGoalProgress.STREAM_CODEC,
+                    QuestSyncPacket::cleanupGoal,
                     QuestSyncPacket::new
             );
 
@@ -44,16 +47,27 @@ public record QuestSyncPacket(
 
     /** Send a sync packet without triggering items (e.g. initial sync on join). */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data) {
-        sendToPlayer(player, data, Map.of());
+        sendToPlayer(player, data, Map.of(), 0);
     }
 
     /** Send a sync packet with the items that triggered quest progress. */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
                                     Map<Identifier, ItemStack> triggeringItems) {
+        sendToPlayer(player, data, triggeringItems, 0);
+    }
+
+    /**
+     * Send a sync packet, optionally announcing a freshly crossed global cleanup-goal
+     * threshold. Pass 0 for milestoneReached when this sync isn't a milestone announcement.
+     */
+    public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
+                                    Map<Identifier, ItemStack> triggeringItems, int milestoneReached) {
         PlayerQuestState state = data.getOrCreateQuestState(player);
+        CleanupGoalProgress cleanupGoal = new CleanupGoalProgress(
+                data.getCleanupGoalTotal(), data.getCleanupGoalThreshold(), milestoneReached);
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
-                triggeringItems, state.getPurchaseCountSnapshot());
+                triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal);
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

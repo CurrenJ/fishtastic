@@ -146,6 +146,36 @@ public class FishtasticFabricGameTests {
         FishCatchDataGameTests.unknownPlayerReturnsEmpty(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void recordTrashContributionAccumulatesTotal(GameTestHelper helper) {
+        FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void recordTrashContributionCanCrossMultipleThresholdsAtOnce(GameTestHelper helper) {
+        FishCatchDataGameTests.recordTrashContributionCanCrossMultipleThresholdsAtOnce(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void recordTrashContributionIgnoresNonPositiveAmounts(GameTestHelper helper) {
+        FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void crossingThresholdPaysOutTokensProportionally(GameTestHelper helper) {
+        FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void resetCleanupGoalIfNeededWipesContributionsOnNewWeek(GameTestHelper helper) {
+        FishCatchDataGameTests.resetCleanupGoalIfNeededWipesContributionsOnNewWeek(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getCleanupGoalContributorsListsAllContributors(GameTestHelper helper) {
+        FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     // -------------------------------------------------------------------------
     // Item Component tests  (pure in-memory)
     // -------------------------------------------------------------------------
@@ -213,6 +243,16 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void baitEffectNoBaitDefaults(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectNoBaitDefaults(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void baitEffectTrashChancePresets(GameTestHelper helper) {
+        ItemComponentGameTests.baitEffectTrashChancePresets(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void baitEffectTrashChanceComponentRoundTrip(GameTestHelper helper) {
+        ItemComponentGameTests.baitEffectTrashChanceComponentRoundTrip(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -558,6 +598,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.questSyncPacketCleanupGoalMilestoneRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.fishEncyclopediaSyncPacketRoundTrips(helper);
     }
@@ -667,6 +712,16 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(GameTestHelper helper) {
         FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void trashChanceOneAlwaysAwardsTrashItems(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.treasureChanceOneWithZeroTrashNeverAwardsTrash(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

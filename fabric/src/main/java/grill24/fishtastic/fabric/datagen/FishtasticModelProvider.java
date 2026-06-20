@@ -108,6 +108,11 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");
 
+        // ----- Trash items (textures in item/fish/ subdirectory) -----
+        generateFishItemModel(itemModelGenerators, FishtasticItems.SEA_GLASS.value(), "sea_glass");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.OLD_TIRE.value(), "old_tire");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.PLASTIC_LITTER.value(), "plastic_litter");
+
         // ----- Block items -----
         // Fish tank: declare as custom model (uses custom block model / renderer)
         itemModelGenerators.declareCustomModelItem(FishtasticBlocks.FISH_TANK.value().asItem());

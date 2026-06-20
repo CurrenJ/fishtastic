@@ -4,6 +4,7 @@
 
   "tooltip.fishtastic.bait_effect.luck": "Luck: +%s",
   "tooltip.fishtastic.bait_effect.treasure_chance": "Treasure Chance: %s%%",
+  "tooltip.fishtastic.bait_effect.trash_chance": "Trash Chance: %s%%",
   "tooltip.fishtastic.bait_effect.target_count_bonus": "+%s Catch Targets",
   "tooltip.fishtastic.bait_effect.vanilla_fish_multiplier": "Vanilla Fish: x%s",
   "tooltip.fishtastic.bait_effect.mod_fish_multiplier": "Mod Fish: x%s",
@@ -46,6 +47,10 @@
   "item.fishtastic.predator_bait": "Predator Bait",
   "item.fishtastic.deep_sea_bait": "Deep Sea Bait",
   "item.fishtastic.quest_token": "Fishing Token",
+
+  "item.fishtastic.sea_glass": "Sea Glass",
+  "item.fishtastic.old_tire": "Old Tire",
+  "item.fishtastic.plastic_litter": "Plastic Litter",
 
   "tooltip.fishtastic.item_size.cm": "%s cm",
 

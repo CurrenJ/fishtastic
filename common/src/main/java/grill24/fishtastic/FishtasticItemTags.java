@@ -12,6 +12,7 @@ import java.util.List;
 public class FishtasticItemTags {
     public static final TagKey<Item> FISHING_RODS = create("fishing_rods");
     public static final TagKey<Item> FISH = create("fish");
+    public static final TagKey<Item> TRASH = create("trash");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");
     public static final TagKey<Item> EXOTIC_FISH = create("exotic_fish");
     public static final TagKey<Item> FRESHWATER_FISH = create("freshwater_fish");

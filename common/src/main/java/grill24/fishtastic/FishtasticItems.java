@@ -54,6 +54,11 @@ public class FishtasticItems {
     // ----- Quest Items -----
     public static Holder<Item> QUEST_TOKEN;
 
+    // ----- Trash Items -----
+    public static Holder<Item> SEA_GLASS;
+    public static Holder<Item> OLD_TIRE;
+    public static Holder<Item> PLASTIC_LITTER;
+
     // ----- Fish Tank Cosmetics -----
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
     public static Holder<Item> COSMETIC_SEA_LANTERN;
@@ -135,26 +140,31 @@ public class FishtasticItems {
         FRESHWATER_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.05f, 1, 1.0f, 1.0f, 0.0f,
+                                0.3f, 0.05f, 0.05f, 1, 1.0f, 1.0f, 0.0f,
                                 Optional.of(FishtasticItemTags.FRESHWATER_FISH), List.of()))));
         OCEAN_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.10f, 0, 1.0f, 1.0f, 0.5f,
+                                0.3f, 0.10f, 0.05f, 0, 1.0f, 1.0f, 0.5f,
                                 Optional.of(FishtasticItemTags.OCEAN_FISH), List.of()))));
         PREDATOR_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.0f, 0.10f, 0, 1.0f, 1.0f, 0.5f,
+                                1.0f, 0.10f, 0.05f, 0, 1.0f, 1.0f, 0.5f,
                                 Optional.of(FishtasticItemTags.PREDATOR_FISH), List.of()))));
         DEEP_SEA_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.5f, 0.20f, -1, 1.0f, 1.0f, 1.0f,
+                                1.5f, 0.20f, 0.05f, -1, 1.0f, 1.0f, 1.0f,
                                 Optional.of(FishtasticItemTags.DEEP_SEA_FISH), List.of()))));
 
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));
+
+        // Trash items — caught instead of fish/treasure, feed the global cleanup goal
+        SEA_GLASS = RegistrationApiSided.getInstance().registerItem("sea_glass", loc -> new Item(props(loc).stacksTo(64)));
+        OLD_TIRE = RegistrationApiSided.getInstance().registerItem("old_tire", loc -> new Item(props(loc).stacksTo(64)));
+        PLASTIC_LITTER = RegistrationApiSided.getInstance().registerItem("plastic_litter", loc -> new Item(props(loc).stacksTo(64)));
 
         // Fish tank cosmetics — custom items for quest rewards / rare drops
         COSMETIC_TREASURE_CHEST = RegistrationApiSided.getInstance().registerItem("cosmetic_treasure_chest",

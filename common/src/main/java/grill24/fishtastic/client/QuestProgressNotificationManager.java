@@ -1,7 +1,11 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -31,12 +35,19 @@ public class QuestProgressNotificationManager {
 
     private QuestProgressNotificationManager() {}
 
+    /** Synthetic "quest" id used to drive the global cleanup-goal milestone banner through this pipeline. */
+    public static final Identifier CLEANUP_GOAL_MILESTONE_ID = Fishtastic.id("cleanup_goal");
+
     /** Wire the QuestClientCache listener so progress events feed into this manager. */
     public void install() {
         if (installed) return;
         installed = true;
         QuestClientCache.setListener((questId, oldCount, newCount, targetCount, completed, triggeringItem) -> {
             enqueue(new QuestProgressEvent(questId, oldCount, newCount, targetCount, completed, triggeringItem));
+        });
+        QuestClientCache.setMilestoneListener((milestoneReached, threshold) -> {
+            ItemStack icon = new ItemStack(FishtasticItems.OLD_TIRE.value());
+            enqueue(new QuestProgressEvent(CLEANUP_GOAL_MILESTONE_ID, 0, threshold, threshold, true, icon));
         });
     }
 

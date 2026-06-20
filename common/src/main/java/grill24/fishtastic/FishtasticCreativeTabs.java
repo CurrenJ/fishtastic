@@ -45,6 +45,11 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.PREDATOR_BAIT.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
 
+                    // Trash
+                    output.accept(FishtasticItems.SEA_GLASS.value());
+                    output.accept(FishtasticItems.OLD_TIRE.value());
+                    output.accept(FishtasticItems.PLASTIC_LITTER.value());
+
                     // Fish tank
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.WORM_BIN.value());

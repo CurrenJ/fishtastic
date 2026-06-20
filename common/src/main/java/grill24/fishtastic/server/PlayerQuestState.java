@@ -102,6 +102,11 @@ public class PlayerQuestState {
         return tokenBalance;
     }
 
+    /** Grants tokens outside of the per-quest claim flow — used by the global cleanup goal payout. */
+    public void addTokens(int tokens) {
+        tokenBalance += tokens;
+    }
+
     /**
      * Attempt to purchase a shop entry. Returns false if the player can't afford it
      * or has already hit the max purchase limit.

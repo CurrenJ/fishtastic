@@ -12,13 +12,22 @@ import static grill24.fishtastic.server.FishCatchSavedData.getOrCreate;
 public class ServerTickHandler {
 
     private static long lastResetDay = -1;
+    private static long lastResetWeek = -1;
 
     public static void onServerTick(MinecraftServer server) {
-        // Daily quest reset check
         long currentDay = server.overworld().getGameTime() / 24000L;
+
+        // Daily quest reset check
         if (currentDay > lastResetDay) {
             lastResetDay = currentDay;
             getOrCreate(server).resetDailyQuestsIfNeeded(server, currentDay);
+        }
+
+        // Weekly cleanup goal reset check
+        long currentWeek = currentDay / 7L;
+        if (currentWeek > lastResetWeek) {
+            lastResetWeek = currentWeek;
+            getOrCreate(server).resetCleanupGoalIfNeeded(currentWeek);
         }
 
         // Tick fishing minigame managers for all levels

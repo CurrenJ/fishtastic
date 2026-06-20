@@ -7,11 +7,13 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Game tests for FishCatchSavedData — recording, leaderboards, guard clauses.
@@ -246,6 +248,120 @@ public final class FishCatchDataGameTests {
         List<FishCatchSavedData.PersonalBestSizeEntry> entries =
             data.getPersonalBestSizes(nobody, FishCatchSavedData.PERSONAL_BEST_SIZE_DESC);
         helper.assertTrue(entries.isEmpty(), "Unknown player must return empty list");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Global cleanup goal — shared weekly counter, contribution tracking, payouts
+    // -------------------------------------------------------------------------
+
+    /** The threshold is fixed at 200 — verified here so tests below can rely on it without re-deriving it. */
+    private static final int CLEANUP_GOAL_THRESHOLD = 200;
+
+    /**
+     * A contribution under the threshold accumulates but reports no crossed threshold;
+     * a follow-up contribution that reaches exactly 200 reports that threshold.
+     */
+    public static void recordTrashContributionAccumulatesTotal(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer player = mockPlayer.get();
+
+        List<Integer> firstCrossed = data.recordTrashContribution(player, 50);
+        helper.assertTrue(firstCrossed.isEmpty(), "50 trash must not cross the 200 threshold yet, got " + firstCrossed);
+        helper.assertTrue(data.getCleanupGoalTotal() == 50, "Total must be 50 after first contribution, got " + data.getCleanupGoalTotal());
+
+        List<Integer> secondCrossed = data.recordTrashContribution(player, 150);
+        helper.assertTrue(secondCrossed.equals(List.of(CLEANUP_GOAL_THRESHOLD)),
+            "Reaching exactly 200 must report threshold 200, got " + secondCrossed);
+        helper.assertTrue(data.getCleanupGoalTotal() == 200, "Total must be 200 after second contribution, got " + data.getCleanupGoalTotal());
+        helper.succeed();
+    }
+
+    /**
+     * A single large contribution that spans multiple thresholds must report every threshold crossed,
+     * not just the latest one — each represents a separate payout.
+     */
+    public static void recordTrashContributionCanCrossMultipleThresholdsAtOnce(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer player = mockPlayer.get();
+
+        List<Integer> crossed = data.recordTrashContribution(player, 450);
+        helper.assertTrue(crossed.equals(List.of(200, 400)),
+            "A 450-trash contribution from 0 must cross both 200 and 400, got " + crossed);
+        helper.succeed();
+    }
+
+    /**
+     * Zero (or negative) amounts must be a safe no-op — guards against trash-tagged stacks
+     * with a zero count ever nudging the shared counter.
+     */
+    public static void recordTrashContributionIgnoresNonPositiveAmounts(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer player = mockPlayer.get();
+
+        helper.assertTrue(data.recordTrashContribution(player, 0).isEmpty(), "Zero amount must report no crossed thresholds");
+        helper.assertTrue(data.recordTrashContribution(player, -5).isEmpty(), "Negative amount must report no crossed thresholds");
+        helper.assertTrue(data.getCleanupGoalTotal() == 0, "Total must remain 0 after non-positive contributions, got " + data.getCleanupGoalTotal());
+        helper.succeed();
+    }
+
+    /**
+     * Crossing a threshold splits the reward pool across every contributor that period,
+     * proportional to their share — the bigger contributor must end up with more tokens.
+     */
+    public static void crossingThresholdPaysOutTokensProportionally(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer playerA = mockPlayer.get();
+        ServerPlayer playerB = mockPlayer.get();
+
+        data.recordTrashContribution(playerA, 120); // 60% of the 200 needed to cross
+        data.recordTrashContribution(playerB, 80);  // 40% of the 200 needed to cross — crosses the threshold
+
+        int tokensA = data.getOrCreateQuestState(playerA).getTokenBalance();
+        int tokensB = data.getOrCreateQuestState(playerB).getTokenBalance();
+        helper.assertTrue(tokensA > 0 && tokensB > 0, "Both contributors must receive some tokens, got A=" + tokensA + " B=" + tokensB);
+        helper.assertTrue(tokensA > tokensB, "The 60% contributor must receive more tokens than the 40% contributor, got A=" + tokensA + " B=" + tokensB);
+        helper.assertTrue(tokensA + tokensB == 50, "The full 50-token reward pool for one threshold crossing must be fully distributed, got " + (tokensA + tokensB));
+        helper.succeed();
+    }
+
+    /**
+     * resetCleanupGoalIfNeeded must be idempotent within the same week, and must wipe
+     * contributions back to zero once a new week starts.
+     */
+    public static void resetCleanupGoalIfNeededWipesContributionsOnNewWeek(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer player = mockPlayer.get();
+
+        data.resetCleanupGoalIfNeeded(0);
+        data.recordTrashContribution(player, 80);
+        helper.assertTrue(data.getCleanupGoalTotal() == 80, "Sanity check: total must be 80 before any rollover");
+
+        data.resetCleanupGoalIfNeeded(0);
+        helper.assertTrue(data.getCleanupGoalTotal() == 80, "Calling reset again within the same week must not wipe progress");
+
+        data.resetCleanupGoalIfNeeded(1);
+        helper.assertTrue(data.getCleanupGoalTotal() == 0, "Rolling into a new week must wipe the total back to 0, got " + data.getCleanupGoalTotal());
+        helper.succeed();
+    }
+
+    /**
+     * getCleanupGoalContributors must list every contributor with their raw contribution count,
+     * sortable the same way the global catch-count leaderboard is.
+     */
+    public static void getCleanupGoalContributorsListsAllContributors(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        FishCatchSavedData data = freshData();
+        ServerPlayer playerA = mockPlayer.get();
+        ServerPlayer playerB = mockPlayer.get();
+
+        data.recordTrashContribution(playerA, 30);
+        data.recordTrashContribution(playerB, 70);
+
+        List<FishCatchSavedData.GlobalCatchCountEntry> contributors =
+            data.getCleanupGoalContributors(FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC);
+        helper.assertTrue(contributors.size() == 2, "Must list both contributors, got " + contributors.size());
+        helper.assertTrue(contributors.get(0).totalCatches() == 70,
+            "DESC order must put the larger contributor first, got " + contributors.get(0).totalCatches());
         helper.succeed();
     }
 }

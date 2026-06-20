@@ -1,5 +1,6 @@
 package grill24.fishtastic.fabric.command;
 
+import grill24.fishtastic.command.CleanupGoalCommand;
 import grill24.fishtastic.command.DebugFishDataCommand;
 import grill24.fishtastic.command.FishProfileCommand;
 import grill24.fishtastic.command.TemperamentCommand;
@@ -25,6 +26,7 @@ public class CommandRegistrationFabric {
             TemperamentCommand.register(dispatcher);
             TestQuestNotifyCommand.register(dispatcher);
             TutorialCommand.register(dispatcher);
+            CleanupGoalCommand.register(dispatcher);
         });
     }
 }

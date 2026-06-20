@@ -24,7 +24,8 @@ public class FishingTarget {
 
     public enum TargetCategory {
         FISH,
-        TREASURE
+        TREASURE,
+        TRASH
     }
 
     /**
@@ -867,9 +868,11 @@ public class FishingTarget {
 
     public ItemStack getDisplayItemStack() {
         if (state == TargetState.ACTIVE || state == TargetState.ANIMATING_FAIL) {
-            return new ItemStack(category == TargetCategory.FISH
-                    ? FishtasticItems.GENERIC_FISH
-                    : FishtasticItems.REWARD_CHEST);
+            return new ItemStack(switch (category) {
+                case FISH -> FishtasticItems.GENERIC_FISH;
+                case TREASURE -> FishtasticItems.REWARD_CHEST;
+                case TRASH -> FishtasticItems.OLD_TIRE;
+            });
         }
         return rewardItems.isEmpty() ? ItemStack.EMPTY : rewardItems.get(0);
     }

@@ -1,10 +1,14 @@
 package grill24.fishtastic.gametest;
 
+import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.server.FishingMinigameManager;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
@@ -12,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -204,6 +209,68 @@ public final class FishingMinigameManagerGameTests {
         manager.handleMinigameComplete(player, successSessionId, List.of(0));
         helper.assertTrue(CopperFishingRod.getBait(player.getMainHandItem()).getCount() == 4,
             "Bait must be consumed exactly once when a completion report awards at least one reward");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // generateTargets — three-way fish/treasure/trash roll, real RNG path
+    // -------------------------------------------------------------------------
+
+    private static ItemStack rodWithBaitEffect(BaitEffect effect) {
+        ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
+        ItemStack bait = new ItemStack(FishtasticItems.WORMS.value());
+        bait.set(FishtasticDataComponents.BAIT_EFFECT.value(), effect);
+        CopperFishingRod.setBait(rod, bait);
+        return rod;
+    }
+
+    /**
+     * With trashChance forced to 1.0, every target in the session must resolve to a trash item —
+     * trash is rolled before treasure/fish, so it must win regardless of their chances. Proves
+     * trash genuinely competes against the combined fish pool rather than being unreachable.
+     */
+    public static void trashChanceOneAlwaysAwardsTrashItems(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
+            new BaitEffect(0f, 1.0f, 1.0f, 0, 1.0f, 1.0f, 0f, Optional.empty(), List.of())));
+        castLine(helper, player);
+
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        int sessionId = manager.startSession(player, 1.0f, false);
+        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
+
+        manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
+
+        boolean awardedAnyTrash = false;
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            helper.assertTrue(!stack.is(ItemTags.FISHES),
+                "trashChance=1.0 must never award a fish item, got " + stack.getItem());
+            if (stack.is(FishtasticItemTags.TRASH)) awardedAnyTrash = true;
+        }
+        helper.assertTrue(awardedAnyTrash, "trashChance=1.0 must award at least one trash-tagged item across all targets");
+        helper.succeed();
+    }
+
+    /**
+     * With trashChance at 0 and treasureChance at 1.0, the trash branch must never fire —
+     * proves adding the trash roll didn't regress the pre-existing treasure-only path.
+     */
+    public static void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
+            new BaitEffect(0f, 1.0f, 0.0f, 0, 1.0f, 1.0f, 0f, Optional.empty(), List.of())));
+        castLine(helper, player);
+
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        int sessionId = manager.startSession(player, 1.0f, false);
+        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
+
+        manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
+
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            helper.assertTrue(!stack.is(FishtasticItemTags.TRASH),
+                "trashChance=0.0 must never award a trash item, got " + stack.getItem());
+        }
         helper.succeed();
     }
 }

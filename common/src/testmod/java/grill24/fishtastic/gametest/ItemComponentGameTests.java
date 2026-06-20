@@ -220,6 +220,39 @@ public final class ItemComponentGameTests {
         helper.succeed();
     }
 
+    /**
+     * Each preset's trashChance matches the documented balance value — trash competes against the
+     * combined fish pool, so NO_BAIT (the rarest mod-fish baseline) carries the highest trash risk,
+     * while the exotic-fish specialist BLAZED_GRUB carries none.
+     */
+    public static void baitEffectTrashChancePresets(GameTestHelper helper) {
+        helper.assertTrue(BaitEffect.NO_BAIT.trashChance() == 0.12f,
+            "NO_BAIT trashChance must be 0.12, got " + BaitEffect.NO_BAIT.trashChance());
+        helper.assertTrue(BaitEffect.WORMS.trashChance() == 0.05f,
+            "WORMS trashChance must be 0.05, got " + BaitEffect.WORMS.trashChance());
+        helper.assertTrue(BaitEffect.GUMMY_WORMS.trashChance() == 0.05f,
+            "GUMMY_WORMS trashChance must be 0.05, got " + BaitEffect.GUMMY_WORMS.trashChance());
+        helper.assertTrue(BaitEffect.BLAZED_GRUB.trashChance() == 0.0f,
+            "BLAZED_GRUB trashChance must be 0.0 (already a focused specialist), got " + BaitEffect.BLAZED_GRUB.trashChance());
+        helper.succeed();
+    }
+
+    /**
+     * A custom BaitEffect's trashChance survives the codec's STREAM_CODEC component round-trip,
+     * same path BaitEffect already covers for luckBonus/modFishMultiplier.
+     */
+    public static void baitEffectTrashChanceComponentRoundTrip(GameTestHelper helper) {
+        BaitEffect custom = new BaitEffect(0f, 0.2f, 0.33f, 0, 1.0f, 1.0f, 0f, Optional.empty(), java.util.List.of());
+        ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
+        rod.set(FishtasticDataComponents.BAIT_EFFECT.value(), custom);
+
+        BaitEffect read = rod.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        helper.assertTrue(read != null, "BaitEffect component must be present after set");
+        helper.assertTrue(read.trashChance() == 0.33f,
+            "trashChance must survive component round-trip, got " + read.trashChance());
+        helper.succeed();
+    }
+
     // -------------------------------------------------------------------------
     // RodBaitContents
     // -------------------------------------------------------------------------

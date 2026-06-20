@@ -20,6 +20,7 @@ import java.util.Optional;
 public record BaitEffect(
         float luckBonus,
         float treasureChance,
+        float trashChance,
         int targetCountBonus,
         float vanillaFishMultiplier,
         float modFishMultiplier,
@@ -39,27 +40,29 @@ public record BaitEffect(
 
     // No bait: vanilla fishing — mod fish are rare finds
     public static final BaitEffect NO_BAIT = new BaitEffect(
-            0.0f, 0.167f, 0, 1.0f, 0.15f, 0.0f, Optional.empty(), List.of());
+            0.0f, 0.167f, 0.12f, 0, 1.0f, 0.15f, 0.0f, Optional.empty(), List.of());
 
     // Worms: slightly boosts mod fish above the bare-hook baseline
     public static final BaitEffect WORMS = new BaitEffect(
-            0.5f, 0.10f, 1, 1.0f, 1.25f, 0.0f, Optional.empty(), List.of());
+            0.5f, 0.10f, 0.05f, 1, 1.0f, 1.25f, 0.0f, Optional.empty(), List.of());
 
     // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
     // Deliberately weaker on raw mod-fish weight than the exclusive-pool specialist baits
     // (Freshwater/Ocean/Predator/Deep Sea Bait), so it stays the generalist "biggest catch"
     // tool rather than also being the best way to farm any one species.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            1.0f, 0.10f, 0, 0.3f, 2.0f, 2.0f, Optional.empty(), List.of());
+            1.0f, 0.10f, 0.05f, 0, 0.3f, 2.0f, 2.0f, Optional.empty(), List.of());
 
-    // Blazed Grub: treasure hunter + exotic fish only pool
+    // Blazed Grub: treasure hunter + exotic fish only pool — already a focused specialist,
+    // so it shouldn't also dodge trash on top of finding treasure and exotic fish.
     public static final BaitEffect BLAZED_GRUB = new BaitEffect(
-            2.0f, 0.50f, 0, 1.0f, 1.0f, 0.5f,
+            2.0f, 0.50f, 0.0f, 0, 1.0f, 1.0f, 0.5f,
             Optional.of(FishtasticItemTags.EXOTIC_FISH), List.of());
 
     public static final Codec<BaitEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("luck_bonus", 0.0f).forGetter(BaitEffect::luckBonus),
             Codec.FLOAT.optionalFieldOf("treasure_chance", 0.167f).forGetter(BaitEffect::treasureChance),
+            Codec.FLOAT.optionalFieldOf("trash_chance", 0.12f).forGetter(BaitEffect::trashChance),
             Codec.INT.optionalFieldOf("target_count_bonus", 0).forGetter(BaitEffect::targetCountBonus),
             Codec.FLOAT.optionalFieldOf("vanilla_fish_multiplier", 1.0f).forGetter(BaitEffect::vanillaFishMultiplier),
             Codec.FLOAT.optionalFieldOf("mod_fish_multiplier", 1.0f).forGetter(BaitEffect::modFishMultiplier),
@@ -78,6 +81,10 @@ public record BaitEffect(
         }
         lines.add(Component.translatable("tooltip.fishtastic.bait_effect.treasure_chance", (int) (treasureChance * 100))
                 .withStyle(ChatFormatting.GRAY));
+        if (trashChance != 0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.trash_chance", (int) (trashChance * 100))
+                    .withStyle(ChatFormatting.GRAY));
+        }
         if (targetCountBonus != 0) {
             lines.add(Component.translatable("tooltip.fishtastic.bait_effect.target_count_bonus", targetCountBonus)
                     .withStyle(ChatFormatting.GRAY));

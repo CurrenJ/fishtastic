@@ -67,7 +67,9 @@ public class QuestProgressNotification {
 
         // Resolve quest display name and target count
         Minecraft mc = Minecraft.getInstance();
-        String name = event.questId().getPath(); // fallback
+        String name = event.questId().equals(QuestProgressNotificationManager.CLEANUP_GOAL_MILESTONE_ID)
+                ? "Clean Up the Waters"
+                : event.questId().getPath(); // fallback
         int tgt = event.targetCount();
         try {
             if (mc.level != null) {

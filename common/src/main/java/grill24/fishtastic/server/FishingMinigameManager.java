@@ -4,6 +4,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
@@ -70,6 +71,7 @@ public class FishingMinigameManager {
     private static final int SESSION_TIMEOUT_TICKS = 6000;
     private static final int MAX_TARGETS = 4;
     private static final float DEFAULT_TREASURE_CHANCE = 1.0f / 6.0f;
+    private static final float DEFAULT_TRASH_CHANCE = 0.12f;
     private static final int DEFAULT_TARGET_COUNT_MEAN = 1;
 
     private final ServerLevel level;
@@ -192,6 +194,7 @@ public class FishingMinigameManager {
 
         List<ItemStack> rewards = new ArrayList<>();
         List<ItemStack> questStacks = new ArrayList<>();
+        int trashCaught = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
         for (Integer index : caughtTargetIndices) {
             if (index >= 0 && index < session.targets.size()) {
@@ -203,6 +206,9 @@ public class FishingMinigameManager {
                         questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
                         player.getInventory().add(reward);
                         rewards.add(reward);
+                        if (reward.is(FishtasticItemTags.TRASH)) {
+                            trashCaught += reward.getCount();
+                        }
                     }
                 }
             } else {
@@ -215,6 +221,10 @@ public class FishingMinigameManager {
         if (!questStacks.isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
                     session.hookBiome, session.hookTimeOfDay, session.hookWeather);
+        }
+
+        if (trashCaught > 0) {
+            CleanupGoalTracker.onTrashCatch(level.getServer(), player, trashCaught);
         }
 
         TutorialManager.onMinigameComplete(player);
@@ -278,8 +288,10 @@ public class FishingMinigameManager {
 
         List<ItemStack> treasureRewards = getTreasureRewards(lootparams);
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
+        List<Holder<Item>> trashPool = getTrashPool(player);
 
         float treasureChance = baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE;
+        float trashChance = baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE;
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
         int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
@@ -294,15 +306,20 @@ public class FishingMinigameManager {
         }
 
         for (int i = 0; i < targetCount; i++) {
-            boolean isFishReward = randomSource.nextFloat() >= treasureChance;
+            float roll = randomSource.nextFloat();
+            boolean isTrash = roll < trashChance;
+            boolean isTreasure = !isTrash && roll < trashChance + treasureChance;
+            boolean isFishReward = !isTrash && !isTreasure;
             int numRewards = isFishReward ? 1 : MathUtil.clamp((int) MathUtil.randomGaussian(randomSource, 1, 1), 1, 3);
 
             List<ItemStack> rewardStacks;
             if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
                         fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, numRewards);
-            } else {
+            } else if (isTreasure) {
                 rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
+            } else {
+                rewardStacks = generateTrashRewards(randomSource, trashPool, numRewards);
             }
 
             if (rewardStacks.isEmpty()) continue;
@@ -310,7 +327,9 @@ public class FishingMinigameManager {
             ItemStack reward = rewardStacks.getFirst();
             FishingTarget.TargetCategory category = reward.is(ItemTags.FISHES)
                     ? FishingTarget.TargetCategory.FISH
-                    : FishingTarget.TargetCategory.TREASURE;
+                    : reward.is(FishtasticItemTags.TRASH)
+                            ? FishingTarget.TargetCategory.TRASH
+                            : FishingTarget.TargetCategory.TREASURE;
 
             float difficulty;
             List<PhaseRule> phases;
@@ -359,6 +378,24 @@ public class FishingMinigameManager {
         for (int n = 0; n < numRewards; n++) {
             if (possibleTreasures.isEmpty()) break;
             rewardStacks.add(possibleTreasures.get(randomSource.nextInt(possibleTreasures.size())).copy());
+        }
+        return rewardStacks;
+    }
+
+    private static @NotNull List<Holder<Item>> getTrashPool(ServerPlayer player) {
+        List<Holder<Item>> result = new ArrayList<>();
+        for (Holder<Item> holder : player.registryAccess().lookupOrThrow(Registries.ITEM).getTagOrEmpty(FishtasticItemTags.TRASH)) {
+            result.add(holder);
+        }
+        return result;
+    }
+
+    private static List<ItemStack> generateTrashRewards(RandomSource randomSource, List<Holder<Item>> trashPool, int numRewards) {
+        List<ItemStack> rewardStacks = new ArrayList<>();
+        if (trashPool.isEmpty()) return rewardStacks;
+        for (int n = 0; n < numRewards; n++) {
+            Holder<Item> trash = trashPool.get(randomSource.nextInt(trashPool.size()));
+            rewardStacks.add(new ItemStack(trash));
         }
         return rewardStacks;
     }

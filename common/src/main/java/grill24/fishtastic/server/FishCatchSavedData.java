@@ -144,9 +144,34 @@ public class FishCatchSavedData extends SavedData {
         );
     }
 
+    static final class CleanupGoalState {
+        long periodStartDay = -1;
+        int totalContributed = 0;
+        int lastThresholdPaidOut = 0;
+        final Map<UUID, Integer> contributions = new HashMap<>();
+
+        static final Codec<CleanupGoalState> CODEC = RecordCodecBuilder.create(instance ->
+            instance.group(
+                Codec.LONG.optionalFieldOf("period_start_day", -1L).forGetter(s -> s.periodStartDay),
+                Codec.INT.optionalFieldOf("total_contributed", 0).forGetter(s -> s.totalContributed),
+                Codec.INT.optionalFieldOf("last_threshold_paid_out", 0).forGetter(s -> s.lastThresholdPaidOut),
+                Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT)
+                        .optionalFieldOf("contributions", Map.of()).forGetter(s -> new HashMap<>(s.contributions))
+            ).apply(instance, (start, total, paid, contrib) -> {
+                CleanupGoalState s = new CleanupGoalState();
+                s.periodStartDay = start;
+                s.totalContributed = total;
+                s.lastThresholdPaidOut = paid;
+                s.contributions.putAll(contrib);
+                return s;
+            })
+        );
+    }
+
     private final Map<UUID, PlayerCatchData> playerData = new HashMap<>();
     private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
     private final Map<UUID, TutorialStep> tutorialSteps = new HashMap<>();
+    private CleanupGoalState cleanupGoal = new CleanupGoalState();
 
     // -------------------------------------------------------------------------
     // Codec and SavedDataType
@@ -158,12 +183,14 @@ public class FishCatchSavedData extends SavedData {
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, PlayerQuestState.CODEC)
                     .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates)),
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, TutorialStep.CODEC)
-                    .optionalFieldOf("tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.tutorialSteps))
-        ).apply(instance, (playerList, questMap, tutorialMap) -> {
+                    .optionalFieldOf("tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.tutorialSteps)),
+            CleanupGoalState.CODEC.optionalFieldOf("cleanup_goal", new CleanupGoalState()).forGetter(d -> d.cleanupGoal)
+        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
             data.questStates.putAll(questMap);
             data.tutorialSteps.putAll(tutorialMap);
+            data.cleanupGoal = cleanupGoal;
             return data;
         })
     );
@@ -295,7 +322,7 @@ public class FishCatchSavedData extends SavedData {
         setDirty();
     }
 
-    private UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
+    UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
         MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
         if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
             return SINGLEPLAYER_QUEST_UUID;
@@ -317,5 +344,81 @@ public class FishCatchSavedData extends SavedData {
                     questStates.values().forEach(state -> state.resetDailyIfNeeded(key, currentDay));
                 });
         setDirty();
+    }
+
+    // -------------------------------------------------------------------------
+    // Global cleanup goal API
+    // -------------------------------------------------------------------------
+
+    private static final int CLEANUP_GOAL_THRESHOLD = 200;
+    private static final int CLEANUP_GOAL_REWARD_TOKENS = 50;
+
+    /**
+     * Records trash caught by a player toward the shared weekly cleanup goal.
+     * Returns the cumulative totals of any thresholds crossed by this contribution
+     * (usually empty or one entry), so the caller can broadcast a milestone notification.
+     */
+    public List<Integer> recordTrashContribution(ServerPlayer player, int amount) {
+        if (amount <= 0) return List.of();
+        UUID key = resolvePlayerKey(player);
+        int before = cleanupGoal.totalContributed;
+        cleanupGoal.contributions.merge(key, amount, Integer::sum);
+        cleanupGoal.totalContributed += amount;
+
+        List<Integer> crossed = new ArrayList<>();
+        int beforeThresholds = before / CLEANUP_GOAL_THRESHOLD;
+        int afterThresholds = cleanupGoal.totalContributed / CLEANUP_GOAL_THRESHOLD;
+        for (int t = beforeThresholds + 1; t <= afterThresholds; t++) {
+            crossed.add(t * CLEANUP_GOAL_THRESHOLD);
+        }
+        if (!crossed.isEmpty()) {
+            payoutCleanupGoalContributors(crossed.size() * CLEANUP_GOAL_REWARD_TOKENS);
+        }
+        setDirty();
+        return crossed;
+    }
+
+    /** Splits the reward pool across every contributor this period, proportional to their share. */
+    private void payoutCleanupGoalContributors(int totalRewardPool) {
+        int totalContrib = cleanupGoal.totalContributed;
+        if (totalContrib <= 0) return;
+        for (Map.Entry<UUID, Integer> e : cleanupGoal.contributions.entrySet()) {
+            int share = Math.max(1, Math.round(totalRewardPool * (e.getValue() / (float) totalContrib)));
+            getOrCreateQuestState(e.getKey()).addTokens(share);
+        }
+    }
+
+    public int getCleanupGoalTotal() {
+        return cleanupGoal.totalContributed;
+    }
+
+    public int getCleanupGoalThreshold() {
+        return CLEANUP_GOAL_THRESHOLD;
+    }
+
+    public List<GlobalCatchCountEntry> getCleanupGoalContributors(Comparator<GlobalCatchCountEntry> order) {
+        return cleanupGoal.contributions.entrySet().stream()
+                .map(e -> {
+                    PlayerCatchData pd = playerData.get(e.getKey());
+                    String name = pd != null ? pd.lastKnownName : e.getKey().toString();
+                    return new GlobalCatchCountEntry(e.getKey(), name, e.getValue());
+                })
+                .sorted(order)
+                .toList();
+    }
+
+    /** Weekly rollover: wipes contributions and re-anchors the period once a new week starts. */
+    public void resetCleanupGoalIfNeeded(long currentWeek) {
+        if (cleanupGoal.periodStartDay < 0) {
+            cleanupGoal.periodStartDay = currentWeek * 7;
+            setDirty();
+            return;
+        }
+        long goalWeek = cleanupGoal.periodStartDay / 7;
+        if (goalWeek < currentWeek) {
+            cleanupGoal = new CleanupGoalState();
+            cleanupGoal.periodStartDay = currentWeek * 7;
+            setDirty();
+        }
     }
 }

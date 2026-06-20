@@ -59,7 +59,8 @@ public final class FishtasticNeoForgeClient {
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
-                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(), packet.purchaseCounts()));
+                QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
+                        packet.purchaseCounts(), packet.cleanupGoal()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);

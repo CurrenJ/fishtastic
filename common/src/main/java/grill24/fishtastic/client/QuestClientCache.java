@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.CleanupGoalProgress;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
@@ -11,8 +12,10 @@ public class QuestClientCache {
     private static Map<Identifier, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
     private static int tokenBalance = 0;
     private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
+    private static CleanupGoalProgress cleanupGoal = CleanupGoalProgress.EMPTY;
     private static boolean isInitialSync = true;
     private static QuestProgressListener listener;
+    private static CleanupGoalMilestoneListener milestoneListener;
 
     @FunctionalInterface
     public interface QuestProgressListener {
@@ -20,9 +23,19 @@ public class QuestClientCache {
                         boolean completed, ItemStack triggeringItem);
     }
 
+    @FunctionalInterface
+    public interface CleanupGoalMilestoneListener {
+        void onMilestone(int milestoneReached, int threshold);
+    }
+
     /** Register a listener for quest progress changes. Called once during client init. */
     public static void setListener(QuestProgressListener l) {
         listener = l;
+    }
+
+    /** Register a listener fired when the server announces a newly crossed cleanup-goal threshold. */
+    public static void setMilestoneListener(CleanupGoalMilestoneListener l) {
+        milestoneListener = l;
     }
 
     /**
@@ -35,6 +48,13 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
+        update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY);
+    }
+
+    public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
+                              Map<Identifier, ItemStack> triggeringItems,
+                              Map<Identifier, Integer> newPurchaseCounts,
+                              CleanupGoalProgress newCleanupGoal) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
             Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
@@ -53,21 +73,33 @@ public class QuestClientCache {
                 }
             }
         }
+        if (!isInitialSync && milestoneListener != null && newCleanupGoal.milestoneReached() != 0) {
+            milestoneListener.onMilestone(newCleanupGoal.milestoneReached(), newCleanupGoal.threshold());
+        }
         isInitialSync = false;
 
         questProgress = new HashMap<>(progress);
         tokenBalance = tokens;
         purchaseCounts = new HashMap<>(newPurchaseCounts);
+        cleanupGoal = newCleanupGoal;
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
-        update(progress, tokens, triggeringItems, Map.of());
+        update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY);
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
-        update(progress, tokens, Map.of(), Map.of());
+        update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY);
+    }
+
+    public static int getCleanupGoalTotal() {
+        return cleanupGoal.total();
+    }
+
+    public static int getCleanupGoalThreshold() {
+        return cleanupGoal.threshold();
     }
 
     public static Map<Identifier, PlayerQuestState.QuestProgress> getQuestProgress() {
@@ -91,6 +123,7 @@ public class QuestClientCache {
         questProgress = new HashMap<>();
         tokenBalance = 0;
         purchaseCounts = new HashMap<>();
+        cleanupGoal = CleanupGoalProgress.EMPTY;
         isInitialSync = true;
     }
 }
