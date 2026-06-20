@@ -1,6 +1,6 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.server.FishCatchSavedData;
 import net.minecraft.ChatFormatting;
@@ -25,14 +25,12 @@ public class DebugFishDataCommand {
 
     private static final int MAX_ENTRIES = 5;
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-                Commands.literal("fishcatchdata")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("fishcatchdata")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(ctx -> execute(ctx, null))
                         .then(Commands.argument("player", EntityArgument.player())
-                                .executes(ctx -> execute(ctx, EntityArgument.getPlayer(ctx, "player"))))
-        );
+                                .executes(ctx -> execute(ctx, EntityArgument.getPlayer(ctx, "player"))));
     }
 
     private static int execute(CommandContext<CommandSourceStack> ctx, ServerPlayer target) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

@@ -1,7 +1,7 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -19,9 +19,8 @@ import java.util.Locale;
  * Quality values: common, uncommon, rare, epic, legendary
  */
 public class SetFishQualityCommand {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-                Commands.literal("setfishquality")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("setfishquality")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
                         .then(Commands.argument("quality", StringArgumentType.word())
                                 .suggests((context, builder) -> {
@@ -31,8 +30,7 @@ public class SetFishQualityCommand {
                                     }
                                     return builder.buildFuture();
                                 })
-                                .executes(SetFishQualityCommand::execute))
-        );
+                                .executes(SetFishQualityCommand::execute));
     }
 
     private static int execute(CommandContext<CommandSourceStack> context) {

@@ -1,6 +1,6 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -21,9 +21,8 @@ public class FishProfileCommand {
     private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(
             id -> Component.literal("No fish profile registered for '" + id + "'"));
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-                Commands.literal("fishprofile")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("fishprofile")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("id", IdentifierArgument.id())
                                 .suggests((ctx, builder) -> {
@@ -33,8 +32,7 @@ public class FishProfileCommand {
                                             registry.keySet().stream().map(Identifier::toString).toList(),
                                             builder);
                                 })
-                                .executes(FishProfileCommand::execute))
-        );
+                                .executes(FishProfileCommand::execute));
     }
 
     private static int execute(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

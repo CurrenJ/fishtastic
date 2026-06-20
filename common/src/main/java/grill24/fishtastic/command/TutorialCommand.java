@@ -1,6 +1,6 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
@@ -16,9 +16,8 @@ import net.minecraft.server.level.ServerPlayer;
 
 public class TutorialCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            Commands.literal("tutorial")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("tutorial")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(Commands.literal("status")
                     .executes(ctx -> executeStatus(ctx, null))
@@ -27,8 +26,7 @@ public class TutorialCommand {
                 .then(Commands.literal("reset")
                     .executes(ctx -> executeReset(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeReset(ctx, EntityArgument.getPlayer(ctx, "player")))))
-        );
+                        .executes(ctx -> executeReset(ctx, EntityArgument.getPlayer(ctx, "player")))));
     }
 
     private static int executeStatus(CommandContext<CommandSourceStack> ctx, ServerPlayer target)

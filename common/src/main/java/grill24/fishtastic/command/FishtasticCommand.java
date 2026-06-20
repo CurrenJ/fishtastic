@@ -22,6 +22,14 @@ public class FishtasticCommand {
             Commands.literal("fishtastic")
                 .executes(FishtasticCommand::openScreen)
                 .then(CosmeticCommand.build())
+                .then(SetItemSizeCommand.build())
+                .then(SetFishQualityCommand.build())
+                .then(DebugFishDataCommand.build())
+                .then(FishProfileCommand.build())
+                .then(TemperamentCommand.build())
+                .then(TestQuestNotifyCommand.build())
+                .then(TutorialCommand.build())
+                .then(CleanupGoalCommand.build())
         );
     }
 

@@ -1,7 +1,7 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import grill24.fishtastic.server.CleanupGoalTracker;
@@ -23,9 +23,8 @@ import java.util.List;
  */
 public class CleanupGoalCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            Commands.literal("cleanupgoal")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("cleanupgoal")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(Commands.literal("contribute")
                     .then(Commands.argument("amount", IntegerArgumentType.integer(1))
@@ -36,8 +35,7 @@ public class CleanupGoalCommand {
                                 EntityArgument.getPlayer(ctx, "player"),
                                 IntegerArgumentType.getInteger(ctx, "amount"))))))
                 .then(Commands.literal("status")
-                    .executes(CleanupGoalCommand::executeStatus))
-        );
+                    .executes(CleanupGoalCommand::executeStatus));
     }
 
     private static int executeContribute(CommandContext<CommandSourceStack> ctx, ServerPlayer target, int amount)

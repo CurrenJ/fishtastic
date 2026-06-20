@@ -1,6 +1,6 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -26,9 +26,8 @@ public class TemperamentCommand {
     private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(
             id -> Component.literal("No temperament registered for '" + id + "'"));
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-                Commands.literal("temperament")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("temperament")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("id", IdentifierArgument.id())
                                 .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
@@ -38,8 +37,7 @@ public class TemperamentCommand {
                                         .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
                                         .executes(TemperamentCommand::executeForce))
                                 .then(Commands.literal("clear")
-                                        .executes(TemperamentCommand::executeForceClear)))
-        );
+                                        .executes(TemperamentCommand::executeForceClear)));
     }
 
     private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> temperamentSuggestions(

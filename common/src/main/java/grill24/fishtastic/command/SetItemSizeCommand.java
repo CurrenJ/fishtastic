@@ -1,7 +1,7 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,13 +15,11 @@ import net.minecraft.world.item.ItemStack;
  * Usage: /setitemsize <size>
  */
 public class SetItemSizeCommand {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-                Commands.literal("setitemsize")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("setitemsize")
                         .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
                         .then(Commands.argument("size", FloatArgumentType.floatArg(0.01f, 1000.0f))
-                                .executes(SetItemSizeCommand::execute))
-        );
+                                .executes(SetItemSizeCommand::execute));
     }
 
     private static int execute(CommandContext<CommandSourceStack> context) {

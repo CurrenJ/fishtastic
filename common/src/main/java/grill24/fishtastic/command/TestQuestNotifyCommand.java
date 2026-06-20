@@ -1,9 +1,9 @@
 package grill24.fishtastic.command;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.client.QuestProgressEvent;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -30,8 +30,8 @@ public class TestQuestNotifyCommand {
     private static final String DEFAULT_NAME = "Bluegill Novice";
     private static final Identifier DEFAULT_ID = ft("mastery/bluegill_novice");
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        var root = Commands.literal("testquestnotify")
+    public static LiteralArgumentBuilder<CommandSourceStack> build() {
+        return Commands.literal("testquestnotify")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 // No args: default normal progress
                 .executes(ctx -> execute(ctx, 2, 3, 5, DEFAULT_NAME, false))
@@ -55,8 +55,6 @@ public class TestQuestNotifyCommand {
                                                         IntegerArgumentType.getInteger(ctx, "targetCount"),
                                                         StringArgumentType.getString(ctx, "name"),
                                                         IntegerArgumentType.getInteger(ctx, "newCount") >= IntegerArgumentType.getInteger(ctx, "targetCount")))))));
-
-        dispatcher.register(root);
     }
 
     private static int execute(CommandContext<CommandSourceStack> ctx,
