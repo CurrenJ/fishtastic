@@ -239,14 +239,16 @@ public class FishingMinigameManager {
             }
         }
 
+        // Record trash contributions first so the quest sync packet below (which snapshots
+        // the cleanup goal total) reflects this session's catches instead of a stale total.
+        if (trashCaught > 0) {
+            CleanupGoalTracker.onTrashCatch(level.getServer(), player, trashCaught);
+        }
+
         // Batch quest tracking — only one sync packet for all catches in this session
         if (!questStacks.isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
                     session.hookBiome, session.hookTimeOfDay, session.hookWeather);
-        }
-
-        if (trashCaught > 0) {
-            CleanupGoalTracker.onTrashCatch(level.getServer(), player, trashCaught);
         }
 
         TutorialManager.onMinigameComplete(player);
