@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
@@ -27,6 +28,7 @@ public interface IRegistrationApi {
     <T> Holder<DataComponentType<T>> registerDataComponent(final String name, final UnaryOperator<DataComponentType.Builder<T>> builderOperator);
     Holder<CreativeModeTab> registerCreativeModeTab(final String name, final Function<Identifier, ? extends CreativeModeTab> func);
     Holder<SoundEvent> registerSoundEvent(final String name);
+    Holder<SimpleParticleType> registerParticleType(final String name);
 
     Registry<Block> blocks();
     Registry<Item> items();

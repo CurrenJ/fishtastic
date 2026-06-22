@@ -13,9 +13,11 @@ import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishTankCustomizationHandler;
 import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
@@ -42,6 +44,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -77,6 +80,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
         modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
 
@@ -126,6 +130,11 @@ public final class FishtasticNeoForgeClient {
             FishTankBlockEntityRenderer::new
         );
         Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
+    }
+
+    public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
     }
 
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {

@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -67,6 +68,14 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     public Holder<SoundEvent> registerSoundEvent(String name) {
         return FishtasticRegistriesNeoForge.SOUND_EVENTS.register(name,
                 () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name)));
+    }
+
+    @Override
+    public Holder<SimpleParticleType> registerParticleType(String name) {
+        @SuppressWarnings("unchecked")
+        Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
+                FishtasticRegistriesNeoForge.PARTICLE_TYPES.register(name, () -> new SimpleParticleType(false) {});
+        return holder;
     }
 
     @Override

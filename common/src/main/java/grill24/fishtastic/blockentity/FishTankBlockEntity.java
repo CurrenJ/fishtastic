@@ -238,6 +238,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             if (cosmetic.block() instanceof SeaPickleBlock) {
                 child.putInt("Pickles", cosmetic.blockState().getValue(BlockStateProperties.PICKLES));
             }
+            if (cosmetic.blockState().hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+                child.putString("Facing", cosmetic.blockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getSerializedName());
+            }
             if (cosmetic.height() != 1) {
                 child.putInt("Height", cosmetic.height());
             }
@@ -333,6 +336,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                         if (b instanceof SeaPickleBlock) {
                             int pickles = child.getIntOr("Pickles", 1);
                             state = state.setValue(BlockStateProperties.PICKLES, Math.min(pickles, SeaPickleBlock.MAX_PICKLES));
+                        }
+                        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+                            String facingStr = child.getStringOr("Facing", "");
+                            Direction facing = Direction.byName(facingStr);
+                            if (facing != null) {
+                                state = state.setValue(BlockStateProperties.HORIZONTAL_FACING, facing);
+                            }
                         }
                         int height = child.getIntOr("Height", 1);
                         cosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(state, height));

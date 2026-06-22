@@ -167,7 +167,14 @@ public class FishTankBlock extends Block implements EntityBlock {
                     }
                     // Normal placement into an empty cell.
                     if (existing == null) {
-                        fishTank.setCosmetic(cell, new PlacedCosmetic(cosmeticBlock.defaultBlockState()));
+                        BlockState placedState = cosmeticBlock.defaultBlockState();
+                        // Any cosmetic with a horizontal-facing property (e.g. the treasure chest)
+                        // orients toward the placing player, mirroring firstItemRotation for fish.
+                        if (placedState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+                            float rotation = calculateRotationTowardPlayer(player, blockPos);
+                            placedState = placedState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.fromYRot(rotation));
+                        }
+                        fishTank.setCosmetic(cell, new PlacedCosmetic(placedState));
                         itemStack.shrink(1);
                         return InteractionResult.SUCCESS;
                     }

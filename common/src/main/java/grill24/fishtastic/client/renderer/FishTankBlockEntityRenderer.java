@@ -3,6 +3,7 @@ package grill24.fishtastic.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
@@ -12,24 +13,34 @@ import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.model.object.chest.ChestModel;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.block.BlockModelRenderState;
 import net.minecraft.client.renderer.block.BlockModelResolver;
 import net.minecraft.client.renderer.block.model.BlockDisplayContext;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.blockentity.state.ChestRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -46,15 +57,33 @@ public class FishTankBlockEntityRenderer
     private static final BlockDisplayContext BLOCK_DISPLAY_CONTEXT = BlockDisplayContext.create();
 
     private final BlockModelResolver blockModelResolver;
+    private final ChestModel chestModel;
+    private final SpriteGetter chestSprites;
+
+    private static final SpriteId CHEST_SPRITE = Sheets.chooseSprite(ChestRenderState.ChestMaterialType.REGULAR, ChestType.SINGLE);
 
     public FishTankBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
         this.blockModelResolver = context.blockModelResolver();
+        this.chestModel = new ChestModel(context.bakeLayer(ModelLayers.CHEST));
+        this.chestSprites = context.sprites();
     }
 
     private static final Vector3f SAND_BASE_Y_OFFSET =
         new Vector3f(0f, CosmeticGridCell.SAND_LAYER_HEIGHT * 0.5f, 0f);
     private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f, 8f / 16f, 0.5f);
     public static final float COSMETIC_FLOOR_Y = CosmeticGridCell.FLOOR_Y;
+    // Underside of the tank's glass ceiling, in local block-space Y — where rising bubbles pop.
+    private static final float TANK_CEILING_Y = 15f / 16f;
+
+    // ── Chest cosmetic hinge-open cycle (ticks) ─────────────────────────────────
+    private static final int CHEST_OPEN_RAMP_TICKS = 10;
+    private static final int CHEST_HOLD_OPEN_TICKS = 20;
+    private static final int CHEST_CLOSE_RAMP_TICKS = 10;
+    private static final int CHEST_IDLE_MIN_TICKS = 160;
+    private static final int CHEST_IDLE_RANGE_TICKS = 150;
+    // Bubble stream released while the lid opens: one bubble every few ticks, not all at once.
+    private static final int CHEST_BUBBLE_STREAM_COUNT = 4;
+    private static final int CHEST_BUBBLE_STREAM_INTERVAL_TICKS = 3;
 
     // Usable half-width inside the tank walls for swarm scatter (block units from centre).
     private static final float TANK_HALF_EXTENT = 0.35f;
@@ -87,6 +116,11 @@ public class FishTankBlockEntityRenderer
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
 
         int blockPosHash = blockEntity.getBlockPos().hashCode();
+        state.blockPosHash = blockPosHash;
+
+        if (level instanceof ClientLevel clientLevel) {
+            spawnDueChestBubbles(clientLevel, blockEntity.getBlockPos(), blockPosHash, state);
+        }
 
         // Resolve swarm config from the first non-empty item's fish profile.
         ItemStack firstItem = blockEntity.getFirstItem();
@@ -326,11 +360,24 @@ public class FishTankBlockEntityRenderer
             if (transform.rotY() != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(transform.rotY()));
             if (transform.rotZ() != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(transform.rotZ()));
 
+            // Chest facing must be applied before the scale/recenter below: PoseStack composes
+            // transforms in reverse call order, so a rotation pushed after the -0.5,-0.5 recenter
+            // would pivot the model's raw (un-recentered) vertices around the cell corner instead
+            // of the model's own center, producing an offset that grows with rotation angle.
+            if (cosmetic.block() == Blocks.CHEST) {
+                Direction facing = cosmetic.blockState().getValue(net.minecraft.world.level.block.ChestBlock.FACING);
+                poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+            }
+
             float s = transform.scale();
             poseStack.scale(s, s, s);
             poseStack.translate(-0.5f, 0f, -0.5f);
 
-            if (cosmetic.block() == Blocks.KELP && cosmetic.height() > 1) {
+            if (cosmetic.block() == Blocks.CHEST) {
+                long seed = cellSeed(state.blockPosHash, cell);
+                float openness = chestOpenness(chestCycle(seed), state.gameTimeTicks);
+                nodes.submitModel(chestModel, openness, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
+            } else if (cosmetic.block() == Blocks.KELP && cosmetic.height() > 1) {
                 for (int seg = 0; seg < cosmetic.height(); seg++) {
                     poseStack.pushPose();
                     poseStack.translate(0f, seg, 0f);
@@ -348,5 +395,98 @@ public class FishTankBlockEntityRenderer
 
             poseStack.popPose();
         }
+    }
+
+    // ── Chest hinge-open cycle + bubble particles ───────────────────────────────
+
+    /** Deterministic per-cell seed, consistent with the swarm-fish seeding convention above. */
+    private static long cellSeed(int blockPosHash, CosmeticGridCell cell) {
+        return (long) blockPosHash ^ ((long) (cell.gridX() * CosmeticGridCell.GRID_SIZE + cell.gridZ() + 1) * 2654435761L);
+    }
+
+    /** Stable per-chest cycle timing: how long it idles closed, and a random phase so chests desync. */
+    private record ChestCycle(long idleTicks, long totalTicks, long phase) {}
+
+    private static ChestCycle chestCycle(long seed) {
+        Random rnd = new Random(seed);
+        long idleTicks = CHEST_IDLE_MIN_TICKS + rnd.nextInt(CHEST_IDLE_RANGE_TICKS);
+        long totalTicks = idleTicks + CHEST_OPEN_RAMP_TICKS + CHEST_HOLD_OPEN_TICKS + CHEST_CLOSE_RAMP_TICKS;
+        long phase = rnd.nextInt((int) totalTicks);
+        return new ChestCycle(idleTicks, totalTicks, phase);
+    }
+
+    /** Lid openness (0=closed, 1=open) at the given time, with vanilla's cubic ease-out applied. */
+    private static float chestOpenness(ChestCycle cycle, float gameTimeTicks) {
+        float cyclePos = (gameTimeTicks + cycle.phase()) % cycle.totalTicks();
+        long openStart = cycle.idleTicks();
+        long holdStart = openStart + CHEST_OPEN_RAMP_TICKS;
+        long closeStart = holdStart + CHEST_HOLD_OPEN_TICKS;
+
+        float raw;
+        if (cyclePos < openStart) {
+            raw = 0f;
+        } else if (cyclePos < holdStart) {
+            raw = (cyclePos - openStart) / CHEST_OPEN_RAMP_TICKS;
+        } else if (cyclePos < closeStart) {
+            raw = 1f;
+        } else {
+            raw = 1f - (cyclePos - closeStart) / CHEST_CLOSE_RAMP_TICKS;
+        }
+        raw = Mth.clamp(raw, 0f, 1f);
+
+        float eased = 1f - raw;
+        return 1f - eased * eased * eased;
+    }
+
+    /** Releases one bubble of the chest's stream every few ticks while its lid is opening. */
+    private static void spawnDueChestBubbles(ClientLevel level, BlockPos blockPos, int blockPosHash, FishTankRenderState state) {
+        long gameTime = level.getGameTime();
+        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : state.cosmetics.entrySet()) {
+            if (entry.getValue().block() != Blocks.CHEST) continue;
+
+            CosmeticGridCell cell = entry.getKey();
+            ChestCycle cycle = chestCycle(cellSeed(blockPosHash, cell));
+            long cyclePos = Math.floorMod(gameTime + cycle.phase(), cycle.totalTicks());
+
+            long sinceOpenStart = cyclePos - cycle.idleTicks();
+            boolean isStreamTick = sinceOpenStart >= 0
+                    && sinceOpenStart % CHEST_BUBBLE_STREAM_INTERVAL_TICKS == 0
+                    && sinceOpenStart / CHEST_BUBBLE_STREAM_INTERVAL_TICKS < CHEST_BUBBLE_STREAM_COUNT;
+            if (!isStreamTick) continue;
+
+            Long lastSpawnTick = state.chestLastBubbleSpawnTick.get(cell);
+            if (lastSpawnTick != null && lastSpawnTick == gameTime) continue;
+
+            state.chestLastBubbleSpawnTick.put(cell, gameTime);
+            spawnTankBubble(level, blockPos, cell);
+        }
+    }
+
+    private static void spawnTankBubble(ClientLevel level, BlockPos blockPos, CosmeticGridCell cell) {
+        CosmeticTransforms.Transform transform = CosmeticTransforms.get(Blocks.CHEST);
+        double worldX = blockPos.getX() + cell.localX() + transform.offsetX();
+        double worldZ = blockPos.getZ() + cell.localZ() + transform.offsetZ();
+        double worldY = blockPos.getY() + COSMETIC_FLOOR_Y + transform.offsetY() + 0.05;
+
+        BlockPos topPos = topOfConnectedTankStack(level, blockPos);
+        double popWorldY = topPos.getY() + TANK_CEILING_Y;
+
+        level.addParticle(FishtasticParticleTypes.TANK_BUBBLE.value(), worldX, worldY, worldZ, 0.0, popWorldY, 0.0);
+    }
+
+    /** Walks upward through tanks connected via an open UP face, so bubbles rise to the true top of a vertical stack. */
+    private static BlockPos topOfConnectedTankStack(Level level, BlockPos pos) {
+        BlockPos current = pos;
+        // Bounded to avoid any chance of looping on malformed/cyclic open-face state.
+        for (int i = 0; i < 64; i++) {
+            if (!(level.getBlockEntity(current) instanceof FishTankBlockEntity tank)
+                    || !tank.getOpenFaces().contains(Direction.UP)) {
+                break;
+            }
+            BlockPos above = current.above();
+            if (!(level.getBlockEntity(above) instanceof FishTankBlockEntity)) break;
+            current = above;
+        }
+        return current;
     }
 }

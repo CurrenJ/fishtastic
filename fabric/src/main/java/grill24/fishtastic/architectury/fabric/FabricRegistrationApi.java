@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -81,6 +82,15 @@ public class FabricRegistrationApi implements IRegistrationApi {
     public Holder<SoundEvent> registerSoundEvent(String name) {
         Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
         return Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
+    }
+
+    @Override
+    public Holder<SimpleParticleType> registerParticleType(String name) {
+        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        @SuppressWarnings("unchecked")
+        Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
+                Registry.registerForHolder(BuiltInRegistries.PARTICLE_TYPE, id, new SimpleParticleType(false) {});
+        return holder;
     }
 
     // ----- Registry Accessors ----- //

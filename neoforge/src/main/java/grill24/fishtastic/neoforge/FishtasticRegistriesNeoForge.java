@@ -5,6 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.DefaultedRegistry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
@@ -24,6 +25,7 @@ public class FishtasticRegistriesNeoForge {
     public static DeferredRegister<DataComponentType<?>> DATA_COMPONENT_TYPES = DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, Fishtastic.MOD_ID);
     public static DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Fishtastic.MOD_ID);
     public static DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, Fishtastic.MOD_ID);
+    public static DeferredRegister<ParticleType<?>> PARTICLE_TYPES = DeferredRegister.create(Registries.PARTICLE_TYPE, Fishtastic.MOD_ID);
 
     public static final DefaultedRegistry<FishTankFrameType> FISH_TANK_FRAME_TYPE_REGISTRY = (DefaultedRegistry<FishTankFrameType>) new RegistryBuilder<>(FishtasticRegistries.FISH_TANK_FRAME_TYPE_REGISTRY_KEY).defaultKey(ft("oak")).sync(false).create();
 
