@@ -48,14 +48,22 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
      */
     private static final float HOVER_FALLOFF_DISTANCE = 40f;
 
+    private static final float INTRO_STAGGER_DELAY = 0.025f;
+    private static final float INTRO_LAUNCH_DISTANCE = 140f;
+
     // Rest-position bookkeeping, computed once per setFishItems() call. Keyed by child identity
     // (see class doc) so it survives the selected child temporarily leaving `children`.
     private final Map<IUIElement, Vector2f> restPositions = new IdentityHashMap<>();
     private final Map<IUIElement, ResourceKey<FishProfile>> childFishKeys = new IdentityHashMap<>();
+    private final Map<IUIElement, Float> introStartTimes = new IdentityHashMap<>();
+    private final Map<IUIElement, Vector2f> outroTargetPositions = new IdentityHashMap<>();
 
     private IUIElement hoveredChild = null;
     private IUIElement selectedChild = null;
     private boolean shrinking = false;
+    private boolean introActive = false;
+    private float introElapsed = 0f;
+    private boolean outroActive = false;
 
     private BiConsumer<IUIElement, ResourceKey<FishProfile>> onFishSelected = (icon, key) -> {};
 
@@ -118,6 +126,7 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         }
 
         computeRestLayout();
+        startIntroAnimation();
         return this;
     }
 
@@ -133,6 +142,75 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
             float theta = i * GOLDEN_ANGLE;
             Vector2f center = new Vector2f(cx + (float) Math.cos(theta) * r, cy + (float) Math.sin(theta) * r);
             restPositions.put(children.get(i), center);
+        }
+    }
+
+    private void startIntroAnimation() {
+        introActive = true;
+        introElapsed = 0f;
+        introStartTimes.clear();
+
+        float cx = size.x * 0.5f;
+        float cy = size.y * 0.5f;
+
+        for (int i = 0; i < children.size(); i++) {
+            IUIElement child = children.get(i);
+            introStartTimes.put(child, i * INTRO_STAGGER_DELAY);
+
+            if (child instanceof UIElement<?> uiChild) {
+                Vector2f rest = restPositions.get(child);
+                if (rest != null) {
+                    // Launch point: same radial direction as rest position, but further from center.
+                    Vector2f dir = new Vector2f(rest.x - cx, rest.y - cy);
+                    float len = dir.length();
+                    if (len < 0.001f) dir.set(1f, 0f);
+                    else dir.normalize();
+
+                    Vector2f launchCenter = new Vector2f(
+                        cx + dir.x * INTRO_LAUNCH_DISTANCE,
+                        cy + dir.y * INTRO_LAUNCH_DISTANCE
+                    );
+                    Vector2f childSize = child.getSize();
+                    uiChild.setPosition(new Vector2f(
+                        launchCenter.x - 0.5f * childSize.x * defaultItemScale,
+                        launchCenter.y - 0.5f * childSize.y * defaultItemScale
+                    ));
+                }
+                uiChild.setVisible(false);
+            }
+        }
+    }
+
+    /** Drives all visible disc icons outward along their radial lines — the reverse of the entry animation. */
+    public void startOutroAnimation() {
+        if (outroActive) return;
+        introActive = false;
+        introStartTimes.clear();
+        outroActive = true;
+        outroTargetPositions.clear();
+
+        float cx = size.x * 0.5f;
+        float cy = size.y * 0.5f;
+
+        for (IUIElement child : children) {
+            if (!child.isVisible()) continue;
+            Vector2f rest = restPositions.get(child);
+            if (rest == null) continue;
+
+            Vector2f dir = new Vector2f(rest.x - cx, rest.y - cy);
+            float len = dir.length();
+            if (len < 0.001f) dir.set(1f, 0f);
+            else dir.normalize();
+
+            Vector2f launchCenter = new Vector2f(
+                cx + dir.x * INTRO_LAUNCH_DISTANCE,
+                cy + dir.y * INTRO_LAUNCH_DISTANCE
+            );
+            Vector2f childSize = child.getSize();
+            outroTargetPositions.put(child, new Vector2f(
+                launchCenter.x - 0.5f * childSize.x * defaultItemScale,
+                launchCenter.y - 0.5f * childSize.y * defaultItemScale
+            ));
         }
     }
 
@@ -176,10 +254,39 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
             return;
         }
 
+        if (outroActive) {
+            for (IUIElement child : children) {
+                if (!(child instanceof UIElement uiChild)) continue;
+                if (!child.isVisible()) continue;
+                Vector2f launchPos = outroTargetPositions.get(child);
+                if (launchPos != null) {
+                    uiChild.setTargetPosition(launchPos, true);
+                    uiChild.setTargetScale(defaultItemScale, true);
+                }
+            }
+            return;
+        }
+
+        if (introActive) {
+            introElapsed += deltaTime;
+            for (IUIElement child : children) {
+                Float startTime = introStartTimes.get(child);
+                if (startTime != null && introElapsed >= startTime && !child.isVisible()) {
+                    child.setVisible(true);
+                }
+            }
+            float lastStart = children.isEmpty() ? 0f : (children.size() - 1) * INTRO_STAGGER_DELAY;
+            if (introElapsed > lastStart + 0.5f) {
+                introActive = false;
+                introStartTimes.clear();
+            }
+        }
+
         Vector2f hoveredCenter = hoveredChild != null ? restPositions.get(hoveredChild) : null;
 
         for (IUIElement child : children) {
             if (!(child instanceof UIElement uiChild)) continue;
+            if (!child.isVisible()) continue;
             Vector2f rest = restPositions.get(child);
             if (rest == null) continue;
 
@@ -253,13 +360,23 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
 
     private void triggerSelect(IUIElement clicked) {
         if (selectedChild != null) return;
+        if (introActive) {
+            introActive = false;
+            introStartTimes.clear();
+        }
         selectedChild = clicked;
         hoveredChild = null;
         shrinking = true;
 
         for (IUIElement child : children) {
             if (child != clicked && child instanceof UIElement uiChild) {
-                uiChild.setTargetScale(0f, true);
+                if (!child.isVisible()) {
+                    // Still-hidden intro fish: snap to 0 so the all-shrunk check passes immediately.
+                    child.setVisible(true);
+                    uiChild.setTargetScale(0f, false);
+                } else {
+                    uiChild.setTargetScale(0f, true);
+                }
             }
         }
 
@@ -300,6 +417,6 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
 
     @Override
     public boolean needsUpdate() {
-        return super.needsUpdate() || hoveredChild != null || shrinking;
+        return super.needsUpdate() || hoveredChild != null || shrinking || introActive || outroActive;
     }
 }

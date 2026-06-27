@@ -45,6 +45,16 @@ public class FishSphereContainerTest {
         }
     }
 
+    /**
+     * Advances time far enough that the intro animation completes and all children are visible at
+     * their rest positions. Tests that need to interact with the disc (click, hover) must call this
+     * first — the intro intentionally hides children until their stagger time fires, so events
+     * injected before that are no-ops, the same as in the real game where fish are off-screen.
+     */
+    private static void settleIntro(FishSphereContainer sphere) {
+        sphere.update(2.0f);
+    }
+
     private static List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> entries(int count) {
         List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> items = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -164,6 +174,7 @@ public class FishSphereContainerTest {
             selectedKey.add(key);
         });
         sphere.setFishItems(items);
+        settleIntro(sphere);
 
         IUIElement target = items.get(1).getValue();
         target.handleEvent(new UIEvent(UIEvent.Type.CLICK, target, 0, 0));
@@ -179,6 +190,7 @@ public class FishSphereContainerTest {
         int[] callCount = {0};
         sphere.onFishSelected((icon, key) -> callCount[0]++);
         sphere.setFishItems(items);
+        settleIntro(sphere);
 
         IUIElement first = items.get(0).getValue();
         IUIElement second = items.get(1).getValue();
@@ -232,6 +244,7 @@ public class FishSphereContainerTest {
         int[] callCount = {0};
         sphere.onFishSelected((icon, key) -> callCount[0]++);
         sphere.setFishItems(items);
+        settleIntro(sphere);
 
         IUIElement first = items.get(0).getValue();
         first.handleEvent(new UIEvent(UIEvent.Type.CLICK, first, 0, 0));
@@ -278,6 +291,7 @@ public class FishSphereContainerTest {
         FishSphereContainer sphere = new FishSphereContainer().discRadius(50f);
         List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> items = entries(3);
         sphere.setFishItems(items);
+        settleIntro(sphere);
 
         SilhouetteItemButton hovered = items.get(0).getValue();
         hovered.handleEvent(new UIEvent(UIEvent.Type.HOVER_ENTER, hovered, 0, 0));

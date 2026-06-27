@@ -20,6 +20,7 @@ import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -50,6 +51,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float INFO_ICON_SIZE = 16f * INFO_ICON_SCALE;
     private static final float INFO_ICON_TOP_MARGIN = 24f;
     private static final float CLOSE_TRAVEL_DURATION = 0.3f;
+    private static final float SCREEN_FADE_DURATION = 0.2f;
+
+    private boolean closingScreen = false;
+    private long closingAtNanos = -1L;
 
     private MinecraftRenderContext tempContext;
     private boolean handlerInstalled = false;
@@ -101,6 +106,35 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         super.removed();
         if (handlerInstalled) {
             FishEncyclopediaSyncPacket.registerClientHandler(savedHandler);
+        }
+    }
+
+    @Override
+    public void onClose() {
+        if (closingScreen) return;
+        closingScreen = true;
+        closingAtNanos = System.nanoTime();
+        if (sphere != null) sphere.startOutroAnimation();
+        // Actual close is deferred to tick() so the animation can play first.
+    }
+
+    @Override
+    public void extractTransparentBackground(GuiGraphicsExtractor graphics) {
+        if (!closingScreen) {
+            super.extractTransparentBackground(graphics);
+            return;
+        }
+        float elapsed = (System.nanoTime() - closingAtNanos) / 1_000_000_000f;
+        float alpha = Math.max(0f, 1f - elapsed / SCREEN_FADE_DURATION);
+        int a1 = (int) (0xC0 * alpha);
+        int a2 = (int) (0xD0 * alpha);
+        graphics.fillGradient(0, 0, this.width, this.height,
+                (a1 << 24) | 0x101010,
+                (a2 << 24) | 0x101010);
+        if (elapsed >= SCREEN_FADE_DURATION) {
+            closingScreen = false;
+            closingAtNanos = -1L;
+            super.onClose();
         }
     }
 
