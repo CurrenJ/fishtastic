@@ -23,7 +23,6 @@ public class FishingMinigameState {
     private final float bobberSize;
     private final float maxPosition;
     private float bobberPosition; // 0 = default/bottom, 1 = max/top
-    private float previousBobberPosition; // Position at start of current tick for interpolation
     private float bobberVelocity; // Velocity in position units per tick
 
     // Catch progress state
@@ -47,7 +46,6 @@ public class FishingMinigameState {
         this.bobberSize = bobberSize;
         this.maxPosition = 1.0f - bobberSize;
         this.bobberPosition = 0.0f;
-        this.previousBobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
         this.targets = new ArrayList<>();
@@ -62,7 +60,6 @@ public class FishingMinigameState {
         this.bobberSize = bobberSize;
         this.maxPosition = 1.0f - bobberSize;
         this.bobberPosition = Math.max(MIN_POSITION, Math.min(maxPosition, initialPosition));
-        this.previousBobberPosition = this.bobberPosition;
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
         this.targets = new ArrayList<>();
@@ -73,36 +70,34 @@ public class FishingMinigameState {
     public void setNoCatchDrain(boolean noCatchDrain) { this.noCatchDrain = noCatchDrain; }
 
     /**
-     * Updates the bobber physics for one tick
+     * Updates all targets for one game tick (20 Hz). Bobber physics are handled per render
+     * frame by {@link #updatePhysics(float)}.
      */
     public void tick() {
         if (paused) return;
-        // Snapshot position before physics update so interpolation is impulse-independent
-        previousBobberPosition = bobberPosition;
+        for (FishingTarget target : targets) {
+            target.tick(bobberPosition, bobberSize);
+        }
+    }
 
-        // Apply gravity (downward acceleration)
-        bobberVelocity -= GRAVITY;
-
-        // Apply friction
-        bobberVelocity *= FRICTION;
-
-        // Update position
-        bobberPosition += bobberVelocity;
-
-        // Handle boundary collisions with bounce
+    /**
+     * Integrates bobber physics for one render frame. Called from the render path so the
+     * bobber responds to input and moves at the full display frame rate.
+     *
+     * @param deltaTimeTicks elapsed time since the last render frame, in game-tick units
+     *                       (1.0 = one full 50 ms tick; ~0.33 at 60 fps)
+     */
+    public void updatePhysics(float deltaTimeTicks) {
+        if (paused) return;
+        bobberVelocity -= GRAVITY * deltaTimeTicks;
+        bobberVelocity *= (float) Math.pow(FRICTION, deltaTimeTicks);
+        bobberPosition += bobberVelocity * deltaTimeTicks;
         if (bobberPosition < MIN_POSITION) {
             bobberPosition = MIN_POSITION;
-            previousBobberPosition = MIN_POSITION; // Prevent interpolation snap through floor
             bobberVelocity = Math.abs(bobberVelocity) * BOUNCINESS;
         } else if (bobberPosition > maxPosition) {
             bobberPosition = maxPosition;
-            previousBobberPosition = maxPosition; // Prevent interpolation snap through ceiling
             bobberVelocity = -Math.abs(bobberVelocity) * BOUNCINESS;
-        }
-
-        // Update all targets — pass current bobber state so FLEE targets can react
-        for (FishingTarget target : targets) {
-            target.tick(bobberPosition, bobberSize);
         }
     }
 
@@ -159,17 +154,6 @@ public class FishingMinigameState {
     }
 
     /**
-     * Gets the interpolated bobber position for smooth rendering between ticks.
-     * Uses previous velocity to interpolate smoothly even when impulses are applied.
-     * @param partialTick Progress between current and next tick (0-1)
-     * @return Interpolated position value between 0 and 1
-     */
-    public float getInterpolatedBobberPosition(float partialTick) {
-        return Math.max(MIN_POSITION, Math.min(maxPosition,
-                previousBobberPosition + (bobberPosition - previousBobberPosition) * partialTick));
-    }
-
-    /**
      * Gets the current bobber velocity
      * @return Velocity in position units per tick (positive = upward, negative = downward)
      */
@@ -198,7 +182,6 @@ public class FishingMinigameState {
      */
     public void reset() {
         this.bobberPosition = 0.0f;
-        this.previousBobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
         for (FishingTarget target : targets) {

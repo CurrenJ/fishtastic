@@ -2,6 +2,8 @@ package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -35,11 +37,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int hideAnimationTick = 0;
     private static final int HIDE_ANIMATION_DURATION = 20; // 1 second at 20 TPS
 
+    // Frame-rate physics tracking
+    private float lastRenderTime = -1f;
+    private boolean wasImpulseKeyDown = false;
+    // Force applied per tick-unit while the impulse key is held.  Much smaller than the
+    // tap impulse (0.04) so continuous hold doesn't instantly slam the bobber to the ceiling.
+    private static final float HOLD_IMPULSE_STRENGTH = 0.012f;
+
     // Track caught targets BEFORE they get removed
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
 
     public FishingMinigameAnimation() {
-        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize());
+        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize(), (1.0f - LAYOUT.bobberSize()) / 2f);
 
         // Add some example targets
         Random random = new Random();
@@ -206,12 +215,37 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     @Override
     public void render(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick) {
+        // Compute delta time in game-tick units (1.0 = 50 ms tick; ~0.33 at 60 fps).
+        // Using tickCount + partialTick as an absolute clock avoids any dependency on
+        // wall-clock timing and stays perfectly in sync with the game's own time source.
+        float absoluteTime = tickCount + partialTick;
+        if (lastRenderTime < 0f) lastRenderTime = absoluteTime;
+        float deltaTime = Math.min(absoluteTime - lastRenderTime, 3.0f); // clamp against lag spikes
+        lastRenderTime = absoluteTime;
+
+        // Per-frame input and physics — skip during intro / hide so the bobber is stable
+        if (!isIntro && !isHiding) {
+            boolean isImpulseDown = FishtasticKeyBinds.fishingMinigameImpulse != null
+                    && FishtasticKeyBinds.fishingMinigameImpulse.isDown();
+            if (isImpulseDown) {
+                // Apply a small continuous force each frame, scaled by deltaTime so the
+                // accumulated velocity per second is frame-rate independent.
+                minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * deltaTime);
+                if (!wasImpulseKeyDown) {
+                    // Fire the tutorial callback only on the initial press, not every frame.
+                    TutorialClientHandler.onMinigameImpulse();
+                }
+            }
+            wasImpulseKeyDown = isImpulseDown;
+
+            minigameState.updatePhysics(deltaTime);
+        }
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
         // Calculate progress (0.0 to 1.0)
-        float progress = (tickCount + partialTick) / 600f; // Generic progress for any animations
+        float progress = absoluteTime / 600f; // Generic progress for any animations
 
         // Center of the screen
         int x = screenWidth / 2;
@@ -281,7 +315,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         renderItem(LAYOUT.bar(), guiGraphics, minecraft, angle, 0);
 
         guiGraphics.pose().pushMatrix();
-        float normalizedBobberPosition = (isHiding || isIntro) ? minigameState.getBobberPosition() : minigameState.getInterpolatedBobberPosition(partialTick);
+        float normalizedBobberPosition = minigameState.getBobberPosition();
         float yOffset = normalizedBobberPosition * LAYOUT.bobberMaxYOffset();
         guiGraphics.pose().translate(0, -yOffset);
         renderItem(LAYOUT.bobber(), guiGraphics, minecraft, angle, 1);

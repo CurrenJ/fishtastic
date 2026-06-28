@@ -5,8 +5,6 @@ import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.network.ToggleEditModePacket;
 import grill24.fishtastic.client.TutorialClientHandler;
-import grill24.fishtastic.util.FishingMinigameAnimation;
-import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -59,12 +57,10 @@ public class FishtasticKeyBinds {
      */
     public static void handleKeyPress(Minecraft minecraft) {
         if (fishingMinigameImpulse.consumeClick()) {
-            IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
-            var activeAnimation = gameRendererExt.fishtastic$getActiveAnimation();
-            if (activeAnimation instanceof FishingMinigameAnimation animation) {
-                animation.applyPlayerImpulse();
-                TutorialClientHandler.onMinigameImpulse();
-            }
+            // Drain the click queue unconditionally so stale clicks don't fire after the
+            // minigame ends.  When a FishingMinigameAnimation is active its render() method
+            // handles the impulse at frame rate via rising-edge key detection — applying it
+            // here a second time would double the impulse on the same press.
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
             TutorialClientHandler.onQuestLogKeyPressed();
