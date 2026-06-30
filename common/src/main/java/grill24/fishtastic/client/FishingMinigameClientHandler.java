@@ -1,11 +1,16 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.network.FinishFishingMinigamePacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +36,21 @@ public class FishingMinigameClientHandler {
 
         // Create animation with server-provided targets
         FishingMinigameAnimation animation = new FishingMinigameAnimation();
+
+        // Apply charm input-force bonus if the player has one equipped
+        ItemStack rod = minecraft.player.getMainHandItem();
+        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+            rod = minecraft.player.getOffhandItem();
+        }
+        if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+            ItemStack charm = CopperFishingRod.getCharm(rod);
+            if (!charm.isEmpty()) {
+                CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
+                if (charmEffect != null) {
+                    animation.setInputForceMultiplier(charmEffect.inputForceMultiplier());
+                }
+            }
+        }
 
         // Clear existing targets and add server-provided ones
         animation.getMinigameState().getTargets().clear();

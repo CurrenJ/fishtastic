@@ -43,6 +43,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // Force applied per tick-unit while the impulse key is held.  Much smaller than the
     // tap impulse (0.04) so continuous hold doesn't instantly slam the bobber to the ceiling.
     private static final float HOLD_IMPULSE_STRENGTH = 0.012f;
+    private float inputForceMultiplier = 1.0f;
 
     // Track caught targets BEFORE they get removed
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
@@ -185,6 +186,10 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         minigameState.setPaused(paused);
     }
 
+    public void setInputForceMultiplier(float multiplier) {
+        this.inputForceMultiplier = multiplier;
+    }
+
     /**
      * Applies an upward impulse to the bobber (player interaction)
      * Does nothing if the minigame is hiding or in intro animation.
@@ -194,7 +199,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         if (isIntro || isHiding) {
             return;
         }
-        minigameState.applyImpulse();
+        minigameState.applyImpulse(FishingMinigameState.IMPULSE_STRENGTH * inputForceMultiplier);
     }
 
     /**
@@ -230,7 +235,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             if (isImpulseDown) {
                 // Apply a small continuous force each frame, scaled by deltaTime so the
                 // accumulated velocity per second is frame-rate independent.
-                minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * deltaTime);
+                minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
                 if (!wasImpulseKeyDown) {
                     // Fire the tutorial callback only on the initial press, not every frame.
                     TutorialClientHandler.onMinigameImpulse();

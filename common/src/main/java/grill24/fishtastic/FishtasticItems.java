@@ -2,7 +2,11 @@ package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.RodBaitContents;
+import grill24.fishtastic.component.RodCharmContents;
+import grill24.fishtastic.component.RodHookContents;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishTankCosmeticItem;
@@ -51,6 +55,13 @@ public class FishtasticItems {
     public static Holder<Item> PREDATOR_BAIT;
     public static Holder<Item> DEEP_SEA_BAIT;
 
+    // ----- Hook Items -----
+    public static Holder<Item> HOOK;
+    public static Holder<Item> OLD_COPPER_HOOK;
+
+    // ----- Charm Items -----
+    public static Holder<Item> AMETHYST_CHARM;
+
     // ----- Quest Items -----
     public static Holder<Item> QUEST_TOKEN;
 
@@ -92,7 +103,9 @@ public class FishtasticItems {
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod",
                 loc -> new CopperFishingRod(props(loc).durability(250)
-                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)));
+                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)
+                        .component(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY)
+                        .component(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY)));
 
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
@@ -155,6 +168,19 @@ public class FishtasticItems {
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 1.5f, 0.15f, 0.1f, -1, 1.0f, 1.0f, 0.25f,
                                 Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.DEEP_SEA_FISH, 2.0f))))));
+
+        // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance
+        HOOK = RegistrationApiSided.getInstance().registerItem("hook",
+                loc -> new FishtasticFishItem(props(loc).durability(100)
+                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.HOOK)));
+        OLD_COPPER_HOOK = RegistrationApiSided.getInstance().registerItem("old_copper_hook",
+                loc -> new FishtasticFishItem(props(loc).durability(50)
+                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.OLD_COPPER_HOOK)));
+
+        // Charm items — loaded into the rod's charm slot; affect fishing minigame physics
+        AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.AMETHYST_CHARM)));
 
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));

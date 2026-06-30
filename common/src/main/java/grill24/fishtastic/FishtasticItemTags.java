@@ -14,6 +14,8 @@ public class FishtasticItemTags {
     public static final TagKey<Item> FISH = create("fish");
     public static final TagKey<Item> TRASH = create("trash");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");
+    public static final TagKey<Item> FISHING_HOOKS = create("fishing_hooks");
+    public static final TagKey<Item> FISHING_CHARMS = create("fishing_charms");
     public static final TagKey<Item> EXOTIC_FISH = create("exotic_fish");
     public static final TagKey<Item> FRESHWATER_FISH = create("freshwater_fish");
     public static final TagKey<Item> OCEAN_FISH = create("ocean_fish");

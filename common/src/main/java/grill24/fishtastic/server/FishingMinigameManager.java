@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
@@ -122,8 +123,10 @@ public class FishingMinigameManager {
         ItemStack rod = findCopperRod(player);
         ItemStack bait = CopperFishingRod.getBait(rod);
         BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        ItemStack hookStack = CopperFishingRod.getHook(rod);
+        HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
 
-        List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect);
+        List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect);
 
         // Capture environment context at hook position for quest tracking
         FishingHook sessionHook = player.fishing;
@@ -255,6 +258,7 @@ public class FishingMinigameManager {
 
         if (!rewards.isEmpty()) {
             consumeBait(player);
+            damageUpgrades(player);
         }
 
         activeSessions.remove(playerId);
@@ -283,7 +287,7 @@ public class FishingMinigameManager {
         }
     }
 
-    private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect) {
+    private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect) {
         List<ServerFishingTarget> targets = new ArrayList<>();
         RandomSource randomSource = player.getRandom();
 
@@ -308,14 +312,16 @@ public class FishingMinigameManager {
                 : FishProfile.WeatherCondition.CLEAR;
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        float qualityBias = baitEffect != null ? baitEffect.qualityBias() : 0.0f;
+        float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
+                + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
         List<ItemStack> treasureRewards = getTreasureRewards(lootparams);
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
         List<Holder<Item>> trashPool = getTrashPool(player);
 
         float treasureChance = baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE;
-        float trashChance = baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE;
+        float trashChance = Math.max(0f, (baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE)
+                + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f));
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
         int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
@@ -506,6 +512,23 @@ public class FishingMinigameManager {
         if (!bait.isEmpty()) {
             bait.shrink(1);
             CopperFishingRod.setBait(rod, bait);
+        }
+    }
+
+    private static void damageUpgrades(ServerPlayer player) {
+        ItemStack rod = findCopperRod(player);
+        if (rod.isEmpty()) return;
+
+        ItemStack hook = CopperFishingRod.getHook(rod);
+        if (!hook.isEmpty()) {
+            hook.setDamageValue(hook.getDamageValue() + 1);
+            CopperFishingRod.setHook(rod, hook.getDamageValue() >= hook.getMaxDamage() ? ItemStack.EMPTY : hook);
+        }
+
+        ItemStack charm = CopperFishingRod.getCharm(rod);
+        if (!charm.isEmpty()) {
+            charm.setDamageValue(charm.getDamageValue() + 1);
+            CopperFishingRod.setCharm(rod, charm.getDamageValue() >= charm.getMaxDamage() ? ItemStack.EMPTY : charm);
         }
     }
 

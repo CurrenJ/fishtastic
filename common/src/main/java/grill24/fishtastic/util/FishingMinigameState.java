@@ -12,7 +12,7 @@ public class FishingMinigameState {
     // Physics constants
     private static final float GRAVITY = 0.007f; // Downward acceleration per tick
     private static final float BOUNCINESS = 0.6f; // Velocity retention on bounce (0-1)
-    private static final float IMPULSE_STRENGTH = 0.04f; // Upward impulse when player uses item
+    public static final float IMPULSE_STRENGTH = 0.04f; // Upward impulse when player uses item
     private static final float FRICTION = 0.986f; // Velocity dampening per tick
 
     // Catch progress constants

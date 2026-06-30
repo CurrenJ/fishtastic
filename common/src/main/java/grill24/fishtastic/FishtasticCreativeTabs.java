@@ -43,6 +43,10 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.FRESHWATER_BAIT.value());
                     output.accept(FishtasticItems.OCEAN_BAIT.value());
                     output.accept(FishtasticItems.PREDATOR_BAIT.value());
+                    output.accept(FishtasticItems.DEEP_SEA_BAIT.value());
+                    output.accept(FishtasticItems.HOOK.value());
+                    output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
+                    output.accept(FishtasticItems.AMETHYST_CHARM.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
 
                     // Trash
