@@ -47,6 +47,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 buildEquipmentRecipes(items);
                 buildGlassRecipes(items);
                 buildBaitAndFoodRecipes(items);
+                buildHookAndCharmRecipes(items);
             }
 
             // -----------------------------------------------------------------
@@ -176,6 +177,33 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(ItemTags.MEAT)
                         .requires(ItemTags.MEAT)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
+                        .save(this.output);
+            }
+
+            // -----------------------------------------------------------------
+            // Hooks and charms
+            // -----------------------------------------------------------------
+
+            private void buildHookAndCharmRecipes(HolderGetter<Item> items) {
+                // Hook: iron ingot sharpened with string, better quality bias / lower trash chance
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.HOOK.value())
+                        .requires(Items.IRON_INGOT)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_iron_ingot", has(Items.IRON_INGOT))
+                        .save(this.output);
+
+                // Old Copper Hook: cheaper copper substitute, worse quality bias / higher trash chance
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.OLD_COPPER_HOOK.value())
+                        .requires(Items.COPPER_INGOT)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
+                        .save(this.output);
+
+                // Amethyst Charm: amethyst shard bound with string, boosts minigame input force
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.AMETHYST_CHARM.value())
+                        .requires(Items.AMETHYST_SHARD)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                         .save(this.output);
             }
 

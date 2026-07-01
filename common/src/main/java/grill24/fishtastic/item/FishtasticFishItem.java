@@ -3,7 +3,9 @@ package grill24.fishtastic.item;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -65,6 +67,14 @@ public class FishtasticFishItem extends Item {
         BaitEffect baitEffect = stack.get(FishtasticDataComponents.BAIT_EFFECT.value());
         if (baitEffect != null) {
             baitEffect.tooltipLines().forEach(builder);
+        }
+        HookEffect hookEffect = stack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+        if (hookEffect != null) {
+            hookEffect.tooltipLines().forEach(builder);
+        }
+        CharmEffect charmEffect = stack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        if (charmEffect != null) {
+            charmEffect.tooltipLines().forEach(builder);
         }
     }
 

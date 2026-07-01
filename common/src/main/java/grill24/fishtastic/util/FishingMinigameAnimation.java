@@ -230,8 +230,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         // Per-frame input and physics — skip during intro / hide so the bobber is stable
         if (!isIntro && !isHiding) {
-            boolean isImpulseDown = FishtasticKeyBinds.fishingMinigameImpulse != null
-                    && FishtasticKeyBinds.fishingMinigameImpulse.isDown();
+            // Poll both the dedicated keybind and vanilla's "use item" mapping (default: right
+            // mouse button) every frame so right-click produces the same smooth, frame-rate
+            // independent hold force as the keybind instead of vanilla's bursty click-repeat taps.
+            boolean isImpulseDown = (FishtasticKeyBinds.fishingMinigameImpulse != null
+                    && FishtasticKeyBinds.fishingMinigameImpulse.isDown())
+                    || minecraft.options.keyUse.isDown();
             if (isImpulseDown) {
                 // Apply a small continuous force each frame, scaled by deltaTime so the
                 // accumulated velocity per second is frame-rate independent.

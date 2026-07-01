@@ -2,7 +2,6 @@ package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
-import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.client.tooltip.RodBaitTooltip;
 import grill24.fishtastic.component.BaitEffect;
@@ -11,10 +10,7 @@ import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.RodBaitContents;
 import grill24.fishtastic.component.RodCharmContents;
 import grill24.fishtastic.component.RodHookContents;
-import grill24.fishtastic.util.FishingMinigameAnimation;
-import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
@@ -45,15 +41,10 @@ public class CopperFishingRod extends FishingRodItem {
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         super.use(level, player, hand);
 
-        if (level.isClientSide()) {
-            Minecraft minecraft = Minecraft.getInstance();
-            IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
-            var activeAnimation = gameRendererExt.fishtastic$getActiveAnimation();
-            if (activeAnimation instanceof FishingMinigameAnimation animation) {
-                animation.applyPlayerImpulse();
-                TutorialClientHandler.onMinigameImpulse();
-            }
-        }
+        // Minigame impulse input is polled every frame in FishingMinigameAnimation.render()
+        // (both the dedicated keybind and vanilla's "use item" mapping), so right-click no
+        // longer applies a discrete tap impulse here — that would double up with the
+        // continuous hold force and behave differently from the keybind.
 
         return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }

@@ -230,6 +230,10 @@ public class FishingMinigameManager {
                         catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
                         questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
                         player.getInventory().add(reward);
+                        if (!reward.isEmpty()) {
+                            // inventory.add() leaves any leftover count in reward when full/partially full
+                            player.drop(reward, false);
+                        }
                         rewards.add(reward);
                         if (reward.is(FishtasticItemTags.TRASH)) {
                             trashCaught += reward.getCount();
