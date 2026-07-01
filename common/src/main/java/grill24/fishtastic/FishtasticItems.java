@@ -151,23 +151,23 @@ public class FishtasticItems {
         FRESHWATER_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.05f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRESHWATER_FISH, 2.0f))))));
+                                0.3f, 0.05f, 0.1f, 0, 0.25f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRESHWATER_FISH, 4.0f))))));
         OCEAN_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.3f, 0.10f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.OCEAN_FISH, 2.0f))))));
+                                0.3f, 0.10f, 0.1f, 0, 0.25f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.OCEAN_FISH, 4.0f))))));
         PREDATOR_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.0f, 0.10f, 0.1f, 0, 1.0f, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.PREDATOR_FISH, 2.0f))))));
+                                1.0f, 0.10f, 0.1f, 0, 0.25f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.PREDATOR_FISH, 4.0f))))));
         DEEP_SEA_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                1.5f, 0.15f, 0.1f, -1, 1.0f, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.DEEP_SEA_FISH, 2.0f))))));
+                                1.5f, 0.15f, 0.1f, -1, 0.25f, 1.0f, 0.25f,
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.DEEP_SEA_FISH, 4.0f))))));
 
         // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance
         HOOK = RegistrationApiSided.getInstance().registerItem("hook",

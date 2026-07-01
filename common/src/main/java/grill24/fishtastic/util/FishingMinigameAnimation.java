@@ -115,9 +115,14 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Only update minigame state and targets when not in intro or hiding
         minigameState.tick();
 
-        // Update catch progress for all targets based on collision
-        final float normalizedBobberMinY = minigameState.getBobberPosition();
-        final float normalizedBobberMaxY = normalizedBobberMinY + minigameState.getBobberSize();
+        // Update catch progress for all targets based on collision. Bobber physics run once per
+        // render frame (see updatePhysics calls in render()) while this tick only fires at 20 Hz,
+        // so we check against the full envelope of bobber centers visited since the last tick
+        // (getSweptMinPosition/MaxPosition) rather than a single instantaneous position — otherwise
+        // a fast bobber flick could pass straight through a narrow target between two tick samples.
+        final float bobberRadius = minigameState.getBobberSize() * 0.5f;
+        final float sweptCenterMin = minigameState.getSweptMinPosition() + bobberRadius;
+        final float sweptCenterMax = minigameState.getSweptMaxPosition() + bobberRadius;
 
         // Never remove targets from the list — doing so shifts indices and breaks the caught-index
         // tracking that is sent to the server.  Targets stay in their original slot forever; we
@@ -129,9 +134,14 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
             if (target.getState() == FishingTarget.TargetState.ACTIVE) {
                 float targetPosition = target.getPosition();
-                float bobberCenter = normalizedBobberMinY + minigameState.getBobberSize() * 0.5f;
-                float bobberRadius = minigameState.getBobberSize() * 0.5f;
-                float distToCenter = Math.abs(targetPosition - bobberCenter);
+                float distToCenter;
+                if (targetPosition < sweptCenterMin) {
+                    distToCenter = sweptCenterMin - targetPosition;
+                } else if (targetPosition > sweptCenterMax) {
+                    distToCenter = targetPosition - sweptCenterMax;
+                } else {
+                    distToCenter = 0f; // the bobber's center passed directly over the target at some point this tick
+                }
                 float overlapQuality = distToCenter < bobberRadius ? 1f - distToCenter / bobberRadius : 0f;
                 target.updateCatchProgress(overlapQuality);
 
@@ -153,6 +163,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 }
             }
         }
+        minigameState.resetSweptRange();
 
         // Hide once every target has fully completed its animation
         boolean allComplete = !targets.isEmpty()

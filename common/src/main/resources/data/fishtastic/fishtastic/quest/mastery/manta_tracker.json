@@ -4,7 +4,7 @@
     "target_species": "fishtastic:giant_manta_ray",
     "target_count": 25
   },
-  "reward": { "quest_tokens": 35, "items": [] },
+  "reward": { "quest_tokens": 53, "items": [] },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/manta_spotter",
   "display_name": "Manta Tracker",

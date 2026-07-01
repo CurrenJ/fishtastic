@@ -2,6 +2,7 @@ package grill24.fishtastic.network;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
@@ -14,7 +15,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
 
 public record CompleteQuestPacket(Identifier questId) implements CustomPacketPayload {
 
@@ -58,8 +58,8 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
 
             if (!state.canClaim(questKey, quest)) return;
 
-            for (ItemStack item : quest.reward().items()) {
-                serverPlayer.getInventory().add(item.copy());
+            for (QuestReward.RewardItem item : quest.reward().items()) {
+                serverPlayer.getInventory().add(item.toStack());
             }
             state.claim(questKey, quest.reward().questTokens());
             data.setDirty();

@@ -221,7 +221,8 @@ public class FishingMinigameManager {
         List<ItemStack> questStacks = new ArrayList<>();
         int trashCaught = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
-        for (Integer index : caughtTargetIndices) {
+        // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
+        for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
             if (index >= 0 && index < session.targets.size()) {
                 ServerFishingTarget target = session.targets.get(index);
                 for (ItemStack rewardStack : target.rewardStacks()) {

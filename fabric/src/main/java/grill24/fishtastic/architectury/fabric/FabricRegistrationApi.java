@@ -15,6 +15,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -90,6 +92,14 @@ public class FabricRegistrationApi implements IRegistrationApi {
         @SuppressWarnings("unchecked")
         Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
                 Registry.registerForHolder(BuiltInRegistries.PARTICLE_TYPE, id, new SimpleParticleType(false) {});
+        return holder;
+    }
+
+    @Override
+    public <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(String name, MenuFactory<M> factory) {
+        MenuType<M> menuType = new MenuType<>(factory::create, net.minecraft.world.flag.FeatureFlags.VANILLA_SET);
+        @SuppressWarnings("unchecked")
+        Holder<MenuType<?>> holder = (Holder<MenuType<?>>) (Holder<?>) register(BuiltInRegistries.MENU, name, loc -> menuType);
         return holder;
     }
 

@@ -9,4 +9,9 @@ accessible method net/minecraft/client/renderer/rendertype/RenderType create (Lj
 # ItemModels.ID_MAPPER is needed to register custom item model types
 accessible field net/minecraft/client/renderer/item/ItemModels ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;
 
+# Needed to register the Fish Tank Assembly menu screen via vanilla MenuScreens.register
+accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor
+accessible class net/minecraft/world/inventory/MenuType$MenuSupplier
+accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
+
 

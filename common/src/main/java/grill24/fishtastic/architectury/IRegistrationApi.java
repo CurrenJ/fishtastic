@@ -9,6 +9,9 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -29,6 +32,13 @@ public interface IRegistrationApi {
     Holder<CreativeModeTab> registerCreativeModeTab(final String name, final Function<Identifier, ? extends CreativeModeTab> func);
     Holder<SoundEvent> registerSoundEvent(final String name);
     Holder<SimpleParticleType> registerParticleType(final String name);
+    <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(final String name, final MenuFactory<M> factory);
+
+    /** Stand-in for {@code MenuType.MenuSupplier}, which is package-private. */
+    @FunctionalInterface
+    interface MenuFactory<M extends AbstractContainerMenu> {
+        M create(int containerId, Inventory playerInventory);
+    }
 
     Registry<Block> blocks();
     Registry<Item> items();

@@ -9,7 +9,6 @@ import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
@@ -50,6 +49,15 @@ public class FishTankBlock extends Block implements EntityBlock {
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
         return RegistrationApiSided.getInstance().createFishTankBlockEntity(blockPos, blockState);
+    }
+
+    @Override
+    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+        ItemStack stack = super.getCloneItemStack(level, pos, state, includeData);
+        if (includeData && level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
+            stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS.value(), fishTank.getMaterials());
+        }
+        return stack;
     }
 
     @Override
@@ -243,50 +251,8 @@ public class FishTankBlock extends Block implements EntityBlock {
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity fishTank) {
-                // Check if the player is holding a block item
-                if (itemStack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
-                    Block heldBlock = blockItem.getBlock();
-
-                    // Get the player's current customization mode
-                    FishTankCustomizationMode mode = FishTankCustomizationModeManager.getMode(player.getUUID());
-
-                    // Check if the block is blacklisted for this part
-                    String partName = mode.name().toLowerCase();
-                    if (RegistrationApiSided.getInstance().isBlockBlacklisted(heldBlock, partName)) {
-                        player.sendSystemMessage(
-                            Component.literal("§cThis block cannot be used for fish tank " + partName + " (blacklisted in config)")
-                        );
-                        return InteractionResult.FAIL;
-                    }
-
-                    // Apply the block based on the current mode
-                    switch (mode) {
-                        case FRAME:
-                            fishTank.setFrameBlock(heldBlock);
-                            player.sendSystemMessage(
-                                Component.literal("Fish tank frame changed to: " +
-                                    BuiltInRegistries.BLOCK.getKey(heldBlock))
-                            );
-                            break;
-                        case SAND:
-                            fishTank.setSandBlock(heldBlock);
-                            player.sendSystemMessage(
-                                Component.literal("Fish tank sand changed to: " +
-                                    BuiltInRegistries.BLOCK.getKey(heldBlock))
-                            );
-                            break;
-                        case GLASS:
-                            fishTank.setGlassBlock(heldBlock);
-                            player.sendSystemMessage(
-                                Component.literal("Fish tank glass changed to: " +
-                                    BuiltInRegistries.BLOCK.getKey(heldBlock))
-                            );
-                            break;
-                    }
-
-                    return InteractionResult.SUCCESS;
-                } else if (!itemStack.isEmpty()) {
-                    // Non-block item - try to add it to the tank
+                if (!itemStack.isEmpty()) {
+                    // Try to add the held item to the tank as display content.
                     ItemStack toAdd = itemStack.copy();
                     toAdd.setCount(1);
 

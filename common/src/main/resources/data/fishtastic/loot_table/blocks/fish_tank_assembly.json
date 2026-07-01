@@ -11,16 +11,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "functions": [
-            {
-              "function": "minecraft:copy_components",
-              "include": [
-                "fishtastic:fish_tank_materials"
-              ],
-              "source": "block_entity"
-            }
-          ],
-          "name": "fishtastic:fish_tank"
+          "name": "fishtastic:fish_tank_assembly"
         }
       ],
       "rolls": 1.0

@@ -1,6 +1,7 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.block.FishTankAssemblyBlock;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.block.WormBinBlock;
 import net.minecraft.core.Holder;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 public class FishtasticBlocks {
     public static Holder<Block> FISH_TANK;
+    public static Holder<Block> FISH_TANK_ASSEMBLY;
     public static Holder<Block> WORM_BIN;
 
     // Undyed glass variants (no color)
@@ -57,6 +59,13 @@ public class FishtasticBlocks {
             loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .noOcclusion()  // Allow transparent rendering
+        ));
+
+        FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerBlock("fish_tank_assembly",
+            loc -> new FishTankAssemblyBlock(Block.Properties.of()
+                .setId(ResourceKey.create(Registries.BLOCK, loc))
+                .strength(2.5f)
+                .sound(SoundType.WOOD)
         ));
 
         WORM_BIN = RegistrationApiSided.getInstance().registerBlock("worm_bin",

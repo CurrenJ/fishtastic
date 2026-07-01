@@ -15,7 +15,6 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.FishtasticClientSetup;
-import grill24.fishtastic.client.FishTankCustomizationHandler;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
@@ -38,7 +37,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
@@ -48,6 +46,7 @@ import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -83,6 +82,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
 
         // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
@@ -91,9 +91,6 @@ public final class FishtasticNeoForgeClient {
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
-
-        // Register mouse scroll event handler for fish tank customization
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onMouseScroll);
 
         // Register tutorial overlay — fires BEFORE the minigame bar so the bar appears on top
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGuiPre);
@@ -156,10 +153,15 @@ public final class FishtasticNeoForgeClient {
     public static void onClientSetup(final FMLClientSetupEvent event) {
         // Register custom item model types
         FishtasticClientSetup.registerItemModelTypes();
+        grill24.fishtastic.neoforge.fishtank.FishTankItemModel.register();
 
         // TODO MC-26.1: ItemProperties.register is removed in 26.1
         // The fishing rod "cast" property must now be defined via data-driven item models
         Fishtastic.LOGGER.info("Fishtastic client setup complete.");
+    }
+
+    public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
+        event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
     }
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
@@ -191,11 +193,6 @@ public final class FishtasticNeoForgeClient {
         }
     }
 
-    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
-        if (FishTankCustomizationHandler.handleMouseScroll(event.getScrollDeltaY())) {
-            event.setCanceled(true);
-        }
-    }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
         TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));

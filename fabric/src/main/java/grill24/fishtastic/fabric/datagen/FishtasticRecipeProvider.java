@@ -65,14 +65,12 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
                         .save(this.output);
 
-                // Fish Tank: glass walls with iron corners (hollow 3×3)
-                ShapedRecipeBuilder.shaped(items, RecipeCategory.DECORATIONS, FishtasticBlocks.FISH_TANK.value())
-                        .pattern("IGI")
-                        .pattern("G G")
-                        .pattern("IGI")
-                        .define('I', Items.IRON_INGOT)
-                        .define('G', Items.GLASS)
-                        .unlockedBy("has_glass", has(Items.GLASS))
+                // Fish Tank Assembly: a sized fish shows the crafting table what it's for;
+                // materials are chosen afterward in the assembly block's own menu, not here.
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.DECORATIONS, FishtasticBlocks.FISH_TANK_ASSEMBLY.value())
+                        .requires(grill24.fishtastic.FishtasticItemTags.FISH)
+                        .requires(Items.CRAFTING_TABLE)
+                        .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
             }
 

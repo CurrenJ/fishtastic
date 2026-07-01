@@ -25,6 +25,15 @@ public class FishingMinigameState {
     private float bobberPosition; // 0 = default/bottom, 1 = max/top
     private float bobberVelocity; // Velocity in position units per tick
 
+    // Envelope of bobber positions visited since the last resetSweptRange() call. Bobber physics
+    // run once per render frame while catch-progress overlap is only evaluated once per 20 Hz
+    // game tick, so a fast bobber can otherwise pass straight through a narrow target between two
+    // tick samples without ever registering an overlap. Tracking the swept range lets the tick
+    // check "did the bobber pass over this target at any point this tick" instead of just "is the
+    // bobber over this target right now".
+    private float sweptMinPosition;
+    private float sweptMaxPosition;
+
     // Catch progress state
     private float catchProgress; // 0 = no progress, 1 = caught (item should be caught)
 
@@ -49,6 +58,7 @@ public class FishingMinigameState {
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
         this.targets = new ArrayList<>();
+        this.sweptMinPosition = this.sweptMaxPosition = this.bobberPosition;
     }
 
     /**
@@ -63,6 +73,7 @@ public class FishingMinigameState {
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
         this.targets = new ArrayList<>();
+        this.sweptMinPosition = this.sweptMaxPosition = this.bobberPosition;
     }
 
     public void setPaused(boolean paused) { this.paused = paused; }
@@ -99,6 +110,31 @@ public class FishingMinigameState {
             bobberPosition = maxPosition;
             bobberVelocity = -Math.abs(bobberVelocity) * BOUNCINESS;
         }
+        sweptMinPosition = Math.min(sweptMinPosition, bobberPosition);
+        sweptMaxPosition = Math.max(sweptMaxPosition, bobberPosition);
+    }
+
+    /**
+     * Lower bound of the bobber positions visited since the last {@link #resetSweptRange()}.
+     */
+    public float getSweptMinPosition() {
+        return sweptMinPosition;
+    }
+
+    /**
+     * Upper bound of the bobber positions visited since the last {@link #resetSweptRange()}.
+     */
+    public float getSweptMaxPosition() {
+        return sweptMaxPosition;
+    }
+
+    /**
+     * Collapses the swept range back to the current bobber position. Call once per game tick,
+     * after consuming the range for catch-progress overlap checks, so the next tick accumulates
+     * a fresh envelope.
+     */
+    public void resetSweptRange() {
+        sweptMinPosition = sweptMaxPosition = bobberPosition;
     }
 
     /**
@@ -184,6 +220,7 @@ public class FishingMinigameState {
         this.bobberPosition = 0.0f;
         this.bobberVelocity = 0.0f;
         this.catchProgress = 0.0f;
+        this.sweptMinPosition = this.sweptMaxPosition = this.bobberPosition;
         for (FishingTarget target : targets) {
             target.reset();
         }

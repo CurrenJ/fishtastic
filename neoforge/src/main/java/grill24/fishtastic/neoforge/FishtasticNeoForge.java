@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticCreativeTabs;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
@@ -48,6 +49,9 @@ public final class FishtasticNeoForge {
 
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
         FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(modEventBus);
+
+        FishtasticMenuTypes.registerMenuTypes();
+        FishtasticRegistriesNeoForge.MENU_TYPES.register(modEventBus);
 
         FishtasticCreativeTabs.registerCreativeTabs();
         FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(modEventBus);

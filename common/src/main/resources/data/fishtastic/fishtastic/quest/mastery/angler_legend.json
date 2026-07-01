@@ -5,7 +5,7 @@
     "target_count": 500,
     "notification_interval": 50
   },
-  "reward": { "quest_tokens": 60, "items": [] },
+  "reward": { "quest_tokens": 206, "items": [] },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/angler_master",
   "display_name": "Angler Legend",

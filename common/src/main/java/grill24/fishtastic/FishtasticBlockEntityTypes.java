@@ -1,6 +1,7 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.blockentity.WormBinBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -11,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class FishtasticBlockEntityTypes {
     public static Holder<BlockEntityType<?>> FISH_TANK;
+    public static Holder<BlockEntityType<?>> FISH_TANK_ASSEMBLY;
     public static Holder<BlockEntityType<?>> WORM_BIN;
 
     public static void registerBlockEntityTypes() {
@@ -18,6 +20,11 @@ public class FishtasticBlockEntityTypes {
             "fish_tank",
             FishtasticBlockEntityTypes::createFishTankBlockEntity,
             () -> new Block[] { FishtasticBlocks.FISH_TANK.value() }
+        );
+        FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerBlockEntityType(
+            "fish_tank_assembly",
+            FishTankAssemblyBlockEntity::new,
+            () -> new Block[] { FishtasticBlocks.FISH_TANK_ASSEMBLY.value() }
         );
         WORM_BIN = RegistrationApiSided.getInstance().registerBlockEntityType(
             "worm_bin",

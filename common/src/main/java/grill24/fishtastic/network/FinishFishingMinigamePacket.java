@@ -22,10 +22,14 @@ public record FinishFishingMinigamePacket(
     public static final CustomPacketPayload.Type<FinishFishingMinigamePacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.FINISH_FISHING_MINIGAME_ID);
 
+    // A session never generates more than a handful of targets (see FishingMinigameManager.MAX_TARGETS);
+    // capping the list size closes off oversized/replayed-index payloads from a modified client.
+    private static final int MAX_CAUGHT_INDICES = 16;
+
     public static final StreamCodec<RegistryFriendlyByteBuf, FinishFishingMinigamePacket> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT,
             FinishFishingMinigamePacket::sessionId,
-            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()),
+            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(MAX_CAUGHT_INDICES)),
             FinishFishingMinigamePacket::caughtTargetIndices,
             FinishFishingMinigamePacket::new
     );

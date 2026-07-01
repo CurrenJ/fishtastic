@@ -4,6 +4,7 @@ import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.component.RodBaitContents;
@@ -21,6 +22,7 @@ public class FishtasticDataComponents {
     public static Holder<DataComponentType<BaitEffect>> BAIT_EFFECT;
     public static Holder<DataComponentType<HookEffect>> HOOK_EFFECT;
     public static Holder<DataComponentType<CharmEffect>> CHARM_EFFECT;
+    public static Holder<DataComponentType<FishTankMaterials>> FISH_TANK_MATERIALS;
 
     public static void registerDataComponents() {
         ITEM_SIZE = RegistrationApiSided.getInstance().registerDataComponent(
@@ -77,6 +79,13 @@ public class FishtasticDataComponents {
                 builder -> builder
                         .persistent(CharmEffect.CODEC)
                         .networkSynchronized(CharmEffect.STREAM_CODEC)
+        );
+
+        FISH_TANK_MATERIALS = RegistrationApiSided.getInstance().registerDataComponent(
+                "fish_tank_materials",
+                builder -> builder
+                        .persistent(FishTankMaterials.CODEC)
+                        .networkSynchronized(FishTankMaterials.STREAM_CODEC)
         );
     }
 }

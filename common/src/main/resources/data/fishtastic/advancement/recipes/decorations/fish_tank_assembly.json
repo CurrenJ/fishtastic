@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_glass": {
+    "has_fish": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:glass"
+            "items": "#fishtastic:fish"
           }
         ]
       },
@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "fishtastic:fish_tank"
+        "recipe": "fishtastic:fish_tank_assembly"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -21,12 +21,12 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_glass"
+      "has_fish"
     ]
   ],
   "rewards": {
     "recipes": [
-      "fishtastic:fish_tank"
+      "fishtastic:fish_tank_assembly"
     ]
   }
 }

@@ -15,6 +15,9 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -76,6 +79,11 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
         Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
                 FishtasticRegistriesNeoForge.PARTICLE_TYPES.register(name, () -> new SimpleParticleType(false) {});
         return holder;
+    }
+
+    @Override
+    public <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(String name, MenuFactory<M> factory) {
+        return FishtasticRegistriesNeoForge.MENU_TYPES.register(name, loc -> new MenuType<>(factory::create, FeatureFlags.VANILLA_SET));
     }
 
     @Override

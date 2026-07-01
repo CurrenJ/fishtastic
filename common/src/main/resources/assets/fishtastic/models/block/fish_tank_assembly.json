@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "fishtastic:block/fish_tank_assembly_top",
+    "bottom": "fishtastic:block/fish_tank_assembly_side",
+    "side": "fishtastic:block/fish_tank_assembly_side",
+    "particle": "fishtastic:block/fish_tank_assembly_side"
+  }
+}

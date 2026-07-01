@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#fishtastic:fish",
+    "minecraft:crafting_table"
+  ],
+  "result": {
+    "id": "fishtastic:fish_tank_assembly"
+  }
+}

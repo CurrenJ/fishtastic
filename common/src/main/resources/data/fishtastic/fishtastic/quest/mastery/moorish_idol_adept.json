@@ -4,7 +4,7 @@
     "target_species": "fishtastic:moorish_idol",
     "target_count": 25
   },
-  "reward": { "quest_tokens": 25, "items": [] },
+  "reward": { "quest_tokens": 40, "items": [] },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/moorish_idol_novice",
   "display_name": "Idol Collector",

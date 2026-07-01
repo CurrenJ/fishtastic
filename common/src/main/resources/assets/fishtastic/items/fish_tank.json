@@ -1,6 +1,5 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "fishtastic:item/fish_tank"
+    "type": "fishtastic:fish_tank_composite"
   }
 }

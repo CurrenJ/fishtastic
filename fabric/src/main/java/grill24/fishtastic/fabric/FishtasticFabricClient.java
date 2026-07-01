@@ -74,6 +74,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register custom item model types
         FishtasticClientSetup.registerItemModelTypes();
+        grill24.fishtastic.fabric.fishtank.FishTankItemModelFabric.register();
+
+        // Register the Fish Tank Assembly menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();

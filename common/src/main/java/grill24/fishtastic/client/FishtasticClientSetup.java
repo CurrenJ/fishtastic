@@ -2,15 +2,30 @@ package grill24.fishtastic.client;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
+import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModels;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.inventory.MenuType;
 
 import java.lang.reflect.Field;
 
 public final class FishtasticClientSetup {
+    /**
+     * The Fish Tank Assembly menu type, cast down from the wildcard {@code Holder<MenuType<?>>}.
+     * Registering the matching screen against vanilla {@code MenuScreens}/NeoForge's
+     * {@code RegisterMenuScreensEvent} has to happen in loader-specific code — the private
+     * {@code MenuScreens.ScreenConstructor} type isn't accessible from common-module code
+     * even with an access widener (see {@code fishtastic.accesswidener}).
+     */
+    @SuppressWarnings("unchecked")
+    public static MenuType<FishTankAssemblyMenu> fishTankAssemblyMenuType() {
+        return (MenuType<FishTankAssemblyMenu>) (MenuType<?>) FishtasticMenuTypes.FISH_TANK_ASSEMBLY.value();
+    }
+
     @SuppressWarnings("unchecked")
     public static void registerItemModelTypes() {
         // ItemModels.ID_MAPPER is private — access widener works on Fabric but not

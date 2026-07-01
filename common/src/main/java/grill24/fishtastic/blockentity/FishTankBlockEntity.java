@@ -3,13 +3,17 @@ package grill24.fishtastic.blockentity;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.ValueInput;
@@ -92,6 +96,43 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      */
     public Block getGlassBlock() {
         return glassBlock;
+    }
+
+    /**
+     * Get the frame/sand/glass materials as a single component-shaped record.
+     */
+    public FishTankMaterials getMaterials() {
+        return new FishTankMaterials(frameBlock, sandBlock, glassBlock);
+    }
+
+    /**
+     * Set the frame/sand/glass materials at once (used when seeding a newly placed tank
+     * from the placing item stack's {@link FishtasticDataComponents#FISH_TANK_MATERIALS}).
+     */
+    public void setMaterials(FishTankMaterials materials) {
+        this.frameBlock = materials.frame();
+        this.sandBlock = materials.sand();
+        this.glassBlock = materials.glass();
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder components) {
+        super.collectImplicitComponents(components);
+        components.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), getMaterials());
+    }
+
+    @Override
+    protected void applyImplicitComponents(DataComponentGetter components) {
+        super.applyImplicitComponents(components);
+        FishTankMaterials materials = components.getOrDefault(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), FishTankMaterials.defaultMaterials());
+        this.frameBlock = materials.frame();
+        this.sandBlock = materials.sand();
+        this.glassBlock = materials.glass();
     }
 
     /**
