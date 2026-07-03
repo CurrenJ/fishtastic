@@ -104,8 +104,8 @@ public class CosmeticStructureProvider implements DataProvider {
                         new CosmeticStructure.StructurePart(base, 0f, 0f, 0f),
                         new CosmeticStructure.StructurePart(Blocks.SHROOMLIGHT.defaultBlockState(), 0f, 1f, 0f)
                 ),
-                (float) CosmeticGridCell.CELL_WIDTH,
-                new CosmeticTransforms.Transform(0, 0, 0, 0, 0, 0, 1f)
+                (float) CosmeticGridCell.CELL_WIDTH * 0.75f,
+                new CosmeticTransforms.Transform(0.5f, 0, 0, 0, 0, 0, 1f)
         );
     }
 
