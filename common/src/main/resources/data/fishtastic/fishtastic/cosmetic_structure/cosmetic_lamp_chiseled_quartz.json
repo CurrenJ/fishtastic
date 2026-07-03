@@ -1,0 +1,21 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:chiseled_quartz_block"
+      }
+    },
+    {
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:shroomlight"
+      }
+    }
+  ]
+}

@@ -85,6 +85,14 @@ public class FishtasticItems {
     /** One {@link FishTankStructureCosmeticItem} per {@link #FENCE_ARCH_WOOD_TYPES} entry, keyed by wood name. */
     public static final Map<String, Holder<Item>> COSMETIC_FENCE_ARCH = new LinkedHashMap<>();
 
+    /** Base block variants the simple-lamp cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
+    public static final List<String> LAMP_VARIANTS = List.of(
+            "chiseled_quartz", "glazed_terracotta_light_blue", "glazed_terracotta_cyan", "glazed_terracotta_magenta",
+            "amethyst", "prismarine_bricks", "crying_obsidian"
+    );
+    /** One {@link FishTankStructureCosmeticItem} per {@link #LAMP_VARIANTS} entry, keyed by variant name. */
+    public static final Map<String, Holder<Item>> COSMETIC_LAMP = new LinkedHashMap<>();
+
     // ----- Fish Items -----
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> FRIED_SHRIMP;
@@ -213,6 +221,14 @@ public class FishtasticItems {
                             ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft(id)),
                             props(loc).stacksTo(1)));
             COSMETIC_FENCE_ARCH.put(wood, fenceArch);
+        }
+        for (String variant : LAMP_VARIANTS) {
+            String id = "cosmetic_lamp_" + variant;
+            Holder<Item> lamp = RegistrationApiSided.getInstance().registerItem(id,
+                    loc -> new FishTankStructureCosmeticItem(
+                            ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft(id)),
+                            props(loc).stacksTo(1)));
+            COSMETIC_LAMP.put(variant, lamp);
         }
     }
 }

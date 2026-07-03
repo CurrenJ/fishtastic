@@ -1,0 +1,7 @@
+{
+  "display_name": "Chiseled Quartz Lamp",
+  "description": "A small chiseled quartz lamp for your fish tank.",
+  "cost": 16,
+  "reward": [{ "id": "fishtastic:cosmetic_lamp_chiseled_quartz", "count": 1 }],
+  "max_purchases": 0
+}

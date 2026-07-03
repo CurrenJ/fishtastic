@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.*;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,9 @@ public class CosmeticStructureProvider implements DataProvider {
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (String wood : FishtasticItems.FENCE_ARCH_WOOD_TYPES) {
             futures.add(generate(cache, "cosmetic_fence_arch_" + wood, fenceArch(woodFamily(wood))));
+        }
+        for (String variant : FishtasticItems.LAMP_VARIANTS) {
+            futures.add(generate(cache, "cosmetic_lamp_" + variant, simpleLamp(lampBase(variant))));
         }
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
@@ -76,6 +80,32 @@ public class CosmeticStructureProvider implements DataProvider {
                 ),
                 (float) CosmeticGridCell.CELL_WIDTH,
                 new CosmeticTransforms.Transform(0.15f, 0.2f, 0f, 0f, -25f, 0f, 1.25f)
+        );
+    }
+
+    /** Maps a {@link FishtasticItems#LAMP_VARIANTS} entry to its base block's default state. */
+    private static BlockState lampBase(String variant) {
+        return switch (variant) {
+            case "chiseled_quartz" -> Blocks.CHISELED_QUARTZ_BLOCK.defaultBlockState();
+            case "glazed_terracotta_light_blue" -> Blocks.LIGHT_BLUE_GLAZED_TERRACOTTA.defaultBlockState();
+            case "glazed_terracotta_cyan" -> Blocks.CYAN_GLAZED_TERRACOTTA.defaultBlockState();
+            case "glazed_terracotta_magenta" -> Blocks.MAGENTA_GLAZED_TERRACOTTA.defaultBlockState();
+            case "amethyst" -> Blocks.AMETHYST_BLOCK.defaultBlockState();
+            case "prismarine_bricks" -> Blocks.PRISMARINE_BRICKS.defaultBlockState();
+            case "crying_obsidian" -> Blocks.CRYING_OBSIDIAN.defaultBlockState();
+            default -> throw new IllegalArgumentException("No block mapping for lamp variant: " + variant);
+        };
+    }
+
+    private static CosmeticStructure simpleLamp(BlockState base) {
+        return new CosmeticStructure(
+               List.of(new CosmeticStructure.GridOffset(0, 0)),
+                List.of(
+                        new CosmeticStructure.StructurePart(base, 0f, 0f, 0f),
+                        new CosmeticStructure.StructurePart(Blocks.SHROOMLIGHT.defaultBlockState(), 0f, 1f, 0f)
+                ),
+                (float) CosmeticGridCell.CELL_WIDTH,
+                new CosmeticTransforms.Transform(0, 0, 0, 0, 0, 0, 1f)
         );
     }
 

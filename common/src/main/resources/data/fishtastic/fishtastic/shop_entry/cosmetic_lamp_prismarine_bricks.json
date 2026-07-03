@@ -1,0 +1,7 @@
+{
+  "display_name": "Prismarine Brick Lamp",
+  "description": "A small prismarine brick lamp for your fish tank.",
+  "cost": 16,
+  "reward": [{ "id": "fishtastic:cosmetic_lamp_prismarine_bricks", "count": 1 }],
+  "max_purchases": 0
+}

@@ -1,0 +1,24 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:cyan_glazed_terracotta",
+        "Properties": {
+          "facing": "north"
+        }
+      }
+    },
+    {
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:shroomlight"
+      }
+    }
+  ]
+}

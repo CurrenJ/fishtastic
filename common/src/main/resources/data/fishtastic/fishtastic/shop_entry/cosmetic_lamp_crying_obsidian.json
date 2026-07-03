@@ -1,0 +1,7 @@
+{
+  "display_name": "Crying Obsidian Lamp",
+  "description": "A small crying obsidian lamp for your fish tank.",
+  "cost": 20,
+  "reward": [{ "id": "fishtastic:cosmetic_lamp_crying_obsidian", "count": 1 }],
+  "max_purchases": 0
+}
