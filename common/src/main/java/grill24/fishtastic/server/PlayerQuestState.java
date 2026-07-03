@@ -107,6 +107,11 @@ public class PlayerQuestState {
         tokenBalance += tokens;
     }
 
+    /** Directly sets the token balance — used by the admin debug command. */
+    public void setTokenBalance(int tokens) {
+        tokenBalance = tokens;
+    }
+
     /**
      * Attempt to purchase a shop entry. Returns false if the player can't afford it
      * or has already hit the max purchase limit.

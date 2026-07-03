@@ -1,7 +1,10 @@
 package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.effects.DropOffEffect;
+import grill24.fishtastic.client.effects.PendulumSwingEffect;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.ShopEntry;
@@ -12,6 +15,7 @@ import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.server.QuestTracker;
 import io.github.currenj.gelatinui.GelatinUIScreen;
+import io.github.currenj.gelatinui.gui.PivotMode;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.components.*;
@@ -26,7 +30,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import org.joml.Vector2f;
@@ -38,7 +41,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private MinecraftRenderContext tempContext;
     private boolean handlerInstalled = false;
     private QuestSyncPacket.ClientHandler savedHandler;
-    private ResourceKey<ShopEntry> selectedShopEntryKey = null;
     private int activeTabIndex = 0;
 
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
@@ -48,7 +50,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SpriteProgressBar cleanupGoalBar;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
-    private final Map<ResourceKey<ShopEntry>, Boolean> expandedStates = new HashMap<>();
 
     private record QuestRowRefs(
             Label nameLabel,
@@ -63,16 +64,54 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     private record ShopCardRefs(
             VBox card,
+            ManualContainer fallingPanel,
             Label nameLabel,
             HBox costRow,
             Label costLabel,
             Label soldOutLabel,
-            VBox expandedSection,
             SpriteButton buyBtn,
             Label notEnoughLabel,
             ShopEntry entry,
             ResourceKey<ShopEntry> key
     ) {}
+
+    // Shop item panel — displays a purchasable item pinned to the board; falls away with
+    // accelerating (gravity-like) motion on purchase, then pops back in shortly after if the
+    // entry is still available.
+    private static final Identifier SHOP_ITEM_PANEL_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final Identifier SHOP_ITEM_PANEL_PIN_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel_pin_only.png");
+    // Source texture files are 20x24; rendered at SHOP_ITEM_PANEL_SCALE for a bigger on-screen panel.
+    private static final int SHOP_ITEM_PANEL_SOURCE_WIDTH = 20;
+    private static final int SHOP_ITEM_PANEL_SOURCE_HEIGHT = 24;
+    private static final float SHOP_ITEM_PANEL_SCALE = 2f;
+    private static final int SHOP_ITEM_PANEL_WIDTH = Math.round(SHOP_ITEM_PANEL_SOURCE_WIDTH * SHOP_ITEM_PANEL_SCALE);
+    private static final int SHOP_ITEM_PANEL_HEIGHT = Math.round(SHOP_ITEM_PANEL_SOURCE_HEIGHT * SHOP_ITEM_PANEL_SCALE);
+    // Centers a 16x16 icon (scaled up to match) so its top-left lands at (2,5) in source-texture space
+    private static final Vector2f SHOP_ITEM_ICON_CENTER = new Vector2f(10f * SHOP_ITEM_PANEL_SCALE, 13f * SHOP_ITEM_PANEL_SCALE);
+    // Leaves room in the name+price row for the cost icon and number alongside the name
+    private static final float SHOP_ITEM_NAME_MAX_WIDTH = 90f;
+    private static final float SHOP_ITEM_DESCRIPTION_MAX_WIDTH = 140f;
+
+    private static final Identifier SHOP_BUY_BUTTON_TEXTURE = Fishtastic.id("textures/gui/buy_button_2.png");
+    private static final int SHOP_BUY_BUTTON_FILE_WIDTH = 18;
+    private static final int SHOP_BUY_BUTTON_FILE_HEIGHT = 14;
+    // This file's opaque art fills the entire 18x14 canvas — no cropping needed.
+    private static final int SHOP_BUY_BUTTON_SOURCE_WIDTH = 18;
+    private static final int SHOP_BUY_BUTTON_SOURCE_HEIGHT = 14;
+    // Scaled down from SHOP_ITEM_PANEL_SCALE so the button hugs the "Buy" label rather than
+    // matching the bigger item panel's scale.
+    private static final float SHOP_BUY_BUTTON_SCALE = 1.5f;
+    private static final int SHOP_BUY_BUTTON_WIDTH = Math.round(SHOP_BUY_BUTTON_SOURCE_WIDTH * SHOP_BUY_BUTTON_SCALE);
+    private static final int SHOP_BUY_BUTTON_HEIGHT = Math.round(SHOP_BUY_BUTTON_SOURCE_HEIGHT * SHOP_BUY_BUTTON_SCALE);
+
+    private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
+    private static final float SHOP_ITEM_RESPAWN_DELAY = 0.5f;
+    private static final float SHOP_ITEM_FALL_DISTANCE = 400f;
+    private static final float SHOP_ITEM_FALL_ROTATION = 25f;
+    private static final float SHOP_ITEM_SWING_START_ANGLE = 30f;
+    private static final float SHOP_ITEM_SWING_FREQUENCY = 2.5f;
+    private static final float SHOP_ITEM_SWING_DAMPING = 3.0f;
+    private static final float SHOP_ITEM_SWING_DURATION = 2.0f;
 
     public QuestLogScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Quest Log"));
@@ -99,7 +138,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     protected void buildUI() {
         questRowRefs.clear();
         shopCardRefs.clear();
-        expandedStates.clear();
         tokenBalanceLabel = null;
         cleanupGoalTotalLabel = null;
         cleanupGoalCountLabel = null;
@@ -171,30 +209,55 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         ItemTabs tabs = UI.itemTabs();
         tabs.addTab(new ItemStack(Items.COD),
-                buildQuestList(byCategory.get(QuestCategory.DAILY), activeDailies, true));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.DAILY), activeDailies, true), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.FISHING_ROD),
-                buildQuestList(byCategory.get(QuestCategory.MASTERY), null, false));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.MASTERY), null, false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.COMPASS),
-                buildQuestList(byCategory.get(QuestCategory.EXPLORER), null, false));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.EXPLORER), null, false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.NETHER_STAR),
-                buildQuestList(byCategory.get(QuestCategory.CHALLENGE), null, false));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), null, false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.EMERALD),
-                buildShopPanel(shopRegistry, currentDay));
+                scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
-                buildCleanupGoalPanel());
-        tabs.onSelectionChanged(i -> activeTabIndex = i);
-        tabs.select(activeTabIndex);
+                scaleTabPanel(buildCleanupGoalPanel(), CONTENT_WIDTH_FRACTION));
 
         VBox content = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
         content.addChild(header);
         content.addChild(tabs);
 
-        float scaleTarget = this.width * 0.4f;
-        content.scaleToWidth(scaleTarget);
-        content.setPosition(new Vector2f((this.width - scaleTarget) / 2f, 0f));
+        tabs.onSelectionChanged(i -> {
+            activeTabIndex = i;
+            recenterContent(content);
+        });
+        tabs.select(activeTabIndex);
+        recenterContent(content);
 
         uiScreen.setRoot(content);
         uiScreen.setScrollEnabled(true);
+    }
+
+    // Each tab body is scaled individually (rather than scaling the shared header+tabs block as a
+    // whole) so the title and tab bar stay a constant absolute size no matter which tab — narrow
+    // quest lists or the wide, short shop row — is active.
+    private static final float CONTENT_WIDTH_FRACTION = 0.4f;
+    private static final float SHOP_CONTENT_WIDTH_FRACTION = 0.7f;
+
+    private VBox scaleTabPanel(VBox panel, float widthFraction) {
+        panel.scaleToWidth(this.width * widthFraction);
+        return panel;
+    }
+
+    private void recenterContent(VBox content) {
+        content.forceLayout();
+        Vector2f size = content.getSize();
+        content.setPosition(new Vector2f((this.width - size.x) / 2f, 0f));
+        // UIScreen re-applies its own cached base position over content's every frame (for
+        // scrolling); re-registering the root re-syncs that cache to the position we just set,
+        // otherwise our new offset gets overwritten back to whatever was current on the last
+        // setRoot() call as soon as the next frame's scroll pass runs.
+        if (uiScreen != null) {
+            uiScreen.setRoot(content);
+        }
     }
 
     private VBox buildQuestList(
@@ -339,59 +402,76 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(shopRegistry, currentDay);
 
-        if (selectedShopEntryKey != null && !activeKeys.contains(selectedShopEntryKey)) {
-            selectedShopEntryKey = null;
-        }
-
         List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
 
         Label shopTitle = new Label("Today's Stock", 0xFFFFFFFF).init(tempContext);
         shopTitle.scale(1.1f);
         panel.addChild(shopTitle);
 
-        int cols = 2;
-        VBox grid = UI.vbox().spacing(6).alignment(VBox.Alignment.CENTER);
-        for (int row = 0; row < activeList.size(); row += cols) {
-            HBox rowBox = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
-            for (int col = 0; col < cols && row + col < activeList.size(); col++) {
-                ResourceKey<ShopEntry> key = activeList.get(row + col);
-                ShopEntry entry = shopRegistry.getOptional(key).orElse(null);
-                if (entry != null) rowBox.addChild(buildShopEntryCard(key, entry));
-            }
-            grid.addChild(rowBox);
+        HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.TOP);
+        for (ResourceKey<ShopEntry> key : activeList) {
+            ShopEntry entry = shopRegistry.getOptional(key).orElse(null);
+            if (entry != null) row.addChild(buildShopEntryCard(key, entry));
         }
-        panel.addChild(grid);
+        panel.addChild(row);
 
         return panel;
     }
 
     private VBox buildShopEntryCard(ResourceKey<ShopEntry> key, ShopEntry entry) {
-        boolean isSelected = key.equals(selectedShopEntryKey);
-        int purchaseCount = QuestClientCache.getPurchaseCount(key.identifier());
-        boolean soldOut = entry.maxPurchases() > 0 && purchaseCount >= entry.maxPurchases();
+        boolean soldOut = isEntrySoldOut(key, entry);
         boolean canAfford = QuestClientCache.getTokenBalance() >= entry.cost();
 
-        // Outer border box — its backgroundColor becomes the gold outline when selected
         VBox card = UI.vbox().padding(2).alignment(VBox.Alignment.CENTER);
-        if (isSelected && !soldOut) card.backgroundColor(0xAAFFAA00);
 
         // Inner content box
-        VBox inner = UI.vbox().spacing(3).padding(5).alignment(VBox.Alignment.CENTER);
+        VBox inner = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
 
+        // Item slot: the item's panel pinned to a static pin backdrop. The panel (background +
+        // item icon) is what falls away on purchase; the pin is drawn on top of it (like a pin
+        // head poking through the tag it's holding), so it's added last/rendered in front.
+        ManualContainer slot = UI.manualContainer().setSize(SHOP_ITEM_PANEL_WIDTH, SHOP_ITEM_PANEL_HEIGHT);
+        slot.setDebugName("shopSlot:" + key.identifier());
+
+        ManualContainer fallingPanel = UI.manualContainer().setSize(SHOP_ITEM_PANEL_WIDTH, SHOP_ITEM_PANEL_HEIGHT);
+        fallingPanel.setDebugName("shopFallingPanel:" + key.identifier());
+        // Scale and rotation both pivot from the top-center — where the pin actually is —
+        // so the respawn swing reads as the panel hanging and settling on the pin.
+        fallingPanel.setPivotMode(PivotMode.TOP_CENTER);
+        SpriteData panelSprite = new SpriteData(SHOP_ITEM_PANEL_TEXTURE)
+                .uv(0, 0, SHOP_ITEM_PANEL_SOURCE_WIDTH, SHOP_ITEM_PANEL_SOURCE_HEIGHT)
+                .textureSize(SHOP_ITEM_PANEL_SOURCE_WIDTH, SHOP_ITEM_PANEL_SOURCE_HEIGHT);
+        fallingPanel.backgroundSprite(panelSprite);
         if (!entry.reward().isEmpty()) {
             ItemStack icon = entry.reward().get(0).toItemStack();
-            if (!icon.isEmpty()) inner.addChild(UI.itemRenderer(icon));
+            if (!icon.isEmpty()) fallingPanel.addChildAt(UI.itemRenderer(icon).itemScale(SHOP_ITEM_PANEL_SCALE), SHOP_ITEM_ICON_CENTER.x, SHOP_ITEM_ICON_CENTER.y);
         }
+        // ManualContainer positions its children lazily via the dirty-flag system, but VBox/HBox
+        // ancestors only eagerly force-layout VBox/HBox descendants before measuring themselves —
+        // a plain ManualContainer like this one can end up rendered (and viewport-culled against
+        // stale/default bounds) before it's ever had a layout pass, which is why entries would
+        // randomly show no icon/background until something else (e.g. the purchase animation)
+        // happened to mark them dirty again. Force it here so positions are correct from frame one.
+        fallingPanel.forceLayout();
+        slot.addChildAt(fallingPanel, SHOP_ITEM_PANEL_WIDTH / 2f, SHOP_ITEM_PANEL_HEIGHT / 2f);
+
+        SpriteData pinSprite = new SpriteData(SHOP_ITEM_PANEL_PIN_TEXTURE)
+                .uv(0, 0, SHOP_ITEM_PANEL_SOURCE_WIDTH, SHOP_ITEM_PANEL_SOURCE_HEIGHT)
+                .textureSize(SHOP_ITEM_PANEL_SOURCE_WIDTH, SHOP_ITEM_PANEL_SOURCE_HEIGHT);
+        SpriteRectangle.SpriteRectangleImpl pinLayer = UI.spriteRectangle(SHOP_ITEM_PANEL_WIDTH, SHOP_ITEM_PANEL_HEIGHT, SHOP_ITEM_PANEL_PIN_TEXTURE)
+                .texture(pinSprite);
+        slot.addChildAt(pinLayer, SHOP_ITEM_PANEL_WIDTH / 2f, SHOP_ITEM_PANEL_HEIGHT / 2f);
+        slot.forceLayout();
+
+        inner.addChild(slot);
 
         int nameColor = soldOut ? 0xFF555555 : 0xFFFFFFFF;
         String nameText = entry.displayName().isEmpty() ? key.identifier().getPath() : entry.displayName();
-        Label nameLabel = new Label(nameText, nameColor).init(tempContext);
-        inner.addChild(nameLabel);
+        Label nameLabel = new Label(nameText, nameColor).maxWidth(SHOP_ITEM_NAME_MAX_WIDTH).init(tempContext);
 
         // Sold out label — toggled by updateShopCardVisuals
         Label soldOutLabel = new Label("Sold Out", 0xFF555555).init(tempContext);
         soldOutLabel.setVisible(soldOut);
-        inner.addChild(soldOutLabel);
 
         // Cost row — hidden when sold out
         int costColor = soldOut ? 0xFF555555 : (canAfford ? 0xFFFFAA00 : 0xFFFF4444);
@@ -400,15 +480,27 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         costRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value())));
         costRow.addChild(costLabel);
         costRow.setVisible(!soldOut);
-        inner.addChild(costRow);
 
-        // Expanded section — visible when selected and not sold out
-        VBox expandedSection = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER).scaleFromCenter();
+        // Name and price sit in-line; sold-out entries show the stamp label instead of the price
+        HBox nameRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
+        nameRow.addChild(nameLabel);
+        nameRow.addChild(costRow);
+        nameRow.addChild(soldOutLabel);
+        inner.addChild(nameRow);
+
+        // Description — always visible
         if (!entry.description().isEmpty()) {
-            expandedSection.addChild(new Label(entry.description(), 0xFFCCCCCC).maxWidth(80).centered(true).init(tempContext).scaleFromCenter());
+            inner.addChild(new Label(entry.description(), 0xFFCCCCCC).maxWidth(SHOP_ITEM_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext));
         }
 
-        SpriteButton buyBtn = UI.spriteButton(60f, 14f, 0xFF44AA44).text("Buy", 0xFFFFFFFF).scaleFromCenter();
+        // Buy button — always visible
+        SpriteData buyButtonSprite = new SpriteData(SHOP_BUY_BUTTON_TEXTURE)
+                .uv(0, 0, SHOP_BUY_BUTTON_SOURCE_WIDTH, SHOP_BUY_BUTTON_SOURCE_HEIGHT)
+                .textureSize(SHOP_BUY_BUTTON_FILE_WIDTH, SHOP_BUY_BUTTON_FILE_HEIGHT);
+        SpriteButton buyBtn = new SpriteButton(SHOP_BUY_BUTTON_WIDTH, SHOP_BUY_BUTTON_HEIGHT, SHOP_BUY_BUTTON_TEXTURE)
+                .texture(buyButtonSprite)
+                .text("Buy", 0xFFFFFFFF)
+                .scaleFromCenter();
         buyBtn.onMouseEnter(e -> buyBtn.setTargetScale(1.12f, true));
         buyBtn.onMouseExit(e -> buyBtn.setTargetScale(1.0f, true));
         final ResourceKey<ShopEntry> fKey = key;
@@ -418,104 +510,81 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (mc.player != null) {
                 mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.identifier())));
             }
+            triggerPurchaseFall(fallingPanel, fKey, entry);
         });
-        buyBtn.setVisible(canAfford);
-        expandedSection.addChild(buyBtn);
+        buyBtn.setVisible(canAfford && !soldOut);
+        inner.addChild(buyBtn);
 
         Label notEnoughLabel = new Label("Not enough tokens", 0xFFFF4444).init(tempContext);
-        notEnoughLabel.setVisible(!canAfford);
-        expandedSection.addChild(notEnoughLabel);
-
-        expandedSection.setVisible(isSelected && !soldOut);
-        inner.addChild(expandedSection);
+        notEnoughLabel.setVisible(!canAfford && !soldOut);
+        inner.addChild(notEnoughLabel);
 
         card.addChild(inner);
 
-        card.onClick(e -> {
-            boolean currentSoldOut = entry.maxPurchases() > 0
-                    && QuestClientCache.getPurchaseCount(key.identifier()) >= entry.maxPurchases();
-            if (!currentSoldOut) {
-                selectedShopEntryKey = key.equals(selectedShopEntryKey) ? null : key;
-                updateShopCardVisuals();
-            }
-        });
         card.onMouseEnter(e -> {
-            boolean currentSoldOut = entry.maxPurchases() > 0
-                    && QuestClientCache.getPurchaseCount(key.identifier()) >= entry.maxPurchases();
-            if (!currentSoldOut) card.setTargetScale(1.06f, true);
+            if (!isEntrySoldOut(key, entry)) card.setTargetScale(1.06f, true);
         });
         card.onMouseExit(e -> card.setTargetScale(1.0f, true));
 
-        shopCardRefs.put(key, new ShopCardRefs(card, nameLabel, costRow, costLabel, soldOutLabel, expandedSection, buyBtn, notEnoughLabel, entry, key));
-        expandedStates.put(key, isSelected && !soldOut);
+        shopCardRefs.put(key, new ShopCardRefs(card, fallingPanel, nameLabel, costRow, costLabel, soldOutLabel, buyBtn, notEnoughLabel, entry, key));
         return card;
+    }
+
+    private boolean isEntrySoldOut(ResourceKey<ShopEntry> key, ShopEntry entry) {
+        int purchaseCount = QuestClientCache.getPurchaseCount(key.identifier());
+        return entry.maxPurchases() > 0 && purchaseCount >= entry.maxPurchases();
+    }
+
+    /**
+     * Plays the purchase feedback: the item's panel falls away from its pin with
+     * accelerating (gravity-like) motion, then — if the entry is still available —
+     * pops back into place a moment later.
+     */
+    private void triggerPurchaseFall(ManualContainer fallingPanel, ResourceKey<ShopEntry> key, ShopEntry entry) {
+        fallingPanel.cancelAnimationChannel("shopItemFall");
+        fallingPanel.cancelAnimationChannel("shopItemRespawn");
+        fallingPanel.addEffectExclusive(new DropOffEffect("shopItemDrop", 0, SHOP_ITEM_FALL_DURATION)
+                .setDropDistance(SHOP_ITEM_FALL_DISTANCE)
+                .setRotation(SHOP_ITEM_FALL_ROTATION));
+        fallingPanel.playAnimation(new FloatKeyframeAnimation(
+                "shopItemFall",
+                List.of(new Keyframe(0f, 0f), new Keyframe(SHOP_ITEM_FALL_DURATION, 1f)),
+                v -> {},
+                () -> {
+                    fallingPanel.setVisible(false);
+                    fallingPanel.clearEffects();
+                    fallingPanel.playAnimation(new FloatKeyframeAnimation(
+                            "shopItemRespawn",
+                            List.of(new Keyframe(0f, 0f), new Keyframe(SHOP_ITEM_RESPAWN_DELAY, 1f)),
+                            v -> {},
+                            () -> {
+                                if (!isEntrySoldOut(key, entry)) {
+                                    fallingPanel.setVisible(true);
+                                    fallingPanel.addEffectExclusive(new PendulumSwingEffect("shopItemSwing", 0, SHOP_ITEM_SWING_DURATION)
+                                            .setStartAngle(SHOP_ITEM_SWING_START_ANGLE)
+                                            .setFrequency(SHOP_ITEM_SWING_FREQUENCY)
+                                            .setDamping(SHOP_ITEM_SWING_DAMPING));
+                                }
+                            }));
+                }));
     }
 
     private void updateShopCardVisuals() {
         for (ShopCardRefs refs : shopCardRefs.values()) {
-            boolean isSelected = refs.key().equals(selectedShopEntryKey);
-            int purchaseCount = QuestClientCache.getPurchaseCount(refs.key().identifier());
-            boolean soldOut = refs.entry().maxPurchases() > 0 && purchaseCount >= refs.entry().maxPurchases();
+            boolean soldOut = isEntrySoldOut(refs.key(), refs.entry());
             boolean canAfford = QuestClientCache.getTokenBalance() >= refs.entry().cost();
 
-            // Auto-collapse a selected card that just sold out
-            if (soldOut && refs.key().equals(selectedShopEntryKey)) {
-                selectedShopEntryKey = null;
-                isSelected = false;
+            if (soldOut) {
+                refs.fallingPanel().setVisible(false);
             }
 
             int nameColor = soldOut ? 0xFF555555 : 0xFFFFFFFF;
             refs.nameLabel().color(nameColor);
-            boolean shouldShowBorder = isSelected && !soldOut;
-            if (shouldShowBorder) {
-                animateBorderAlpha(refs.card(), true);
-            } else if (refs.card().isDrawingBackground()) {
-                animateBorderAlpha(refs.card(), false);
-            }
             refs.soldOutLabel().setVisible(soldOut);
             refs.costRow().setVisible(!soldOut);
             refs.costLabel().color(canAfford ? 0xFFFFAA00 : 0xFFFF4444);
-            boolean wantExpanded = isSelected && !soldOut;
-            if (expandedStates.getOrDefault(refs.key(), false) != wantExpanded) {
-                expandedStates.put(refs.key(), wantExpanded);
-                animateExpandedSection(refs.expandedSection(), wantExpanded);
-            }
-            refs.buyBtn().setVisible(canAfford);
-            refs.notEnoughLabel().setVisible(!canAfford);
-        }
-    }
-
-    private static final int BORDER_RGB = 0x00FFAA00;
-    private static final int BORDER_ALPHA_MAX = 0xAA;
-
-    private void animateExpandedSection(VBox section, boolean show) {
-        section.cancelAnimationChannel("expandScale");
-        if (show) {
-            section.setTargetScale(0f, false);
-            section.setVisible(true);
-            section.playAnimation(new FloatKeyframeAnimation("expandScale",
-                    List.of(new Keyframe(0f, 0f), new Keyframe(0.2f, 1f, Easing.EASE_OUT_BACK)),
-                    v -> section.setTargetScale(v, false)));
-        } else {
-            float from = section.getCurrentScale();
-            section.playAnimation(new FloatKeyframeAnimation("expandScale",
-                    List.of(new Keyframe(0f, from), new Keyframe(0.15f * from, 0f, Easing.EASE_IN_CUBIC)),
-                    v -> section.setTargetScale(v, false),
-                    () -> section.setVisible(false)));
-        }
-    }
-
-    private void animateBorderAlpha(VBox card, boolean fadeIn) {
-        card.cancelAnimationChannel("borderAlpha");
-        if (fadeIn) {
-            card.playAnimation(new FloatKeyframeAnimation("borderAlpha",
-                    List.of(new Keyframe(0f, 0f), new Keyframe(0.15f, 1f, Easing.EASE_OUT_CUBIC)),
-                    v -> card.backgroundColor((int)(v * BORDER_ALPHA_MAX) << 24 | BORDER_RGB)));
-        } else {
-            card.playAnimation(new FloatKeyframeAnimation("borderAlpha",
-                    List.of(new Keyframe(0f, 1f), new Keyframe(0.2f, 0f, Easing.EASE_IN_CUBIC)),
-                    v -> card.backgroundColor((int)(v * BORDER_ALPHA_MAX) << 24 | BORDER_RGB),
-                    () -> card.drawBackground(false)));
+            refs.buyBtn().setVisible(canAfford && !soldOut);
+            refs.notEnoughLabel().setVisible(!canAfford && !soldOut);
         }
     }
 

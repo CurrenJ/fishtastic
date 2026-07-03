@@ -31,6 +31,7 @@ public class FishtasticCommand {
                 .then(TutorialCommand.build())
                 .then(CleanupGoalCommand.build())
                 .then(QuestResetCommand.build())
+                .then(TokenBalanceCommand.build())
         );
     }
 
