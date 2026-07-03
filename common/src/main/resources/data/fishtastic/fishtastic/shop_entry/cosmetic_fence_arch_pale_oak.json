@@ -1,0 +1,7 @@
+{
+  "display_name": "Pale Oak Fence Arch",
+  "description": "A tiny pale oak fence arch for your fish tank.",
+  "cost": 18,
+  "reward": [{ "id": "fishtastic:cosmetic_fence_arch_pale_oak", "count": 1 }],
+  "max_purchases": 0
+}

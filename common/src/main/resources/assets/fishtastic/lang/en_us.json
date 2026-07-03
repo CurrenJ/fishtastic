@@ -72,6 +72,17 @@
 
   "item.fishtastic.cosmetic_treasure_chest": "Treasure Chest (Tank Cosmetic)",
   "item.fishtastic.cosmetic_sea_lantern": "Sea Lantern (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_oak": "Oak Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_spruce": "Spruce Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_birch": "Birch Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_jungle": "Jungle Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_acacia": "Acacia Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_dark_oak": "Dark Oak Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_pale_oak": "Pale Oak Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_mangrove": "Mangrove Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_cherry": "Cherry Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_crimson": "Crimson Fence Arch (Tank Cosmetic)",
+  "item.fishtastic.cosmetic_fence_arch_warped": "Warped Fence Arch (Tank Cosmetic)",
 
   "block.fishtastic.fish_tank": "Fish Tank",
   "item.fishtastic.fish_tank": "Fish Tank",

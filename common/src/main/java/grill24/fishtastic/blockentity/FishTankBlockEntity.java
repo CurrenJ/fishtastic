@@ -1,5 +1,6 @@
 package grill24.fishtastic.blockentity;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
@@ -7,6 +8,8 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
@@ -16,6 +19,8 @@ import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.protocol.Packet;
@@ -39,10 +44,15 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class FishTankBlockEntity extends BlockEntity implements Container {
+    /** A placed multi-block structure cosmetic, anchored at one grid cell. */
+    public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
+
     public static final int CONTAINER_SIZE = 27; // 3x9 slots like a chest
 
     // Maximum item size (in cm) that can be inserted without tank size requirements
@@ -76,6 +86,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
 
     // Cosmetic decorations placed in the tank's 3×3 floor grid
     private Map<CosmeticGridCell, PlacedCosmetic> cosmetics = new HashMap<>();
+
+    // Multi-block structure cosmetics, keyed by their anchor cell
+    private Map<CosmeticGridCell, PlacedStructureCosmetic> structureCosmetics = new HashMap<>();
+    // Derived from structureCosmetics on load/mutation: any occupied footprint cell -> its anchor cell.
+    // Not persisted directly.
+    private Map<CosmeticGridCell, CosmeticGridCell> structureCellIndex = new HashMap<>();
 
     /**
      * Get the frame block for this fish tank.
@@ -286,6 +302,19 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                 child.putInt("Height", cosmetic.height());
             }
         }
+
+        // Save structure cosmetics (anchor cells only; footprint is re-derived from the structure
+        // definition on load, not stored here).
+        ValueOutput.ValueOutputList structureCosmeticsList = output.childrenList("StructureCosmetics");
+        for (Map.Entry<CosmeticGridCell, PlacedStructureCosmetic> entry : structureCosmetics.entrySet()) {
+            CosmeticGridCell cell = entry.getKey();
+            PlacedStructureCosmetic placed = entry.getValue();
+            ValueOutput child = structureCosmeticsList.addChild();
+            child.putInt("GridX", cell.gridX());
+            child.putInt("GridZ", cell.gridZ());
+            child.putString("StructureId", placed.structureId().identifier().toString());
+            child.store("Rotation", Rotation.CODEC, placed.rotation());
+        }
     }
 
     @Override
@@ -394,7 +423,50 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             }
         });
 
+        // Load structure cosmetics and rebuild the derived cell index from each structure's footprint.
+        structureCosmetics.clear();
+        structureCellIndex.clear();
+        input.childrenListOrEmpty("StructureCosmetics").forEach(child -> {
+            int gridX = child.getIntOr("GridX", -1);
+            int gridZ = child.getIntOr("GridZ", -1);
+            String structureIdStr = child.getStringOr("StructureId", "");
+            if (!CosmeticGridCell.isValid(gridX, gridZ) || structureIdStr.isEmpty()) {
+                return;
+            }
+            Identifier structureId = Identifier.tryParse(structureIdStr);
+            if (structureId == null) {
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
+                return;
+            }
+            Rotation rotation = child.read("Rotation", Rotation.CODEC).orElse(Rotation.NONE);
+            ResourceKey<CosmeticStructure> key = ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, structureId);
+
+            Optional<CosmeticStructure> structure = input.lookup().get(key)
+                    .map(net.minecraft.core.Holder.Reference::value);
+            if (structure.isEmpty()) {
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic structure lookup returned nothing for id={}; skipping", worldPosition, structureId);
+                return;
+            }
+
+            CosmeticGridCell anchor = new CosmeticGridCell(gridX, gridZ);
+            List<CosmeticGridCell> footprintCells = rotatedFootprintCells(structure.get(), rotation, anchor);
+            structureCosmetics.put(anchor, new PlacedStructureCosmetic(key, rotation));
+            for (CosmeticGridCell footprintCell : footprintCells) {
+                structureCellIndex.put(footprintCell, anchor);
+            }
+        });
+
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    /** Rotates a structure's footprint cells and translates them to the given anchor. */
+    private static List<CosmeticGridCell> rotatedFootprintCells(CosmeticStructure structure, Rotation rotation, CosmeticGridCell anchor) {
+        List<CosmeticGridCell> cells = new java.util.ArrayList<>(structure.footprintCells().size());
+        for (CosmeticStructure.GridOffset offset : structure.footprintCells()) {
+            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
+            cells.add(new CosmeticGridCell(anchor.gridX() + rotated.dx(), anchor.gridZ() + rotated.dz()));
+        }
+        return cells;
     }
 
     @Override
@@ -621,6 +693,49 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             if (level != null && !level.isClientSide()) {
                 level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
             }
+        }
+    }
+
+    public Map<CosmeticGridCell, PlacedStructureCosmetic> getStructureCosmetics() {
+        return Collections.unmodifiableMap(structureCosmetics);
+    }
+
+    /** Every cell occupied by a placed structure (including anchors), mapped to that structure's anchor. */
+    public Map<CosmeticGridCell, CosmeticGridCell> getStructureCellIndex() {
+        return Collections.unmodifiableMap(structureCellIndex);
+    }
+
+    /** Anchor cell (occupied by a placed structure) that {@code cell} belongs to, or null if none. */
+    @Nullable
+    public CosmeticGridCell getStructureAnchor(CosmeticGridCell cell) {
+        return structureCellIndex.get(cell);
+    }
+
+    /**
+     * Places a structure cosmetic. {@code footprintCells} must be the already-rotated, anchor-translated
+     * footprint (see {@link grill24.fishtastic.fishtank.CosmeticStructures}) — every cell in it is recorded
+     * in {@link #structureCellIndex} pointing back at {@code anchor}, including the anchor itself.
+     */
+    public void setStructureCosmetic(CosmeticGridCell anchor, PlacedStructureCosmetic cosmetic, List<CosmeticGridCell> footprintCells) {
+        structureCosmetics.put(anchor, cosmetic);
+        for (CosmeticGridCell cell : footprintCells) {
+            structureCellIndex.put(cell, anchor);
+        }
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    /** Removes the structure anchored at {@code anchor} and every footprint cell pointing at it. */
+    public void removeStructureCosmetic(CosmeticGridCell anchor) {
+        if (structureCosmetics.remove(anchor) == null) {
+            return;
+        }
+        structureCellIndex.values().removeIf(a -> a.equals(anchor));
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
     }
 

@@ -9,9 +9,13 @@ import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.object.chest.ChestModel;
@@ -114,6 +118,7 @@ public class FishTankBlockEntityRenderer
         state.hasOpenDownFace = blockEntity.getOpenFaces().contains(Direction.DOWN);
         state.gameTimeTicks = level.getGameTime() + partialTick;
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
+        state.structureCosmetics = resolveStructureCosmetics(blockEntity, level);
 
         int blockPosHash = blockEntity.getBlockPos().hashCode();
         state.blockPosHash = blockPosHash;
@@ -331,6 +336,21 @@ public class FishTankBlockEntityRenderer
                 .orElse(SwarmConfig.DEFAULT);
     }
 
+    /** Resolves each placed structure's definition once here (render thread never does registry lookups). */
+    private static Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> resolveStructureCosmetics(
+            FishTankBlockEntity blockEntity, Level level) {
+        Map<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> placed = blockEntity.getStructureCosmetics();
+        if (placed.isEmpty()) return java.util.Collections.emptyMap();
+
+        var registry = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+        Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> resolved = new HashMap<>();
+        for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
+            registry.getOptional(entry.getValue().structureId()).ifPresent(structure ->
+                    resolved.put(entry.getKey(), new FishTankRenderState.ResolvedStructureCosmetic(structure, entry.getValue().rotation())));
+        }
+        return resolved;
+    }
+
     private static int countItems(FishTankBlockEntity blockEntity, int max) {
         int count = 0;
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && count < max; slot++) {
@@ -340,6 +360,8 @@ public class FishTankBlockEntityRenderer
     }
 
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+        renderStructureCosmetics(state, poseStack, nodes);
+
         if (state.cosmetics.isEmpty()) return;
 
         BlockModelRenderState blockModelState = new BlockModelRenderState();
@@ -394,6 +416,59 @@ public class FishTankBlockEntityRenderer
             }
 
             poseStack.popPose();
+        }
+    }
+
+    /**
+     * Renders every placed multi-block structure. Each part's footprint offset is rotated (Section 2's
+     * {@link CosmeticStructures#rotateOffset}) and converted from grid-cell units to block-local units
+     * via {@link CosmeticGridCell#CELL_WIDTH}; each part's {@link BlockState} is rotated the same way a
+     * structure template rotates its blocks. The chest special case needs its {@code FACING} read off
+     * the rotated state — reading the authored state's facing would rotate the rest of the structure
+     * correctly while leaving the chest's lid pointing the original way.
+     */
+    private void renderStructureCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+        if (state.structureCosmetics.isEmpty()) return;
+
+        BlockModelRenderState blockModelState = new BlockModelRenderState();
+
+        for (Map.Entry<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> entry : state.structureCosmetics.entrySet()) {
+            CosmeticGridCell anchor = entry.getKey();
+            CosmeticStructure structure = entry.getValue().structure();
+            Rotation rotation = entry.getValue().rotation();
+            float scale = structure.scale();
+
+            for (CosmeticStructure.StructurePart part : structure.parts()) {
+                poseStack.pushPose();
+
+                float[] rotatedXZ = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
+                double partX = anchor.localX() + rotatedXZ[0] * CosmeticGridCell.CELL_WIDTH;
+                double partZ = anchor.localZ() + rotatedXZ[1] * CosmeticGridCell.CELL_WIDTH;
+                double partY = COSMETIC_FLOOR_Y + part.offsetY() * scale;
+                poseStack.translate(partX, partY, partZ);
+
+                BlockState partState = part.state().rotate(rotation);
+
+                // Chest fix: ChestModel poses its lid manually from FACING rather than deriving it from
+                // a baked model variant, so it needs the same explicit pose rotation single-cosmetic
+                // chests do above — but read off the rotated state, not the authored one.
+                if (partState.getBlock() == Blocks.CHEST) {
+                    Direction facing = partState.getValue(net.minecraft.world.level.block.ChestBlock.FACING);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+                }
+
+                poseStack.scale(scale, scale, scale);
+                poseStack.translate(-0.5f, 0f, -0.5f);
+
+                if (partState.getBlock() == Blocks.CHEST) {
+                    nodes.submitModel(chestModel, 0f, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
+                } else {
+                    blockModelResolver.update(blockModelState, partState, BLOCK_DISPLAY_CONTEXT);
+                    blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+                }
+
+                poseStack.popPose();
+            }
         }
     }
 

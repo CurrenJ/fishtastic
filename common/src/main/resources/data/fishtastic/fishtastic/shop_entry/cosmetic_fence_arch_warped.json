@@ -1,0 +1,7 @@
+{
+  "display_name": "Warped Fence Arch",
+  "description": "A tiny warped fence arch for your fish tank.",
+  "cost": 18,
+  "reward": [{ "id": "fishtastic:cosmetic_fence_arch_warped", "count": 1 }],
+  "max_purchases": 0
+}

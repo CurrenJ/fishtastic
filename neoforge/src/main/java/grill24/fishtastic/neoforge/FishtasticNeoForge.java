@@ -79,6 +79,8 @@ public final class FishtasticNeoForge {
             event.dataPackRegistry(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, ShopEntry.CODEC, ShopEntry.CODEC);
             Fishtastic.LOGGER.info("Registering FishEncyclopediaEntry datapack registry");
             event.dataPackRegistry(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, grill24.fishtastic.data.FishEncyclopediaEntry.CODEC, grill24.fishtastic.data.FishEncyclopediaEntry.CODEC);
+            Fishtastic.LOGGER.info("Registering CosmeticStructure datapack registry");
+            event.dataPackRegistry(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.fishtank.CosmeticStructure.CODEC, grill24.fishtastic.fishtank.CosmeticStructure.CODEC);
         });
 
         // Send quest and tutorial state to player on world join

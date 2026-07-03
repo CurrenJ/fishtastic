@@ -3,6 +3,7 @@ package grill24.fishtastic.client;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticMenuTypes;
+import grill24.fishtastic.client.renderer.CosmeticStructureItemModel;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import net.minecraft.client.renderer.item.ItemModel;
@@ -39,7 +40,11 @@ public final class FishtasticClientSetup {
                     Fishtastic.id("pile_of_fish_layers"),
                     PileOfFishItemModel.Unbaked.MAP_CODEC
             );
-            Fishtastic.LOGGER.info("Registered pile_of_fish_layers item model type.");
+            idMapper.put(
+                    Fishtastic.id("cosmetic_structure"),
+                    CosmeticStructureItemModel.Unbaked.MAP_CODEC
+            );
+            Fishtastic.LOGGER.info("Registered pile_of_fish_layers and cosmetic_structure item model types.");
         } catch (ReflectiveOperationException e) {
             Fishtastic.LOGGER.error("Failed to register pile_of_fish_layers item model type!", e);
         }

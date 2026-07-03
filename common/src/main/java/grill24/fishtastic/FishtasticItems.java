@@ -1,5 +1,6 @@
 package grill24.fishtastic;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
@@ -10,6 +11,7 @@ import grill24.fishtastic.component.RodHookContents;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishTankCosmeticItem;
+import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.item.TestItem;
@@ -22,7 +24,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.BundleContents;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class FishtasticItems {
@@ -73,6 +77,13 @@ public class FishtasticItems {
     // ----- Fish Tank Cosmetics -----
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
     public static Holder<Item> COSMETIC_SEA_LANTERN;
+
+    /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
+    public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
+            "oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "pale_oak", "mangrove", "cherry", "crimson", "warped"
+    );
+    /** One {@link FishTankStructureCosmeticItem} per {@link #FENCE_ARCH_WOOD_TYPES} entry, keyed by wood name. */
+    public static final Map<String, Holder<Item>> COSMETIC_FENCE_ARCH = new LinkedHashMap<>();
 
     // ----- Fish Items -----
     public static Holder<Item> BLUEGILL;
@@ -195,6 +206,13 @@ public class FishtasticItems {
                 loc -> new FishTankCosmeticItem(Blocks.CHEST, props(loc).stacksTo(1)));
         COSMETIC_SEA_LANTERN = RegistrationApiSided.getInstance().registerItem("cosmetic_sea_lantern",
                 loc -> new FishTankCosmeticItem(Blocks.SEA_LANTERN, props(loc).stacksTo(1)));
-
+        for (String wood : FENCE_ARCH_WOOD_TYPES) {
+            String id = "cosmetic_fence_arch_" + wood;
+            Holder<Item> fenceArch = RegistrationApiSided.getInstance().registerItem(id,
+                    loc -> new FishTankStructureCosmeticItem(
+                            ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft(id)),
+                            props(loc).stacksTo(1)));
+            COSMETIC_FENCE_ARCH.put(wood, fenceArch);
+        }
     }
 }

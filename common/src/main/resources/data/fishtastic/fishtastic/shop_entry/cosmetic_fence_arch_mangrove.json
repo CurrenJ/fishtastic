@@ -1,0 +1,7 @@
+{
+  "display_name": "Mangrove Fence Arch",
+  "description": "A tiny mangrove fence arch for your fish tank.",
+  "cost": 18,
+  "reward": [{ "id": "fishtastic:cosmetic_fence_arch_mangrove", "count": 1 }],
+  "max_purchases": 0
+}

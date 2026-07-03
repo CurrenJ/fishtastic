@@ -307,6 +307,20 @@ public class FishCatchSavedData extends SavedData {
         return getOrCreateQuestState(player.getUUID());
     }
 
+    /** Wipes quest progress (including token balance and shop purchases) and catch history for one player. */
+    public void resetPlayerProgress(ServerPlayer player) {
+        questStates.remove(resolvePlayerKey(player));
+        playerData.remove(player.getUUID());
+        setDirty();
+    }
+
+    /** Wipes quest progress and catch history for every player. */
+    public void resetAllProgress() {
+        questStates.clear();
+        playerData.clear();
+        setDirty();
+    }
+
     // -------------------------------------------------------------------------
     // Tutorial state API
     // -------------------------------------------------------------------------

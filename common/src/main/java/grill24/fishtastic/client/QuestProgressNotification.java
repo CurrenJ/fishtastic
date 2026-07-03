@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.util.MathUtil;
@@ -9,6 +10,7 @@ import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
@@ -35,7 +37,21 @@ public class QuestProgressNotification {
     private static final int BAR_COUNT_GAP = 6;
     private static final int ITEM_SIZE = 16;
     private static final int ITEM_TEXT_GAP = 4;
-    private static final int PANEL_BG_COLOR = 0x88222222; // ~53% opaque dark grey
+    // Fixed-width background variants, picked by content width so the panel is never
+    // stretched non-uniformly (which distorts the rounded corners/border). Each variant's
+    // opaque artwork is PANEL_BG_TEXTURE_CONTENT_HEIGHT rows tall regardless of its content
+    // width or file canvas size — only width differs between variants. Must stay ordered
+    // ascending by contentWidth — selection below picks the first one wide enough.
+    private record BackgroundVariant(Identifier texture, int fileSize, int contentWidth) {}
+
+    private static final int PANEL_BG_TEXTURE_CONTENT_HEIGHT = 22;
+    private static final BackgroundVariant[] PANEL_BG_VARIANTS = {
+            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_tiny.png"), 64, 48),
+            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_small.png"), 64, 64),
+            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_smedium.png"), 128, 80),
+            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_medium.png"), 128, 96),
+            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_large.png"), 128, 128),
+    };
 
     // Animation durations (ticks)
     private static final int SLIDE_IN_DURATION = 15;
@@ -50,6 +66,8 @@ public class QuestProgressNotification {
     private final int targetCount;
     private final ItemStack targetItem;
     private int panelWidth;
+    private final int panelHeight;
+    private final BackgroundVariant bgVariant;
     private float previousDisplayX; // for partial-tick interpolation
     private float displayX;
     private final SpriteProgressBar progressBar;
@@ -99,7 +117,26 @@ public class QuestProgressNotification {
         int completeWidth = event.completed() ? mc.font.width("Complete!") + 4 : 0;
         int textRowWidth = nameWidth + completeWidth;
         if (hasItem) textRowWidth += ITEM_SIZE + ITEM_TEXT_GAP;
-        this.panelWidth = PADDING + Math.max(textRowWidth, barRowWidth) + PADDING;
+        int desiredWidth = PADDING + Math.max(textRowWidth, barRowWidth) + PADDING;
+
+        // panelHeight is constant (independent of content), which fixes a single
+        // uniform scale factor for the background art. Pick the narrowest background
+        // variant that's still wide enough at that scale, so the art is never
+        // stretched unevenly on x vs y. Falls back to the largest variant (with a
+        // small residual stretch) only if content is wider than every variant covers.
+        int fontHeight = mc.font.lineHeight;
+        this.panelHeight = PADDING + fontHeight + ROW_SPACING + SpriteProgressBar.DEFAULT_HEIGHT + PADDING;
+        float bgScale = (float) panelHeight / PANEL_BG_TEXTURE_CONTENT_HEIGHT;
+
+        BackgroundVariant chosen = PANEL_BG_VARIANTS[PANEL_BG_VARIANTS.length - 1];
+        for (BackgroundVariant variant : PANEL_BG_VARIANTS) {
+            if (Math.round(variant.contentWidth() * bgScale) >= desiredWidth) {
+                chosen = variant;
+                break;
+            }
+        }
+        this.bgVariant = chosen;
+        this.panelWidth = Math.max(desiredWidth, Math.round(chosen.contentWidth() * bgScale));
         int visualPanelWidth = (int) (panelWidth * SCALE);
 
         // Create progress bar — start at old fraction, manual lerp to target during HOLD
@@ -201,7 +238,6 @@ public class QuestProgressNotification {
 
         int fontHeight = mc.font.lineHeight;
         int barHeight = (int) progressBar.getSize().y;
-        int panelHeight = PADDING + fontHeight + ROW_SPACING + barHeight + PADDING;
         int panelY = MARGIN;
 
         // Interpolate X for smooth slide using partial tick between last two tick values
@@ -213,8 +249,12 @@ public class QuestProgressNotification {
         pose.translate(panelX, panelY);
         pose.scale(SCALE, SCALE);
 
-        // Background panel (local coords: 0,0 = panel top-left)
-        graphics.fill(0, 0, panelWidth, panelHeight, PANEL_BG_COLOR);
+        // Background panel (local coords: 0,0 = panel top-left). bgVariant was chosen in the
+        // constructor so that its scaled width already matches panelWidth — no nine-slicing
+        // needed, and x/y scale stay equal so the art is never stretched unevenly.
+        graphics.blit(RenderPipelines.GUI_TEXTURED, bgVariant.texture(), 0, 0, 0f, 0f,
+                panelWidth, panelHeight, bgVariant.contentWidth(), PANEL_BG_TEXTURE_CONTENT_HEIGHT,
+                bgVariant.fileSize(), bgVariant.fileSize());
 
         MinecraftRenderContext ctx = new MinecraftRenderContext(graphics, mc.font);
 

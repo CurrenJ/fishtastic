@@ -32,6 +32,9 @@ public record CosmeticGridCell(int gridX, int gridZ) {
     /** Interior floor width after subtracting both side walls, in block units. */
     private static final double INTERIOR_WIDTH = 1.0 - 2.0 * WALL_THICKNESS;
 
+    /** Width/depth of a single grid cell (the pitch between adjacent cell centers), in block units. */
+    public static final double CELL_WIDTH = INTERIOR_WIDTH / GRID_SIZE;
+
     public CosmeticGridCell {
         if (gridX < 0 || gridX >= GRID_SIZE || gridZ < 0 || gridZ >= GRID_SIZE) {
             throw new IllegalArgumentException("Grid coords out of range: " + gridX + ", " + gridZ);
@@ -44,11 +47,11 @@ public record CosmeticGridCell(int gridX, int gridZ) {
 
     /** Local X center of this cell within the tank block, inset from frame walls. */
     public double localX() {
-        return WALL_THICKNESS + (gridX + 0.5) * INTERIOR_WIDTH / GRID_SIZE;
+        return WALL_THICKNESS + (gridX + 0.5) * CELL_WIDTH;
     }
 
     /** Local Z center of this cell within the tank block, inset from frame walls. */
     public double localZ() {
-        return WALL_THICKNESS + (gridZ + 0.5) * INTERIOR_WIDTH / GRID_SIZE;
+        return WALL_THICKNESS + (gridZ + 0.5) * CELL_WIDTH;
     }
 }

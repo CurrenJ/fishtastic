@@ -1,8 +1,10 @@
 package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.world.level.block.Rotation;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,6 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 public class FishTankRenderState extends BlockEntityRenderState {
+    /** A placed structure resolved to its actual definition, so rendering never does a registry
+     * lookup on the render thread — resolution happens once in extractRenderState. */
+    public record ResolvedStructureCosmetic(CosmeticStructure structure, Rotation rotation) {}
+
     public boolean hasOpenDownFace = false;
     /** Game time in ticks (gameTime + partialTick). */
     public float gameTimeTicks = 0f;
@@ -17,6 +23,8 @@ public class FishTankRenderState extends BlockEntityRenderState {
     public int blockPosHash = 0;
     /** Cosmetic decorations placed in this tank's 3×3 floor grid. */
     public Map<CosmeticGridCell, PlacedCosmetic> cosmetics = Collections.emptyMap();
+    /** Multi-block structure cosmetics, keyed by their anchor cell. */
+    public Map<CosmeticGridCell, ResolvedStructureCosmetic> structureCosmetics = Collections.emptyMap();
     /**
      * Fish to render this frame. Contains one entry for solo fish, N entries for swarm species.
      * Back-to-front sorted by zOffset so depth ordering is correct.

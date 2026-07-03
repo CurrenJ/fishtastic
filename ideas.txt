@@ -4,4 +4,8 @@
 - Lava fishing rod (obsidian)
 - REEL! the big fish
 - Rod upgrades (dur, size params, bobber bounciness, fish escape speed, catch speed) Maybe some are mutually exclusive?
-- Some fish only available if stats are high enough ( > 100 diamond ores mined)
+- Some fish only available if stas are high enough ( > 100 diamond ores mined)
+
+TODO:
+- Weight for shop items
+- Rework shop visuals completely
