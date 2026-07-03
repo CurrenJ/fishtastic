@@ -2,6 +2,7 @@
   "display_name": "Magenta Glazed Terracotta Lamp",
   "description": "A small magenta glazed terracotta lamp for your fish tank.",
   "cost": 16,
+  "weight": 0.15,
   "reward": [{ "id": "fishtastic:cosmetic_lamp_glazed_terracotta_magenta", "count": 1 }],
   "max_purchases": 0
 }

@@ -5,9 +5,11 @@ import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 
 public class FishtasticCreativeTabs {
     public static Holder<CreativeModeTab> FISHTASTIC_TAB;
+    public static Holder<CreativeModeTab> FISHTASTIC_DECORATIONS_TAB;
 
     public static void registerCreativeTabs() {
         FISHTASTIC_TAB = RegistrationApiSided.getInstance()
@@ -58,10 +60,6 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.WORM_BIN.value());
 
-                    // Fish tank cosmetics
-                    output.accept(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
-                    output.accept(FishtasticItems.COSMETIC_SEA_LANTERN.value());
-
                     // Undyed glass
                     output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());
                     output.accept(FishtasticBlocks.CLEAR_GLASS.value());
@@ -78,6 +76,28 @@ public class FishtasticCreativeTabs {
                 })
                 .icon(() -> FishtasticItems.MOLTEN_MOORISH_IDOL.value().asItem().getDefaultInstance())
                 .title(Component.literal("Fishtastic"))
+                .build()
+        );
+
+        FISHTASTIC_DECORATIONS_TAB = RegistrationApiSided.getInstance()
+                .registerCreativeModeTab("fishtastic_decorations_tab", loc -> CreativeModeTab
+                .builder(CreativeModeTab.Row.TOP, 8)
+                .displayItems((parameters, output) -> {
+                    output.accept(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+                    output.accept(FishtasticItems.COSMETIC_SEA_LANTERN.value());
+
+                    // Lamp variants
+                    for (Holder<Item> lamp : FishtasticItems.COSMETIC_LAMP.values()) {
+                        output.accept(lamp.value());
+                    }
+
+                    // Fence arch variants (all wood types)
+                    for (Holder<Item> fenceArch : FishtasticItems.COSMETIC_FENCE_ARCH.values()) {
+                        output.accept(fenceArch.value());
+                    }
+                })
+                .icon(() -> FishtasticItems.COSMETIC_TREASURE_CHEST.value().asItem().getDefaultInstance())
+                .title(Component.literal("Fishtastic Decorations"))
                 .build()
         );
     }

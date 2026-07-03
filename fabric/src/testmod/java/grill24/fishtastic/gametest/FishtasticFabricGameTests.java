@@ -742,4 +742,33 @@ public class FishtasticFabricGameTests {
     public void getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(helper);
     }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopWeightBiasesSelectionTowardHeavierEntries(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopWeightBiasesSelectionTowardHeavierEntries(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopHandlesNonPositiveWeightWithoutError(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopHandlesNonPositiveWeightWithoutError(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void shopEntryCodecDefaultsWeightToOneWhenAbsent(GameTestHelper helper) {
+        ShopEntryGameTests.shopEntryCodecDefaultsWeightToOneWhenAbsent(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // Creative tab tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void decorationsTabContainsExactlyCosmeticStructuresAndDecorations(GameTestHelper helper) {
+        CreativeTabGameTests.decorationsTabContainsExactlyCosmeticStructuresAndDecorations(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void mainTabNoLongerContainsMovedCosmetics(GameTestHelper helper) {
+        CreativeTabGameTests.mainTabNoLongerContainsMovedCosmetics(helper);
+    }
 }

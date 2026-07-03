@@ -7,5 +7,4 @@
 - Some fish only available if stas are high enough ( > 100 diamond ores mined)
 
 TODO:
-- Weight for shop items
 - Rework shop visuals completely

@@ -2,6 +2,7 @@
   "display_name": "Jungle Fence Arch",
   "description": "A tiny jungle fence arch for your fish tank.",
   "cost": 18,
+  "weight": 0.1,
   "reward": [{ "id": "fishtastic:cosmetic_fence_arch_jungle", "count": 1 }],
   "max_purchases": 0
 }

@@ -2,6 +2,7 @@
   "display_name": "Amethyst Lamp",
   "description": "A small amethyst lamp for your fish tank.",
   "cost": 20,
+  "weight": 0.15,
   "reward": [{ "id": "fishtastic:cosmetic_lamp_amethyst", "count": 1 }],
   "max_purchases": 0
 }

@@ -2,6 +2,7 @@
   "display_name": "Dark Oak Fence Arch",
   "description": "A tiny dark oak fence arch for your fish tank.",
   "cost": 18,
+  "weight": 0.1,
   "reward": [{ "id": "fishtastic:cosmetic_fence_arch_dark_oak", "count": 1 }],
   "max_purchases": 0
 }

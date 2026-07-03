@@ -38,7 +38,7 @@ public final class PlayerQuestStateGameTests {
     }
 
     private static ShopEntry shopEntry(int cost, int maxPurchases) {
-        return new ShopEntry("Test Item", "A test item", cost, List.of(), maxPurchases);
+        return new ShopEntry("Test Item", "A test item", cost, 1.0f, List.of(), maxPurchases);
     }
 
     private static ResourceKey<ShopEntry> shopEntryId(String path) {

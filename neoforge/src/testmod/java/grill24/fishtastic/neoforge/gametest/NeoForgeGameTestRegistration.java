@@ -1,6 +1,7 @@
 package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.gametest.CreativeTabGameTests;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
@@ -350,6 +351,18 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopNeverExceedsCap);
         register(event, env, "get_active_daily_shop_caps_at_registry_size_when_smaller_than_count", 200,
             ShopEntryGameTests::getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount);
+        register(event, env, "get_active_daily_shop_weight_biases_selection_toward_heavier_entries", 200,
+            ShopEntryGameTests::getActiveDailyShopWeightBiasesSelectionTowardHeavierEntries);
+        register(event, env, "get_active_daily_shop_handles_non_positive_weight_without_error", 200,
+            ShopEntryGameTests::getActiveDailyShopHandlesNonPositiveWeightWithoutError);
+        register(event, env, "shop_entry_codec_defaults_weight_to_one_when_absent", 200,
+            ShopEntryGameTests::shopEntryCodecDefaultsWeightToOneWhenAbsent);
+
+        // ----- Creative tab tests -----
+        register(event, env, "decorations_tab_contains_exactly_cosmetic_structures_and_decorations", 200,
+            CreativeTabGameTests::decorationsTabContainsExactlyCosmeticStructuresAndDecorations);
+        register(event, env, "main_tab_no_longer_contains_moved_cosmetics", 200,
+            CreativeTabGameTests::mainTabNoLongerContainsMovedCosmetics);
     }
 
     private static void register(
