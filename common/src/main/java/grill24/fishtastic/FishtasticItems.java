@@ -67,6 +67,9 @@ public class FishtasticItems {
     public static Holder<Item> AMETHYST_CHARM;
 
     // ----- Quest Items -----
+    // Currency display icon (pile-of-coins texture) — used wherever a token balance/cost/reward is shown.
+    public static Holder<Item> PILE_OF_COINS;
+    // Single-coin texture, decorative only — used for the mini coin-fly particles on quest claim.
     public static Holder<Item> QUEST_TOKEN;
 
     // ----- Trash Items -----
@@ -201,6 +204,8 @@ public class FishtasticItems {
                 loc -> new FishtasticFishItem(props(loc).durability(200)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.AMETHYST_CHARM)));
 
+        PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
+                loc -> new Item(props(loc).stacksTo(64)));
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));
 

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/quest_token"
+    "layer0": "fishtastic:item/pile_of_coins"
   }
 }

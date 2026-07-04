@@ -3,6 +3,7 @@ package grill24.fishtastic.client;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.effects.DropOffEffect;
 import grill24.fishtastic.client.effects.PendulumSwingEffect;
 import grill24.fishtastic.data.Quest;
@@ -17,8 +18,10 @@ import grill24.fishtastic.server.QuestTracker;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.PivotMode;
 import io.github.currenj.gelatinui.gui.UI;
+import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.components.*;
+import io.github.currenj.gelatinui.gui.effects.CoinSpinEffect;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
@@ -34,7 +37,9 @@ import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import org.joml.Vector2f;
 
+import java.awt.geom.Rectangle2D;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
@@ -45,6 +50,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
     private Label tokenBalanceLabel;
+    private HBox tokenIconRow;
+    private ManualContainer coinFlyOverlay;
+    private int coinSpawnSeq = 0; // unique per-coin channel suffix for staggered spawn timers
     private Label cleanupGoalTotalLabel;
     private Label cleanupGoalCountLabel;
     private SpriteProgressBar cleanupGoalBar;
@@ -63,7 +71,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             VBox row,
             Label nameLabel,
             SpriteButton claimButton,
-            SpriteProgressBar progressBar,
+            ThinProgressBar progressBar,
             Label countLabel,
             int targetCount,
             String baseDisplayName,
@@ -137,6 +145,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int QUEST_ROW_BG_SLICE_RIGHT = QUEST_ROW_BG_SOURCE_WIDTH - (QUEST_ROW_BG_SLICE_LEFT + 12);
     private static final int QUEST_ROW_BG_SLICE_BOTTOM = QUEST_ROW_BG_SOURCE_HEIGHT - (QUEST_ROW_BG_SLICE_TOP + 16);
 
+    // Claim button — reuses the same green claimed-panel texture as the row background,
+    // 9-sliced so its border art stays crisp at the button's small on-screen size.
+    private static final Identifier QUEST_CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+
     private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
     private static final float SHOP_ITEM_RESPAWN_DELAY = 0.5f;
     private static final float SHOP_ITEM_FALL_DISTANCE = 400f;
@@ -145,6 +157,23 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float SHOP_ITEM_SWING_FREQUENCY = 2.5f;
     private static final float SHOP_ITEM_SWING_DAMPING = 3.0f;
     private static final float SHOP_ITEM_SWING_DURATION = 2.0f;
+
+    // Quest claim reward feedback — mini coins that fly from the claimed quest row up to the
+    // token balance display, arcing with some randomness, while the balance counts up.
+    private static final int QUEST_CLAIM_MIN_COINS = 6;
+    private static final int QUEST_CLAIM_MAX_COINS = 14;
+    private static final float COIN_FLIGHT_DURATION_MIN = 0.9f;
+    private static final float COIN_FLIGHT_DURATION_MAX = 1.3f;
+    private static final float COIN_SPAWN_STAGGER = 0.05f; // base delay per coin index
+    private static final float COIN_SPAWN_STAGGER_JITTER = 0.05f; // added random jitter so the burst isn't metronomic
+    private static final float COIN_ARC_HEIGHT_MIN = 22f;
+    private static final float COIN_ARC_HEIGHT_MAX = 48f;
+    private static final float COIN_SCATTER_START = 10f;
+    private static final float COIN_SCATTER_TARGET = 18f;
+    private static final float COIN_ITEM_SCALE_MIN = 0.45f;
+    private static final float COIN_ITEM_SCALE_MAX = 0.7f;
+    private static final float COIN_SPIN_SPEED_MIN = 480f;
+    private static final float COIN_SPIN_SPEED_MAX = 900f;
 
     public QuestLogScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Quest Log"));
@@ -173,6 +202,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         shopCardRefs.clear();
         questTabs = null;
         tokenBalanceLabel = null;
+        tokenIconRow = null;
+        coinFlyOverlay = null;
         cleanupGoalTotalLabel = null;
         cleanupGoalCountLabel = null;
         cleanupGoalBar = null;
@@ -239,10 +270,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         tokenBalanceLabel = new Label(QuestClientCache.getTokenBalance() + " tokens", 0xFFFFAA00).init(tempContext);
         HBox tokenLabel = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-        tokenLabel.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value())));
+        tokenLabel.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
         tokenLabel.addChild(tokenBalanceLabel);
         tokenLabel.onMouseEnter(e -> tokenLabel.setTargetScale(1.1f, true));
         tokenLabel.onMouseExit(e -> tokenLabel.setTargetScale(1.0f, true));
+        tokenIconRow = tokenLabel;
 
         VBox header = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
         header.addChild(titleLabel);
@@ -276,6 +308,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         });
         tabs.select(activeTabIndex);
         recenterContent(content);
+
+        // Overlay hosting the quest-claim coin-fly animation. Nested inside `content` (rather
+        // than rendered as an independent screen-space layer) so it scrolls in lockstep with
+        // both the claimed quest row and the token balance display it flies coins between —
+        // both of which live in this same scrolling tree.
+        coinFlyOverlay = UI.manualContainer().setSize(0, 0);
+        coinFlyOverlay.setDebugName("questClaimCoinOverlay");
+        content.addChild(coinFlyOverlay);
 
         uiScreen.setRoot(content);
         uiScreen.setScrollEnabled(true);
@@ -360,6 +400,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
     }
 
+    private SpriteData questClaimButtonSprite() {
+        return new SpriteData(QUEST_CLAIM_BUTTON_TEXTURE)
+                .uv(0, 0, QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .textureSize(QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .renderMode(SpriteRenderMode.SLICE)
+                .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
+    }
+
     private VBox buildQuestRow(ResourceKey<Quest> questKey, Quest quest, boolean isDailyTab, boolean activeToday) {
         Identifier questId = questKey.identifier();
         PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);
@@ -394,7 +442,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Label nameLabel = new Label(nameText, nameColor).init(tempContext);
 
-        SpriteButton claimBtn = UI.spriteButton(40f, 14f, 0xFF44AA44).text("Claim", 0xFFFFFFFF);
+        SpriteButton claimBtn = new SpriteButton(40f, 14f, QUEST_CLAIM_BUTTON_TEXTURE)
+                .texture(questClaimButtonSprite())
+                .text("Claim", 0xFFFFFFFF);
         claimBtn.onMouseEnter(e -> claimBtn.setTargetScale(1.12f, true));
         claimBtn.onMouseExit(e -> claimBtn.setTargetScale(1.0f, true));
         final Identifier fId = questId;
@@ -404,6 +454,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (mc.player != null) {
                 mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompleteQuestPacket(fId)));
             }
+            triggerQuestClaimReward(row, quest);
         });
         claimBtn.setVisible(canClaim);
 
@@ -418,7 +469,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         Label countLabel = new Label(currentCount + " / " + targetCount, 0xFFAAAAAA).init(tempContext);
-        SpriteProgressBar bar = UI.progressBar();
+        ThinProgressBar bar = new ThinProgressBar();
         bar.progressImmediate(fraction);
 
         HBox progressRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
@@ -434,10 +485,116 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return row;
     }
 
+    /**
+     * Plays the quest-claim reward feedback: a bunch of mini coins fly from the claimed
+     * quest row up to the token balance display while the balance counts up to its new total.
+     * Fired optimistically on click, like the shop's purchase-fall feedback, rather than
+     * waiting on the server's confirming {@link QuestSyncPacket}.
+     */
+    private void triggerQuestClaimReward(VBox row, Quest quest) {
+        int reward = quest.reward().questTokens();
+        if (reward <= 0 || tokenIconRow == null || tokenBalanceLabel == null) return;
+
+        int oldBalance = QuestClientCache.getTokenBalance();
+        int newBalance = oldBalance + reward;
+
+        float totalDuration = spawnQuestClaimCoins(row, reward);
+
+        tokenIconRow.addClickBounceEffect();
+        tokenBalanceLabel.cancelAnimationChannel("token-balance-count");
+        tokenBalanceLabel.playAnimation(new FloatKeyframeAnimation(
+                "token-balance-count",
+                List.of(new Keyframe(0f, (float) oldBalance), new Keyframe(totalDuration, (float) newBalance)),
+                v -> tokenBalanceLabel.text(Math.round(v) + " tokens"),
+                () -> tokenIconRow.addClickBounceEffect()));
+    }
+
+    /**
+     * Spawns a scatter of mini, spinning coin icons that arc from {@code origin}'s on-screen
+     * position to the token balance display, each on its own randomized flight — a bit of
+     * randomness per coin (start/end scatter, duration, arc height, spin speed) so the burst
+     * reads as organic rather than mechanical. Coins are staggered in, one after another,
+     * rather than all launching in the same frame.
+     *
+     * @return the total time (seconds) until the last coin is expected to land, for syncing
+     *         the token balance count-up to the actual visual arrival of the coins.
+     */
+    private float spawnQuestClaimCoins(UIElement<?> origin, int tokenReward) {
+        if (coinFlyOverlay == null || tokenIconRow == null) return 0f;
+
+        Rectangle2D originBounds = origin.getBounds();
+        Rectangle2D targetBounds = tokenIconRow.getBounds();
+        float originCx = (float) (originBounds.getX() + originBounds.getWidth() / 2);
+        float originCy = (float) (originBounds.getY() + originBounds.getHeight() / 2);
+        float targetCx = (float) (targetBounds.getX() + targetBounds.getWidth() / 2);
+        float targetCy = (float) (targetBounds.getY() + targetBounds.getHeight() / 2);
+
+        Vector2f overlayGlobalPos = coinFlyOverlay.getGlobalPosition();
+        float overlayScale = Math.max(0.0001f, coinFlyOverlay.getGlobalScale());
+        float startX = (originCx - overlayGlobalPos.x) / overlayScale;
+        float startY = (originCy - overlayGlobalPos.y) / overlayScale;
+        float targetX = (targetCx - overlayGlobalPos.x) / overlayScale;
+        float targetY = (targetCy - overlayGlobalPos.y) / overlayScale;
+
+        int coinCount = Math.max(QUEST_CLAIM_MIN_COINS, Math.min(QUEST_CLAIM_MAX_COINS, tokenReward));
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+
+        for (int i = 0; i < coinCount; i++) {
+            float spawnDelay = i * COIN_SPAWN_STAGGER + rng.nextFloat(0f, COIN_SPAWN_STAGGER_JITTER);
+            String delayChannel = "coin-spawn-delay-" + (coinSpawnSeq++);
+            coinFlyOverlay.playAnimation(new FloatKeyframeAnimation(
+                    delayChannel,
+                    List.of(new Keyframe(0f, 0f), new Keyframe(Math.max(0.001f, spawnDelay), 1f)),
+                    v -> {},
+                    () -> spawnSingleCoin(startX, startY, targetX, targetY)));
+        }
+
+        return (coinCount - 1) * (COIN_SPAWN_STAGGER + COIN_SPAWN_STAGGER_JITTER) + COIN_FLIGHT_DURATION_MAX;
+    }
+
+    /** Spawns and animates a single flying coin; see {@link #spawnQuestClaimCoins}. */
+    private void spawnSingleCoin(float startX, float startY, float targetX, float targetY) {
+        if (coinFlyOverlay == null) return;
+
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        float sx = startX + rng.nextFloat(-COIN_SCATTER_START, COIN_SCATTER_START);
+        float sy = startY + rng.nextFloat(-COIN_SCATTER_START, COIN_SCATTER_START);
+        float tx = targetX + rng.nextFloat(-COIN_SCATTER_TARGET, COIN_SCATTER_TARGET);
+        float ty = targetY + rng.nextFloat(-COIN_SCATTER_TARGET, COIN_SCATTER_TARGET);
+        float duration = rng.nextFloat(COIN_FLIGHT_DURATION_MIN, COIN_FLIGHT_DURATION_MAX);
+
+        ItemRenderer.ItemRendererImpl coin = UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value()));
+        coin.itemScale(rng.nextFloat(COIN_ITEM_SCALE_MIN, COIN_ITEM_SCALE_MAX));
+        coin.showCount(false);
+        // Center pivot so the coin-spin's horizontal squash (a real 3D Y-axis flip isn't
+        // renderable in 2D GUI space) narrows symmetrically around the coin's middle
+        // instead of its top-left corner.
+        coin.scaleFromCenter();
+
+        coinFlyOverlay.addChildAt(coin, sx, sy);
+
+        coin.addEffect(new CoinArcEffect("coin-arc", 0, duration)
+                .setDisplacement(tx - sx, ty - sy)
+                .setArcHeight(rng.nextFloat(COIN_ARC_HEIGHT_MIN, COIN_ARC_HEIGHT_MAX))
+                .setWobble(rng.nextFloat(3f, 8f), rng.nextFloat(1.5f, 3f), rng.nextFloat(0f, (float) (Math.PI * 2)))
+                .setShrink(0.7f, 0.15f));
+        // Duration matches the coin's flight exactly, so the spin completes its whole
+        // rotation count over the same span without needing to loop (which would snap
+        // back to 0° mid-flight unless rotationSpeed happened to be a multiple of 360).
+        coin.addEffect(new CoinSpinEffect("coin-spin", 1, duration)
+                .setRotationSpeed(rng.nextFloat(COIN_SPIN_SPEED_MIN, COIN_SPIN_SPEED_MAX)));
+
+        coin.playAnimation(new FloatKeyframeAnimation(
+                "coin-lifetime",
+                List.of(new Keyframe(0f, 0f), new Keyframe(duration, 1f)),
+                v -> {},
+                () -> coinFlyOverlay.removeChild(coin)));
+    }
+
     private HBox buildRewardRow(Quest quest) {
         HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
         if (quest.reward().questTokens() > 0) {
-            row.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value())));
+            row.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
             row.addChild(new Label(quest.reward().questTokens() + " tokens", 0xFFFFAA00).init(tempContext));
         }
         if (!quest.reward().items().isEmpty()) {
@@ -567,7 +724,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         int costColor = soldOut ? 0xFF555555 : (canAfford ? 0xFFFFAA00 : 0xFFFF4444);
         Label costLabel = new Label(String.valueOf(entry.cost()), costColor).init(tempContext);
         HBox costRow = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        costRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value())));
+        costRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
         costRow.addChild(costLabel);
         costRow.setVisible(!soldOut);
 

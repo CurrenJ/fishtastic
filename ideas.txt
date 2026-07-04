@@ -7,4 +7,6 @@
 - Some fish only available if stas are high enough ( > 100 diamond ores mined)
 
 TODO:
-- Rework shop visuals completely
+- Rework shopvisuals completely
+- Make blazed rub quality affects bait power (can catch blazed grub, so it has quality and size) Would be cool to catch a legendary or rare SUPER powered bait with extra rewards!
+- Block catch progress increasing during fishing minigame paused tutorial stages

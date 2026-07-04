@@ -91,6 +91,14 @@ public class PlayerQuestState {
         progress.remove(questId);
     }
 
+    /** Directly sets a quest's progress count — used by the admin debug/cheat command. */
+    public void setProgress(ResourceKey<Quest> questId, int count, Quest quest, long currentDay) {
+        QuestProgress existing = getProgress(questId);
+        boolean completed = count >= quest.objective().targetCount();
+        long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
+        progress.put(questId, new QuestProgress(count, lastReset, completed, existing.claimed()));
+    }
+
     public void resetDailyIfNeeded(ResourceKey<Quest> questId, long currentDay) {
         QuestProgress p = getProgress(questId);
         if (p.lastResetGameDay() < currentDay) {

@@ -49,6 +49,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.HOOK.value());
                     output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
                     output.accept(FishtasticItems.AMETHYST_CHARM.value());
+                    output.accept(FishtasticItems.PILE_OF_COINS.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
 
                     // Trash

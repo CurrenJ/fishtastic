@@ -30,7 +30,7 @@ public class FishtasticCommand {
                 .then(TestQuestNotifyCommand.build())
                 .then(TutorialCommand.build())
                 .then(CleanupGoalCommand.build())
-                .then(QuestResetCommand.build())
+                .then(QuestsCommand.build())
                 .then(TokenBalanceCommand.build())
         );
     }
