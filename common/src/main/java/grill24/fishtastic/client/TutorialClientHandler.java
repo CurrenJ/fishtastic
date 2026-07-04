@@ -214,7 +214,9 @@ public class TutorialClientHandler {
         Component hint = getHint(currentStep);
         if (title == null) return;
 
-        boolean sideLayout = isMinigameStep() || isScreenStep();
+        // QUEST_CLAIM and SHOP_BROWSE are screen steps (rendered via renderScreenOverlay) but use
+        // the bottom-hint layout rather than the side layout reserved for in-world minigame steps.
+        boolean sideLayout = isMinigameStep();
 
         net.minecraft.client.gui.Font font = mc.font;
         int innerPad = 10;

@@ -422,7 +422,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         float fraction = targetCount > 0 ? Math.min(1f, (float) currentCount / targetCount) : 0f;
 
         String baseDisplayName = quest.displayName().isEmpty() ? questId.getPath() : quest.displayName();
-        int nameColor = (claimed || inactive) ? 0xFF666666 : 0xFFFFFFFF;
+        int nameColor = inactive ? 0xFF666666 : claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
         String nameText = claimed ? "[Done] " + baseDisplayName : inactive ? "(inactive) " + baseDisplayName : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
@@ -875,7 +875,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             int currentCount = progress.currentCount();
             float fraction = refs.targetCount() > 0 ? Math.min(1f, (float) currentCount / refs.targetCount()) : 0f;
 
-            int nameColor = (claimed || inactive) ? 0xFF666666 : 0xFFFFFFFF;
+            int nameColor = inactive ? 0xFF666666 : claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
             String nameText = claimed ? "[Done] " + refs.baseDisplayName()
                     : inactive ? "(inactive) " + refs.baseDisplayName()
                     : refs.baseDisplayName();
