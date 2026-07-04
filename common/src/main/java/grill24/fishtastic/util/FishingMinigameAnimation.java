@@ -115,6 +115,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Only update minigame state and targets when not in intro or hiding
         minigameState.tick();
 
+        // minigameState.tick() already no-ops target movement while paused, but catch-progress
+        // below is computed independently from the bobber's (frozen) swept range — without this
+        // guard it keeps accumulating every tick if the bobber happens to be parked over a target
+        // when a tutorial stage pauses the minigame.
+        if (minigameState.isPaused()) return;
+
         // Update catch progress for all targets based on collision. Bobber physics run once per
         // render frame (see updatePhysics calls in render()) while this tick only fires at 20 Hz,
         // so we check against the full envelope of bobber centers visited since the last tick
