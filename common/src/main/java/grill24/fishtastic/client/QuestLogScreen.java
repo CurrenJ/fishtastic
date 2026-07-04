@@ -74,6 +74,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Target scale a quest row settles at once its reward has been claimed.
     private static final float CLAIMED_QUEST_ROW_SCALE = 0.5f;
 
+    // Number of quest entries laid out side-by-side before wrapping to a new row.
+    private static final int QUESTS_PER_ROW = 3;
+
     private record ShopCardRefs(
             VBox card,
             ManualContainer fallingPanel,
@@ -256,7 +259,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         tabs.addTab(new ItemStack(Items.EMERALD),
                 scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
-                scaleTabPanel(buildCleanupGoalPanel(), CONTENT_WIDTH_FRACTION));
+                scaleTabPanel(buildCleanupGoalPanel(), CLEANUP_CONTENT_WIDTH_FRACTION));
 
         questTabs = tabs;
         refreshTabAlerts();
@@ -279,8 +282,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Each tab body is scaled individually (rather than scaling the shared header+tabs block as a
     // whole) so the title and tab bar stay a constant absolute size no matter which tab — narrow
     // quest lists or the wide, short shop row — is active.
-    private static final float CONTENT_WIDTH_FRACTION = 0.4f;
+    private static final float CONTENT_WIDTH_FRACTION = 0.7f;
     private static final float SHOP_CONTENT_WIDTH_FRACTION = 0.7f;
+    private static final float CLEANUP_CONTENT_WIDTH_FRACTION = 0.5f;
 
     private VBox scaleTabPanel(VBox panel, float widthFraction) {
         panel.scaleToWidth(this.width * widthFraction);
@@ -308,15 +312,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (quests.isEmpty()) {
             list.addChild(new Label("No quests available.", 0xFF888888).init(tempContext));
         } else {
-            for (int i = 0; i < quests.size(); i++) {
-                var entry = quests.get(i);
-                boolean active = !isDailyTab || activeDailies.contains(entry.getKey())
-                        || entry.getValue().category() == QuestCategory.TUTORIAL;
+            for (int i = 0; i < quests.size(); i += QUESTS_PER_ROW) {
+                int rowEnd = Math.min(i + QUESTS_PER_ROW, quests.size());
 
                 // Wrapped rather than added directly: `list` has scaleToWidth applied (via
                 // scaleTabPanel), which forces its *direct* children to a uniform fit-to-width
-                // scale every layout pass. Nesting the row one level deeper means that forced
-                // uniform scale lands on the wrapper, not the row itself, so the row keeps
+                // scale every layout pass. Nesting each quest row one level deeper means that
+                // forced uniform scale lands on the wrapper, not the row itself, so the row keeps
                 // whatever scale it's individually given (hover zoom, claimed-shrink). The
                 // wrapper auto-sizes to the row's live (scaled) size, so a shrunk row also
                 // shrinks its reserved slot and later rows reflow up to close the gap — this
@@ -327,11 +329,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 // assumes a child's visual box spans [position, position + scaledSize], which
                 // only holds for a top-left pivot. A center pivot shifts the rendered content by
                 // half the (unscaled) size relative to where the parent thinks it placed the row.
-                VBox row = buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active);
-                VBox rowWrapper = UI.vbox().alignment(VBox.Alignment.CENTER);
-                rowWrapper.addChild(row);
-                list.addChild(rowWrapper);
-                if (i < quests.size() - 1) {
+                HBox rowGroup = UI.hbox().spacing(5).alignment(HBox.Alignment.CENTER);
+                for (int j = i; j < rowEnd; j++) {
+                    var entry = quests.get(j);
+                    boolean active = !isDailyTab || activeDailies.contains(entry.getKey())
+                            || entry.getValue().category() == QuestCategory.TUTORIAL;
+
+                    VBox row = buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active);
+                    VBox rowWrapper = UI.vbox().alignment(VBox.Alignment.CENTER);
+                    rowWrapper.addChild(row);
+                    rowGroup.addChild(rowWrapper);
+                }
+                list.addChild(rowGroup);
+                if (rowEnd < quests.size()) {
                     list.addChild(UI.rectangle(150f, 1f, 0x33FFFFFF));
                 }
             }
