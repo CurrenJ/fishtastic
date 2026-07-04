@@ -85,6 +85,7 @@ public class FishtasticCreativeTabs {
                 .builder(CreativeModeTab.Row.TOP, 8)
                 .displayItems((parameters, output) -> {
                     output.accept(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+                    output.accept(FishtasticItems.COSMETIC_MOSSY_BOULDER.value());
 
                     // Lamp variants
                     for (Holder<Item> lamp : FishtasticItems.COSMETIC_LAMP.values()) {

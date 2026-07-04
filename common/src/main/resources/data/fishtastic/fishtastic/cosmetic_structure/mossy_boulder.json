@@ -1,0 +1,129 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:mossy_cobblestone_slab"
+      },
+      "offsetX": -0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:tuff"
+      },
+      "offsetX": -0.51428574,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobblestone"
+      }
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobblestone"
+      },
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobblestone"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:mossy_cobblestone_slab"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:tuff"
+      },
+      "offsetX": 0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetX": 0.51428574,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetX": 0.51428574,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobblestone"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 1.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "powered": "false",
+          "facing": "south",
+          "face": "floor"
+        },
+        "Name": "minecraft:stone_button"
+      },
+      "offsetX": 1.0285715,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:tuff"
+      },
+      "offsetX": 1.0285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      "offsetX": 1.0285715,
+      "offsetZ": 0.51428574
+    }
+  ],
+  "scale": 0.15
+}
