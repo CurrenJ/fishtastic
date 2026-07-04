@@ -50,8 +50,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SpriteProgressBar cleanupGoalBar;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
+    private ItemTabs questTabs;
+    private final Map<QuestCategory, List<ResourceKey<Quest>>> questKeysByCategory = new EnumMap<>(QuestCategory.class);
+    private static final Map<QuestCategory, Integer> QUEST_CATEGORY_TAB_INDEX = Map.of(
+            QuestCategory.DAILY, 0,
+            QuestCategory.MASTERY, 1,
+            QuestCategory.EXPLORER, 2,
+            QuestCategory.CHALLENGE, 3
+    );
 
     private record QuestRowRefs(
+            VBox row,
             Label nameLabel,
             SpriteButton claimButton,
             SpriteProgressBar progressBar,
@@ -61,6 +70,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             boolean isDailyTab,
             boolean activeToday
     ) {}
+
+    // Target scale a quest row settles at once its reward has been claimed.
+    private static final float CLAIMED_QUEST_ROW_SCALE = 0.5f;
 
     private record ShopCardRefs(
             VBox card,
@@ -83,7 +95,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Source texture files are 20x24; rendered at SHOP_ITEM_PANEL_SCALE for a bigger on-screen panel.
     private static final int SHOP_ITEM_PANEL_SOURCE_WIDTH = 20;
     private static final int SHOP_ITEM_PANEL_SOURCE_HEIGHT = 24;
-    private static final float SHOP_ITEM_PANEL_SCALE = 2f;
+    private static final float SHOP_ITEM_PANEL_SCALE = 4f;
     private static final int SHOP_ITEM_PANEL_WIDTH = Math.round(SHOP_ITEM_PANEL_SOURCE_WIDTH * SHOP_ITEM_PANEL_SCALE);
     private static final int SHOP_ITEM_PANEL_HEIGHT = Math.round(SHOP_ITEM_PANEL_SOURCE_HEIGHT * SHOP_ITEM_PANEL_SCALE);
     // Centers a 16x16 icon (scaled up to match) so its top-left lands at (2,5) in source-texture space
@@ -100,9 +112,25 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int SHOP_BUY_BUTTON_SOURCE_HEIGHT = 14;
     // Scaled down from SHOP_ITEM_PANEL_SCALE so the button hugs the "Buy" label rather than
     // matching the bigger item panel's scale.
-    private static final float SHOP_BUY_BUTTON_SCALE = 1.5f;
+    private static final float SHOP_BUY_BUTTON_SCALE = 3f;
     private static final int SHOP_BUY_BUTTON_WIDTH = Math.round(SHOP_BUY_BUTTON_SOURCE_WIDTH * SHOP_BUY_BUTTON_SCALE);
     private static final int SHOP_BUY_BUTTON_HEIGHT = Math.round(SHOP_BUY_BUTTON_SOURCE_HEIGHT * SHOP_BUY_BUTTON_SCALE);
+
+    // Alert badge shown on a tab icon when that category has a completed-but-unclaimed quest.
+    private static final Identifier TAB_ALERT_TEXTURE = Fishtastic.id("textures/gui/alert_2.png");
+    private static final float TAB_ALERT_WIDTH = 2.5f;
+    private static final float TAB_ALERT_HEIGHT = 7.5f;
+
+    // Quest row background — reuses the shop item panel texture, 9-sliced so the border art
+    // stays crisp while the middle stretches to fit each row's actual (varying) size.
+    private static final Identifier QUEST_ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final int QUEST_ROW_BG_SOURCE_WIDTH = 20;
+    private static final int QUEST_ROW_BG_SOURCE_HEIGHT = 24;
+    // Requested center/stretch region: origin (4,4), size (13,16) within the 20x24 source.
+    private static final int QUEST_ROW_BG_SLICE_LEFT = 4;
+    private static final int QUEST_ROW_BG_SLICE_TOP = 4;
+    private static final int QUEST_ROW_BG_SLICE_RIGHT = QUEST_ROW_BG_SOURCE_WIDTH - (QUEST_ROW_BG_SLICE_LEFT + 13);
+    private static final int QUEST_ROW_BG_SLICE_BOTTOM = QUEST_ROW_BG_SOURCE_HEIGHT - (QUEST_ROW_BG_SLICE_TOP + 16);
 
     private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
     private static final float SHOP_ITEM_RESPAWN_DELAY = 0.5f;
@@ -138,6 +166,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     protected void buildUI() {
         questRowRefs.clear();
         shopCardRefs.clear();
+        questTabs = null;
         tokenBalanceLabel = null;
         cleanupGoalTotalLabel = null;
         cleanupGoalCountLabel = null;
@@ -190,6 +219,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             }
         }
 
+        questKeysByCategory.clear();
+        for (QuestCategory cat : QUEST_CATEGORY_TAB_INDEX.keySet()) {
+            List<ResourceKey<Quest>> keys = new ArrayList<>();
+            for (Map.Entry<ResourceKey<Quest>, Quest> entry : byCategory.get(cat)) keys.add(entry.getKey());
+            questKeysByCategory.put(cat, keys);
+        }
+
         Label titleLabel = new Label("Quest Log", 0xFFFFFFFF).init(tempContext);
         titleLabel.scale(1.3f);
         titleLabel.addBreatheEffect();
@@ -208,6 +244,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         header.addChild(tokenLabel);
 
         ItemTabs tabs = UI.itemTabs();
+        tabs.alertIcon(TAB_ALERT_TEXTURE, TAB_ALERT_WIDTH, TAB_ALERT_HEIGHT);
         tabs.addTab(new ItemStack(Items.COD),
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.DAILY), activeDailies, true), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.FISHING_ROD),
@@ -220,6 +257,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
                 scaleTabPanel(buildCleanupGoalPanel(), CONTENT_WIDTH_FRACTION));
+
+        questTabs = tabs;
+        refreshTabAlerts();
 
         VBox content = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
         content.addChild(header);
@@ -272,7 +312,25 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 var entry = quests.get(i);
                 boolean active = !isDailyTab || activeDailies.contains(entry.getKey())
                         || entry.getValue().category() == QuestCategory.TUTORIAL;
-                list.addChild(buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active));
+
+                // Wrapped rather than added directly: `list` has scaleToWidth applied (via
+                // scaleTabPanel), which forces its *direct* children to a uniform fit-to-width
+                // scale every layout pass. Nesting the row one level deeper means that forced
+                // uniform scale lands on the wrapper, not the row itself, so the row keeps
+                // whatever scale it's individually given (hover zoom, claimed-shrink). The
+                // wrapper auto-sizes to the row's live (scaled) size, so a shrunk row also
+                // shrinks its reserved slot and later rows reflow up to close the gap — this
+                // only stops working if literally every row in the list shrinks at once, since
+                // then there's no other full-size row left to anchor the list's fit-to-width
+                // math (an acceptable edge case: a tab with every quest already claimed).
+                // Deliberately left at the default top-left pivot: VBox's centering math
+                // assumes a child's visual box spans [position, position + scaledSize], which
+                // only holds for a top-left pivot. A center pivot shifts the rendered content by
+                // half the (unscaled) size relative to where the parent thinks it placed the row.
+                VBox row = buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active);
+                VBox rowWrapper = UI.vbox().alignment(VBox.Alignment.CENTER);
+                rowWrapper.addChild(row);
+                list.addChild(rowWrapper);
                 if (i < quests.size() - 1) {
                     list.addChild(UI.rectangle(150f, 1f, 0x33FFFFFF));
                 }
@@ -299,8 +357,24 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         String nameText = claimed ? "[Done] " + baseDisplayName : inactive ? "(inactive) " + baseDisplayName : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        row.onMouseEnter(e -> row.setTargetScale(1.04f, true));
-        row.onMouseExit(e -> row.setTargetScale(1.0f, true));
+        SpriteData rowBgSprite = new SpriteData(QUEST_ROW_BG_TEXTURE)
+                .uv(0, 0, QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .textureSize(QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .renderMode(SpriteRenderMode.SLICE)
+                .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
+        row.backgroundSprite(rowBgSprite);
+        final Identifier hoverQuestId = questId;
+        row.onMouseEnter(e -> {
+            float base = QuestClientCache.getProgress(hoverQuestId).claimed() ? CLAIMED_QUEST_ROW_SCALE : 1.0f;
+            row.setTargetScale(base * 1.04f, true);
+        });
+        row.onMouseExit(e -> {
+            float base = QuestClientCache.getProgress(hoverQuestId).claimed() ? CLAIMED_QUEST_ROW_SCALE : 1.0f;
+            row.setTargetScale(base, true);
+        });
+        if (claimed) {
+            row.setTargetScale(CLAIMED_QUEST_ROW_SCALE, false);
+        }
 
         Label nameLabel = new Label(nameText, nameColor).init(tempContext);
 
@@ -340,7 +414,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             row.addChild(buildRewardRow(quest));
         }
 
-        questRowRefs.put(questId, new QuestRowRefs(nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, isDailyTab, activeToday));
+        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, isDailyTab, activeToday));
         return row;
     }
 
@@ -588,6 +662,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
+    private void refreshTabAlerts() {
+        if (questTabs == null) return;
+        for (Map.Entry<QuestCategory, Integer> e : QUEST_CATEGORY_TAB_INDEX.entrySet()) {
+            List<ResourceKey<Quest>> keys = questKeysByCategory.getOrDefault(e.getKey(), List.of());
+            boolean hasUnclaimed = keys.stream().anyMatch(key -> {
+                PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(key.identifier());
+                return progress.completed() && !progress.claimed();
+            });
+            questTabs.setTabAlert(e.getValue(), hasUnclaimed);
+        }
+    }
+
     private void updateInPlace() {
         if (tokenBalanceLabel != null) {
             tokenBalanceLabel.text(QuestClientCache.getTokenBalance() + " tokens");
@@ -625,9 +711,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.claimButton().setVisible(canClaim);
             refs.progressBar().progressImmediate(fraction);
             refs.countLabel().text(currentCount + " / " + refs.targetCount());
+            refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
         }
 
         updateShopCardVisuals();
+        refreshTabAlerts();
     }
 
     @Override

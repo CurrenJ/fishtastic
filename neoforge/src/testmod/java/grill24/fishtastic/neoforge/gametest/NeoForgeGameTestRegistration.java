@@ -51,6 +51,19 @@ public class NeoForgeGameTestRegistration {
 
     @SubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
+        // RegisterGameTestsEvent fires on every dev-environment run (runClient, runServer, runData),
+        // not just runGametest — and ServerModLoader.isGameTestServer() does NOT reliably distinguish
+        // those (still true/irrelevant during a plain client run in this Loom setup, confirmed by the
+        // crash persisting after gating on it). Registries.TEST_INSTANCE is a synchronized registry, so
+        // anything registered here must survive being network-encoded for every connecting client (even
+        // the integrated singleplayer server) via codec(). Our ConsumerTestInstance wraps a bare
+        // Consumer<GameTestHelper> that can't be serialized, so instead we gate on the one signal we
+        // fully control: the -Dneoforge.enabledGameTestNamespaces VM arg that only the :neoforge:runGametest
+        // task sets (see neoforge/build.gradle) — no other run ever sets it.
+        if (System.getProperty("neoforge.enabledGameTestNamespaces") == null) {
+            return;
+        }
+
         Holder<TestEnvironmentDefinition<?>> env = event.registerEnvironment(
             Identifier.fromNamespaceAndPath(MOD_ID, "default"),
             new TestEnvironmentDefinition.AllOf(java.util.List.of())
@@ -397,7 +410,9 @@ public class NeoForgeGameTestRegistration {
 
         @Override
         public MapCodec<? extends GameTestInstance> codec() {
-            // Only called for JSON serialization — never needed for programmatic registration.
+            // Registries.TEST_INSTANCE is a synchronized registry, so this WOULD be called to send
+            // entries to connecting clients if they were ever registered outside a runGametest run.
+            // The neoforge.enabledGameTestNamespaces gate in onRegisterGameTests keeps that from happening.
             throw new UnsupportedOperationException("ConsumerTestInstance is not serializable");
         }
 
