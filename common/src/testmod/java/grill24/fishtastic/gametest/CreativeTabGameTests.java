@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 /**
  * Server-side game tests for FishtasticCreativeTabs — verifies the fish tank cosmetics
- * (lamp/fence-arch variants, treasure chest, sea lantern) live exclusively in the
+ * (lamp/fence-arch variants, treasure chest) live exclusively in the
  * decorations tab and were actually removed from the main tab when it was split out.
  */
 public final class CreativeTabGameTests {
@@ -38,7 +38,6 @@ public final class CreativeTabGameTests {
 
         Set<Item> expected = new HashSet<>();
         expected.add(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
-        expected.add(FishtasticItems.COSMETIC_SEA_LANTERN.value());
         FishtasticItems.COSMETIC_LAMP.values().forEach(holder -> expected.add(holder.value()));
         FishtasticItems.COSMETIC_FENCE_ARCH.values().forEach(holder -> expected.add(holder.value()));
 
@@ -55,8 +54,6 @@ public final class CreativeTabGameTests {
 
         helper.assertTrue(!actual.contains(FishtasticItems.COSMETIC_TREASURE_CHEST.value()),
             "Main tab must not contain the treasure chest cosmetic (moved to the decorations tab)");
-        helper.assertTrue(!actual.contains(FishtasticItems.COSMETIC_SEA_LANTERN.value()),
-            "Main tab must not contain the sea lantern cosmetic (moved to the decorations tab)");
         helper.succeed();
     }
 }

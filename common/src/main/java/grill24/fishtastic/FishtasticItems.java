@@ -79,7 +79,6 @@ public class FishtasticItems {
 
     // ----- Fish Tank Cosmetics -----
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
-    public static Holder<Item> COSMETIC_SEA_LANTERN;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
@@ -217,8 +216,6 @@ public class FishtasticItems {
         // Fish tank cosmetics — custom items for quest rewards / rare drops
         COSMETIC_TREASURE_CHEST = RegistrationApiSided.getInstance().registerItem("cosmetic_treasure_chest",
                 loc -> new FishTankCosmeticItem(Blocks.CHEST, props(loc).stacksTo(1)));
-        COSMETIC_SEA_LANTERN = RegistrationApiSided.getInstance().registerItem("cosmetic_sea_lantern",
-                loc -> new FishTankCosmeticItem(Blocks.SEA_LANTERN, props(loc).stacksTo(1)));
         for (String wood : FENCE_ARCH_WOOD_TYPES) {
             String id = "cosmetic_fence_arch_" + wood;
             Holder<Item> fenceArch = RegistrationApiSided.getInstance().registerItem(id,

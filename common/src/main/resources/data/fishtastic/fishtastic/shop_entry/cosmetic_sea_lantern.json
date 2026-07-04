@@ -1,7 +1,0 @@
-{
-  "display_name": "Sea Lantern",
-  "description": "A glowing ornament for your fish tank.",
-  "cost": 12,
-  "reward": [{ "id": "fishtastic:cosmetic_sea_lantern", "count": 1 }],
-  "max_purchases": 0
-}
