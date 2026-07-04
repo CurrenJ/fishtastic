@@ -72,7 +72,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     ) {}
 
     // Target scale a quest row settles at once its reward has been claimed.
-    private static final float CLAIMED_QUEST_ROW_SCALE = 0.5f;
+    private static final float CLAIMED_QUEST_ROW_SCALE = 1f;
 
     // Number of quest entries laid out side-by-side before wrapping to a new row.
     private static final int QUESTS_PER_ROW = 3;
@@ -127,12 +127,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Quest row background — reuses the shop item panel texture, 9-sliced so the border art
     // stays crisp while the middle stretches to fit each row's actual (varying) size.
     private static final Identifier QUEST_ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    // Claimed quests use a green-tinted variant of the same panel to signal completion.
+    private static final Identifier QUEST_ROW_BG_TEXTURE_CLAIMED = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
     private static final int QUEST_ROW_BG_SOURCE_WIDTH = 20;
     private static final int QUEST_ROW_BG_SOURCE_HEIGHT = 24;
-    // Requested center/stretch region: origin (4,4), size (13,16) within the 20x24 source.
+    // Requested center/stretch region: origin (4,4), size (12,16) within the 20x24 source.
     private static final int QUEST_ROW_BG_SLICE_LEFT = 4;
     private static final int QUEST_ROW_BG_SLICE_TOP = 4;
-    private static final int QUEST_ROW_BG_SLICE_RIGHT = QUEST_ROW_BG_SOURCE_WIDTH - (QUEST_ROW_BG_SLICE_LEFT + 13);
+    private static final int QUEST_ROW_BG_SLICE_RIGHT = QUEST_ROW_BG_SOURCE_WIDTH - (QUEST_ROW_BG_SLICE_LEFT + 12);
     private static final int QUEST_ROW_BG_SLICE_BOTTOM = QUEST_ROW_BG_SOURCE_HEIGHT - (QUEST_ROW_BG_SLICE_TOP + 16);
 
     private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
@@ -349,6 +351,15 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return list;
     }
 
+    private SpriteData questRowBackgroundSprite(boolean claimed) {
+        Identifier texture = claimed ? QUEST_ROW_BG_TEXTURE_CLAIMED : QUEST_ROW_BG_TEXTURE;
+        return new SpriteData(texture)
+                .uv(0, 0, QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .textureSize(QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
+                .renderMode(SpriteRenderMode.SLICE)
+                .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
+    }
+
     private VBox buildQuestRow(ResourceKey<Quest> questKey, Quest quest, boolean isDailyTab, boolean activeToday) {
         Identifier questId = questKey.identifier();
         PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);
@@ -367,12 +378,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         String nameText = claimed ? "[Done] " + baseDisplayName : inactive ? "(inactive) " + baseDisplayName : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        SpriteData rowBgSprite = new SpriteData(QUEST_ROW_BG_TEXTURE)
-                .uv(0, 0, QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
-                .textureSize(QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
-                .renderMode(SpriteRenderMode.SLICE)
-                .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
-        row.backgroundSprite(rowBgSprite);
+        row.backgroundSprite(questRowBackgroundSprite(claimed));
         final Identifier hoverQuestId = questId;
         row.onMouseEnter(e -> {
             float base = QuestClientCache.getProgress(hoverQuestId).claimed() ? CLAIMED_QUEST_ROW_SCALE : 1.0f;
@@ -721,6 +727,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.claimButton().setVisible(canClaim);
             refs.progressBar().progressImmediate(fraction);
             refs.countLabel().text(currentCount + " / " + refs.targetCount());
+            refs.row().backgroundSprite(questRowBackgroundSprite(claimed));
             refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
         }
 
