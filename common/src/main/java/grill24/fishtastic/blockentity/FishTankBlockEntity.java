@@ -7,6 +7,8 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.data.FishAnimationConfig;
+import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
@@ -826,6 +828,28 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         // Large item - check tank dimensions
         TankDimensions dimensions = calculateTankDimensions(2); // Search up to 2 blocks Manhattan distance
 
+        // Flat, floor-sitting creatures (e.g. starfish) have negligible height - they need
+        // floor area to lie flat on, not vertical swimming clearance.
+        if (isFloorSitting(stack)) {
+            boolean hasFloorArea = hasSolidRectangle(dimensions.visited, Direction.Axis.X, Direction.Axis.Z,
+                    MIN_TANK_WIDTH_FOR_LARGE_ITEMS, MIN_TANK_WIDTH_FOR_LARGE_ITEMS);
+
+            if (!hasFloorArea && player != null && level != null && !level.isClientSide()) {
+                player.sendSystemMessage(
+                        Component.literal(String.format(
+                                "Item too large! Items over %.0f cm require a minimum %dx%d clear floor area (current: %dx%d)",
+                                MAX_ITEM_SIZE_WITHOUT_REQUIREMENTS,
+                                MIN_TANK_WIDTH_FOR_LARGE_ITEMS,
+                                MIN_TANK_WIDTH_FOR_LARGE_ITEMS,
+                                dimensions.width,
+                                dimensions.depth
+                        ))
+                );
+            }
+
+            return hasFloorArea;
+        }
+
         // Determine which axes the item is aligned with based on rotation
         // Rotation is around Y axis, so:
         // - Y (height) is always "across" one dimension
@@ -871,6 +895,31 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         }
 
         return hasRequiredArea;
+    }
+
+    /**
+     * Whether this fish/item uses the floor-sitting animation mode (e.g. starfish) - flat
+     * benthic creatures that rest on the sand rather than needing vertical swimming clearance.
+     */
+    private boolean isFloorSitting(ItemStack stack) {
+        if (level == null || stack.isEmpty()) {
+            return false;
+        }
+
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) {
+            return false;
+        }
+
+        ResourceKey<FishProfile> profileKey = ResourceKey.create(
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+
+        return level.registryAccess()
+                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(profileKey)
+                .flatMap(FishProfile::animation)
+                .filter(anim -> anim instanceof FishAnimationConfig.FloorSit)
+                .isPresent();
     }
 
     /**

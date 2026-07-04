@@ -18,11 +18,10 @@ public record CosmeticGridCell(int gridX, int gridZ) {
     private static final int WALL_PIXELS = 1;               // frame corner support width (XZ)
     private static final int FRAME_FLOOR_PIXELS = 1;        // bottom frame slab height
     private static final int SAND_LAYER_PIXELS = 1;         // sand base element height (fish_tank_sand_0: y=1→2)
-    private static final int COSMETIC_CLEARANCE_PIXELS = 1; // gap above sand surface before cosmetic plane
 
     /** Y offset of the cosmetic floor surface in local block space, above the sand layer. */
     public static final float FLOOR_Y =
-        (FRAME_FLOOR_PIXELS + SAND_LAYER_PIXELS + COSMETIC_CLEARANCE_PIXELS) / (float) BLOCK_PIXELS;
+        (FRAME_FLOOR_PIXELS + SAND_LAYER_PIXELS) / (float) BLOCK_PIXELS;
 
     /** Sand layer height in block units — used externally to compute item lift offsets. */
     public static final float SAND_LAYER_HEIGHT = SAND_LAYER_PIXELS / (float) BLOCK_PIXELS;
