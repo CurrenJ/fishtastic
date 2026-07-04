@@ -259,7 +259,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
             Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModels[perm]);
 
-            BlockStateModelPart part = new SimpleModelWrapper(composite, true, particleMat);
+            // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
+            // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
+            BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);
             int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
 
             return new CachedModel(List.of(part), particleMat, flags);
