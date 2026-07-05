@@ -10,6 +10,7 @@ import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.util.FishQualityHelper;
+import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
@@ -113,44 +114,57 @@ public class QuestTracker {
         Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
 
         Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        List<ItemStack> nonEmptyStacks = caughtStacks.stream().filter(s -> !s.isEmpty()).toList();
 
-        for (ItemStack caughtStack : caughtStacks) {
-            if (caughtStack.isEmpty()) continue;
+        for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
+            ResourceKey<Quest> questKey = entry.getKey();
+            Quest quest = entry.getValue();
 
-            for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
-                ResourceKey<Quest> questKey = entry.getKey();
-                Quest quest = entry.getValue();
+            if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
+            if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
 
-                if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
-                if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
+            PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
-                PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
+            if (progress.completed() || progress.claimed()) continue;
 
-                if (progress.completed() || progress.claimed()) continue;
+            if (quest.prerequisiteQuestId().isPresent()) {
+                ResourceKey<Quest> prereq = quest.prerequisiteQuestId().get();
+                PlayerQuestState.QuestProgress prereqProgress = state.getProgress(prereq);
+                if (!prereqProgress.claimed()) continue;
+            }
 
-                if (quest.prerequisiteQuestId().isPresent()) {
-                    ResourceKey<Quest> prereq = quest.prerequisiteQuestId().get();
-                    PlayerQuestState.QuestProgress prereqProgress = state.getProgress(prereq);
-                    if (!prereqProgress.claimed()) continue;
-                }
+            List<ItemStack> matchingStacks = nonEmptyStacks.stream()
+                    .filter(stack -> matchesObjective(quest.objective(), stack, biome, timeOfDay, weather))
+                    .toList();
+            if (matchingStacks.isEmpty()) continue;
 
-                if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather)) {
-                    // snapshot old count before incrementing
-                    int oldCount = state.getProgress(questKey).currentCount();
-                    state.incrementCount(questKey, quest, currentDay);
-                    int newCount = state.getProgress(questKey).currentCount();
+            // A session-catch quest (e.g. "catch 2 fish in one minigame") only progresses once
+            // per qualifying session, not once per matching fish — anything short of the
+            // threshold in this batch earns no partial credit. The threshold counts distinct
+            // fish species, so multiple catches of the same species don't satisfy it alone.
+            int increments = quest.objective().minSessionCatches()
+                    .map(threshold -> {
+                        long distinctSpecies = matchingStacks.stream().map(ItemStack::getItem).distinct().count();
+                        return distinctSpecies >= threshold ? 1 : 0;
+                    })
+                    .orElse(matchingStacks.size());
+            if (increments == 0) continue;
 
-                    // Only notify at interval multiples or on completion
-                    int interval = quest.objective().notificationInterval();
-                    int oldBucket = oldCount / interval;
-                    int newBucket = newCount / interval;
-                    boolean crossedInterval = newBucket > oldBucket;
-                    boolean justCompleted = newCount >= quest.objective().targetCount()
-                            && oldCount < quest.objective().targetCount();
-                    if (crossedInterval || justCompleted) {
-                        triggeringItems.put(questKey.identifier(), caughtStack.copy());
-                    }
-                }
+            int oldCount = state.getProgress(questKey).currentCount();
+            for (int i = 0; i < increments; i++) {
+                state.incrementCount(questKey, quest, currentDay);
+            }
+            int newCount = state.getProgress(questKey).currentCount();
+
+            // Only notify at interval multiples or on completion
+            int interval = quest.objective().notificationInterval();
+            int oldBucket = oldCount / interval;
+            int newBucket = newCount / interval;
+            boolean crossedInterval = newBucket > oldBucket;
+            boolean justCompleted = newCount >= quest.objective().targetCount()
+                    && oldCount < quest.objective().targetCount();
+            if (crossedInterval || justCompleted) {
+                triggeringItems.put(questKey.identifier(), matchingStacks.get(matchingStacks.size() - 1).copy());
             }
         }
 
@@ -173,6 +187,10 @@ public class QuestTracker {
         if (obj.minQuality().isPresent()) {
             FishQuality.Quality catchQuality = FishQualityHelper.getQuality(stack);
             if (catchQuality == null || catchQuality.ordinal() < obj.minQuality().get().ordinal()) return false;
+        }
+
+        if (obj.minSize().isPresent()) {
+            if (!ItemSizeHelper.hasSize(stack) || ItemSizeHelper.getSize(stack) < obj.minSize().get()) return false;
         }
 
         if (obj.biomeCondition().isPresent()) {

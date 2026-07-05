@@ -80,6 +80,7 @@ public class FishtasticItems {
     // ----- Fish Tank Cosmetics -----
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
     public static Holder<Item> COSMETIC_MOSSY_BOULDER;
+    public static Holder<Item> COSMETIC_PETALS;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
@@ -220,6 +221,10 @@ public class FishtasticItems {
         COSMETIC_MOSSY_BOULDER = RegistrationApiSided.getInstance().registerItem("cosmetic_mossy_boulder",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("mossy_boulder")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_PETALS = RegistrationApiSided.getInstance().registerItem("cosmetic_petals",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("petals")),
                         props(loc).stacksTo(1)));
         for (String wood : FENCE_ARCH_WOOD_TYPES) {
             String id = "cosmetic_fence_arch_" + wood;

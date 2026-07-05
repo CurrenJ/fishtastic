@@ -3,11 +3,13 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.List;
@@ -68,13 +70,22 @@ public record FishProfile(
     }
 
     public enum WeatherCondition implements StringRepresentable {
-        CLEAR, RAIN, THUNDER;
+        CLEAR, RAIN, SNOW, THUNDER;
 
         public static final Codec<WeatherCondition> CODEC = StringRepresentable.fromEnum(WeatherCondition::values);
 
         @Override
         public String getSerializedName() {
             return name().toLowerCase(Locale.ROOT);
+        }
+
+        // SNOW requires both active precipitation and a cold-enough biome at pos, not just one or the other.
+        public static WeatherCondition fromLevel(Level level, BlockPos pos) {
+            if (level.isThundering()) return THUNDER;
+            if (level.isRaining()) {
+                return level.precipitationAt(pos) == Biome.Precipitation.SNOW ? SNOW : RAIN;
+            }
+            return CLEAR;
         }
     }
 

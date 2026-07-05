@@ -130,13 +130,12 @@ public class FishingMinigameManager {
 
         // Capture environment context at hook position for quest tracking
         FishingHook sessionHook = player.fishing;
-        Holder<Biome> sessionBiome = sessionHook != null
-                ? level.getBiome(BlockPos.containing(sessionHook.position()))
-                : level.getBiome(player.blockPosition());
+        BlockPos sessionPos = sessionHook != null
+                ? BlockPos.containing(sessionHook.position())
+                : player.blockPosition();
+        Holder<Biome> sessionBiome = level.getBiome(sessionPos);
         FishProfile.TimeOfDay sessionTimeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
-        FishProfile.WeatherCondition sessionWeather = level.isThundering() ? FishProfile.WeatherCondition.THUNDER
-                : level.isRaining() ? FishProfile.WeatherCondition.RAIN
-                : FishProfile.WeatherCondition.CLEAR;
+        FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
                 sessionBiome, sessionTimeOfDay, sessionWeather);
@@ -181,13 +180,12 @@ public class FishingMinigameManager {
         ));
 
         FishingHook hook = player.fishing;
-        Holder<net.minecraft.world.level.biome.Biome> biome = hook != null
-                ? level.getBiome(BlockPos.containing(hook.position()))
-                : level.getBiome(player.blockPosition());
+        BlockPos tutorialPos = hook != null
+                ? BlockPos.containing(hook.position())
+                : player.blockPosition();
+        Holder<net.minecraft.world.level.biome.Biome> biome = level.getBiome(tutorialPos);
         FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
-        FishProfile.WeatherCondition weather = level.isThundering() ? FishProfile.WeatherCondition.THUNDER
-                : level.isRaining() ? FishProfile.WeatherCondition.RAIN
-                : FishProfile.WeatherCondition.CLEAR;
+        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
                 level.getGameTime(), biome, timeOfDay, weather);
@@ -316,9 +314,7 @@ public class FishingMinigameManager {
         BlockPos hookPos = BlockPos.containing(hook.position());
         Holder<Biome> biome = level.getBiome(hookPos);
         FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
-        FishProfile.WeatherCondition weather = level.isThundering() ? FishProfile.WeatherCondition.THUNDER
-                : level.isRaining() ? FishProfile.WeatherCondition.RAIN
-                : FishProfile.WeatherCondition.CLEAR;
+        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)

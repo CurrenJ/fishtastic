@@ -9,6 +9,7 @@ import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.util.FishQualityHelper;
+import grill24.fishtastic.util.ItemSizeHelper;
 import com.mojang.serialization.Lifecycle;
 import net.minecraft.core.Holder;
 import net.minecraft.core.MappedRegistry;
@@ -49,31 +50,35 @@ public final class QuestTrackerGameTests {
     // -------------------------------------------------------------------------
 
     private static QuestObjective wildcardObjective() {
-        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective targetSpeciesObjective(ResourceKey<Item> species) {
-        return new QuestObjective(Optional.of(species), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.of(species), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective targetSpeciesTagObjective(TagKey<Item> tag) {
-        return new QuestObjective(Optional.empty(), Optional.of(tag), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.of(tag), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective minQualityObjective(FishQuality.Quality quality) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.of(quality), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.of(quality), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+    }
+
+    private static QuestObjective minSizeObjective(float size) {
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.of(size), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective biomeObjective(TagKey<Biome> tag) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.of(tag), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.of(tag), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective timeObjective(FishProfile.TimeOfDay time) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.of(time), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(time), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective weatherObjective(FishProfile.WeatherCondition weather) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(weather), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(weather), Optional.empty(), 1);
     }
 
     private static ResourceKey<Item> keyOf(Item item) {
@@ -205,6 +210,53 @@ public final class QuestTrackerGameTests {
         helper.succeed();
     }
 
+    /** minSize is a floor: strictly below fails, exactly at or above passes, missing size data fails. */
+    public static void minSizeIsFloor(GameTestHelper helper) {
+        Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
+        QuestObjective requires40 = minSizeObjective(40.0f);
+
+        ItemStack small = new ItemStack(Items.COD);
+        ItemSizeHelper.setSize(small, 39.9f);
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(requires40, small, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            "A catch smaller than the required size must not match"
+        );
+
+        ItemStack exact = new ItemStack(Items.COD);
+        ItemSizeHelper.setSize(exact, 40.0f);
+        helper.assertTrue(
+            QuestTracker.matchesObjective(requires40, exact, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            "A catch exactly at the required size must match"
+        );
+
+        ItemStack noSize = new ItemStack(Items.COD);
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(requires40, noSize, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            "A catch with no size component must not match a minSize requirement"
+        );
+        helper.succeed();
+    }
+
+    /**
+     * minSessionCatches is a batch-level threshold applied in QuestTracker.onCatchBatch, not a
+     * per-stack predicate — matchesObjective must ignore it entirely and match on the other
+     * conditions alone, the same as if it were absent.
+     */
+    public static void minSessionCatchesDoesNotAffectPerStackMatching(GameTestHelper helper) {
+        Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
+        QuestObjective requiresTwoPerSession = new QuestObjective(
+            Optional.of(keyOf(Items.COD)), Optional.empty(), 1, Optional.empty(), Optional.empty(),
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(2), 1
+        );
+        ItemStack cod = new ItemStack(Items.COD);
+
+        helper.assertTrue(
+            QuestTracker.matchesObjective(requiresTwoPerSession, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            "A single matching stack must still satisfy matchesObjective regardless of minSessionCatches"
+        );
+        helper.succeed();
+    }
+
     /** All set conditions must hold together (AND semantics) — failing any single axis fails the whole match. */
     public static void allConditionsMustMatchTogether(GameTestHelper helper) {
         QuestObjective combined = new QuestObjective(
@@ -213,7 +265,9 @@ public final class QuestTrackerGameTests {
             1,
             Optional.of(FishQuality.Quality.RARE),
             Optional.empty(),
+            Optional.empty(),
             Optional.of(FishProfile.TimeOfDay.DAY),
+            Optional.empty(),
             Optional.empty(),
             1
         );

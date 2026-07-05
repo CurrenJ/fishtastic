@@ -4,7 +4,7 @@
     "target_species_tag": "fishtastic:treasure",
     "target_count": 15
   },
-  "reward": { "quest_tokens": 30, "items": [] },
+  "reward": { "quest_tokens": 45, "items": [] },
   "hidden": false,
   "display_name": "Treasure Hoarder",
   "description": "Catch 15 treasure items."

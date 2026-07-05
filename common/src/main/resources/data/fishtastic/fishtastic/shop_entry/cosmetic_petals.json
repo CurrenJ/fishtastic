@@ -1,0 +1,7 @@
+{
+  "display_name": "Pink Petals",
+  "description": "A scattering of pink petals for your fish tank floor.",
+  "cost": 15,
+  "reward": [{ "id": "fishtastic:cosmetic_petals", "count": 1 }],
+  "max_purchases": 0
+}

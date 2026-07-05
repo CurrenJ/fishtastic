@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_count": 1,
+    "min_session_catches": 2
+  },
+  "reward": { "quest_tokens": 10, "items": [] },
+  "hidden": false,
+  "display_name": "Double Bite",
+  "description": "Catch 2 different species of fish in a single cast."
+}

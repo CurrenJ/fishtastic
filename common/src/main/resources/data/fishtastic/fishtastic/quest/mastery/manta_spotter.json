@@ -4,7 +4,7 @@
     "target_species": "fishtastic:giant_manta_ray",
     "target_count": 10
   },
-  "reward": { "quest_tokens": 20, "items": [] },
+  "reward": { "quest_tokens": 28, "items": [] },
   "hidden": false,
   "display_name": "Manta Spotter",
   "description": "Catch 10 Giant Manta Ray."

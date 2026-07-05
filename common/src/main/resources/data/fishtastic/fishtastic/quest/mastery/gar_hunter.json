@@ -4,7 +4,7 @@
     "target_species": "fishtastic:longnose_gar",
     "target_count": 10
   },
-  "reward": { "quest_tokens": 15, "items": [] },
+  "reward": { "quest_tokens": 20, "items": [] },
   "hidden": false,
   "display_name": "Gar Hunter",
   "description": "Catch 10 Longnose Gar."

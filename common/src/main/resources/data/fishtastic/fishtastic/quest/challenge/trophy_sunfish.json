@@ -1,0 +1,12 @@
+{
+  "category": "challenge",
+  "objective": {
+    "target_species": "fishtastic:ocean_sunfish",
+    "target_count": 1,
+    "min_size": 120.0
+  },
+  "reward": { "quest_tokens": 30, "items": [] },
+  "hidden": false,
+  "display_name": "Trophy Sunfish",
+  "description": "Catch an Ocean Sunfish over 120cm."
+}

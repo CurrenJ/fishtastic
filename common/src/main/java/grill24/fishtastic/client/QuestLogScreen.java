@@ -489,9 +489,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         if (obj.weatherCondition().isPresent()) {
-            FishProfile.WeatherCondition weather = mc.level.isThundering() ? FishProfile.WeatherCondition.THUNDER
-                    : mc.level.isRaining() ? FishProfile.WeatherCondition.RAIN
-                    : FishProfile.WeatherCondition.CLEAR;
+            FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition());
             if (weather != obj.weatherCondition().get()) return false;
         }
 

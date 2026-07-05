@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_count": 5,
+    "weather_condition": "snow"
+  },
+  "reward": { "quest_tokens": 12, "items": [] },
+  "hidden": false,
+  "display_name": "Frost-Bitten Haul",
+  "description": "Catch 5 fish while it's actively snowing."
+}

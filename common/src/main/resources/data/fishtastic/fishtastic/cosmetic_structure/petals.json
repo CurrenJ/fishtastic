@@ -1,0 +1,189 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "south"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.85714287,
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "3",
+          "facing": "east"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.85714287,
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "south"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "3",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:pink_petals"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "2",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "east"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.42857143,
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.42857143,
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.85714287,
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "2",
+          "facing": "east"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "flower_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:pink_petals"
+      },
+      "offsetX": 0.85714287,
+      "offsetZ": 0.42857143
+    }
+  ],
+  "scale": 0.125
+}

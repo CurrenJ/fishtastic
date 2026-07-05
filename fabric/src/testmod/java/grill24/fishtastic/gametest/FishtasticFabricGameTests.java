@@ -559,6 +559,16 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void minSizeIsFloor(GameTestHelper helper) {
+        QuestTrackerGameTests.minSizeIsFloor(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void minSessionCatchesDoesNotAffectPerStackMatching(GameTestHelper helper) {
+        QuestTrackerGameTests.minSessionCatchesDoesNotAffectPerStackMatching(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void allConditionsMustMatchTogether(GameTestHelper helper) {
         QuestTrackerGameTests.allConditionsMustMatchTogether(helper);
     }

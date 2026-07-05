@@ -1,0 +1,13 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:rainfordia",
+    "target_count": 3,
+    "biome_condition": "minecraft:is_jungle",
+    "weather_condition": "rain"
+  },
+  "reward": { "quest_tokens": 14, "items": [] },
+  "hidden": false,
+  "display_name": "Jungle Downpour",
+  "description": "Catch 3 Rainfordia in the jungle during rain."
+}

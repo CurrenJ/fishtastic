@@ -288,6 +288,10 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::timeConditionGatesMatchWhenPresent);
         register(event, env, "weather_condition_gates_match_when_present", 200,
             QuestTrackerGameTests::weatherConditionGatesMatchWhenPresent);
+        register(event, env, "min_size_is_floor", 200,
+            QuestTrackerGameTests::minSizeIsFloor);
+        register(event, env, "min_session_catches_does_not_affect_per_stack_matching", 200,
+            QuestTrackerGameTests::minSessionCatchesDoesNotAffectPerStackMatching);
         register(event, env, "all_conditions_must_match_together", 200,
             QuestTrackerGameTests::allConditionsMustMatchTogether);
         register(event, env, "get_active_dailies_is_stable_per_day", 200,

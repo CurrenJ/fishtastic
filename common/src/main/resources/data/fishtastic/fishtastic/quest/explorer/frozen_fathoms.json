@@ -1,0 +1,13 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:frozen_giant_manta_ray",
+    "target_count": 1,
+    "time_condition": "night",
+    "weather_condition": "rain"
+  },
+  "reward": { "quest_tokens": 12, "items": [] },
+  "hidden": false,
+  "display_name": "Frozen Fathoms",
+  "description": "Catch a Frozen Giant Manta Ray at night in the rain."
+}

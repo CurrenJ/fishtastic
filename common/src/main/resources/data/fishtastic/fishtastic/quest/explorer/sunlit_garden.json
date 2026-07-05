@@ -1,0 +1,13 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:garden_eel",
+    "target_count": 5,
+    "biome_condition": "minecraft:is_ocean",
+    "time_condition": "day"
+  },
+  "reward": { "quest_tokens": 10, "items": [] },
+  "hidden": false,
+  "display_name": "Sunlit Garden",
+  "description": "Catch 5 Garden Eel in the ocean by day."
+}

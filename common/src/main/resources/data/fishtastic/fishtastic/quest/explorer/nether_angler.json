@@ -1,0 +1,12 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:blazed_grub",
+    "target_count": 3,
+    "biome_condition": "minecraft:is_nether"
+  },
+  "reward": { "quest_tokens": 15, "items": [{ "id": "fishtastic:blazed_grub", "count": 4 }] },
+  "hidden": false,
+  "display_name": "Nether Angler",
+  "description": "Catch 3 Blazed Grub in the Nether."
+}
