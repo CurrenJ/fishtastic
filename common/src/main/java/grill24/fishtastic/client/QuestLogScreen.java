@@ -6,8 +6,10 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.effects.DropOffEffect;
 import grill24.fishtastic.client.effects.PendulumSwingEffect;
+import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.tutorial.TutorialStep;
@@ -25,6 +27,7 @@ import io.github.currenj.gelatinui.gui.components.*;
 import io.github.currenj.gelatinui.gui.effects.CoinSpinEffect;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -33,6 +36,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.biome.Biome;
 
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
@@ -78,8 +82,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             Label countLabel,
             int targetCount,
             String baseDisplayName,
-            boolean isDailyTab,
-            boolean activeToday
+            QuestObjective objective,
+            SpriteRectangle.SpriteRectangleImpl statusPip
     ) {}
 
     // Target scale a quest row settles at once its reward has been claimed.
@@ -152,6 +156,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // 9-sliced so its border art stays crisp at the button's small on-screen size.
     private static final Identifier QUEST_CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
 
+    // Status pip shown to the left of a quest's title when its objective has a spatial
+    // (biome) or temporal (time of day / weather) condition — lit green while that
+    // condition currently holds for the player, dim otherwise.
+    private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
+    private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final float STATUS_PIP_SIZE = 5f;
+    private static final float STATUS_PIP_TOOLTIP_SCALE = 0.7f;
+
     private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
     private static final float SHOP_ITEM_RESPAWN_DELAY = 0.5f;
     private static final float SHOP_ITEM_FALL_DISTANCE = 400f;
@@ -209,6 +221,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
         if (cleanupGoalResetLabel != null) {
             cleanupGoalResetLabel.text(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()));
+        }
+        // Ticked locally (rather than only on quest-sync) so a conditioned quest's pip reacts
+        // live to weather changing, day/night passing, or the player walking between biomes.
+        for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
+            QuestRowRefs refs = e.getValue();
+            if (refs.statusPip() != null) {
+                updateStatusPip(refs, QuestClientCache.getProgress(e.getKey()).claimed());
+            }
         }
     }
 
@@ -274,6 +294,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             list.sort(Comparator.comparing(e -> e.getValue().displayName()));
         }
 
+        // Only today's rotated-in dailies are worth showing — the rest of the daily pool
+        // stays hidden rather than listed as "inactive", so players discover it as it rotates in.
+        byCategory.get(QuestCategory.DAILY).removeIf(entry -> !activeDailies.contains(entry.getKey()));
+
         // During the tutorial, pin tutorial quests to the top of the Daily tab.
         // They are hidden once the tutorial is complete or hasn't started yet.
         TutorialStep tutorialStep = TutorialClientHandler.getCurrentStep();
@@ -314,13 +338,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         ItemTabs tabs = UI.itemTabs();
         tabs.alertIcon(TAB_ALERT_TEXTURE, TAB_ALERT_WIDTH, TAB_ALERT_HEIGHT);
         tabs.addTab(new ItemStack(Items.COD),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.DAILY), activeDailies, true), CONTENT_WIDTH_FRACTION));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.DAILY), true), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.FISHING_ROD),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.MASTERY), null, false), CONTENT_WIDTH_FRACTION));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.MASTERY), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.COMPASS),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.EXPLORER), null, false), CONTENT_WIDTH_FRACTION));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.EXPLORER), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.NETHER_STAR),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), null, false), CONTENT_WIDTH_FRACTION));
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.EMERALD),
                 scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
@@ -379,7 +403,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     private VBox buildQuestList(
             List<Map.Entry<ResourceKey<Quest>, Quest>> quests,
-            Set<ResourceKey<Quest>> activeDailies,
             boolean isDailyTab) {
         VBox list = UI.vbox().spacing(5).padding(4).alignment(VBox.Alignment.CENTER);
         if (isDailyTab) {
@@ -410,10 +433,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 HBox rowGroup = UI.hbox().spacing(5).alignment(HBox.Alignment.CENTER);
                 for (int j = i; j < rowEnd; j++) {
                     var entry = quests.get(j);
-                    boolean active = !isDailyTab || activeDailies.contains(entry.getKey())
-                            || entry.getValue().category() == QuestCategory.TUTORIAL;
 
-                    VBox row = buildQuestRow(entry.getKey(), entry.getValue(), isDailyTab, active);
+                    VBox row = buildQuestRow(entry.getKey(), entry.getValue());
                     VBox rowWrapper = UI.vbox().alignment(VBox.Alignment.CENTER);
                     rowWrapper.addChild(row);
                     rowGroup.addChild(rowWrapper);
@@ -444,22 +465,84 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .slice(QUEST_ROW_BG_SLICE_LEFT, QUEST_ROW_BG_SLICE_RIGHT, QUEST_ROW_BG_SLICE_TOP, QUEST_ROW_BG_SLICE_BOTTOM);
     }
 
-    private VBox buildQuestRow(ResourceKey<Quest> questKey, Quest quest, boolean isDailyTab, boolean activeToday) {
+    private static boolean hasEnvironmentCondition(QuestObjective obj) {
+        return obj.biomeCondition().isPresent() || obj.timeCondition().isPresent() || obj.weatherCondition().isPresent();
+    }
+
+    /**
+     * Re-evaluates a quest's biome/time/weather condition(s) against the client player's
+     * current world state — mirrors the same condition checks {@link QuestTracker#matchesObjective}
+     * applies server-side when a fish is actually caught.
+     */
+    private static boolean isEnvironmentConditionMet(QuestObjective obj) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return false;
+
+        if (obj.biomeCondition().isPresent()) {
+            Holder<Biome> biome = mc.level.getBiome(mc.player.blockPosition());
+            if (!biome.is(obj.biomeCondition().get())) return false;
+        }
+
+        if (obj.timeCondition().isPresent()) {
+            FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
+            if (timeOfDay != obj.timeCondition().get()) return false;
+        }
+
+        if (obj.weatherCondition().isPresent()) {
+            FishProfile.WeatherCondition weather = mc.level.isThundering() ? FishProfile.WeatherCondition.THUNDER
+                    : mc.level.isRaining() ? FishProfile.WeatherCondition.RAIN
+                    : FishProfile.WeatherCondition.CLEAR;
+            if (weather != obj.weatherCondition().get()) return false;
+        }
+
+        return true;
+    }
+
+    /** Builds the pip's hover tooltip text, e.g. "Requires: Night, Thunder". */
+    private static String buildConditionTooltipText(QuestObjective obj) {
+        List<String> parts = new ArrayList<>();
+        obj.biomeCondition().ifPresent(tag -> parts.add(formatConditionWord(tag.location().getPath())));
+        obj.timeCondition().ifPresent(t -> parts.add(formatConditionWord(t.getSerializedName())));
+        obj.weatherCondition().ifPresent(w -> parts.add(formatConditionWord(w.getSerializedName())));
+        return "Requires: " + String.join(", ", parts);
+    }
+
+    private static String formatConditionWord(String raw) {
+        StringBuilder sb = new StringBuilder();
+        for (String word : raw.replace('/', ' ').replace('_', ' ').split(" ")) {
+            if (word.isEmpty()) continue;
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return sb.toString();
+    }
+
+    /** Swaps the pip's sprite between lit/dim and hides it once the quest is claimed. */
+    private void updateStatusPip(QuestRowRefs refs, boolean claimed) {
+        SpriteRectangle.SpriteRectangleImpl pip = refs.statusPip();
+        if (pip == null) return;
+        pip.setVisible(!claimed);
+        if (!claimed) {
+            boolean met = isEnvironmentConditionMet(refs.objective());
+            pip.texture(new SpriteData(met ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
+        }
+    }
+
+    private VBox buildQuestRow(ResourceKey<Quest> questKey, Quest quest) {
         Identifier questId = questKey.identifier();
         PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);
 
         boolean claimed = progress.claimed();
         boolean completed = progress.completed();
         boolean canClaim = completed && !claimed;
-        boolean inactive = isDailyTab && !activeToday;
 
         int targetCount = quest.objective().targetCount();
         int currentCount = progress.currentCount();
         float fraction = targetCount > 0 ? Math.min(1f, (float) currentCount / targetCount) : 0f;
 
         String baseDisplayName = quest.displayName().isEmpty() ? questId.getPath() : quest.displayName();
-        int nameColor = inactive ? 0xFF666666 : claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
-        String nameText = claimed ? "[Done] " + baseDisplayName : inactive ? "(inactive) " + baseDisplayName : baseDisplayName;
+        int nameColor = claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
+        String nameText = claimed ? "[Done] " + baseDisplayName : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         row.backgroundSprite(questRowBackgroundSprite(claimed));
@@ -494,8 +577,27 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         });
         claimBtn.setVisible(canClaim);
 
+        SpriteRectangle.SpriteRectangleImpl statusPip = null;
+        if (hasEnvironmentCondition(quest.objective())) {
+            boolean met = isEnvironmentConditionMet(quest.objective());
+            statusPip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
+                    .texture(new SpriteData(met ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
+            statusPip.setVisible(!claimed);
+            SpriteRectangle.SpriteRectangleImpl pipTooltip = UI.spriteRectangle(0, 0, 0xFF002244)
+                    .text(buildConditionTooltipText(quest.objective()), 0xFFFFFFFF)
+                    .autoSize(true).padding(3, 2).outline(true);
+            pipTooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
+            statusPip.tooltip(uiScreen, pipTooltip);
+        }
+
+        // Pip sits tight against the title (its own low-spacing group); the wider spacing(8)
+        // stays between the title group and the claim button.
+        HBox titleGroup = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
+        if (statusPip != null) titleGroup.addChild(statusPip);
+        titleGroup.addChild(nameLabel);
+
         HBox nameRow = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
-        nameRow.addChild(nameLabel);
+        nameRow.addChild(titleGroup);
         nameRow.addChild(claimBtn);
 
         row.addChild(nameRow);
@@ -517,7 +619,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             row.addChild(buildRewardRow(quest));
         }
 
-        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, isDailyTab, activeToday));
+        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, quest.objective(), statusPip));
         return row;
     }
 
@@ -912,15 +1014,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             boolean claimed = progress.claimed();
             boolean completed = progress.completed();
             boolean canClaim = completed && !claimed;
-            boolean inactive = refs.isDailyTab() && !refs.activeToday();
 
             int currentCount = progress.currentCount();
             float fraction = refs.targetCount() > 0 ? Math.min(1f, (float) currentCount / refs.targetCount()) : 0f;
 
-            int nameColor = inactive ? 0xFF666666 : claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
-            String nameText = claimed ? "[Done] " + refs.baseDisplayName()
-                    : inactive ? "(inactive) " + refs.baseDisplayName()
-                    : refs.baseDisplayName();
+            int nameColor = claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
+            String nameText = claimed ? "[Done] " + refs.baseDisplayName() : refs.baseDisplayName();
 
             refs.nameLabel().text(nameText).color(nameColor);
             refs.claimButton().setVisible(canClaim);
@@ -928,6 +1027,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.countLabel().text(currentCount + " / " + refs.targetCount());
             refs.row().backgroundSprite(questRowBackgroundSprite(claimed));
             refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
+            updateStatusPip(refs, claimed);
         }
 
         updateShopCardVisuals();
