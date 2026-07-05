@@ -64,7 +64,7 @@ public class FishtasticFishItem extends Item {
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
                                  Consumer<Component> builder, TooltipFlag flag) {
         super.appendHoverText(stack, context, display, builder, flag);
-        BaitEffect baitEffect = stack.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect baitEffect = BaitEffect.fromStack(stack);
         if (baitEffect != null) {
             baitEffect.tooltipLines().forEach(builder);
         }

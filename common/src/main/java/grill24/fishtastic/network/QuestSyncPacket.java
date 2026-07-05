@@ -8,6 +8,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
@@ -19,7 +20,8 @@ public record QuestSyncPacket(
         int tokenBalance,
         Map<Identifier, ItemStack> triggeringItems,
         Map<Identifier, Integer> purchaseCounts,
-        CleanupGoalProgress cleanupGoal
+        CleanupGoalProgress cleanupGoal,
+        long serverGameTime
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -37,6 +39,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::purchaseCounts,
                     CleanupGoalProgress.STREAM_CODEC,
                     QuestSyncPacket::cleanupGoal,
+                    ByteBufCodecs.VAR_LONG,
+                    QuestSyncPacket::serverGameTime,
                     QuestSyncPacket::new
             );
 
@@ -65,9 +69,10 @@ public record QuestSyncPacket(
         PlayerQuestState state = data.getOrCreateQuestState(player);
         CleanupGoalProgress cleanupGoal = new CleanupGoalProgress(
                 data.getCleanupGoalTotal(), data.getCleanupGoalThreshold(), milestoneReached);
+        long gameTime = ((ServerLevel) player.level()).getServer().overworld().getGameTime();
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
-                triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal);
+                triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime);
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

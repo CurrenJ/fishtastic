@@ -2,6 +2,7 @@ package grill24.fishtastic.component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.util.Utility;
 import io.netty.buffer.ByteBuf;
@@ -12,6 +13,8 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,6 +75,43 @@ public record BaitEffect(
     ).apply(i, BaitEffect::new));
 
     public static final StreamCodec<ByteBuf, BaitEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+
+    /**
+     * Reads the effective {@link BaitEffect} off a bait item stack — the item's default
+     * {@code BAIT_EFFECT} component, scaled up if the stack also carries a {@link FishQuality}
+     * (as caught Blazed Grubs do). Returns {@code null} if the stack has no bait effect at all.
+     */
+    @Nullable
+    public static BaitEffect fromStack(ItemStack stack) {
+        if (stack.isEmpty()) return null;
+        BaitEffect base = stack.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        if (base == null) return null;
+        FishQuality fishQuality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        return fishQuality != null ? base.scaledByQuality(fishQuality.quality()) : base;
+    }
+
+    /**
+     * Scales this effect up for a higher-quality catch of the bait itself (currently only
+     * reachable by Blazed Grub, the only item both catchable as a fish and usable as bait).
+     * +10% per quality tier above Common, capping at +40% for Legendary; Legendary catches
+     * also grant one extra target as a bonus reward.
+     */
+    public BaitEffect scaledByQuality(FishQuality.Quality quality) {
+        float scale = 1.0f + quality.ordinal() * 0.1f;
+        int bonusTargets = quality == FishQuality.Quality.LEGENDARY ? 1 : 0;
+        if (scale == 1.0f && bonusTargets == 0) return this;
+        return new BaitEffect(
+                luckBonus * scale,
+                Math.min(1.0f, treasureChance * scale),
+                trashChance,
+                targetCountBonus + bonusTargets,
+                vanillaFishMultiplier,
+                modFishMultiplier * scale,
+                qualityBias * scale,
+                exclusiveFishPool,
+                fishGroupAffinities
+        );
+    }
 
     /** Player-facing description of this bait's effects, for use in item/rod tooltips. */
     public List<Component> tooltipLines() {

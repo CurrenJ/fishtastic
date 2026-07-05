@@ -217,7 +217,7 @@ public class CopperFishingRod extends FishingRodItem {
             builder.accept(Component.translatable("item.fishtastic.copper_fishing_rod.no_bait")
                     .withStyle(ChatFormatting.GRAY));
         } else {
-            BaitEffect baitEffect = bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
+            BaitEffect baitEffect = BaitEffect.fromStack(bait);
             if (baitEffect != null) {
                 baitEffect.tooltipLines().forEach(builder);
             }

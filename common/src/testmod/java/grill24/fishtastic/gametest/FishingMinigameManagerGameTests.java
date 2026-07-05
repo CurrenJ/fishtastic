@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.FishingMinigameManager;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -248,6 +249,13 @@ public final class FishingMinigameManagerGameTests {
             if (stack.is(FishtasticItemTags.TRASH)) awardedAnyTrash = true;
         }
         helper.assertTrue(awardedAnyTrash, "trashChance=1.0 must award at least one trash-tagged item across all targets");
+
+        // Regression check: handleMinigameComplete used to read a reward stack's count *after*
+        // Inventory.add() had already mutated it down to its leftover (usually 0), so trash caught
+        // with room in the inventory silently never reached the shared cleanup goal counter.
+        int cleanupGoalTotal = FishCatchSavedData.getOrCreate(helper.getLevel().getServer()).getCleanupGoalTotal();
+        helper.assertTrue(cleanupGoalTotal > 0,
+                "trash caught with room in the inventory must still count toward the cleanup goal, got total=" + cleanupGoalTotal);
         helper.succeed();
     }
 

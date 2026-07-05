@@ -21,6 +21,7 @@ import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.client.CosmeticTransformLoader;
+import grill24.fishtastic.client.TankCosmeticTooltip;
 import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
 import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
 import grill24.fishtastic.client.tooltip.RodBaitTooltip;
@@ -40,6 +41,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
@@ -62,7 +64,7 @@ public final class FishtasticNeoForgeClient {
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
-                        packet.purchaseCounts(), packet.cleanupGoal()));
+                        packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
@@ -88,6 +90,8 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
+        // Mark every item usable as a tank cosmetic with a grey tooltip hint
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onItemTooltip);
 
         // Register client tick event handler
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
@@ -178,6 +182,10 @@ public final class FishtasticNeoForgeClient {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
             ItemEffectManager.clearCache();
         }
+    }
+
+    public static void onItemTooltip(ItemTooltipEvent event) {
+        TankCosmeticTooltip.append(event.getItemStack(), event.getToolTip());
     }
 
     public static void onClientTick(ClientTickEvent.Pre event) {

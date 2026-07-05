@@ -17,6 +17,7 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.TankCosmeticTooltip;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -29,6 +30,7 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
@@ -59,6 +61,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             return null;
         });
 
+        // Mark every item usable as a tank cosmetic with a grey tooltip hint
+        ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> TankCosmeticTooltip.append(stack, lines));
+
         // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json
         ResourceLoader.get(PackType.CLIENT_RESOURCES)
             .registerReloadListener(CosmeticTransformLoader.ID, CosmeticTransformLoader.INSTANCE);
@@ -86,7 +91,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
-                        packet.purchaseCounts(), packet.cleanupGoal()));
+                        packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);

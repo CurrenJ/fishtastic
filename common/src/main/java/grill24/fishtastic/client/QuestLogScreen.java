@@ -8,6 +8,7 @@ import grill24.fishtastic.client.effects.DropOffEffect;
 import grill24.fishtastic.client.effects.PendulumSwingEffect;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.network.CompleteQuestPacket;
@@ -56,6 +57,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private Label cleanupGoalTotalLabel;
     private Label cleanupGoalCountLabel;
     private SpriteProgressBar cleanupGoalBar;
+    private Label dailyResetLabel;
+    private Label cleanupGoalResetLabel;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
@@ -186,7 +189,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             handlerInstalled = true;
             QuestSyncPacket.registerClientHandler(packet -> {
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
-                        packet.purchaseCounts(), packet.cleanupGoal());
+                        packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     updateInPlace();
@@ -194,6 +197,32 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             });
         }
         super.init();
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        // Ticked locally every frame rather than only on quest-sync packets, so the countdown
+        // text counts down smoothly instead of jumping only when the player catches something.
+        if (dailyResetLabel != null) {
+            dailyResetLabel.text(formatResetCountdown("Dailies reset in ", QuestClientCache.getTicksUntilDailyReset()));
+        }
+        if (cleanupGoalResetLabel != null) {
+            cleanupGoalResetLabel.text(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()));
+        }
+    }
+
+    /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero. */
+    private static String formatResetCountdown(String prefix, long ticksRemaining) {
+        if (ticksRemaining < 0) return prefix + "--:--";
+        long totalSeconds = ticksRemaining / 20L;
+        long days = totalSeconds / 86400L;
+        long hours = (totalSeconds % 86400L) / 3600L;
+        long minutes = (totalSeconds % 3600L) / 60L;
+        long seconds = totalSeconds % 60L;
+        if (days > 0) return prefix + String.format("%dd %02d:%02d:%02d", days, hours, minutes, seconds);
+        if (hours > 0) return prefix + String.format("%d:%02d:%02d", hours, minutes, seconds);
+        return prefix + String.format("%02d:%02d", minutes, seconds);
     }
 
     @Override
@@ -207,6 +236,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalTotalLabel = null;
         cleanupGoalCountLabel = null;
         cleanupGoalBar = null;
+        dailyResetLabel = null;
+        cleanupGoalResetLabel = null;
 
         tempContext = new MinecraftRenderContext(null, this.font);
 
@@ -351,6 +382,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             Set<ResourceKey<Quest>> activeDailies,
             boolean isDailyTab) {
         VBox list = UI.vbox().spacing(5).padding(4).alignment(VBox.Alignment.CENTER);
+        if (isDailyTab) {
+            dailyResetLabel = new Label(formatResetCountdown("Dailies reset in ", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
+                    .init(tempContext);
+            list.addChild(dailyResetLabel);
+        }
         if (quests.isEmpty()) {
             list.addChild(new Label("No quests available.", 0xFF888888).init(tempContext));
         } else {
@@ -601,7 +637,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (quest.reward().questTokens() > 0) {
                 row.addChild(new Label("+", 0xFFAAAAAA).init(tempContext));
             }
-            row.addChild(new Label(quest.reward().items().size() + " item(s)", 0xFFFFAA00).init(tempContext));
+            for (QuestReward.RewardItem rewardItem : quest.reward().items()) {
+                row.addChild(UI.itemRenderer(rewardItem.toStack()));
+            }
         }
         return row;
     }
@@ -635,6 +673,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         panel.addChild(new Label("Tokens are split between every contributor each time a milestone is reached.", 0xFF888888)
                 .maxWidth(160).centered(true).init(tempContext));
+
+        cleanupGoalResetLabel = new Label(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
+                .init(tempContext);
+        panel.addChild(cleanupGoalResetLabel);
 
         return panel;
     }

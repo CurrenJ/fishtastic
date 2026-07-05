@@ -122,7 +122,7 @@ public class FishingMinigameManager {
 
         ItemStack rod = findCopperRod(player);
         ItemStack bait = CopperFishingRod.getBait(rod);
-        BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : bait.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
         ItemStack hookStack = CopperFishingRod.getHook(rod);
         HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
 
@@ -230,14 +230,18 @@ public class FishingMinigameManager {
                     if (!reward.isEmpty()) {
                         catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
                         questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
+                        // Snapshot count/tag before inventory.add() mutates reward down to its leftover
+                        // (usually 0) — reading these after the call under-counts trash almost every time.
+                        boolean isTrash = reward.is(FishtasticItemTags.TRASH);
+                        int caughtCount = reward.getCount();
                         player.getInventory().add(reward);
                         if (!reward.isEmpty()) {
                             // inventory.add() leaves any leftover count in reward when full/partially full
                             player.drop(reward, false);
                         }
                         rewards.add(reward);
-                        if (reward.is(FishtasticItemTags.TRASH)) {
-                            trashCaught += reward.getCount();
+                        if (isTrash) {
+                            trashCaught += caughtCount;
                         }
                     }
                 }

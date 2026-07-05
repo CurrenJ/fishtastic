@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.network.CleanupGoalProgress;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.resources.Identifier;
@@ -9,6 +10,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class QuestClientCache {
+    /** Must match the day length {@code ServerTickHandler}/{@code QuestTracker} use to compute {@code currentDay}. */
+    private static final long DAY_TICKS = 24000L;
+    /** Must match the period length {@code FishCatchSavedData#resetCleanupGoalIfNeeded} anchors to. */
+    private static final long CLEANUP_GOAL_PERIOD_TICKS = DAY_TICKS * 7L;
+
     private static Map<Identifier, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
     private static int tokenBalance = 0;
     private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
@@ -16,6 +22,13 @@ public class QuestClientCache {
     private static boolean isInitialSync = true;
     private static QuestProgressListener listener;
     private static CleanupGoalMilestoneListener milestoneListener;
+
+    // Countdown extrapolation: the server's overworld game time as of the last sync, paired
+    // with the client's own tick counter at that moment. Since both client and server tick at
+    // 20/s absent lag, the current server time can be estimated between syncs by adding elapsed
+    // client ticks — avoiding the need for a dedicated per-tick sync packet just for a countdown.
+    private static long syncedServerGameTime = -1;
+    private static float syncedClientTick = 0f;
 
     @FunctionalInterface
     public interface QuestProgressListener {
@@ -48,13 +61,14 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
-        update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY);
+        update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L);
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts,
-                              CleanupGoalProgress newCleanupGoal) {
+                              CleanupGoalProgress newCleanupGoal,
+                              long serverGameTime) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
             Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
@@ -82,16 +96,20 @@ public class QuestClientCache {
         tokenBalance = tokens;
         purchaseCounts = new HashMap<>(newPurchaseCounts);
         cleanupGoal = newCleanupGoal;
+        if (serverGameTime >= 0) {
+            syncedServerGameTime = serverGameTime;
+            syncedClientTick = ClientTickHandler.totalTicks();
+        }
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
-        update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY);
+        update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L);
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
-        update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY);
+        update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L);
     }
 
     public static int getCleanupGoalTotal() {
@@ -118,6 +136,26 @@ public class QuestClientCache {
         return purchaseCounts.getOrDefault(entryId, 0);
     }
 
+    /** Estimated server overworld game time right now, or -1 if no sync has carried one yet. */
+    private static long estimatedServerGameTime() {
+        if (syncedServerGameTime < 0) return -1;
+        return syncedServerGameTime + (long) (ClientTickHandler.totalTicks() - syncedClientTick);
+    }
+
+    /** Ticks remaining until the daily quest board reshuffles, or -1 if unknown. */
+    public static long getTicksUntilDailyReset() {
+        long time = estimatedServerGameTime();
+        if (time < 0) return -1;
+        return DAY_TICKS - Math.floorMod(time, DAY_TICKS);
+    }
+
+    /** Ticks remaining until the shared cleanup goal period rolls over, or -1 if unknown. */
+    public static long getTicksUntilCleanupGoalReset() {
+        long time = estimatedServerGameTime();
+        if (time < 0) return -1;
+        return CLEANUP_GOAL_PERIOD_TICKS - Math.floorMod(time, CLEANUP_GOAL_PERIOD_TICKS);
+    }
+
     /** Reset the cache to a clean state. Call on client disconnect / world exit. */
     public static void reset() {
         questProgress = new HashMap<>();
@@ -125,5 +163,7 @@ public class QuestClientCache {
         purchaseCounts = new HashMap<>();
         cleanupGoal = CleanupGoalProgress.EMPTY;
         isInitialSync = true;
+        syncedServerGameTime = -1;
+        syncedClientTick = 0f;
     }
 }

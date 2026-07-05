@@ -143,7 +143,7 @@ public final class PacketRoundTripGameTests {
         purchaseCounts.put(Identifier.fromNamespaceAndPath("fishtastic", "shop_entry_x"), 2);
 
         QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
-                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0));
+                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0), 12345L);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -161,6 +161,9 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.cleanupGoal().equals(original.cleanupGoal()),
             "cleanupGoal (CleanupGoalProgress) must round-trip via equals(), expected " + original.cleanupGoal() + " got " + decoded.cleanupGoal());
 
+        helper.assertTrue(decoded.serverGameTime() == original.serverGameTime(),
+            "serverGameTime must round-trip, expected " + original.serverGameTime() + " got " + decoded.serverGameTime());
+
         helper.succeed();
     }
 
@@ -172,7 +175,7 @@ public final class PacketRoundTripGameTests {
     public static void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
         QuestSyncPacket original = new QuestSyncPacket(
             Map.of(), 0, Map.of(), Map.of(),
-            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400));
+            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400), 0L);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
