@@ -3,10 +3,12 @@ package grill24.fishtastic.fabric;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
+import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -102,6 +104,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
                 FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes()));
 
+        // Register cosmetic capture wand session sync packet client handler
+        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
@@ -130,6 +135,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             QuestClientCache.reset();
             TutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
+            CosmeticCaptureClientState.reset();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
@@ -144,6 +150,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 FishtasticKeyBinds.handleKeyPress(client);
                 // Tick quest progress notifications
                 QuestProgressNotificationManager.getInstance().tick();
+                // Draw the cosmetic-capture wand selection preview, if a session is active
+                CosmeticCaptureClientState.tickGizmos();
             }
         });
 

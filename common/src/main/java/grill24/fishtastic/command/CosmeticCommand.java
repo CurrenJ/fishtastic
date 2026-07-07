@@ -8,12 +8,14 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.serialization.JsonOps;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -23,6 +25,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -86,7 +89,30 @@ public class CosmeticCommand {
                                         BlockPosArgument.getLoadedBlockPos(ctx, "to"),
                                         BlockPosArgument.getLoadedBlockPos(ctx, "anchor"),
                                         StringArgumentType.getString(ctx, "name"),
-                                        FloatArgumentType.getFloat(ctx, "scale")))))))));
+                                        FloatArgumentType.getFloat(ctx, "scale"))))))))
+                // ----- Interactive capture wand workflow -----
+                .then(Commands.literal("start")
+                    .executes(CosmeticCommand::captureStart))
+                .then(Commands.literal("mode")
+                    .then(Commands.literal("corner1")
+                        .executes(ctx -> captureSetMode(ctx, CosmeticCaptureSession.Mode.CORNER_1)))
+                    .then(Commands.literal("corner2")
+                        .executes(ctx -> captureSetMode(ctx, CosmeticCaptureSession.Mode.CORNER_2)))
+                    .then(Commands.literal("anchor")
+                        .executes(ctx -> captureSetMode(ctx, CosmeticCaptureSession.Mode.ANCHOR))))
+                .then(Commands.literal("status")
+                    .executes(CosmeticCommand::captureStatus))
+                .then(Commands.literal("cancel")
+                    .executes(CosmeticCommand::captureCancel))
+                .then(Commands.literal("finish")
+                    .then(Commands.argument("name", StringArgumentType.word())
+                        .executes(ctx -> captureFinish(ctx,
+                            StringArgumentType.getString(ctx, "name"),
+                            (float) CosmeticGridCell.CELL_WIDTH))
+                        .then(Commands.argument("scale", FloatArgumentType.floatArg(0.001f))
+                            .executes(ctx -> captureFinish(ctx,
+                                StringArgumentType.getString(ctx, "name"),
+                                FloatArgumentType.getFloat(ctx, "scale")))))));
     }
 
     private static int nudge(CommandContext<CommandSourceStack> ctx, float dx, float dy, float dz) {
@@ -214,6 +240,131 @@ public class CosmeticCommand {
         }
 
         return parts.size();
+    }
+
+    // -------------------------------------------------------------------------
+    // Interactive capture wand workflow
+    // -------------------------------------------------------------------------
+
+    private static int captureStart(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer player = requirePlayer(source);
+        if (player == null) return 0;
+
+        CosmeticCaptureSession session = CosmeticCaptureSession.start(player.getUUID(), player.level().dimension());
+        giveWandIfMissing(player);
+        CosmeticCaptureSyncPacket.sendToPlayer(player, session);
+
+        source.sendSuccess(() -> Component.literal(
+                "Capture session started. Hold the Cosmetic Capture Wand and right-click blocks to set corner 1, "
+                        + "corner 2, then the anchor - SNEAK while clicking to make sure the wand works even on "
+                        + "blocks with their own right-click behaviour (chests, doors, fish tanks, etc). "
+                        + "Once the anchor is set, right-click again to adjust it, or use "
+                        + "/fishtastic cosmetic capture mode <corner1|corner2|anchor> to jump back and redo any "
+                        + "point. Run /fishtastic cosmetic capture finish <name> [scale] when ready.")
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int captureSetMode(CommandContext<CommandSourceStack> ctx, CosmeticCaptureSession.Mode mode) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer player = requirePlayer(source);
+        if (player == null) return 0;
+
+        CosmeticCaptureSession session = CosmeticCaptureSession.get(player.getUUID());
+        if (session == null) {
+            source.sendFailure(Component.literal("No active capture session. Run /fishtastic cosmetic capture start first."));
+            return 0;
+        }
+
+        session.setMode(mode);
+        CosmeticCaptureSyncPacket.sendToPlayer(player, session);
+        source.sendSuccess(() -> Component.literal("Next right-click will set " + modeLabel(mode) + "."), false);
+        return 1;
+    }
+
+    private static int captureStatus(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer player = requirePlayer(source);
+        if (player == null) return 0;
+
+        CosmeticCaptureSession session = CosmeticCaptureSession.get(player.getUUID());
+        if (session == null) {
+            source.sendFailure(Component.literal("No active capture session. Run /fishtastic cosmetic capture start first."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+                "Capture session: mode=" + modeLabel(session.mode())
+                        + ", corner1=" + posOrUnset(session.corner1())
+                        + ", corner2=" + posOrUnset(session.corner2())
+                        + ", anchor=" + posOrUnset(session.anchor())), false);
+        return 1;
+    }
+
+    private static int captureCancel(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer player = requirePlayer(source);
+        if (player == null) return 0;
+
+        CosmeticCaptureSession.cancel(player.getUUID());
+        CosmeticCaptureSyncPacket.sendClear(player);
+        source.sendSuccess(() -> Component.literal("Capture session cancelled."), false);
+        return 1;
+    }
+
+    private static int captureFinish(CommandContext<CommandSourceStack> ctx, String name, float scale) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer player = requirePlayer(source);
+        if (player == null) return 0;
+
+        CosmeticCaptureSession session = CosmeticCaptureSession.get(player.getUUID());
+        if (session == null) {
+            source.sendFailure(Component.literal("No active capture session. Run /fishtastic cosmetic capture start first."));
+            return 0;
+        }
+        if (!session.isReadyToFinish()) {
+            source.sendFailure(Component.literal(
+                    "Capture session isn't ready yet - still need: "
+                            + (session.corner1() == null ? "corner1 " : "")
+                            + (session.corner2() == null ? "corner2 " : "")
+                            + (session.anchor() == null ? "anchor" : "")));
+            return 0;
+        }
+
+        int result = capture(ctx, session.corner1(), session.corner2(), session.anchor(), name, scale);
+        if (result > 0) {
+            CosmeticCaptureSession.cancel(player.getUUID());
+            CosmeticCaptureSyncPacket.sendClear(player);
+        }
+        return result;
+    }
+
+    @Nullable
+    private static ServerPlayer requirePlayer(CommandSourceStack source) {
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("Must be used by a player."));
+            return null;
+        }
+        return player;
+    }
+
+    private static void giveWandIfMissing(ServerPlayer player) {
+        if (!player.getInventory().contains(stack -> stack.is(FishtasticItems.COSMETIC_CAPTURE_WAND.value()))) {
+            player.getInventory().add(new ItemStack(FishtasticItems.COSMETIC_CAPTURE_WAND.value()));
+        }
+    }
+
+    private static String modeLabel(CosmeticCaptureSession.Mode mode) {
+        return switch (mode) {
+            case CORNER_1 -> "corner 1";
+            case CORNER_2 -> "corner 2";
+            case ANCHOR -> "the anchor";
+        };
+    }
+
+    private static String posOrUnset(@Nullable BlockPos pos) {
+        return pos == null ? "unset" : pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
     }
 
     @FunctionalInterface

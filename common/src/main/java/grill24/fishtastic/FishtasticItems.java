@@ -10,6 +10,7 @@ import grill24.fishtastic.component.RodCharmContents;
 import grill24.fishtastic.component.RodHookContents;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.item.CosmeticCaptureWandItem;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -40,6 +41,9 @@ public class FishtasticItems {
     public static Holder<Item> SPARKLE;
     public static Holder<Item> GENERIC_FISH;
     public static Holder<Item> REWARD_CHEST;
+
+    // ----- Debug Tools -----
+    public static Holder<Item> COSMETIC_CAPTURE_WAND;
 
     // ----- Fishing Rods -----
     public static Holder<Item> COPPER_FISHING_ROD;
@@ -125,6 +129,9 @@ public class FishtasticItems {
     public static Holder<Item> STARFISH;
 
     public static void registerItems() {
+        COSMETIC_CAPTURE_WAND = RegistrationApiSided.getInstance().registerItem("cosmetic_capture_wand",
+                loc -> new CosmeticCaptureWandItem(props(loc).stacksTo(1)));
+
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(props(loc).stacksTo(1)));
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(props(loc).stacksTo(1)));
         SPARKLE = RegistrationApiSided.getInstance().registerItem("sparkle", loc -> new Item(props(loc).stacksTo(1)));

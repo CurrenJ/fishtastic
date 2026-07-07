@@ -80,6 +80,10 @@ public class FishtasticModelProvider extends FabricModelProvider {
         itemModelGenerators.generateFlatItem(FishtasticItems.SPARKLE.value(), ModelTemplates.FLAT_ITEM);
         itemModelGenerators.generateFlatItem(FishtasticItems.REWARD_CHEST.value(), ModelTemplates.FLAT_ITEM);
 
+        // Debug tools — reuse a vanilla texture as a placeholder, no dedicated art needed
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.COSMETIC_CAPTURE_WAND.value(),
+                Identifier.fromNamespaceAndPath("minecraft", "item/stick"));
+
         // ----- Copper fishing rod (fishing rod style with _cast variant) -----
         itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
 

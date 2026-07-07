@@ -2,10 +2,12 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -74,6 +76,9 @@ public final class FishtasticNeoForgeClient {
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
                 FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes()));
+
+        // Register cosmetic capture wand session sync packet client handler
+        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
@@ -180,6 +185,7 @@ public final class FishtasticNeoForgeClient {
         QuestClientCache.reset();
         TutorialClientHandler.reset();
         FishEncyclopediaClientCache.reset();
+        CosmeticCaptureClientState.reset();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -202,6 +208,8 @@ public final class FishtasticNeoForgeClient {
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications
             QuestProgressNotificationManager.getInstance().tick();
+            // Draw the cosmetic-capture wand selection preview, if a session is active
+            CosmeticCaptureClientState.tickGizmos();
         }
     }
 
