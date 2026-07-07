@@ -19,8 +19,10 @@ import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.server.QuestTracker;
 import io.github.currenj.gelatinui.GelatinUIScreen;
+import io.github.currenj.gelatinui.gui.IUIElement;
 import io.github.currenj.gelatinui.gui.PivotMode;
 import io.github.currenj.gelatinui.gui.UI;
+import io.github.currenj.gelatinui.gui.UIContainer;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.components.*;
@@ -63,6 +65,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SpriteProgressBar cleanupGoalBar;
     private Label dailyResetLabel;
     private Label cleanupGoalResetLabel;
+    private Label shopResetLabel;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
@@ -88,6 +91,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Target scale a quest row settles at once its reward has been claimed.
     private static final float CLAIMED_QUEST_ROW_SCALE = 1f;
+
+    // Very slight per-leaf hover scale-up applied to each element within a quest row.
+    private static final float QUEST_ROW_LEAF_HOVER_SCALE = 1.04f;
 
     // Number of quest entries laid out side-by-side before wrapping to a new row.
     private static final int QUESTS_PER_ROW = 3;
@@ -222,6 +228,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (cleanupGoalResetLabel != null) {
             cleanupGoalResetLabel.text(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()));
         }
+        if (shopResetLabel != null) {
+            shopResetLabel.text(formatResetCountdown("Shop resets in ", QuestClientCache.getTicksUntilDailyReset()));
+        }
         // Ticked locally (rather than only on quest-sync) so a conditioned quest's pip reacts
         // live to weather changing, day/night passing, or the player walking between biomes.
         for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
@@ -258,6 +267,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalBar = null;
         dailyResetLabel = null;
         cleanupGoalResetLabel = null;
+        shopResetLabel = null;
 
         tempContext = new MinecraftRenderContext(null, this.font);
 
@@ -381,7 +391,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // quest lists or the wide, short shop row — is active.
     private static final float CONTENT_WIDTH_FRACTION = 0.7f;
     private static final float SHOP_CONTENT_WIDTH_FRACTION = 0.7f;
-    private static final float CLEANUP_CONTENT_WIDTH_FRACTION = 0.5f;
+    private static final float CLEANUP_CONTENT_WIDTH_FRACTION = 0.7f;
 
     private VBox scaleTabPanel(VBox panel, float widthFraction) {
         panel.scaleToWidth(this.width * widthFraction);
@@ -544,15 +554,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         row.backgroundSprite(questRowBackgroundSprite(claimed));
-        final Identifier hoverQuestId = questId;
-        row.onMouseEnter(e -> {
-            float base = QuestClientCache.getProgress(hoverQuestId).claimed() ? CLAIMED_QUEST_ROW_SCALE : 1.0f;
-            row.setTargetScale(base * 1.04f, true);
-        });
-        row.onMouseExit(e -> {
-            float base = QuestClientCache.getProgress(hoverQuestId).claimed() ? CLAIMED_QUEST_ROW_SCALE : 1.0f;
-            row.setTargetScale(base, true);
-        });
         if (claimed) {
             row.setTargetScale(CLAIMED_QUEST_ROW_SCALE, false);
         }
@@ -617,8 +618,34 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             row.addChild(buildRewardRow(quest));
         }
 
+        // Each leaf gets its own hover scale (rather than the whole row scaling as a unit)
+        // because hover events only ever reach the single deepest leaf element under the cursor
+        // (see UIScreen#findElementAt) — a container like this VBox row can never itself be the
+        // hit target. claimBtn is excluded since it already drives its own, larger hover scale.
+        attachLeafHoverScale(row, QUEST_ROW_LEAF_HOVER_SCALE, Set.of(claimBtn));
+
         questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, quest.objective(), statusPip));
         return row;
+    }
+
+    /**
+     * Registers a self-contained hover scale-up on every leaf descendant of {@code element}
+     * (skipping containers themselves, since their hover callbacks can never fire, and skipping
+     * anything in {@code exclude}). Each leaf scales itself independently rather than the whole
+     * subtree scaling as one — e.g. hovering a single reward icon only bumps that icon.
+     */
+    private static void attachLeafHoverScale(IUIElement element, float hoverScale, Set<IUIElement> exclude) {
+        if (element instanceof UIContainer<?> container) {
+            for (IUIElement child : container.getChildren()) {
+                attachLeafHoverScale(child, hoverScale, exclude);
+            }
+            return;
+        }
+        if (exclude.contains(element)) return;
+        if (element instanceof UIElement<?> uiElement) {
+            uiElement.onMouseEnter(e -> uiElement.setTargetScale(hoverScale, true));
+            uiElement.onMouseExit(e -> uiElement.setTargetScale(1.0f, true));
+        }
     }
 
     /**
@@ -744,15 +771,23 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return row;
     }
 
+    // Wide enough that, once scaled up to match the other tabs' width, the panel's natural
+    // (unscaled) aspect ratio stays short enough to fit the screen's height without scrolling —
+    // narrower content (like the old 160px description wrap) forces a much larger scale factor
+    // to reach the same target width, which blows the height out past the viewport.
+    private static final float CLEANUP_GOAL_DESCRIPTION_MAX_WIDTH = 280f;
+
     private VBox buildCleanupGoalPanel() {
-        VBox panel = UI.vbox().spacing(8).padding(4).alignment(VBox.Alignment.CENTER);
+        VBox panel = UI.vbox().spacing(6).padding(4).alignment(VBox.Alignment.CENTER);
 
         Label title = new Label("Clean Up the Waters", 0xFFFFFFFF).init(tempContext);
         title.scale(1.1f);
         panel.addChild(title);
 
-        panel.addChild(new Label("A shared, server-wide goal — every trash catch counts toward it, by anyone.", 0xFF888888)
-                .maxWidth(160).centered(true).init(tempContext));
+        // Combined into a single label (rather than two separate paragraphs) to cut a whole
+        // block's worth of height off the panel's natural size.
+        panel.addChild(new Label("A shared, server-wide goal — every trash catch counts toward it, by anyone. Tokens are split between every contributor each time a milestone is reached.", 0xFF888888)
+                .maxWidth(CLEANUP_GOAL_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext));
 
         int total = QuestClientCache.getCleanupGoalTotal();
         int threshold = Math.max(1, QuestClientCache.getCleanupGoalThreshold());
@@ -770,9 +805,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         cleanupGoalTotalLabel = new Label("Total cleaned so far: " + total, 0xFFFFAA00).init(tempContext);
         panel.addChild(cleanupGoalTotalLabel);
-
-        panel.addChild(new Label("Tokens are split between every contributor each time a milestone is reached.", 0xFF888888)
-                .maxWidth(160).centered(true).init(tempContext));
 
         cleanupGoalResetLabel = new Label(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
                 .init(tempContext);
@@ -796,6 +828,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         Label shopTitle = new Label("Today's Stock", 0xFFFFFFFF).init(tempContext);
         shopTitle.scale(1.1f);
         panel.addChild(shopTitle);
+
+        shopResetLabel = new Label(formatResetCountdown("Shop resets in ", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
+                .init(tempContext);
+        panel.addChild(shopResetLabel);
 
         HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.TOP);
         for (ResourceKey<ShopEntry> key : activeList) {
