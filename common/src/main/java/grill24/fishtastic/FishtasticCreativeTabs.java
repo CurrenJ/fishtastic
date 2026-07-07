@@ -93,6 +93,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_CORAL_REEF_1.value());
                     output.accept(FishtasticItems.COSMETIC_CORAL_REEF_2.value());
                     output.accept(FishtasticItems.COSMETIC_OAK_TREE.value());
+                    output.accept(FishtasticItems.COSMETIC_BIRCH_TREE.value());
                     output.accept(FishtasticItems.COSMETIC_DYNAMIC_DUO.value());
 
                     // Lamp variants

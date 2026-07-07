@@ -91,6 +91,7 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_CORAL_REEF_1;
     public static Holder<Item> COSMETIC_CORAL_REEF_2;
     public static Holder<Item> COSMETIC_OAK_TREE;
+    public static Holder<Item> COSMETIC_BIRCH_TREE;
     public static Holder<Item> COSMETIC_DYNAMIC_DUO;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
@@ -263,6 +264,10 @@ public class FishtasticItems {
         COSMETIC_OAK_TREE = RegistrationApiSided.getInstance().registerItem("cosmetic_oak_tree",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("oak_tree")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_BIRCH_TREE = RegistrationApiSided.getInstance().registerItem("cosmetic_birch_tree",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("birch_tree")),
                         props(loc).stacksTo(1)));
         COSMETIC_DYNAMIC_DUO = RegistrationApiSided.getInstance().registerItem("cosmetic_dynamic_duo",
                 loc -> new FishTankStructureCosmeticItem(

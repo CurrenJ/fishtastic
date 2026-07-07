@@ -1,0 +1,816 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:oak_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 5.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 5.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      },
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      },
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      },
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 3.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      },
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 4.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 4.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:birch_log"
+      },
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 5.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 6.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetY": 6.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.51428574,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 4.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 5.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "1"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 3.0,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": -1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "2"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "3"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "persistent": "false",
+          "distance": "4"
+        },
+        "Name": "minecraft:birch_leaves"
+      },
+      "offsetX": 1.0285715,
+      "offsetY": 4.0,
+      "offsetZ": 1.0285715
+    }
+  ],
+  "scale": 0.15
+}
