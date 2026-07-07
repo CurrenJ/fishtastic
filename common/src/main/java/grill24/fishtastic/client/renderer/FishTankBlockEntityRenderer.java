@@ -40,9 +40,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AbstractFurnaceBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.Vec3;
@@ -89,6 +91,10 @@ public class FishTankBlockEntityRenderer
     private static final int CHEST_BUBBLE_STREAM_COUNT = 4;
     private static final int CHEST_BUBBLE_STREAM_INTERVAL_TICKS = 3;
 
+    // Lit-furnace-family structure parts: smoke/flame spawn interval, throttled well below vanilla's
+    // every-tick rate since these cosmetics render far smaller than a real furnace.
+    private static final int FURNACE_PARTICLE_INTERVAL_TICKS = 10;
+
     // Usable half-width inside the tank walls for swarm scatter (block units from centre).
     private static final float TANK_HALF_EXTENT = 0.35f;
     // Minimum 3D separation between swarm fish before rejection sampling gives up.
@@ -125,6 +131,7 @@ public class FishTankBlockEntityRenderer
 
         if (level instanceof ClientLevel clientLevel) {
             spawnDueChestBubbles(clientLevel, blockEntity.getBlockPos(), blockPosHash, state);
+            spawnDueFurnaceParticles(clientLevel, blockEntity, state);
         }
 
         // Resolve swarm config from the first non-empty item's fish profile.
@@ -547,6 +554,64 @@ public class FishTankBlockEntityRenderer
         double popWorldY = topPos.getY() + TANK_CEILING_Y;
 
         level.addParticle(FishtasticParticleTypes.TANK_BUBBLE.value(), worldX, worldY, worldZ, 0.0, popWorldY, 0.0);
+    }
+
+    /**
+     * Mirrors {@link #spawnDueChestBubbles} for structure-cosmetic parts: any lit furnace-family part
+     * (furnace/blast furnace/smoker) periodically spawns the same smoke+flame vanilla furnaces do,
+     * scaled down to the cosmetic's own {@link CosmeticStructure#scale()}.
+     * <p>
+     * Throttle state lives on {@code blockEntity} itself, not on {@link FishTankRenderState} — a fresh
+     * render state is allocated by {@code BlockEntityRenderDispatcher} every single rendered frame, so
+     * anything stored there for cross-frame throttling is silently reset before it can ever take effect.
+     */
+    private static void spawnDueFurnaceParticles(ClientLevel level, FishTankBlockEntity blockEntity, FishTankRenderState state) {
+        BlockPos blockPos = blockEntity.getBlockPos();
+        Map<FishTankBlockEntity.FurnacePartKey, Long> lastParticleTick = blockEntity.getFurnaceLastParticleTick();
+        long gameTime = level.getGameTime();
+
+        for (Map.Entry<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> entry : state.structureCosmetics.entrySet()) {
+            CosmeticGridCell anchor = entry.getKey();
+            CosmeticStructure structure = entry.getValue().structure();
+            Rotation rotation = entry.getValue().rotation();
+            List<CosmeticStructure.StructurePart> parts = structure.parts();
+
+            for (int i = 0; i < parts.size(); i++) {
+                CosmeticStructure.StructurePart part = parts.get(i);
+                BlockState partState = part.state().rotate(rotation);
+                if (!(partState.getBlock() instanceof AbstractFurnaceBlock) || !partState.getValue(AbstractFurnaceBlock.LIT)) {
+                    continue;
+                }
+
+                FishTankBlockEntity.FurnacePartKey key = new FishTankBlockEntity.FurnacePartKey(anchor, i);
+                Long lastSpawnTick = lastParticleTick.get(key);
+                if (lastSpawnTick != null && gameTime - lastSpawnTick < FURNACE_PARTICLE_INTERVAL_TICKS) continue;
+
+                lastParticleTick.put(key, gameTime);
+                spawnFurnaceParticles(level, blockPos, anchor, rotation, part, partState, structure.scale());
+            }
+        }
+    }
+
+    /** Scaled-down replica of vanilla {@code FurnaceBlock#animateTick}'s smoke+flame spawn geometry. */
+    private static void spawnFurnaceParticles(ClientLevel level, BlockPos blockPos, CosmeticGridCell anchor,
+            Rotation rotation, CosmeticStructure.StructurePart part, BlockState partState, float scale) {
+        float[] rotatedXZ = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
+        double x = blockPos.getX() + anchor.localX() + rotatedXZ[0] * CosmeticGridCell.CELL_WIDTH;
+        double y = blockPos.getY() + COSMETIC_FLOOR_Y + part.offsetY() * scale;
+        double z = blockPos.getZ() + anchor.localZ() + rotatedXZ[1] * CosmeticGridCell.CELL_WIDTH;
+
+        RandomSource random = level.getRandom();
+        Direction facing = partState.getValue(AbstractFurnaceBlock.FACING);
+        Direction.Axis axis = facing.getAxis();
+        double r = 0.52 * scale;
+        double jitter = (random.nextDouble() * 0.6 - 0.3) * scale;
+        double dx = axis == Direction.Axis.X ? facing.getStepX() * r : jitter;
+        double dy = random.nextDouble() * (6.0 / 16.0) * scale;
+        double dz = axis == Direction.Axis.Z ? facing.getStepZ() * r : jitter;
+
+        level.addParticle(FishtasticParticleTypes.MINI_SMOKE.value(), x + dx, y + dy, z + dz, 0.0, 0.0, 0.0);
+        level.addParticle(FishtasticParticleTypes.MINI_FLAME.value(), x + dx, y + dy, z + dz, 0.0, 0.0, 0.0);
     }
 
     /** Walks upward through tanks connected via an open UP face, so bubbles rise to the true top of a vertical stack. */

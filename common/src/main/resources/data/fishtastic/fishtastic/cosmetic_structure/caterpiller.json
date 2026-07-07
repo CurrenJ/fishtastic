@@ -1,0 +1,96 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "powered": "false",
+          "facing": "north",
+          "face": "wall"
+        },
+        "Name": "minecraft:spruce_button"
+      },
+      "offsetX": -0.6857143,
+      "offsetZ": -0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:ochre_froglight"
+      },
+      "offsetX": -0.6857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "powered": "false",
+          "facing": "south",
+          "face": "wall"
+        },
+        "Name": "minecraft:spruce_button"
+      },
+      "offsetX": -0.6857143,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:ochre_froglight"
+      },
+      "offsetX": -0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:verdant_froglight"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:verdant_froglight"
+      },
+      "offsetX": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:ochre_froglight"
+      },
+      "offsetX": 0.6857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:ochre_froglight"
+      },
+      "offsetX": 1.0285715
+    }
+  ],
+  "scale": 0.1
+}

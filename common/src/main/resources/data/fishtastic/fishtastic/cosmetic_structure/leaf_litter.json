@@ -1,0 +1,189 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "south"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.85714287,
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "3",
+          "facing": "east"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.85714287,
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "south"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": -0.42857143,
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "3",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:leaf_litter"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "2",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetZ": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "east"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.42857143,
+      "offsetZ": -0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.42857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.42857143,
+      "offsetZ": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "north"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.85714287,
+      "offsetZ": -0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "2",
+          "facing": "east"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.85714287
+    },
+    {
+      "state": {
+        "Properties": {
+          "segment_amount": "1",
+          "facing": "west"
+        },
+        "Name": "minecraft:leaf_litter"
+      },
+      "offsetX": 0.85714287,
+      "offsetZ": 0.42857143
+    }
+  ],
+  "scale": 0.125
+}

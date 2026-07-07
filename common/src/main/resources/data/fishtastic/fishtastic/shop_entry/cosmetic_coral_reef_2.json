@@ -1,0 +1,7 @@
+{
+  "display_name": "Coral Cluster",
+  "description": "A compact cluster of fire and tube coral for your fish tank.",
+  "cost": 35,
+  "reward": [{ "id": "fishtastic:cosmetic_coral_reef_2", "count": 1 }],
+  "max_purchases": 0
+}

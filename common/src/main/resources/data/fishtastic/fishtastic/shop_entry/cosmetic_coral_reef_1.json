@@ -1,0 +1,7 @@
+{
+  "display_name": "Coral Reef",
+  "description": "A vibrant miniature coral reef teeming with sea life for your fish tank.",
+  "cost": 60,
+  "reward": [{ "id": "fishtastic:cosmetic_coral_reef_1", "count": 1 }],
+  "max_purchases": 0
+}

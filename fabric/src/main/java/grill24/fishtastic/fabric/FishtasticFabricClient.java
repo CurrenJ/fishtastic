@@ -18,6 +18,8 @@ import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TankCosmeticTooltip;
+import grill24.fishtastic.client.particle.MiniFlameParticle;
+import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -118,6 +120,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register tank bubble particle provider
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
 
         // Clear caches on world join
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());

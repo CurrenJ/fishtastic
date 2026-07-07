@@ -1,0 +1,368 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": -1
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 1
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 0,
+      "dz": 1
+    },
+    {
+      "dx": 1,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:stripped_spruce_log"
+      },
+      "offsetX": -0.51428574,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "east"
+        },
+        "Name": "minecraft:spruce_stairs"
+      },
+      "offsetX": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:stripped_spruce_log"
+      },
+      "offsetX": -0.51428574,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 1.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 1.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 2.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 2.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": -0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "south"
+        },
+        "Name": "minecraft:spruce_stairs"
+      },
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Name": "minecraft:chiseled_quartz_block"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "north"
+        },
+        "Name": "minecraft:spruce_stairs"
+      },
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "hanging": "true"
+        },
+        "Name": "minecraft:soul_lantern"
+      },
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "double"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:stripped_spruce_log"
+      },
+      "offsetX": 0.51428574,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "west"
+        },
+        "Name": "minecraft:spruce_stairs"
+      },
+      "offsetX": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:stripped_spruce_log"
+      },
+      "offsetX": 0.51428574,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 1.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 1.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 2.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "false",
+          "waterlogged": "false",
+          "south": "false",
+          "north": "false",
+          "east": "false"
+        },
+        "Name": "minecraft:spruce_fence"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 2.0,
+      "offsetZ": 0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": -0.51428574
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:spruce_slab"
+      },
+      "offsetX": 0.51428574,
+      "offsetY": 3.0,
+      "offsetZ": 0.51428574
+    }
+  ],
+  "scale": 0.15
+}

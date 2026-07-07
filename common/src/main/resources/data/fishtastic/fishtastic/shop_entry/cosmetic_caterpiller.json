@@ -1,0 +1,7 @@
+{
+  "display_name": "Caterpillar",
+  "description": "A glowing froglight caterpillar for your fish tank.",
+  "cost": 20,
+  "reward": [{ "id": "fishtastic:cosmetic_caterpiller", "count": 1 }],
+  "max_purchases": 0
+}

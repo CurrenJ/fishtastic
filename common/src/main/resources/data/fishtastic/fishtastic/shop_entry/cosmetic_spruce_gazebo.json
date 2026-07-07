@@ -1,0 +1,7 @@
+{
+  "display_name": "Spruce Gazebo",
+  "description": "A small spruce gazebo with a lantern for your fish tank.",
+  "cost": 40,
+  "reward": [{ "id": "fishtastic:cosmetic_spruce_gazebo", "count": 1 }],
+  "max_purchases": 0
+}

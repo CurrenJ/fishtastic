@@ -1,0 +1,27 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "lit": "true",
+          "facing": "north"
+        },
+        "Name": "minecraft:furnace"
+      },
+      "offsetX": -0.34285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:crafting_table"
+      },
+      "offsetX": 0.34285715
+    }
+  ],
+  "scale": 0.2
+}

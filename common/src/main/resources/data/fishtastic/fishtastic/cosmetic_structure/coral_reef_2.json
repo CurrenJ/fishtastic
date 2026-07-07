@@ -1,0 +1,208 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "facing": "west"
+        },
+        "Name": "minecraft:brain_coral_wall_fan"
+      },
+      "offsetX": -0.34285715,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "facing": "north"
+        },
+        "Name": "minecraft:tube_coral_wall_fan"
+      },
+      "offsetZ": -0.34285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      }
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true"
+        },
+        "Name": "minecraft:fire_coral_fan"
+      },
+      "offsetY": 1,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetY": 1,
+      "offsetZ": 0.6857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "pickles": "4"
+        },
+        "Name": "minecraft:sea_pickle"
+      },
+      "offsetY": 2,
+      "offsetZ": 0.6857143
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.34285715,
+      "offsetY": 1
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "facing": "west"
+        },
+        "Name": "minecraft:fire_coral_wall_fan"
+      },
+      "offsetX": 0.34285715,
+      "offsetY": 3,
+      "offsetZ": 0.6857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "facing": "west"
+        },
+        "Name": "minecraft:tube_coral_wall_fan"
+      },
+      "offsetX": 0.34285715,
+      "offsetY": 3,
+      "offsetZ": 1.3714286
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 1
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true",
+          "facing": "south"
+        },
+        "Name": "minecraft:horn_coral_wall_fan"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 1,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 2,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "half": "lower"
+        },
+        "Name": "minecraft:tall_seagrass"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 3,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 3,
+      "offsetZ": 0.6857143
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 3,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Name": "minecraft:fire_coral_block"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 3,
+      "offsetZ": 1.3714286
+    },
+    {
+      "state": {
+        "Properties": {
+          "half": "upper"
+        },
+        "Name": "minecraft:tall_seagrass"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 4,
+      "offsetZ": 0.34285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true"
+        },
+        "Name": "minecraft:tube_coral_fan"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 4,
+      "offsetZ": 0.6857143
+    },
+    {
+      "state": {
+        "Properties": {
+          "half": "lower"
+        },
+        "Name": "minecraft:tall_seagrass"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 4,
+      "offsetZ": 1.0285715
+    },
+    {
+      "state": {
+        "Properties": {
+          "half": "upper"
+        },
+        "Name": "minecraft:tall_seagrass"
+      },
+      "offsetX": 0.6857143,
+      "offsetY": 5,
+      "offsetZ": 1.0285715
+    }
+  ],
+  "scale": 0.1
+}

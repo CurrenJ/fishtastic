@@ -1,0 +1,7 @@
+{
+  "display_name": "Leaf Litter",
+  "description": "A scattering of fallen leaves for your fish tank floor.",
+  "cost": 15,
+  "reward": [{ "id": "fishtastic:cosmetic_leaf_litter", "count": 1 }],
+  "max_purchases": 0
+}

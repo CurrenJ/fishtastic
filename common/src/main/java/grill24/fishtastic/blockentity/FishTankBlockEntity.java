@@ -55,6 +55,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     /** A placed multi-block structure cosmetic, anchored at one grid cell. */
     public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
 
+    /** Identifies one part within a placed structure cosmetic, for per-part particle throttling. */
+    public record FurnacePartKey(CosmeticGridCell anchor, int partIndex) {}
+
     public static final int CONTAINER_SIZE = 27; // 3x9 slots like a chest
 
     // Maximum item size (in cm) that can be inserted without tank size requirements
@@ -94,6 +97,16 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     // Derived from structureCosmetics on load/mutation: any occupied footprint cell -> its anchor cell.
     // Not persisted directly.
     private Map<CosmeticGridCell, CosmeticGridCell> structureCellIndex = new HashMap<>();
+
+    // Client-side only: game time a lit furnace-family structure part last spawned smoke/flame
+    // particles, for frame-rate-independent throttling. Not persisted or synced — a fresh
+    // BlockEntityRenderState is allocated every rendered frame, so this can't live there; it needs
+    // to live on the block entity itself, which persists for as long as the tank stays loaded.
+    private final transient Map<FurnacePartKey, Long> furnaceLastParticleTick = new HashMap<>();
+
+    public Map<FurnacePartKey, Long> getFurnaceLastParticleTick() {
+        return furnaceLastParticleTick;
+    }
 
     /**
      * Get the frame block for this fish tank.

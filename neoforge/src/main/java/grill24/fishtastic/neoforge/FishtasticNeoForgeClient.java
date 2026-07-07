@@ -16,6 +16,8 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.particle.MiniFlameParticle;
+import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
@@ -135,6 +137,8 @@ public final class FishtasticNeoForgeClient {
 
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
         Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
     }
 

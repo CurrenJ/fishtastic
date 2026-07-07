@@ -81,6 +81,13 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
     public static Holder<Item> COSMETIC_MOSSY_BOULDER;
     public static Holder<Item> COSMETIC_PETALS;
+    public static Holder<Item> COSMETIC_SPRUCE_GAZEBO;
+    public static Holder<Item> COSMETIC_CATERPILLER;
+    public static Holder<Item> COSMETIC_LEAF_LITTER;
+    public static Holder<Item> COSMETIC_CORAL_REEF_1;
+    public static Holder<Item> COSMETIC_CORAL_REEF_2;
+    public static Holder<Item> COSMETIC_OAK_TREE;
+    public static Holder<Item> COSMETIC_DYNAMIC_DUO;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
@@ -225,6 +232,34 @@ public class FishtasticItems {
         COSMETIC_PETALS = RegistrationApiSided.getInstance().registerItem("cosmetic_petals",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("petals")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_SPRUCE_GAZEBO = RegistrationApiSided.getInstance().registerItem("cosmetic_spruce_gazebo",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("spruce_gazebo")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_CATERPILLER = RegistrationApiSided.getInstance().registerItem("cosmetic_caterpiller",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("caterpiller")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_LEAF_LITTER = RegistrationApiSided.getInstance().registerItem("cosmetic_leaf_litter",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("leaf_litter")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_CORAL_REEF_1 = RegistrationApiSided.getInstance().registerItem("cosmetic_coral_reef_1",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("coral_reef_1")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_CORAL_REEF_2 = RegistrationApiSided.getInstance().registerItem("cosmetic_coral_reef_2",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("coral_reef_2")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_OAK_TREE = RegistrationApiSided.getInstance().registerItem("cosmetic_oak_tree",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("oak_tree")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_DYNAMIC_DUO = RegistrationApiSided.getInstance().registerItem("cosmetic_dynamic_duo",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("dynamic_duo")),
                         props(loc).stacksTo(1)));
         for (String wood : FENCE_ARCH_WOOD_TYPES) {
             String id = "cosmetic_fence_arch_" + wood;
