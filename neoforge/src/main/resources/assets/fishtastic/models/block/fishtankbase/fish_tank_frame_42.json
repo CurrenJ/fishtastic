@@ -13,25 +13,7 @@
             16
           ]
         },
-        "east": {
-          "texture": "#all",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
         "north": {
-          "texture": "#all",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
-        "south": {
           "texture": "#all",
           "uv": [
             0,

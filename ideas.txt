@@ -16,3 +16,8 @@ Auto reeler - launches minigame automatically on bite - maybe mutex with hooks?
 Floor tanks - inner frame top edge faces should be culled when connected
 
 Banner notifs for encyclopedia unlocks? AND/OR clearable pips in the encyclopedia when there's new info that hasn't yet been viewed?
+
+Completionist achievements for catching every fish species
+Completionist++ achievements for catching every fish species in legendary
+
+Status indicator pip next to each spawn condition in encyclopedia? by default or as an upgrade?

@@ -31,15 +31,6 @@
             1
           ]
         },
-        "south": {
-          "texture": "#all",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
         "up": {
           "texture": "#all",
           "uv": [
@@ -92,15 +83,6 @@
           ]
         },
         "north": {
-          "texture": "#all",
-          "uv": [
-            0,
-            0,
-            16,
-            1
-          ]
-        },
-        "south": {
           "texture": "#all",
           "uv": [
             0,

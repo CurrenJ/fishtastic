@@ -68,12 +68,12 @@ public class FishTankFrameModelProvider implements DataProvider {
 
         // Add ceiling if UP face is closed
         if (!openFaces.contains(Direction.UP)) {
-            elements.add(createCeiling());
+            elements.add(createCeiling(openFaces));
         }
 
         // Add floor if DOWN face is closed
         if (!openFaces.contains(Direction.DOWN)) {
-            elements.add(createFloor());
+            elements.add(createFloor(openFaces));
         }
 
         // Add corner supports only if BOTH adjacent edges are closed
@@ -121,17 +121,19 @@ public class FishTankFrameModelProvider implements DataProvider {
 
     // ========== Element Creation Methods ==========
 
-    private JsonObject createCeiling() {
+    private JsonObject createCeiling(Set<Direction> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");
         element.add("from", createVec3(0, 15, 0));
         element.add("to", createVec3(16, 16, 16));
 
         JsonObject faces = new JsonObject();
-        faces.add("north", createFace(0, 0, 16, 1, "#all"));
-        faces.add("east", createFace(0, 0, 16, 1, "#all"));
-        faces.add("south", createFace(0, 0, 16, 1, "#all"));
-        faces.add("west", createFace(0, 0, 16, 1, "#all"));
+        // Side lips are only needed where there's no neighboring tank to connect to;
+        // otherwise they'd render as a visible seam at the shared boundary.
+        if (!openFaces.contains(Direction.NORTH)) faces.add("north", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.EAST)) faces.add("east", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.SOUTH)) faces.add("south", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.WEST)) faces.add("west", createFace(0, 0, 16, 1, "#all"));
         faces.add("up", createFace(0, 0, 16, 16, "#all"));
         faces.add("down", createFace(0, 0, 16, 16, "#all"));
         element.add("faces", faces);
@@ -139,17 +141,19 @@ public class FishTankFrameModelProvider implements DataProvider {
         return element;
     }
 
-    private JsonObject createFloor() {
+    private JsonObject createFloor(Set<Direction> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "floor");
         element.add("from", createVec3(0, 0, 0));
         element.add("to", createVec3(16, 1, 16));
 
         JsonObject faces = new JsonObject();
-        faces.add("north", createFace(0, 0, 16, 1, "#all"));
-        faces.add("east", createFace(0, 0, 16, 1, "#all"));
-        faces.add("south", createFace(0, 0, 16, 1, "#all"));
-        faces.add("west", createFace(0, 0, 16, 1, "#all"));
+        // Side lips are only needed where there's no neighboring tank to connect to;
+        // otherwise they'd render as a visible seam at the shared boundary.
+        if (!openFaces.contains(Direction.NORTH)) faces.add("north", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.EAST)) faces.add("east", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.SOUTH)) faces.add("south", createFace(0, 0, 16, 1, "#all"));
+        if (!openFaces.contains(Direction.WEST)) faces.add("west", createFace(0, 0, 16, 1, "#all"));
         faces.add("up", createFace(0, 0, 16, 16, "#all"));
         faces.add("down", createFace(0, 0, 16, 16, "#all"));
         element.add("faces", faces);
