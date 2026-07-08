@@ -19,3 +19,5 @@ Banner notifs for encyclopedia unlocks? AND/OR clearable pips in the encyclopedi
 
 Completionist achievements for catching every fish species
 Completionist++ achievements for catching every fish species in legendary
+
+Ability to see rarity outline on mystery target
