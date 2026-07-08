@@ -11,5 +11,8 @@ Two parter oar fish gimmick
 Moray eel
 Angler fish
 Overhaul dailies - way more
+Winner takes all competitive daily/weekly fishing leaderboard contest?
+Auto reeler - launches minigame automatically on bite - maybe mutex with hooks?
+Floor tanks - inner frame top edge faces should be culled when connected
 
 Banner notifs for encyclopedia unlocks? AND/OR clearable pips in the encyclopedia when there's new info that hasn't yet been viewed?

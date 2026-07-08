@@ -14,5 +14,6 @@ public record SwarmFishInstance(
         float xOffset,
         float yOffset,
         float zOffset,
-        long seed
+        long seed,
+        boolean mirrored
 ) {}

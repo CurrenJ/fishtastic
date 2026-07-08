@@ -146,11 +146,13 @@ public class FishTankBlockEntityRenderer
             // Solo fish: single instance at tank centre with no offsets.
             if (!firstItem.isEmpty()) {
                 FishAnimationConfig animConfig = resolveAnimationConfig(firstItem, level);
+                int firstSlot = blockEntity.getFirstItemSlot();
                 state.fishInstances = List.of(new SwarmFishInstance(
                         firstItem.copy(), animConfig,
                         blockEntity.getFirstItemRotation(),
                         0f, 0f, 0f,
-                        (long) blockPosHash));
+                        (long) blockPosHash,
+                        blockEntity.isItemMirrored(firstSlot)));
             } else {
                 state.fishInstances = List.of();
             }
@@ -181,7 +183,7 @@ public class FishTankBlockEntityRenderer
                     ITEM_POSITION_OFFSET.z() + fish.zOffset());
 
             Random fishRandom = new Random(fish.seed());
-            FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation());
+            FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation(), fish.mirrored());
 
             float scale = 0.5f;
             if (ItemSizeHelper.hasSize(fish.stack())) {
@@ -229,11 +231,15 @@ public class FishTankBlockEntityRenderer
         float cosR = (float) Math.cos(rotRad);
         float sinR = (float) Math.sin(rotRad);
 
-        // Collect distinct items (up to count).
+        // Collect distinct items (up to count), tracking each one's source slot for mirror lookup.
         List<ItemStack> items = new ArrayList<>(count);
+        List<Integer> itemSlots = new ArrayList<>(count);
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && items.size() < count; slot++) {
             ItemStack s = blockEntity.getItem(slot);
-            if (!s.isEmpty()) items.add(s.copy());
+            if (!s.isEmpty()) {
+                items.add(s.copy());
+                itemSlots.add(slot);
+            }
         }
         if (items.isEmpty()) return List.of();
 
@@ -262,8 +268,9 @@ public class FishTankBlockEntityRenderer
             // Clamp rotation within ±jitter of the base facing angle.
             float rotation = firstItemRotation + (rng.nextFloat() - 0.5f) * 2f * rotationJitter;
             long seed = (long) blockPosHash ^ ((long) (i + 1) * 2654435761L);
+            boolean mirrored = blockEntity.isItemMirrored(itemSlots.get(i));
 
-            instances.add(new SwarmFishInstance(stack, animConfig, rotation, worldX, ly[1], worldZ, seed));
+            instances.add(new SwarmFishInstance(stack, animConfig, rotation, worldX, ly[1], worldZ, seed, mirrored));
         }
 
         // Render back-to-front by world Z so foreground fish draw over background fish.

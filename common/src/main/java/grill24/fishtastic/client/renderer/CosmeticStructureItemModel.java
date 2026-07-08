@@ -6,7 +6,10 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
@@ -118,6 +121,9 @@ public class CosmeticStructureItemModel implements ItemModel {
                 layer.setItemTransform(sharedTransform);
                 layer.setLocalTransform(part.localTransform());
                 layer.prepareQuadList().addAll(part.quads());
+                if (!part.tints().isEmpty()) {
+                    layer.tintLayers().addAll(part.tints());
+                }
             }
         }
     }
@@ -126,7 +132,7 @@ public class CosmeticStructureItemModel implements ItemModel {
 
     private record PartPlacement(BlockState state, float x, float y, float z) {}
 
-    private record PartIcon(@Nullable List<BakedQuad> quads, @Nullable Item specialFallbackItem, Matrix4f localTransform) {}
+    private record PartIcon(@Nullable List<BakedQuad> quads, IntList tints, @Nullable Item specialFallbackItem, Matrix4f localTransform) {}
 
     private record PreparedIcon(List<PartIcon> parts) {}
 
@@ -194,9 +200,9 @@ public class CosmeticStructureItemModel implements ItemModel {
 
             Block block = placement.state().getBlock();
             if (SPECIAL_MODEL_BLOCKS.contains(block)) {
-                parts.add(new PartIcon(null, block.asItem(), local));
+                parts.add(new PartIcon(null, IntList.of(), block.asItem(), local));
             } else {
-                parts.add(new PartIcon(extractQuads(placement.state()), null, local));
+                parts.add(new PartIcon(extractQuads(placement.state()), extractTints(placement.state()), null, local));
             }
         }
         return new PreparedIcon(parts);
@@ -220,6 +226,23 @@ public class CosmeticStructureItemModel implements ItemModel {
             }
         }
         return quads;
+    }
+
+    /**
+     * Resolves the same per-block-state tint colors vanilla's {@code BlockStateModelWrapper} would
+     * bake into a {@code BlockModelRenderState} — without these, tint-indexed quads (grass, leaves,
+     * leaf litter, vines, ...) fall back to plain white and their deliberately-grayscale textures
+     * render unmultiplied.
+     */
+    private static IntList extractTints(BlockState state) {
+        List<BlockTintSource> tintSources = Minecraft.getInstance().getBlockColors().getTintSources(state);
+        if (tintSources.isEmpty()) return IntList.of();
+
+        IntList tints = new IntArrayList(tintSources.size());
+        for (BlockTintSource tintSource : tintSources) {
+            tints.add(tintSource.color(state));
+        }
+        return tints;
     }
 
     // ── Registration ──────────────────────────────────────────────────────────

@@ -86,6 +86,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     // Item storage
     private NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
 
+    // Per-slot left/right mirror flag for the upright-float animator, rolled fresh whenever a fish
+    // is placed into an empty slot. Lets asymmetric upright fish (e.g. leafy sea dragon) face either
+    // direction for natural variety; popping the fish out and placing it back re-rolls it.
+    private final boolean[] itemMirrored = new boolean[CONTAINER_SIZE];
+
     // Store the rotation (in degrees) for the first item based on player direction when placed
     private float firstItemRotation = 0f;
 
@@ -291,6 +296,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                 ValueOutput child = itemsList.addChild();
                 child.putInt("Slot", i);
                 child.store("Stack", ItemStack.CODEC, stack);
+                if (itemMirrored[i]) {
+                    child.putBoolean("Mirrored", true);
+                }
             }
         }
 
@@ -395,11 +403,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         // Load items
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
+            itemMirrored[i] = false;
         }
         input.childrenListOrEmpty("Items").forEach(child -> {
             int slot = child.getIntOr("Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
                 child.read("Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
+                itemMirrored[slot] = child.getBooleanOr("Mirrored", false);
             }
         });
 
@@ -549,6 +559,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     @Override
     public void setItem(int slot, ItemStack stack) {
         if (slot >= 0 && slot < items.size()) {
+            if (items.get(slot).isEmpty() && !stack.isEmpty()) {
+                itemMirrored[slot] = level != null && level.getRandom().nextBoolean();
+            }
             items.set(slot, stack);
             if (!stack.isEmpty() && stack.getCount() > getMaxStackSize()) {
                 stack.setCount(getMaxStackSize());
@@ -628,6 +641,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).isEmpty()) {
                 items.set(i, stack.copy());
+                itemMirrored[i] = level != null && level.getRandom().nextBoolean();
                 // Store rotation only for the first slot (slot 0)
                 if (i == 0) {
                     firstItemRotation = rotation;
@@ -688,6 +702,26 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
      */
     public float getFirstItemRotation() {
         return firstItemRotation;
+    }
+
+    /**
+     * Get the slot index of the first non-empty item, or -1 if the tank is empty.
+     */
+    public int getFirstItemSlot() {
+        for (int i = 0; i < items.size(); i++) {
+            if (!items.get(i).isEmpty()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Whether the item in the given slot should render left/right-mirrored by the upright-float
+     * animator. Rolled fresh each time a fish is placed into an empty slot.
+     */
+    public boolean isItemMirrored(int slot) {
+        return slot >= 0 && slot < itemMirrored.length && itemMirrored[slot];
     }
 
     public Map<CosmeticGridCell, PlacedCosmetic> getCosmetics() {

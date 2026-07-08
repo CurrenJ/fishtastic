@@ -15,25 +15,31 @@ public final class FishAnimator {
      * Scale should be applied by the caller after this method returns.
      *
      * @param random seeded consistently per tank so animations are stable across frames
+     * @param mirrored whether to render left/right-flipped, for natural variety. Implemented as an
+     *                 extra 180° turn about Y rather than a negative-scale reflection: the generated
+     *                 item model's back face already carries a horizontally mirrored UV (so a flat
+     *                 sprite reads correctly from either side), so turning the fish around presents
+     *                 that pre-mirrored face to the camera. A true negative-scale flip would corrupt
+     *                 the model's face winding/normals instead.
      */
-    public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation) {
+    public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, boolean mirrored) {
         switch (config) {
-            case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation);
-            case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation);
-            case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t);
-            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation);
-            case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation);
+            case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
+            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
         }
     }
 
     // ── Mode implementations ──────────────────────────────────────────────────
 
     private static void applyHorizontalSwim(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
-                                             Random random, float t, float baseRotation) {
+                                             Random random, float t, float baseRotation, boolean mirrored) {
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
         float yBob = getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
         poseStack.translate(0f, yBob, 0f);
-        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float surfAngle = getSurfingAngle(random, t, cfg.bobAmplitude(), hertz) * cfg.surfFactor();
         float yWiggle = getOrganicWiggle(random, t) * cfg.wiggleScale();
         poseStack.mulPose(Axis.YP.rotationDegrees(yWiggle));
@@ -41,12 +47,12 @@ public final class FishAnimator {
     }
 
     private static void applyUprightFloat(PoseStack poseStack, FishAnimationConfig.UprightFloat cfg,
-                                           Random random, float t, float baseRotation) {
+                                           Random random, float t, float baseRotation, boolean mirrored) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.01f);
         float yBob = (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
         poseStack.translate(0f, yBob, 0f);
-        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         if (cfg.diagonalTexture()) {
             // 45° CCW from default item diagonal → fish is upright (head pointing up)
             poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
@@ -54,18 +60,18 @@ public final class FishAnimator {
     }
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
-                                       Random random, float t) {
+                                       Random random, float t, boolean mirrored) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
-        poseStack.mulPose(Axis.YP.rotationDegrees((float) Math.toDegrees(randomPhaseRad) + yRot));
+        poseStack.mulPose(Axis.YP.rotationDegrees((float) Math.toDegrees(randomPhaseRad) + yRot + (mirrored ? 180f : 0f)));
         // Rotate X -90° so item faces upward, lying flat on the floor
         poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
     }
 
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
-                                      Random random, float t, float baseRotation) {
-        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
+                                      Random random, float t, float baseRotation, boolean mirrored) {
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float wiggle = (float) (Math.sin(t * cfg.wiggleHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.wiggleAmplitude());
@@ -77,11 +83,11 @@ public final class FishAnimator {
     }
 
     private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,
-                                        Random random, float t, float baseRotation) {
+                                        Random random, float t, float baseRotation, boolean mirrored) {
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
         float yBob = getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
         poseStack.translate(0f, yBob, 0f);
-        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float bankDeg = (float) (Math.sin(t * cfg.bankHertz() * 2 * Math.PI + randomPhaseRad) * cfg.bankAmplitude());
         // Rotate -90° around the axis parallel to the swim direction (local X) so the belly faces
