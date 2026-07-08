@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
@@ -14,9 +15,12 @@ import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
+import io.github.currenj.gelatinui.gui.components.HBox;
 import io.github.currenj.gelatinui.gui.components.Label;
 import io.github.currenj.gelatinui.gui.components.SpriteButton;
+import io.github.currenj.gelatinui.gui.components.SpriteData;
 import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
+import io.github.currenj.gelatinui.gui.components.SpriteRectangle;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
@@ -37,6 +41,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
@@ -52,6 +57,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float INFO_ICON_TOP_MARGIN = 24f;
     private static final float CLOSE_TRAVEL_DURATION = 0.3f;
     private static final float SCREEN_FADE_DURATION = 0.2f;
+
+    // Status pip shown to the left of each spawn condition row — lit green while that
+    // condition currently holds for the player, dim otherwise. Mirrors QuestLogScreen's
+    // per-objective status pip, but evaluated per spawn-weight row rather than per quest.
+    private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
+    private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final float STATUS_PIP_SIZE = 5f;
 
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
@@ -80,6 +92,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox typesContainer;
     private VBox spawnContainer;
     private VBox loreContainer;
+    // Re-evaluated every tick so a spawn condition's pip reacts live to the player walking
+    // between biomes, day/night passing, or weather changing — see containerTick().
+    private final List<Runnable> spawnConditionPipUpdaters = new ArrayList<>();
 
     public FishEncyclopediaScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Fish Encyclopedia"));
@@ -138,6 +153,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        for (Runnable updater : spawnConditionPipUpdaters) {
+            updater.run();
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Home screen (disc)
 
@@ -160,6 +183,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
+        spawnConditionPipUpdaters.clear();
 
         Minecraft mc = Minecraft.getInstance();
 
@@ -333,6 +357,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
+        spawnConditionPipUpdaters.clear();
 
         // Piggybacks the keyframe-animation system purely for its completion callback — the
         // actual motion above is driven by the exponential setTargetPosition/setTargetScale
@@ -475,20 +500,63 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private VBox buildSpawnConditionsContent(FishProfile profile) {
+        spawnConditionPipUpdaters.clear();
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         for (FishProfile.BiomeWeight bw : profile.biomeWeights()) {
-            content.addChild(label(Utility.prettyName(bw.biome().location().getPath()) + ": x" + bw.multiplier(), 0xFFCCCCCC));
+            content.addChild(buildSpawnConditionRow(
+                    Utility.prettyName(bw.biome().location().getPath()) + ": x" + bw.multiplier(),
+                    () -> isBiomeWeightMet(bw)));
         }
         for (FishProfile.TimeWeight tw : profile.timeWeights()) {
-            content.addChild(label(Utility.prettyName(tw.time().name()) + ": x" + tw.multiplier(), 0xFFCCCCCC));
+            content.addChild(buildSpawnConditionRow(
+                    Utility.prettyName(tw.time().name()) + ": x" + tw.multiplier(),
+                    () -> isTimeWeightMet(tw)));
         }
         for (FishProfile.WeatherWeight ww : profile.weatherWeights()) {
-            content.addChild(label(Utility.prettyName(ww.weather().name()) + ": x" + ww.multiplier(), 0xFFCCCCCC));
+            content.addChild(buildSpawnConditionRow(
+                    Utility.prettyName(ww.weather().name()) + ": x" + ww.multiplier(),
+                    () -> isWeatherWeightMet(ww)));
         }
         if (profile.biomeWeights().isEmpty() && profile.timeWeights().isEmpty() && profile.weatherWeights().isEmpty()) {
             content.addChild(label("No special conditions.", 0xFF888888));
         }
         return content;
+    }
+
+    /**
+     * Builds a single spawn condition row: a status pip (lit green while the condition
+     * currently holds for the client player, dim otherwise) followed by its label text.
+     * Registers a live-update callback in {@link #spawnConditionPipUpdaters} so the pip
+     * tracks {@code metCheck} every tick — see {@link #containerTick}.
+     */
+    private HBox buildSpawnConditionRow(String text, BooleanSupplier metCheck) {
+        SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
+                .texture(new SpriteData(metCheck.getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
+        spawnConditionPipUpdaters.add(() ->
+                pip.texture(new SpriteData(metCheck.getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE)));
+
+        HBox row = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
+        row.addChild(pip);
+        row.addChild(label(text, 0xFFCCCCCC));
+        return row;
+    }
+
+    private static boolean isBiomeWeightMet(FishProfile.BiomeWeight bw) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return false;
+        return mc.level.getBiome(mc.player.blockPosition()).is(bw.biome());
+    }
+
+    private static boolean isTimeWeightMet(FishProfile.TimeWeight tw) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return false;
+        return FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime()) == tw.time();
+    }
+
+    private static boolean isWeatherWeightMet(FishProfile.WeatherWeight ww) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return false;
+        return FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == ww.weather();
     }
 
     private VBox buildLoreContent(FishEncyclopediaEntry entry) {

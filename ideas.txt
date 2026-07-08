@@ -19,5 +19,3 @@ Banner notifs for encyclopedia unlocks? AND/OR clearable pips in the encyclopedi
 
 Completionist achievements for catching every fish species
 Completionist++ achievements for catching every fish species in legendary
-
-Status indicator pip next to each spawn condition in encyclopedia? by default or as an upgrade?
