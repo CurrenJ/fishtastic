@@ -129,11 +129,11 @@ public final class FishTankGameTests {
      */
     public static void firstItemRotationReflectsSlotZeroInsert(GameTestHelper helper) {
         FishTankBlockEntity tank = placeFishTank(helper);
-        tank.addItem(new ItemStack(Items.DIAMOND, 1), 90f, null);
+        tank.addItem(new ItemStack(Items.DIAMOND, 1), 90f);
         helper.assertTrue(tank.getFirstItemRotation() == 90f,
             "Rotation passed for slot 0 must be stored, got " + tank.getFirstItemRotation());
 
-        tank.addItem(new ItemStack(Items.EMERALD, 1), 270f, null);
+        tank.addItem(new ItemStack(Items.EMERALD, 1), 270f);
         helper.assertTrue(tank.getFirstItemRotation() == 90f,
             "Rotation must remain unaffected by inserts into later slots, got " + tank.getFirstItemRotation());
         helper.succeed();

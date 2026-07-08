@@ -280,30 +280,17 @@ public class FishTankBlock extends Block implements EntityBlock {
                     // Calculate the rotation based on player's position relative to the block
                     float rotation = calculateRotationTowardPlayer(player, blockPos);
 
-                    if (fishTank.addItem(toAdd, rotation, player)) {
+                    if (fishTank.addItem(toAdd, rotation)) {
                         itemStack.shrink(1);
                         player.sendSystemMessage(
                             Component.literal("Added item to fish tank")
                         );
                         return InteractionResult.SUCCESS;
                     } else {
-                        // Error message is already displayed by canInsertItem if it's a size issue
-                        // Only show "tank is full" if the item could have fit
-                        if (fishTank.hasItems() && fishTank.getContainerSize() > 0) {
-                            // Check if tank is actually full by trying to find an empty slot
-                            boolean isFull = true;
-                            for (int i = 0; i < fishTank.getContainerSize(); i++) {
-                                if (fishTank.getItem(i).isEmpty()) {
-                                    isFull = false;
-                                    break;
-                                }
-                            }
-                            if (isFull) {
-                                player.sendSystemMessage(
-                                    Component.literal("Fish tank is full")
-                                );
-                            }
-                        }
+                        // addItem only fails when there's no room left (no mergeable stack, no empty slot)
+                        player.sendSystemMessage(
+                            Component.literal("Fish tank is full")
+                        );
                         return InteractionResult.FAIL;
                     }
                 }
