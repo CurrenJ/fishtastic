@@ -3,5 +3,5 @@
   "description": "A miniature birch tree for your fish tank.",
   "cost": 40,
   "reward": [{ "id": "fishtastic:cosmetic_birch_tree", "count": 1 }],
-  "max_purchases": 0
+  "daily_max_purchases": 1
 }

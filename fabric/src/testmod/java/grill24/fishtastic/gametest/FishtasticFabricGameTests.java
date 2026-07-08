@@ -413,6 +413,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void resetDailyPurchasesIfNeededOnlyOnNewDay(GameTestHelper helper) {
+        PlayerQuestStateGameTests.resetDailyPurchasesIfNeededOnlyOnNewDay(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void snapshotsReflectMutations(GameTestHelper helper) {
         PlayerQuestStateGameTests.snapshotsReflectMutations(helper);
     }

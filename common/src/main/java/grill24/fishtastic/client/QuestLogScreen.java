@@ -26,6 +26,7 @@ import io.github.currenj.gelatinui.gui.UIContainer;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.components.*;
+import org.jetbrains.annotations.Nullable;
 import io.github.currenj.gelatinui.gui.effects.CoinSpinEffect;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
@@ -107,6 +108,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             Label soldOutLabel,
             SpriteButton buyBtn,
             Label notEnoughLabel,
+            @Nullable Label descriptionLabel,
             ShopEntry entry,
             ResourceKey<ShopEntry> key
     ) {}
@@ -878,6 +880,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // randomly show no icon/background until something else (e.g. the purchase animation)
         // happened to mark them dirty again. Force it here so positions are correct from frame one.
         fallingPanel.forceLayout();
+        // Already sold out when this card is (re)built (e.g. reopening the shop) - show it gone
+        // immediately with no animation; the fall animation itself only plays on the live purchase.
+        if (soldOut) fallingPanel.setVisible(false);
         slot.addChildAt(fallingPanel, SHOP_ITEM_PANEL_WIDTH / 2f, SHOP_ITEM_PANEL_HEIGHT / 2f);
 
         SpriteData pinSprite = new SpriteData(SHOP_ITEM_PANEL_PIN_TEXTURE)
@@ -893,6 +898,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         int nameColor = soldOut ? 0xFF555555 : 0xFFFFFFFF;
         String nameText = entry.displayName().isEmpty() ? key.identifier().getPath() : entry.displayName();
         Label nameLabel = new Label(nameText, nameColor).maxWidth(SHOP_ITEM_NAME_MAX_WIDTH).init(tempContext);
+        // Name and description are no longer relevant once sold out - toggled by updateShopCardVisuals
+        nameLabel.setVisible(!soldOut);
 
         // Sold out label — toggled by updateShopCardVisuals
         Label soldOutLabel = new Label("Sold Out", 0xFF555555).init(tempContext);
@@ -913,9 +920,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         nameRow.addChild(soldOutLabel);
         inner.addChild(nameRow);
 
-        // Description — always visible
+        // Description — hidden once sold out, since it's no longer relevant
+        Label descriptionLabel = null;
         if (!entry.description().isEmpty()) {
-            inner.addChild(new Label(entry.description(), 0xFFCCCCCC).maxWidth(SHOP_ITEM_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext));
+            descriptionLabel = new Label(entry.description(), 0xFFCCCCCC).maxWidth(SHOP_ITEM_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext);
+            descriptionLabel.setVisible(!soldOut);
+            inner.addChild(descriptionLabel);
         }
 
         // Buy button — always visible
@@ -951,13 +961,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         });
         card.onMouseExit(e -> card.setTargetScale(1.0f, true));
 
-        shopCardRefs.put(key, new ShopCardRefs(card, fallingPanel, nameLabel, costRow, costLabel, soldOutLabel, buyBtn, notEnoughLabel, entry, key));
+        shopCardRefs.put(key, new ShopCardRefs(card, fallingPanel, nameLabel, costRow, costLabel, soldOutLabel, buyBtn, notEnoughLabel, descriptionLabel, entry, key));
         return card;
     }
 
     private boolean isEntrySoldOut(ResourceKey<ShopEntry> key, ShopEntry entry) {
         int purchaseCount = QuestClientCache.getPurchaseCount(key.identifier());
-        return entry.maxPurchases() > 0 && purchaseCount >= entry.maxPurchases();
+        return entry.dailyMaxPurchases() > 0 && purchaseCount >= entry.dailyMaxPurchases();
     }
 
     /**
@@ -999,12 +1009,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             boolean soldOut = isEntrySoldOut(refs.key(), refs.entry());
             boolean canAfford = QuestClientCache.getTokenBalance() >= refs.entry().cost();
 
-            if (soldOut) {
-                refs.fallingPanel().setVisible(false);
-            }
+            // Deliberately not touching fallingPanel visibility here: the only way an entry becomes
+            // sold out is the local player's own purchase, which already drives the fall animation
+            // via triggerPurchaseFall. Forcing it invisible here would race that animation and cut
+            // it short, since this runs on every sync (including the one right after a purchase).
 
             int nameColor = soldOut ? 0xFF555555 : 0xFFFFFFFF;
             refs.nameLabel().color(nameColor);
+            // Name and description are irrelevant once sold out
+            refs.nameLabel().setVisible(!soldOut);
+            if (refs.descriptionLabel() != null) refs.descriptionLabel().setVisible(!soldOut);
             refs.soldOutLabel().setVisible(soldOut);
             refs.costRow().setVisible(!soldOut);
             refs.costLabel().color(canAfford ? 0xFFFFAA00 : 0xFFFF4444);

@@ -4,5 +4,5 @@
   "cost": 16,
   "weight": 0.15,
   "reward": [{ "id": "fishtastic:cosmetic_lamp_chiseled_quartz", "count": 1 }],
-  "max_purchases": 0
+  "daily_max_purchases": 1
 }

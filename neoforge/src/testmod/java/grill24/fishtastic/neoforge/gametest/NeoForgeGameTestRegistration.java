@@ -228,6 +228,8 @@ public class NeoForgeGameTestRegistration {
             PlayerQuestStateGameTests::purchaseZeroMaxPurchasesIsUnlimited);
         register(event, env, "purchase_succeeds_deducts_and_increments_count", 200,
             PlayerQuestStateGameTests::purchaseSucceedsDeductsAndIncrementsCount);
+        register(event, env, "reset_daily_purchases_if_needed_only_on_new_day", 200,
+            PlayerQuestStateGameTests::resetDailyPurchasesIfNeededOnlyOnNewDay);
         register(event, env, "snapshots_reflect_mutations", 200,
             PlayerQuestStateGameTests::snapshotsReflectMutations);
 

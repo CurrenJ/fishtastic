@@ -20,6 +20,7 @@ public class PlayerQuestState {
     private final Map<ResourceKey<Quest>, QuestProgress> progress = new HashMap<>();
     private int tokenBalance = 0;
     private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
+    private long lastPurchaseResetDay = -1;
 
     public record QuestProgress(int currentCount, long lastResetGameDay, boolean completed, boolean claimed) {
         public static final Codec<QuestProgress> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -51,14 +52,16 @@ public class PlayerQuestState {
                         Map<Identifier, Integer> map = new HashMap<>();
                         state.purchaseCounts.forEach((k, v) -> map.put(k.identifier(), v));
                         return map;
-                    })
-    ).apply(i, (identMap, tokens, purchaseMap) -> {
+                    }),
+            Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay)
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
         s.tokenBalance = tokens;
         purchaseMap.forEach((id, count) ->
                 s.purchaseCounts.put(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, id), count));
+        s.lastPurchaseResetDay = lastPurchaseResetDay;
         return s;
     }));
 
@@ -122,15 +125,23 @@ public class PlayerQuestState {
 
     /**
      * Attempt to purchase a shop entry. Returns false if the player can't afford it
-     * or has already hit the max purchase limit.
+     * or has already hit today's purchase limit for this entry.
      */
     public boolean purchase(ResourceKey<ShopEntry> key, ShopEntry entry) {
         if (tokenBalance < entry.cost()) return false;
         int current = purchaseCounts.getOrDefault(key, 0);
-        if (entry.maxPurchases() > 0 && current >= entry.maxPurchases()) return false;
+        if (entry.dailyMaxPurchases() > 0 && current >= entry.dailyMaxPurchases()) return false;
         tokenBalance -= entry.cost();
         purchaseCounts.put(key, current + 1);
         return true;
+    }
+
+    /** Clears every entry's purchase count once per in-game day, called alongside the daily quest reset. */
+    public void resetDailyPurchasesIfNeeded(long currentDay) {
+        if (lastPurchaseResetDay < currentDay) {
+            purchaseCounts.clear();
+            lastPurchaseResetDay = currentDay;
+        }
     }
 
     public Map<Identifier, QuestProgress> getProgressSnapshot() {

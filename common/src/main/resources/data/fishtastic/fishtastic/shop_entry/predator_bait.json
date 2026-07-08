@@ -3,5 +3,5 @@
   "description": "Lures larger predatory fish to bite.",
   "cost": 10,
   "reward": [{ "id": "fishtastic:predator_bait", "count": 4 }],
-  "max_purchases": 0
+  "daily_max_purchases": 3
 }

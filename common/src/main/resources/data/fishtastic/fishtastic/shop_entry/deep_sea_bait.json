@@ -3,5 +3,5 @@
   "description": "Restricts your catches to deep sea fish — the rarest species in the depths.",
   "cost": 14,
   "reward": [{ "id": "fishtastic:deep_sea_bait", "count": 4 }],
-  "max_purchases": 0
+  "daily_max_purchases": 3
 }

@@ -37,8 +37,8 @@ public final class PlayerQuestStateGameTests {
         return ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Utility.ft(path));
     }
 
-    private static ShopEntry shopEntry(int cost, int maxPurchases) {
-        return new ShopEntry("Test Item", "A test item", cost, 1.0f, List.of(), maxPurchases);
+    private static ShopEntry shopEntry(int cost, int dailyMaxPurchases) {
+        return new ShopEntry("Test Item", "A test item", cost, 1.0f, List.of(), dailyMaxPurchases);
     }
 
     private static ResourceKey<ShopEntry> shopEntryId(String path) {
@@ -198,6 +198,29 @@ public final class PlayerQuestStateGameTests {
             helper.assertTrue(state.purchase(id, entry),
                 "Purchase #" + (i + 1) + " must succeed when maxPurchases is 0 (unlimited)");
         }
+        helper.succeed();
+    }
+
+    /**
+     * resetDailyPurchasesIfNeeded is a no-op within the same day (the cap still blocks further
+     * purchases), but clears every purchase count on a later day so the cap can be hit again.
+     */
+    public static void resetDailyPurchasesIfNeededOnlyOnNewDay(GameTestHelper helper) {
+        PlayerQuestState state = new PlayerQuestState();
+        ShopEntry entry = shopEntry(10, 1);
+        ResourceKey<ShopEntry> id = shopEntryId("daily_limited");
+        state.claim(questId("token_grant"), 100);
+
+        // Mirrors production: ServerTickHandler fires the reset once at the start of a day,
+        // before any purchases that day, anchoring lastPurchaseResetDay to that day.
+        state.resetDailyPurchasesIfNeeded(5L);
+        helper.assertTrue(state.purchase(id, entry), "First purchase within the daily limit must succeed");
+
+        state.resetDailyPurchasesIfNeeded(5L);
+        helper.assertTrue(!state.purchase(id, entry), "Same-day reset must be a no-op, cap must still block");
+
+        state.resetDailyPurchasesIfNeeded(6L);
+        helper.assertTrue(state.purchase(id, entry), "New-day reset must clear the count so the cap can be hit again");
         helper.succeed();
     }
 

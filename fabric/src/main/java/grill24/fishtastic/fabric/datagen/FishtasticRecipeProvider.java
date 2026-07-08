@@ -72,6 +72,16 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(Items.CRAFTING_TABLE)
                         .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
+
+                // Worm Bin: a ring of wooden slabs packed with dirt, composter-style
+                ShapedRecipeBuilder.shaped(items, RecipeCategory.MISC, FishtasticBlocks.WORM_BIN.value())
+                        .pattern("S S")
+                        .pattern("SDS")
+                        .pattern("SSS")
+                        .define('S', ItemTags.WOODEN_SLABS)
+                        .define('D', Items.DIRT)
+                        .unlockedBy("has_dirt", has(Items.DIRT))
+                        .save(this.output);
             }
 
             // -----------------------------------------------------------------
@@ -129,13 +139,8 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
             // -----------------------------------------------------------------
 
             private void buildBaitAndFoodRecipes(HolderGetter<Item> items) {
-                // Worms: dig through 3 dirt blocks
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.WORMS.value())
-                        .requires(Items.DIRT)
-                        .requires(Items.DIRT)
-                        .requires(Items.DIRT)
-                        .unlockedBy("has_dirt", has(Items.DIRT))
-                        .save(this.output);
+                // Worms are no longer directly craftable from dirt - obtain them from the
+                // Worm Bin (fish -> worms) or the token shop so both faucets stay meaningful.
 
                 // Gummy Worms
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.GUMMY_WORMS.value())

@@ -357,6 +357,7 @@ public class FishCatchSavedData extends SavedData {
                     ResourceKey<Quest> key = e.getKey();
                     questStates.values().forEach(state -> state.resetDailyIfNeeded(key, currentDay));
                 });
+        questStates.values().forEach(state -> state.resetDailyPurchasesIfNeeded(currentDay));
         setDirty();
     }
 

@@ -3,5 +3,5 @@
   "description": "Attracts freshwater fish to your hook.",
   "cost": 8,
   "reward": [{ "id": "fishtastic:freshwater_bait", "count": 4 }],
-  "max_purchases": 0
+  "daily_max_purchases": 3
 }

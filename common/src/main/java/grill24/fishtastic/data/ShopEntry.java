@@ -18,7 +18,7 @@ public record ShopEntry(
         int cost,
         float weight,
         List<ShopReward> reward,
-        int maxPurchases
+        int dailyMaxPurchases
 ) {
     public static final int DAILY_SHOP_COUNT = 4;
     /** Floor applied to {@link #weight} so a zero/negative weight can't blow up the 1/weight exponent below. */
@@ -48,7 +48,9 @@ public record ShopEntry(
             Codec.INT.fieldOf("cost").forGetter(ShopEntry::cost),
             Codec.FLOAT.optionalFieldOf("weight", 1.0f).forGetter(ShopEntry::weight),
             ShopReward.CODEC.listOf().optionalFieldOf("reward", List.of()).forGetter(ShopEntry::reward),
-            Codec.INT.optionalFieldOf("max_purchases", 0).forGetter(ShopEntry::maxPurchases)
+            // Resets to 0 every in-game day alongside the shop rotation (see PlayerQuestState#resetDailyPurchasesIfNeeded) -
+            // not a lifetime cap, so it paces stockpiling without ever permanently locking an entry away.
+            Codec.INT.optionalFieldOf("daily_max_purchases", 0).forGetter(ShopEntry::dailyMaxPurchases)
     ).apply(i, ShopEntry::new));
 
     /**

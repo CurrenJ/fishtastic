@@ -3,5 +3,5 @@
   "description": "A small mossy boulder for your fish tank.",
   "cost": 20,
   "reward": [{ "id": "fishtastic:cosmetic_mossy_boulder", "count": 1 }],
-  "max_purchases": 0
+  "daily_max_purchases": 1
 }

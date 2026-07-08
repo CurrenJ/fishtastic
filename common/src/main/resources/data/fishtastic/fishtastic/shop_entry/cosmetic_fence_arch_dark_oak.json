@@ -4,5 +4,5 @@
   "cost": 18,
   "weight": 0.1,
   "reward": [{ "id": "fishtastic:cosmetic_fence_arch_dark_oak", "count": 1 }],
-  "max_purchases": 0
+  "daily_max_purchases": 1
 }
