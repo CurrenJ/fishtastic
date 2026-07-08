@@ -47,8 +47,10 @@ public final class FishAnimator {
         float yBob = (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation));
-        // 45° CCW from default item diagonal → fish is upright (head pointing up)
-        poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
+        if (cfg.diagonalTexture()) {
+            // 45° CCW from default item diagonal → fish is upright (head pointing up)
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
+        }
     }
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,

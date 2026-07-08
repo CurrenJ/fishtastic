@@ -27,7 +27,9 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value());
                     output.accept(FishtasticItems.GARDEN_EEL.value());
                     output.accept(FishtasticItems.GIANT_MANTA_RAY.value());
+                    output.accept(FishtasticItems.GLASS_SQUID.value());
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
+                    output.accept(FishtasticItems.LEAFY_SEA_DRAGON.value());
                     output.accept(FishtasticItems.LIZARDFISH.value());
                     output.accept(FishtasticItems.LONGNOSE_GAR.value());
                     output.accept(FishtasticItems.MOLTEN_MOORISH_IDOL.value());

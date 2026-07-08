@@ -53,14 +53,19 @@ public sealed interface FishAnimationConfig
     record UprightFloat(
             float bobAmplitude,
             float bobHertz,
-            float spinRate
+            float spinRate,
+            boolean diagonalTexture
     ) implements FishAnimationConfig {
-        public static final UprightFloat DEFAULT = new UprightFloat(0.05f, 0.03f, 0.4f);
+        public static final UprightFloat DEFAULT = new UprightFloat(0.05f, 0.03f, 0.4f, true);
 
         static final MapCodec<UprightFloat> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-                Codec.FLOAT.optionalFieldOf("bob_amplitude", 0.05f).forGetter(UprightFloat::bobAmplitude),
-                Codec.FLOAT.optionalFieldOf("bob_hertz",     0.03f).forGetter(UprightFloat::bobHertz),
-                Codec.FLOAT.optionalFieldOf("spin_rate",     0.4f ).forGetter(UprightFloat::spinRate)
+                Codec.FLOAT.optionalFieldOf("bob_amplitude",    0.05f).forGetter(UprightFloat::bobAmplitude),
+                Codec.FLOAT.optionalFieldOf("bob_hertz",        0.03f).forGetter(UprightFloat::bobHertz),
+                Codec.FLOAT.optionalFieldOf("spin_rate",        0.4f ).forGetter(UprightFloat::spinRate),
+                // Most fish textures are painted diagonally (facing the top-right corner, like vanilla
+                // Cod/Salmon) so a -45° roll is needed to stand them upright. Set false for a texture
+                // that's already painted facing straight up, to render with no extra roll at all.
+                Codec.BOOL.optionalFieldOf("diagonal_texture",  true ).forGetter(UprightFloat::diagonalTexture)
         ).apply(i, UprightFloat::new));
 
         @Override public String modeName() { return "upright_float"; }

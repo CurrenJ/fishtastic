@@ -44,7 +44,9 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.STARFISH.value())
-                .add(FishtasticItems.SHRIMP.value());
+                .add(FishtasticItems.SHRIMP.value())
+                .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.LEAFY_SEA_DRAGON.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
@@ -73,6 +75,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.NORTHERN_PIKE.value())
                 .add(FishtasticItems.OCEAN_SUNFISH.value())
-                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
+                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
+                .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.LEAFY_SEA_DRAGON.value());
     }
 }
