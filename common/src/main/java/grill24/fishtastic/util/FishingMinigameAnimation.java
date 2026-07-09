@@ -4,12 +4,14 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -44,6 +46,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // tap impulse (0.04) so continuous hold doesn't instantly slam the bobber to the ceiling.
     private static final float HOLD_IMPULSE_STRENGTH = 0.012f;
     private float inputForceMultiplier = 1.0f;
+
+    // Equipped charm (client-side only; drives the crystal-ball rarity outline)
+    @Nullable private CharmEffect equippedCharmEffect = null;
 
     // Track caught targets BEFORE they get removed
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
@@ -207,6 +212,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         this.inputForceMultiplier = multiplier;
     }
 
+    /** Called once at minigame start with the rod's currently equipped charm effect, if any. */
+    public void setEquippedCharmEffect(@Nullable CharmEffect charmEffect) {
+        this.equippedCharmEffect = charmEffect;
+    }
+
     /**
      * Applies an upward impulse to the bobber (player interaction)
      * Does nothing if the minigame is hiding or in intro animation.
@@ -365,7 +375,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             FishingTarget.TargetState targetState = target.getState();
 
             // Get the display item - use generic fish for FishtasticFish items during active/fail states
-            ItemStack displayItem = target.getDisplayItemStack();
+            boolean showRarityOutline = equippedCharmEffect != null && equippedCharmEffect.showRarityOutline();
+            ItemStack displayItem = target.getDisplayItemStack(showRarityOutline);
 
             if (targetState == FishingTarget.TargetState.ACTIVE) {
                 // Existing rendering logic for active targets

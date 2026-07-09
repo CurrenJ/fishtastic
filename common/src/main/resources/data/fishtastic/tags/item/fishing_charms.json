@@ -1,5 +1,9 @@
 {
   "values": [
-    "fishtastic:amethyst_charm"
+    "fishtastic:amethyst_charm",
+    "fishtastic:crystal_ball_charm",
+    "fishtastic:four_leaf_charm",
+    "fishtastic:luna_charm",
+    "fishtastic:banana_charm"
   ]
 }

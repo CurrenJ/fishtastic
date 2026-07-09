@@ -1,6 +1,8 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.MovementParams;
 import grill24.fishtastic.data.PhaseRule;
 import net.minecraft.util.StringRepresentable;
@@ -933,11 +935,27 @@ public class FishingTarget {
     }
 
     public ItemStack getDisplayItemStack() {
+        return getDisplayItemStack(false);
+    }
+
+    /**
+     * @param showRarityOutline when true (crystal ball charm equipped), copies the hidden
+     *                          reward's {@code FISH_QUALITY} component onto the generic icon
+     *                          so the existing rarity-outline shader renders — species/id stays hidden.
+     */
+    public ItemStack getDisplayItemStack(boolean showRarityOutline) {
         if (state == TargetState.ACTIVE || state == TargetState.ANIMATING_FAIL) {
-            return new ItemStack(switch (category) {
+            ItemStack display = new ItemStack(switch (category) {
                 case FISH, TRASH -> FishtasticItems.GENERIC_FISH;
                 case TREASURE -> FishtasticItems.REWARD_CHEST;
             });
+            if (showRarityOutline && !rewardItems.isEmpty()) {
+                FishQuality quality = rewardItems.get(0).get(FishtasticDataComponents.FISH_QUALITY.value());
+                if (quality != null) {
+                    display.set(FishtasticDataComponents.FISH_QUALITY.value(), quality);
+                }
+            }
+            return display;
         }
         return rewardItems.isEmpty() ? ItemStack.EMPTY : rewardItems.get(0);
     }

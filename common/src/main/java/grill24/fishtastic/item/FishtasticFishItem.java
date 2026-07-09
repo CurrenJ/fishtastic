@@ -89,12 +89,13 @@ public class FishtasticFishItem extends Item {
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
             float qualityBias,
-            @Nullable BaitEffect baitEffect
+            @Nullable BaitEffect baitEffect,
+            @Nullable CharmEffect charmEffect
     ) {
         if (fishItems.isEmpty()) return ItemStack.EMPTY;
 
         List<Integer> weights = fishItems.stream()
-                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, baitEffect))
+                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, baitEffect, charmEffect))
                 .toList();
         int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
         if (totalWeight <= 0) return ItemStack.EMPTY;
@@ -138,8 +139,18 @@ public class FishtasticFishItem extends Item {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
-            @Nullable BaitEffect baitEffect
+            @Nullable BaitEffect baitEffect,
+            @Nullable CharmEffect charmEffect
     ) {
+        float nightMult = (charmEffect != null && timeOfDay == FishProfile.TimeOfDay.NIGHT)
+                ? charmEffect.nightMultiplierBonus() : 1.0f;
+        float charmGroupMult = 1.0f;
+        if (charmEffect != null) {
+            for (BaitEffect.FishGroupAffinity affinity : charmEffect.fishGroupAffinities()) {
+                if (item.is(affinity.group())) charmGroupMult *= affinity.multiplier();
+            }
+        }
+
         if (item.value() instanceof FishtasticFishItem fishItem) {
             int baseWeight = FishProfile.DEFAULT_BASE_WEIGHT + fishItem.getAdditionalWeight(lootParams);
             float environmentMult = 1.0f;
@@ -162,17 +173,18 @@ public class FishtasticFishItem extends Item {
                     if (item.is(affinity.group())) groupMult *= affinity.multiplier();
                 }
             }
-            return Math.max(1, (int) (baseWeight * environmentMult * baitMult * groupMult));
+            return Math.max(1, (int) (baseWeight * environmentMult * baitMult * groupMult * nightMult * charmGroupMult));
         }
 
-        // Vanilla fish weights with bait multiplier applied
-        float vanillaMult = baitEffect != null ? baitEffect.vanillaFishMultiplier() : 1.0f;
+        // Vanilla fish weights with bait/charm multipliers applied
+        float vanillaMult = (baitEffect != null ? baitEffect.vanillaFishMultiplier() : 1.0f)
+                * (charmEffect != null ? charmEffect.vanillaFishMultiplier() : 1.0f);
         if (item.value().equals(Items.COD) || item.value().equals(Items.SALMON)) {
-            return Math.max(1, (int) (200 * vanillaMult));
+            return Math.max(1, (int) (200 * vanillaMult * nightMult * charmGroupMult));
         } else if (item.value().equals(Items.TROPICAL_FISH)) {
-            return Math.max(1, (int) (50 * vanillaMult));
+            return Math.max(1, (int) (50 * vanillaMult * nightMult * charmGroupMult));
         } else if (item.value().equals(Items.PUFFERFISH)) {
-            return Math.max(1, (int) (25 * vanillaMult));
+            return Math.max(1, (int) (25 * vanillaMult * nightMult * charmGroupMult));
         }
         return 1;
     }

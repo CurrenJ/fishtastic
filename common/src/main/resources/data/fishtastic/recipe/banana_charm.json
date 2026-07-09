@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:yellow_dye",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "fishtastic:banana_charm"
+  }
+}

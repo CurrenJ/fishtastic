@@ -69,6 +69,10 @@ public class FishtasticItems {
 
     // ----- Charm Items -----
     public static Holder<Item> AMETHYST_CHARM;
+    public static Holder<Item> CRYSTAL_BALL_CHARM;
+    public static Holder<Item> FOUR_LEAF_CHARM;
+    public static Holder<Item> LUNA_CHARM;
+    public static Holder<Item> BANANA_CHARM;
 
     // ----- Quest Items -----
     // Currency display icon (pile-of-coins texture) — used wherever a token balance/cost/reward is shown.
@@ -111,6 +115,7 @@ public class FishtasticItems {
 
     // ----- Fish Items -----
     public static Holder<Item> BLUEGILL;
+    public static Holder<Item> FLAPJACK_OCTOPUS;
     public static Holder<Item> FRIED_SHRIMP;
     public static Holder<Item> FROZEN_GIANT_MANTA_RAY;
     public static Holder<Item> GARDEN_EEL;
@@ -150,6 +155,7 @@ public class FishtasticItems {
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(props(loc)));
+        FLAPJACK_OCTOPUS = RegistrationApiSided.getInstance().registerItem("flapjack_octopus", loc -> new FishtasticFishItem(props(loc)));
         FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(props(loc)));
         FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
         GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> new FishtasticFishItem(props(loc)));
@@ -223,6 +229,18 @@ public class FishtasticItems {
         AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm",
                 loc -> new FishtasticFishItem(props(loc).durability(200)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.AMETHYST_CHARM)));
+        CRYSTAL_BALL_CHARM = RegistrationApiSided.getInstance().registerItem("crystal_ball_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.CRYSTAL_BALL_CHARM)));
+        FOUR_LEAF_CHARM = RegistrationApiSided.getInstance().registerItem("four_leaf_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.FOUR_LEAF_CHARM)));
+        LUNA_CHARM = RegistrationApiSided.getInstance().registerItem("luna_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LUNA_CHARM)));
+        BANANA_CHARM = RegistrationApiSided.getInstance().registerItem("banana_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BANANA_CHARM)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));

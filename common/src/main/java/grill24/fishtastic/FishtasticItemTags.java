@@ -21,6 +21,7 @@ public class FishtasticItemTags {
     public static final TagKey<Item> OCEAN_FISH = create("ocean_fish");
     public static final TagKey<Item> PREDATOR_FISH = create("predator_fish");
     public static final TagKey<Item> DEEP_SEA_FISH = create("deep_sea_fish");
+    public static final TagKey<Item> COLOR_YELLOW = create("color_yellow");
 
     /** The bait-affinity groups a fish can belong to — used by bait tooltips and the encyclopedia's Types section. */
     public static final List<TagKey<Item>> FISH_GROUPS = List.of(

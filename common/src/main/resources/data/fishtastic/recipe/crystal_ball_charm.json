@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:ender_eye",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "fishtastic:crystal_ball_charm"
+  }
+}

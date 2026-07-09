@@ -23,6 +23,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ACUTE_IASPIS.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
+                    output.accept(FishtasticItems.FLAPJACK_OCTOPUS.value());
                     output.accept(FishtasticItems.FRIED_SHRIMP.value());
                     output.accept(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value());
                     output.accept(FishtasticItems.GARDEN_EEL.value());
@@ -51,6 +52,10 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.HOOK.value());
                     output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
                     output.accept(FishtasticItems.AMETHYST_CHARM.value());
+                    output.accept(FishtasticItems.CRYSTAL_BALL_CHARM.value());
+                    output.accept(FishtasticItems.FOUR_LEAF_CHARM.value());
+                    output.accept(FishtasticItems.LUNA_CHARM.value());
+                    output.accept(FishtasticItems.BANANA_CHARM.value());
                     output.accept(FishtasticItems.PILE_OF_COINS.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
 

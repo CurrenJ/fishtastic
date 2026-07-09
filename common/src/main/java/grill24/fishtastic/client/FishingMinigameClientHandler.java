@@ -49,6 +49,7 @@ public class FishingMinigameClientHandler {
                 if (charmEffect != null) {
                     animation.setInputForceMultiplier(charmEffect.inputForceMultiplier());
                 }
+                animation.setEquippedCharmEffect(charmEffect);
             }
         }
 

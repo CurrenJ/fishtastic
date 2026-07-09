@@ -208,6 +208,34 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(Items.STRING)
                         .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
                         .save(this.output);
+
+                // Crystal Ball Charm: an eye of ender bound with string, reveals target rarity
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.CRYSTAL_BALL_CHARM.value())
+                        .requires(Items.ENDER_EYE)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_ender_eye", has(Items.ENDER_EYE))
+                        .save(this.output);
+
+                // Four-Leaf Charm: a rabbit's foot bound with string, tilts rewards toward treasure
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.FOUR_LEAF_CHARM.value())
+                        .requires(Items.RABBIT_FOOT)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_rabbit_foot", has(Items.RABBIT_FOOT))
+                        .save(this.output);
+
+                // Luna Charm: a phantom membrane bound with string, forces night fishing conditions
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.LUNA_CHARM.value())
+                        .requires(Items.PHANTOM_MEMBRANE)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_phantom_membrane", has(Items.PHANTOM_MEMBRANE))
+                        .save(this.output);
+
+                // Banana Charm: yellow dye bound with string, boosts yellow-colored fish
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.BANANA_CHARM.value())
+                        .requires(Items.YELLOW_DYE)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_yellow_dye", has(Items.YELLOW_DYE))
+                        .save(this.output);
             }
 
         };

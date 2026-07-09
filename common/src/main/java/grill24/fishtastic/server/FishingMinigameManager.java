@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
@@ -125,8 +126,10 @@ public class FishingMinigameManager {
         BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
         ItemStack hookStack = CopperFishingRod.getHook(rod);
         HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+        ItemStack charmStack = CopperFishingRod.getCharm(rod);
+        CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
 
-        List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect);
+        List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
         // Capture environment context at hook position for quest tracking
         FishingHook sessionHook = player.fishing;
@@ -134,7 +137,9 @@ public class FishingMinigameManager {
                 ? BlockPos.containing(sessionHook.position())
                 : player.blockPosition();
         Holder<Biome> sessionBiome = level.getBiome(sessionPos);
-        FishProfile.TimeOfDay sessionTimeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.TimeOfDay sessionTimeOfDay = charmEffect != null && charmEffect.forceNightFishing()
+                ? FishProfile.TimeOfDay.NIGHT
+                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
@@ -294,7 +299,7 @@ public class FishingMinigameManager {
         }
     }
 
-    private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect) {
+    private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
         List<ServerFishingTarget> targets = new ArrayList<>();
         RandomSource randomSource = player.getRandom();
 
@@ -313,7 +318,9 @@ public class FishingMinigameManager {
         // Resolve environment context at hook position
         BlockPos hookPos = BlockPos.containing(hook.position());
         Holder<Biome> biome = level.getBiome(hookPos);
-        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
+                ? FishProfile.TimeOfDay.NIGHT
+                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
@@ -324,9 +331,11 @@ public class FishingMinigameManager {
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
         List<Holder<Item>> trashPool = getTrashPool(player);
 
-        float treasureChance = baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE;
+        float treasureChance = Math.max(0f, (baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
+                + (charmEffect != null ? charmEffect.treasureChanceDelta() : 0.0f));
         float trashChance = Math.max(0f, (baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE)
-                + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f));
+                + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f)
+                + (charmEffect != null ? charmEffect.trashChanceDelta() : 0.0f));
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
         int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
@@ -354,7 +363,7 @@ public class FishingMinigameManager {
             List<ItemStack> rewardStacks;
             if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
-                        fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, numRewards);
+                        fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, charmEffect, numRewards);
             } else if (isTreasure) {
                 rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
             } else {
@@ -488,13 +497,14 @@ public class FishingMinigameManager {
             FishProfile.WeatherCondition weather,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
+            @Nullable CharmEffect charmEffect,
             int numRewards
     ) {
         List<ItemStack> rewardStacks = new ArrayList<>();
         for (int n = 0; n < numRewards; n++) {
             ItemStack reward = FishtasticFishItem.sampleRandomFish(
                     randomSource, lootParams, fishPool,
-                    fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect);
+                    fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, charmEffect);
             if (!reward.isEmpty()) rewardStacks.add(reward);
         }
         return rewardStacks;
