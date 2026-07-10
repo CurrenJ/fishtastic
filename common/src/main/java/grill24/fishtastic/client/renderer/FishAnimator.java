@@ -29,6 +29,7 @@ public final class FishAnimator {
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
             case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.UprightSit     cfg -> applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
         }
     }
 
@@ -93,6 +94,18 @@ public final class FishAnimator {
         // Rotate -90° around the axis parallel to the swim direction (local X) so the belly faces
         // world-down; the banking offset rocks the wings gently around that same axis.
         poseStack.mulPose(Axis.XP.rotationDegrees(-90f + bankDeg));
+    }
+
+    private static void applyUprightSit(PoseStack poseStack, FishAnimationConfig.UprightSit cfg,
+                                         Random random, float t, float baseRotation, boolean mirrored) {
+        float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
+        float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
+                * cfg.rotationAmplitude());
+        poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + yRot + (mirrored ? 180f : 0f)));
+        if (cfg.diagonalTexture()) {
+            // Same correction as UprightFloat: 45° CCW from default item diagonal → upright.
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
+        }
     }
 
     /** Distance from item centre to its bottom in FIXED display-context world units (pre-custom-scale). */

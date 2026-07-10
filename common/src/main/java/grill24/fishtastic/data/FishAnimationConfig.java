@@ -7,7 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 public sealed interface FishAnimationConfig
         permits FishAnimationConfig.HorizontalSwim, FishAnimationConfig.UprightFloat,
                 FishAnimationConfig.FloorSit, FishAnimationConfig.Planted,
-                FishAnimationConfig.BellyDown {
+                FishAnimationConfig.BellyDown, FishAnimationConfig.UprightSit {
 
     Codec<FishAnimationConfig> CODEC = Codec.STRING.dispatch(
             "mode",
@@ -18,6 +18,7 @@ public sealed interface FishAnimationConfig
                 case "floor_sit"       -> FloorSit.MAP_CODEC;
                 case "planted"         -> Planted.MAP_CODEC;
                 case "belly_down"      -> BellyDown.MAP_CODEC;
+                case "upright_sit"     -> UprightSit.MAP_CODEC;
                 default -> throw new IllegalArgumentException("Unknown fish animation mode: " + mode);
             }
     );
@@ -131,5 +132,32 @@ public sealed interface FishAnimationConfig
         ).apply(i, BellyDown::new));
 
         @Override public String modeName() { return "belly_down"; }
+    }
+
+    /**
+     * Upright-sitting mode: creature stands vertically anchored to the tank floor (unlike
+     * {@link FloorSit}, which lies flat) with gentle Y-axis rotation sway. Suitable for
+     * ground-dwelling upright creatures like nudibranchs.
+     */
+    record UprightSit(
+            float floorOffset,
+            float rotationAmplitude,
+            float rotationHertz,
+            boolean diagonalTexture
+    ) implements FishAnimationConfig {
+        // The renderer separately compensates for this mode's centre-pivot (an upright item's
+        // bottom otherwise sits below the floor) scaled to each fish's own per-catch size, so
+        // floorOffset here is purely a small manual nudge on top of that, like FloorSit's.
+        public static final UprightSit DEFAULT = new UprightSit(0.0f, 8.0f, 0.004f, true);
+
+        static final MapCodec<UprightSit> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("floor_offset",       0.0f  ).forGetter(UprightSit::floorOffset),
+                Codec.FLOAT.optionalFieldOf("rotation_amplitude", 8.0f  ).forGetter(UprightSit::rotationAmplitude),
+                Codec.FLOAT.optionalFieldOf("rotation_hertz",     0.004f).forGetter(UprightSit::rotationHertz),
+                // See UprightFloat.diagonalTexture: false for textures already painted facing straight up.
+                Codec.BOOL.optionalFieldOf("diagonal_texture",    true  ).forGetter(UprightSit::diagonalTexture)
+        ).apply(i, UprightSit::new));
+
+        @Override public String modeName() { return "upright_sit"; }
     }
 }

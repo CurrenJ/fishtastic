@@ -113,6 +113,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.ROYAL_GARDEN_EEL.value(), "royal_garden_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.SHRIMP.value(), "shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.WILLANS_CHROMODORIS.value(), "willans_chromodoris");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");
 
         // ----- Trash items (textures in item/fish/ subdirectory) -----

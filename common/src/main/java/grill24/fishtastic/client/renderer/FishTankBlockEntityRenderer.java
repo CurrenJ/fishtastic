@@ -176,7 +176,13 @@ public class FishTankBlockEntityRenderer
         for (SwarmFishInstance fish : state.fishInstances) {
             poseStack.pushPose();
 
-            float baseY = computeBaseY(fish.animationConfig(), state.hasOpenDownFace);
+            float scale = 0.5f;
+            if (ItemSizeHelper.hasSize(fish.stack())) {
+                float size = ItemSizeHelper.getSize(fish.stack());
+                scale = 0.01f + (size / 100f) * 0.8f;
+            }
+
+            float baseY = computeBaseY(fish.animationConfig(), state.hasOpenDownFace, scale);
             poseStack.translate(
                     ITEM_POSITION_OFFSET.x() + fish.xOffset(),
                     baseY + fish.yOffset(),
@@ -185,11 +191,6 @@ public class FishTankBlockEntityRenderer
             Random fishRandom = new Random(fish.seed());
             FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation(), fish.mirrored());
 
-            float scale = 0.5f;
-            if (ItemSizeHelper.hasSize(fish.stack())) {
-                float size = ItemSizeHelper.getSize(fish.stack());
-                scale = 0.01f + (size / 100f) * 0.8f;
-            }
             poseStack.scale(scale, scale, scale);
 
             ItemStackRenderState itemRenderState = new ItemStackRenderState();
@@ -306,10 +307,14 @@ public class FishTankBlockEntityRenderer
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace) {
+    private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
         return switch (animConfig) {
-            case FishAnimationConfig.FloorSit fs -> COSMETIC_FLOOR_Y + fs.floorOffset();
-            case FishAnimationConfig.Planted  p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y;
+            case FishAnimationConfig.FloorSit    fs -> COSMETIC_FLOOR_Y + fs.floorOffset();
+            case FishAnimationConfig.Planted     p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y;
+            // Unlike Planted/FloorSit's fixed-size decor, an upright fish's own render scale varies
+            // per catch (see ItemSizeHelper below), so the centre-to-bottom pivot compensation must
+            // scale with it too — a fixed offset overcorrects for anything smaller than max size.
+            case FishAnimationConfig.UprightSit  us -> COSMETIC_FLOOR_Y + us.floorOffset() + FishAnimator.PLANTED_PIVOT_Y * scale;
             default -> {
                 float y = ITEM_POSITION_OFFSET.y();
                 if (!hasOpenDownFace) y += SAND_BASE_Y_OFFSET.y();
