@@ -517,7 +517,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                     Utility.prettyName(ww.weather().name()) + ": x" + ww.multiplier(),
                     () -> isWeatherWeightMet(ww)));
         }
-        if (profile.biomeWeights().isEmpty() && profile.timeWeights().isEmpty() && profile.weatherWeights().isEmpty()) {
+        for (FishProfile.MoonWeight mw : profile.moonWeights()) {
+            content.addChild(buildSpawnConditionRow(
+                    Utility.prettyName(mw.phase().name()) + ": x" + mw.multiplier(),
+                    () -> isMoonWeightMet(mw)));
+        }
+        for (FishProfile.ElevationWeight ew : profile.elevationWeights()) {
+            content.addChild(buildSpawnConditionRow(
+                    Utility.prettyName(ew.band().name()) + ": x" + ew.multiplier(),
+                    () -> isElevationWeightMet(ew)));
+        }
+        if (profile.biomeWeights().isEmpty() && profile.timeWeights().isEmpty() && profile.weatherWeights().isEmpty()
+                && profile.moonWeights().isEmpty() && profile.elevationWeights().isEmpty()) {
             content.addChild(label("No special conditions.", 0xFF888888));
         }
         return content;
@@ -557,6 +568,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return false;
         return FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == ww.weather();
+    }
+
+    private static boolean isMoonWeightMet(FishProfile.MoonWeight mw) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return false;
+        return mc.level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, mc.player.blockPosition()) == mw.phase();
+    }
+
+    private static boolean isElevationWeightMet(FishProfile.ElevationWeight ew) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return false;
+        return FishProfile.Elevation.fromY(mc.player.blockPosition().getY(), mc.level.getSeaLevel()) == ew.band();
     }
 
     private VBox buildLoreContent(FishEncyclopediaEntry entry) {

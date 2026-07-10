@@ -2,11 +2,13 @@
   "base_weight": 7,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.5 }
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
+    { "biome": "fishtastic:is_lush_caves", "multiplier": 2.0 }
   ],
   "time_weights": [
-    { "time": "dawn", "multiplier": 3.0 },
-    { "time": "dusk", "multiplier": 2.5 }
+    { "time": "dawn", "multiplier": 2.0 },
+    { "time": "dusk", "multiplier": 2.0 },
+    { "time": "day", "multiplier": 0.5 }
   ],
   "temperament": "fishtastic:ambusher",
   "animation": {

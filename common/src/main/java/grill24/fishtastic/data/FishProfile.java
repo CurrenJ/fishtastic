@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.MoonPhase;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.List;
@@ -22,6 +23,8 @@ public record FishProfile(
         List<BiomeWeight> biomeWeights,
         List<TimeWeight> timeWeights,
         List<WeatherWeight> weatherWeights,
+        List<MoonWeight> moonWeights,
+        List<ElevationWeight> elevationWeights,
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
         SwarmConfig swarm
@@ -36,6 +39,8 @@ public record FishProfile(
             BiomeWeight.CODEC.listOf().optionalFieldOf("biome_weights", List.of()).forGetter(FishProfile::biomeWeights),
             TimeWeight.CODEC.listOf().optionalFieldOf("time_weights", List.of()).forGetter(FishProfile::timeWeights),
             WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights),
+            MoonWeight.CODEC.listOf().optionalFieldOf("moon_weights", List.of()).forGetter(FishProfile::moonWeights),
+            ElevationWeight.CODEC.listOf().optionalFieldOf("elevation_weights", List.of()).forGetter(FishProfile::elevationWeights),
             ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament),
             FishAnimationConfig.CODEC.optionalFieldOf("animation").forGetter(FishProfile::animation),
             SwarmConfig.CODEC.optionalFieldOf("swarm", SwarmConfig.DEFAULT).forGetter(FishProfile::swarm)
@@ -110,10 +115,46 @@ public record FishProfile(
         ).apply(i, WeatherWeight::new));
     }
 
+    public enum Elevation implements StringRepresentable {
+        DEEP, SURFACE, HIGH;
+
+        // Sea level defaults to 63, so this is roughly y<33 (underground pools/ravine bottoms)
+        // and y>93 (mountain lakes/rivers) — ordinary ocean/river fishing stays SURFACE.
+        private static final int BAND_OFFSET = 30;
+
+        public static final Codec<Elevation> CODEC = StringRepresentable.fromEnum(Elevation::values);
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        public static Elevation fromY(int y, int seaLevel) {
+            if (y < seaLevel - BAND_OFFSET) return DEEP;
+            if (y > seaLevel + BAND_OFFSET) return HIGH;
+            return SURFACE;
+        }
+    }
+
+    public record MoonWeight(MoonPhase phase, float multiplier) {
+        public static final Codec<MoonWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
+                MoonPhase.CODEC.fieldOf("phase").forGetter(MoonWeight::phase),
+                Codec.FLOAT.fieldOf("multiplier").forGetter(MoonWeight::multiplier)
+        ).apply(i, MoonWeight::new));
+    }
+
+    public record ElevationWeight(Elevation band, float multiplier) {
+        public static final Codec<ElevationWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Elevation.CODEC.fieldOf("band").forGetter(ElevationWeight::band),
+                Codec.FLOAT.fieldOf("multiplier").forGetter(ElevationWeight::multiplier)
+        ).apply(i, ElevationWeight::new));
+    }
+
     /**
      * Computes the weight multiplier for this fish given current environmental conditions.
      */
-    public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather) {
+    public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather,
+                                               MoonPhase moonPhase, Elevation elevation) {
         float multiplier = 1.0f;
 
         for (BiomeWeight bw : biomeWeights) {
@@ -126,6 +167,14 @@ public record FishProfile(
 
         for (WeatherWeight ww : weatherWeights) {
             if (ww.weather() == weather) { multiplier *= ww.multiplier(); break; }
+        }
+
+        for (MoonWeight mw : moonWeights) {
+            if (mw.phase() == moonPhase) { multiplier *= mw.multiplier(); break; }
+        }
+
+        for (ElevationWeight ew : elevationWeights) {
+            if (ew.band() == elevation) { multiplier *= ew.multiplier(); break; }
         }
 
         return multiplier;

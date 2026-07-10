@@ -2,14 +2,20 @@
   "base_weight": 5,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
+    { "biome": "minecraft:is_river", "multiplier": 0.2 }
   ],
   "time_weights": [
-    { "time": "night", "multiplier": 2.5 }
+    { "time": "night", "multiplier": 2.0 }
   ],
   "weather_weights": [
-    { "weather": "rain", "multiplier": 2.5 },
-    { "weather": "thunder", "multiplier": 3.0 }
+    { "weather": "rain", "multiplier": 2.0 },
+    { "weather": "thunder", "multiplier": 2.0 }
+  ],
+  "moon_weights": [
+    { "phase": "full_moon", "multiplier": 2.0 },
+    { "phase": "waxing_gibbous", "multiplier": 1.3 },
+    { "phase": "waning_gibbous", "multiplier": 1.3 }
   ],
   "temperament": "fishtastic:aggressive",
   "animation": {

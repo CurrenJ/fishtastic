@@ -2,11 +2,15 @@
   "base_weight": 10,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
+    { "biome": "fishtastic:is_mushroom", "multiplier": 1.5 }
   ],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
     { "time": "dusk", "multiplier": 1.5 }
+  ],
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:docile",
   "animation": {

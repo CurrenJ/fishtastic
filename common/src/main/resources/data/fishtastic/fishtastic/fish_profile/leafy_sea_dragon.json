@@ -2,7 +2,8 @@
   "base_weight": 5,
   "size": { "mean": 45.0, "std_dev": 10.0 },
   "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.5 }
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
+    { "biome": "minecraft:is_river", "multiplier": 0.2 }
   ],
   "time_weights": [
     { "time": "day", "multiplier": 1.5 }

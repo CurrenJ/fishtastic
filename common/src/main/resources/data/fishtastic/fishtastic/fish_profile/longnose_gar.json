@@ -2,10 +2,12 @@
   "base_weight": 7,
   "size": { "mean": 70.0, "std_dev": 15.0 },
   "biome_weights": [
-    { "biome": "minecraft:is_river", "multiplier": 2.5 }
+    { "biome": "minecraft:is_river", "multiplier": 2.0 },
+    { "biome": "fishtastic:is_cherry_grove", "multiplier": 2.0 },
+    { "biome": "minecraft:is_ocean", "multiplier": 0.3 }
   ],
   "time_weights": [
-    { "time": "night", "multiplier": 2.5 },
+    { "time": "night", "multiplier": 2.0 },
     { "time": "dawn", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:aggressive"

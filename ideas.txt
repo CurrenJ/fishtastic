@@ -27,3 +27,5 @@ Crystal ball charm - shows rarity effect on the generic target fish icon during 
 Four-leaf clover charm - slightly reduces trash chance, slightly reduces vanilla fish chance, slightly increases treasure chance
 Luna Charm - Night fishing condition and multiplier always active while equipped
 Banana charm - multiplies fish chance for those that contain color YELLOW
+
+Check two fish in one session quest is working properoly - chests are triggering it i think

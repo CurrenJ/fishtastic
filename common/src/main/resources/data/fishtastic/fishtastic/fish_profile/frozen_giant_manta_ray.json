@@ -8,6 +8,11 @@
   "weather_weights": [
     { "weather": "rain", "multiplier": 1.5 }
   ],
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 2.0 },
+    { "phase": "waning_crescent", "multiplier": 1.4 },
+    { "phase": "full_moon", "multiplier": 0.4 }
+  ],
   "temperament": "fishtastic:trembler",
   "animation": { "mode": "belly_down" }
 }

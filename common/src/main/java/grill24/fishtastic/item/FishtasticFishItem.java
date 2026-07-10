@@ -88,6 +88,8 @@ public class FishtasticFishItem extends Item {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
+            net.minecraft.world.level.MoonPhase moonPhase,
+            FishProfile.Elevation elevation,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
@@ -95,7 +97,7 @@ public class FishtasticFishItem extends Item {
         if (fishItems.isEmpty()) return ItemStack.EMPTY;
 
         List<Integer> weights = fishItems.stream()
-                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, baitEffect, charmEffect))
+                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, baitEffect, charmEffect))
                 .toList();
         int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
         if (totalWeight <= 0) return ItemStack.EMPTY;
@@ -139,6 +141,8 @@ public class FishtasticFishItem extends Item {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
+            net.minecraft.world.level.MoonPhase moonPhase,
+            FishProfile.Elevation elevation,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
     ) {
@@ -162,7 +166,7 @@ public class FishtasticFishItem extends Item {
                 FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
                 if (profile != null) {
                     baseWeight = profile.baseWeight() + fishItem.getAdditionalWeight(lootParams);
-                    environmentMult = profile.computeEnvironmentMultiplier(biome, timeOfDay, weather);
+                    environmentMult = profile.computeEnvironmentMultiplier(biome, timeOfDay, weather, moonPhase, elevation);
                 }
             }
 

@@ -3,10 +3,12 @@
   "size": { "mean": 30.0, "std_dev": 5.0 },
   "biome_weights": [
     { "biome": "minecraft:is_river", "multiplier": 2.0 },
-    { "biome": "minecraft:is_jungle", "multiplier": 2.0 }
+    { "biome": "minecraft:is_jungle", "multiplier": 2.0 },
+    { "biome": "minecraft:is_ocean", "multiplier": 0.4 }
   ],
   "time_weights": [
-    { "time": "day", "multiplier": 1.5 }
+    { "time": "day", "multiplier": 1.5 },
+    { "time": "night", "multiplier": 0.4 }
   ],
   "temperament": "fishtastic:skittish"
 }

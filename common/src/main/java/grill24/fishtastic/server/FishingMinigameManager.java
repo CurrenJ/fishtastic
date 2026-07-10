@@ -322,6 +322,8 @@ public class FishingMinigameManager {
                 ? FishProfile.TimeOfDay.NIGHT
                 : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
+        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
+        FishProfile.Elevation elevation = FishProfile.Elevation.fromY(hookPos.getY(), level.getSeaLevel());
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
@@ -363,7 +365,7 @@ public class FishingMinigameManager {
             List<ItemStack> rewardStacks;
             if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
-                        fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, charmEffect, numRewards);
+                        fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, qualityBias, baitEffect, charmEffect, numRewards);
             } else if (isTreasure) {
                 rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
             } else {
@@ -495,6 +497,8 @@ public class FishingMinigameManager {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
+            net.minecraft.world.level.MoonPhase moonPhase,
+            FishProfile.Elevation elevation,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect,
@@ -504,7 +508,7 @@ public class FishingMinigameManager {
         for (int n = 0; n < numRewards; n++) {
             ItemStack reward = FishtasticFishItem.sampleRandomFish(
                     randomSource, lootParams, fishPool,
-                    fishProfileRegistry, biome, timeOfDay, weather, qualityBias, baitEffect, charmEffect);
+                    fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, qualityBias, baitEffect, charmEffect);
             if (!reward.isEmpty()) rewardStacks.add(reward);
         }
         return rewardStacks;
