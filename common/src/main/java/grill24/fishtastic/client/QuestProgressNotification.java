@@ -65,6 +65,10 @@ public class QuestProgressNotification {
     private final String displayName;
     private final int targetCount;
     private final ItemStack targetItem;
+    // False for one-shot announcement banners (out-of-bait, first-catch) that have no
+    // meaningful progress/count to show — only real quests and the cleanup-goal milestone
+    // (which does track a real running total against a threshold) render the bar/badge.
+    private final boolean showProgress;
     private int panelWidth;
     private final int panelHeight;
     private final BackgroundVariant bgVariant;
@@ -85,12 +89,27 @@ public class QuestProgressNotification {
 
         // Resolve quest display name and target count
         Minecraft mc = Minecraft.getInstance();
-        String name = event.questId().equals(QuestProgressNotificationManager.CLEANUP_GOAL_MILESTONE_ID)
-                ? "Clean Up the Waters"
-                : event.questId().getPath(); // fallback
+        boolean isSyntheticBanner = true;
+        boolean showProgress = true;
+        String name;
+        if (event.questId().equals(QuestProgressNotificationManager.CLEANUP_GOAL_MILESTONE_ID)) {
+            name = "Clean Up the Waters";
+        } else if (event.questId().equals(QuestProgressNotificationManager.OUT_OF_BAIT_ID)) {
+            name = "Out of Bait!";
+            showProgress = false;
+        } else if (event.questId().getPath().startsWith(QuestProgressNotificationManager.FIRST_CATCH_ID_PREFIX)) {
+            name = event.triggeringItem().isEmpty()
+                    ? "New Encyclopedia Entry!"
+                    : event.triggeringItem().getHoverName().getString() + " Discovered!";
+            showProgress = false;
+        } else {
+            name = event.questId().getPath(); // fallback
+            isSyntheticBanner = false;
+        }
+        this.showProgress = showProgress;
         int tgt = event.targetCount();
         try {
-            if (mc.level != null) {
+            if (!isSyntheticBanner && mc.level != null) {
                 Registry<Quest> questRegistry = mc.level.registryAccess()
                         .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
                 ResourceKey<Quest> questKey = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, event.questId());
@@ -114,10 +133,10 @@ public class QuestProgressNotification {
         int countTextWidth = mc.font.width(countText);
         int barRowWidth = barWidth + BAR_COUNT_GAP + countTextWidth;
         int nameWidth = mc.font.width(name);
-        int completeWidth = event.completed() ? mc.font.width("Complete!") + 4 : 0;
+        int completeWidth = (event.completed() && showProgress) ? mc.font.width("Complete!") + 4 : 0;
         int textRowWidth = nameWidth + completeWidth;
         if (hasItem) textRowWidth += ITEM_SIZE + ITEM_TEXT_GAP;
-        int desiredWidth = PADDING + Math.max(textRowWidth, barRowWidth) + PADDING;
+        int desiredWidth = PADDING + (showProgress ? Math.max(textRowWidth, barRowWidth) : textRowWidth) + PADDING;
 
         // panelHeight is constant (independent of content), which fixes a single
         // uniform scale factor for the background art. Pick the narrowest background
@@ -125,7 +144,9 @@ public class QuestProgressNotification {
         // stretched unevenly on x vs y. Falls back to the largest variant (with a
         // small residual stretch) only if content is wider than every variant covers.
         int fontHeight = mc.font.lineHeight;
-        this.panelHeight = PADDING + fontHeight + ROW_SPACING + SpriteProgressBar.DEFAULT_HEIGHT + PADDING;
+        this.panelHeight = showProgress
+                ? PADDING + fontHeight + ROW_SPACING + SpriteProgressBar.DEFAULT_HEIGHT + PADDING
+                : PADDING + fontHeight + PADDING;
         float bgScale = (float) panelHeight / PANEL_BG_TEXTURE_CONTENT_HEIGHT;
 
         BackgroundVariant chosen = PANEL_BG_VARIANTS[PANEL_BG_VARIANTS.length - 1];
@@ -275,7 +296,7 @@ public class QuestProgressNotification {
         graphics.text(mc.font, displayName, textX, textY, 0xFFFFFFFF, false);
 
         // "Complete!" badge
-        if (event.completed()) {
+        if (event.completed() && showProgress) {
             float flashScale = 1.0f;
             if (completeFlashTimer < COMPLETE_FLASH_DURATION) {
                 float t = (float) completeFlashTimer / COMPLETE_FLASH_DURATION;
@@ -293,19 +314,20 @@ public class QuestProgressNotification {
             pose.popMatrix();
         }
 
-        // Progress bar
-        int barX = PADDING;
-        int barY = PADDING + fontHeight + ROW_SPACING;
-        progressBar.setPosition(new Vector2f(barX, barY));
-        progressBar.render(ctx, FULL_VIEWPORT);
+        // Progress bar + count label
+        if (showProgress) {
+            int barX = PADDING;
+            int barY = PADDING + fontHeight + ROW_SPACING;
+            progressBar.setPosition(new Vector2f(barX, barY));
+            progressBar.render(ctx, FULL_VIEWPORT);
 
-        // Count label
-        String countText = event.newCount() + " / " + targetCount;
-        int countColor = event.completed() ? 0xFFFFFFFF : 0xFFAAAAAA;
-        int barWidth = (int) progressBar.getSize().x;
-        int countX = barX + barWidth + BAR_COUNT_GAP;
-        int countY = barY + (barHeight - fontHeight) / 2;
-        graphics.text(mc.font, countText, countX, countY, countColor, false);
+            String countText = event.newCount() + " / " + targetCount;
+            int countColor = event.completed() ? 0xFFFFFFFF : 0xFFAAAAAA;
+            int barWidth = (int) progressBar.getSize().x;
+            int countX = barX + barWidth + BAR_COUNT_GAP;
+            int countY = barY + (barHeight - fontHeight) / 2;
+            graphics.text(mc.font, countText, countX, countY, countColor, false);
+        }
 
         pose.popMatrix();
     }

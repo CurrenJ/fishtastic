@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public record QuestSyncPacket(
@@ -21,7 +22,9 @@ public record QuestSyncPacket(
         Map<Identifier, ItemStack> triggeringItems,
         Map<Identifier, Integer> purchaseCounts,
         CleanupGoalProgress cleanupGoal,
-        long serverGameTime
+        long serverGameTime,
+        ItemStack baitDepletedItem,
+        List<ItemStack> firstCatchItems
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -41,6 +44,10 @@ public record QuestSyncPacket(
                     QuestSyncPacket::cleanupGoal,
                     ByteBufCodecs.VAR_LONG,
                     QuestSyncPacket::serverGameTime,
+                    ItemStack.OPTIONAL_STREAM_CODEC,
+                    QuestSyncPacket::baitDepletedItem,
+                    ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    QuestSyncPacket::firstCatchItems,
                     QuestSyncPacket::new
             );
 
@@ -66,13 +73,25 @@ public record QuestSyncPacket(
      */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
                                     Map<Identifier, ItemStack> triggeringItems, int milestoneReached) {
+        sendToPlayer(player, data, triggeringItems, milestoneReached, ItemStack.EMPTY, List.of());
+    }
+
+    /**
+     * Send a sync packet, optionally announcing a depleted bait stack and/or fish species
+     * caught for the first time (both drive one-shot HUD banners on the client — see
+     * QuestClientCache#update and QuestProgressNotificationManager#install).
+     */
+    public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
+                                    Map<Identifier, ItemStack> triggeringItems, int milestoneReached,
+                                    ItemStack baitDepletedItem, List<ItemStack> firstCatchItems) {
         PlayerQuestState state = data.getOrCreateQuestState(player);
         CleanupGoalProgress cleanupGoal = new CleanupGoalProgress(
                 data.getCleanupGoalTotal(), data.getCleanupGoalThreshold(), milestoneReached);
         long gameTime = ((ServerLevel) player.level()).getServer().overworld().getGameTime();
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
-                triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime);
+                triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
+                baitDepletedItem, firstCatchItems);
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

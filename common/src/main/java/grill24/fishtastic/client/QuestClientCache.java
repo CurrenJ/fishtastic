@@ -7,6 +7,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class QuestClientCache {
@@ -22,6 +23,8 @@ public class QuestClientCache {
     private static boolean isInitialSync = true;
     private static QuestProgressListener listener;
     private static CleanupGoalMilestoneListener milestoneListener;
+    private static BaitDepletedListener baitDepletedListener;
+    private static FirstCatchListener firstCatchListener;
 
     // Countdown extrapolation: the server's overworld game time as of the last sync, paired
     // with the client's own tick counter at that moment. Since both client and server tick at
@@ -41,6 +44,16 @@ public class QuestClientCache {
         void onMilestone(int milestoneReached, int threshold);
     }
 
+    @FunctionalInterface
+    public interface BaitDepletedListener {
+        void onBaitDepleted(ItemStack baitItem);
+    }
+
+    @FunctionalInterface
+    public interface FirstCatchListener {
+        void onFirstCatch(ItemStack fishItem);
+    }
+
     /** Register a listener for quest progress changes. Called once during client init. */
     public static void setListener(QuestProgressListener l) {
         listener = l;
@@ -49,6 +62,16 @@ public class QuestClientCache {
     /** Register a listener fired when the server announces a newly crossed cleanup-goal threshold. */
     public static void setMilestoneListener(CleanupGoalMilestoneListener l) {
         milestoneListener = l;
+    }
+
+    /** Register a listener fired when the server announces the rod's bait was just consumed to zero. */
+    public static void setBaitDepletedListener(BaitDepletedListener l) {
+        baitDepletedListener = l;
+    }
+
+    /** Register a listener fired once per fish species the server announces as newly caught. */
+    public static void setFirstCatchListener(FirstCatchListener l) {
+        firstCatchListener = l;
     }
 
     /**
@@ -61,14 +84,17 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
-        update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L);
+        update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L,
+                ItemStack.EMPTY, List.of());
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts,
                               CleanupGoalProgress newCleanupGoal,
-                              long serverGameTime) {
+                              long serverGameTime,
+                              ItemStack baitDepletedItem,
+                              List<ItemStack> firstCatchItems) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
             Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
@@ -90,6 +116,14 @@ public class QuestClientCache {
         if (!isInitialSync && milestoneListener != null && newCleanupGoal.milestoneReached() != 0) {
             milestoneListener.onMilestone(newCleanupGoal.milestoneReached(), newCleanupGoal.threshold());
         }
+        if (!isInitialSync && baitDepletedListener != null && !baitDepletedItem.isEmpty()) {
+            baitDepletedListener.onBaitDepleted(baitDepletedItem);
+        }
+        if (!isInitialSync && firstCatchListener != null) {
+            for (ItemStack fishItem : firstCatchItems) {
+                firstCatchListener.onFirstCatch(fishItem);
+            }
+        }
         isInitialSync = false;
 
         questProgress = new HashMap<>(progress);
@@ -104,12 +138,14 @@ public class QuestClientCache {
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
-        update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L);
+        update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L,
+                ItemStack.EMPTY, List.of());
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
-        update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L);
+        update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L,
+                ItemStack.EMPTY, List.of());
     }
 
     public static int getCleanupGoalTotal() {

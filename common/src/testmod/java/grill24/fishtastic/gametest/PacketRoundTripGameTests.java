@@ -142,8 +142,12 @@ public final class PacketRoundTripGameTests {
         Map<Identifier, Integer> purchaseCounts = new HashMap<>();
         purchaseCounts.put(Identifier.fromNamespaceAndPath("fishtastic", "shop_entry_x"), 2);
 
+        ItemStack baitStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 1);
+        List<ItemStack> firstCatchItems = List.of(new ItemStack(FishtasticItems.BLUEGILL.value(), 1));
+
         QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
-                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0), 12345L);
+                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0), 12345L,
+                baitStack, firstCatchItems);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -164,6 +168,11 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.serverGameTime() == original.serverGameTime(),
             "serverGameTime must round-trip, expected " + original.serverGameTime() + " got " + decoded.serverGameTime());
 
+        assertStacksMatch(helper, baitStack, decoded.baitDepletedItem(), "baitDepletedItem");
+
+        helper.assertTrue(decoded.firstCatchItems().size() == 1, "firstCatchItems list size must round-trip");
+        assertStacksMatch(helper, firstCatchItems.get(0), decoded.firstCatchItems().get(0), "firstCatchItems[0]");
+
         helper.succeed();
     }
 
@@ -175,7 +184,8 @@ public final class PacketRoundTripGameTests {
     public static void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
         QuestSyncPacket original = new QuestSyncPacket(
             Map.of(), 0, Map.of(), Map.of(),
-            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400), 0L);
+            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400), 0L,
+            ItemStack.EMPTY, List.of());
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);

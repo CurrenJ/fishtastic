@@ -16,6 +16,7 @@ import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
+import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -24,15 +25,21 @@ import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -222,6 +229,7 @@ public class FishingMinigameManager {
 
         List<ItemStack> rewards = new ArrayList<>();
         List<ItemStack> questStacks = new ArrayList<>();
+        List<ItemStack> firstCatchItems = new ArrayList<>();
         int trashCaught = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
@@ -231,7 +239,9 @@ public class FishingMinigameManager {
                 for (ItemStack rewardStack : target.rewardStacks()) {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
-                        catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward);
+                        if (catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward)) {
+                            firstCatchItems.add(reward.copy());
+                        }
                         questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
                         // Snapshot count/tag before inventory.add() mutates reward down to its leftover
                         // (usually 0) — reading these after the call under-counts trash almost every time.
@@ -268,9 +278,17 @@ public class FishingMinigameManager {
 
         TutorialManager.onMinigameComplete(player);
 
+        ItemStack baitDepletedItem = ItemStack.EMPTY;
         if (!rewards.isEmpty()) {
-            consumeBait(player);
+            baitDepletedItem = consumeBait(player);
             damageUpgrades(player);
+        }
+
+        // Extra lightweight sync just for the one-shot banners above — QuestTracker's own
+        // sync (if it fired) predates bait consumption/first-catch detection, so it can't
+        // carry these fields.
+        if (!baitDepletedItem.isEmpty() || !firstCatchItems.isEmpty()) {
+            QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, firstCatchItems);
         }
 
         activeSessions.remove(playerId);
@@ -524,14 +542,16 @@ public class FishingMinigameManager {
         return ItemStack.EMPTY;
     }
 
-    private static void consumeBait(ServerPlayer player) {
+    /** @return a single copy of the bait item if this consumption emptied the stack, else EMPTY. */
+    private static ItemStack consumeBait(ServerPlayer player) {
         ItemStack rod = findCopperRod(player);
-        if (rod.isEmpty()) return;
+        if (rod.isEmpty()) return ItemStack.EMPTY;
         ItemStack bait = CopperFishingRod.getBait(rod);
-        if (!bait.isEmpty()) {
-            bait.shrink(1);
-            CopperFishingRod.setBait(rod, bait);
-        }
+        if (bait.isEmpty()) return ItemStack.EMPTY;
+        ItemStack depletedIcon = bait.getCount() == 1 ? bait.copyWithCount(1) : ItemStack.EMPTY;
+        bait.shrink(1);
+        CopperFishingRod.setBait(rod, bait);
+        return depletedIcon;
     }
 
     private static void damageUpgrades(ServerPlayer player) {
@@ -541,14 +561,34 @@ public class FishingMinigameManager {
         ItemStack hook = CopperFishingRod.getHook(rod);
         if (!hook.isEmpty()) {
             hook.setDamageValue(hook.getDamageValue() + 1);
-            CopperFishingRod.setHook(rod, hook.getDamageValue() >= hook.getMaxDamage() ? ItemStack.EMPTY : hook);
+            boolean broken = hook.getDamageValue() >= hook.getMaxDamage();
+            if (broken) playBreakEffect(player, hook);
+            CopperFishingRod.setHook(rod, broken ? ItemStack.EMPTY : hook);
         }
 
         ItemStack charm = CopperFishingRod.getCharm(rod);
         if (!charm.isEmpty()) {
             charm.setDamageValue(charm.getDamageValue() + 1);
-            CopperFishingRod.setCharm(rod, charm.getDamageValue() >= charm.getMaxDamage() ? ItemStack.EMPTY : charm);
+            boolean broken = charm.getDamageValue() >= charm.getMaxDamage();
+            if (broken) playBreakEffect(player, charm);
+            CopperFishingRod.setCharm(rod, broken ? ItemStack.EMPTY : charm);
         }
+    }
+
+    /**
+     * Plays the vanilla tool-break sound and item particles at the player's position,
+     * mirroring {@code LivingEntity#breakItem} — used when a hook or charm's durability
+     * (tracked as an ItemStack sub-component on the rod, not equipment) is exhausted.
+     */
+    private static void playBreakEffect(ServerPlayer player, ItemStack stack) {
+        ServerLevel serverLevel = (ServerLevel) player.level();
+        Holder<SoundEvent> breakSound = stack.get(DataComponents.BREAK_SOUND);
+        if (breakSound != null) {
+            serverLevel.playSound(null, player.blockPosition(), breakSound.value(), SoundSource.PLAYERS,
+                    0.8F, 0.8F + serverLevel.getRandom().nextFloat() * 0.4F);
+        }
+        serverLevel.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, ItemStackTemplate.fromNonEmptyStack(stack)),
+                player.getX(), player.getEyeY() - 0.3, player.getZ(), 5, 0.15, 0.1, 0.15, 0.05);
     }
 
     private void sendToPlayer(ServerPlayer player, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {

@@ -214,11 +214,12 @@ public class FishCatchSavedData extends SavedData {
     // Recording API
     // -------------------------------------------------------------------------
 
-    public void recordCatch(UUID playerUuid, String playerName, ItemStack stack) {
-        if (stack.isEmpty() || !stack.is(ItemTags.FISHES)) return;
+    /** @return true if this was the player's first-ever catch of this fish species. */
+    public boolean recordCatch(UUID playerUuid, String playerName, ItemStack stack) {
+        if (stack.isEmpty() || !stack.is(ItemTags.FISHES)) return false;
 
         float size = ItemSizeHelper.getSize(stack);
-        if (size <= 0f) return;
+        if (size <= 0f) return false;
 
         FishQuality.Quality quality = FishQualityHelper.getQuality(stack);
         if (quality == null) quality = FishQuality.Quality.COMMON;
@@ -226,13 +227,15 @@ public class FishCatchSavedData extends SavedData {
         Identifier fishType = stack.getItem().builtInRegistryHolder().unwrapKey()
                 .map(k -> k.identifier())
                 .orElse(null);
-        if (fishType == null) return;
+        if (fishType == null) return false;
 
         PlayerCatchData data = playerData.computeIfAbsent(playerUuid,
                 id -> new PlayerCatchData(id, playerName));
         data.lastKnownName = playerName;
+        boolean isFirstCatch = !data.perFish.containsKey(fishType);
         data.record(fishType, size, quality);
         setDirty();
+        return isFirstCatch;
     }
 
     // -------------------------------------------------------------------------

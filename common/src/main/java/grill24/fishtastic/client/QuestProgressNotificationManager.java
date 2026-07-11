@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
@@ -38,6 +39,17 @@ public class QuestProgressNotificationManager {
     /** Synthetic "quest" id used to drive the global cleanup-goal milestone banner through this pipeline. */
     public static final Identifier CLEANUP_GOAL_MILESTONE_ID = Fishtastic.id("cleanup_goal");
 
+    /** Synthetic "quest" id used to drive the out-of-bait banner through this pipeline. */
+    public static final Identifier OUT_OF_BAIT_ID = Fishtastic.id("out_of_bait");
+
+    /**
+     * Prefix for synthetic "quest" ids driving first-catch banners, one per fish species
+     * (rather than a single shared id) so catching several new species in one session
+     * queues a separate banner for each instead of the later ones clobbering the earlier
+     * pending entry — see the same-id replace/update-in-place logic in {@link #enqueue}.
+     */
+    public static final String FIRST_CATCH_ID_PREFIX = "first_catch/";
+
     /** Wire the QuestClientCache listener so progress events feed into this manager. */
     public void install() {
         if (installed) return;
@@ -48,6 +60,13 @@ public class QuestProgressNotificationManager {
         QuestClientCache.setMilestoneListener((milestoneReached, threshold) -> {
             ItemStack icon = new ItemStack(FishtasticItems.OLD_TIRE.value());
             enqueue(new QuestProgressEvent(CLEANUP_GOAL_MILESTONE_ID, 0, threshold, threshold, true, icon));
+        });
+        QuestClientCache.setBaitDepletedListener(baitItem ->
+                enqueue(new QuestProgressEvent(OUT_OF_BAIT_ID, 0, 1, 1, true, baitItem)));
+        QuestClientCache.setFirstCatchListener(fishItem -> {
+            Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
+            enqueue(new QuestProgressEvent(Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath()),
+                    0, 1, 1, true, fishItem));
         });
     }
 

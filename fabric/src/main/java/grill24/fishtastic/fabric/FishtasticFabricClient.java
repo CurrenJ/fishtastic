@@ -95,7 +95,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
-                        packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime()));
+                        packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
+                        packet.baitDepletedItem(), packet.firstCatchItems()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
