@@ -29,6 +29,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.GARDEN_EEL.value());
                     output.accept(FishtasticItems.GIANT_MANTA_RAY.value());
                     output.accept(FishtasticItems.GLASS_SQUID.value());
+                    output.accept(FishtasticItems.GREENSTRIPE_BARB.value());
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.LEAFY_SEA_DRAGON.value());
                     output.accept(FishtasticItems.LIZARDFISH.value());
@@ -45,6 +46,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.SHRIMP.value());
                     output.accept(FishtasticItems.STARFISH.value());
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
+                    output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
                     output.accept(FishtasticItems.WORMS.value());
                     output.accept(FishtasticItems.FRESHWATER_BAIT.value());
                     output.accept(FishtasticItems.OCEAN_BAIT.value());

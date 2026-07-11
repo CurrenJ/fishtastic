@@ -46,9 +46,11 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.STARFISH.value())
                 .add(FishtasticItems.SHRIMP.value())
                 .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.GREENSTRIPE_BARB.value())
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
                 .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
-                .add(FishtasticItems.WILLANS_CHROMODORIS.value());
+                .add(FishtasticItems.WILLANS_CHROMODORIS.value())
+                .add(FishtasticItems.YELLOWLINE_GOBY.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)

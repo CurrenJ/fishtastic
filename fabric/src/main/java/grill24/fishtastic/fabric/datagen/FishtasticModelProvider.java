@@ -98,6 +98,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.GARDEN_EEL.value(), "garden_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GIANT_MANTA_RAY.value(), "giant_manta_ray");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GLASS_SQUID.value(), "glass_squid");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GREENSTRIPE_BARB.value(), "greenstripe_barb");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GUMMY_WORMS.value(), "gummy_worms");
         generateFishItemModel(itemModelGenerators, FishtasticItems.LEAFY_SEA_DRAGON.value(), "leafy_sea_dragon");
         generateFishItemModel(itemModelGenerators, FishtasticItems.LIZARDFISH.value(), "lizardfish");
@@ -114,6 +115,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.SHRIMP.value(), "shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WILLANS_CHROMODORIS.value(), "willans_chromodoris");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.YELLOWLINE_GOBY.value(), "yellowline_goby");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");
 
         // ----- Trash items (textures in item/fish/ subdirectory) -----
