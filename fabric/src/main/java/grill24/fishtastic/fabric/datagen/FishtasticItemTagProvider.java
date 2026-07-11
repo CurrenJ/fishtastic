@@ -50,7 +50,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
                 .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
                 .add(FishtasticItems.WILLANS_CHROMODORIS.value())
-                .add(FishtasticItems.YELLOWLINE_GOBY.value());
+                .add(FishtasticItems.YELLOWLINE_GOBY.value())
+                .add(FishtasticItems.TRAPANIA_SCURRA.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)

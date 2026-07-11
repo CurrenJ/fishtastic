@@ -114,6 +114,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.ROYAL_GARDEN_EEL.value(), "royal_garden_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.SHRIMP.value(), "shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.TRAPANIA_SCURRA.value(), "trapania_scurra");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WILLANS_CHROMODORIS.value(), "willans_chromodoris");
         generateFishItemModel(itemModelGenerators, FishtasticItems.YELLOWLINE_GOBY.value(), "yellowline_goby");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");

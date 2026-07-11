@@ -136,6 +136,7 @@ public class FishtasticItems {
     public static Holder<Item> ROYAL_GARDEN_EEL;
     public static Holder<Item> SHRIMP;
     public static Holder<Item> STARFISH;
+    public static Holder<Item> TRAPANIA_SCURRA;
     public static Holder<Item> WILLANS_CHROMODORIS;
     public static Holder<Item> YELLOWLINE_GOBY;
 
@@ -179,6 +180,7 @@ public class FishtasticItems {
         ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> new FishtasticFishItem(props(loc)));
         SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> new FishtasticFishItem(props(loc)));
         STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFishItem(props(loc)));
+        TRAPANIA_SCURRA = RegistrationApiSided.getInstance().registerItem("trapania_scurra", loc -> new FishtasticFishItem(props(loc)));
         WILLANS_CHROMODORIS = RegistrationApiSided.getInstance().registerItem("willans_chromodoris", loc -> new FishtasticFishItem(props(loc)));
         YELLOWLINE_GOBY = RegistrationApiSided.getInstance().registerItem("yellowline_goby", loc -> new FishtasticFishItem(props(loc)));
 

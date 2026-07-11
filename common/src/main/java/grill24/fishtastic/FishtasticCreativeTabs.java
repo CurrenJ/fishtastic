@@ -45,6 +45,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ROYAL_GARDEN_EEL.value());
                     output.accept(FishtasticItems.SHRIMP.value());
                     output.accept(FishtasticItems.STARFISH.value());
+                    output.accept(FishtasticItems.TRAPANIA_SCURRA.value());
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
                     output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
                     output.accept(FishtasticItems.WORMS.value());
