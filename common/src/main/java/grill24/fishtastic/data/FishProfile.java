@@ -169,8 +169,12 @@ public record FishProfile(
             if (ww.weather() == weather) { multiplier *= ww.multiplier(); break; }
         }
 
-        for (MoonWeight mw : moonWeights) {
-            if (mw.phase() == moonPhase) { multiplier *= mw.multiplier(); break; }
+        // Moon phase is only visible at night under clear skies — rain/snow/thunder clouds
+        // and daylight both hide it, so moon weights shouldn't apply outside that window.
+        if (timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR) {
+            for (MoonWeight mw : moonWeights) {
+                if (mw.phase() == moonPhase) { multiplier *= mw.multiplier(); break; }
+            }
         }
 
         for (ElevationWeight ew : elevationWeights) {

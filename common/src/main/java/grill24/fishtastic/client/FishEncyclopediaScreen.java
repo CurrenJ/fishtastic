@@ -2,9 +2,13 @@ package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.util.Utility;
@@ -561,7 +565,36 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static boolean isTimeWeightMet(FishProfile.TimeWeight tw) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return false;
-        return FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime()) == tw.time();
+        return getEffectiveTimeOfDay(mc) == tw.time();
+    }
+
+    /**
+     * Time of day used for spawn-condition evaluation, accounting for charm overrides
+     * (e.g. luna charm forcing night) the same way {@link FishingMinigameManager} does.
+     */
+    private static FishProfile.TimeOfDay getEffectiveTimeOfDay(Minecraft mc) {
+        CharmEffect charmEffect = getEquippedCharmEffect();
+        return (charmEffect != null && charmEffect.forceNightFishing())
+                ? FishProfile.TimeOfDay.NIGHT
+                : FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
+    }
+
+    /**
+     * Charm equipped in the player's held fishing rod's charm slot, if any — mirrors the
+     * rod lookup in {@link FishingMinigameClientHandler} so pips reflect the same charm
+     * overrides (e.g. luna charm forcing night) that the server minigame applies.
+     */
+    private static CharmEffect getEquippedCharmEffect() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return null;
+        ItemStack rod = mc.player.getMainHandItem();
+        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+            rod = mc.player.getOffhandItem();
+        }
+        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) return null;
+        ItemStack charm = CopperFishingRod.getCharm(rod);
+        if (charm.isEmpty()) return null;
+        return charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
     }
 
     private static boolean isWeatherWeightMet(FishProfile.WeatherWeight ww) {
@@ -573,6 +606,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static boolean isMoonWeightMet(FishProfile.MoonWeight mw) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return false;
+        // Moon is only visible at night under clear skies — mirrors the same gate applied
+        // in FishProfile.computeEnvironmentMultiplier.
+        boolean isNight = getEffectiveTimeOfDay(mc) == FishProfile.TimeOfDay.NIGHT;
+        boolean isClear = FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == FishProfile.WeatherCondition.CLEAR;
+        if (!isNight || !isClear) return false;
         return mc.level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, mc.player.blockPosition()) == mw.phase();
     }
 
