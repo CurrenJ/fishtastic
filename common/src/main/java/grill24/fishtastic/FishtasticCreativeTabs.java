@@ -42,6 +42,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.PARROTFISH.value());
                     output.accept(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
                     output.accept(FishtasticItems.RAINFORDIA.value());
+                    output.accept(FishtasticItems.RED_BELLIED_PIRAHNA.value());
                     output.accept(FishtasticItems.ROYAL_GARDEN_EEL.value());
                     output.accept(FishtasticItems.SHRIMP.value());
                     output.accept(FishtasticItems.STARFISH.value());
