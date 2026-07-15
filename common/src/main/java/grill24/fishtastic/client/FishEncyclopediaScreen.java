@@ -46,6 +46,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -512,53 +514,76 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildSpawnConditionsContent(FishProfile profile) {
         spawnConditionPipUpdaters.clear();
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        for (FishProfile.BiomeWeight bw : profile.biomeWeights()) {
-            content.addChild(buildSpawnConditionRow(
-                    Utility.prettyName(bw.biome().location().getPath()) + ": x" + bw.multiplier(),
-                    () -> isBiomeWeightMet(bw)));
-        }
-        for (FishProfile.TimeWeight tw : profile.timeWeights()) {
-            content.addChild(buildSpawnConditionRow(
-                    Utility.prettyName(tw.time().name()) + ": x" + tw.multiplier(),
-                    () -> isTimeWeightMet(tw)));
-        }
-        for (FishProfile.WeatherWeight ww : profile.weatherWeights()) {
-            content.addChild(buildSpawnConditionRow(
-                    Utility.prettyName(ww.weather().name()) + ": x" + ww.multiplier(),
-                    () -> isWeatherWeightMet(ww)));
-        }
-        for (FishProfile.MoonWeight mw : profile.moonWeights()) {
-            content.addChild(buildSpawnConditionRow(
-                    Utility.prettyName(mw.phase().name()) + ": x" + mw.multiplier(),
-                    () -> isMoonWeightMet(mw)));
-        }
-        for (FishProfile.ElevationWeight ew : profile.elevationWeights()) {
-            content.addChild(buildSpawnConditionRow(
-                    Utility.prettyName(ew.band().name()) + ": x" + ew.multiplier(),
-                    () -> isElevationWeightMet(ew)));
-        }
-        if (profile.biomeWeights().isEmpty() && profile.timeWeights().isEmpty() && profile.weatherWeights().isEmpty()
-                && profile.moonWeights().isEmpty() && profile.elevationWeights().isEmpty()) {
+        boolean any = false;
+        any |= addAxisRows(content, profile.biomeWeights(), FishProfile.BiomeWeight::tier, FishProfile.BiomeWeight::multiplier,
+                bw -> Utility.prettyName(bw.biome().location().getPath()), FishEncyclopediaScreen::isBiomeWeightMet);
+        any |= addAxisRows(content, profile.timeWeights(), FishProfile.TimeWeight::tier, FishProfile.TimeWeight::multiplier,
+                tw -> Utility.prettyName(tw.time().name()), FishEncyclopediaScreen::isTimeWeightMet);
+        any |= addAxisRows(content, profile.weatherWeights(), FishProfile.WeatherWeight::tier, FishProfile.WeatherWeight::multiplier,
+                ww -> Utility.prettyName(ww.weather().name()), FishEncyclopediaScreen::isWeatherWeightMet);
+        any |= addAxisRows(content, profile.moonWeights(), FishProfile.MoonWeight::tier, FishProfile.MoonWeight::multiplier,
+                mw -> Utility.prettyName(mw.phase().name()), FishEncyclopediaScreen::isMoonWeightMet);
+        any |= addAxisRows(content, profile.elevationWeights(), FishProfile.ElevationWeight::tier, FishProfile.ElevationWeight::multiplier,
+                ew -> Utility.prettyName(ew.band().name()), FishEncyclopediaScreen::isElevationWeightMet);
+        if (!any) {
             content.addChild(label("No special conditions.", 0xFF888888));
         }
         return content;
     }
 
     /**
-     * Builds a single spawn condition row: a status pip (lit green while the condition
-     * currently holds for the client player, dim otherwise) followed by its label text.
-     * Registers a live-update callback in {@link #spawnConditionPipUpdaters} so the pip
-     * tracks {@code metCheck} every tick — see {@link #containerTick}.
+     * Adds one row per tier present in {@code weights} for a single axis (biome/time/weather/
+     * moon/elevation), merging same-tier entries onto a single row — e.g. two PRIMARY biome
+     * entries ("Jungle x2.0", "River x1.5") share one row instead of two. Each entry still gets
+     * its own status pip within that row (rather than one shared pip for the whole row), since
+     * with multiple mutually-exclusive options only one can be active at a time and a single
+     * pip can't say which. PRIMARY entries are labelled with their multiplier ("xN.N"),
+     * SECONDARY entries with their flat bonus ("+N%"). Returns whether any row was added (used
+     * to detect an entirely condition-free profile).
      */
-    private HBox buildSpawnConditionRow(String text, BooleanSupplier metCheck) {
-        SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
-                .texture(new SpriteData(metCheck.getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
-        spawnConditionPipUpdaters.add(() ->
-                pip.texture(new SpriteData(metCheck.getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE)));
+    private <T> boolean addAxisRows(VBox content, List<T> weights, Function<T, FishProfile.ConditionTier> tierGetter,
+                                     Function<T, Float> multiplierGetter, Function<T, String> nameGetter, Predicate<T> metCheck) {
+        if (weights.isEmpty()) return false;
+        for (FishProfile.ConditionTier tier : FishProfile.ConditionTier.values()) {
+            List<T> group = weights.stream().filter(w -> tierGetter.apply(w) == tier).toList();
+            if (group.isEmpty()) continue;
+            List<ConditionSegment> segments = group.stream()
+                    .map(w -> new ConditionSegment(
+                            nameGetter.apply(w) + " (" + formatMultiplier(tier, multiplierGetter.apply(w)) + ")",
+                            () -> metCheck.test(w)))
+                    .toList();
+            content.addChild(buildSpawnConditionRow(segments));
+        }
+        return true;
+    }
 
+    private static String formatMultiplier(FishProfile.ConditionTier tier, float multiplier) {
+        return tier == FishProfile.ConditionTier.SECONDARY
+                ? String.format("+%.0f%%", (multiplier - 1.0f) * 100.0f)
+                : "x" + multiplier;
+    }
+
+    private record ConditionSegment(String text, BooleanSupplier metCheck) {}
+
+    /**
+     * Builds a single spawn condition row from one or more segments, each rendered as its own
+     * status pip (lit green while that segment's condition currently holds for the client
+     * player, dim otherwise) followed by its label text. Registers a live-update callback per
+     * pip in {@link #spawnConditionPipUpdaters} so it tracks its segment every tick — see
+     * {@link #containerTick}.
+     */
+    private HBox buildSpawnConditionRow(List<ConditionSegment> segments) {
         HBox row = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        row.addChild(pip);
-        row.addChild(label(text, 0xFFCCCCCC));
+        for (int i = 0; i < segments.size(); i++) {
+            if (i > 0) row.addChild(label(",", 0xFFCCCCCC));
+            ConditionSegment segment = segments.get(i);
+            SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
+                    .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
+            spawnConditionPipUpdaters.add(() ->
+                    pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE)));
+            row.addChild(pip);
+            row.addChild(label(segment.text(), 0xFFCCCCCC));
+        }
         return row;
     }
 

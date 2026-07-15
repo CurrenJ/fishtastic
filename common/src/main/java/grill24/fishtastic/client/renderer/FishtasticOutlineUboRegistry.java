@@ -21,7 +21,6 @@ import java.util.Map;
  * {@link grill24.fishtastic.mixin.GuiRendererExecuteDrawMixin} to bind the right buffer
  * just before each outline draw executes.
  */
-@Environment(EnvType.CLIENT)
 public final class FishtasticOutlineUboRegistry {
 
     private record Entry(String uboName, GpuBuffer buffer) {}

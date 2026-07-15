@@ -16,6 +16,9 @@ import net.minecraft.world.level.biome.Biome;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 public record FishProfile(
         int baseWeight,
@@ -94,24 +97,43 @@ public record FishProfile(
         }
     }
 
-    public record BiomeWeight(TagKey<Biome> biome, float multiplier) {
+    /**
+     * Primary conditions multiply into the weight as before (the "combo hunting" play).
+     * Secondary conditions add a flat percentage instead, so stacking many flavor
+     * conditions nudges the weight rather than compounding into absurd totals.
+     */
+    public enum ConditionTier implements StringRepresentable {
+        PRIMARY, SECONDARY;
+
+        public static final Codec<ConditionTier> CODEC = StringRepresentable.fromEnum(ConditionTier::values);
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    public record BiomeWeight(TagKey<Biome> biome, float multiplier, ConditionTier tier) {
         public static final Codec<BiomeWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
                 TagKey.codec(Registries.BIOME).fieldOf("biome").forGetter(BiomeWeight::biome),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(BiomeWeight::multiplier)
+                Codec.FLOAT.fieldOf("multiplier").forGetter(BiomeWeight::multiplier),
+                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(BiomeWeight::tier)
         ).apply(i, BiomeWeight::new));
     }
 
-    public record TimeWeight(TimeOfDay time, float multiplier) {
+    public record TimeWeight(TimeOfDay time, float multiplier, ConditionTier tier) {
         public static final Codec<TimeWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
                 TimeOfDay.CODEC.fieldOf("time").forGetter(TimeWeight::time),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(TimeWeight::multiplier)
+                Codec.FLOAT.fieldOf("multiplier").forGetter(TimeWeight::multiplier),
+                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(TimeWeight::tier)
         ).apply(i, TimeWeight::new));
     }
 
-    public record WeatherWeight(WeatherCondition weather, float multiplier) {
+    public record WeatherWeight(WeatherCondition weather, float multiplier, ConditionTier tier) {
         public static final Codec<WeatherWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
                 WeatherCondition.CODEC.fieldOf("weather").forGetter(WeatherWeight::weather),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(WeatherWeight::multiplier)
+                Codec.FLOAT.fieldOf("multiplier").forGetter(WeatherWeight::multiplier),
+                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(WeatherWeight::tier)
         ).apply(i, WeatherWeight::new));
     }
 
@@ -136,51 +158,63 @@ public record FishProfile(
         }
     }
 
-    public record MoonWeight(MoonPhase phase, float multiplier) {
+    public record MoonWeight(MoonPhase phase, float multiplier, ConditionTier tier) {
         public static final Codec<MoonWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
                 MoonPhase.CODEC.fieldOf("phase").forGetter(MoonWeight::phase),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(MoonWeight::multiplier)
+                Codec.FLOAT.fieldOf("multiplier").forGetter(MoonWeight::multiplier),
+                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(MoonWeight::tier)
         ).apply(i, MoonWeight::new));
     }
 
-    public record ElevationWeight(Elevation band, float multiplier) {
+    public record ElevationWeight(Elevation band, float multiplier, ConditionTier tier) {
         public static final Codec<ElevationWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Elevation.CODEC.fieldOf("band").forGetter(ElevationWeight::band),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(ElevationWeight::multiplier)
+                Codec.FLOAT.fieldOf("multiplier").forGetter(ElevationWeight::multiplier),
+                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(ElevationWeight::tier)
         ).apply(i, ElevationWeight::new));
     }
 
     /**
      * Computes the weight multiplier for this fish given current environmental conditions.
+     * Each axis contributes at most one matching entry per tier: PRIMARY entries multiply
+     * together (the "combo hunting" play), SECONDARY entries add flat percentages so that
+     * stacking several flavor conditions nudges the weight instead of compounding it.
      */
     public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather,
                                                MoonPhase moonPhase, Elevation elevation) {
-        float multiplier = 1.0f;
+        boolean moonVisible = timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR;
 
-        for (BiomeWeight bw : biomeWeights) {
-            if (biome.is(bw.biome())) multiplier *= bw.multiplier();
+        float primaryProduct = 1.0f;
+        primaryProduct *= firstMatch(biomeWeights, ConditionTier.PRIMARY, BiomeWeight::tier, bw -> biome.is(bw.biome()), BiomeWeight::multiplier);
+        primaryProduct *= firstMatch(timeWeights, ConditionTier.PRIMARY, TimeWeight::tier, tw -> tw.time() == timeOfDay, TimeWeight::multiplier);
+        primaryProduct *= firstMatch(weatherWeights, ConditionTier.PRIMARY, WeatherWeight::tier, ww -> ww.weather() == weather, WeatherWeight::multiplier);
+        if (moonVisible) {
+            primaryProduct *= firstMatch(moonWeights, ConditionTier.PRIMARY, MoonWeight::tier, mw -> mw.phase() == moonPhase, MoonWeight::multiplier);
         }
+        primaryProduct *= firstMatch(elevationWeights, ConditionTier.PRIMARY, ElevationWeight::tier, ew -> ew.band() == elevation, ElevationWeight::multiplier);
 
-        for (TimeWeight tw : timeWeights) {
-            if (tw.time() == timeOfDay) { multiplier *= tw.multiplier(); break; }
+        float secondaryBonus = 0.0f;
+        secondaryBonus += firstMatch(biomeWeights, ConditionTier.SECONDARY, BiomeWeight::tier, bw -> biome.is(bw.biome()), BiomeWeight::multiplier) - 1.0f;
+        secondaryBonus += firstMatch(timeWeights, ConditionTier.SECONDARY, TimeWeight::tier, tw -> tw.time() == timeOfDay, TimeWeight::multiplier) - 1.0f;
+        secondaryBonus += firstMatch(weatherWeights, ConditionTier.SECONDARY, WeatherWeight::tier, ww -> ww.weather() == weather, WeatherWeight::multiplier) - 1.0f;
+        if (moonVisible) {
+            secondaryBonus += firstMatch(moonWeights, ConditionTier.SECONDARY, MoonWeight::tier, mw -> mw.phase() == moonPhase, MoonWeight::multiplier) - 1.0f;
         }
+        secondaryBonus += firstMatch(elevationWeights, ConditionTier.SECONDARY, ElevationWeight::tier, ew -> ew.band() == elevation, ElevationWeight::multiplier) - 1.0f;
 
-        for (WeatherWeight ww : weatherWeights) {
-            if (ww.weather() == weather) { multiplier *= ww.multiplier(); break; }
+        return primaryProduct * (1.0f + secondaryBonus);
+    }
+
+    /**
+     * Finds the first entry of the given tier matching {@code condition} and returns its
+     * multiplier, or {@code 1.0} if none match. Only one entry per axis+tier ever applies —
+     * entries aren't meant to stack against each other within the same tier.
+     */
+    private static <T> float firstMatch(List<T> weights, ConditionTier tier, Function<T, ConditionTier> tierGetter,
+                                         Predicate<T> condition, ToDoubleFunction<T> multiplier) {
+        for (T w : weights) {
+            if (tierGetter.apply(w) == tier && condition.test(w)) return (float) multiplier.applyAsDouble(w);
         }
-
-        // Moon phase is only visible at night under clear skies — rain/snow/thunder clouds
-        // and daylight both hide it, so moon weights shouldn't apply outside that window.
-        if (timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR) {
-            for (MoonWeight mw : moonWeights) {
-                if (mw.phase() == moonPhase) { multiplier *= mw.multiplier(); break; }
-            }
-        }
-
-        for (ElevationWeight ew : elevationWeights) {
-            if (ew.band() == elevation) { multiplier *= ew.multiplier(); break; }
-        }
-
-        return multiplier;
+        return 1.0f;
     }
 }
