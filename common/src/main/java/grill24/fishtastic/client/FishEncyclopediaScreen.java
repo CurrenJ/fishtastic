@@ -208,8 +208,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
                 ResourceKey<FishProfile> fishKey = entry.getKey();
                 Item item = BuiltInRegistries.ITEM.getOptional(fishKey.identifier()).orElse(Items.COD);
+                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0;
+
+                // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
+                // they're absent from the disc entirely until the player has caught one.
+                if (!caught && item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH)) continue;
+
                 SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
-                icon.setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) <= 0);
+                icon.setSilhouette(!caught);
                 iconItems.add(Map.entry(fishKey, icon));
                 iconRefs.put(fishKey, icon);
             }

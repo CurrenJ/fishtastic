@@ -11,7 +11,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class PlayerQuestState {
@@ -22,12 +24,19 @@ public class PlayerQuestState {
     private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
     private long lastPurchaseResetDay = -1;
 
-    public record QuestProgress(int currentCount, long lastResetGameDay, boolean completed, boolean claimed) {
+    /**
+     * {@code caughtSpecies} is only populated for "distinct species" objectives (e.g. the
+     * completionist quests) — it tracks which species have already been credited so repeat
+     * catches of the same species don't inflate {@code currentCount} further.
+     */
+    public record QuestProgress(int currentCount, long lastResetGameDay, boolean completed, boolean claimed,
+                                 List<Identifier> caughtSpecies) {
         public static final Codec<QuestProgress> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("count").forGetter(QuestProgress::currentCount),
                 Codec.LONG.fieldOf("last_reset_day").forGetter(QuestProgress::lastResetGameDay),
                 Codec.BOOL.fieldOf("completed").forGetter(QuestProgress::completed),
-                Codec.BOOL.fieldOf("claimed").forGetter(QuestProgress::claimed)
+                Codec.BOOL.fieldOf("claimed").forGetter(QuestProgress::claimed),
+                Codec.list(Identifier.CODEC).optionalFieldOf("caught_species", List.of()).forGetter(QuestProgress::caughtSpecies)
         ).apply(i, QuestProgress::new));
 
         public static final StreamCodec<ByteBuf, QuestProgress> STREAM_CODEC = StreamCodec.composite(
@@ -35,6 +44,7 @@ public class PlayerQuestState {
                 ByteBufCodecs.VAR_LONG, QuestProgress::lastResetGameDay,
                 ByteBufCodecs.BOOL, QuestProgress::completed,
                 ByteBufCodecs.BOOL, QuestProgress::claimed,
+                ByteBufCodecs.collection(ArrayList::new, Identifier.STREAM_CODEC), QuestProgress::caughtSpecies,
                 QuestProgress::new
         );
     }
@@ -66,7 +76,7 @@ public class PlayerQuestState {
     }));
 
     public QuestProgress getProgress(ResourceKey<Quest> questId) {
-        return progress.getOrDefault(questId, new QuestProgress(0, -1, false, false));
+        return progress.getOrDefault(questId, new QuestProgress(0, -1, false, false, List.of()));
     }
 
     public void incrementCount(ResourceKey<Quest> questId, Quest quest, long currentDay) {
@@ -76,7 +86,22 @@ public class PlayerQuestState {
         // If this quest has never been reset before, anchor it to the current day
         // so that resetDailyIfNeeded won't wipe the progress on the next server start.
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
-        progress.put(questId, new QuestProgress(newCount, lastReset, completed, existing.claimed()));
+        progress.put(questId, new QuestProgress(newCount, lastReset, completed, existing.claimed(), existing.caughtSpecies()));
+    }
+
+    /**
+     * Credits a single species toward a "distinct species" objective (e.g. completionist quests).
+     * A no-op if this species was already credited, so repeat catches of the same fish don't
+     * inflate progress — only new species advance the count.
+     */
+    public void incrementDistinctSpecies(ResourceKey<Quest> questId, Quest quest, long currentDay, Identifier speciesId) {
+        QuestProgress existing = getProgress(questId);
+        if (existing.caughtSpecies().contains(speciesId)) return;
+        List<Identifier> updated = new ArrayList<>(existing.caughtSpecies());
+        updated.add(speciesId);
+        boolean completed = updated.size() >= quest.objective().targetCount();
+        long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
+        progress.put(questId, new QuestProgress(updated.size(), lastReset, completed, existing.claimed(), updated));
     }
 
     public boolean canClaim(ResourceKey<Quest> questId, Quest quest) {
@@ -86,7 +111,7 @@ public class PlayerQuestState {
 
     public void claim(ResourceKey<Quest> questId, int tokens) {
         QuestProgress p = getProgress(questId);
-        progress.put(questId, new QuestProgress(p.currentCount(), p.lastResetGameDay(), p.completed(), true));
+        progress.put(questId, new QuestProgress(p.currentCount(), p.lastResetGameDay(), p.completed(), true, p.caughtSpecies()));
         tokenBalance += tokens;
     }
 
@@ -99,13 +124,13 @@ public class PlayerQuestState {
         QuestProgress existing = getProgress(questId);
         boolean completed = count >= quest.objective().targetCount();
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
-        progress.put(questId, new QuestProgress(count, lastReset, completed, existing.claimed()));
+        progress.put(questId, new QuestProgress(count, lastReset, completed, existing.claimed(), existing.caughtSpecies()));
     }
 
     public void resetDailyIfNeeded(ResourceKey<Quest> questId, long currentDay) {
         QuestProgress p = getProgress(questId);
         if (p.lastResetGameDay() < currentDay) {
-            progress.put(questId, new QuestProgress(0, currentDay, false, false));
+            progress.put(questId, new QuestProgress(0, currentDay, false, false, List.of()));
         }
     }
 

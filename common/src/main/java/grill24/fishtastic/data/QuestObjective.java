@@ -14,6 +14,8 @@ import java.util.Optional;
 public record QuestObjective(
         Optional<ResourceKey<Item>> targetSpecies,
         Optional<TagKey<Item>> targetSpeciesTag,
+        Optional<TagKey<Item>> excludeSpeciesTag,
+        boolean distinctSpecies,
         int targetCount,
         Optional<FishQuality.Quality> minQuality,
         Optional<Float> minSize,
@@ -26,6 +28,8 @@ public record QuestObjective(
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceKey.codec(Registries.ITEM).optionalFieldOf("target_species").forGetter(QuestObjective::targetSpecies),
             TagKey.codec(Registries.ITEM).optionalFieldOf("target_species_tag").forGetter(QuestObjective::targetSpeciesTag),
+            TagKey.codec(Registries.ITEM).optionalFieldOf("exclude_species_tag").forGetter(QuestObjective::excludeSpeciesTag),
+            Codec.BOOL.optionalFieldOf("distinct_species", false).forGetter(QuestObjective::distinctSpecies),
             Codec.INT.optionalFieldOf("target_count", 1).forGetter(QuestObjective::targetCount),
             FishQuality.Quality.CODEC.optionalFieldOf("min_quality").forGetter(QuestObjective::minQuality),
             Codec.FLOAT.optionalFieldOf("min_size").forGetter(QuestObjective::minSize),

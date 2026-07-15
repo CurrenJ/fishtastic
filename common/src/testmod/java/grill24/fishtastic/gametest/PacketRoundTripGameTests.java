@@ -132,8 +132,8 @@ public final class PacketRoundTripGameTests {
         Identifier questB = Identifier.fromNamespaceAndPath("fishtastic", "tutorial/first_catch");
 
         Map<Identifier, PlayerQuestState.QuestProgress> progress = new HashMap<>();
-        progress.put(questA, new PlayerQuestState.QuestProgress(3, 7L, false, false));
-        progress.put(questB, new PlayerQuestState.QuestProgress(1, 1L, true, true));
+        progress.put(questA, new PlayerQuestState.QuestProgress(3, 7L, false, false, List.of()));
+        progress.put(questB, new PlayerQuestState.QuestProgress(1, 1L, true, true, List.of()));
 
         ItemStack triggeringStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 2);
         Map<Identifier, ItemStack> triggeringItems = new HashMap<>();

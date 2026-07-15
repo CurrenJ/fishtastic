@@ -165,7 +165,7 @@ public class QuestClientCache {
     }
 
     public static PlayerQuestState.QuestProgress getProgress(Identifier questId) {
-        return questProgress.getOrDefault(questId, new PlayerQuestState.QuestProgress(0, -1, false, false));
+        return questProgress.getOrDefault(questId, new PlayerQuestState.QuestProgress(0, -1, false, false, List.of()));
     }
 
     public static int getPurchaseCount(Identifier entryId) {

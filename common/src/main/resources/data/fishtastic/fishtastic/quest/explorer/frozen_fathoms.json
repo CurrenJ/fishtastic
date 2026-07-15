@@ -7,7 +7,7 @@
     "weather_condition": "rain"
   },
   "reward": { "quest_tokens": 12, "items": [] },
-  "hidden": false,
+  "hidden": true,
   "display_name": "Frozen Fathoms",
   "description": "Catch a Frozen Giant Manta Ray at night in the rain."
 }

@@ -7,7 +7,7 @@
     "weather_condition": "thunder"
   },
   "reward": { "quest_tokens": 10, "items": [] },
-  "hidden": false,
+  "hidden": true,
   "display_name": "Molten Nights",
   "description": "Catch a Molten Moorish Idol at night during a thunderstorm."
 }

@@ -52,7 +52,9 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.WILLANS_CHROMODORIS.value())
                 .add(FishtasticItems.YELLOWLINE_GOBY.value())
                 .add(FishtasticItems.TRAPANIA_SCURRA.value())
-                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value());
+                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
+                .add(FishtasticItems.FRIED_SHRIMP.value())
+                .add(FishtasticItems.ACUTE_IASPIS.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
@@ -76,14 +78,20 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         // Exotic fish: eligible when using blazed grub bait
         valueLookupBuilder(FishtasticItemTags.EXOTIC_FISH)
                 .add(FishtasticItems.GIANT_MANTA_RAY.value())
-                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
-                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.NORTHERN_PIKE.value())
                 .add(FishtasticItems.OCEAN_SUNFISH.value())
                 .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
                 .add(FishtasticItems.GLASS_SQUID.value())
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
                 .add(FishtasticItems.FLAPJACK_OCTOPUS.value());
+
+        // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
+        valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
+                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
+                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
+                .add(FishtasticItems.FRIED_SHRIMP.value())
+                .add(FishtasticItems.ACUTE_IASPIS.value());
     }
 }

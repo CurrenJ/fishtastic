@@ -13,6 +13,7 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -72,7 +73,12 @@ public class QuestTracker {
 
             if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather)) {
                 int oldCount = state.getProgress(questKey).currentCount();
-                state.incrementCount(questKey, quest, currentDay);
+                if (quest.objective().distinctSpecies()) {
+                    Identifier caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
+                    state.incrementDistinctSpecies(questKey, quest, currentDay, caughtId);
+                } else {
+                    state.incrementCount(questKey, quest, currentDay);
+                }
                 int newCount = state.getProgress(questKey).currentCount();
 
                 int interval = quest.objective().notificationInterval();
@@ -138,21 +144,30 @@ public class QuestTracker {
                     .toList();
             if (matchingStacks.isEmpty()) continue;
 
-            // A session-catch quest (e.g. "catch 2 fish in one minigame") only progresses once
-            // per qualifying session, not once per matching fish — anything short of the
-            // threshold in this batch earns no partial credit. The threshold counts distinct
-            // fish species, so multiple catches of the same species don't satisfy it alone.
-            int increments = quest.objective().minSessionCatches()
-                    .map(threshold -> {
-                        long distinctSpecies = matchingStacks.stream().map(ItemStack::getItem).distinct().count();
-                        return distinctSpecies >= threshold ? 1 : 0;
-                    })
-                    .orElse(matchingStacks.size());
-            if (increments == 0) continue;
-
             int oldCount = state.getProgress(questKey).currentCount();
-            for (int i = 0; i < increments; i++) {
-                state.incrementCount(questKey, quest, currentDay);
+            if (quest.objective().distinctSpecies()) {
+                // Completionist-style objectives credit each newly-seen species once, ignoring
+                // minSessionCatches — a batch just offers however many distinct species it contains.
+                for (ItemStack stack : matchingStacks) {
+                    Identifier caughtId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                    state.incrementDistinctSpecies(questKey, quest, currentDay, caughtId);
+                }
+            } else {
+                // A session-catch quest (e.g. "catch 2 fish in one minigame") only progresses once
+                // per qualifying session, not once per matching fish — anything short of the
+                // threshold in this batch earns no partial credit. The threshold counts distinct
+                // fish species, so multiple catches of the same species don't satisfy it alone.
+                int increments = quest.objective().minSessionCatches()
+                        .map(threshold -> {
+                            long distinctSpecies = matchingStacks.stream().map(ItemStack::getItem).distinct().count();
+                            return distinctSpecies >= threshold ? 1 : 0;
+                        })
+                        .orElse(matchingStacks.size());
+                if (increments == 0) continue;
+
+                for (int i = 0; i < increments; i++) {
+                    state.incrementCount(questKey, quest, currentDay);
+                }
             }
             int newCount = state.getProgress(questKey).currentCount();
 
@@ -182,6 +197,10 @@ public class QuestTracker {
 
         if (obj.targetSpeciesTag().isPresent()) {
             if (!stack.is(obj.targetSpeciesTag().get())) return false;
+        }
+
+        if (obj.excludeSpeciesTag().isPresent()) {
+            if (stack.is(obj.excludeSpeciesTag().get())) return false;
         }
 
         if (obj.minQuality().isPresent()) {

@@ -1,0 +1,18 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 45.0, "std_dev": 12.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.5 }
+  ],
+  "weather_weights": [
+    { "weather": "clear", "multiplier": 1.5 }
+  ],
+  "moon_weights": [
+    { "phase": "full_moon", "multiplier": 2.0 }
+  ],
+  "temperament": "fishtastic:aggressive",
+  "animation": { "mode": "belly_down" }
+}

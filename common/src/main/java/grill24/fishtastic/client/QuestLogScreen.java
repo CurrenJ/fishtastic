@@ -311,6 +311,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // stays hidden rather than listed as "inactive", so players discover it as it rotates in.
         byCategory.get(QuestCategory.DAILY).removeIf(entry -> !activeDailies.contains(entry.getKey()));
 
+        // Secret quests (e.g. unlisted-fish reveals, completionist capstones) stay out of the log
+        // entirely until their objective is met — progress still tracks silently in the background
+        // (QuestTracker doesn't check `hidden`), so they surface already complete, ready to claim.
+        for (var list : byCategory.values()) {
+            list.removeIf(entry -> entry.getValue().hidden()
+                    && !QuestClientCache.getProgress(entry.getKey().identifier()).completed());
+        }
+
         // During the tutorial, pin tutorial quests to the top of the Daily tab.
         // They are hidden once the tutorial is complete or hasn't started yet.
         TutorialStep tutorialStep = TutorialClientHandler.getCurrentStep();
