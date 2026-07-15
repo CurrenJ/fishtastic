@@ -5,17 +5,14 @@
     { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
     { "biome": "minecraft:is_river", "multiplier": 0.2 }
   ],
-  "time_weights": [
-    { "time": "night", "multiplier": 2.0 }
-  ],
   "weather_weights": [
     { "weather": "rain", "multiplier": 2.0 },
     { "weather": "thunder", "multiplier": 2.0 }
   ],
   "moon_weights": [
-    { "phase": "full_moon", "multiplier": 2.0 },
-    { "phase": "waxing_gibbous", "multiplier": 1.3 },
-    { "phase": "waning_gibbous", "multiplier": 1.3 }
+    { "phase": "full_moon", "multiplier": 1.25, "tier": "secondary" },
+    { "phase": "waxing_gibbous", "multiplier": 1.1, "tier": "secondary" },
+    { "phase": "waning_gibbous", "multiplier": 1.1, "tier": "secondary" }
   ],
   "temperament": "fishtastic:aggressive",
   "animation": {

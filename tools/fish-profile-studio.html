@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fishtastic · Profile Studio</title>
+<style>
+/* ============================================================
+   FISHTASTIC PROFILE STUDIO — abyssal sonar instrument panel
+   ============================================================ */
+:root {
+  color-scheme: dark;
+  /* chrome */
+  --page:      #0b0f14;
+  --surface:   #131a21;
+  --surface-2: #1a232d;
+  --surface-3: #212d39;
+  --border:    rgba(159, 197, 232, 0.10);
+  --border-2:  rgba(159, 197, 232, 0.18);
+  --ink:       #eef4f8;
+  --ink-2:     #b9c6d1;
+  --muted:     #7f8d99;
+  --grid:      #232f3a;
+  --accent:    #4cc9e8;
+  --accent-dim:#2a7d94;
+  /* dataviz palette — dark mode (validated) */
+  --s1: #3987e5;  /* blue    */
+  --s2: #008300;  /* green   */
+  --s3: #d55181;  /* magenta */
+  --s4: #c98500;  /* yellow  */
+  --s5: #199e70;  /* aqua    */
+  --seq-100:#cde2fb; --seq-200:#9ec5f4; --seq-300:#6da7ec; --seq-400:#3987e5;
+  --seq-500:#256abf; --seq-600:#184f95; --seq-700:#0d366b;
+  --good:    #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical:#d03b3b;
+  --mono: "Cascadia Code", "Cascadia Mono", ui-monospace, Consolas, monospace;
+  --body: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background:
+    radial-gradient(1200px 500px at 70% -10%, rgba(76,201,232,0.07), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(57,135,229,0.06), transparent 60%),
+    var(--page);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+  min-height: 100vh;
+}
+::selection { background: rgba(76,201,232,0.30); }
+
+/* ---------- header ---------- */
+header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(19,26,33,0.92), rgba(11,15,20,0.85));
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(6px);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); }
+.brand .ping {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); align-self: center; position: relative;
+}
+.brand .ping::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid var(--accent); opacity: 0;
+  animation: ping 2.8s ease-out infinite;
+}
+@keyframes ping { 0% { transform: scale(0.4); opacity: 0.9; } 80% { transform: scale(1.8); opacity: 0; } 100% { opacity: 0; } }
+.brand h1 { font-size: 15px; margin: 0; letter-spacing: 0.22em; font-weight: 600; }
+.brand h1 em { font-style: normal; color: var(--accent); }
+.brand .sub { font-size: 10px; letter-spacing: 0.30em; color: var(--muted); text-transform: uppercase; }
+header .spacer { flex: 1; }
+.chip {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+  border: 1px solid var(--border-2); border-radius: 999px;
+  padding: 4px 12px; color: var(--ink-2); background: var(--surface);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.chip.ok .dot { background: var(--good); box-shadow: 0 0 6px var(--good); }
+.chip.warn .dot { background: var(--warning); }
+button {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--border-2); border-radius: 6px;
+  padding: 7px 14px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+}
+button:hover { background: var(--surface-3); border-color: var(--accent-dim); }
+button.primary { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+button.primary:hover { background: #35859c; }
+button:disabled { opacity: 0.45; cursor: default; }
+button.danger:hover { border-color: var(--critical); }
+
+/* ---------- connect hero ---------- */
+#connectHero {
+  max-width: 620px; margin: 10vh auto; text-align: center;
+  padding: 44px 40px; border: 1px solid var(--border-2); border-radius: 12px;
+  background: linear-gradient(180deg, var(--surface), var(--page));
+}
+#connectHero h2 { font-family: var(--mono); letter-spacing: 0.12em; font-weight: 600; font-size: 18px; }
+#connectHero p { color: var(--ink-2); }
+#connectHero .path { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+#connectHero button { font-size: 14px; padding: 12px 26px; margin-top: 14px; }
+#connectHero .err { color: var(--serious); font-family: var(--mono); font-size: 12px; margin-top: 14px; }
+
+/* ---------- context panel ---------- */
+#context {
+  border-bottom: 1px solid var(--border);
+  background: rgba(19,26,33,0.65);
+  padding: 10px 22px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ctx-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ctx-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--muted); width: 92px; flex: none;
+}
+.seg { display: inline-flex; border: 1px solid var(--border-2); border-radius: 6px; overflow: hidden; }
+.seg button {
+  border: none; border-radius: 0; background: transparent; padding: 5px 11px;
+  color: var(--ink-2); font-size: 11px;
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.on { background: var(--accent-dim); color: #fff; }
+.tagchip {
+  font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+  border: 1px solid var(--border-2); border-radius: 999px; cursor: pointer;
+  color: var(--ink-2); background: transparent; user-select: none;
+}
+.tagchip.on { background: rgba(76,201,232,0.16); border-color: var(--accent); color: var(--accent); }
+select, input[type=number], input[type=text], input[type=search] {
+  font-family: var(--mono); font-size: 12px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-radius: 6px; padding: 5px 8px;
+}
+input[type=number] { width: 76px; }
+.hint { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+/* ---------- tabs ---------- */
+nav.tabs { display: flex; gap: 2px; padding: 0 22px; border-bottom: 1px solid var(--border); background: rgba(11,15,20,0.6); }
+nav.tabs button {
+  background: transparent; border: none; border-radius: 0;
+  border-bottom: 2px solid transparent; padding: 11px 18px;
+  color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px;
+}
+nav.tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+nav.tabs button:hover { color: var(--ink); background: transparent; }
+
+main { padding: 20px 22px 80px; }
+.panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 18px;
+}
+.panel > h3 {
+  margin: 0 0 12px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+}
+.panel > h3 .note { text-transform: none; letter-spacing: 0.03em; color: var(--muted); font-weight: 400; margin-left: 8px; }
+
+/* ---------- fish cards ---------- */
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; transition: border-color 0.12s, transform 0.12s;
+  position: relative; overflow: hidden;
+}
+.card:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
+.card .row1 { display: flex; align-items: center; gap: 10px; }
+.sprite {
+  width: 36px; height: 36px; image-rendering: pixelated; flex: none;
+  background: var(--surface-2); border-radius: 6px; object-fit: contain;
+}
+.sprite.ph { display: flex; align-items: center; justify-content: center; font-family: var(--mono); color: var(--muted); font-size: 15px; }
+.card .name { font-weight: 600; font-size: 13.5px; }
+.card .id { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.card .stats { display: flex; gap: 14px; margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+.card .stats b { color: var(--ink); font-weight: 600; }
+.eff-up { color: var(--good) !important; }
+.eff-down { color: var(--serious) !important; }
+.condchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.cc {
+  font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-2);
+}
+.cc.sec { border-style: dashed; color: var(--muted); }
+.cc.hot { border-color: rgba(250,178,25,0.55); color: var(--warning); }
+.badge {
+  position: absolute; top: 10px; right: 10px; font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.1em; padding: 2px 7px; border-radius: 4px;
+}
+.badge.vanilla { background: var(--surface-3); color: var(--muted); }
+.badge.noprofile { background: rgba(236,131,90,0.15); color: var(--serious); }
+.badge.unlisted { background: rgba(213,81,129,0.15); color: var(--s3); }
+.badge.dirty { background: rgba(250,178,25,0.18); color: var(--warning); }
+
+/* ---------- editor drawer ---------- */
+#drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 94vw); z-index: 100;
+  background: var(--surface); border-left: 1px solid var(--border-2);
+  box-shadow: -24px 0 60px rgba(0,0,0,0.55);
+  transform: translateX(102%); transition: transform 0.22s ease;
+  display: flex; flex-direction: column;
+}
+#drawer.open { transform: translateX(0); }
+#drawer .dhead {
+  display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+#drawer .dhead .sprite { width: 44px; height: 44px; }
+#drawer .dbody { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+.fieldrow { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.fieldrow label { font-family: var(--mono); font-size: 11px; color: var(--ink-2); width: 110px; flex: none; }
+.axis { margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.axis h4 {
+  margin: 0 0 8px; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.axis h4 button { padding: 2px 9px; font-size: 11px; margin-left: auto; }
+.wrow { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.wrow select, .wrow input[type=text] { flex: 1; min-width: 0; }
+.wrow input.mult { width: 70px; flex: none; }
+.wrow .tier { width: 56px; flex: none; text-align: center; }
+.wrow button { padding: 4px 8px; flex: none; }
+.wrow .capwarn { color: var(--warning); font-size: 13px; flex: none; cursor: help; }
+.livecalc {
+  font-family: var(--mono); font-size: 12px; margin-top: 14px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+}
+.livecalc b { color: var(--accent); }
+pre.json {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  background: var(--page); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; overflow-x: auto; white-space: pre;
+}
+
+/* ---------- viz components ---------- */
+.viz-root { --chart-surface: var(--surface); font-family: var(--body); }
+.hbar-row { display: grid; grid-template-columns: 210px 1fr 118px; gap: 10px; align-items: center; padding: 3px 0; }
+.hbar-row .lbl { display: flex; align-items: center; gap: 8px; font-size: 12.5px; overflow: hidden; }
+.hbar-row .lbl .sprite { width: 22px; height: 22px; border-radius: 4px; }
+.hbar-row .lbl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 4px; }
+.hbar-fill {
+  position: absolute; left: 0; top: 1px; bottom: 1px; border-radius: 0 4px 4px 0;
+  background: var(--s1); min-width: 2px;
+}
+.hbar-fill.vanilla { background: transparent; border: 1px solid var(--muted); }
+.hbar-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: 0.85; }
+.hbar-row .val { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.hbar-row .val b { color: var(--ink-2); font-weight: 600; }
+.legend { display: flex; gap: 18px; margin: 4px 0 12px; font-size: 11px; color: var(--ink-2); font-family: var(--mono); }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.heat { display: grid; gap: 2px; font-family: var(--mono); font-size: 11px; }
+.heat .hcell {
+  padding: 10px 6px; text-align: center; border-radius: 4px; cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+.heat .hhead { color: var(--muted); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 4px; text-align: center; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.tile .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+.tile .v { font-size: 24px; font-weight: 650; margin-top: 3px; font-family: var(--mono); }
+.tile .s { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.histo { display: flex; align-items: flex-end; gap: 2px; height: 120px; margin-top: 8px; }
+.histo .bin { flex: 1; background: var(--s1); border-radius: 3px 3px 0 0; min-height: 1px; }
+.hx { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+table.mat { border-collapse: collapse; font-size: 12px; width: 100%; }
+table.mat th, table.mat td { border-bottom: 1px solid var(--grid); padding: 6px 10px; text-align: left; white-space: nowrap; }
+table.mat th {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); font-weight: 600;
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
+}
+table.mat td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+table.mat tr:hover td { background: rgba(76,201,232,0.05); }
+.scrollbox { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+input.cb { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+.lint { display: flex; flex-direction: column; gap: 6px; }
+.lint-item {
+  display: flex; gap: 10px; align-items: baseline; font-size: 12.5px;
+  padding: 8px 12px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.lint-item .ic { font-family: var(--mono); font-size: 11px; flex: none; letter-spacing: 0.06em; }
+.lint-item.warn .ic { color: var(--warning); }
+.lint-item.serious .ic { color: var(--serious); }
+.lint-item.info .ic { color: var(--s1); }
+.lint-item.ok .ic { color: var(--good); }
+.lint-item code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+
+/* ---------- tooltip & toast ---------- */
+#tooltip {
+  position: fixed; z-index: 300; pointer-events: none; display: none;
+  background: #0d1319; border: 1px solid var(--border-2); border-radius: 6px;
+  padding: 8px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  max-width: 320px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); white-space: pre-line;
+}
+#toast {
+  position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+  z-index: 400; background: var(--surface-3); border: 1px solid var(--border-2);
+  border-radius: 8px; padding: 10px 20px; font-family: var(--mono); font-size: 12px;
+  opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { border-color: var(--critical); color: #f2b8b8; }
+
+.simgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 1100px) { .simgrid { grid-template-columns: 1fr; } }
+.mut { color: var(--muted); }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="ping"></div>
+    <h1>FISHTASTIC <em>//</em> PROFILE STUDIO</h1>
+    <div class="sub">catch weighting console</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip" id="connChip"><span class="dot"></span><span id="connText">not connected</span></span>
+  <span class="chip warn" id="dirtyChip" style="display:none"><span class="dot"></span><span id="dirtyText"></span></span>
+  <button id="rescanBtn" style="display:none">↻ Rescan</button>
+  <button class="primary" id="saveBtn" style="display:none" title="Ctrl+S">Save changes</button>
+</header>
+
+<div id="connectHero">
+  <h2>CONNECT DATA FOLDER</h2>
+  <p>Point the studio at the fishtastic repo (or its <span class="path">common/src/main/resources</span> folder).
+     It live-loads every <span class="path">fish_profile/*.json</span>, item tag, lang entry and fish sprite,
+     and can write your edits straight back to disk for review via <span class="path">git diff</span>.</p>
+  <button class="primary" id="connectBtn">⌂ Choose folder…</button>
+  <div id="reconnectRow" style="display:none; margin-top:10px">
+    <button id="reconnectBtn">↻ Reconnect last folder</button>
+  </div>
+  <p class="hint" style="margin-top:18px">Requires Chrome or Edge (File System Access API). Open this file directly — no server needed.</p>
+  <div class="err" id="connErr"></div>
+</div>
+
+<div id="app" style="display:none">
+  <section id="context"></section>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+
+<aside id="drawer"></aside>
+<div id="tooltip"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   CONSTANTS — mirrored from the mod's Java source. If the game code
+   changes, update these to match:
+   - FishtasticFishItem.getFishingLootWeight / sampleRandomFish
+   - FishProfile.computeEnvironmentMultiplier
+   - FishingMinigameManager target/trash/treasure flow
+   - BaitEffect / CharmEffect / HookEffect presets
+   ===================================================================== */
+const VANILLA_FISH = [
+  { id: "minecraft:cod",           name: "Cod",           weight: 200 },
+  { id: "minecraft:salmon",        name: "Salmon",        weight: 200 },
+  { id: "minecraft:tropical_fish", name: "Tropical Fish", weight: 50  },
+  { id: "minecraft:pufferfish",    name: "Pufferfish",    weight: 25  },
+];
+const VANILLA_IDS = new Set(VANILLA_FISH.map(f => f.id));
+const DEFAULT_BASE_WEIGHT = 10, DEFAULT_MEAN = 50.0, DEFAULT_STD = 15.0;
+const TIMES = ["dawn", "day", "dusk", "night"];
+const WEATHERS = ["clear", "rain", "snow", "thunder"];
+const ELEVATIONS = ["deep", "surface", "high"];
+const MOONS = ["full_moon","waning_gibbous","third_quarter","waning_crescent","new_moon","waxing_crescent","first_quarter","waxing_gibbous"];
+const QUALITIES = ["common","uncommon","rare","epic","legendary"];
+const QUALITY_WEIGHTS = [6400, 2500, 750, 250, 100];
+/* GaussianModifier(meanOffset, stdDevOffset, meanMultiplier, stdDevMultiplier).
+   getRandomSize applies: mean += meanOffset; std = std*meanMultiplier + stdDevOffset
+   (yes — meanMultiplier scales the std dev; stdDevMultiplier is unused. Mirrored faithfully.) */
+const QUALITY_SIZE_MODS = {
+  common:    { meanOffset: 0,  stdMul: 1.0 },
+  uncommon:  { meanOffset: 10, stdMul: 1.1 },
+  rare:      { meanOffset: 20, stdMul: 1.2 },
+  epic:      { meanOffset: 45, stdMul: 1.3 },
+  legendary: { meanOffset: 75, stdMul: 1.5 },
+};
+const AXES = [
+  { key: "biome_weights",     field: "biome", label: "Biome"     },
+  { key: "time_weights",      field: "time",  label: "Time"      },
+  { key: "weather_weights",   field: "weather", label: "Weather" },
+  { key: "moon_weights",      field: "phase", label: "Moon"      },
+  { key: "elevation_weights", field: "band",  label: "Elevation" },
+];
+const MULT_CAP = 2.0;
+const MULT_CAP_EXEMPT = new Set(["molten_moorish_idol"]); // flagship exception
+
+const BAIT_PRESETS = {
+  none:        { label: "None (bare hook)", luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, vanillaMult: 1.0,  modMult: 0.15, qualityBias: 0.0, exclusive: null, affinities: [] },
+  worms:       { label: "Worms",            luck: 0.5, treasure: 0.10,  trash: 0.05, targets: 1, vanillaMult: 1.0,  modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
+  gummy_worms: { label: "Gummy Worms",      luck: 1.0, treasure: 0.10,  trash: 0.05, targets: 0, vanillaMult: 0.3,  modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [] },
+  blazed_grub: { label: "Blazed Grub",      luck: 2.0, treasure: 0.50,  trash: 0.0,  targets: 0, vanillaMult: 1.0,  modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
+  freshwater:  { label: "Freshwater Bait",  luck: 0.3, treasure: 0.05,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:freshwater_fish", mult: 4.0 }] },
+  ocean:       { label: "Ocean Bait",       luck: 0.3, treasure: 0.10,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:ocean_fish", mult: 4.0 }] },
+  predator:    { label: "Predator Bait",    luck: 1.0, treasure: 0.10,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:predator_fish", mult: 4.0 }] },
+  deep_sea:    { label: "Deep Sea Bait",    luck: 1.5, treasure: 0.15,  trash: 0.1,  targets: -1, vanillaMult: 0.25, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:deep_sea_fish", mult: 4.0 }] },
+  custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, vanillaMult: 1.0,  modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
+};
+const HOOK_PRESETS = {
+  none:       { label: "None",            qualityBias: 0.0,  trashDelta: 0.0  },
+  hook:       { label: "Hook",            qualityBias: 0.5,  trashDelta: -0.04 },
+  old_copper: { label: "Old Copper Hook", qualityBias: -0.5, trashDelta: 0.08 },
+};
+const CHARM_PRESETS = {
+  none:        { label: "None",              trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  amethyst:    { label: "Amethyst Charm",    trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  crystal:     { label: "Crystal Ball",      trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  four_leaf:   { label: "Four-Leaf Charm",   trashDelta: -0.03, treasureDelta: 0.03, vanillaMult: 0.85, forceNight: false, nightBonus: 1.0, affinities: [] },
+  luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: true,  nightBonus: 1.25, affinities: [] },
+  banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5 }] },
+};
+const BIOME_PRESETS = [
+  { name: "Ocean",           tags: ["minecraft:is_ocean"] },
+  { name: "Deep Ocean",      tags: ["minecraft:is_ocean", "minecraft:is_deep_ocean"] },
+  { name: "River",           tags: ["minecraft:is_river"] },
+  { name: "Jungle River",    tags: ["minecraft:is_river", "minecraft:is_jungle"] },
+  { name: "Cherry Grove",    tags: ["fishtastic:is_cherry_grove"] },
+  { name: "Lush Caves",      tags: ["fishtastic:is_lush_caves"] },
+  { name: "Mushroom Fields", tags: ["fishtastic:is_mushroom"] },
+  { name: "Nether",          tags: ["minecraft:is_nether"] },
+  { name: "Plains pond",     tags: [] },
+];
+// Tag files in tags/item that are gear config, not fish groupings
+const NON_GROUP_TAGS = new Set(["fishing_rods","fishing_hooks","fishing_charms","fishing_bait","trash","treasure"]);
+
+/* ===================== state ===================== */
+const S = {
+  rootHandle: null, resRoot: null, profileDir: null,
+  profiles: new Map(),   // "bluegill" -> {name, json, dirty}
+  itemTags: new Map(),   // "fishtastic:fish" -> {values:[], dirty}
+  biomeTagsKnown: new Set(),
+  temperaments: [],
+  lang: {},
+  textures: new Map(),   // "bluegill" -> objectURL
+  trashItems: [],
+  env: { biomes: new Set(["minecraft:is_ocean"]), time: "day", weather: "clear", moon: "full_moon", elevation: "surface" },
+  gear: { bait: "none", baitQuality: "common", custom: { ...BAIT_PRESETS.custom }, hook: "none", charm: "none", diamonds: 0 },
+  tab: "profiles",
+  search: "",
+  sweepFish: null,
+  sim: { n: 1000, mode: "full", results: null },
+  editing: null,
+};
+
+/* ===================== tiny DOM helpers ===================== */
+const $ = sel => document.querySelector(sel);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "style") e.style.cssText = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "dataset") Object.assign(e.dataset, v);
+    else if (v !== null && v !== undefined) e.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(kid));
+  }
+  return e;
+}
+function toast(msg, isErr) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.className = "", 3200);
+}
+const tooltip = $("#tooltip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (t) {
+    tooltip.textContent = t.dataset.tip;
+    tooltip.style.display = "block";
+    const x = Math.min(e.clientX + 14, innerWidth - tooltip.offsetWidth - 10);
+    const y = Math.min(e.clientY + 14, innerHeight - tooltip.offsetHeight - 10);
+    tooltip.style.left = x + "px"; tooltip.style.top = y + "px";
+  } else tooltip.style.display = "none";
+});
+function prettify(s) {
+  return s.split(/[_/]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+function displayName(id) {
+  const [ns, path] = id.split(":");
+  if (ns === "minecraft") { const v = VANILLA_FISH.find(f => f.id === id); return v ? v.name : prettify(path); }
+  return S.lang["item.fishtastic." + path] || prettify(path);
+}
+function fmtF(n) {
+  if (typeof n !== "number" || !isFinite(n)) return "0.0";
+  if (Number.isInteger(n)) return n + ".0";
+  return String(Math.round(n * 10000) / 10000);
+}
+function pct(x, d = 2) { return (x * 100).toFixed(d) + "%"; }
+
+/* ===================== file system access ===================== */
+async function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("fishtastic-studio", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function kvSet(k, v) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("kv", "readwrite");
+    tx.objectStore("kv").put(v, k);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function kvGet(k) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const rq = db.transaction("kv").objectStore("kv").get(k);
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  });
+}
+async function getDirPath(root, path) {
+  let d = root;
+  for (const part of path.split("/").filter(Boolean)) d = await d.getDirectoryHandle(part);
+  return d;
+}
+async function readJsonAt(root, path) {
+  const parts = path.split("/");
+  const fname = parts.pop();
+  const dir = await getDirPath(root, parts.join("/"));
+  const fh = await dir.getFileHandle(fname);
+  return JSON.parse(await (await fh.getFile()).text());
+}
+async function locateResRoot(handle) {
+  const candidates = ["", "common/src/main/resources", "src/main/resources", "resources"];
+  for (const c of candidates) {
+    try {
+      const root = c ? await getDirPath(handle, c) : handle;
+      await getDirPath(root, "data/fishtastic/fishtastic/fish_profile");
+      return root;
+    } catch (e) { /* keep looking */ }
+  }
+  return null;
+}
+async function connect(existingHandle) {
+  $("#connErr").textContent = "";
+  try {
+    let handle = existingHandle;
+    if (!handle) {
+      if (!window.showDirectoryPicker) { $("#connErr").textContent = "This browser lacks the File System Access API — use Chrome or Edge."; return; }
+      handle = await showDirectoryPicker({ mode: "readwrite", id: "fishtastic-res" });
+    }
+    if (await handle.queryPermission({ mode: "readwrite" }) !== "granted") {
+      if (await handle.requestPermission({ mode: "readwrite" }) !== "granted") {
+        $("#connErr").textContent = "Write permission denied — grant readwrite access to enable saving.";
+      }
+    }
+    const resRoot = await locateResRoot(handle);
+    if (!resRoot) { $("#connErr").textContent = "Couldn't find data/fishtastic/fishtastic/fish_profile under that folder. Pick the repo root or common/src/main/resources."; return; }
+    S.rootHandle = handle; S.resRoot = resRoot;
+    await kvSet("dirHandle", handle);
+    await loadAll();
+    $("#connectHero").style.display = "none";
+    $("#app").style.display = "";
+    $("#rescanBtn").style.display = ""; $("#saveBtn").style.display = "";
+    setConn(true, handle.name);
+    renderAll();
+    toast(`Loaded ${S.profiles.size} profiles, ${S.itemTags.size} tag files`);
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    console.error(e);
+    $("#connErr").textContent = "Load failed: " + (e.message || e);
+  }
+}
+function setConn(ok, name) {
+  $("#connChip").className = "chip" + (ok ? " ok" : "");
+  $("#connText").textContent = ok ? name : "not connected";
+}
+async function loadAll() {
+  S.profiles.clear(); S.itemTags.clear(); S.textures.forEach(u => URL.revokeObjectURL(u));
+  S.textures.clear(); S.biomeTagsKnown.clear(); S.temperaments = []; S.lang = {};
+  const root = S.resRoot;
+
+  // fish profiles
+  S.profileDir = await getDirPath(root, "data/fishtastic/fishtastic/fish_profile");
+  for await (const entry of S.profileDir.values()) {
+    if (entry.kind !== "file" || !entry.name.endsWith(".json")) continue;
+    const name = entry.name.replace(/\.json$/, "");
+    try {
+      const json = JSON.parse(await (await entry.getFile()).text());
+      S.profiles.set(name, { name, json, dirty: false });
+    } catch (e) { console.warn("Bad profile JSON", entry.name, e); toast("Parse error in " + entry.name, true); }
+  }
+  // item tags (fishtastic + minecraft:fishes)
+  try {
+    const tagDir = await getDirPath(root, "data/fishtastic/tags/item");
+    for await (const entry of tagDir.values()) {
+      if (entry.kind !== "file" || !entry.name.endsWith(".json")) continue;
+      const name = entry.name.replace(/\.json$/, "");
+      try {
+        const json = JSON.parse(await (await entry.getFile()).text());
+        S.itemTags.set("fishtastic:" + name, { values: json.values || [], dirty: false, extra: json });
+      } catch (e) { console.warn("Bad tag JSON", entry.name, e); }
+    }
+  } catch (e) { console.warn("no fishtastic item tags", e); }
+  try {
+    const j = await readJsonAt(root, "data/minecraft/tags/item/fishes.json");
+    S.itemTags.set("minecraft:fishes", { values: j.values || [], dirty: false, extra: j });
+  } catch (e) { S.itemTags.set("minecraft:fishes", { values: ["#fishtastic:fish"], dirty: false, extra: {} }); }
+  // biome tags known (mod-provided)
+  try {
+    const bDir = await getDirPath(root, "data/fishtastic/tags/worldgen/biome");
+    for await (const entry of bDir.values()) {
+      if (entry.kind === "file" && entry.name.endsWith(".json")) S.biomeTagsKnown.add("fishtastic:" + entry.name.replace(/\.json$/, ""));
+    }
+  } catch (e) { /* fine */ }
+  // temperaments
+  try {
+    const tDir = await getDirPath(root, "data/fishtastic/fishtastic/temperament");
+    for await (const entry of tDir.values()) {
+      if (entry.kind === "file" && entry.name.endsWith(".json")) S.temperaments.push("fishtastic:" + entry.name.replace(/\.json$/, ""));
+    }
+    S.temperaments.sort();
+  } catch (e) { /* fine */ }
+  // lang
+  try { S.lang = await readJsonAt(root, "assets/fishtastic/lang/en_us.json"); } catch (e) { /* fine */ }
+  // textures
+  const texDirs = [];
+  try { texDirs.push(await getDirPath(root, "assets/fishtastic/textures/item/fish")); } catch (e) {}
+  try { texDirs.push(await getDirPath(root, "assets/fishtastic/textures/item")); } catch (e) {}
+  for (const id of poolIds()) {
+    const [ns, path] = id.split(":");
+    if (ns !== "fishtastic" || S.textures.has(path)) continue;
+    for (const d of texDirs) {
+      try {
+        const fh = await d.getFileHandle(path + ".png");
+        S.textures.set(path, URL.createObjectURL(await fh.getFile()));
+        break;
+      } catch (e) { /* try next */ }
+    }
+  }
+  S.trashItems = [...resolveTag("fishtastic:trash")];
+  if (!S.sweepFish || !poolIds().includes(S.sweepFish)) S.sweepFish = poolIds().find(i => !VANILLA_IDS.has(i)) || null;
+}
+
+/* ===================== tag resolution ===================== */
+function resolveTag(tagId, seen) {
+  seen = seen || new Set();
+  if (seen.has(tagId)) return new Set();
+  seen.add(tagId);
+  const out = new Set();
+  const t = S.itemTags.get(tagId);
+  if (!t) return out;
+  for (const v of t.values) {
+    if (typeof v === "string" && v.startsWith("#")) {
+      for (const x of resolveTag(v.slice(1), seen)) out.add(x);
+    } else if (typeof v === "string") out.add(v);
+    else if (v && v.id) out.add(v.id); // {"id": ..., "required": false} form
+  }
+  return out;
+}
+function inTag(itemId, tagId) { return resolveTag(tagId).has(itemId); }
+function poolIds() {
+  const s = resolveTag("minecraft:fishes");
+  for (const v of VANILLA_FISH) s.add(v.id); // vanilla datapack entries merge in-game
+  return [...s].sort((a, b) => displayName(a).localeCompare(displayName(b)));
+}
+function groupTagIds() {
+  return [...S.itemTags.keys()]
+    .filter(t => t.startsWith("fishtastic:") && !NON_GROUP_TAGS.has(t.split(":")[1]))
+    .sort((a, b) => (a === "fishtastic:fish" ? -1 : b === "fishtastic:fish" ? 1 : a.localeCompare(b)));
+}
+
+/* ===================== engine (mirrors Java exactly) ===================== */
+function firstMatch(list, tier, pred) {
+  for (const w of list || []) {
+    if ((w.tier || "primary") === tier && pred(w)) return w.multiplier;
+  }
+  return 1.0;
+}
+function envMultiplier(profile, env) {
+  // FishProfile.computeEnvironmentMultiplier
+  const moonVisible = env.time === "night" && env.weather === "clear";
+  let p = 1.0;
+  p *= firstMatch(profile.biome_weights, "primary", w => env.biomes.has(w.biome));
+  p *= firstMatch(profile.time_weights, "primary", w => w.time === env.time);
+  p *= firstMatch(profile.weather_weights, "primary", w => w.weather === env.weather);
+  if (moonVisible) p *= firstMatch(profile.moon_weights, "primary", w => w.phase === env.moon);
+  p *= firstMatch(profile.elevation_weights, "primary", w => w.band === env.elevation);
+  let s = 0.0;
+  s += firstMatch(profile.biome_weights, "secondary", w => env.biomes.has(w.biome)) - 1.0;
+  s += firstMatch(profile.time_weights, "secondary", w => w.time === env.time) - 1.0;
+  s += firstMatch(profile.weather_weights, "secondary", w => w.weather === env.weather) - 1.0;
+  if (moonVisible) s += firstMatch(profile.moon_weights, "secondary", w => w.phase === env.moon) - 1.0;
+  s += firstMatch(profile.elevation_weights, "secondary", w => w.band === env.elevation) - 1.0;
+  return p * (1.0 + s);
+}
+function effectiveBait() {
+  const g = S.gear;
+  let b = g.bait === "custom" ? { ...g.custom } : { ...BAIT_PRESETS[g.bait] };
+  b.affinities = (b.affinities || []).map(a => ({ ...a }));
+  if (b.qualityScales && g.baitQuality !== "common") {
+    // BaitEffect.scaledByQuality: +10% per tier above Common; Legendary grants +1 target
+    const scale = 1.0 + QUALITIES.indexOf(g.baitQuality) * 0.1;
+    b = { ...b, luck: b.luck * scale, treasure: Math.min(1.0, b.treasure * scale),
+          modMult: b.modMult * scale, qualityBias: b.qualityBias * scale,
+          targets: b.targets + (g.baitQuality === "legendary" ? 1 : 0) };
+  }
+  return b;
+}
+function effectiveEnv() {
+  const charm = CHARM_PRESETS[S.gear.charm];
+  const env = { ...S.env, biomes: S.env.biomes };
+  if (charm.forceNight) env.time = "night"; // Luna charm forces night context
+  return env;
+}
+/* FishtasticFishItem.getFishingLootWeight */
+function fishWeight(id, env, bait, charm, diamonds) {
+  const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
+  let charmGroupMult = 1.0;
+  for (const a of charm.affinities) if (inTag(id, a.group)) charmGroupMult *= a.mult;
+
+  if (VANILLA_IDS.has(id)) {
+    const vw = VANILLA_FISH.find(f => f.id === id).weight;
+    const vMult = bait.vanillaMult * charm.vanillaMult;
+    return Math.max(1, Math.trunc(vw * vMult * nightMult * charmGroupMult));
+  }
+  const p = S.profiles.get(id.split(":")[1]);
+  let base = p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT;
+  if (id === "fishtastic:acute_iaspis") base += diamonds; // AcuteIapsisItem: +1/diamond in inventory
+  const eMult = p ? envMultiplier(p.json, env) : 1.0;
+  let groupMult = 1.0;
+  for (const a of bait.affinities) if (inTag(id, a.group)) groupMult *= a.mult;
+  return Math.max(1, Math.trunc(base * eMult * bait.modMult * groupMult * nightMult * charmGroupMult));
+}
+/* full weighted pool under current context; exclusive pool filters mod+vanilla alike */
+function poolWeights() {
+  const bait = effectiveBait(), charm = CHARM_PRESETS[S.gear.charm], env = effectiveEnv();
+  let ids = poolIds();
+  if (bait.exclusive) ids = ids.filter(id => inTag(id, bait.exclusive));
+  const rows = ids.map(id => ({ id, weight: fishWeight(id, env, bait, charm, S.gear.diamonds) }));
+  const total = rows.reduce((a, r) => a + r.weight, 0);
+  for (const r of rows) r.share = total > 0 ? r.weight / total : 0;
+  return { rows, total, env, bait, charm };
+}
+
+/* ---- randomness (matches Java semantics) ---- */
+let _spare = null;
+function gauss(mean, std) {
+  if (_spare !== null) { const v = _spare; _spare = null; return mean + v * std; }
+  let u, v, s;
+  do { u = Math.random() * 2 - 1; v = Math.random() * 2 - 1; s = u * u + v * v; } while (s >= 1 || s === 0);
+  const m = Math.sqrt(-2 * Math.log(s) / s);
+  _spare = v * m;
+  return mean + u * m * std;
+}
+const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+function sampleQuality(bias) {
+  // sampleRandomQuality: weight_i = (int)(base * (1 + bias*i))
+  const w = QUALITY_WEIGHTS.map((base, i) => Math.trunc(base * (1.0 + bias * i)));
+  const total = Math.max(1, w.reduce((a, b) => a + b, 0));
+  let r = Math.floor(Math.random() * total);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return QUALITIES[i]; }
+  return "common";
+}
+function sampleSize(id, quality) {
+  const p = S.profiles.get((id.split(":")[1]) || "");
+  let mean = p && p.json.size ? p.json.size.mean : DEFAULT_MEAN;
+  let std  = p && p.json.size ? p.json.size.std_dev : DEFAULT_STD;
+  const m = QUALITY_SIZE_MODS[quality];
+  mean += m.meanOffset;
+  std = std * m.stdMul;
+  return gauss(mean, std);
+}
+
+/* ===================== simulator ===================== */
+function runSimulation() {
+  const n = clamp(S.sim.n | 0, 1, 200000);
+  S.sim.n = n;
+  const { rows, total } = poolWeights();
+  const bait = effectiveBait(), charm = CHARM_PRESETS[S.gear.charm], hook = HOOK_PRESETS[S.gear.hook];
+  const qualityBias = bait.qualityBias + hook.qualityBias;
+  const trashChance = Math.max(0, bait.trash + hook.trashDelta + charm.trashDelta);
+  const treasureChance = Math.max(0, bait.treasure + charm.treasureDelta);
+  const targetMean = 1 + bait.targets; // DEFAULT_TARGET_COUNT_MEAN = 1
+
+  // cumulative weights for O(log n) species sampling
+  const cum = []; let acc = 0;
+  for (const r of rows) { acc += r.weight; cum.push(acc); }
+  function sampleSpecies() {
+    if (acc <= 0) return null;
+    const r = Math.floor(Math.random() * acc);
+    let lo = 0, hi = cum.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] > r) hi = mid; else lo = mid + 1; }
+    return rows[lo].id;
+  }
+
+  const res = {
+    casts: n, targets: 0, fish: 0, trash: 0, treasure: 0,
+    species: new Map(), qualities: Object.fromEntries(QUALITIES.map(q => [q, 0])),
+    sizes: [], biggest: null, trashCounts: new Map(),
+    expected: new Map(rows.map(r => [r.id, r.share])),
+    poolTotal: total,
+  };
+  function recordFish() {
+    const id = sampleSpecies();
+    if (id === null) return;
+    const q = sampleQuality(qualityBias);
+    const size = sampleSize(id, q);
+    res.fish++;
+    let sp = res.species.get(id);
+    if (!sp) { sp = { count: 0, sizeSum: 0, sizeMin: Infinity, sizeMax: -Infinity, qualities: Object.fromEntries(QUALITIES.map(x => [x, 0])) }; res.species.set(id, sp); }
+    sp.count++; sp.sizeSum += size; sp.sizeMin = Math.min(sp.sizeMin, size); sp.sizeMax = Math.max(sp.sizeMax, size);
+    sp.qualities[q]++;
+    res.qualities[q]++;
+    res.sizes.push(size);
+    if (!res.biggest || size > res.biggest.size) res.biggest = { id, size, quality: q };
+  }
+  for (let c = 0; c < n; c++) {
+    if (S.sim.mode === "fish") { recordFish(); continue; }
+    // FishingMinigameManager: targetCount = clamp((int)gauss(mean,1), 1, MAX_TARGETS=4)
+    const targetCount = clamp(Math.trunc(gauss(targetMean, 1)), 1, 4);
+    for (let t = 0; t < targetCount; t++) {
+      res.targets++;
+      const roll = Math.random();
+      const isTrash = roll < trashChance;
+      const isTreasure = !isTrash && roll < trashChance + treasureChance;
+      if (isTrash || isTreasure) {
+        const numRewards = clamp(Math.trunc(gauss(1, 1)), 1, 3);
+        if (isTrash) {
+          res.trash += numRewards;
+          for (let k = 0; k < numRewards; k++) {
+            if (S.trashItems.length) {
+              const item = S.trashItems[Math.floor(Math.random() * S.trashItems.length)];
+              res.trashCounts.set(item, (res.trashCounts.get(item) || 0) + 1);
+            }
+          }
+        } else res.treasure += numRewards;
+      } else recordFish();
+    }
+  }
+  S.sim.results = res;
+  renderTab();
+}
+
+/* ===================== lint ===================== */
+function lintAll() {
+  const out = [];
+  const pool = new Set(poolIds());
+  const fishTag = resolveTag("fishtastic:fish");
+  for (const [name, p] of S.profiles) {
+    for (const ax of AXES) {
+      const list = p.json[ax.key] || [];
+      const seen = new Set();
+      for (const w of list) {
+        const cond = w[ax.field];
+        if (w.multiplier > MULT_CAP && !MULT_CAP_EXEMPT.has(name)) {
+          out.push({ sev: "warn", fish: name, msg: `${ax.label} "${cond}" ×${fmtF(w.multiplier)} exceeds the ${MULT_CAP.toFixed(1)}× design cap (flagship exception: molten_moorish_idol only).` });
+        }
+        const key = (w.tier || "primary") + "|" + cond;
+        if (seen.has(key)) out.push({ sev: "info", fish: name, msg: `Duplicate ${ax.label.toLowerCase()} entry "${cond}" in the same tier — only the first match ever applies.` });
+        seen.add(key);
+        if (ax.key === "biome_weights" && cond.startsWith("fishtastic:") && !S.biomeTagsKnown.has(cond)) {
+          out.push({ sev: "serious", fish: name, msg: `Biome tag "${cond}" has no file under tags/worldgen/biome — it will never match.` });
+        }
+        if (ax.key === "time_weights" && !TIMES.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown time "${cond}".` });
+        if (ax.key === "weather_weights" && !WEATHERS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown weather "${cond}".` });
+        if (ax.key === "moon_weights" && !MOONS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown moon phase "${cond}".` });
+        if (ax.key === "elevation_weights" && !ELEVATIONS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown elevation band "${cond}".` });
+      }
+    }
+    if (!fishTag.has("fishtastic:" + name)) {
+      out.push({ sev: "warn", fish: name, msg: `Has a profile but is missing from #fishtastic:fish — it can never be caught.` });
+    }
+    if (p.json.temperament && !S.temperaments.includes(p.json.temperament)) {
+      out.push({ sev: "serious", fish: name, msg: `Temperament "${p.json.temperament}" has no file under fishtastic/temperament.` });
+    }
+  }
+  for (const id of pool) {
+    const [ns, path] = id.split(":");
+    if (ns === "fishtastic" && !S.profiles.has(path)) {
+      out.push({ sev: "warn", fish: path, msg: `In the fishing pool but has no fish_profile — falls back to base weight ${DEFAULT_BASE_WEIGHT}, no conditions.` });
+    }
+  }
+  const order = { serious: 0, warn: 1, info: 2 };
+  out.sort((a, b) => order[a.sev] - order[b.sev] || a.fish.localeCompare(b.fish));
+  return out;
+}
+
+/* ===================== serialization / saving ===================== */
+function serializeEntry(entry, field) {
+  const parts = [`"${field}": ${JSON.stringify(entry[field])}`, `"multiplier": ${fmtF(entry.multiplier)}`];
+  if (entry.tier && entry.tier !== "primary") parts.push(`"tier": ${JSON.stringify(entry.tier)}`);
+  for (const [k, v] of Object.entries(entry)) {
+    if (k === field || k === "multiplier" || k === "tier") continue;
+    parts.push(`${JSON.stringify(k)}: ${JSON.stringify(v)}`);
+  }
+  return "{ " + parts.join(", ") + " }";
+}
+function serializeProfile(json) {
+  const axisKeys = new Set(AXES.map(a => a.key));
+  const parts = [];
+  // canonical key order: keep original order, but ensure base_weight/size lead for new keys
+  const keys = Object.keys(json);
+  for (const k of keys) {
+    const v = json[k];
+    if (v === undefined) continue;
+    if (k === "base_weight") parts.push(`  "base_weight": ${Math.round(v)}`);
+    else if (k === "size" && v && typeof v === "object") parts.push(`  "size": { "mean": ${fmtF(v.mean)}, "std_dev": ${fmtF(v.std_dev)} }`);
+    else if (axisKeys.has(k)) {
+      if (!Array.isArray(v) || v.length === 0) continue;
+      const field = AXES.find(a => a.key === k).field;
+      parts.push(`  "${k}": [\n` + v.map(e => "    " + serializeEntry(e, field)).join(",\n") + "\n  ]");
+    }
+    else if (k === "temperament") { if (v) parts.push(`  "temperament": ${JSON.stringify(v)}`); }
+    else {
+      const body = JSON.stringify(v, null, 2).split("\n").map((l, i) => i ? "  " + l : l).join("\n");
+      parts.push(`  ${JSON.stringify(k)}: ${body}`);
+    }
+  }
+  return "{\n" + parts.join(",\n") + "\n}\n";
+}
+function serializeTag(t) {
+  const extra = { ...t.extra };
+  delete extra.values;
+  let body = `  "values": [\n` + t.values.map(v => "    " + JSON.stringify(v)).join(",\n") + "\n  ]";
+  const extraKeys = Object.entries(extra).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`);
+  return "{\n" + [ ...extraKeys, body ].join(",\n") + "\n}\n";
+}
+function dirtyCount() {
+  let n = 0;
+  for (const p of S.profiles.values()) if (p.dirty) n++;
+  for (const t of S.itemTags.values()) if (t.dirty) n++;
+  return n;
+}
+async function saveAll() {
+  let saved = 0;
+  try {
+    for (const p of S.profiles.values()) {
+      if (!p.dirty) continue;
+      const fh = await S.profileDir.getFileHandle(p.name + ".json", { create: true });
+      const w = await fh.createWritable();
+      await w.write(serializeProfile(p.json));
+      await w.close();
+      p.dirty = false; saved++;
+    }
+    for (const [tagId, t] of S.itemTags) {
+      if (!t.dirty) continue;
+      const [ns, name] = tagId.split(":");
+      const dir = ns === "minecraft"
+        ? await getDirPath(S.resRoot, "data/minecraft/tags/item")
+        : await getDirPath(S.resRoot, "data/fishtastic/tags/item");
+      const fh = await dir.getFileHandle(name + ".json", { create: true });
+      const w = await fh.createWritable();
+      await w.write(serializeTag(t));
+      await w.close();
+      t.dirty = false; saved++;
+    }
+    toast(saved ? `Saved ${saved} file${saved === 1 ? "" : "s"} — review with git diff` : "Nothing to save");
+  } catch (e) {
+    console.error(e);
+    toast("Save failed: " + (e.message || e), true);
+  }
+  renderHeader(); renderTab();
+}
+function markProfileDirty(name) {
+  const p = S.profiles.get(name);
+  if (p) p.dirty = true;
+  renderHeader();
+}
+
+/* ===================== rendering: header/context/tabs ===================== */
+function renderHeader() {
+  const n = dirtyCount();
+  $("#dirtyChip").style.display = n ? "" : "none";
+  $("#dirtyText").textContent = n + " unsaved";
+  $("#saveBtn").disabled = n === 0;
+}
+function allBiomeTagOptions() {
+  const s = new Set(["minecraft:is_ocean","minecraft:is_deep_ocean","minecraft:is_river","minecraft:is_jungle","minecraft:is_nether"]);
+  for (const t of S.biomeTagsKnown) s.add(t);
+  for (const p of S.profiles.values()) for (const w of p.json.biome_weights || []) s.add(w.biome);
+  return [...s].sort();
+}
+function renderContext() {
+  const c = $("#context");
+  c.replaceChildren();
+  const charm = CHARM_PRESETS[S.gear.charm];
+  // --- environment row: biomes
+  const presetSel = el("select", { onchange: e => {
+    const p = BIOME_PRESETS[e.target.value];
+    if (p) { S.env.biomes = new Set(p.tags); renderContext(); renderTab(); refreshEditorCalc(); }
+  }}, el("option", { value: "" }, "presets…"), BIOME_PRESETS.map((p, i) => el("option", { value: i }, p.name)));
+  const chips = allBiomeTagOptions().map(tag =>
+    el("span", { class: "tagchip" + (S.env.biomes.has(tag) ? " on" : ""), onclick: () => {
+      S.env.biomes.has(tag) ? S.env.biomes.delete(tag) : S.env.biomes.add(tag);
+      renderContext(); renderTab(); refreshEditorCalc();
+    }}, tag.replace(/^minecraft:/, "mc:").replace(/^fishtastic:/, "ft:")));
+  c.append(el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Biome tags"), presetSel, chips));
+
+  // --- environment row: time / weather / moon / elevation
+  const seg = (opts, cur, cb, labelFn) => {
+    const s = el("div", { class: "seg" });
+    for (const o of opts) s.append(el("button", { class: cur === o ? "on" : "", onclick: () => cb(o) }, labelFn ? labelFn(o) : o));
+    return s;
+  };
+  const onEnv = () => { renderContext(); renderTab(); refreshEditorCalc(); };
+  const moonActive = (charm.forceNight ? "night" : S.env.time) === "night" && S.env.weather === "clear";
+  const moonSel = el("select", { onchange: e => { S.env.moon = e.target.value; onEnv(); } },
+    MOONS.map(m => el("option", { value: m, selected: S.env.moon === m ? "" : null }, prettify(m))));
+  c.append(el("div", { class: "ctx-row" },
+    el("span", { class: "ctx-label" }, "Conditions"),
+    seg(TIMES, S.env.time, o => { S.env.time = o; onEnv(); }),
+    seg(WEATHERS, S.env.weather, o => { S.env.weather = o; onEnv(); }),
+    moonSel,
+    el("span", { class: "hint", "data-tip": "Moon weights only apply when it's night AND clear — the moon must be visible." },
+      moonActive ? "☾ moon visible" : "☾ moon hidden"),
+    seg(ELEVATIONS, S.env.elevation, o => { S.env.elevation = o; onEnv(); }),
+    charm.forceNight ? el("span", { class: "hint", style: "color:var(--s3)" }, "Luna charm forces NIGHT") : null,
+  ));
+
+  // --- gear row
+  const baitSel = el("select", { onchange: e => { S.gear.bait = e.target.value; renderContext(); renderTab(); refreshEditorCalc(); } },
+    Object.entries(BAIT_PRESETS).map(([k, b]) => el("option", { value: k, selected: S.gear.bait === k ? "" : null }, b.label)));
+  const row = el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Gear"), baitSel);
+  if (S.gear.bait === "blazed_grub") {
+    row.append(el("select", { title: "Caught-grub quality scales the bait effect", onchange: e => { S.gear.baitQuality = e.target.value; renderTab(); refreshEditorCalc(); } },
+      QUALITIES.map(q => el("option", { value: q, selected: S.gear.baitQuality === q ? "" : null }, "grub: " + q))));
+  }
+  if (S.gear.bait === "custom") {
+    const cu = S.gear.custom;
+    const num = (label, key, step, tip) => el("span", { class: "hint", "data-tip": tip || "" }, label + " ",
+      el("input", { type: "number", step: step || 0.05, value: cu[key], style: "width:64px", onchange: e => { cu[key] = parseFloat(e.target.value) || 0; renderTab(); refreshEditorCalc(); } }));
+    row.append(
+      num("mod×", "modMult", 0.05, "mod_fish_multiplier"),
+      num("van×", "vanillaMult", 0.05, "vanilla_fish_multiplier"),
+      num("treasure", "treasure", 0.01), num("trash", "trash", 0.01),
+      num("qbias", "qualityBias", 0.1, "quality_bias"), num("targets±", "targets", 1, "target_count_bonus"),
+    );
+  }
+  row.append(
+    el("select", { onchange: e => { S.gear.hook = e.target.value; renderTab(); refreshEditorCalc(); } },
+      Object.entries(HOOK_PRESETS).map(([k, h]) => el("option", { value: k, selected: S.gear.hook === k ? "" : null }, "hook: " + h.label))),
+    el("select", { onchange: e => { S.gear.charm = e.target.value; renderContext(); renderTab(); refreshEditorCalc(); } },
+      Object.entries(CHARM_PRESETS).map(([k, ch]) => el("option", { value: k, selected: S.gear.charm === k ? "" : null }, "charm: " + ch.label))),
+    el("span", { class: "hint", "data-tip": "Acute Iapsis gains +1 base weight per diamond in the player's inventory." }, "◆ diamonds ",
+      el("input", { type: "number", min: 0, step: 1, value: S.gear.diamonds, style: "width:58px", onchange: e => { S.gear.diamonds = Math.max(0, parseInt(e.target.value) || 0); renderTab(); refreshEditorCalc(); } })),
+  );
+  const b = effectiveBait();
+  if (b.exclusive) row.append(el("span", { class: "hint", style: "color:var(--warning)" }, "exclusive pool: " + b.exclusive));
+  c.append(row);
+}
+const TABS = [
+  { id: "profiles", label: "Profiles" },
+  { id: "analytics", label: "Analytics" },
+  { id: "tags", label: "Tags & Groups" },
+  { id: "sim", label: "Simulator" },
+];
+function renderTabs() {
+  const n = $("#tabs");
+  n.replaceChildren(...TABS.map(t =>
+    el("button", { class: S.tab === t.id ? "on" : "", onclick: () => { S.tab = t.id; renderTabs(); renderTab(); } }, t.label)));
+}
+function renderAll() { renderHeader(); renderContext(); renderTabs(); renderTab(); }
+function renderTab() {
+  const v = $("#view");
+  v.replaceChildren();
+  if (S.tab === "profiles") renderProfiles(v);
+  else if (S.tab === "analytics") renderAnalytics(v);
+  else if (S.tab === "tags") renderTags(v);
+  else if (S.tab === "sim") renderSim(v);
+}
+
+/* ===================== sprites ===================== */
+function spriteEl(id, cls) {
+  const [ns, path] = id.split(":");
+  const url = ns === "fishtastic" ? S.textures.get(path) : null;
+  if (url) return el("img", { class: "sprite " + (cls || ""), src: url, alt: "" });
+  return el("div", { class: "sprite ph " + (cls || "") }, displayName(id).charAt(0));
+}
+
+/* ===================== tab: profiles ===================== */
+function condChipsFor(json, name) {
+  const chips = [];
+  for (const ax of AXES) {
+    for (const w of json[ax.key] || []) {
+      const hot = w.multiplier > MULT_CAP && !MULT_CAP_EXEMPT.has(name);
+      chips.push(el("span", {
+        class: "cc" + ((w.tier || "primary") === "secondary" ? " sec" : "") + (hot ? " hot" : ""),
+        "data-tip": `${ax.label}: ${w[ax.field]}\n×${fmtF(w.multiplier)} · ${(w.tier || "primary")} tier` + (hot ? "\n⚠ exceeds 2.0× cap" : ""),
+      }, `${String(w[ax.field]).replace(/^minecraft:is_|^fishtastic:is_/, "")} ×${fmtF(w.multiplier)}`));
+    }
+  }
+  return chips;
+}
+function renderProfiles(v) {
+  const pw = poolWeights();
+  const shareOf = new Map(pw.rows.map(r => [r.id, r]));
+  const toolbar = el("div", { class: "toolbar" },
+    el("input", { type: "search", placeholder: "search fish…", value: S.search, style: "width:240px",
+      oninput: e => { S.search = e.target.value; renderTab(); } }),
+    el("span", { class: "hint" }, `${S.profiles.size} profiles · pool of ${pw.rows.length} under current context (total weight ${pw.total})`),
+  );
+  const cards = el("div", { class: "cards" });
+  const q = S.search.trim().toLowerCase();
+  for (const id of poolIds()) {
+    const [ns, path] = id.split(":");
+    const name = displayName(id);
+    if (q && !name.toLowerCase().includes(q) && !path.includes(q)) continue;
+    const isV = VANILLA_IDS.has(id);
+    const p = isV ? null : S.profiles.get(path);
+    const r = shareOf.get(id);
+    const base = isV ? VANILLA_FISH.find(f => f.id === id).weight : (p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT);
+    const effCls = r && r.weight > base ? "eff-up" : (r && r.weight < base ? "eff-down" : "");
+    const card = el("div", { class: "card", onclick: () => { if (!isV) openEditor(path); } },
+      el("div", { class: "row1" }, spriteEl(id),
+        el("div", null, el("div", { class: "name" }, name), el("div", { class: "id" }, id))),
+      el("div", { class: "stats" },
+        el("span", { "data-tip": "base_weight (before conditions)" }, "base ", el("b", null, base)),
+        el("span", { class: effCls, "data-tip": "effective weight under the current environment + gear context" }, "now ", el("b", null, r ? r.weight : "—")),
+        el("span", { "data-tip": "share of the total pool weight right now" }, el("b", null, r ? pct(r.share) : "—")),
+        !isV && p && p.json.size ? el("span", { "data-tip": "size gaussian: mean ± std_dev" }, `${fmtF(p.json.size.mean)}±${fmtF(p.json.size.std_dev)}`) : null,
+      ),
+      !isV && p ? el("div", { class: "condchips" }, condChipsFor(p.json, path)) : null,
+    );
+    if (isV) card.append(el("span", { class: "badge vanilla" }, "VANILLA"));
+    else if (!p) card.append(el("span", { class: "badge noprofile" }, "NO PROFILE"));
+    else if (p.dirty) card.append(el("span", { class: "badge dirty" }, "EDITED"));
+    else if (inTag(id, "fishtastic:unlisted_fish")) card.append(el("span", { class: "badge unlisted" }, "UNLISTED"));
+    cards.append(card);
+  }
+  v.append(toolbar, cards);
+}
+
+/* ===================== editor drawer ===================== */
+function openEditor(name) {
+  if (!S.profiles.has(name)) {
+    // create a default profile for a pool fish that lacks one
+    S.profiles.set(name, { name, json: { base_weight: DEFAULT_BASE_WEIGHT, size: { mean: DEFAULT_MEAN, std_dev: DEFAULT_STD } }, dirty: true });
+    renderHeader();
+  }
+  S.editing = name;
+  renderEditor();
+  $("#drawer").classList.add("open");
+}
+function closeEditor() { S.editing = null; $("#drawer").classList.remove("open"); renderTab(); }
+function refreshEditorCalc() {
+  if (S.editing) { const lc = $("#livecalc"); if (lc) lc.replaceWith(liveCalcEl(S.editing)); const jp = $("#jsonPrev"); if (jp) jp.textContent = serializeProfile(S.profiles.get(S.editing).json); }
+}
+function liveCalcEl(name) {
+  const p = S.profiles.get(name);
+  const env = effectiveEnv();
+  const bait = effectiveBait(), charm = CHARM_PRESETS[S.gear.charm];
+  const id = "fishtastic:" + name;
+  const eMult = envMultiplier(p.json, env);
+  const w = fishWeight(id, env, bait, charm, S.gear.diamonds);
+  const pw = poolWeights();
+  const row = pw.rows.find(r => r.id === id);
+  return el("div", { class: "livecalc", id: "livecalc" },
+    el("div", null, "under current context:"),
+    el("div", null, `base ${p.json.base_weight ?? DEFAULT_BASE_WEIGHT} × env `, el("b", null, "×" + fmtF(Math.round(eMult * 1000) / 1000)),
+      ` × bait ×${fmtF(bait.modMult)} → weight `, el("b", null, w)),
+    el("div", null, "pool share: ", el("b", null, row ? pct(row.share) : "not in pool (excluded by bait)"),
+      el("span", { class: "mut" }, ` of total ${pw.total}`)),
+  );
+}
+function renderEditor() {
+  const name = S.editing;
+  const d = $("#drawer");
+  if (!name) { d.replaceChildren(); return; }
+  const p = S.profiles.get(name);
+  const json = p.json;
+  const id = "fishtastic:" + name;
+  const touch = () => { markProfileDirty(name); refreshEditorCalc(); };
+
+  const body = el("div", { class: "dbody" });
+  // base weight + size
+  json.base_weight = json.base_weight ?? DEFAULT_BASE_WEIGHT;
+  if (!json.size) json.size = { mean: DEFAULT_MEAN, std_dev: DEFAULT_STD };
+  body.append(
+    el("div", { class: "fieldrow" }, el("label", null, "base_weight"),
+      el("input", { type: "number", min: 1, step: 1, value: json.base_weight, onchange: e => { json.base_weight = Math.max(1, parseInt(e.target.value) || DEFAULT_BASE_WEIGHT); touch(); } }),
+      el("span", { class: "hint" }, "vanilla: cod/salmon 200 · tropical 50 · puffer 25")),
+    el("div", { class: "fieldrow" }, el("label", null, "size mean"),
+      el("input", { type: "number", step: 1, value: json.size.mean, onchange: e => { json.size.mean = parseFloat(e.target.value) || 0; touch(); } }),
+      el("label", { style: "width:auto" }, "std_dev"),
+      el("input", { type: "number", step: 0.5, value: json.size.std_dev, onchange: e => { json.size.std_dev = parseFloat(e.target.value) || 0; touch(); } })),
+    el("div", { class: "fieldrow" }, el("label", null, "temperament"),
+      el("select", { onchange: e => { if (e.target.value) json.temperament = e.target.value; else delete json.temperament; touch(); } },
+        el("option", { value: "" }, "(none)"),
+        S.temperaments.map(t => el("option", { value: t, selected: json.temperament === t ? "" : null }, t.split(":")[1])))),
+  );
+
+  // condition axes
+  for (const ax of AXES) {
+    const list = json[ax.key] = json[ax.key] || [];
+    const axEl = el("div", { class: "axis" });
+    const head = el("h4", null, ax.label + " weights",
+      ax.key === "moon_weights" ? el("span", { class: "hint", style: "text-transform:none;letter-spacing:0" }, "night + clear only") : null,
+      el("button", { onclick: () => {
+        const def = ax.key === "biome_weights" ? "minecraft:is_ocean" : ax.key === "time_weights" ? "day" : ax.key === "weather_weights" ? "clear" : ax.key === "moon_weights" ? "full_moon" : "surface";
+        list.push({ [ax.field]: def, multiplier: 1.5 });
+        touch(); renderEditor();
+      } }, "+ add"));
+    axEl.append(head);
+    list.forEach((w, i) => {
+      let condInput;
+      if (ax.key === "biome_weights") {
+        condInput = el("input", { type: "text", list: "biomeTagList", value: w[ax.field], onchange: e => { w[ax.field] = e.target.value.trim(); touch(); } });
+      } else {
+        const opts = ax.key === "time_weights" ? TIMES : ax.key === "weather_weights" ? WEATHERS : ax.key === "moon_weights" ? MOONS : ELEVATIONS;
+        condInput = el("select", { onchange: e => { w[ax.field] = e.target.value; touch(); } },
+          opts.map(o => el("option", { value: o, selected: w[ax.field] === o ? "" : null }, o)));
+      }
+      const capWarn = () => w.multiplier > MULT_CAP && !MULT_CAP_EXEMPT.has(name);
+      const warnEl = el("span", { class: "capwarn", style: capWarn() ? "" : "display:none", "data-tip": "Exceeds the 2.0× condition-multiplier design cap (molten_moorish_idol is the only flagship exception)." }, "⚠");
+      const row = el("div", { class: "wrow" },
+        condInput,
+        el("input", { class: "mult", type: "number", step: 0.1, min: 0, value: w.multiplier, onchange: e => {
+          w.multiplier = parseFloat(e.target.value) || 1.0;
+          warnEl.style.display = capWarn() ? "" : "none";
+          touch();
+        } }),
+        el("select", { class: "tier", "data-tip": "primary: multiplies (combo hunting)\nsecondary: adds flat % (flavor nudge)", onchange: e => {
+          if (e.target.value === "secondary") w.tier = "secondary"; else delete w.tier;
+          touch();
+        } },
+          el("option", { value: "primary", selected: (w.tier || "primary") === "primary" ? "" : null }, "P"),
+          el("option", { value: "secondary", selected: w.tier === "secondary" ? "" : null }, "S")),
+        warnEl,
+        el("button", { class: "danger", onclick: () => { list.splice(i, 1); touch(); renderEditor(); } }, "✕"),
+      );
+      axEl.append(row);
+    });
+    body.append(axEl);
+  }
+
+  body.append(liveCalcEl(name));
+  body.append(el("h4", { style: "font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px" }, "file preview — " + name + ".json"));
+  body.append(el("pre", { class: "json", id: "jsonPrev" }, serializeProfile(json)));
+
+  d.replaceChildren(
+    el("div", { class: "dhead" },
+      spriteEl(id),
+      el("div", { style: "flex:1" },
+        el("div", { style: "font-weight:650" }, displayName(id)),
+        el("div", { class: "id", style: "font-family:var(--mono);font-size:10px;color:var(--muted)" }, "fish_profile/" + name + ".json" + (p.dirty ? "  · edited" : ""))),
+      el("button", { class: "primary", disabled: dirtyCount() === 0 ? "" : null, onclick: saveAll }, "Save"),
+      el("button", { onclick: closeEditor }, "Close ✕")),
+    body,
+  );
+}
+
+/* ===================== tab: analytics ===================== */
+function seqColor(v) {
+  // v in [0,1] → sequential blue ramp (dark surface: low recedes dark, high pops light)
+  const ramp = ["#0d366b","#184f95","#256abf","#3987e5","#6da7ec","#9ec5f4","#cde2fb"];
+  return ramp[clamp(Math.round(v * (ramp.length - 1)), 0, ramp.length - 1)];
+}
+function heatInk(v) { return v > 0.55 ? "#0b0b0b" : "#eef4f8"; }
+function renderAnalytics(v) {
+  const pw = poolWeights();
+  const rows = [...pw.rows].sort((a, b) => b.weight - a.weight);
+  const maxW = Math.max(...rows.map(r => r.weight), 1);
+
+  // --- pool share chart
+  const chart = el("div", { class: "viz-root" },
+    el("div", { class: "legend" },
+      el("span", null, el("span", { class: "sw", style: "background:var(--s1)" }), "fishtastic"),
+      el("span", null, el("span", { class: "sw", style: "border:1px solid var(--muted)" }), "vanilla")));
+  for (const r of rows) {
+    const isV = VANILLA_IDS.has(r.id);
+    chart.append(el("div", { class: "hbar-row" },
+      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id))),
+      el("div", { class: "hbar-track", "data-tip": `${displayName(r.id)}\nweight ${r.weight} / ${pw.total}\n${pct(r.share)} of pool` },
+        el("div", { class: "hbar-fill" + (isV ? " vanilla" : ""), style: `width:${(r.weight / maxW * 100).toFixed(2)}%` })),
+      el("div", { class: "val" }, el("b", null, pct(r.share)), ` · w ${r.weight}`),
+    ));
+  }
+  v.append(el("div", { class: "panel" },
+    el("h3", null, "Pool share under current context", el("span", { class: "note" }, `— exact weights, total ${pw.total}. Change environment/gear above to explore.`)),
+    chart));
+
+  // --- environment sweep for one fish
+  const modIds = poolIds().filter(i => !VANILLA_IDS.has(i));
+  if (!S.sweepFish && modIds.length) S.sweepFish = modIds[0];
+  const sweepSel = el("select", { onchange: e => { S.sweepFish = e.target.value; renderTab(); } },
+    modIds.map(i => el("option", { value: i, selected: S.sweepFish === i ? "" : null }, displayName(i))));
+  const sweep = el("div", { class: "heat", style: `grid-template-columns: 90px repeat(${WEATHERS.length}, 1fr); max-width:640px` });
+  sweep.append(el("div"), ...WEATHERS.map(w => el("div", { class: "hhead" }, w)));
+  const savedEnv = { time: S.env.time, weather: S.env.weather };
+  const cells = [];
+  let sweepMax = 0;
+  for (const t of TIMES) {
+    for (const w of WEATHERS) {
+      S.env.time = t; S.env.weather = w;
+      const spw = poolWeights();
+      const row = spw.rows.find(r => r.id === S.sweepFish);
+      const share = row ? row.share : 0;
+      cells.push({ t, w, share });
+      sweepMax = Math.max(sweepMax, share);
+    }
+  }
+  S.env.time = savedEnv.time; S.env.weather = savedEnv.weather;
+  for (const t of TIMES) {
+    sweep.append(el("div", { class: "hhead", style: "text-align:right;padding-right:8px;align-self:center" }, t));
+    for (const w of WEATHERS) {
+      const c = cells.find(x => x.t === t && x.w === w);
+      const norm = sweepMax > 0 ? c.share / sweepMax : 0;
+      sweep.append(el("div", { class: "hcell", style: `background:${seqColor(norm)};color:${heatInk(norm)}`,
+        "data-tip": `${displayName(S.sweepFish)}\n${t} / ${w}\ncatch share ${pct(c.share)}` }, pct(c.share, 1)));
+    }
+  }
+  v.append(el("div", { class: "panel viz-root" },
+    el("h3", null, "Environment sweep — time × weather ", el("span", { class: "note" }, "— catch share for "), sweepSel,
+      el("span", { class: "note" }, " (biome/moon/elevation/gear held at current context)")),
+    sweep));
+
+  // --- condition coverage matrix
+  const mat = el("table", { class: "mat" },
+    el("thead", null, el("tr", null, el("th", null, "Fish"), el("th", null, "Base"),
+      ...AXES.map(a => el("th", null, a.label)), el("th", null, "Temperament"), el("th", null, "Groups"))));
+  const tb = el("tbody");
+  for (const [name, p] of [...S.profiles.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const id = "fishtastic:" + name;
+    tb.append(el("tr", { style: "cursor:pointer", onclick: () => openEditor(name) },
+      el("td", null, displayName(id)),
+      el("td", { class: "num" }, p.json.base_weight ?? DEFAULT_BASE_WEIGHT),
+      ...AXES.map(ax => {
+        const list = p.json[ax.key] || [];
+        if (!list.length) return el("td", { class: "mut" }, "—");
+        return el("td", null, list.map(w =>
+          el("span", { class: "cc" + ((w.tier || "primary") === "secondary" ? " sec" : "") + (w.multiplier > MULT_CAP && !MULT_CAP_EXEMPT.has(name) ? " hot" : ""), style: "margin-right:4px" },
+            `${String(w[ax.field]).replace(/^minecraft:is_|^fishtastic:is_/, "")}×${fmtF(w.multiplier)}${(w.tier || "primary") === "secondary" ? "ˢ" : ""}`)));
+      }),
+      el("td", { class: "mut" }, p.json.temperament ? p.json.temperament.split(":")[1] : "—"),
+      el("td", { class: "mut", style: "font-size:10.5px;font-family:var(--mono)" },
+        groupTagIds().filter(t => t !== "fishtastic:fish" && inTag(id, t)).map(t => t.split(":")[1]).join(", ") || "—"),
+    ));
+  }
+  mat.append(tb);
+  v.append(el("div", { class: "panel" },
+    el("h3", null, "Condition coverage ", el("span", { class: "note" }, "— ˢ marks secondary tier (flat % bonus); click a row to edit")),
+    el("div", { class: "scrollbox" }, mat)));
+
+  // --- lint
+  const lints = lintAll();
+  const lintBox = el("div", { class: "lint" });
+  if (!lints.length) lintBox.append(el("div", { class: "lint-item ok" }, el("span", { class: "ic" }, "✓ OK"), "No issues found across all profiles and tags."));
+  for (const l of lints) {
+    lintBox.append(el("div", { class: "lint-item " + l.sev },
+      el("span", { class: "ic" }, l.sev === "serious" ? "✖ ERR" : l.sev === "warn" ? "⚠ WARN" : "ℹ INFO"),
+      el("span", null, el("code", null, l.fish), " — " + l.msg)));
+  }
+  v.append(el("div", { class: "panel" },
+    el("h3", null, `Design lint (${lints.length})`, el("span", { class: "note" }, "— cap rule: condition multipliers stay ≤ 2.0×; molten_moorish_idol is the one flagship exception")),
+    lintBox));
+}
+
+/* ===================== tab: tags ===================== */
+function renderTags(v) {
+  const tags = groupTagIds();
+  const ids = poolIds();
+  const table = el("table", { class: "mat" });
+  const headRow = el("tr", null, el("th", null, "Fish"));
+  for (const t of tags) {
+    const tt = S.itemTags.get(t);
+    headRow.append(el("th", { "data-tip": t + (tt.dirty ? "\n(edited)" : "") }, t.split(":")[1] + (tt.dirty ? " •" : "")));
+  }
+  table.append(el("thead", null, headRow));
+  const tb = el("tbody");
+  for (const id of ids) {
+    const tr = el("tr", null, el("td", null,
+      el("span", { style: "display:inline-flex;align-items:center;gap:8px" }, spriteEl(id), displayName(id))));
+    for (const t of tags) {
+      const tag = S.itemTags.get(t);
+      const direct = tag.values.includes(id);
+      const inherited = !direct && inTag(id, t);
+      const cb = el("input", { class: "cb", type: "checkbox" });
+      cb.checked = direct || inherited;
+      if (inherited) { cb.disabled = true; cb.title = "included via a nested #tag reference"; }
+      cb.addEventListener("change", () => {
+        if (cb.checked) tag.values.push(id);
+        else tag.values = tag.values.filter(x => x !== id);
+        tag.dirty = true;
+        renderHeader(); renderTab();
+      });
+      tr.append(el("td", { style: "text-align:center" }, cb));
+    }
+    tb.append(tr);
+  }
+  table.append(tb);
+  v.append(el("div", { class: "panel" },
+    el("h3", null, "Group membership matrix",
+      el("span", { class: "note" }, "— checkboxes write tags/item/*.json on save. Disabled = inherited via nested #tag. fish = the catchable pool; unlisted_fish = hidden in the encyclopedia until first catch.")),
+    el("div", { class: "scrollbox", style: "max-height:600px" }, table)));
+
+  // gear affinity reference
+  const refRows = [
+    ["Freshwater Bait", "freshwater_fish ×4.0 · vanilla ×0.25"],
+    ["Ocean Bait", "ocean_fish ×4.0 · vanilla ×0.25"],
+    ["Predator Bait", "predator_fish ×4.0 · vanilla ×0.25"],
+    ["Deep Sea Bait", "deep_sea_fish ×4.0 · vanilla ×0.25 · −1 target"],
+    ["Blazed Grub", "exclusive pool → exotic_fish only · treasure 50%"],
+    ["Banana Charm", "color_yellow ×1.5"],
+  ];
+  v.append(el("div", { class: "panel" },
+    el("h3", null, "How gear reads these groups"),
+    el("table", { class: "mat" }, el("tbody", null,
+      refRows.map(([a, b]) => el("tr", null, el("td", null, a), el("td", { class: "mut" }, b)))))));
+}
+
+/* ===================== tab: simulator ===================== */
+function renderSim(v) {
+  const controls = el("div", { class: "toolbar" },
+    el("span", { class: "ctx-label", style: "width:auto" }, "Casts"),
+    el("input", { type: "number", min: 1, max: 200000, step: 100, value: S.sim.n, style: "width:100px",
+      onchange: e => { S.sim.n = clamp(parseInt(e.target.value) || 1000, 1, 200000); } }),
+    (() => {
+      const s = el("div", { class: "seg" });
+      const opts = [["full", "full cast (trash/treasure/fish)"], ["fish", "fish rolls only"]];
+      for (const [val, lab] of opts) s.append(el("button", { class: S.sim.mode === val ? "on" : "", onclick: () => { S.sim.mode = val; renderTab(); } }, lab));
+      return s;
+    })(),
+    el("button", { class: "primary", onclick: runSimulation }, "▶ Run simulation"),
+    el("span", { class: "hint" }, "uses the environment + gear context above; exact game math incl. int truncation, min-weight 1, target-count gaussian"),
+  );
+  v.append(el("div", { class: "panel" }, el("h3", null, "Catch simulator"), controls));
+
+  const res = S.sim.results;
+  if (!res) { v.append(el("div", { class: "panel mut" }, "No results yet — hit Run.")); return; }
+
+  // --- stat tiles
+  const tiles = el("div", { class: "tiles" },
+    el("div", { class: "tile" }, el("div", { class: "k" }, "casts"), el("div", { class: "v" }, res.casts.toLocaleString())),
+    S.sim.mode === "full" ? el("div", { class: "tile" }, el("div", { class: "k" }, "targets"), el("div", { class: "v" }, res.targets.toLocaleString())) : null,
+    el("div", { class: "tile" }, el("div", { class: "k" }, "fish"), el("div", { class: "v" }, res.fish.toLocaleString()),
+      S.sim.mode === "full" ? el("div", { class: "s" }, pct(res.fish / Math.max(1, res.targets), 1) + " of targets") : null),
+    S.sim.mode === "full" ? el("div", { class: "tile" }, el("div", { class: "k" }, "treasure"), el("div", { class: "v" }, res.treasure.toLocaleString())) : null,
+    S.sim.mode === "full" ? el("div", { class: "tile" }, el("div", { class: "k" }, "trash"), el("div", { class: "v" }, res.trash.toLocaleString())) : null,
+    res.biggest ? el("div", { class: "tile" }, el("div", { class: "k" }, "biggest catch"),
+      el("div", { class: "v", style: "font-size:17px" }, fmtF(Math.round(res.biggest.size * 10) / 10) + " cm"),
+      el("div", { class: "s" }, `${displayName(res.biggest.id)} · ${res.biggest.quality}`)) : null,
+  );
+  v.append(el("div", { class: "panel" }, el("h3", null, "Outcome"), tiles));
+
+  // --- species observed vs expected
+  const speciesRows = [...res.species.entries()].map(([id, sp]) => ({
+    id, sp, obs: res.fish > 0 ? sp.count / res.fish : 0, exp: res.expected.get(id) || 0,
+  }));
+  for (const [id, exp] of res.expected) if (exp > 0 && !res.species.has(id)) speciesRows.push({ id, sp: null, obs: 0, exp });
+  speciesRows.sort((a, b) => b.obs - a.obs || b.exp - a.exp);
+  const maxObs = Math.max(...speciesRows.map(r => Math.max(r.obs, r.exp)), 0.0001);
+  const spChart = el("div", { class: "viz-root" },
+    el("div", { class: "legend" },
+      el("span", null, el("span", { class: "sw", style: "background:var(--s1)" }), "observed"),
+      el("span", null, el("span", { class: "sw", style: "background:var(--ink);width:2px;border-radius:0" }), "expected (exact)")));
+  for (const r of speciesRows) {
+    spChart.append(el("div", { class: "hbar-row" },
+      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id))),
+      el("div", { class: "hbar-track", "data-tip": `${displayName(r.id)}\nobserved ${r.sp ? r.sp.count : 0} (${pct(r.obs)})\nexpected ${pct(r.exp)}` },
+        el("div", { class: "hbar-fill", style: `width:${(r.obs / maxObs * 100).toFixed(2)}%` }),
+        el("div", { class: "hbar-tick", style: `left:${(r.exp / maxObs * 100).toFixed(2)}%` })),
+      el("div", { class: "val" }, el("b", null, r.sp ? r.sp.count : 0), ` · ${pct(r.obs, 1)}`),
+    ));
+  }
+  const grid = el("div", { class: "simgrid" });
+  grid.append(el("div", { class: "panel" },
+    el("h3", null, "Species — observed vs expected", el("span", { class: "note" }, "— tick marks the exact weight-derived share")),
+    spChart));
+
+  // --- quality + sizes
+  const right = el("div");
+  const qRamp = ["#184f95","#256abf","#3987e5","#6da7ec","#b7d3f6"];
+  const qBox = el("div", { class: "viz-root" });
+  const maxQ = Math.max(...QUALITIES.map(q => res.qualities[q]), 1);
+  QUALITIES.forEach((q, i) => {
+    qBox.append(el("div", { class: "hbar-row", style: "grid-template-columns:90px 1fr 110px" },
+      el("div", { class: "lbl" }, el("span", null, prettify(q))),
+      el("div", { class: "hbar-track", "data-tip": `${prettify(q)}: ${res.qualities[q]} (${pct(res.qualities[q] / Math.max(1, res.fish))})` },
+        el("div", { class: "hbar-fill", style: `width:${(res.qualities[q] / maxQ * 100).toFixed(2)}%;background:${qRamp[i]}` })),
+      el("div", { class: "val" }, el("b", null, res.qualities[q]), ` · ${pct(res.qualities[q] / Math.max(1, res.fish), 1)}`)));
+  });
+  right.append(el("div", { class: "panel" },
+    el("h3", null, "Quality distribution", el("span", { class: "note" }, `— quality bias ${fmtF(effectiveBait().qualityBias + HOOK_PRESETS[S.gear.hook].qualityBias)}`)),
+    qBox));
+
+  if (res.sizes.length) {
+    const mn = Math.min(...res.sizes), mx = Math.max(...res.sizes);
+    const bins = new Array(24).fill(0);
+    for (const s of res.sizes) bins[clamp(Math.floor((s - mn) / (mx - mn || 1) * 24), 0, 23)]++;
+    const maxBin = Math.max(...bins, 1);
+    const mean = res.sizes.reduce((a, b) => a + b, 0) / res.sizes.length;
+    const histo = el("div", { class: "histo" },
+      bins.map((b, i) => el("div", { class: "bin", style: `height:${(b / maxBin * 100).toFixed(1)}%`,
+        "data-tip": `${(mn + (mx - mn) / 24 * i).toFixed(0)}–${(mn + (mx - mn) / 24 * (i + 1)).toFixed(0)} cm: ${b}` })));
+    right.append(el("div", { class: "panel viz-root" },
+      el("h3", null, "Size distribution", el("span", { class: "note" }, `— mean ${mean.toFixed(1)} cm across all catches`)),
+      histo,
+      el("div", { class: "hx" }, el("span", null, mn.toFixed(0) + " cm"), el("span", null, ((mn + mx) / 2).toFixed(0)), el("span", null, mx.toFixed(0) + " cm"))));
+  }
+  grid.append(right);
+  v.append(grid);
+
+  // --- per-species table
+  const tbl = el("table", { class: "mat" },
+    el("thead", null, el("tr", null,
+      el("th", null, "Fish"), el("th", null, "Caught"), el("th", null, "Observed"), el("th", null, "Expected"),
+      el("th", null, "Δ"), el("th", null, "Size min/avg/max"), el("th", null, "Best quality"))));
+  const tb2 = el("tbody");
+  for (const r of speciesRows) {
+    const sp = r.sp;
+    const delta = r.obs - r.exp;
+    const bestQ = sp ? [...QUALITIES].reverse().find(q => sp.qualities[q] > 0) : null;
+    tb2.append(el("tr", null,
+      el("td", null, displayName(r.id)),
+      el("td", { class: "num" }, sp ? sp.count : 0),
+      el("td", { class: "num" }, pct(r.obs)),
+      el("td", { class: "num" }, pct(r.exp)),
+      el("td", { class: "num", style: Math.abs(delta) > 0.01 ? "color:var(--warning)" : "color:var(--muted)" }, (delta >= 0 ? "+" : "") + pct(delta)),
+      el("td", { class: "num" }, sp ? `${sp.sizeMin.toFixed(0)} / ${(sp.sizeSum / sp.count).toFixed(0)} / ${sp.sizeMax.toFixed(0)}` : "—"),
+      el("td", null, bestQ ? prettify(bestQ) : "—"),
+    ));
+  }
+  tbl.append(tb2);
+  v.append(el("div", { class: "panel" }, el("h3", null, "Per-species detail"), el("div", { class: "scrollbox" }, tbl)));
+
+  if (S.sim.mode === "full" && res.trashCounts.size) {
+    v.append(el("div", { class: "panel" },
+      el("h3", null, "Trash breakdown", el("span", { class: "note" }, "— uniform pick from #fishtastic:trash")),
+      el("div", { class: "mut", style: "font-family:var(--mono);font-size:12px" },
+        [...res.trashCounts.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${displayName(id)} ×${n}`).join(" · "))));
+  }
+}
+
+/* ===================== boot ===================== */
+const dl = el("datalist", { id: "biomeTagList" });
+document.body.append(dl);
+function refreshBiomeDatalist() {
+  dl.replaceChildren(...allBiomeTagOptions().map(t => el("option", { value: t })));
+}
+$("#connectBtn").addEventListener("click", () => connect());
+$("#reconnectBtn").addEventListener("click", async () => {
+  const h = await kvGet("dirHandle");
+  if (h) connect(h);
+});
+$("#rescanBtn").addEventListener("click", async () => {
+  await loadAll(); refreshBiomeDatalist(); renderAll(); toast("Rescanned data folder");
+});
+$("#saveBtn").addEventListener("click", saveAll);
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (S.rootHandle) saveAll(); }
+  if (e.key === "Escape" && S.editing) closeEditor();
+});
+window.addEventListener("beforeunload", e => { if (dirtyCount() > 0) e.preventDefault(); });
+(async () => {
+  try {
+    const h = await kvGet("dirHandle");
+    if (h) {
+      if (await h.queryPermission({ mode: "readwrite" }) === "granted") { connect(h); }
+      else $("#reconnectRow").style.display = "";
+    }
+  } catch (e) { /* first run */ }
+})();
+// re-render datalist after each load
+const _origLoadAll = loadAll;
+loadAll = async function () { await _origLoadAll(); refreshBiomeDatalist(); };
+</script>
+</body>
+</html>

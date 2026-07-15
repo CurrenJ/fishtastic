@@ -5,10 +5,7 @@
     { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
   ],
   "time_weights": [
-    { "time": "night", "multiplier": 1.5 }
-  ],
-  "weather_weights": [
-    { "weather": "clear", "multiplier": 1.5 }
+    { "time": "night", "multiplier": 1.15, "tier": "secondary" }
   ],
   "moon_weights": [
     { "phase": "full_moon", "multiplier": 2.0 }

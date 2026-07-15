@@ -12,9 +12,5 @@
     { "weather": "thunder", "multiplier": 0.3 },
     { "weather": "rain", "multiplier": 0.5 }
   ],
-  "moon_weights": [
-    { "phase": "first_quarter", "multiplier": 1.3 },
-    { "phase": "third_quarter", "multiplier": 1.3 }
-  ],
   "temperament": "fishtastic:ghost"
 }

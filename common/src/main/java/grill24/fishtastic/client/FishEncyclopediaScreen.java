@@ -559,7 +559,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private static String formatMultiplier(FishProfile.ConditionTier tier, float multiplier) {
         return tier == FishProfile.ConditionTier.SECONDARY
-                ? String.format("+%.0f%%", (multiplier - 1.0f) * 100.0f)
+                ? String.format("%+.0f%%", (multiplier - 1.0f) * 100.0f)
                 : "x" + multiplier;
     }
 
