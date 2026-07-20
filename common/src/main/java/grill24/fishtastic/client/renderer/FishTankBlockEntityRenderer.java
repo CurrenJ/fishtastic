@@ -183,9 +183,16 @@ public class FishTankBlockEntityRenderer
             }
 
             float baseY = computeBaseY(fish.animationConfig(), state.hasOpenDownFace, scale);
+            // Swarm's yRange jitter is an absolute world-space offset meant to spread swimmers
+            // across a water column — it says nothing about a floor-anchored creature's own size,
+            // so applying it there sinks/floats them relative to the sand by a fixed amount that's
+            // proportionally huge for a small instance and negligible for a large one (visible as
+            // small crabs clipping into the sand). Floor-anchored modes are already pinned to
+            // COSMETIC_FLOOR_Y by computeBaseY (correctly scaled), so they get none of this jitter.
+            float swarmYOffset = isFloorAnchored(fish.animationConfig()) ? 0f : fish.yOffset();
             poseStack.translate(
                     ITEM_POSITION_OFFSET.x() + fish.xOffset(),
-                    baseY + fish.yOffset(),
+                    baseY + swarmYOffset,
                     ITEM_POSITION_OFFSET.z() + fish.zOffset());
 
             Random fishRandom = new Random(fish.seed());
@@ -306,6 +313,13 @@ public class FishTankBlockEntityRenderer
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Whether this animation mode pins the creature's Y to the tank floor (see {@link #computeBaseY}). */
+    private static boolean isFloorAnchored(FishAnimationConfig animConfig) {
+        return animConfig instanceof FishAnimationConfig.FloorSit
+                || animConfig instanceof FishAnimationConfig.Planted
+                || animConfig instanceof FishAnimationConfig.UprightSit;
+    }
 
     private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
         return switch (animConfig) {
