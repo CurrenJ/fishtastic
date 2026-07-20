@@ -54,7 +54,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.TRAPANIA_SCURRA.value())
                 .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
-                .add(FishtasticItems.ACUTE_IASPIS.value());
+                .add(FishtasticItems.ACUTE_IASPIS.value())
+                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
