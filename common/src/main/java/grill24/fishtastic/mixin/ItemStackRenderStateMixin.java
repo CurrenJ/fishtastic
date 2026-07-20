@@ -45,6 +45,7 @@ public abstract class ItemStackRenderStateMixin implements FishtasticItemStackRe
         FishtasticGlintState.GUI_EFFECT_MAP.remove((ItemStackRenderState)(Object)this);
         FishtasticGlintState.WORLD_OUTLINE_MAP.remove((ItemStackRenderState)(Object)this);
         FishtasticGlintState.GUI_SILHOUETTE_MAP.remove((ItemStackRenderState)(Object)this);
+        FishtasticGlintState.GUI_BLACK_OUTLINE_MAP.remove((ItemStackRenderState)(Object)this);
     }
 
     @Override

@@ -77,6 +77,26 @@ public final class FishtasticGlintState {
      */
     public static final ThreadLocal<Boolean> SILHOUETTE_REQUESTED = new ThreadLocal<>();
 
+    /**
+     * Maps an {@link ItemStackRenderState} identity to "draw a solid black edge outline around
+     * this item" — used for the fishing minigame's gear readout (equipped hook/charm icons), so
+     * the tiny gear icons stay readable against whatever's behind the minigame HUD. Populated by
+     * {@code ItemModelResolverMixin} when {@link #BLACK_OUTLINE_REQUESTED} is set, consumed by
+     * {@code GuiRendererMixin}. Entries are removed in {@code ItemStackRenderStateMixin} when the
+     * render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, Boolean> GUI_BLACK_OUTLINE_MAP = new IdentityHashMap<>();
+
+    /**
+     * Thread-local flag set by callers (e.g. {@code FishingMinigameAnimation}'s gear icon
+     * renderer) immediately before calling the real item renderer, and cleared immediately
+     * after. Read by {@code ItemModelResolverMixin} at the tail of {@code updateForTopItem} to
+     * populate {@link #GUI_BLACK_OUTLINE_MAP} — mirrors {@link #SILHOUETTE_REQUESTED}'s pattern:
+     * this is UI-context state (is this render call the minigame's gear readout?), not a property
+     * of the {@code ItemStack} itself.
+     */
+    public static final ThreadLocal<Boolean> BLACK_OUTLINE_REQUESTED = new ThreadLocal<>();
+
     private FishtasticGlintState() {}
 }
 

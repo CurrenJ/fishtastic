@@ -2,12 +2,16 @@ package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TutorialClientHandler;
+import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -49,6 +53,26 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     // Equipped charm (client-side only; drives the crystal-ball rarity outline)
     @Nullable private CharmEffect equippedCharmEffect = null;
+
+    // Angler's Almanac preview: the top-weighted fish under current conditions, or null if no
+    // charm revealing it is equipped. Rendered off to the right of the minigame bar.
+    @Nullable private ItemStack topWeightedFishPreview = null;
+
+    // Currently equipped bait/hook/charm itemstacks (client-side only, for the gear readout
+    // rendered off to the left of the minigame bar, mirroring the almanac preview on the right).
+    @Nullable private ItemStack equippedBaitStack = null;
+    @Nullable private ItemStack equippedHookStack = null;
+    @Nullable private ItemStack equippedCharmStack = null;
+
+    private static final int SIDE_PANEL_ICON_SIZE = 24;
+    private static final int SIDE_PANEL_MARGIN = 48;
+    // Gear readout (hook/charm) renders smaller than the almanac preview, tucked right up
+    // against the bar's corner rather than out at the screen edge.
+    private static final int GEAR_ICON_SIZE = 16;
+    private static final int GEAR_ICON_GAP = 4;
+    private static final int GEAR_PANEL_GAP = 6;
+    // Ticks the charm icon waits after the hook icon before starting its own slide.
+    private static final float GEAR_STAGGER_DELAY_TICKS = 3f;
 
     // Track caught targets BEFORE they get removed
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
@@ -217,6 +241,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         this.equippedCharmEffect = charmEffect;
     }
 
+    /** Called once at minigame start with the server-computed top-weighted fish, if any charm reveals it. */
+    public void setTopWeightedFishPreview(@Nullable ItemStack stack) {
+        this.topWeightedFishPreview = (stack == null || stack.isEmpty()) ? null : stack;
+    }
+
+    /** Called once at minigame start with the rod's currently equipped bait/hook/charm itemstacks, if any. */
+    public void setEquippedGearStacks(@Nullable ItemStack bait, @Nullable ItemStack hook, @Nullable ItemStack charm) {
+        this.equippedBaitStack = (bait == null || bait.isEmpty()) ? null : bait;
+        this.equippedHookStack = (hook == null || hook.isEmpty()) ? null : hook;
+        this.equippedCharmStack = (charm == null || charm.isEmpty()) ? null : charm;
+    }
+
     /**
      * Applies an upward impulse to the bobber (player interaction)
      * Does nothing if the minigame is hiding or in intro animation.
@@ -298,6 +334,138 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         renderTargets(guiGraphics, partialTick);
         renderSparkles(guiGraphics, partialTick);
         guiGraphics.pose().popMatrix();
+
+        // Rendered in a fresh screen-pixel matrix (not nested under the bar's giant scale above)
+        // so their size is a plain, fixed pixel footprint regardless of screen height. x/y here
+        // are the bar's resting (un-animated) anchor — the side panels slide independently of
+        // the bar's own intro/hide motion, not relative to its momentarily-offset position.
+        renderAlmanacPreview(guiGraphics, partialTick, screenWidth, screenHeight);
+        renderEquippedGear(guiGraphics, partialTick, x, y, screenHeight);
+    }
+
+    /**
+     * Fraction in [0,1] of how far a side panel (as opposed to the bar itself, which has its own
+     * independent slide) is displaced off-screen along its slide axis: 0 = fully at rest/visible,
+     * 1 = fully off-screen. Shared by intro (entering) and hide (exiting) so both directions ease
+     * with the same curves the bar's own animation uses, just applied to a different axis/edge
+     * per panel (see {@link #renderAlmanacPreview} and {@link #renderEquippedGear}).
+     *
+     * @param delayTicks how long (in ticks) this particular item waits before starting its own
+     *                    intro/hide, letting a group of items (e.g. the hook/charm stack) cascade
+     *                    in one after another instead of moving as a single rigid block.
+     */
+    private float sidePanelDisplacement(float partialTick, float delayTicks) {
+        if (isIntro) {
+            float elapsed = Math.max(0f, introAnimationTick + partialTick - delayTicks);
+            float t = Math.min(1f, elapsed / INTRO_ANIMATION_DURATION);
+            float eased = 1f - (1f - t) * (1f - t); // ease-out, matches the bar's own intro
+            return 1f - eased;
+        }
+        if (isHiding) {
+            float elapsed = Math.max(0f, hideAnimationTick + partialTick - delayTicks);
+            float t = Math.min(1f, elapsed / HIDE_ANIMATION_DURATION);
+            return t * t; // ease-in, matches the bar's own hide
+        }
+        return 0f;
+    }
+
+    /**
+     * Renders the Angler's Almanac's top-weighted-fish preview off to the right of the minigame
+     * bar, as a plain itemstack icon — silhouetted the same way the fish encyclopedia silhouettes
+     * never-caught species, via the {@link FishtasticGlintState#SILHOUETTE_REQUESTED} thread-local.
+     * Slides in/out from the right edge of the screen — its nearest side.
+     */
+    private void renderAlmanacPreview(GuiGraphicsExtractor guiGraphics, float partialTick, int screenWidth, int screenHeight) {
+        if (topWeightedFishPreview == null) return;
+
+        float slideX = sidePanelDisplacement(partialTick, 0f) * screenWidth;
+        boolean discovered = isFishDiscovered(topWeightedFishPreview);
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(screenWidth - SIDE_PANEL_MARGIN + slideX, screenHeight / 2f);
+        guiGraphics.pose().scale(SIDE_PANEL_ICON_SIZE, SIDE_PANEL_ICON_SIZE);
+        if (!discovered) FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
+        try {
+            extension.fishtastic$renderItem(topWeightedFishPreview, 0, 0);
+        } finally {
+            FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+        }
+        guiGraphics.pose().popMatrix();
+    }
+
+    private static boolean isFishDiscovered(ItemStack stack) {
+        Identifier fishId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return FishEncyclopediaClientCache.getCatchCount(fishId) > 0;
+    }
+
+    /**
+     * Renders the equipped bait (top), hook (middle), and charm (bottom) as a small stacked
+     * column just outside the fishing bar's top-left corner. Plain itemstack icons, no
+     * silhouette — unlike fish species, gear isn't something the player "discovers". Slides
+     * in/out from the top edge of the screen, independent of (and opposite to) the bar's own
+     * bottom-anchored slide, so the stack reads as a distinct layer: bar = the game itself, gear
+     * readout = a HUD overlay on top of it.
+     */
+    private void renderEquippedGear(GuiGraphicsExtractor guiGraphics, float partialTick, int x, int y, int screenHeight) {
+        if (equippedBaitStack == null && equippedHookStack == null && equippedCharmStack == null) return;
+
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        Vector2f barTopLeft = barContentTopLeft(x, y, screenHeight);
+        float slotX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE / 2f;
+        float slotYTop = barTopLeft.y() + GEAR_ICON_SIZE / 2f;
+        float stackGap = GEAR_ICON_SIZE + GEAR_ICON_GAP;
+
+        // Bait leads the cascade, then hook, then charm — each trails the previous by
+        // GEAR_STAGGER_DELAY_TICKS so the column cascades in/out one item after another rather
+        // than moving as a single rigid block.
+        if (equippedBaitStack != null) {
+            float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
+            renderGearIcon(extension, guiGraphics, equippedBaitStack, slotX, slotYTop + slideY);
+        }
+        if (equippedHookStack != null) {
+            float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS) * screenHeight;
+            renderGearIcon(extension, guiGraphics, equippedHookStack, slotX, slotYTop + stackGap + slideY);
+        }
+        if (equippedCharmStack != null) {
+            float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * 2f) * screenHeight;
+            renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY);
+        }
+    }
+
+    /**
+     * Renders one gear icon with a solid black edge outline, via the same
+     * {@code FishtasticGlintState} thread-local-flag → mixin pipeline the fish encyclopedia's
+     * silhouette effect uses (see {@link #isFishDiscovered}) — just requesting an outline layer
+     * instead of a fill, so the small icon reads clearly against a busy background.
+     */
+    private static void renderGearIcon(IGuiGraphicsExtension extension, GuiGraphicsExtractor guiGraphics, ItemStack stack, float x, float y) {
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(x, y);
+        guiGraphics.pose().scale(GEAR_ICON_SIZE, GEAR_ICON_SIZE);
+        FishtasticGlintState.BLACK_OUTLINE_REQUESTED.set(Boolean.TRUE);
+        try {
+            extension.fishtastic$renderItem(stack, 0, 0);
+        } finally {
+            FishtasticGlintState.BLACK_OUTLINE_REQUESTED.remove();
+        }
+        guiGraphics.pose().popMatrix();
+    }
+
+    /**
+     * Top-left corner of the fishing bar's visible content (not its full padded square footprint)
+     * at rest, in screen pixels. The bar's {@link GuiTextureItem} content is rendered centered
+     * exactly at ({@code x}, {@code y}) — see {@link #renderItem} — sized to the fraction of its
+     * texture the content actually occupies (uw/texWidth wide, vh/texHeight tall) once scaled up
+     * by the bar's own {@code 2 * screenHeight / 3} render scale.
+     */
+    private static Vector2f barContentTopLeft(int x, int y, int screenHeight) {
+        float scale = 2 * screenHeight / 3f;
+        GuiTextureItem bar = LAYOUT.bar();
+        float barWidthPx = (bar.uw() / (float) bar.texWidth()) * scale;
+        float barHeightPx = (bar.vh() / (float) bar.texHeight()) * scale;
+        return new Vector2f(x - barWidthPx / 2f, y - barHeightPx / 2f);
     }
 
     private void renderSparkles(GuiGraphicsExtractor guiGraphics, float partialTick) {
@@ -325,13 +493,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Calculate vertical offset for intro and hide animations
         float verticalOffset = 0f;
 
-        // Intro animation: slide in from top
+        // Intro animation: slide in from bottom
         if (isIntro) {
             float introProgress = (introAnimationTick + partialTick) / INTRO_ANIMATION_DURATION;
             introProgress = Math.min(1.0f, introProgress); // Clamp to 1.0
             // Ease-out function for smooth deceleration
             introProgress = 1.0f - (1.0f - introProgress) * (1.0f - introProgress);
-            verticalOffset = -(1.0f - introProgress) * screenHeight; // Slide down from negative (top)
+            verticalOffset = (1.0f - introProgress) * screenHeight; // Slide up from positive (bottom)
         }
 
         // Hide animation: slide out bottom

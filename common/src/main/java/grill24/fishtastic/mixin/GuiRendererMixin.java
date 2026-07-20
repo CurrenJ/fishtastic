@@ -3,6 +3,7 @@ package grill24.fishtastic.mixin;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
+import grill24.fishtastic.client.renderer.FishtasticBlackOutlineEffect;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticSilhouetteEffect;
 import grill24.fishtastic.itemeffect.ItemEffect;
@@ -102,6 +103,43 @@ public abstract class GuiRendererMixin {
                 slotView.v0(),
                 slotView.v1(),
                 effect.outlineColor(),
+                itemState.scissorArea()
+        ));
+    }
+
+    /**
+     * Fishing minigame gear readout (hook/charm icons): adds a solid black edge outline layer
+     * on top of the normal item blit — same additive technique as the quality-tier outline
+     * above, just triggered by UI context ({@link FishtasticGlintState#GUI_BLACK_OUTLINE_MAP})
+     * rather than the item's own rarity data. See {@link FishtasticBlackOutlineEffect}.
+     */
+    @Inject(method = "submitBlitFromItemAtlas", at = @At("HEAD"))
+    private void fishtastic$addGearBlackOutlineBlit(
+            GuiItemRenderState itemState,
+            GuiItemAtlas.SlotView slotView,
+            CallbackInfo ci) {
+
+        if (!FishtasticGlintState.GUI_BLACK_OUTLINE_MAP.containsKey(itemState.itemStackRenderState())) {
+            return;
+        }
+
+        RenderPipeline pipeline = FishtasticBlackOutlineEffect.getOrCreatePipeline();
+
+        this.renderState.addBlitToCurrentLayer(new BlitRenderState(
+                pipeline,
+                TextureSetup.singleTexture(
+                        slotView.textureView(),
+                        RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
+                itemState.pose(),
+                itemState.x(),
+                itemState.y(),
+                itemState.x() + 16,
+                itemState.y() + 16,
+                slotView.u0(),
+                slotView.u1(),
+                slotView.v0(),
+                slotView.v1(),
+                0xFF000000,
                 itemState.scissorArea()
         ));
     }

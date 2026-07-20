@@ -73,6 +73,7 @@ public class FishtasticItems {
     public static Holder<Item> FOUR_LEAF_CHARM;
     public static Holder<Item> LUNA_CHARM;
     public static Holder<Item> BANANA_CHARM;
+    public static Holder<Item> ANGLERS_ALMANAC;
 
     // ----- Quest Items -----
     // Currency display icon (pile-of-coins texture) — used wherever a token balance/cost/reward is shown.
@@ -253,6 +254,9 @@ public class FishtasticItems {
         BANANA_CHARM = RegistrationApiSided.getInstance().registerItem("banana_charm",
                 loc -> new FishtasticFishItem(props(loc).durability(200)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BANANA_CHARM)));
+        ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac",
+                loc -> new FishtasticFishItem(props(loc).durability(5)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.ANGLERS_ALMANAC)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));

@@ -87,7 +87,8 @@ public final class PacketRoundTripGameTests {
             0.25f,
             List.of(phase)
         );
-        StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true);
+        ItemStack topWeightedFish = new ItemStack(FishtasticItems.ACUTE_IASPIS.value());
+        StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
@@ -96,6 +97,7 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.sessionId() == original.sessionId(), "sessionId must round-trip");
         helper.assertTrue(decoded.isTutorial() == original.isTutorial(), "isTutorial must round-trip");
         helper.assertTrue(decoded.targets().size() == 1, "targets list size must round-trip");
+        assertStacksMatch(helper, topWeightedFish, decoded.topWeightedFishPreview(), "topWeightedFishPreview");
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
         helper.assertTrue(decodedTarget.category() == target.category(), "TargetData.category must round-trip");

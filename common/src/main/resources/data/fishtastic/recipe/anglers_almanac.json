@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:clock",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "fishtastic:anglers_almanac"
+  }
+}

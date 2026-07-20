@@ -52,6 +52,12 @@ public class ItemModelResolverMixin {
         } else {
             FishtasticGlintState.GUI_SILHOUETTE_MAP.remove(output);
         }
+
+        if (Boolean.TRUE.equals(FishtasticGlintState.BLACK_OUTLINE_REQUESTED.get())) {
+            FishtasticGlintState.GUI_BLACK_OUTLINE_MAP.put(output, Boolean.TRUE);
+        } else {
+            FishtasticGlintState.GUI_BLACK_OUTLINE_MAP.remove(output);
+        }
     }
 }
 

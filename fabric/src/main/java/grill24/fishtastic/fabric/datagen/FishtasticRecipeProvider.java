@@ -236,6 +236,13 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(Items.STRING)
                         .unlockedBy("has_yellow_dye", has(Items.YELLOW_DYE))
                         .save(this.output);
+
+                // Angler's Almanac: a clock bound with string, reveals the top-weighted catch
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.ANGLERS_ALMANAC.value())
+                        .requires(Items.CLOCK)
+                        .requires(Items.STRING)
+                        .unlockedBy("has_clock", has(Items.CLOCK))
+                        .save(this.output);
             }
 
         };

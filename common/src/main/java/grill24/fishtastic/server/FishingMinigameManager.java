@@ -138,6 +138,10 @@ public class FishingMinigameManager {
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
+        ItemStack topWeightedFishPreview = (charmEffect != null && charmEffect.showTopWeightedFish())
+                ? computeTopWeightedFish(player, baitEffect, charmEffect)
+                : ItemStack.EMPTY;
+
         // Capture environment context at hook position for quest tracking
         FishingHook sessionHook = player.fishing;
         BlockPos sessionPos = sessionHook != null
@@ -164,7 +168,7 @@ public class FishingMinigameManager {
             ));
         }
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false));
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false, topWeightedFishPreview));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -203,7 +207,7 @@ public class FishingMinigameManager {
                 level.getGameTime(), biome, timeOfDay, weather);
         activeSessions.put(playerId, session);
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true));
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, ItemStack.EMPTY));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
@@ -432,6 +436,51 @@ public class FishingMinigameManager {
         }
 
         return targets;
+    }
+
+    /**
+     * Scans the fish pool under the current hook's environment context and returns the single
+     * highest-weighted species — i.e. what {@link FishtasticFishItem#sampleRandomFish} is most
+     * likely to roll right now. Mirrors the environment/pool resolution in
+     * {@link #generateTargets} but picks the max instead of a weighted random draw. Only called
+     * when the equipped charm (Angler's Almanac) reveals this.
+     */
+    private ItemStack computeTopWeightedFish(ServerPlayer player, @Nullable BaitEffect baitEffect, @Nullable CharmEffect charmEffect) {
+        FishingHook hook = player.fishing;
+        if (hook == null) return ItemStack.EMPTY;
+        IFishingHookExtension hookExt = (IFishingHookExtension) hook;
+
+        float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
+        LootParams lootparams = new LootParams.Builder(player.level())
+                .withParameter(LootContextParams.ORIGIN, hook.position())
+                .withParameter(LootContextParams.TOOL, player.getUseItem())
+                .withParameter(LootContextParams.THIS_ENTITY, hook)
+                .withLuck(hookExt.getLuck() + player.getLuck() + luckBonus)
+                .create(LootContextParamSets.FISHING);
+
+        BlockPos hookPos = BlockPos.containing(hook.position());
+        Holder<Biome> biome = level.getBiome(hookPos);
+        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
+                ? FishProfile.TimeOfDay.NIGHT
+                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
+        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
+        FishProfile.Elevation elevation = FishProfile.Elevation.fromY(hookPos.getY(), level.getSeaLevel());
+
+        Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
+
+        Holder<Item> best = null;
+        int bestWeight = 0;
+        for (Holder<Item> candidate : fishPool) {
+            int weight = FishtasticFishItem.getFishingLootWeight(
+                    candidate, lootparams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, baitEffect, charmEffect);
+            if (weight > bestWeight) {
+                bestWeight = weight;
+                best = candidate;
+            }
+        }
+        return best != null ? new ItemStack(best) : ItemStack.EMPTY;
     }
 
     /**

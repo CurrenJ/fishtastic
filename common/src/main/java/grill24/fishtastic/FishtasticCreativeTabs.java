@@ -62,6 +62,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.FOUR_LEAF_CHARM.value());
                     output.accept(FishtasticItems.LUNA_CHARM.value());
                     output.accept(FishtasticItems.BANANA_CHARM.value());
+                    output.accept(FishtasticItems.ANGLERS_ALMANAC.value());
                     output.accept(FishtasticItems.PILE_OF_COINS.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
 

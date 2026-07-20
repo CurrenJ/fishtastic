@@ -43,6 +43,8 @@ public class FishingMinigameClientHandler {
             rod = minecraft.player.getOffhandItem();
         }
         if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+            ItemStack bait = CopperFishingRod.getBait(rod);
+            ItemStack hook = CopperFishingRod.getHook(rod);
             ItemStack charm = CopperFishingRod.getCharm(rod);
             if (!charm.isEmpty()) {
                 CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
@@ -51,6 +53,7 @@ public class FishingMinigameClientHandler {
                 }
                 animation.setEquippedCharmEffect(charmEffect);
             }
+            animation.setEquippedGearStacks(bait, hook, charm);
         }
 
         // Clear existing targets and add server-provided ones
@@ -72,6 +75,8 @@ public class FishingMinigameClientHandler {
         if (packet.isTutorial()) {
             animation.setTutorial(true);
         }
+
+        animation.setTopWeightedFishPreview(packet.topWeightedFishPreview());
 
         // Display the animation
         IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;
