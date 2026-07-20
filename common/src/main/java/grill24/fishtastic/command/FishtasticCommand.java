@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.compat.CompatUtil;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
+import grill24.fishtastic.mcp.McpBridgeCommand;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -32,6 +33,7 @@ public class FishtasticCommand {
                 .then(CleanupGoalCommand.build())
                 .then(QuestsCommand.build())
                 .then(TokenBalanceCommand.build())
+                .then(McpBridgeCommand.build())
         );
     }
 

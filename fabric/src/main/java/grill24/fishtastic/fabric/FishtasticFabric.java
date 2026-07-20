@@ -11,6 +11,7 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.fabric.command.CommandRegistrationFabric;
+import grill24.fishtastic.fabric.mcp.McpLifecycleFabric;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.itemeffect.ItemEffect;
@@ -28,6 +29,7 @@ public final class FishtasticFabric implements ModInitializer {
     public void onInitialize() {
         // Set up mod initialization logic here
         CommandRegistrationFabric.register();
+        McpLifecycleFabric.register();
 
         // Register synced datapack registries
         DynamicRegistries.registerSynced(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC);

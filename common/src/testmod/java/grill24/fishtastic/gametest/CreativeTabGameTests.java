@@ -48,6 +48,8 @@ public final class CreativeTabGameTests {
         expected.add(FishtasticItems.COSMETIC_OAK_TREE.value());
         expected.add(FishtasticItems.COSMETIC_BIRCH_TREE.value());
         expected.add(FishtasticItems.COSMETIC_DYNAMIC_DUO.value());
+        expected.add(FishtasticItems.COSMETIC_VINTAGE_VINE.value());
+        expected.add(FishtasticItems.COSMETIC_CASTLE_RUIN.value());
         FishtasticItems.COSMETIC_LAMP.values().forEach(holder -> expected.add(holder.value()));
         FishtasticItems.COSMETIC_FENCE_ARCH.values().forEach(holder -> expected.add(holder.value()));
 

@@ -1,0 +1,7 @@
+{
+  "display_name": "Vintage Vine",
+  "description": "A trailing stained-glass vine with a rustic wood post for your fish tank.",
+  "cost": 25,
+  "reward": [{ "id": "fishtastic:cosmetic_vintage_vine", "count": 1 }],
+  "daily_max_purchases": 1
+}

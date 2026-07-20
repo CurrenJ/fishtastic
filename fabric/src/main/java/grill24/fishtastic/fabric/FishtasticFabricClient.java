@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -144,6 +145,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
+            // release its texture while the player sits in a menu, which is when the HUD isn't drawing.
+            McpOrbitPreviewOverlay.tick();
+
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 TutorialClientHandler.tick();
@@ -174,6 +179,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register HUD render hook for quest progress notifications (renders after fishing minigame)
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
             QuestProgressNotificationManager.getInstance().render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+        });
+
+        // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Draws nothing unless an
+        // orbit just finished, so it costs a boolean check in the common case.
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "mcp_orbit_preview"), (graphics, deltaTracker) -> {
+            McpOrbitPreviewOverlay.render(graphics);
         });
 
         // Render tutorial text on top of the quest/shop screen (fires after the screen itself renders)

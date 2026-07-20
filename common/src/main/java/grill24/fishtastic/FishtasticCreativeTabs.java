@@ -109,6 +109,8 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_OAK_TREE.value());
                     output.accept(FishtasticItems.COSMETIC_BIRCH_TREE.value());
                     output.accept(FishtasticItems.COSMETIC_DYNAMIC_DUO.value());
+                    output.accept(FishtasticItems.COSMETIC_VINTAGE_VINE.value());
+                    output.accept(FishtasticItems.COSMETIC_CASTLE_RUIN.value());
 
                     // Lamp variants
                     for (Holder<Item> lamp : FishtasticItems.COSMETIC_LAMP.values()) {

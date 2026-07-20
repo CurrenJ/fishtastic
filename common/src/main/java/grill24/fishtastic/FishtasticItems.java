@@ -98,6 +98,8 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_OAK_TREE;
     public static Holder<Item> COSMETIC_BIRCH_TREE;
     public static Holder<Item> COSMETIC_DYNAMIC_DUO;
+    public static Holder<Item> COSMETIC_VINTAGE_VINE;
+    public static Holder<Item> COSMETIC_CASTLE_RUIN;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
@@ -310,6 +312,14 @@ public class FishtasticItems {
         COSMETIC_DYNAMIC_DUO = RegistrationApiSided.getInstance().registerItem("cosmetic_dynamic_duo",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("dynamic_duo")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_VINTAGE_VINE = RegistrationApiSided.getInstance().registerItem("cosmetic_vintage_vine",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("vintage_vine")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_CASTLE_RUIN = RegistrationApiSided.getInstance().registerItem("cosmetic_castle_ruin",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("castle_ruin")),
                         props(loc).stacksTo(1)));
         for (String wood : FENCE_ARCH_WOOD_TYPES) {
             String id = "cosmetic_fence_arch_" + wood;

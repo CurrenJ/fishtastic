@@ -1,0 +1,123 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": -0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": -0.17142858,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": -0.17142858,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetZ": -0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:magenta_borderless_stained_glass"
+      }
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetZ": 0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:magenta_borderless_stained_glass"
+      },
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:magenta_borderless_stained_glass"
+      },
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetY": 2.0,
+      "offsetZ": 0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:stripped_jungle_wood"
+      },
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": 0.17142858
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": 0.17142858,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "fishtastic:green_clear_stained_glass"
+      },
+      "offsetX": 0.17142858,
+      "offsetY": 2.0
+    }
+  ],
+  "scale": 0.05
+}

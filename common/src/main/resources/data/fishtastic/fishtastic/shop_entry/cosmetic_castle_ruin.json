@@ -1,0 +1,7 @@
+{
+  "display_name": "Castle Ruin",
+  "description": "A crumbling keep and broken tower, lit from within, for your fish tank.",
+  "cost": 50,
+  "reward": [{ "id": "fishtastic:cosmetic_castle_ruin", "count": 1 }],
+  "daily_max_purchases": 1
+}

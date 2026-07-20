@@ -1,0 +1,569 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": -1
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:mossy_stone_brick_wall"
+      },
+      "offsetX": -1.2342857,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:stone_brick_slab"
+      },
+      "offsetX": -1.2342857,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:stone_brick_wall"
+      },
+      "offsetX": -1.2342857,
+      "offsetY": 1.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 1.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 1.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 2.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 2.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 3.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 3.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 3.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 4.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 4.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.82285714,
+      "offsetY": 5.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 2.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:sea_lantern"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 2.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 2.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 3.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 4.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "south"
+        },
+        "Name": "minecraft:stone_brick_stairs"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 4.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:mossy_stone_brick_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 5.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "south"
+        },
+        "Name": "minecraft:mossy_stone_brick_stairs"
+      },
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:stone_brick_slab"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -1.2342857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:mossy_stone_brick_slab"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.41142857,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "west"
+        },
+        "Name": "minecraft:mossy_stone_brick_stairs"
+      },
+      "offsetX": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:stone_brick_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetZ": 0.82285714
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:mossy_stone_brick_wall"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 1.0,
+      "offsetZ": -0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 1.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "shape": "straight",
+          "half": "bottom",
+          "facing": "south"
+        },
+        "Name": "minecraft:stone_brick_stairs"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 1.0,
+      "offsetZ": 0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:stone_brick_slab"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 2.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 0.82285714,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 1.2342857
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 1.2342857,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 1.2342857,
+      "offsetZ": 0.82285714
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 1.2342857,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobblestone"
+      },
+      "offsetX": 1.2342857,
+      "offsetY": 1.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:stone_bricks"
+      },
+      "offsetX": 1.2342857,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:mossy_stone_bricks"
+      },
+      "offsetX": 1.2342857,
+      "offsetY": 3.0
+    }
+  ],
+  "scale": 0.12
+}

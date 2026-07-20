@@ -29,6 +29,9 @@
   --s3: #d55181;  /* magenta */
   --s4: #c98500;  /* yellow  */
   --s5: #199e70;  /* aqua    */
+  --s6: #d95926;  /* orange  */
+  --s7: #9085e9;  /* violet  */
+  --s8: #e66767;  /* red     */
   --seq-100:#cde2fb; --seq-200:#9ec5f4; --seq-300:#6da7ec; --seq-400:#3987e5;
   --seq-500:#256abf; --seq-600:#184f95; --seq-700:#0d366b;
   --good:    #0ca30c;
@@ -248,13 +251,39 @@ pre.json {
 .hbar-row .lbl { display: flex; align-items: center; gap: 8px; font-size: 12.5px; overflow: hidden; }
 .hbar-row .lbl .sprite { width: 22px; height: 22px; border-radius: 4px; }
 .hbar-row .lbl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tagbadge {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 14px; height: 14px; border-radius: 3px; font-family: var(--mono);
+  font-size: 9px; font-weight: 700; color: #fff; text-shadow: 0 0 2px rgba(0,0,0,0.7); cursor: help;
+}
 .hbar-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 4px; }
 .hbar-fill {
   position: absolute; left: 0; top: 1px; bottom: 1px; border-radius: 0 4px 4px 0;
   background: var(--s1); min-width: 2px;
 }
-.hbar-fill.vanilla { background: transparent; border: 1px solid var(--muted); }
+.hbar-fill.vanilla { background: #90ee90; }
+/* bait preview lanes (Base Weights tab): height/position set inline per-lane so the
+   track can stack any number of toggled baits; this just supplies shared chrome. */
+.hbar-fill.bait-overlay {
+  border-radius: 3px; opacity: 0.92; z-index: 2;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+}
+.hbar-fill.bait-overlay.excluded {
+  background: repeating-linear-gradient(45deg, var(--critical), var(--critical) 4px, transparent 4px, transparent 8px) !important;
+  opacity: 0.6;
+}
+.hbar-fill.bait-overlay.other {
+  background: repeating-linear-gradient(135deg, var(--muted), var(--muted) 4px, transparent 4px, transparent 8px);
+  opacity: 0.55;
+}
 .hbar-tick { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: 0.85; }
+/* range/whisker mark: mean ± std dev on one bar (error-bar convention) */
+.hbar-row.rangebar-row { grid-template-columns: 210px 1fr 168px; }
+.rangebar-track { position: relative; height: 22px; background: var(--surface-2); border-radius: 4px; }
+.rangebar-tick { position: absolute; top: 2px; bottom: 2px; width: 2px; background: var(--muted); opacity: 0.8; }
+.rangebar-line { position: absolute; top: 50%; height: 2px; background: var(--s1); transform: translateY(-50%); border-radius: 1px; }
+.rangebar-cap { position: absolute; top: 50%; width: 2px; height: 10px; background: var(--s1); transform: translate(-50%, -50%); }
+.rangebar-dot { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--s1); border: 2px solid var(--surface-2); transform: translate(-50%, -50%); }
 .hbar-row .val { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .hbar-row .val b { color: var(--ink-2); font-weight: 600; }
 .legend { display: flex; gap: 18px; margin: 4px 0 12px; font-size: 11px; color: var(--ink-2); font-family: var(--mono); }
@@ -413,6 +442,20 @@ const BAIT_PRESETS = {
   deep_sea:    { label: "Deep Sea Bait",    luck: 1.5, treasure: 0.15,  trash: 0.1,  targets: -1, vanillaMult: 0.25, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:deep_sea_fish", mult: 4.0 }] },
   custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, vanillaMult: 1.0,  modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
 };
+// fixed categorical hue per bait (Base Weights tab lane preview) — blue/green are reserved
+// elsewhere (base_weight bar, vanilla fish rows), so this starts at the 3rd slot; "none" and
+// "custom" fold into a shared neutral/textured "Other" swatch rather than a generated 9th hue.
+const BAIT_COLOR = {
+  none:        null,
+  worms:       "var(--s2)",
+  gummy_worms: "var(--s3)",
+  blazed_grub: "var(--s4)",
+  freshwater:  "var(--s5)",
+  ocean:       "var(--s6)",
+  predator:    "var(--s7)",
+  deep_sea:    "var(--s8)",
+  custom:      null,
+};
 const HOOK_PRESETS = {
   none:       { label: "None",            qualityBias: 0.0,  trashDelta: 0.0  },
   hook:       { label: "Hook",            qualityBias: 0.5,  trashDelta: -0.04 },
@@ -452,6 +495,8 @@ const S = {
   trashItems: [],
   env: { biomes: new Set(["minecraft:is_ocean"]), time: "day", weather: "clear", moon: "full_moon", elevation: "surface" },
   gear: { bait: "none", baitQuality: "common", custom: { ...BAIT_PRESETS.custom }, hook: "none", charm: "none", diamonds: 0 },
+  tagFilter: new Set(), // fishtastic:*_fish group tags — restricts which fish are shown, across every tab
+  tagFilterMode: "or",  // "or" = any selected tag matches; "and" = all selected tags must match
   tab: "profiles",
   search: "",
   sweepFish: null,
@@ -684,6 +729,24 @@ function groupTagIds() {
     .filter(t => t.startsWith("fishtastic:") && !NON_GROUP_TAGS.has(t.split(":")[1]))
     .sort((a, b) => (a === "fishtastic:fish" ? -1 : b === "fishtastic:fish" ? 1 : a.localeCompare(b)));
 }
+const TAG_COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function tagColor(tagId) { return TAG_COLORS[hashStr(tagId) % TAG_COLORS.length]; }
+// one-letter, color-coded badges for the fishtastic:* group tags this fish belongs to (excludes the catch-all "fish" tag)
+function fishTagBadges(id) {
+  return groupTagIds().filter(t => t !== "fishtastic:fish" && inTag(id, t)).map(t =>
+    el("span", { class: "tagbadge", style: `background:${tagColor(t)}`, "data-tip": t }, t.split(":")[1].charAt(0).toUpperCase()));
+}
+// global display filter (context panel) — true if no tags are picked, or the fish matches per the AND/OR mode
+function passesTagFilter(id) {
+  if (S.tagFilter.size === 0) return true;
+  if (S.tagFilterMode === "and") {
+    for (const t of S.tagFilter) if (!inTag(id, t)) return false;
+    return true;
+  }
+  for (const t of S.tagFilter) if (inTag(id, t)) return true;
+  return false;
+}
 
 /* ===================== engine (mirrors Java exactly) ===================== */
 function firstMatch(list, tier, pred) {
@@ -709,9 +772,9 @@ function envMultiplier(profile, env) {
   s += firstMatch(profile.elevation_weights, "secondary", w => w.band === env.elevation) - 1.0;
   return p * (1.0 + s);
 }
-function effectiveBait() {
+function resolveBait(key) {
   const g = S.gear;
-  let b = g.bait === "custom" ? { ...g.custom } : { ...BAIT_PRESETS[g.bait] };
+  let b = key === "custom" ? { ...g.custom } : { ...BAIT_PRESETS[key] };
   b.affinities = (b.affinities || []).map(a => ({ ...a }));
   if (b.qualityScales && g.baitQuality !== "common") {
     // BaitEffect.scaledByQuality: +10% per tier above Common; Legendary grants +1 target
@@ -721,6 +784,13 @@ function effectiveBait() {
           targets: b.targets + (g.baitQuality === "legendary" ? 1 : 0) };
   }
   return b;
+}
+function effectiveBait() { return resolveBait(S.gear.bait); }
+/* vanilla/mod split + tag-group affinity mult a bait applies to one fish — no env, no charm */
+function baitTagMultiplier(id, bait) {
+  let m = VANILLA_IDS.has(id) ? bait.vanillaMult : bait.modMult;
+  for (const a of bait.affinities || []) if (inTag(id, a.group)) m *= a.mult;
+  return m;
 }
 function effectiveEnv() {
   const charm = CHARM_PRESETS[S.gear.charm];
@@ -769,9 +839,12 @@ function gauss(mean, std) {
   return mean + u * m * std;
 }
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
-function sampleQuality(bias) {
+function qualityWeights(bias) {
   // sampleRandomQuality: weight_i = (int)(base * (1 + bias*i))
-  const w = QUALITY_WEIGHTS.map((base, i) => Math.trunc(base * (1.0 + bias * i)));
+  return QUALITY_WEIGHTS.map((base, i) => Math.trunc(base * (1.0 + bias * i)));
+}
+function sampleQuality(bias) {
+  const w = qualityWeights(bias);
   const total = Math.max(1, w.reduce((a, b) => a + b, 0));
   let r = Math.floor(Math.random() * total);
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return QUALITIES[i]; }
@@ -785,6 +858,24 @@ function sampleSize(id, quality) {
   mean += m.meanOffset;
   std = std * m.stdMul;
   return gauss(mean, std);
+}
+/* the *marginal* size distribution under the current gear context: a mixture of one
+   Gaussian per quality tier, weighted by that tier's sample probability (bait+hook
+   quality bias only — environment and charm don't influence size). Law of total
+   variance gives the exact pooled mean/std of the mixture, not an approximation. */
+function effectiveSizeStats(json) {
+  const bait = effectiveBait(), hook = HOOK_PRESETS[S.gear.hook];
+  const qualityBias = bait.qualityBias + hook.qualityBias;
+  const w = qualityWeights(qualityBias);
+  const total = Math.max(1, w.reduce((a, b) => a + b, 0));
+  const baseMean = json.size.mean, baseStd = json.size.std_dev;
+  const means = QUALITIES.map(q => baseMean + QUALITY_SIZE_MODS[q].meanOffset);
+  const stds = QUALITIES.map(q => baseStd * QUALITY_SIZE_MODS[q].stdMul);
+  let mean = 0;
+  for (let i = 0; i < QUALITIES.length; i++) mean += (w[i] / total) * means[i];
+  let variance = 0;
+  for (let i = 0; i < QUALITIES.length; i++) { const d = means[i] - mean; variance += (w[i] / total) * (stds[i] * stds[i] + d * d); }
+  return { mean, std: Math.sqrt(Math.max(0, variance)), qualityBias };
 }
 
 /* ===================== simulator ===================== */
@@ -1012,6 +1103,27 @@ function renderContext() {
     }}, tag.replace(/^minecraft:/, "mc:").replace(/^fishtastic:/, "ft:")));
   c.append(el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Biome tags"), presetSel, chips));
 
+  // --- tag filter row: restricts which fish are shown, across every tab
+  const filterTags = groupTagIds().filter(t => t !== "fishtastic:fish");
+  const filterChips = filterTags.map(t => {
+    const on = S.tagFilter.has(t);
+    return el("span", {
+      class: "tagchip" + (on ? " on" : ""),
+      style: on ? `border-color:${tagColor(t)};color:${tagColor(t)};background:rgba(255,255,255,0.06)` : "",
+      "data-tip": t,
+      onclick: () => { S.tagFilter.has(t) ? S.tagFilter.delete(t) : S.tagFilter.add(t); renderContext(); renderTab(); },
+    }, el("span", { style: `display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:${tagColor(t)}` }), t.split(":")[1]);
+  });
+  const modeSeg = el("div", { class: "seg", "data-tip": "OR: fish with ANY selected tag\nAND: fish with ALL selected tags" },
+    el("button", { class: S.tagFilterMode !== "and" ? "on" : "", onclick: () => { S.tagFilterMode = "or"; renderContext(); renderTab(); } }, "OR"),
+    el("button", { class: S.tagFilterMode === "and" ? "on" : "", onclick: () => { S.tagFilterMode = "and"; renderContext(); renderTab(); } }, "AND"));
+  c.append(el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Tag filter"),
+    filterChips,
+    S.tagFilter.size >= 2 ? modeSeg : null,
+    S.tagFilter.size
+      ? el("span", { class: "hint", style: "cursor:pointer", onclick: () => { S.tagFilter.clear(); renderContext(); renderTab(); } }, "✕ clear filter")
+      : el("span", { class: "hint" }, "select tags to filter · applies across every tab")));
+
   // --- environment row: time / weather / moon / elevation
   const seg = (opts, cur, cb, labelFn) => {
     const s = el("div", { class: "seg" });
@@ -1066,6 +1178,8 @@ function renderContext() {
 }
 const TABS = [
   { id: "profiles", label: "Profiles" },
+  { id: "basestats", label: "Base Weights" },
+  { id: "sizes", label: "Sizes" },
   { id: "analytics", label: "Analytics" },
   { id: "tags", label: "Tags & Groups" },
   { id: "sim", label: "Simulator" },
@@ -1080,6 +1194,8 @@ function renderTab() {
   const v = $("#view");
   v.replaceChildren();
   if (S.tab === "profiles") renderProfiles(v);
+  else if (S.tab === "basestats") renderBaseStats(v);
+  else if (S.tab === "sizes") renderSizes(v);
   else if (S.tab === "analytics") renderAnalytics(v);
   else if (S.tab === "tags") renderTags(v);
   else if (S.tab === "sim") renderSim(v);
@@ -1089,8 +1205,8 @@ function renderTab() {
 function spriteEl(id, cls) {
   const [ns, path] = id.split(":");
   const url = ns === "fishtastic" ? S.textures.get(path) : null;
-  if (url) return el("img", { class: "sprite " + (cls || ""), src: url, alt: "" });
-  return el("div", { class: "sprite ph " + (cls || "") }, displayName(id).charAt(0));
+  if (url) return el("img", { class: "sprite " + (cls || ""), src: url, alt: "", dataset: { fish: id } });
+  return el("div", { class: "sprite ph " + (cls || ""), dataset: { fish: id } }, displayName(id).charAt(0));
 }
 
 /* ===================== tab: profiles ===================== */
@@ -1121,6 +1237,7 @@ function renderProfiles(v) {
     const [ns, path] = id.split(":");
     const name = displayName(id);
     if (q && !name.toLowerCase().includes(q) && !path.includes(q)) continue;
+    if (!passesTagFilter(id)) continue;
     const isV = VANILLA_IDS.has(id);
     const p = isV ? null : S.profiles.get(path);
     const r = shareOf.get(id);
@@ -1144,6 +1261,182 @@ function renderProfiles(v) {
     cards.append(card);
   }
   v.append(toolbar, cards);
+}
+
+/* ===================== tab: base stats ===================== */
+function ensureBaseDefaults(p) {
+  if (p.json.base_weight === undefined) p.json.base_weight = DEFAULT_BASE_WEIGHT;
+  if (!p.json.size) p.json.size = { mean: DEFAULT_MEAN, std_dev: DEFAULT_STD };
+}
+// "raw" is a synthetic pseudo-bait — not a real BaitEffect, just base_weight itself —
+// toggled alongside the real baits so it can be shown/hidden as one of the stacked lanes.
+const LANE_KEYS = ["raw", ...Object.keys(BAIT_PRESETS)];
+function laneLabel(key) { return key === "raw" ? "Raw base_weight" : (key === "custom" ? "Custom…" : BAIT_PRESETS[key].label); }
+function renderBaseStats(v) {
+  const search = S.baseStatsSearch || "";
+  const activeBaits = S.baseStatsBaits || (S.baseStatsBaits = new Set(["raw"]));
+  const toolbar = el("div", { class: "toolbar" },
+    el("input", { type: "search", placeholder: "search fish…", value: search, style: "width:240px",
+      oninput: e => { S.baseStatsSearch = e.target.value; renderTab(); } }),
+    el("span", { class: "hint" }, `${S.profiles.size} profiles · edit a value and press Enter/Tab — bar scales within the chart · double-click any sprite anywhere to jump here`),
+  );
+
+  // toggle chips — raw base_weight + every bait type, fixed order, mutually independent (multi-select)
+  const chips = LANE_KEYS.map(key => {
+    const on = activeBaits.has(key);
+    const color = key === "raw" ? "var(--s1)" : (BAIT_COLOR[key] || "var(--muted)");
+    const label = laneLabel(key);
+    return el("span", {
+      class: "tagchip" + (on ? " on" : ""),
+      style: on ? `border-color:${color};color:${color};background:rgba(255,255,255,0.06)` : "",
+      "data-tip": key === "raw" ? "Unmodified base_weight — for visual comparison against the bait lanes below"
+        : (BAIT_COLOR[key] ? label : label + " — shares a neutral “Other” swatch (no free hue left)"),
+      onclick: () => { activeBaits.has(key) ? activeBaits.delete(key) : activeBaits.add(key); renderTab(); },
+    }, el("span", { style: `display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px;` +
+      (key === "raw" || BAIT_COLOR[key] ? `background:${color}` : `background:repeating-linear-gradient(135deg,var(--muted),var(--muted) 2px,transparent 2px,transparent 4px)`) }), label);
+  });
+  const chipRow = el("div", { class: "ctx-row" },
+    el("span", { class: "ctx-label" }, "Preview lanes"), chips,
+    activeBaits.size
+      ? el("span", { class: "hint", style: "cursor:pointer", onclick: () => { activeBaits.clear(); renderTab(); } }, "✕ clear")
+      : el("span", { class: "hint" }, "toggle lanes to stack sub-bars"));
+
+  // resolved preset + fixed hue per active lane, in LANE_KEYS order (raw first)
+  const laneInfo = LANE_KEYS.filter(k => activeBaits.has(k)).map(key => key === "raw"
+    ? { key, raw: true, label: "Raw base_weight", color: "var(--s1)", other: false, preset: null }
+    : { key, raw: false, preset: resolveBait(key), label: laneLabel(key), color: BAIT_COLOR[key], other: !BAIT_COLOR[key] });
+  const exclusiveNotes = laneInfo.filter(b => b.preset && b.preset.exclusive)
+    .map(b => el("span", { class: "hint", style: "color:var(--warning)" }, `${b.label} exclusive: ${b.preset.exclusive}`));
+  const legend = laneInfo.length ? el("div", { class: "legend" },
+    laneInfo.map(b => el("span", null, el("span", { class: "sw", style: b.other
+      ? "background:repeating-linear-gradient(135deg,var(--muted),var(--muted) 2px,transparent 2px,transparent 4px)"
+      : `background:${b.color}` }), b.label))) : null;
+
+  v.append(el("div", { class: "panel" }, el("h3", null, "Base weight tuning", el("span", { class: "note" }, "— size (mean/std dev) lives on the Sizes tab; vanilla fish weights are fixed by vanilla mechanics and shown read-only")),
+    toolbar, chipRow, exclusiveNotes.length ? el("div", { class: "ctx-row" }, exclusiveNotes) : null, legend));
+
+  const q = search.trim().toLowerCase();
+  const modNames = [...S.profiles.keys()].filter(name =>
+    (!q || name.includes(q) || displayName("fishtastic:" + name).toLowerCase().includes(q)) && passesTagFilter("fishtastic:" + name));
+  for (const name of modNames) ensureBaseDefaults(S.profiles.get(name));
+  const vanillaEntries = VANILLA_FISH.filter(f =>
+    (!q || f.id.split(":")[1].includes(q) || f.name.toLowerCase().includes(q)) && passesTagFilter(f.id));
+
+  const entries = [
+    ...modNames.map(name => ({ id: "fishtastic:" + name, name, isV: false, val: S.profiles.get(name).json.base_weight })),
+    ...vanillaEntries.map(f => ({ id: f.id, name: null, isV: true, val: f.weight })),
+  ];
+
+  const rows = entries.map(r => {
+    const lanes = laneInfo.map(b => {
+      if (b.raw) return { ...b, color: r.isV ? "#90ee90" : "var(--s1)", excluded: false, mult: 1, effVal: r.val };
+      const excluded = !!(b.preset.exclusive && !inTag(r.id, b.preset.exclusive));
+      const mult = excluded ? 0 : baitTagMultiplier(r.id, b.preset);
+      return { ...b, excluded, mult, effVal: r.val * mult };
+    });
+    return { ...r, lanes };
+  }).sort((a, b) => b.val - a.val);
+  const max = Math.max(...rows.map(r => r.val), ...rows.flatMap(r => r.lanes.map(l => l.effVal)), 1);
+
+  // lane layout — every toggled lane (raw included) gets an equal-height strip, stacked
+  const PAD = 1, LANE_H = 6, LANE_GAP = 2;
+  const laneCount = laneInfo.length;
+  const trackH = Math.max(14, PAD + laneCount * LANE_H + Math.max(0, laneCount - 1) * LANE_GAP + PAD);
+
+  const chart = el("div", { class: "viz-root" });
+  for (const { id, name, isV, val, lanes } of rows) {
+    const track = el("div", { class: "hbar-track", style: `height:${trackH}px`, "data-tip": `${displayName(id)}\nBase weight: ${fmtF(val)}` });
+    lanes.forEach((l, i) => {
+      const top = PAD + i * (LANE_H + LANE_GAP);
+      const tip = l.raw
+        ? `${l.label}\n${fmtF(l.effVal)}`
+        : l.excluded
+          ? `${l.label}\nExcluded from pool (exclusive to ${l.preset.exclusive})`
+          : `${l.label}\n×${fmtF(l.mult)} → ${fmtF(l.effVal)}`;
+      track.append(el("div", {
+        class: "hbar-fill bait-overlay" + (l.excluded ? " excluded" : (l.other ? " other" : "")),
+        style: `top:${top}px;height:${LANE_H}px;bottom:auto;width:${(Math.max(0, l.effVal) / max * 100).toFixed(2)}%;` +
+          (l.excluded || l.other ? "" : `background:${l.color};`),
+        "data-tip": tip,
+      }));
+    });
+    chart.append(el("div", { class: "hbar-row" },
+      el("div", { class: "lbl", style: isV ? "" : "cursor:pointer", onclick: isV ? null : () => openEditor(name) },
+        spriteEl(id), el("span", null, displayName(id)), ...fishTagBadges(id), isV ? el("span", { class: "badge vanilla" }, "VANILLA") : null),
+      track,
+      el("div", { class: "val" },
+        isV ? el("span", { class: "mut" }, val) :
+          el("input", { type: "number", min: 1, step: 1, value: val, style: "width:74px",
+            onchange: e => { const p = S.profiles.get(name); p.json.base_weight = Math.max(1, Math.round(parseFloat(e.target.value) || 0)); markProfileDirty(name); renderTab(); refreshEditorCalc(); } })),
+    ));
+  }
+  v.append(el("div", { class: "panel viz-root" }, el("h3", null, "Base weight", el("span", { class: "note" }, "— base_weight; scaled by environment + gear before the catch roll")), chart));
+}
+
+/* ===================== tab: sizes ===================== */
+function renderSizes(v) {
+  const search = S.sizesSearch || "";
+  const bait = effectiveBait(), hook = HOOK_PRESETS[S.gear.hook];
+  const qualityBias = bait.qualityBias + hook.qualityBias;
+  const toolbar = el("div", { class: "toolbar" },
+    el("input", { type: "search", placeholder: "search fish…", value: search, style: "width:240px",
+      oninput: e => { S.sizesSearch = e.target.value; renderTab(); } }),
+    el("span", { class: "hint" }, "edit base mean/std dev on the right — press Enter/Tab to apply"),
+  );
+  v.append(el("div", { class: "panel" },
+    el("h3", null, "Size distribution — mean ± std dev",
+      el("span", { class: "note" }, `— filled range = effective catch distribution under the current gear (bait+hook quality bias ${fmtF(qualityBias)}); pale tick = the profile's raw base mean. Environment and charm don't affect size.`)),
+    toolbar));
+
+  const q = search.trim().toLowerCase();
+  const names = [...S.profiles.keys()].filter(name =>
+    (!q || name.includes(q) || displayName("fishtastic:" + name).toLowerCase().includes(q)) && passesTagFilter("fishtastic:" + name));
+  for (const name of names) ensureBaseDefaults(S.profiles.get(name));
+
+  const stats = names
+    .map(name => { const p = S.profiles.get(name); return { name, p, eff: effectiveSizeStats(p.json) }; })
+    .sort((a, b) => b.eff.mean - a.eff.mean);
+
+  if (!stats.length) { v.append(el("div", { class: "panel mut" }, "No fish match the current search/tag filter.")); return; }
+
+  let lo = 0, hi = 1;
+  for (const s of stats) {
+    lo = Math.min(lo, s.eff.mean - s.eff.std, s.p.json.size.mean);
+    hi = Math.max(hi, s.eff.mean + s.eff.std, s.p.json.size.mean);
+  }
+  lo = Math.max(0, Math.floor(lo));
+  hi = Math.max(hi, lo + 1);
+  const span = hi - lo;
+  const xPct = x => clamp((x - lo) / span * 100, 0, 100);
+
+  const chart = el("div", { class: "viz-root" },
+    el("div", { class: "hx", style: "padding-bottom:6px" },
+      el("span", null, lo.toFixed(0) + " cm"), el("span", null, ((lo + hi) / 2).toFixed(0) + " cm"), el("span", null, hi.toFixed(0) + " cm")));
+  for (const { name, p, eff } of stats) {
+    const id = "fishtastic:" + name;
+    const j = p.json;
+    const lowPct = xPct(eff.mean - eff.std), highPct = xPct(eff.mean + eff.std), meanPct = xPct(eff.mean), basePct = xPct(j.size.mean);
+    chart.append(el("div", { class: "hbar-row rangebar-row" },
+      el("div", { class: "lbl", style: "cursor:pointer", onclick: () => openEditor(name) }, spriteEl(id), el("span", null, displayName(id)), ...fishTagBadges(id)),
+      el("div", { class: "rangebar-track", "data-tip":
+        `${displayName(id)}\nbase: ${fmtF(j.size.mean)} ± ${fmtF(j.size.std_dev)} cm\neffective under current gear: ${fmtF(eff.mean)} ± ${fmtF(eff.std)} cm\n(±1 std dev ≈ 68% of catches)` },
+        el("div", { class: "rangebar-tick", style: `left:${basePct}%` }),
+        el("div", { class: "rangebar-line", style: `left:${lowPct}%;width:${Math.max(highPct - lowPct, 0)}%` }),
+        el("div", { class: "rangebar-cap", style: `left:${lowPct}%` }),
+        el("div", { class: "rangebar-cap", style: `left:${highPct}%` }),
+        el("div", { class: "rangebar-dot", style: `left:${meanPct}%`, onclick: () => openEditor(name) })),
+      el("div", { class: "val", style: "display:flex;align-items:center;justify-content:flex-end;gap:4px" },
+        el("input", { type: "number", step: 1, value: j.size.mean, style: "width:56px",
+          onchange: e => { j.size.mean = parseFloat(e.target.value) || 0; markProfileDirty(name); renderTab(); refreshEditorCalc(); } }),
+        el("span", { class: "mut" }, "±"),
+        el("input", { type: "number", step: 0.5, min: 0, value: j.size.std_dev, style: "width:50px",
+          onchange: e => { j.size.std_dev = Math.max(0, parseFloat(e.target.value) || 0); markProfileDirty(name); renderTab(); refreshEditorCalc(); } }),
+        el("span", { class: "mut" }, "cm")),
+    ));
+  }
+  v.append(el("div", { class: "panel viz-root" },
+    el("h3", null, "Per-fish range", el("span", { class: "note" }, "— double-click a sprite, or click the dot, to open its profile")),
+    chart));
 }
 
 /* ===================== editor drawer ===================== */
@@ -1274,18 +1567,18 @@ function seqColor(v) {
 function heatInk(v) { return v > 0.55 ? "#0b0b0b" : "#eef4f8"; }
 function renderAnalytics(v) {
   const pw = poolWeights();
-  const rows = [...pw.rows].sort((a, b) => b.weight - a.weight);
+  const rows = pw.rows.filter(r => passesTagFilter(r.id)).sort((a, b) => b.weight - a.weight);
   const maxW = Math.max(...rows.map(r => r.weight), 1);
 
   // --- pool share chart
   const chart = el("div", { class: "viz-root" },
     el("div", { class: "legend" },
       el("span", null, el("span", { class: "sw", style: "background:var(--s1)" }), "fishtastic"),
-      el("span", null, el("span", { class: "sw", style: "border:1px solid var(--muted)" }), "vanilla")));
+      el("span", null, el("span", { class: "sw", style: "background:#90ee90" }), "vanilla")));
   for (const r of rows) {
     const isV = VANILLA_IDS.has(r.id);
     chart.append(el("div", { class: "hbar-row" },
-      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id))),
+      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id)), ...fishTagBadges(r.id)),
       el("div", { class: "hbar-track", "data-tip": `${displayName(r.id)}\nweight ${r.weight} / ${pw.total}\n${pct(r.share)} of pool` },
         el("div", { class: "hbar-fill" + (isV ? " vanilla" : ""), style: `width:${(r.weight / maxW * 100).toFixed(2)}%` })),
       el("div", { class: "val" }, el("b", null, pct(r.share)), ` · w ${r.weight}`),
@@ -1296,46 +1589,51 @@ function renderAnalytics(v) {
     chart));
 
   // --- environment sweep for one fish
-  const modIds = poolIds().filter(i => !VANILLA_IDS.has(i));
-  if (!S.sweepFish && modIds.length) S.sweepFish = modIds[0];
-  const sweepSel = el("select", { onchange: e => { S.sweepFish = e.target.value; renderTab(); } },
-    modIds.map(i => el("option", { value: i, selected: S.sweepFish === i ? "" : null }, displayName(i))));
-  const sweep = el("div", { class: "heat", style: `grid-template-columns: 90px repeat(${WEATHERS.length}, 1fr); max-width:640px` });
-  sweep.append(el("div"), ...WEATHERS.map(w => el("div", { class: "hhead" }, w)));
-  const savedEnv = { time: S.env.time, weather: S.env.weather };
-  const cells = [];
-  let sweepMax = 0;
-  for (const t of TIMES) {
-    for (const w of WEATHERS) {
-      S.env.time = t; S.env.weather = w;
-      const spw = poolWeights();
-      const row = spw.rows.find(r => r.id === S.sweepFish);
-      const share = row ? row.share : 0;
-      cells.push({ t, w, share });
-      sweepMax = Math.max(sweepMax, share);
+  const modIds = poolIds().filter(i => !VANILLA_IDS.has(i) && passesTagFilter(i));
+  if ((!S.sweepFish || !modIds.includes(S.sweepFish)) && modIds.length) S.sweepFish = modIds[0];
+  if (!modIds.length) S.sweepFish = null;
+  if (!S.sweepFish) {
+    v.append(el("div", { class: "panel mut" }, "No fish match the current tag filter."));
+  } else {
+    const sweepSel = el("select", { onchange: e => { S.sweepFish = e.target.value; renderTab(); } },
+      modIds.map(i => el("option", { value: i, selected: S.sweepFish === i ? "" : null }, displayName(i))));
+    const sweep = el("div", { class: "heat", style: `grid-template-columns: 90px repeat(${WEATHERS.length}, 1fr); max-width:640px` });
+    sweep.append(el("div"), ...WEATHERS.map(w => el("div", { class: "hhead" }, w)));
+    const savedEnv = { time: S.env.time, weather: S.env.weather };
+    const cells = [];
+    let sweepMax = 0;
+    for (const t of TIMES) {
+      for (const w of WEATHERS) {
+        S.env.time = t; S.env.weather = w;
+        const spw = poolWeights();
+        const row = spw.rows.find(r => r.id === S.sweepFish);
+        const share = row ? row.share : 0;
+        cells.push({ t, w, share });
+        sweepMax = Math.max(sweepMax, share);
+      }
     }
-  }
-  S.env.time = savedEnv.time; S.env.weather = savedEnv.weather;
-  for (const t of TIMES) {
-    sweep.append(el("div", { class: "hhead", style: "text-align:right;padding-right:8px;align-self:center" }, t));
-    for (const w of WEATHERS) {
-      const c = cells.find(x => x.t === t && x.w === w);
-      const norm = sweepMax > 0 ? c.share / sweepMax : 0;
-      sweep.append(el("div", { class: "hcell", style: `background:${seqColor(norm)};color:${heatInk(norm)}`,
-        "data-tip": `${displayName(S.sweepFish)}\n${t} / ${w}\ncatch share ${pct(c.share)}` }, pct(c.share, 1)));
+    S.env.time = savedEnv.time; S.env.weather = savedEnv.weather;
+    for (const t of TIMES) {
+      sweep.append(el("div", { class: "hhead", style: "text-align:right;padding-right:8px;align-self:center" }, t));
+      for (const w of WEATHERS) {
+        const c = cells.find(x => x.t === t && x.w === w);
+        const norm = sweepMax > 0 ? c.share / sweepMax : 0;
+        sweep.append(el("div", { class: "hcell", style: `background:${seqColor(norm)};color:${heatInk(norm)}`,
+          "data-tip": `${displayName(S.sweepFish)}\n${t} / ${w}\ncatch share ${pct(c.share)}` }, pct(c.share, 1)));
+      }
     }
+    v.append(el("div", { class: "panel viz-root" },
+      el("h3", null, "Environment sweep — time × weather ", el("span", { class: "note" }, "— catch share for "), sweepSel,
+        el("span", { class: "note" }, " (biome/moon/elevation/gear held at current context)")),
+      sweep));
   }
-  v.append(el("div", { class: "panel viz-root" },
-    el("h3", null, "Environment sweep — time × weather ", el("span", { class: "note" }, "— catch share for "), sweepSel,
-      el("span", { class: "note" }, " (biome/moon/elevation/gear held at current context)")),
-    sweep));
 
   // --- condition coverage matrix
   const mat = el("table", { class: "mat" },
     el("thead", null, el("tr", null, el("th", null, "Fish"), el("th", null, "Base"),
       ...AXES.map(a => el("th", null, a.label)), el("th", null, "Temperament"), el("th", null, "Groups"))));
   const tb = el("tbody");
-  for (const [name, p] of [...S.profiles.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+  for (const [name, p] of [...S.profiles.entries()].filter(([name]) => passesTagFilter("fishtastic:" + name)).sort((a, b) => a[0].localeCompare(b[0]))) {
     const id = "fishtastic:" + name;
     tb.append(el("tr", { style: "cursor:pointer", onclick: () => openEditor(name) },
       el("td", null, displayName(id)),
@@ -1374,7 +1672,7 @@ function renderAnalytics(v) {
 /* ===================== tab: tags ===================== */
 function renderTags(v) {
   const tags = groupTagIds();
-  const ids = poolIds();
+  const ids = poolIds().filter(passesTagFilter);
   const table = el("table", { class: "mat" });
   const headRow = el("tr", null, el("th", null, "Fish"));
   for (const t of tags) {
@@ -1463,15 +1761,15 @@ function renderSim(v) {
     id, sp, obs: res.fish > 0 ? sp.count / res.fish : 0, exp: res.expected.get(id) || 0,
   }));
   for (const [id, exp] of res.expected) if (exp > 0 && !res.species.has(id)) speciesRows.push({ id, sp: null, obs: 0, exp });
-  speciesRows.sort((a, b) => b.obs - a.obs || b.exp - a.exp);
-  const maxObs = Math.max(...speciesRows.map(r => Math.max(r.obs, r.exp)), 0.0001);
+  const filteredSpeciesRows = speciesRows.filter(r => passesTagFilter(r.id)).sort((a, b) => b.obs - a.obs || b.exp - a.exp);
+  const maxObs = Math.max(...filteredSpeciesRows.map(r => Math.max(r.obs, r.exp)), 0.0001);
   const spChart = el("div", { class: "viz-root" },
     el("div", { class: "legend" },
       el("span", null, el("span", { class: "sw", style: "background:var(--s1)" }), "observed"),
       el("span", null, el("span", { class: "sw", style: "background:var(--ink);width:2px;border-radius:0" }), "expected (exact)")));
-  for (const r of speciesRows) {
+  for (const r of filteredSpeciesRows) {
     spChart.append(el("div", { class: "hbar-row" },
-      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id))),
+      el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id)), ...fishTagBadges(r.id)),
       el("div", { class: "hbar-track", "data-tip": `${displayName(r.id)}\nobserved ${r.sp ? r.sp.count : 0} (${pct(r.obs)})\nexpected ${pct(r.exp)}` },
         el("div", { class: "hbar-fill", style: `width:${(r.obs / maxObs * 100).toFixed(2)}%` }),
         el("div", { class: "hbar-tick", style: `left:${(r.exp / maxObs * 100).toFixed(2)}%` })),
@@ -1522,7 +1820,7 @@ function renderSim(v) {
       el("th", null, "Fish"), el("th", null, "Caught"), el("th", null, "Observed"), el("th", null, "Expected"),
       el("th", null, "Δ"), el("th", null, "Size min/avg/max"), el("th", null, "Best quality"))));
   const tb2 = el("tbody");
-  for (const r of speciesRows) {
+  for (const r of filteredSpeciesRows) {
     const sp = r.sp;
     const delta = r.obs - r.exp;
     const bestQ = sp ? [...QUALITIES].reverse().find(q => sp.qualities[q] > 0) : null;
@@ -1565,6 +1863,14 @@ $("#saveBtn").addEventListener("click", saveAll);
 document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (S.rootHandle) saveAll(); }
   if (e.key === "Escape" && S.editing) closeEditor();
+});
+document.addEventListener("dblclick", e => {
+  // any rendered fish sprite (card, chart label, tag matrix, drawer head, …) opens that fish's editor
+  const s = e.target.closest(".sprite");
+  if (!s || !s.dataset.fish) return;
+  const [ns, path] = s.dataset.fish.split(":");
+  if (ns !== "fishtastic") return; // vanilla fish have no editable profile
+  openEditor(path);
 });
 window.addEventListener("beforeunload", e => { if (dirtyCount() > 0) e.preventDefault(); });
 (async () => {

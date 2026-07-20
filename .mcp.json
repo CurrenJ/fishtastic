@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fishtastic": {
+      "command": "node",
+      "args": ["tools/mcp-bridge/index.js"]
+    }
+  }
+}
