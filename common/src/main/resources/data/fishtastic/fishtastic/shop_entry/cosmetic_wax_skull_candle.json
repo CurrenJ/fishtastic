@@ -1,0 +1,7 @@
+{
+  "display_name": "Wax Skull Candle",
+  "description": "A pale skull candle holder with a soul-blue flame, for your fish tank.",
+  "cost": 35,
+  "reward": [{ "id": "fishtastic:cosmetic_wax_skull_candle", "count": 1 }],
+  "daily_max_purchases": 1
+}

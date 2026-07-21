@@ -1,0 +1,776 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 2
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 4,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 4
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 4,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.3085715,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 1
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 1,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 1,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 2,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 2
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 2,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 2,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 3,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 3,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:black_concrete"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 3,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 4,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 4
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 4,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 5
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": -0.3085715,
+      "offsetY": 5,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      }
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 1
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 1,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 1,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 2,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 2
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 2,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:black_concrete"
+      },
+      "offsetY": 2,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 3,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 3,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 3,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 4,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 4
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 4,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 5,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 5
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetY": 5,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetY": 6
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "hanging": "false"
+        },
+        "Name": "minecraft:soul_lantern"
+      },
+      "offsetY": 7
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.3085715,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 1
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 1,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 1,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 2,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 2
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 2,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 2,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 3,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 3,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Name": "minecraft:black_concrete"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 3,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 4,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 4
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 4,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 5
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.3085715,
+      "offsetY": 5,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3,
+      "offsetZ": 0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 4,
+      "offsetZ": -0.3085715
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 4
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:bone_block"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 4,
+      "offsetZ": 0.3085715
+    }
+  ],
+  "scale": 0.09
+}

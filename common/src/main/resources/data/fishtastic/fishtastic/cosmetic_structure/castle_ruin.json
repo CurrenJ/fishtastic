@@ -1,9 +1,6 @@
 {
+  "bypass_anchor_cell_requirement": true,
   "footprint_cells": [
-    {
-      "dx": 0,
-      "dz": 0
-    },
     {
       "dx": -1,
       "dz": -1

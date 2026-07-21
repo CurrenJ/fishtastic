@@ -13,19 +13,7 @@ Angler fish
 Overhaul dailies - way more
 Winner takes all competitive daily/weekly fishing leaderboard contest?
 Auto reeler - launches minigame automatically on bite - maybe mutex with hooks?
-Floor tanks - inner frame top edge faces should be culled when connected
 
-Banner notifs for encyclopedia unlocks? AND/OR clearable pips in the encyclopedia when there's new info that hasn't yet been viewed?
-
-Completionist achievements for catching every fish species
-Completionist++ achievements for catching every fish species in legendary
-
-Ability to see rarity outline on mystery target
-
-Charms - make active charm hang below minigame bar in fishing minigame. Attached to bottom of minigame bar with a thing string, connecting to a designated attachment point on the texture (defined per charm item). Charm swings freely from rope as a real physics sim, is affected by slide in/out movement of minigame bar.
-Crystal ball charm - shows rarity effect on the generic target fish icon during minigame (does NOT show fish species/id)
-Four-leaf clover charm - slightly reduces trash chance, slightly reduces vanilla fish chance, slightly increases treasure chance
-Luna Charm - Night fishing condition and multiplier always active while equipped
-Banana charm - multiplies fish chance for those that contain color YELLOW
+MCP causes lag buildup and eventual softlock/crash
 
 Check two fish in one session quest is working properoly - chests are triggering it i think

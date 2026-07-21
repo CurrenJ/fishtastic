@@ -32,14 +32,19 @@ import java.util.List;
  * multiplier on the auto-fit (default {@code 1.0}, identity), not an absolute block scale.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
-                                 CosmeticTransforms.Transform itemIcon) {
+                                 CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement) {
 
     /** Identity item-icon transform: auto-fit only, no authored position/scale/rotation nudge. */
     private static final CosmeticTransforms.Transform ITEM_ICON_DEFAULT =
             new CosmeticTransforms.Transform(0f, 0f, 0f, 0f, 0f, 0f, 1f);
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale) {
-        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT);
+        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false);
+    }
+
+    public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
+                             CosmeticTransforms.Transform itemIcon) {
+        this(footprintCells, parts, scale, itemIcon, false);
     }
 
     public record GridOffset(int dx, int dz) {
@@ -73,7 +78,8 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             GridOffset.CODEC.listOf().fieldOf("footprint_cells").forGetter(CosmeticStructure::footprintCells),
             StructurePart.CODEC.listOf().fieldOf("parts").forGetter(CosmeticStructure::parts),
             Codec.FLOAT.optionalFieldOf("scale", (float) CosmeticGridCell.CELL_WIDTH).forGetter(CosmeticStructure::scale),
-            CosmeticTransforms.Transform.MAP_CODEC.codec().optionalFieldOf("item_icon", ITEM_ICON_DEFAULT).forGetter(CosmeticStructure::itemIcon)
+            CosmeticTransforms.Transform.MAP_CODEC.codec().optionalFieldOf("item_icon", ITEM_ICON_DEFAULT).forGetter(CosmeticStructure::itemIcon),
+            Codec.BOOL.optionalFieldOf("bypass_anchor_cell_requirement", false).forGetter(CosmeticStructure::bypassAnchorCellRequirement)
     ).apply(i, CosmeticStructure::new));
 
     public static final Codec<CosmeticStructure> CODEC = RAW_CODEC.flatXmap(
@@ -82,8 +88,9 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
     );
 
     private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
-        if (!structure.footprintCells.contains(new GridOffset(0, 0))) {
-            return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)");
+        if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {
+            return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)"
+                    + " (set \"bypass_anchor_cell_requirement\": true to override)");
         }
         for (net.minecraft.world.level.block.Rotation rotation : net.minecraft.world.level.block.Rotation.values()) {
             int minX = 0, maxX = 0, minZ = 0, maxZ = 0;
