@@ -303,6 +303,14 @@ pre.json {
 .histo .bin { flex: 1; background: var(--s1); border-radius: 3px 3px 0 0; min-height: 1px; }
 .hx { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
 
+.epbar-track { position: relative; height: 22px; background: var(--surface-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.epbar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--accent-dim), var(--good)); border-radius: 6px 0 0 6px; transition: width 0.3s ease; }
+.epbar-label {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--ink);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
 table.mat { border-collapse: collapse; font-size: 12px; width: 100%; }
 table.mat th, table.mat td { border-bottom: 1px solid var(--grid); padding: 6px 10px; text-align: left; white-space: nowrap; }
 table.mat th {
@@ -1755,6 +1763,35 @@ function renderSim(v) {
       el("div", { class: "s" }, `${displayName(res.biggest.id)} · ${res.biggest.quality}`)) : null,
   );
   v.append(el("div", { class: "panel" }, el("h3", null, "Outcome"), tiles));
+
+  // --- encyclopedia progress (distinct mod-fish species caught this run; vanilla fish have no
+  // encyclopedia entry — see FishEncyclopediaScreen, which lists getAllFishProfilesSorted())
+  const modPoolIds = poolIds().filter(id => !VANILLA_IDS.has(id) && passesTagFilter(id));
+  const epTotal = modPoolIds.length;
+  const epDiscovered = modPoolIds.filter(id => (res.species.get(id)?.count || 0) > 0).length;
+  const epPct = epTotal > 0 ? epDiscovered / epTotal : 0;
+  const undiscoveredRows = modPoolIds
+    .filter(id => !(res.species.get(id)?.count > 0))
+    .map(id => ({ id, exp: res.expected.get(id) || 0 }))
+    .sort((a, b) => b.exp - a.exp);
+  const maxUndiscExp = Math.max(...undiscoveredRows.map(r => r.exp), 0.0001);
+  const SHOWN_UNDISC = 12;
+  v.append(el("div", { class: "panel viz-root" },
+    el("h3", null, "Encyclopedia progress",
+      el("span", { class: "note" }, `— distinct mod species caught this run vs. total profiles${S.tagFilter.size ? " (filtered)" : ""}`)),
+    el("div", { class: "epbar-track", "data-tip": `${epDiscovered} of ${epTotal} species discovered (${pct(epPct, 1)})` },
+      el("div", { class: "epbar-fill", style: `width:${(epPct * 100).toFixed(2)}%` }),
+      el("div", { class: "epbar-label" }, `${epDiscovered} / ${epTotal} discovered · ${pct(epPct, 1)}`)),
+    undiscoveredRows.length === 0
+      ? el("div", { class: "hint", style: "margin-top:10px;color:var(--good)" }, "All species discovered this run.")
+      : el("div", { style: "margin-top:14px" },
+          el("div", { class: "hint", style: "margin-bottom:6px" }, `${undiscoveredRows.length} not yet caught this run, ranked by catch chance`),
+          undiscoveredRows.slice(0, SHOWN_UNDISC).map(r => el("div", { class: "hbar-row", style: "grid-template-columns:210px 1fr 90px" },
+            el("div", { class: "lbl" }, spriteEl(r.id), el("span", null, displayName(r.id)), ...fishTagBadges(r.id)),
+            el("div", { class: "hbar-track", "data-tip": r.exp > 0 ? `expected ${pct(r.exp)} per fish roll` : "unreachable with current gear/pool filters" },
+              el("div", { class: "hbar-fill", style: `width:${(r.exp / maxUndiscExp * 100).toFixed(2)}%;background:${r.exp > 0 ? "var(--s1)" : "var(--muted)"}` })),
+            el("div", { class: "val" }, r.exp > 0 ? pct(r.exp, 2) : "unreachable"))),
+          undiscoveredRows.length > SHOWN_UNDISC ? el("div", { class: "hint", style: "margin-top:6px" }, `+ ${undiscoveredRows.length - SHOWN_UNDISC} more…`) : null)));
 
   // --- species observed vs expected
   const speciesRows = [...res.species.entries()].map(([id, sp]) => ({
