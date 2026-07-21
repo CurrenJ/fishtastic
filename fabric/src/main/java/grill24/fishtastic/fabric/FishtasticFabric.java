@@ -10,6 +10,7 @@ import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
+import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.fabric.command.CommandRegistrationFabric;
 import grill24.fishtastic.fabric.mcp.McpLifecycleFabric;
 import grill24.fishtastic.data.Quest;
@@ -29,7 +30,10 @@ public final class FishtasticFabric implements ModInitializer {
     public void onInitialize() {
         // Set up mod initialization logic here
         CommandRegistrationFabric.register();
-        McpLifecycleFabric.register();
+        // Production builds exclude grill24.fishtastic.fabric.mcp from the jar (dev-only tooling).
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            McpLifecycleFabric.register();
+        }
 
         // Register synced datapack registries
         DynamicRegistries.registerSynced(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC);

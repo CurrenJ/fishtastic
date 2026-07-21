@@ -1,9 +1,11 @@
 package grill24.fishtastic.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.compat.CompatUtil;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
+import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.mcp.McpBridgeCommand;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -19,8 +21,7 @@ import java.net.URI;
 public class FishtasticCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            Commands.literal("fishtastic")
+        LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("fishtastic")
                 .executes(FishtasticCommand::openScreen)
                 .then(CosmeticCommand.build())
                 .then(SetItemSizeCommand.build())
@@ -33,9 +34,16 @@ public class FishtasticCommand {
                 .then(CleanupGoalCommand.build())
                 .then(QuestsCommand.build())
                 .then(DebugEncyclopediaCommand.build())
-                .then(TokenBalanceCommand.build())
-                .then(McpBridgeCommand.build())
-        );
+                .then(TokenBalanceCommand.build());
+
+        // Production builds exclude the whole grill24.fishtastic.mcp package from the jar (dev-only
+        // tooling) - never reference McpBridgeCommand outside this guard, or the missing class gets
+        // resolved and the server fails to start.
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            command.then(McpBridgeCommand.build());
+        }
+
+        dispatcher.register(command);
     }
 
     private static int openScreen(CommandContext<CommandSourceStack> context) {

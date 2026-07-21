@@ -1,8 +1,8 @@
-package grill24.fishtastic.mcp.neoforge;
+package grill24.fishtastic.env.neoforge;
 
 import net.neoforged.fml.loading.FMLEnvironment;
 
-public class McpEnvironmentCheckImpl {
+public class DevEnvironmentCheckImpl {
     public static boolean isDevelopmentEnvironment() {
         return !FMLEnvironment.isProduction();
     }

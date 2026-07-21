@@ -20,5 +20,6 @@ Unlisted quests become listed when ANY progress towards them is gained
 Unlisted quests have special notification when they become visible/known to player (maybe custom sprite bg for banner notif? plsu txt)
 
 MCP causes lag buildup and eventual softlock/crash
+Exclude MCP package from builds
 
 Check two fish in one session quest is working properoly - chests are triggering it i think

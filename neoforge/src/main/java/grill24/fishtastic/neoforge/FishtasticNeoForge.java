@@ -11,6 +11,7 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
+import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.neoforge.mcp.McpLifecycleNeoForge;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
@@ -36,7 +37,10 @@ public final class FishtasticNeoForge {
         // Try to register GelatinUI menus, if GelatinUI is present.
         GelatinMenusCompat.init();
 
-        McpLifecycleNeoForge.register();
+        // Production builds exclude grill24.fishtastic.neoforge.mcp from the jar (dev-only tooling).
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            McpLifecycleNeoForge.register();
+        }
 
         // __BEGIN:item_registration:init_neoforge
         // Register data components first

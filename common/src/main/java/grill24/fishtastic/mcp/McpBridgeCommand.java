@@ -3,6 +3,7 @@ package grill24.fishtastic.mcp;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import grill24.fishtastic.env.DevEnvironmentCheck;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -57,8 +58,13 @@ public final class McpBridgeCommand {
             source.sendFailure(Component.literal("The MCP bridge can only be started by the singleplayer world owner."));
             return 0;
         }
-        if (!McpEnvironmentCheck.isDevelopmentEnvironment()) {
+        if (!DevEnvironmentCheck.isDevelopmentEnvironment()) {
             source.sendFailure(Component.literal("The MCP bridge is only available in a development environment build."));
+            return 0;
+        }
+        if (!McpConfig.isEnabled()) {
+            source.sendFailure(Component.literal("The MCP bridge is disabled. Set enabled=true in "
+                    + McpConfig.getConfigDirectory().resolve("fishtastic-mcp.properties") + " and restart to allow it."));
             return 0;
         }
 
