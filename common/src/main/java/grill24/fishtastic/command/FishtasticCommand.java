@@ -32,6 +32,7 @@ public class FishtasticCommand {
                 .then(TutorialCommand.build())
                 .then(CleanupGoalCommand.build())
                 .then(QuestsCommand.build())
+                .then(DebugEncyclopediaCommand.build())
                 .then(TokenBalanceCommand.build())
                 .then(McpBridgeCommand.build())
         );

@@ -286,6 +286,22 @@ public class FishCatchSavedData extends SavedData {
     }
 
     // -------------------------------------------------------------------------
+    // Debug / admin API
+    // -------------------------------------------------------------------------
+
+    /** Directly sets the catch count for a fish type, bypassing the normal size/quality recording path. */
+    public void setCatchCount(UUID playerUuid, String playerName, Identifier fishType, int count) {
+        PlayerCatchData data = playerData.computeIfAbsent(playerUuid, id -> new PlayerCatchData(id, playerName));
+        data.lastKnownName = playerName;
+        FishTypeData ftd = data.perFish.computeIfAbsent(fishType, k -> new FishTypeData());
+        ftd.totalCatches = count;
+        if (count > 0 && ftd.bestSize <= 0f) {
+            ftd.bestSize = 1f; // non-zero so the entry shows as "caught"
+        }
+        setDirty();
+    }
+
+    // -------------------------------------------------------------------------
     // Quest state API
     // -------------------------------------------------------------------------
 
@@ -362,6 +378,31 @@ public class FishCatchSavedData extends SavedData {
                 });
         questStates.values().forEach(state -> state.resetDailyPurchasesIfNeeded(currentDay));
         setDirty();
+    }
+
+    /** Force-refreshes daily quests for a single player, regardless of the current day. */
+    public void forceRefreshDailyQuests(MinecraftServer server, ServerPlayer player, long currentDay) {
+        Registry<Quest> questRegistry;
+        try {
+            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        } catch (Exception e) {
+            return;
+        }
+        PlayerQuestState state = questStates.get(resolvePlayerKey(player));
+        if (state == null) return;
+        questRegistry.entrySet().stream()
+                .filter(e -> e.getValue().category() == QuestCategory.DAILY)
+                .forEach(e -> state.forceResetDaily(e.getKey(), currentDay));
+        setDirty();
+    }
+
+    /** Force-refreshes shop purchases for a single player, regardless of the current day. */
+    public void forceRefreshShopPurchases(ServerPlayer player) {
+        PlayerQuestState state = questStates.get(resolvePlayerKey(player));
+        if (state != null) {
+            state.forceRefreshPurchases();
+            setDirty();
+        }
     }
 
     // -------------------------------------------------------------------------

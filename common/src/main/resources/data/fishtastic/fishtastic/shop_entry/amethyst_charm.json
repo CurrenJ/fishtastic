@@ -1,0 +1,8 @@
+{
+  "display_name": "Amethyst Charm",
+  "description": "Calms the fishing line — reduces input force by 33%%, making the minigame easier to control.",
+  "cost": 20,
+  "weight": 0.15,
+  "reward": [{ "id": "fishtastic:amethyst_charm", "count": 1 }],
+  "daily_max_purchases": 1
+}

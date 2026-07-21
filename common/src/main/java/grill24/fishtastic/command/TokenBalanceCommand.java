@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
  * Usage:
  *   /fishtastic tokens give <amount> [player]   — add (or, if negative, remove) tokens
  *   /fishtastic tokens set <amount> [player]    — set the balance to an exact value
+ *   /fishtastic tokens refresh [player]         — force-refresh shop purchase limits
  */
 public class TokenBalanceCommand {
 
@@ -41,7 +42,11 @@ public class TokenBalanceCommand {
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(ctx -> executeSet(ctx,
                                                 EntityArgument.getPlayer(ctx, "player"),
-                                                IntegerArgumentType.getInteger(ctx, "amount"))))));
+                                                IntegerArgumentType.getInteger(ctx, "amount"))))))
+                .then(Commands.literal("refresh")
+                        .executes(ctx -> executeRefresh(ctx, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> executeRefresh(ctx, EntityArgument.getPlayer(ctx, "player")))));
     }
 
     private static int executeGive(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit, int amount) throws CommandSyntaxException {
@@ -65,6 +70,21 @@ public class TokenBalanceCommand {
 
         return reportBalance(ctx, target, state,
                 "Set token balance for " + target.getName().getString() + " to ");
+    }
+
+    private static int executeRefresh(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit) {
+        ServerPlayer target = resolveTarget(ctx.getSource(), explicit);
+        if (target == null) return 0;
+
+        CommandSourceStack source = ctx.getSource();
+        FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        data.forceRefreshShopPurchases(target);
+        QuestSyncPacket.sendToPlayer(target, data);
+
+        source.sendSuccess(() -> Component.literal(
+                "Shop purchase limits refreshed for " + target.getName().getString() + ".")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
     }
 
     private static int reportBalance(CommandContext<CommandSourceStack> ctx, ServerPlayer target, PlayerQuestState state, String prefix) {

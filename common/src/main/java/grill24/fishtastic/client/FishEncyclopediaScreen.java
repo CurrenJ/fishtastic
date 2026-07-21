@@ -29,6 +29,7 @@ import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -40,6 +41,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Vector2f;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -137,6 +139,16 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         closingAtNanos = System.nanoTime();
         if (sphere != null) sphere.startOutroAnimation();
         // Actual close is deferred to tick() so the animation can play first.
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        // Escape deselects the active fish (back to disc) before closing the screen.
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE && selectedFishKey != null && !closing) {
+            goBackToDisc();
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     @Override

@@ -356,12 +356,30 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      */
     private float sidePanelDisplacement(float partialTick, float delayTicks) {
         if (isIntro) {
+            // Each item gets the full INTRO_ANIMATION_DURATION regardless of its stagger delay,
+            // so items naturally cascade — earlier items arrive sooner, later items arrive later.
+            // No duration compression so they don't race to finish simultaneously.
             float elapsed = Math.max(0f, introAnimationTick + partialTick - delayTicks);
             float t = Math.min(1f, elapsed / INTRO_ANIMATION_DURATION);
             float eased = 1f - (1f - t) * (1f - t); // ease-out, matches the bar's own intro
             return 1f - eased;
         }
+        // After the bar's intro ends, introAnimationTick is frozen but delayed items may still
+        // be mid-slide. Continue using tickCount (which keeps incrementing) so they finish at
+        // their own pace instead of snapping to rest.
+        if (!isHiding) {
+            float elapsed = Math.max(0f, tickCount + partialTick - delayTicks);
+            if (elapsed > 0 && elapsed < INTRO_ANIMATION_DURATION) {
+                float t = Math.min(1f, elapsed / INTRO_ANIMATION_DURATION);
+                float eased = 1f - (1f - t) * (1f - t);
+                return 1f - eased;
+            }
+            if (elapsed <= 0) return 1f; // hasn't started yet — still off-screen
+        }
         if (isHiding) {
+            // Hide animation has no hard cutoff — hideAnimationTick can run past the duration
+            // (isActive() governs removal, not a boolean flip), so the original uniform
+            // HIDE_ANIMATION_DURATION without duration compression works correctly here.
             float elapsed = Math.max(0f, hideAnimationTick + partialTick - delayTicks);
             float t = Math.min(1f, elapsed / HIDE_ANIMATION_DURATION);
             return t * t; // ease-in, matches the bar's own hide
@@ -417,11 +435,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float slotYTop = barTopLeft.y() + GEAR_ICON_SIZE / 2f;
         float stackGap = GEAR_ICON_SIZE + GEAR_ICON_GAP;
 
-        // Bait leads the cascade, then hook, then charm — each trails the previous by
-        // GEAR_STAGGER_DELAY_TICKS so the column cascades in/out one item after another rather
-        // than moving as a single rigid block.
+        // Intro: bottom item enters first, cascading upward — lowest visible item
+        // leads, each subsequent item trails by GEAR_STAGGER_DELAY_TICKS.
+        // Hide: the same delay order applies (bottom exits first, top last), which
+        // reads as the column peeling away from the bar.
         if (equippedBaitStack != null) {
-            float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
+            float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * 2f) * screenHeight;
             renderGearIcon(extension, guiGraphics, equippedBaitStack, slotX, slotYTop + slideY);
         }
         if (equippedHookStack != null) {
@@ -429,7 +448,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             renderGearIcon(extension, guiGraphics, equippedHookStack, slotX, slotYTop + stackGap + slideY);
         }
         if (equippedCharmStack != null) {
-            float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * 2f) * screenHeight;
+            float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
             renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY);
         }
     }

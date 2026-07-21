@@ -29,6 +29,7 @@ import java.util.Map;
  * Usage:
  *   /fishtastic quests reset player [player]                  — wipe quest progress, catch history, tokens, and shop purchases
  *   /fishtastic quests reset all                               — same, for every player
+ *   /fishtastic quests refresh [player]                        — force-refresh daily quests (resets progress + re-rolls active pool)
  *   /fishtastic quests debug complete <questId|all> [player]   — force a quest to its completed (unclaimed) state, for testing the claim UI
  *   /fishtastic quests debug claim <questId|all> [player]      — force-complete AND claim, granting the reward immediately
  *   /fishtastic quests debug progress <questId> <amount> [player] — set an exact progress count on one quest
@@ -48,6 +49,10 @@ public class QuestsCommand {
                                         .executes(ctx -> executeResetPlayer(ctx, EntityArgument.getPlayer(ctx, "player")))))
                         .then(Commands.literal("all")
                                 .executes(QuestsCommand::executeResetAll)))
+                .then(Commands.literal("refresh")
+                        .executes(ctx -> executeRefresh(ctx, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> executeRefresh(ctx, EntityArgument.getPlayer(ctx, "player")))))
                 .then(Commands.literal("debug")
                         .then(Commands.literal("complete")
                                 .then(Commands.literal("all")
@@ -108,6 +113,27 @@ public class QuestsCommand {
 
         source.sendSuccess(() -> Component.literal(
                 "Reset quest progress and catch history for all players.")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    // -------------------------------------------------------------------------
+    // refresh
+    // -------------------------------------------------------------------------
+
+    private static int executeRefresh(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer target = resolveTarget(source, explicit);
+        if (target == null) return 0;
+
+        FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        long currentDay = source.getServer().overworld().getGameTime() / 24000L;
+        data.forceRefreshDailyQuests(source.getServer(), target, currentDay);
+        data.forceRefreshShopPurchases(target);
+        QuestSyncPacket.sendToPlayer(target, data);
+
+        source.sendSuccess(() -> Component.literal(
+                "Daily quests refreshed for " + target.getName().getString() + ".")
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }

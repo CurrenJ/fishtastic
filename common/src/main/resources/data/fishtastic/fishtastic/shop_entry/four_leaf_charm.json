@@ -1,0 +1,8 @@
+{
+  "display_name": "Four-Leaf Charm",
+  "description": "Gently bends luck in your favor — -3%% trash chance, +3%% treasure chance, and fewer vanilla fish.",
+  "cost": 25,
+  "weight": 0.15,
+  "reward": [{ "id": "fishtastic:four_leaf_charm", "count": 1 }],
+  "daily_max_purchases": 1
+}

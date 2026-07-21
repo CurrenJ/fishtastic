@@ -169,6 +169,17 @@ public class PlayerQuestState {
         }
     }
 
+    /** Force-clears purchase counts regardless of the current day — used by the admin refresh command. */
+    public void forceRefreshPurchases() {
+        purchaseCounts.clear();
+        lastPurchaseResetDay = -1;
+    }
+
+    /** Force-resets a daily quest's progress regardless of the current day — used by the admin refresh command. */
+    public void forceResetDaily(ResourceKey<Quest> questId, long currentDay) {
+        progress.put(questId, new QuestProgress(0, currentDay, false, false, List.of()));
+    }
+
     public Map<Identifier, QuestProgress> getProgressSnapshot() {
         Map<Identifier, QuestProgress> snap = new HashMap<>();
         progress.forEach((k, v) -> snap.put(k.identifier(), v));

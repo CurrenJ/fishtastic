@@ -1,0 +1,8 @@
+{
+  "display_name": "Crystal Ball Charm",
+  "description": "Reveals a glowing rarity outline around hooked fish before you reel them in.",
+  "cost": 20,
+  "weight": 0.15,
+  "reward": [{ "id": "fishtastic:crystal_ball_charm", "count": 1 }],
+  "daily_max_purchases": 1
+}
