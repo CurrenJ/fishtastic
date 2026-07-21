@@ -14,19 +14,11 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Debug command to toggle reveal of all encyclopedia fish entries and their details.
+ * Debug command to bulk-reveal or reset all encyclopedia fish entries.
  * Usage:
- *   /fishtastic encyclopedia toggle           — toggle reveal for yourself
- *   /fishtastic encyclopedia toggle [player]  — toggle reveal for another player
- *
- * When all fish are hidden (any fish has 0 catches), sets every registered fish
- * species to a high catch count, fully revealing names, stats, types, spawn
- * conditions, lore, and removing silhouettes.  When all fish are already revealed,
- * resets all catch counts to 0, hiding everything.
+ *   /fishtastic encyclopedia complete [player]   — reveal all fish entries
+ *   /fishtastic encyclopedia reset [player]      — hide all fish entries
  */
 public class DebugEncyclopediaCommand {
 
@@ -36,13 +28,17 @@ public class DebugEncyclopediaCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("encyclopedia")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
-                .then(Commands.literal("toggle")
-                        .executes(ctx -> executeToggle(ctx, null))
+                .then(Commands.literal("complete")
+                        .executes(ctx -> executeReveal(ctx, null))
                         .then(Commands.argument("player", EntityArgument.player())
-                                .executes(ctx -> executeToggle(ctx, EntityArgument.getPlayer(ctx, "player")))));
+                                .executes(ctx -> executeReveal(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                .then(Commands.literal("reset")
+                        .executes(ctx -> executeReset(ctx, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(ctx -> executeReset(ctx, EntityArgument.getPlayer(ctx, "player")))));
     }
 
-    private static int executeToggle(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit) {
+    private static int executeReveal(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit) {
         CommandSourceStack source = ctx.getSource();
         ServerPlayer target = resolveTarget(source, explicit);
         if (target == null) return 0;
@@ -51,44 +47,42 @@ public class DebugEncyclopediaCommand {
         Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
-        // Build a quick lookup of current catch counts from saved data
-        Map<net.minecraft.resources.Identifier, Integer> currentCounts = new HashMap<>();
-        for (var e : data.getPersonalCatchCounts(target.getUUID(), FishCatchSavedData.PERSONAL_CATCH_COUNT_ASC)) {
-            currentCounts.put(e.fishType(), e.totalCatches());
+        String playerName = target.getName().getString();
+        for (var entry : profileRegistry.entrySet()) {
+            data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), REVEAL_CATCH_COUNT);
         }
 
-        // Toggle: if any registered fish has 0 catches, reveal all; otherwise hide all
-        boolean anyHidden = false;
-        for (var entry : profileRegistry.entrySet()) {
-            if (currentCounts.getOrDefault(entry.getKey().identifier(), 0) <= 0) {
-                anyHidden = true;
-                break;
-            }
-        }
+        int count = profileRegistry.size();
+        FishEncyclopediaSyncPacket.sendToPlayer(target, data);
+
+        int finalCount = count;
+        source.sendSuccess(() -> Component.literal(
+                "Encyclopedia revealed for " + playerName + " — " + finalCount + " fish entries fully unlocked.")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static int executeReset(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit) {
+        CommandSourceStack source = ctx.getSource();
+        ServerPlayer target = resolveTarget(source, explicit);
+        if (target == null) return 0;
+
+        FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
+                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         String playerName = target.getName().getString();
-        int count = 0;
-        if (anyHidden) {
-            for (var entry : profileRegistry.entrySet()) {
-                data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), REVEAL_CATCH_COUNT);
-                count++;
-            }
-            int finalCount = count;
-            source.sendSuccess(() -> Component.literal(
-                    "Encyclopedia revealed for " + playerName + " — " + finalCount + " fish entries fully unlocked.")
-                    .withStyle(ChatFormatting.GREEN), true);
-        } else {
-            for (var entry : profileRegistry.entrySet()) {
-                data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), 0);
-                count++;
-            }
-            int finalCount = count;
-            source.sendSuccess(() -> Component.literal(
-                    "Encyclopedia hidden for " + playerName + " — reset " + finalCount + " fish entries.")
-                    .withStyle(ChatFormatting.GREEN), true);
+        for (var entry : profileRegistry.entrySet()) {
+            data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), 0);
         }
 
+        int count = profileRegistry.size();
         FishEncyclopediaSyncPacket.sendToPlayer(target, data);
+
+        int finalCount = count;
+        source.sendSuccess(() -> Component.literal(
+                "Encyclopedia hidden for " + playerName + " — reset " + finalCount + " fish entries.")
+                .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
