@@ -1,5 +1,5 @@
 {
-  "base_weight": 5,
+  "base_weight": 4,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "biome_weights": [
     { "biome": "minecraft:is_ocean", "multiplier": 2.0 },

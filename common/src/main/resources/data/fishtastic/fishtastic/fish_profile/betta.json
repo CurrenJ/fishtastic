@@ -1,0 +1,15 @@
+{
+  "base_weight": 8,
+  "size": { "mean": 35.0, "std_dev": 8.0 },
+  "biome_weights": [
+    { "biome": "minecraft:is_river", "multiplier": 2.0 },
+    { "biome": "minecraft:is_jungle", "multiplier": 2.0 },
+    { "biome": "minecraft:is_swamp", "multiplier": 1.5 },
+    { "biome": "minecraft:is_ocean", "multiplier": 0.3 }
+  ],
+  "time_weights": [
+    { "time": "day", "multiplier": 1.5 },
+    { "time": "night", "multiplier": 0.5 }
+  ],
+  "temperament": "fishtastic:erratic"
+}

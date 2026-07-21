@@ -90,6 +90,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         // ----- Fish items (textures in item/fish/ subdirectory) -----
         generateFishItemModel(itemModelGenerators, FishtasticItems.GENERIC_FISH.value(), "generic_fish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.ACUTE_IASPIS.value(), "acute_iaspis");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.BETTA.value(), "betta");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLAZED_GRUB.value(), "blazed_grub");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLUEGILL.value(), "bluegill");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FLAPJACK_OCTOPUS.value(), "flapjack_octopus");

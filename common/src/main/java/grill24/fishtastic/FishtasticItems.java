@@ -50,6 +50,7 @@ public class FishtasticItems {
 
     // ----- Fish Items -----
     public static Holder<Item> ACUTE_IASPIS;
+    public static Holder<Item> BETTA;
 
     // ----- Pile of Fish -----
     public static Holder<Item> PILE_OF_FISH;
@@ -164,6 +165,7 @@ public class FishtasticItems {
 
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
+        BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(props(loc)));
         FLAPJACK_OCTOPUS = RegistrationApiSided.getInstance().registerItem("flapjack_octopus", loc -> new FishtasticFishItem(props(loc)));
         FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(props(loc)));

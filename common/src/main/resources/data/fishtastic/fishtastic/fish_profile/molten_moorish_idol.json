@@ -1,5 +1,5 @@
 {
-  "base_weight": 5,
+  "base_weight": 2,
   "size": { "mean": 55.0, "std_dev": 10.0 },
   "time_weights": [
     { "time": "night", "multiplier": 1.5 }

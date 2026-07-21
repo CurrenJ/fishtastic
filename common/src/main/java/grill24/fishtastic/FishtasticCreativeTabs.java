@@ -21,6 +21,7 @@ public class FishtasticCreativeTabs {
 
                     // Fish items
                     output.accept(FishtasticItems.ACUTE_IASPIS.value());
+                    output.accept(FishtasticItems.BETTA.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
                     output.accept(FishtasticItems.FLAPJACK_OCTOPUS.value());

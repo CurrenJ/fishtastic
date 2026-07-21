@@ -27,6 +27,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         // Fish tag
         valueLookupBuilder(FishtasticItemTags.FISH)
+                .add(FishtasticItems.BETTA.value())
                 .add(FishtasticItems.BLUEGILL.value())
                 .add(FishtasticItems.GARDEN_EEL.value())
                 .add(FishtasticItems.GIANT_MANTA_RAY.value())

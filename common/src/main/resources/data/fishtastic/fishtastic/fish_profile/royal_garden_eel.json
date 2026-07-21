@@ -1,5 +1,5 @@
 {
-  "base_weight": 7,
+  "base_weight": 2,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "biome_weights": [
     { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
@@ -18,7 +18,7 @@
     "count": 4,
     "depth_layers": 3,
     "xz_spread": 0.26,
-    "y_range": 0.0,
-    "rotation_jitter": 0.0
+    "y_range": 0,
+    "rotation_jitter": 0
   }
 }

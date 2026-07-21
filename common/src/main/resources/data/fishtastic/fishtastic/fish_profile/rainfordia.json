@@ -1,5 +1,5 @@
 {
-  "base_weight": 8,
+  "base_weight": 5,
   "size": { "mean": 50.0, "std_dev": 15.0 },
   "biome_weights": [
     { "biome": "minecraft:is_jungle", "multiplier": 2.0 },

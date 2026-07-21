@@ -1,5 +1,5 @@
 {
-  "base_weight": 5,
+  "base_weight": 2,
   "size": { "mean": 80.0, "std_dev": 15.0 },
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
@@ -14,5 +14,7 @@
     { "phase": "full_moon", "multiplier": 0.4 }
   ],
   "temperament": "fishtastic:trembler",
-  "animation": { "mode": "belly_down" }
+  "animation": {
+    "mode": "belly_down"
+  }
 }
