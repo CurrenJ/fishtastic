@@ -2,6 +2,7 @@ package grill24.fishtastic.item;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
@@ -170,9 +171,13 @@ public class FishtasticFishItem extends Item {
             float rarityWeight = baseWeight;
             if (baitEffect != null) {
                 // Pool-wide counterpart to the per-group flattening below — for generalist baits
-                // with no FishGroupAffinity to scope to (e.g. Gummy Worms), applied unconditionally.
+                // with no FishGroupAffinity to scope to (e.g. Gummy Worms). Only touches fish
+                // that belong to at least one of the mod's curated size/temperament tags
+                // (FishtasticItemTags.FISH_GROUPS); a fish with none of those (not yet
+                // categorized, e.g. a freshly added species) keeps its raw base_weight rather
+                // than being swept into flattening math nobody has vetted it against.
                 float poolT = baitEffect.rarityFlattening();
-                if (poolT != 1.0f) {
+                if (poolT != 1.0f && FishtasticItemTags.FISH_GROUPS.stream().anyMatch(item::is)) {
                     rarityWeight = (float) (Math.pow(rarityWeight, poolT) * Math.pow(FishProfile.DEFAULT_BASE_WEIGHT, 1.0 - poolT));
                 }
                 for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {

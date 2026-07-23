@@ -481,10 +481,10 @@ const BAIT_PRESETS = {
   worms:       { label: "Worms",            luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 1, modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
   gummy_worms: { label: "Gummy Worms",      luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [], flatten: 0.7 },
   blazed_grub: { label: "Blazed Grub",      luck: 0.0, treasure: 0.50,  trash: 0.0,  targets: 0, modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
-  freshwater:  { label: "Small Fish Bait",  luck: 0.0, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 4.0, nonMult: 0.3, exp: 0.35 }] },
-  ocean:       { label: "Calm Bait",        luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 4.0, nonMult: 0.3, exp: 0.4 }] },
-  predator:    { label: "Frenzy Bait",      luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 4.0, nonMult: 0.3, exp: 0.35 }] },
-  deep_sea:    { label: "Trophy Bait",      luck: 0.0, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 4.0, nonMult: 0.3, exp: 0.6 }] },
+  freshwater:  { label: "Small Fish Bait",  luck: 0.0, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 2.0, nonMult: 0.3, exp: 0.35 }] },
+  ocean:       { label: "Calm Bait",        luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 2.0, nonMult: 0.3, exp: 0.4 }] },
+  predator:    { label: "Frenzy Bait",      luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 1.5, nonMult: 0.3, exp: 0.35 }] },
+  deep_sea:    { label: "Trophy Bait",      luck: 0.0, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 1.5, nonMult: 0.3, exp: 0.6 }] },
   custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
 };
 // fixed categorical hue per bait (Base Weights tab lane preview) — blue/green are reserved
@@ -533,6 +533,13 @@ const BIOME_PRESETS = [
 ];
 // Tag files in tags/item that are gear config, not fish groupings
 const NON_GROUP_TAGS = new Set(["fishing_rods","fishing_hooks","fishing_charms","fishing_bait","trash","treasure"]);
+// Mirrors FishtasticItemTags.FISH_GROUPS exactly — the mod's curated size/temperament taxonomy,
+// as opposed to groupTagIds() below which includes every fishtastic:* tag (catch-all "fish",
+// "unlisted_fish", "color_yellow", etc.) for UI badge/filter purposes. Used to scope
+// BaitEffect.rarityFlattening: a fish in none of these hasn't been categorized, so pool-wide
+// flattening leaves it alone rather than applying unvetted math to it.
+const FISH_GROUP_TAGS = ["fishtastic:small_fish", "fishtastic:big_fish", "fishtastic:calm_fish",
+  "fishtastic:steady_fish", "fishtastic:frenzy_fish", "fishtastic:exotic_fish"];
 
 /* ===================== state ===================== */
 const S = {
@@ -891,10 +898,13 @@ function effectiveBait() { return resolveBait(S.gear.bait); }
 function baitEffectiveWeight(id, base, bait) {
   if (VANILLA_IDS.has(id)) return bait.key === "none" ? base : 0;
   let rarityWeight = base, groupMult = 1.0;
-  // BaitEffect.rarityFlattening: same formula, pool-wide and unconditional (generalist baits
-  // like Gummy Worms have no affinity group to scope flattening to).
+  // BaitEffect.rarityFlattening: same formula, pool-wide but only for fish in at least one of
+  // FISH_GROUP_TAGS (generalist baits like Gummy Worms have no affinity group of their own to
+  // scope flattening to) — a fish in none of them isn't categorized yet, so it's left alone.
   const poolT = bait.flatten ?? 1.0;
-  if (poolT !== 1.0) rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  if (poolT !== 1.0 && FISH_GROUP_TAGS.some(t => inTag(id, t))) {
+    rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  }
   for (const a of bait.affinities || []) {
     if (inTag(id, a.group)) {
       // BaitEffect.FishGroupAffinity.rarityExponent: temperature-style flattening anchored at
@@ -945,9 +955,12 @@ function fishWeightBreakdown(id, env, bait, charm, diamonds) {
   const eMult = p ? envMultiplier(p.json, env) : 1.0;
   let rarityWeight = base, groupMult = 1.0;
   // BaitEffect.rarityFlattening: pool-wide counterpart to the per-group flattening below, for
-  // generalist baits (e.g. Gummy Worms) with no affinity group to scope it to.
+  // generalist baits (e.g. Gummy Worms) with no affinity group to scope it to — but only for
+  // fish in at least one of FISH_GROUP_TAGS; an uncategorized fish is left alone.
   const poolT = bait.flatten ?? 1.0;
-  if (poolT !== 1.0) rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  if (poolT !== 1.0 && FISH_GROUP_TAGS.some(t => inTag(id, t))) {
+    rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  }
   for (const a of bait.affinities) {
     if (inTag(id, a.group)) {
       // BaitEffect.FishGroupAffinity.rarityExponent: temperature-style flattening anchored at

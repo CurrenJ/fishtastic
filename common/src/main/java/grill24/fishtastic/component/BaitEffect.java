@@ -24,10 +24,12 @@ import java.util.Optional;
  * {@code rarityFlattening} (defaults to 1.0, i.e. no effect) is the generalist analog of
  * {@link FishGroupAffinity#rarityExponent()} — where that field flattens a fish's weight only
  * when it belongs to the bait's targeted group, this applies {@code weight^rarityFlattening}
- * (anchored the same way, against {@code FishProfile.DEFAULT_BASE_WEIGHT}) to every mod fish in
- * the pool unconditionally. Meant for baits with no {@link FishGroupAffinity} at all — a
- * generalist bait like Gummy Worms has no single tag to scope flattening to, so it flattens the
- * whole pool directly instead.
+ * (anchored the same way, against {@code FishProfile.DEFAULT_BASE_WEIGHT}) to every mod fish
+ * that belongs to at least one of {@code FishtasticItemTags.FISH_GROUPS}. Meant for baits with
+ * no {@link FishGroupAffinity} of their own — a generalist bait like Gummy Worms has no single
+ * tag to scope flattening to, so it flattens across the whole curated taxonomy instead. Fish
+ * outside every group tag (not yet categorized) are left untouched by this term — see
+ * {@code FishtasticFishItem.getFishingLootWeight}.
  */
 public record BaitEffect(
         float luckBonus,
