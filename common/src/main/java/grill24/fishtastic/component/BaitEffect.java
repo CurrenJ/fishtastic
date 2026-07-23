@@ -20,6 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * {@code rarityFlattening} (defaults to 1.0, i.e. no effect) is the generalist analog of
+ * {@link FishGroupAffinity#rarityExponent()} — where that field flattens a fish's weight only
+ * when it belongs to the bait's targeted group, this applies {@code weight^rarityFlattening}
+ * (anchored the same way, against {@code FishProfile.DEFAULT_BASE_WEIGHT}) to every mod fish in
+ * the pool unconditionally. Meant for baits with no {@link FishGroupAffinity} at all — a
+ * generalist bait like Gummy Worms has no single tag to scope flattening to, so it flattens the
+ * whole pool directly instead.
+ */
 public record BaitEffect(
         float luckBonus,
         float treasureChance,
@@ -28,18 +37,42 @@ public record BaitEffect(
         float modFishMultiplier,
         float qualityBias,
         Optional<TagKey<Item>> exclusiveFishPool,
-        List<FishGroupAffinity> fishGroupAffinities
+        List<FishGroupAffinity> fishGroupAffinities,
+        float rarityFlattening
 ) {
+    /**
+     * Backward-compatible constructor for baits with no pool-wide rarity flattening (the
+     * common case — only generalist baits with no {@link FishGroupAffinity} of their own, like
+     * Gummy Worms, have a reason to use it; see {@code rarityFlattening}).
+     */
+    public BaitEffect(float luckBonus, float treasureChance, float trashChance, int targetCountBonus,
+                       float modFishMultiplier, float qualityBias, Optional<TagKey<Item>> exclusiveFishPool,
+                       List<FishGroupAffinity> fishGroupAffinities) {
+        this(luckBonus, treasureChance, trashChance, targetCountBonus, modFishMultiplier, qualityBias,
+                exclusiveFishPool, fishGroupAffinities, 1.0f);
+    }
     /**
      * {@code multiplier} applies to fish carrying {@code group}; {@code nonMemberMultiplier}
      * (defaults to 1.0, i.e. no effect) applies to everything else — lets a bait boost a
      * targeted subset and suppress the rest without hard-excluding it from the pool.
+     * <p>
+     * {@code rarityExponent} (defaults to 1.0, i.e. no effect) is applied to a member fish's raw
+     * loot weight as {@code weight^rarityExponent} before {@code multiplier}, only for fish in
+     * {@code group} — values below 1.0 compress the spread between common and rare members of
+     * that group (temperature-style flattening), so {@code multiplier} keeps controlling the
+     * group's overall share of the pool while {@code rarityExponent} controls how evenly that
+     * share is spread across the group's members.
      */
-    public record FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier) {
+    public record FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier, float rarityExponent) {
+        public FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier) {
+            this(group, multiplier, nonMemberMultiplier, 1.0f);
+        }
+
         public static final Codec<FishGroupAffinity> CODEC = RecordCodecBuilder.create(i -> i.group(
                 TagKey.codec(Registries.ITEM).fieldOf("group").forGetter(FishGroupAffinity::group),
                 Codec.FLOAT.fieldOf("multiplier").forGetter(FishGroupAffinity::multiplier),
-                Codec.FLOAT.optionalFieldOf("non_member_multiplier", 1.0f).forGetter(FishGroupAffinity::nonMemberMultiplier)
+                Codec.FLOAT.optionalFieldOf("non_member_multiplier", 1.0f).forGetter(FishGroupAffinity::nonMemberMultiplier),
+                Codec.FLOAT.optionalFieldOf("rarity_exponent", 1.0f).forGetter(FishGroupAffinity::rarityExponent)
         ).apply(i, FishGroupAffinity::new));
 
         public static final StreamCodec<ByteBuf, FishGroupAffinity> STREAM_CODEC =
@@ -61,9 +94,13 @@ public record BaitEffect(
     // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
     // Deliberately weaker on raw mod-fish weight than the specialist baits (Small Fish/Calm/
     // Frenzy/Trophy Bait), so it stays the generalist "biggest catch" tool rather than also
-    // being the best way to farm any one subset.
+    // being the best way to farm any one subset. rarityFlattening=0.7 is a mild, pool-wide
+    // version of the specialist baits' per-group flattening — no single tag to target here,
+    // so it takes the edge off the highest base_weight fish (bluegill/neon_tetra/blazed_grub)
+    // dominating the whole mod-fish pool without going as aggressive as the 0.35-0.4 used on
+    // the tighter, tag-scoped specialist pools.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of());
+            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of(), 0.7f);
 
     // Blazed Grub: treasure hunter + exotic fish only pool — already a focused specialist,
     // so it shouldn't also dodge trash on top of finding treasure and exotic fish.
@@ -79,7 +116,8 @@ public record BaitEffect(
             Codec.FLOAT.optionalFieldOf("mod_fish_multiplier", 1.0f).forGetter(BaitEffect::modFishMultiplier),
             Codec.FLOAT.optionalFieldOf("quality_bias", 0.0f).forGetter(BaitEffect::qualityBias),
             TagKey.codec(Registries.ITEM).optionalFieldOf("exclusive_fish_pool").forGetter(BaitEffect::exclusiveFishPool),
-            FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(BaitEffect::fishGroupAffinities)
+            FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(BaitEffect::fishGroupAffinities),
+            Codec.FLOAT.optionalFieldOf("rarity_flattening", 1.0f).forGetter(BaitEffect::rarityFlattening)
     ).apply(i, BaitEffect::new));
 
     public static final StreamCodec<ByteBuf, BaitEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
@@ -116,7 +154,8 @@ public record BaitEffect(
                 modFishMultiplier * scale,
                 qualityBias * scale,
                 exclusiveFishPool,
-                fishGroupAffinities
+                fishGroupAffinities,
+                rarityFlattening
         );
     }
 

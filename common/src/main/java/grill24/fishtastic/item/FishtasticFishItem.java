@@ -167,12 +167,30 @@ public class FishtasticFishItem extends Item {
 
             float baitMult = baitEffect != null ? baitEffect.modFishMultiplier() : 1.0f;
             float groupMult = 1.0f;
+            float rarityWeight = baseWeight;
             if (baitEffect != null) {
+                // Pool-wide counterpart to the per-group flattening below — for generalist baits
+                // with no FishGroupAffinity to scope to (e.g. Gummy Worms), applied unconditionally.
+                float poolT = baitEffect.rarityFlattening();
+                if (poolT != 1.0f) {
+                    rarityWeight = (float) (Math.pow(rarityWeight, poolT) * Math.pow(FishProfile.DEFAULT_BASE_WEIGHT, 1.0 - poolT));
+                }
                 for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {
-                    groupMult *= item.is(affinity.group()) ? affinity.multiplier() : affinity.nonMemberMultiplier();
+                    if (item.is(affinity.group())) {
+                        // Temperature-style flattening anchored at DEFAULT_BASE_WEIGHT: at
+                        // rarityExponent == 1 this is a no-op (weight^1 * ref^0 == weight); as it
+                        // drops toward 0, weights above the anchor get pulled down and weights
+                        // below it get pulled up, compressing the group's internal rarity spread
+                        // without the group's overall magnitude collapsing toward zero.
+                        float t = affinity.rarityExponent();
+                        rarityWeight = (float) (Math.pow(rarityWeight, t) * Math.pow(FishProfile.DEFAULT_BASE_WEIGHT, 1.0 - t));
+                        groupMult *= affinity.multiplier();
+                    } else {
+                        groupMult *= affinity.nonMemberMultiplier();
+                    }
                 }
             }
-            return Math.max(1, (int) (baseWeight * environmentMult * baitMult * groupMult * nightMult * charmGroupMult));
+            return Math.max(1, (int) (rarityWeight * environmentMult * baitMult * groupMult * nightMult * charmGroupMult));
         }
 
         // Vanilla fish weights — vanilla is excluded from the pool entirely whenever any bait

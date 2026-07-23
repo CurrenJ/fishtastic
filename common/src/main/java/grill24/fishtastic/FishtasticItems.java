@@ -224,26 +224,33 @@ public class FishtasticItems {
         // to reuse existing recipes/models/shop entries; only their identity/effect changed —
         // these tags used to echo Zone (redundant once zone gating went in), now they're genuine
         // zone-orthogonal traits (size, temperament-difficulty cluster).
+        //
+        // rarityExponent flattens each group's *internal* base_weight spread (independent of
+        // multiplier, which still controls the group's overall share vs the rest of the pool) —
+        // without it, a handful of high base_weight members (e.g. bluegill/neon_tetra/blazed_grub
+        // at 75-100 vs most tag-mates at 2-7) would eat almost all of the boosted weight. Chosen
+        // per tag from its actual base_weight spread: small_fish/frenzy_fish span 2-100 (strong
+        // flattening), calm_fish spans 2-75 (strong), big_fish is already tight at 2-15 (mild).
         SMALL_FISH_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, 0.05f, 0.1f, 1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 4.0f, 0.3f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 4.0f, 0.3f, 0.35f))))));
         CALM_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, 0.10f, 0.1f, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 4.0f, 0.3f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 4.0f, 0.3f, 0.4f))))));
         FRENZY_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, 0.10f, 0.1f, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 4.0f, 0.3f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 4.0f, 0.3f, 0.35f))))));
         TROPHY_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, 0.15f, 0.1f, -1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 4.0f, 0.3f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 4.0f, 0.3f, 0.6f))))));
 
         // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance
         HOOK = RegistrationApiSided.getInstance().registerItem("hook",

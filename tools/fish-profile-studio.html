@@ -471,15 +471,20 @@ const MULT_CAP_EXEMPT = new Set(["molten_moorish_idol"]); // flagship exception
 // FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java. There is no
 // vanillaMult field anymore; that axis was removed as dead tuning surface once the rule became
 // a binary "is any bait equipped" check.
+// affinity.exp mirrors BaitEffect.FishGroupAffinity.rarityExponent — temperature-style flattening
+// of a group's internal base_weight spread, anchored at DEFAULT_BASE_WEIGHT (see fishWeight());
+// defaults to 1.0 (no-op) when omitted, same as the Java codec default. `flatten` (bait-level,
+// not per-affinity) mirrors BaitEffect.rarityFlattening — the same formula applied pool-wide,
+// unconditionally, for generalist baits with no affinities of their own to scope it to.
 const BAIT_PRESETS = {
   none:        { label: "None (bare hook)", luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 0.15, qualityBias: 0.0, exclusive: null, affinities: [] },
-  worms:       { label: "Worms",            luck: 0.5, treasure: 0.10,  trash: 0.05, targets: 1, modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
-  gummy_worms: { label: "Gummy Worms",      luck: 1.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [] },
-  blazed_grub: { label: "Blazed Grub",      luck: 2.0, treasure: 0.50,  trash: 0.0,  targets: 0, modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
-  freshwater:  { label: "Small Fish Bait",  luck: 0.3, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 4.0, nonMult: 0.3 }] },
-  ocean:       { label: "Calm Bait",        luck: 0.3, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 4.0, nonMult: 0.3 }] },
-  predator:    { label: "Frenzy Bait",      luck: 1.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 4.0, nonMult: 0.3 }] },
-  deep_sea:    { label: "Trophy Bait",      luck: 1.5, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 4.0, nonMult: 0.3 }] },
+  worms:       { label: "Worms",            luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 1, modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
+  gummy_worms: { label: "Gummy Worms",      luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [], flatten: 0.7 },
+  blazed_grub: { label: "Blazed Grub",      luck: 0.0, treasure: 0.50,  trash: 0.0,  targets: 0, modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
+  freshwater:  { label: "Small Fish Bait",  luck: 0.0, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 4.0, nonMult: 0.3, exp: 0.35 }] },
+  ocean:       { label: "Calm Bait",        luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 4.0, nonMult: 0.3, exp: 0.4 }] },
+  predator:    { label: "Frenzy Bait",      luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 4.0, nonMult: 0.3, exp: 0.35 }] },
+  deep_sea:    { label: "Trophy Bait",      luck: 0.0, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 4.0, nonMult: 0.3, exp: 0.6 }] },
   custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
 };
 // fixed categorical hue per bait (Base Weights tab lane preview) — blue/green are reserved
@@ -877,13 +882,31 @@ function resolveBait(key) {
   return b;
 }
 function effectiveBait() { return resolveBait(S.gear.bait); }
-/* vanilla/mod split + tag-group affinity mult a bait applies to one fish — no env, no charm.
-   Vanilla fish are hard-excluded (0) by any bait other than "none" (bare hook) — see fishWeight. */
-function baitTagMultiplier(id, bait) {
-  if (VANILLA_IDS.has(id)) return bait.key === "none" ? 1.0 : 0;
-  let m = bait.modMult;
-  for (const a of bait.affinities || []) m *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
-  return m;
+/* vanilla/mod split + tag-group affinity a bait applies to one fish's raw base_weight — no env,
+   no charm. Vanilla fish are hard-excluded (0) by any bait other than "none" (bare hook) — see
+   fishWeight. Returns the effective weight directly (not a pure scalar multiplier) because
+   rarityExponent < 1 makes the bait's effect depend on `base` itself — a low base_weight fish
+   and a high base_weight fish get different effective ratios from the same affinity. Callers
+   wanting a "×N" display value should derive it as effVal / base. */
+function baitEffectiveWeight(id, base, bait) {
+  if (VANILLA_IDS.has(id)) return bait.key === "none" ? base : 0;
+  let rarityWeight = base, groupMult = 1.0;
+  // BaitEffect.rarityFlattening: same formula, pool-wide and unconditional (generalist baits
+  // like Gummy Worms have no affinity group to scope flattening to).
+  const poolT = bait.flatten ?? 1.0;
+  if (poolT !== 1.0) rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  for (const a of bait.affinities || []) {
+    if (inTag(id, a.group)) {
+      // BaitEffect.FishGroupAffinity.rarityExponent: temperature-style flattening anchored at
+      // DEFAULT_BASE_WEIGHT, mirroring FishtasticFishItem.getFishingLootWeight exactly.
+      const t = a.exp ?? 1.0;
+      rarityWeight = Math.pow(rarityWeight, t) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - t);
+      groupMult *= a.mult;
+    } else {
+      groupMult *= (a.nonMult ?? 1.0);
+    }
+  }
+  return rarityWeight * bait.modMult * groupMult;
 }
 function effectiveEnv() {
   const charm = CHARM_PRESETS[S.gear.charm];
@@ -893,32 +916,54 @@ function effectiveEnv() {
 }
 /* FishtasticFishItem.getFishingLootWeight, gated by the FishingMinigameManager pool filter
    (FishtasticFishItem.isZoneEligible) — a fish outside its zone(s) is excluded outright, not
-   just down-weighted, so we return 0 rather than folding it into the multiplier chain. */
-function fishWeight(id, env, bait, charm, diamonds) {
+   just down-weighted. Returns every intermediate term (not just the final weight) so the editor
+   drawer's live-calc breakdown (liveCalcEl) can print a formula that actually multiplies out to
+   the same number `fishWeight()` returns, instead of hand-duplicating a partial copy of this
+   math that silently drifts whenever the real formula grows a new term (as happened here). */
+function fishWeightBreakdown(id, env, bait, charm, diamonds) {
   const zone = resolveZone(env);
 
   if (VANILLA_IDS.has(id)) {
     // Any bait at all (bait.key !== "none") excludes vanilla fish from the pool outright —
     // mirrors FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java.
-    if (bait.key !== "none") return 0;
+    if (bait.key !== "none") return { excluded: true, reason: "any bait other than bare hook excludes vanilla fish", weight: 0 };
     const vf = VANILLA_FISH.find(f => f.id === id);
-    if (!isZoneEligible(vf.zones, zone)) return 0;
+    if (!isZoneEligible(vf.zones, zone)) return { excluded: true, reason: "out of zone", weight: 0 };
     const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
     let charmGroupMult = 1.0;
     for (const a of charm.affinities) charmGroupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
-    return Math.max(1, Math.trunc(vf.weight * nightMult * charmGroupMult));
+    const weight = Math.max(1, Math.trunc(vf.weight * nightMult * charmGroupMult));
+    return { excluded: false, isVanilla: true, base: vf.weight, rarityWeight: vf.weight, eMult: 1.0, baitModMult: 1.0, groupMult: 1.0, nightMult, charmGroupMult, weight };
   }
   const p = S.profiles.get(id.split(":")[1]);
-  if (p && !isZoneEligible(p.json.zones, zone)) return 0;
+  if (p && !isZoneEligible(p.json.zones, zone)) return { excluded: true, reason: "out of zone", weight: 0 };
   const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
   let charmGroupMult = 1.0;
   for (const a of charm.affinities) if (inTag(id, a.group)) charmGroupMult *= a.mult;
   let base = p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT;
   if (id === "fishtastic:acute_iaspis") base += diamonds; // AcuteIapsisItem: +1/diamond in inventory
   const eMult = p ? envMultiplier(p.json, env) : 1.0;
-  let groupMult = 1.0;
-  for (const a of bait.affinities) groupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
-  return Math.max(1, Math.trunc(base * eMult * bait.modMult * groupMult * nightMult * charmGroupMult));
+  let rarityWeight = base, groupMult = 1.0;
+  // BaitEffect.rarityFlattening: pool-wide counterpart to the per-group flattening below, for
+  // generalist baits (e.g. Gummy Worms) with no affinity group to scope it to.
+  const poolT = bait.flatten ?? 1.0;
+  if (poolT !== 1.0) rarityWeight = Math.pow(rarityWeight, poolT) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - poolT);
+  for (const a of bait.affinities) {
+    if (inTag(id, a.group)) {
+      // BaitEffect.FishGroupAffinity.rarityExponent: temperature-style flattening anchored at
+      // DEFAULT_BASE_WEIGHT, mirroring FishtasticFishItem.getFishingLootWeight exactly.
+      const t = a.exp ?? 1.0;
+      rarityWeight = Math.pow(rarityWeight, t) * Math.pow(DEFAULT_BASE_WEIGHT, 1 - t);
+      groupMult *= a.mult;
+    } else {
+      groupMult *= (a.nonMult ?? 1.0);
+    }
+  }
+  const weight = Math.max(1, Math.trunc(rarityWeight * eMult * bait.modMult * groupMult * nightMult * charmGroupMult));
+  return { excluded: false, isVanilla: false, base, rarityWeight, eMult, baitModMult: bait.modMult, groupMult, nightMult, charmGroupMult, weight };
+}
+function fishWeight(id, env, bait, charm, diamonds) {
+  return fishWeightBreakdown(id, env, bait, charm, diamonds).weight;
 }
 /* full weighted pool under current context; exclusive pool filters mod+vanilla alike */
 function poolWeights() {
@@ -1484,8 +1529,9 @@ function renderBaseStats(v) {
     const lanes = laneInfo.map(b => {
       if (b.raw) return { ...b, color: r.isV ? "#90ee90" : "var(--s1)", excluded: false, mult: 1, effVal: r.val };
       const excluded = !!(b.preset.exclusive && !inTag(r.id, b.preset.exclusive));
-      const mult = excluded ? 0 : baitTagMultiplier(r.id, b.preset);
-      return { ...b, excluded, mult, effVal: r.val * mult };
+      const effVal = excluded ? 0 : baitEffectiveWeight(r.id, r.val, b.preset);
+      const mult = r.val > 0 ? effVal / r.val : 0; // display-only ratio; not a pure scalar once rarityExponent < 1
+      return { ...b, excluded, mult, effVal };
     });
     return { ...r, lanes };
   }).sort((a, b) => b.val - a.val);
@@ -1608,18 +1654,30 @@ function refreshEditorCalc() {
   if (S.editing) { const lc = $("#livecalc"); if (lc) lc.replaceWith(liveCalcEl(S.editing)); const jp = $("#jsonPrev"); if (jp) jp.textContent = serializeProfile(S.profiles.get(S.editing).json); }
 }
 function liveCalcEl(name) {
-  const p = S.profiles.get(name);
   const env = effectiveEnv();
   const bait = effectiveBait(), charm = CHARM_PRESETS[S.gear.charm];
   const id = "fishtastic:" + name;
-  const eMult = envMultiplier(p.json, env);
-  const w = fishWeight(id, env, bait, charm, S.gear.diamonds);
+  const bd = fishWeightBreakdown(id, env, bait, charm, S.gear.diamonds);
   const pw = poolWeights();
   const row = pw.rows.find(r => r.id === id);
+
+  // Every term actually feeding fishWeightBreakdown's product, in the same order it multiplies
+  // them — so this line always multiplies out to the bolded weight below, unlike the old
+  // hand-written "base × env × bait" string that silently fell out of sync once group affinities
+  // and rarity flattening/exponent were added to the real formula.
+  const formula = bd.excluded ? [`excluded (${bd.reason})`] : [
+    `base ${fmtF(bd.base)}`,
+    bd.rarityWeight !== bd.base ? `flattened → ${fmtF(bd.rarityWeight)}` : null,
+    `× env ×${fmtF(Math.round(bd.eMult * 1000) / 1000)}`,
+    `× bait ×${fmtF(bd.baitModMult)}`,
+    bd.groupMult !== 1.0 ? `× group ×${fmtF(bd.groupMult)}` : null,
+    bd.nightMult !== 1.0 ? `× night ×${fmtF(bd.nightMult)}` : null,
+    bd.charmGroupMult !== 1.0 ? `× charm ×${fmtF(bd.charmGroupMult)}` : null,
+  ].filter(Boolean);
+
   return el("div", { class: "livecalc", id: "livecalc" },
     el("div", null, "under current context:"),
-    el("div", null, `base ${p.json.base_weight ?? DEFAULT_BASE_WEIGHT} × env `, el("b", null, "×" + fmtF(Math.round(eMult * 1000) / 1000)),
-      ` × bait ×${fmtF(bait.modMult)} → weight `, el("b", null, w)),
+    el("div", null, formula.join(" "), bd.excluded ? null : el("span", null, " → weight "), bd.excluded ? null : el("b", null, bd.weight)),
     el("div", null, "pool share: ", el("b", null, row ? pct(row.share) : "not in pool (excluded by bait)"),
       el("span", { class: "mut" }, ` of total ${pw.total}`)),
   );
