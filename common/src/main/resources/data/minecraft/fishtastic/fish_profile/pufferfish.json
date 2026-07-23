@@ -1,4 +1,5 @@
 {
   "base_weight": 8,
+  "zones": ["ocean"],
   "temperament": "fishtastic:skittish"
 }

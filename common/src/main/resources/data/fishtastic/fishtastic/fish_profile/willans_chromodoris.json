@@ -1,9 +1,7 @@
 {
   "base_weight": 6,
   "size": { "mean": 25.0, "std_dev": 6.0 },
-  "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
-  ],
+  "zones": ["ocean"],
   "temperament": "fishtastic:docile",
   "animation": {
     "mode": "upright_sit",

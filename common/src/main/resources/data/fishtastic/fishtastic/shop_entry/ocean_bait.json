@@ -1,6 +1,6 @@
 {
-  "display_name": "Ocean Bait",
-  "description": "Attracts ocean fish to your hook.",
+  "display_name": "Calm Bait",
+  "description": "Favors docile, easygoing fish for a relaxed session.",
   "cost": 8,
   "reward": [{ "id": "fishtastic:ocean_bait", "count": 4 }],
   "daily_max_purchases": 3

@@ -233,7 +233,7 @@ public final class FishingMinigameManagerGameTests {
     public static void trashChanceOneAlwaysAwardsTrashItems(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
-            new BaitEffect(0f, 1.0f, 1.0f, 0, 1.0f, 1.0f, 0f, Optional.empty(), List.of())));
+            new BaitEffect(0f, 1.0f, 1.0f, 0, 1.0f, 0f, Optional.empty(), List.of())));
         castLine(helper, player);
 
         FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
@@ -266,7 +266,7 @@ public final class FishingMinigameManagerGameTests {
     public static void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
-            new BaitEffect(0f, 1.0f, 0.0f, 0, 1.0f, 1.0f, 0f, Optional.empty(), List.of())));
+            new BaitEffect(0f, 1.0f, 0.0f, 0, 1.0f, 0f, Optional.empty(), List.of())));
         castLine(helper, player);
 
         FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());

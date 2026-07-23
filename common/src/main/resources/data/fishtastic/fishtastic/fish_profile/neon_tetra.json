@@ -1,10 +1,10 @@
 {
   "base_weight": 20,
   "size": { "mean": 30.0, "std_dev": 5.0 },
+  "zones": ["river", "cave"],
   "biome_weights": [
-    { "biome": "minecraft:is_river", "multiplier": 2.0 },
     { "biome": "minecraft:is_jungle", "multiplier": 2.0 },
-    { "biome": "minecraft:is_ocean", "multiplier": 0.4 }
+    { "biome": "fishtastic:is_lush_caves", "multiplier": 1.3 }
   ],
   "time_weights": [
     { "time": "day", "multiplier": 1.5 },

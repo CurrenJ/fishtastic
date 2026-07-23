@@ -21,8 +21,11 @@ public class FishtasticCreativeTabs {
 
                     // Fish items
                     output.accept(FishtasticItems.ACUTE_IASPIS.value());
+                    output.accept(FishtasticItems.ANGLER_FISH.value());
+                    output.accept(FishtasticItems.ARCTIC_CHAR.value());
                     output.accept(FishtasticItems.BETTA.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
+                    output.accept(FishtasticItems.BLIND_CAVEFISH.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
                     output.accept(FishtasticItems.FLAPJACK_OCTOPUS.value());
                     output.accept(FishtasticItems.FRIED_SHRIMP.value());
@@ -52,10 +55,10 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
                     output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
                     output.accept(FishtasticItems.WORMS.value());
-                    output.accept(FishtasticItems.FRESHWATER_BAIT.value());
-                    output.accept(FishtasticItems.OCEAN_BAIT.value());
-                    output.accept(FishtasticItems.PREDATOR_BAIT.value());
-                    output.accept(FishtasticItems.DEEP_SEA_BAIT.value());
+                    output.accept(FishtasticItems.SMALL_FISH_BAIT.value());
+                    output.accept(FishtasticItems.CALM_BAIT.value());
+                    output.accept(FishtasticItems.FRENZY_BAIT.value());
+                    output.accept(FishtasticItems.TROPHY_BAIT.value());
                     output.accept(FishtasticItems.HOOK.value());
                     output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
                     output.accept(FishtasticItems.AMETHYST_CHARM.value());

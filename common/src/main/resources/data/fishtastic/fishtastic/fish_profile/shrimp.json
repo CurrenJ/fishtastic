@@ -1,9 +1,7 @@
 {
   "base_weight": 16,
   "size": { "mean": 25.0, "std_dev": 5.0 },
-  "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 1.5 }
-  ],
+  "zones": ["ocean"],
   "temperament": "fishtastic:docile",
   "swarm": {
     "count": 6,

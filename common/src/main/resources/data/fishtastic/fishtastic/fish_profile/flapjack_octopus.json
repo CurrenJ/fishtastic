@@ -1,10 +1,7 @@
 {
   "base_weight": 3,
   "size": { "mean": 28.0, "std_dev": 6.0 },
-  "biome_weights": [
-    { "biome": "minecraft:is_deep_ocean", "multiplier": 2.0 },
-    { "biome": "minecraft:is_ocean", "multiplier": 2.0 }
-  ],
+  "zones": ["deep_ocean"],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
     { "time": "dusk", "multiplier": 1.5 }

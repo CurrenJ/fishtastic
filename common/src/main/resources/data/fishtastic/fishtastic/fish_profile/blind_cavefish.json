@@ -1,0 +1,13 @@
+{
+  "base_weight": 8,
+  "size": { "mean": 28.0, "std_dev": 6.0 },
+  "zones": ["cave"],
+  "biome_weights": [
+    { "biome": "fishtastic:is_lush_caves", "multiplier": 1.5 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.5 },
+    { "time": "day", "multiplier": 0.6 }
+  ],
+  "temperament": "fishtastic:skittish"
+}

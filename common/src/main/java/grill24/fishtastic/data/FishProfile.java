@@ -3,19 +3,24 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticBiomeTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.MoonPhase;
 import net.minecraft.world.level.biome.Biome;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
@@ -27,7 +32,7 @@ public record FishProfile(
         List<TimeWeight> timeWeights,
         List<WeatherWeight> weatherWeights,
         List<MoonWeight> moonWeights,
-        List<ElevationWeight> elevationWeights,
+        List<Zone> zones,
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
         SwarmConfig swarm
@@ -43,7 +48,7 @@ public record FishProfile(
             TimeWeight.CODEC.listOf().optionalFieldOf("time_weights", List.of()).forGetter(FishProfile::timeWeights),
             WeatherWeight.CODEC.listOf().optionalFieldOf("weather_weights", List.of()).forGetter(FishProfile::weatherWeights),
             MoonWeight.CODEC.listOf().optionalFieldOf("moon_weights", List.of()).forGetter(FishProfile::moonWeights),
-            ElevationWeight.CODEC.listOf().optionalFieldOf("elevation_weights", List.of()).forGetter(FishProfile::elevationWeights),
+            Zone.CODEC.listOf().fieldOf("zones").forGetter(FishProfile::zones),
             ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament),
             FishAnimationConfig.CODEC.optionalFieldOf("animation").forGetter(FishProfile::animation),
             SwarmConfig.CODEC.optionalFieldOf("swarm", SwarmConfig.DEFAULT).forGetter(FishProfile::swarm)
@@ -137,24 +142,63 @@ public record FishProfile(
         ).apply(i, WeatherWeight::new));
     }
 
-    public enum Elevation implements StringRepresentable {
-        DEEP, SURFACE, HIGH;
+    /**
+     * Hard location gate: a fish is only a loot candidate when the current cast location
+     * resolves to at least one of its declared zones. Unlike the other axes below, this is a
+     * boolean membership check, not a multiplier — {@link #resolve} returns every Zone that
+     * simultaneously applies to a location (water-body type and elevation band are independent
+     * axes, e.g. a mountain river is both RIVER and HIGH_ALTITUDE at once), and a fish's
+     * {@code zones} list is checked for any overlap upstream of any weight computation
+     * (see FishtasticFishItem#isZoneEligible).
+     */
+    public enum Zone implements StringRepresentable {
+        OCEAN, DEEP_OCEAN, RIVER, NETHER, CAVE, HIGH_ALTITUDE;
 
         // Sea level defaults to 63, so this is roughly y<33 (underground pools/ravine bottoms)
-        // and y>93 (mountain lakes/rivers) — ordinary ocean/river fishing stays SURFACE.
+        // and y>93 (mountain lakes/rivers) — ordinary ocean/river fishing stays at the biome-tag zones.
         private static final int BAND_OFFSET = 30;
 
-        public static final Codec<Elevation> CODEC = StringRepresentable.fromEnum(Elevation::values);
+        public static final Codec<Zone> CODEC = StringRepresentable.fromEnum(Zone::values);
 
         @Override
         public String getSerializedName() {
             return name().toLowerCase(Locale.ROOT);
         }
 
-        public static Elevation fromY(int y, int seaLevel) {
-            if (y < seaLevel - BAND_OFFSET) return DEEP;
-            if (y > seaLevel + BAND_OFFSET) return HIGH;
-            return SURFACE;
+        /**
+         * Elevation (CAVE/HIGH_ALTITUDE) and cave-biome detection layer on top of the water-body
+         * zone rather than replacing it, so a fish declaring only RIVER or OCEAN doesn't lose
+         * eligibility just because the cast location also happens to be deep underground or high
+         * in the mountains. Deep-ocean trenches are exempted from the Y-band check since they
+         * commonly sit below {@code seaLevel - BAND_OFFSET} on their own — that's still ocean
+         * fishing, not a cave. Explicit cave biomes (lush caves, dripstone caves, deep dark) always
+         * grant CAVE regardless of Y, since those biomes can generate above the Y-band cutoff.
+         * Nether is checked unconditionally first since {@code level.getSeaLevel()} isn't
+         * meaningful in that dimension, and it never combines with any other zone.
+         * <p>
+         * {@code minecraft:is_deep_ocean} is a subset of {@code minecraft:is_ocean} in vanilla —
+         * every deep ocean biome is also a regular ocean biome — so both are added independently
+         * rather than as an if/else-if; otherwise plain OCEAN-zoned fish would be silently barred
+         * from every deep ocean biome despite it being ocean.
+         */
+        public static Set<Zone> resolve(Holder<Biome> biome, int y, int seaLevel) {
+            if (biome.is(BiomeTags.IS_NETHER)) return EnumSet.of(NETHER);
+
+            EnumSet<Zone> zones = EnumSet.noneOf(Zone.class);
+            boolean isDeepOcean = biome.is(BiomeTags.IS_DEEP_OCEAN);
+            boolean isOcean = biome.is(BiomeTags.IS_OCEAN);
+            if (isOcean) zones.add(OCEAN);
+            if (isDeepOcean) zones.add(DEEP_OCEAN);
+            if (biome.is(BiomeTags.IS_RIVER)) zones.add(RIVER);
+
+            if (!isDeepOcean && !isOcean) {
+                if (y < seaLevel - BAND_OFFSET) zones.add(CAVE);
+                if (y > seaLevel + BAND_OFFSET) zones.add(HIGH_ALTITUDE);
+            }
+            if (biome.is(FishtasticBiomeTags.IS_CAVE_BIOME)) zones.add(CAVE);
+
+            if (zones.isEmpty()) zones.add(RIVER);
+            return zones;
         }
     }
 
@@ -166,14 +210,6 @@ public record FishProfile(
         ).apply(i, MoonWeight::new));
     }
 
-    public record ElevationWeight(Elevation band, float multiplier, ConditionTier tier) {
-        public static final Codec<ElevationWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Elevation.CODEC.fieldOf("band").forGetter(ElevationWeight::band),
-                Codec.FLOAT.fieldOf("multiplier").forGetter(ElevationWeight::multiplier),
-                ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(ElevationWeight::tier)
-        ).apply(i, ElevationWeight::new));
-    }
-
     /**
      * Computes the weight multiplier for this fish given current environmental conditions.
      * Each axis contributes at most one matching entry per tier: PRIMARY entries multiply
@@ -181,7 +217,7 @@ public record FishProfile(
      * stacking several flavor conditions nudges the weight instead of compounding it.
      */
     public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather,
-                                               MoonPhase moonPhase, Elevation elevation) {
+                                               MoonPhase moonPhase) {
         boolean moonVisible = timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR;
 
         float primaryProduct = 1.0f;
@@ -191,7 +227,6 @@ public record FishProfile(
         if (moonVisible) {
             primaryProduct *= firstMatch(moonWeights, ConditionTier.PRIMARY, MoonWeight::tier, mw -> mw.phase() == moonPhase, MoonWeight::multiplier);
         }
-        primaryProduct *= firstMatch(elevationWeights, ConditionTier.PRIMARY, ElevationWeight::tier, ew -> ew.band() == elevation, ElevationWeight::multiplier);
 
         float secondaryBonus = 0.0f;
         secondaryBonus += firstMatch(biomeWeights, ConditionTier.SECONDARY, BiomeWeight::tier, bw -> biome.is(bw.biome()), BiomeWeight::multiplier) - 1.0f;
@@ -200,7 +235,6 @@ public record FishProfile(
         if (moonVisible) {
             secondaryBonus += firstMatch(moonWeights, ConditionTier.SECONDARY, MoonWeight::tier, mw -> mw.phase() == moonPhase, MoonWeight::multiplier) - 1.0f;
         }
-        secondaryBonus += firstMatch(elevationWeights, ConditionTier.SECONDARY, ElevationWeight::tier, ew -> ew.band() == elevation, ElevationWeight::multiplier) - 1.0f;
 
         return primaryProduct * (1.0f + secondaryBonus);
     }

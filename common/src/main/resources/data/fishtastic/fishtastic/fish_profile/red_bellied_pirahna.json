@@ -1,10 +1,9 @@
 {
   "base_weight": 9,
   "size": { "mean": 25.0, "std_dev": 6.0 },
+  "zones": ["river"],
   "biome_weights": [
-    { "biome": "minecraft:is_river", "multiplier": 2.0 },
-    { "biome": "minecraft:is_jungle", "multiplier": 1.8 },
-    { "biome": "minecraft:is_ocean", "multiplier": 0.1 }
+    { "biome": "minecraft:is_jungle", "multiplier": 1.8 }
   ],
   "time_weights": [
     { "time": "dusk", "multiplier": 1.8 },

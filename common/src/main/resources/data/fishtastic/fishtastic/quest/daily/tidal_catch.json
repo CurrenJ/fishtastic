@@ -1,7 +1,8 @@
 {
   "category": "daily",
   "objective": {
-    "target_species_tag": "fishtastic:ocean_fish",
+    "target_species_tag": "fishtastic:fish",
+    "biome_condition": "minecraft:is_ocean",
     "target_count": 5
   },
   "reward": { "quest_tokens": 5, "items": [] },

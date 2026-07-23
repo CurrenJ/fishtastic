@@ -1,17 +1,13 @@
 {
   "base_weight": 20,
   "size": { "mean": 30.0, "std_dev": 8.0 },
+  "zones": ["river", "high_altitude"],
   "biome_weights": [
-    { "biome": "minecraft:is_river", "multiplier": 2.0 },
-    { "biome": "fishtastic:is_cherry_grove", "multiplier": 1.5 },
-    { "biome": "minecraft:is_ocean", "multiplier": 0.3 }
+    { "biome": "fishtastic:is_cherry_grove", "multiplier": 1.5 }
   ],
   "time_weights": [
     { "time": "day", "multiplier": 2.0 },
     { "time": "night", "multiplier": 0.5 }
-  ],
-  "elevation_weights": [
-    { "band": "high", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:docile"
 }

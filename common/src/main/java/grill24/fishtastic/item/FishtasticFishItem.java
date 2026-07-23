@@ -24,9 +24,11 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.LootParams;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class FishtasticFishItem extends Item {
@@ -89,7 +91,6 @@ public class FishtasticFishItem extends Item {
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
             net.minecraft.world.level.MoonPhase moonPhase,
-            FishProfile.Elevation elevation,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
@@ -97,7 +98,7 @@ public class FishtasticFishItem extends Item {
         if (fishItems.isEmpty()) return ItemStack.EMPTY;
 
         List<Integer> weights = fishItems.stream()
-                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, baitEffect, charmEffect))
+                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, baitEffect, charmEffect))
                 .toList();
         int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
         if (totalWeight <= 0) return ItemStack.EMPTY;
@@ -142,7 +143,6 @@ public class FishtasticFishItem extends Item {
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
             net.minecraft.world.level.MoonPhase moonPhase,
-            FishProfile.Elevation elevation,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
     ) {
@@ -151,7 +151,7 @@ public class FishtasticFishItem extends Item {
         float charmGroupMult = 1.0f;
         if (charmEffect != null) {
             for (BaitEffect.FishGroupAffinity affinity : charmEffect.fishGroupAffinities()) {
-                if (item.is(affinity.group())) charmGroupMult *= affinity.multiplier();
+                charmGroupMult *= item.is(affinity.group()) ? affinity.multiplier() : affinity.nonMemberMultiplier();
             }
         }
 
@@ -159,38 +159,53 @@ public class FishtasticFishItem extends Item {
             int baseWeight = FishProfile.DEFAULT_BASE_WEIGHT + fishItem.getAdditionalWeight(lootParams);
             float environmentMult = 1.0f;
 
-            Optional<ResourceKey<Item>> itemKey = item.unwrapKey();
-            if (itemKey.isPresent()) {
-                ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                        FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
-                FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
-                if (profile != null) {
-                    baseWeight = profile.baseWeight() + fishItem.getAdditionalWeight(lootParams);
-                    environmentMult = profile.computeEnvironmentMultiplier(biome, timeOfDay, weather, moonPhase, elevation);
-                }
+            FishProfile profile = getProfile(item, fishProfileRegistry).orElse(null);
+            if (profile != null) {
+                baseWeight = profile.baseWeight() + fishItem.getAdditionalWeight(lootParams);
+                environmentMult = profile.computeEnvironmentMultiplier(biome, timeOfDay, weather, moonPhase);
             }
 
             float baitMult = baitEffect != null ? baitEffect.modFishMultiplier() : 1.0f;
             float groupMult = 1.0f;
             if (baitEffect != null) {
                 for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {
-                    if (item.is(affinity.group())) groupMult *= affinity.multiplier();
+                    groupMult *= item.is(affinity.group()) ? affinity.multiplier() : affinity.nonMemberMultiplier();
                 }
             }
             return Math.max(1, (int) (baseWeight * environmentMult * baitMult * groupMult * nightMult * charmGroupMult));
         }
 
-        // Vanilla fish weights with bait/charm multipliers applied
-        float vanillaMult = (baitEffect != null ? baitEffect.vanillaFishMultiplier() : 1.0f)
-                * (charmEffect != null ? charmEffect.vanillaFishMultiplier() : 1.0f);
+        // Vanilla fish weights — vanilla is excluded from the pool entirely whenever any bait
+        // is equipped (see FishingMinigameManager's pool filter), so no vanilla-suppression
+        // multiplier is needed here; this branch only ever runs for the bare-hook (NO_BAIT) case.
         if (item.value().equals(Items.COD) || item.value().equals(Items.SALMON)) {
-            return Math.max(1, (int) (200 * vanillaMult * nightMult * charmGroupMult));
+            return Math.max(1, (int) (200 * nightMult * charmGroupMult));
         } else if (item.value().equals(Items.TROPICAL_FISH)) {
-            return Math.max(1, (int) (50 * vanillaMult * nightMult * charmGroupMult));
+            return Math.max(1, (int) (50 * nightMult * charmGroupMult));
         } else if (item.value().equals(Items.PUFFERFISH)) {
-            return Math.max(1, (int) (25 * vanillaMult * nightMult * charmGroupMult));
+            return Math.max(1, (int) (25 * nightMult * charmGroupMult));
         }
         return 1;
+    }
+
+    /** Looks up the {@link FishProfile} registered under the same id as this item, if any. */
+    public static Optional<FishProfile> getProfile(Holder<Item> item, Registry<FishProfile> fishProfileRegistry) {
+        return item.unwrapKey()
+                .map(key -> ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .flatMap(fishProfileRegistry::getOptional);
+    }
+
+    /**
+     * Hard location gate. A fish with no registered profile is treated as zone-unrestricted
+     * (fail-open) — this only matters for third-party datapack fish that never had a profile
+     * at all; every one of fishtastic's own fish declares an explicit {@code zones} list.
+     * {@code currentZones} may contain several simultaneously-applicable zones (see
+     * {@link FishProfile.Zone#resolve}); the fish is eligible if any of its declared zones overlap.
+     */
+    public static boolean isZoneEligible(Holder<Item> item, Registry<FishProfile> fishProfileRegistry, Set<FishProfile.Zone> currentZones) {
+        return getProfile(item, fishProfileRegistry)
+                .map(profile -> !Collections.disjoint(profile.zones(), currentZones))
+                .orElse(true);
     }
 
     public static float getRandomSize(RandomSource randomSource, FishQuality.Quality quality, float baseMeanSize, float baseStdDevSize) {

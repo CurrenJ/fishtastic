@@ -1,6 +1,6 @@
 {
-  "display_name": "Deep Sea Bait",
-  "description": "Restricts your catches to deep sea fish — the rarest species in the depths.",
+  "display_name": "Trophy Bait",
+  "description": "Fewer bites, but heavily favors the biggest fish around.",
   "cost": 14,
   "reward": [{ "id": "fishtastic:deep_sea_bait", "count": 4 }],
   "daily_max_purchases": 3

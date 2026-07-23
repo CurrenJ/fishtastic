@@ -55,6 +55,11 @@ public class FishProfileCommand {
                 profile.size().mean(), profile.size().stdDev()))
                 .withStyle(ChatFormatting.WHITE), false);
 
+        source.sendSuccess(() -> Component.literal("  zones       : " + profile.zones().stream()
+                .map(FishProfile.Zone::getSerializedName)
+                .collect(java.util.stream.Collectors.joining(", ")))
+                .withStyle(ChatFormatting.WHITE), false);
+
         if (!profile.biomeWeights().isEmpty()) {
             source.sendSuccess(() -> Component.literal("  biome_weights:")
                     .withStyle(ChatFormatting.AQUA), false);

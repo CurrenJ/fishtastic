@@ -1,6 +1,6 @@
 {
-  "display_name": "Predator Bait",
-  "description": "Lures larger predatory fish to bite.",
+  "display_name": "Frenzy Bait",
+  "description": "Stirs up the most aggressive, hard-fighting fish around.",
   "cost": 10,
   "reward": [{ "id": "fishtastic:predator_bait", "count": 4 }],
   "daily_max_purchases": 3

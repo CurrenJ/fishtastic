@@ -56,17 +56,20 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
                 .add(FishtasticItems.ACUTE_IASPIS.value())
-                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value());
+                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
+                .add(FishtasticItems.BLIND_CAVEFISH.value())
+                .add(FishtasticItems.ARCTIC_CHAR.value())
+                .add(FishtasticItems.ANGLER_FISH.value());
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
                 .add(FishtasticItems.WORMS.value())
                 .add(FishtasticItems.GUMMY_WORMS.value())
                 .add(FishtasticItems.BLAZED_GRUB.value())
-                .add(FishtasticItems.FRESHWATER_BAIT.value())
-                .add(FishtasticItems.OCEAN_BAIT.value())
-                .add(FishtasticItems.PREDATOR_BAIT.value())
-                .add(FishtasticItems.DEEP_SEA_BAIT.value());
+                .add(FishtasticItems.SMALL_FISH_BAIT.value())
+                .add(FishtasticItems.CALM_BAIT.value())
+                .add(FishtasticItems.FRENZY_BAIT.value())
+                .add(FishtasticItems.TROPHY_BAIT.value());
 
         valueLookupBuilder(ItemTags.FISHING_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);

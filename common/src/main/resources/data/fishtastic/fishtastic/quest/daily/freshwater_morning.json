@@ -1,7 +1,8 @@
 {
   "category": "daily",
   "objective": {
-    "target_species_tag": "fishtastic:freshwater_fish",
+    "target_species_tag": "fishtastic:fish",
+    "biome_condition": "minecraft:is_river",
     "target_count": 4,
     "time_condition": "dawn"
   },

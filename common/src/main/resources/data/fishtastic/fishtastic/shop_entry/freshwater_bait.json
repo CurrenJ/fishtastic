@@ -1,6 +1,6 @@
 {
-  "display_name": "Freshwater Bait",
-  "description": "Attracts freshwater fish to your hook.",
+  "display_name": "Small Fish Bait",
+  "description": "Draws in smaller fish and more of them, wherever you cast.",
   "cost": 8,
   "reward": [{ "id": "fishtastic:freshwater_bait", "count": 4 }],
   "daily_max_purchases": 3

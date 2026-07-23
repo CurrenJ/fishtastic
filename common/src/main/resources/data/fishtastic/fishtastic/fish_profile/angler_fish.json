@@ -1,0 +1,13 @@
+{
+  "base_weight": 4,
+  "size": { "mean": 35.0, "std_dev": 10.0 },
+  "zones": ["deep_ocean"],
+  "time_weights": [
+    { "time": "night", "multiplier": 2.0 },
+    { "time": "dusk", "multiplier": 1.3 }
+  ],
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 1.3, "tier": "secondary" }
+  ],
+  "temperament": "fishtastic:ambusher"
+}

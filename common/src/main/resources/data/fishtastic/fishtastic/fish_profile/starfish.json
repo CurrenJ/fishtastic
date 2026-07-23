@@ -1,8 +1,8 @@
 {
   "base_weight": 10,
   "size": { "mean": 40.0, "std_dev": 10.0 },
+  "zones": ["ocean"],
   "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 2.0 },
     { "biome": "fishtastic:is_mushroom", "multiplier": 1.5 }
   ],
   "time_weights": [

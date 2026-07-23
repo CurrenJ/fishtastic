@@ -158,24 +158,24 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
 
-                // Ocean Bait: worms + kelp
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.OCEAN_BAIT.value())
+                // Calm Bait: worms + kelp (item id kept as ocean_bait — see FishtasticItems)
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.CALM_BAIT.value())
                         .requires(FishtasticItems.WORMS.value())
                         .requires(Items.KELP)
                         .requires(Items.SEAGRASS)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
 
-                // Freshwater Bait: worms + mushrooms
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FRESHWATER_BAIT.value())
+                // Small Fish Bait: worms + mushrooms (item id kept as freshwater_bait)
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.SMALL_FISH_BAIT.value())
                         .requires(FishtasticItems.WORMS.value())
                         .requires(Items.BROWN_MUSHROOM)
                         .requires(Items.RED_MUSHROOM)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
 
-                // Predator Bait: worms + raw meat
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.PREDATOR_BAIT.value())
+                // Frenzy Bait: worms + raw meat (item id kept as predator_bait)
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FRENZY_BAIT.value())
                         .requires(FishtasticItems.WORMS.value())
                         .requires(ItemTags.MEAT)
                         .requires(ItemTags.MEAT)

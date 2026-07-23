@@ -30,6 +30,7 @@ import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -71,6 +72,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // per-objective status pip, but evaluated per spawn-weight row rather than per quest.
     private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
     private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final Identifier STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
     private static final float STATUS_PIP_SIZE = 5f;
 
     private boolean closingScreen = false;
@@ -103,6 +105,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // Re-evaluated every tick so a spawn condition's pip reacts live to the player walking
     // between biomes, day/night passing, or weather changing — see containerTick().
     private final List<Runnable> spawnConditionPipUpdaters = new ArrayList<>();
+    // Separate list for the always-visible Types section's zone pips — kept apart from
+    // spawnConditionPipUpdaters because that list is cleared inside buildSpawnConditionsContent,
+    // which (being gated) doesn't always run on a given refresh; Types always runs, so it owns
+    // its own clear/populate lifecycle.
+    private final List<Runnable> typeZonePipUpdaters = new ArrayList<>();
 
     public FishEncyclopediaScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Fish Encyclopedia"));
@@ -177,6 +184,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         for (Runnable updater : spawnConditionPipUpdaters) {
             updater.run();
         }
+        for (Runnable updater : typeZonePipUpdaters) {
+            updater.run();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -202,6 +212,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         spawnContainer = null;
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
+        typeZonePipUpdaters.clear();
 
         Minecraft mc = Minecraft.getInstance();
 
@@ -382,6 +393,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         spawnContainer = null;
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
+        typeZonePipUpdaters.clear();
 
         // Piggybacks the keyframe-animation system purely for its completion callback — the
         // actual motion above is driven by the exponential setTargetPosition/setTargetScale
@@ -469,7 +481,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         statsContainer.addChild(buildGatedSection("Stats", catchCount, thresholds.statsCatches(),
                 () -> buildStatsContent(selectedProfile)));
         typesContainer.clearChildren();
-        typesContainer.addChild(buildUngatedSection("Types", () -> buildTypesContent(fishId)));
+        typesContainer.addChild(buildUngatedSection("Types", () -> buildTypesContent(fishId, selectedProfile)));
         spawnContainer.clearChildren();
         spawnContainer.addChild(buildGatedSection("Spawn Conditions", catchCount, thresholds.spawnConditionsCatches(),
                 () -> buildSpawnConditionsContent(selectedProfile)));
@@ -507,7 +519,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return content;
     }
 
-    private VBox buildTypesContent(Identifier fishId) {
+    private VBox buildTypesContent(Identifier fishId, FishProfile profile) {
+        typeZonePipUpdaters.clear();
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
         List<TagKey<Item>> groups = FishtasticItemTags.FISH_GROUPS.stream()
@@ -519,6 +532,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             for (TagKey<Item> group : groups) {
                 content.addChild(label(Utility.prettyName(group.location().getPath()), 0xFFCCCCCC));
             }
+        }
+        for (FishProfile.Zone zone : profile.zones()) {
+            ConditionSegment segment = new ConditionSegment(Utility.prettyName(zone.name()), () -> isZoneMet(zone));
+            content.addChild(buildSpawnConditionRow(List.of(segment), typeZonePipUpdaters, 0xFF88CCFF, STATUS_PIP_RED_TEXTURE));
         }
         return content;
     }
@@ -535,8 +552,6 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 ww -> Utility.prettyName(ww.weather().name()), FishEncyclopediaScreen::isWeatherWeightMet);
         any |= addAxisRows(content, profile.moonWeights(), FishProfile.MoonWeight::tier, FishProfile.MoonWeight::multiplier,
                 mw -> Utility.prettyName(mw.phase().name()), FishEncyclopediaScreen::isMoonWeightMet);
-        any |= addAxisRows(content, profile.elevationWeights(), FishProfile.ElevationWeight::tier, FishProfile.ElevationWeight::multiplier,
-                ew -> Utility.prettyName(ew.band().name()), FishEncyclopediaScreen::isElevationWeightMet);
         if (!any) {
             content.addChild(label("No special conditions.", 0xFF888888));
         }
@@ -545,7 +560,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     /**
      * Adds one row per tier present in {@code weights} for a single axis (biome/time/weather/
-     * moon/elevation), merging same-tier entries onto a single row — e.g. two PRIMARY biome
+     * moon), merging same-tier entries onto a single row — e.g. two PRIMARY biome
      * entries ("Jungle x2.0", "River x1.5") share one row instead of two. Each entry still gets
      * its own status pip within that row (rather than one shared pip for the whole row), since
      * with multiple mutually-exclusive options only one can be active at a time and a single
@@ -564,7 +579,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                             nameGetter.apply(w) + " (" + formatMultiplier(tier, multiplierGetter.apply(w)) + ")",
                             () -> metCheck.test(w)))
                     .toList();
-            content.addChild(buildSpawnConditionRow(segments));
+            content.addChild(buildSpawnConditionRow(segments, spawnConditionPipUpdaters, 0xFFCCCCCC, STATUS_PIP_DEFAULT_TEXTURE));
         }
         return true;
     }
@@ -578,23 +593,27 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private record ConditionSegment(String text, BooleanSupplier metCheck) {}
 
     /**
-     * Builds a single spawn condition row from one or more segments, each rendered as its own
+     * Builds a single condition row from one or more segments, each rendered as its own
      * status pip (lit green while that segment's condition currently holds for the client
-     * player, dim otherwise) followed by its label text. Registers a live-update callback per
-     * pip in {@link #spawnConditionPipUpdaters} so it tracks its segment every tick — see
-     * {@link #containerTick}.
+     * player, {@code unmetTexture} otherwise) followed by its label text. Registers a live-update
+     * callback per pip into {@code pipUpdaters} so it tracks its segment every tick — see
+     * {@link #containerTick}. Callers pick which list (spawn-condition rows vs. the always-
+     * visible Types zone rows use separate lists with separate clear lifecycles), a text color so
+     * different row categories read as visually distinct at a glance, and an unmet-state texture —
+     * red for Types zone rows, since a fish's zones are a hard gate on catchability (see
+     * {@link FishProfile#zones}) rather than the soft multipliers the other axes represent.
      */
-    private HBox buildSpawnConditionRow(List<ConditionSegment> segments) {
+    private HBox buildSpawnConditionRow(List<ConditionSegment> segments, List<Runnable> pipUpdaters, int textColor, Identifier unmetTexture) {
         HBox row = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
         for (int i = 0; i < segments.size(); i++) {
-            if (i > 0) row.addChild(label(",", 0xFFCCCCCC));
+            if (i > 0) row.addChild(label(",", textColor));
             ConditionSegment segment = segments.get(i);
             SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
-                    .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
-            spawnConditionPipUpdaters.add(() ->
-                    pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE)));
+                    .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : unmetTexture));
+            pipUpdaters.add(() ->
+                    pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : unmetTexture)));
             row.addChild(pip);
-            row.addChild(label(segment.text(), 0xFFCCCCCC));
+            row.addChild(label(segment.text(), textColor));
         }
         return row;
     }
@@ -657,10 +676,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return mc.level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, mc.player.blockPosition()) == mw.phase();
     }
 
-    private static boolean isElevationWeightMet(FishProfile.ElevationWeight ew) {
+    private static boolean isZoneMet(FishProfile.Zone zone) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return false;
-        return FishProfile.Elevation.fromY(mc.player.blockPosition().getY(), mc.level.getSeaLevel()) == ew.band();
+        BlockPos pos = mc.player.blockPosition();
+        return FishProfile.Zone.resolve(mc.level.getBiome(pos), pos.getY(), mc.level.getSeaLevel()).contains(zone);
     }
 
     private VBox buildLoreContent(FishEncyclopediaEntry entry) {

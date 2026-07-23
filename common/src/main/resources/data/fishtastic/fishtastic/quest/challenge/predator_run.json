@@ -1,12 +1,12 @@
 {
   "category": "challenge",
   "objective": {
-    "target_species_tag": "fishtastic:predator_fish",
+    "target_species_tag": "fishtastic:frenzy_fish",
     "target_count": 10,
     "min_quality": "rare"
   },
   "reward": { "quest_tokens": 55, "items": [] },
   "hidden": false,
   "display_name": "Apex Hunter",
-  "description": "Catch 10 predator fish at Rare quality or better."
+  "description": "Catch 10 frenzied fish at Rare quality or better."
 }

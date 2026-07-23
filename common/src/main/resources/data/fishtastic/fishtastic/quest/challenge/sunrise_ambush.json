@@ -1,7 +1,7 @@
 {
   "category": "challenge",
   "objective": {
-    "target_species_tag": "fishtastic:predator_fish",
+    "target_species_tag": "fishtastic:frenzy_fish",
     "target_count": 5,
     "min_quality": "rare",
     "time_condition": "dawn"
@@ -9,5 +9,5 @@
   "reward": { "quest_tokens": 35, "items": [] },
   "hidden": false,
   "display_name": "Sunrise Ambush",
-  "description": "Catch 5 predator fish at Rare quality or better at dawn."
+  "description": "Catch 5 frenzied fish at Rare quality or better at dawn."
 }

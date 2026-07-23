@@ -1,9 +1,7 @@
 {
   "base_weight": 5,
   "size": { "mean": 30.0, "std_dev": 10.0 },
-  "biome_weights": [
-    { "biome": "minecraft:is_nether", "multiplier": 2.0 }
-  ],
+  "zones": ["nether"],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 }
   ],

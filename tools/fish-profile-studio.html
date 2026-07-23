@@ -406,16 +406,20 @@ a { color: var(--accent); }
    - BaitEffect / CharmEffect / HookEffect presets
    ===================================================================== */
 const VANILLA_FISH = [
-  { id: "minecraft:cod",           name: "Cod",           weight: 200 },
-  { id: "minecraft:salmon",        name: "Salmon",        weight: 200 },
-  { id: "minecraft:tropical_fish", name: "Tropical Fish", weight: 50  },
-  { id: "minecraft:pufferfish",    name: "Pufferfish",    weight: 25  },
+  { id: "minecraft:cod",           name: "Cod",           weight: 200, zones: ["ocean", "river"] },
+  { id: "minecraft:salmon",        name: "Salmon",        weight: 200, zones: ["ocean", "river"] },
+  { id: "minecraft:tropical_fish", name: "Tropical Fish", weight: 50,  zones: ["ocean"] },
+  { id: "minecraft:pufferfish",    name: "Pufferfish",    weight: 25,  zones: ["ocean"] },
 ];
 const VANILLA_IDS = new Set(VANILLA_FISH.map(f => f.id));
 const DEFAULT_BASE_WEIGHT = 10, DEFAULT_MEAN = 50.0, DEFAULT_STD = 15.0;
 const TIMES = ["dawn", "day", "dusk", "night"];
 const WEATHERS = ["clear", "rain", "snow", "thunder"];
+// Y-band picker — no longer an axis to weight (elevation_weights is retired), just an input
+// to ZONE resolution alongside the active biome preset. See resolveZone().
 const ELEVATIONS = ["deep", "surface", "high"];
+// Mirrors FishProfile.Zone exactly — six canonical zones, hard gate (not a multiplier).
+const ZONES = ["ocean", "deep_ocean", "river", "nether", "cave", "high_altitude"];
 const MOONS = ["full_moon","waning_gibbous","third_quarter","waning_crescent","new_moon","waxing_crescent","first_quarter","waxing_gibbous"];
 const QUALITIES = ["common","uncommon","rare","epic","legendary"];
 const QUALITY_WEIGHTS = [6400, 2500, 750, 250, 100];
@@ -434,21 +438,25 @@ const AXES = [
   { key: "time_weights",      field: "time",  label: "Time"      },
   { key: "weather_weights",   field: "weather", label: "Weather" },
   { key: "moon_weights",      field: "phase", label: "Moon"      },
-  { key: "elevation_weights", field: "band",  label: "Elevation" },
 ];
 const MULT_CAP = 2.0;
 const MULT_CAP_EXEMPT = new Set(["molten_moorish_idol"]); // flagship exception
 
+// vanilla fish are excluded from the pool entirely for every preset except "none" (bare hook) —
+// see fishWeight(), which checks bait === BAIT_PRESETS.none by reference, mirroring
+// FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java. There is no
+// vanillaMult field anymore; that axis was removed as dead tuning surface once the rule became
+// a binary "is any bait equipped" check.
 const BAIT_PRESETS = {
-  none:        { label: "None (bare hook)", luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, vanillaMult: 1.0,  modMult: 0.15, qualityBias: 0.0, exclusive: null, affinities: [] },
-  worms:       { label: "Worms",            luck: 0.5, treasure: 0.10,  trash: 0.05, targets: 1, vanillaMult: 1.0,  modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
-  gummy_worms: { label: "Gummy Worms",      luck: 1.0, treasure: 0.10,  trash: 0.05, targets: 0, vanillaMult: 0.3,  modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [] },
-  blazed_grub: { label: "Blazed Grub",      luck: 2.0, treasure: 0.50,  trash: 0.0,  targets: 0, vanillaMult: 1.0,  modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
-  freshwater:  { label: "Freshwater Bait",  luck: 0.3, treasure: 0.05,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:freshwater_fish", mult: 4.0 }] },
-  ocean:       { label: "Ocean Bait",       luck: 0.3, treasure: 0.10,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:ocean_fish", mult: 4.0 }] },
-  predator:    { label: "Predator Bait",    luck: 1.0, treasure: 0.10,  trash: 0.1,  targets: 0, vanillaMult: 0.25, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:predator_fish", mult: 4.0 }] },
-  deep_sea:    { label: "Deep Sea Bait",    luck: 1.5, treasure: 0.15,  trash: 0.1,  targets: -1, vanillaMult: 0.25, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:deep_sea_fish", mult: 4.0 }] },
-  custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, vanillaMult: 1.0,  modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
+  none:        { label: "None (bare hook)", luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 0.15, qualityBias: 0.0, exclusive: null, affinities: [] },
+  worms:       { label: "Worms",            luck: 0.5, treasure: 0.10,  trash: 0.05, targets: 1, modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
+  gummy_worms: { label: "Gummy Worms",      luck: 1.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [] },
+  blazed_grub: { label: "Blazed Grub",      luck: 2.0, treasure: 0.50,  trash: 0.0,  targets: 0, modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
+  freshwater:  { label: "Small Fish Bait",  luck: 0.3, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 4.0, nonMult: 0.3 }] },
+  ocean:       { label: "Calm Bait",        luck: 0.3, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 4.0, nonMult: 0.3 }] },
+  predator:    { label: "Frenzy Bait",      luck: 1.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 4.0, nonMult: 0.3 }] },
+  deep_sea:    { label: "Trophy Bait",      luck: 1.5, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 4.0, nonMult: 0.3 }] },
+  custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
 };
 // fixed categorical hue per bait (Base Weights tab lane preview) — blue/green are reserved
 // elsewhere (base_weight bar, vanilla fish rows), so this starts at the 3rd slot; "none" and
@@ -470,12 +478,12 @@ const HOOK_PRESETS = {
   old_copper: { label: "Old Copper Hook", qualityBias: -0.5, trashDelta: 0.08 },
 };
 const CHARM_PRESETS = {
-  none:        { label: "None",              trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
-  amethyst:    { label: "Amethyst Charm",    trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
-  crystal:     { label: "Crystal Ball",      trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [] },
-  four_leaf:   { label: "Four-Leaf Charm",   trashDelta: -0.03, treasureDelta: 0.03, vanillaMult: 0.85, forceNight: false, nightBonus: 1.0, affinities: [] },
-  luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: true,  nightBonus: 1.25, affinities: [] },
-  banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, vanillaMult: 1.0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5 }] },
+  none:        { label: "None",              trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  amethyst:    { label: "Amethyst Charm",    trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  crystal:     { label: "Crystal Ball",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
+  four_leaf:   { label: "Four-Leaf Charm",   trashDelta: -0.03, treasureDelta: 0.03, forceNight: false, nightBonus: 1.0, affinities: [] },
+  luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, forceNight: true,  nightBonus: 1.25, affinities: [] },
+  banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5 }] },
 };
 const BIOME_PRESETS = [
   { name: "Ocean",           tags: ["minecraft:is_ocean"] },
@@ -483,7 +491,10 @@ const BIOME_PRESETS = [
   { name: "River",           tags: ["minecraft:is_river"] },
   { name: "Jungle River",    tags: ["minecraft:is_river", "minecraft:is_jungle"] },
   { name: "Cherry Grove",    tags: ["fishtastic:is_cherry_grove"] },
-  { name: "Lush Caves",      tags: ["fishtastic:is_lush_caves"] },
+  { name: "Lush Caves",      tags: ["fishtastic:is_lush_caves", "fishtastic:is_cave_biome"] },
+  { name: "Dripstone Caves", tags: ["fishtastic:is_cave_biome"] },
+  { name: "Deep Dark",       tags: ["fishtastic:is_cave_biome"] },
+  { name: "Snowy Peaks",     tags: ["fishtastic:is_snowy_peaks"] },
   { name: "Mushroom Fields", tags: ["fishtastic:is_mushroom"] },
   { name: "Nether",          tags: ["minecraft:is_nether"] },
   { name: "Plains pond",     tags: [] },
@@ -771,18 +782,55 @@ function envMultiplier(profile, env) {
   p *= firstMatch(profile.time_weights, "primary", w => w.time === env.time);
   p *= firstMatch(profile.weather_weights, "primary", w => w.weather === env.weather);
   if (moonVisible) p *= firstMatch(profile.moon_weights, "primary", w => w.phase === env.moon);
-  p *= firstMatch(profile.elevation_weights, "primary", w => w.band === env.elevation);
   let s = 0.0;
   s += firstMatch(profile.biome_weights, "secondary", w => env.biomes.has(w.biome)) - 1.0;
   s += firstMatch(profile.time_weights, "secondary", w => w.time === env.time) - 1.0;
   s += firstMatch(profile.weather_weights, "secondary", w => w.weather === env.weather) - 1.0;
   if (moonVisible) s += firstMatch(profile.moon_weights, "secondary", w => w.phase === env.moon) - 1.0;
-  s += firstMatch(profile.elevation_weights, "secondary", w => w.band === env.elevation) - 1.0;
   return p * (1.0 + s);
+}
+/* FishProfile.Zone.resolve — returns every zone simultaneously true for the location, not one
+   value. Water-body type (ocean/deep_ocean/river, from biome tags) and elevation band
+   (cave/high_altitude, from the Y picker) are independent axes that combine — a mountain river
+   resolves to {river, high_altitude} together, not one replacing the other. is_deep_ocean is a
+   subset of is_ocean in vanilla, so both are added independently rather than if/else-if, or
+   plain OCEAN-zoned fish would be silently barred from deep ocean. Elevation is skipped for
+   ocean/deep_ocean (a deep trench isn't a "cave" just because it's low). fishtastic:is_cave_biome
+   (lush caves/dripstone caves/deep dark) always grants cave regardless of Y, mirroring
+   FishtasticBiomeTags.IS_CAVE_BIOME, since those biomes can generate above the cave Y cutoff.
+   Nether is exclusive and short-circuits everything else. */
+function resolveZone(env) {
+  if (env.biomes.has("minecraft:is_nether")) return ["nether"];
+
+  const zones = new Set();
+  const isDeepOcean = env.biomes.has("minecraft:is_deep_ocean");
+  const isOcean = env.biomes.has("minecraft:is_ocean");
+  if (isOcean) zones.add("ocean");
+  if (isDeepOcean) zones.add("deep_ocean");
+  if (env.biomes.has("minecraft:is_river")) zones.add("river");
+
+  if (!isOcean && !isDeepOcean) {
+    if (env.elevation === "deep") zones.add("cave");
+    if (env.elevation === "high") zones.add("high_altitude");
+  }
+  if (env.biomes.has("fishtastic:is_cave_biome")) zones.add("cave");
+
+  if (zones.size === 0) zones.add("river");
+  return [...zones];
+}
+/* Hard gate mirroring FishtasticFishItem.isZoneEligible — a fish with no zones array (not yet
+   migrated) is treated as zone-unrestricted (fail-open), same as the Java-side missing-profile
+   fallback, so an incomplete profile doesn't silently vanish from every simulation view.
+   currentZones is the array resolveZone() returns — the fish is eligible if any of its
+   declared zones overlap, mirroring Collections.disjoint() on the Java side. */
+function isZoneEligible(zones, currentZones) {
+  if (!zones || zones.length === 0) return true;
+  return zones.some(z => currentZones.includes(z));
 }
 function resolveBait(key) {
   const g = S.gear;
   let b = key === "custom" ? { ...g.custom } : { ...BAIT_PRESETS[key] };
+  b.key = key; // preserved through the scale-adjustment spread below — used to test "is this bare hook"
   b.affinities = (b.affinities || []).map(a => ({ ...a }));
   if (b.qualityScales && g.baitQuality !== "common") {
     // BaitEffect.scaledByQuality: +10% per tier above Common; Legendary grants +1 target
@@ -794,10 +842,12 @@ function resolveBait(key) {
   return b;
 }
 function effectiveBait() { return resolveBait(S.gear.bait); }
-/* vanilla/mod split + tag-group affinity mult a bait applies to one fish — no env, no charm */
+/* vanilla/mod split + tag-group affinity mult a bait applies to one fish — no env, no charm.
+   Vanilla fish are hard-excluded (0) by any bait other than "none" (bare hook) — see fishWeight. */
 function baitTagMultiplier(id, bait) {
-  let m = VANILLA_IDS.has(id) ? bait.vanillaMult : bait.modMult;
-  for (const a of bait.affinities || []) if (inTag(id, a.group)) m *= a.mult;
+  if (VANILLA_IDS.has(id)) return bait.key === "none" ? 1.0 : 0;
+  let m = bait.modMult;
+  for (const a of bait.affinities || []) m *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
   return m;
 }
 function effectiveEnv() {
@@ -806,23 +856,33 @@ function effectiveEnv() {
   if (charm.forceNight) env.time = "night"; // Luna charm forces night context
   return env;
 }
-/* FishtasticFishItem.getFishingLootWeight */
+/* FishtasticFishItem.getFishingLootWeight, gated by the FishingMinigameManager pool filter
+   (FishtasticFishItem.isZoneEligible) — a fish outside its zone(s) is excluded outright, not
+   just down-weighted, so we return 0 rather than folding it into the multiplier chain. */
 function fishWeight(id, env, bait, charm, diamonds) {
+  const zone = resolveZone(env);
+
+  if (VANILLA_IDS.has(id)) {
+    // Any bait at all (bait.key !== "none") excludes vanilla fish from the pool outright —
+    // mirrors FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java.
+    if (bait.key !== "none") return 0;
+    const vf = VANILLA_FISH.find(f => f.id === id);
+    if (!isZoneEligible(vf.zones, zone)) return 0;
+    const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
+    let charmGroupMult = 1.0;
+    for (const a of charm.affinities) charmGroupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
+    return Math.max(1, Math.trunc(vf.weight * nightMult * charmGroupMult));
+  }
+  const p = S.profiles.get(id.split(":")[1]);
+  if (p && !isZoneEligible(p.json.zones, zone)) return 0;
   const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
   let charmGroupMult = 1.0;
   for (const a of charm.affinities) if (inTag(id, a.group)) charmGroupMult *= a.mult;
-
-  if (VANILLA_IDS.has(id)) {
-    const vw = VANILLA_FISH.find(f => f.id === id).weight;
-    const vMult = bait.vanillaMult * charm.vanillaMult;
-    return Math.max(1, Math.trunc(vw * vMult * nightMult * charmGroupMult));
-  }
-  const p = S.profiles.get(id.split(":")[1]);
   let base = p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT;
   if (id === "fishtastic:acute_iaspis") base += diamonds; // AcuteIapsisItem: +1/diamond in inventory
   const eMult = p ? envMultiplier(p.json, env) : 1.0;
   let groupMult = 1.0;
-  for (const a of bait.affinities) if (inTag(id, a.group)) groupMult *= a.mult;
+  for (const a of bait.affinities) groupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
   return Math.max(1, Math.trunc(base * eMult * bait.modMult * groupMult * nightMult * charmGroupMult));
 }
 /* full weighted pool under current context; exclusive pool filters mod+vanilla alike */
@@ -979,7 +1039,6 @@ function lintAll() {
         if (ax.key === "time_weights" && !TIMES.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown time "${cond}".` });
         if (ax.key === "weather_weights" && !WEATHERS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown weather "${cond}".` });
         if (ax.key === "moon_weights" && !MOONS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown moon phase "${cond}".` });
-        if (ax.key === "elevation_weights" && !ELEVATIONS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown elevation band "${cond}".` });
       }
     }
     if (!fishTag.has("fishtastic:" + name)) {
@@ -987,6 +1046,16 @@ function lintAll() {
     }
     if (p.json.temperament && !S.temperaments.includes(p.json.temperament)) {
       out.push({ sev: "serious", fish: name, msg: `Temperament "${p.json.temperament}" has no file under fishtastic/temperament.` });
+    }
+    // FishProfile.zones is a required field in Java (no default) — an empty/missing array here
+    // means this fish is uncatchable everywhere once zone gating loads (or, in this simulator,
+    // silently falls back to zone-unrestricted, which would misrepresent its real odds).
+    if (!p.json.zones || p.json.zones.length === 0) {
+      out.push({ sev: "serious", fish: name, msg: `Missing "zones" — required field, this fish will be uncatchable (or unparseable) once loaded.` });
+    } else {
+      for (const z of p.json.zones) {
+        if (!ZONES.includes(z)) out.push({ sev: "serious", fish: name, msg: `Unknown zone "${z}".` });
+      }
     }
   }
   for (const id of pool) {
@@ -1150,6 +1219,8 @@ function renderContext() {
     el("span", { class: "hint", "data-tip": "Moon weights only apply when it's night AND clear — the moon must be visible." },
       moonActive ? "☾ moon visible" : "☾ moon hidden"),
     seg(ELEVATIONS, S.env.elevation, o => { S.env.elevation = o; onEnv(); }),
+    el("span", { class: "hint", "data-tip": "FishProfile.Zone.resolve(biome, y, seaLevel) — the hard gate a fish's zones list is checked against. Multiple zones can apply at once (e.g. a mountain river is river + high_altitude)." },
+      "zone: ", el("b", { style: "color:var(--s6)" }, resolveZone(S.env).join(" + "))),
     charm.forceNight ? el("span", { class: "hint", style: "color:var(--s3)" }, "Luna charm forces NIGHT") : null,
   ));
 
@@ -1167,7 +1238,6 @@ function renderContext() {
       el("input", { type: "number", step: step || 0.05, value: cu[key], style: "width:64px", onchange: e => { cu[key] = parseFloat(e.target.value) || 0; renderTab(); refreshEditorCalc(); } }));
     row.append(
       num("mod×", "modMult", 0.05, "mod_fish_multiplier"),
-      num("van×", "vanillaMult", 0.05, "vanilla_fish_multiplier"),
       num("treasure", "treasure", 0.01), num("trash", "trash", 0.01),
       num("qbias", "qualityBias", 0.1, "quality_bias"), num("targets±", "targets", 1, "target_count_bonus"),
     );
@@ -1506,6 +1576,28 @@ function renderEditor() {
         S.temperaments.map(t => el("option", { value: t, selected: json.temperament === t ? "" : null }, t.split(":")[1])))),
   );
 
+  // zones — hard location gate, required field, not a weighted axis (no multiplier/tier)
+  if (!json.zones) json.zones = [];
+  const zonesEl = el("div", { class: "axis" });
+  zonesEl.append(el("h4", null, "Zones",
+    el("span", { class: "hint", style: "text-transform:none;letter-spacing:0" }, "hard gate — required, excludes everywhere else")));
+  const zonesRow = el("div", { class: "wrow", style: "flex-wrap:wrap;gap:10px" });
+  for (const z of ZONES) {
+    zonesRow.append(el("label", { style: "display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px" },
+      el("input", { type: "checkbox", checked: json.zones.includes(z) ? "" : null, onchange: e => {
+        json.zones = e.target.checked
+          ? [...new Set([...json.zones, z])]
+          : json.zones.filter(x => x !== z);
+        touch();
+      } }),
+      z));
+  }
+  zonesEl.append(zonesRow);
+  if (json.zones.length === 0) {
+    zonesEl.append(el("div", { class: "hint", style: "color:#e06666" }, "no zones selected — this fish will be uncatchable once loaded"));
+  }
+  body.append(zonesEl);
+
   // condition axes
   for (const ax of AXES) {
     const list = json[ax.key] = json[ax.key] || [];
@@ -1513,7 +1605,7 @@ function renderEditor() {
     const head = el("h4", null, ax.label + " weights",
       ax.key === "moon_weights" ? el("span", { class: "hint", style: "text-transform:none;letter-spacing:0" }, "night + clear only") : null,
       el("button", { onclick: () => {
-        const def = ax.key === "biome_weights" ? "minecraft:is_ocean" : ax.key === "time_weights" ? "day" : ax.key === "weather_weights" ? "clear" : ax.key === "moon_weights" ? "full_moon" : "surface";
+        const def = ax.key === "biome_weights" ? "minecraft:is_ocean" : ax.key === "time_weights" ? "day" : ax.key === "weather_weights" ? "clear" : "full_moon";
         list.push({ [ax.field]: def, multiplier: 1.5 });
         touch(); renderEditor();
       } }, "+ add"));
@@ -1523,7 +1615,7 @@ function renderEditor() {
       if (ax.key === "biome_weights") {
         condInput = el("input", { type: "text", list: "biomeTagList", value: w[ax.field], onchange: e => { w[ax.field] = e.target.value.trim(); touch(); } });
       } else {
-        const opts = ax.key === "time_weights" ? TIMES : ax.key === "weather_weights" ? WEATHERS : ax.key === "moon_weights" ? MOONS : ELEVATIONS;
+        const opts = ax.key === "time_weights" ? TIMES : ax.key === "weather_weights" ? WEATHERS : MOONS;
         condInput = el("select", { onchange: e => { w[ax.field] = e.target.value; touch(); } },
           opts.map(o => el("option", { value: o, selected: w[ax.field] === o ? "" : null }, o)));
       }
@@ -1717,12 +1809,13 @@ function renderTags(v) {
 
   // gear affinity reference
   const refRows = [
-    ["Freshwater Bait", "freshwater_fish ×4.0 · vanilla ×0.25"],
-    ["Ocean Bait", "ocean_fish ×4.0 · vanilla ×0.25"],
-    ["Predator Bait", "predator_fish ×4.0 · vanilla ×0.25"],
-    ["Deep Sea Bait", "deep_sea_fish ×4.0 · vanilla ×0.25 · −1 target"],
+    ["Small Fish Bait", "small_fish ×4.0 / others ×0.3 · +1 target"],
+    ["Calm Bait", "calm_fish ×4.0 / others ×0.3"],
+    ["Frenzy Bait", "frenzy_fish ×4.0 / others ×0.3"],
+    ["Trophy Bait", "big_fish ×4.0 / others ×0.3 · −1 target"],
     ["Blazed Grub", "exclusive pool → exotic_fish only · treasure 50%"],
     ["Banana Charm", "color_yellow ×1.5"],
+    ["(any bait)", "vanilla fish excluded entirely — see NO_BAIT"],
   ];
   v.append(el("div", { class: "panel" },
     el("h3", null, "How gear reads these groups"),

@@ -339,20 +339,22 @@ public class FishingMinigameManager {
 
         // Resolve environment context at hook position
         BlockPos hookPos = BlockPos.containing(hook.position());
-        Holder<Biome> biome = level.getBiome(hookPos);
-        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
-                ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
-        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
-        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
-        FishProfile.Elevation elevation = FishProfile.Elevation.fromY(hookPos.getY(), level.getSeaLevel());
+        EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
+        Holder<Biome> biome = env.biome();
+        FishProfile.TimeOfDay timeOfDay = env.timeOfDay();
+        FishProfile.WeatherCondition weather = env.weather();
+        net.minecraft.world.level.MoonPhase moonPhase = env.moonPhase();
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
                 + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
         List<ItemStack> treasureRewards = getTreasureRewards(lootparams);
-        List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
+        boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
+        List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
+                .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
+                .filter(h -> FishtasticFishItem.isZoneEligible(h, fishProfileRegistry, env.zone()))
+                .toList();
         List<Holder<Item>> trashPool = getTrashPool(player);
 
         float treasureChance = Math.max(0f, (baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
@@ -387,7 +389,7 @@ public class FishingMinigameManager {
             List<ItemStack> rewardStacks;
             if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
-                        fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, qualityBias, baitEffect, charmEffect, numRewards);
+                        fishProfileRegistry, biome, timeOfDay, weather, moonPhase, qualityBias, baitEffect, charmEffect, numRewards);
             } else if (isTreasure) {
                 rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
             } else {
@@ -439,6 +441,27 @@ public class FishingMinigameManager {
     }
 
     /**
+     * Resolved environment context for a fishing cast: everything downstream weight/zone
+     * computation needs, gathered once at the hook position. {@code zone} is the hard
+     * location gate ({@link FishProfile.Zone#resolve}); the rest feed the soft flavor
+     * multipliers in {@link FishProfile#computeEnvironmentMultiplier}.
+     */
+    private record EnvironmentContext(Holder<Biome> biome, FishProfile.TimeOfDay timeOfDay,
+            FishProfile.WeatherCondition weather, net.minecraft.world.level.MoonPhase moonPhase,
+            Set<FishProfile.Zone> zone) {}
+
+    private EnvironmentContext resolveEnvironment(BlockPos hookPos, @Nullable CharmEffect charmEffect) {
+        Holder<Biome> biome = level.getBiome(hookPos);
+        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
+                ? FishProfile.TimeOfDay.NIGHT
+                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
+        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
+        Set<FishProfile.Zone> zone = FishProfile.Zone.resolve(biome, hookPos.getY(), level.getSeaLevel());
+        return new EnvironmentContext(biome, timeOfDay, weather, moonPhase, zone);
+    }
+
+    /**
      * Scans the fish pool under the current hook's environment context and returns the single
      * highest-weighted species — i.e. what {@link FishtasticFishItem#sampleRandomFish} is most
      * likely to roll right now. Mirrors the environment/pool resolution in
@@ -459,22 +482,20 @@ public class FishingMinigameManager {
                 .create(LootContextParamSets.FISHING);
 
         BlockPos hookPos = BlockPos.containing(hook.position());
-        Holder<Biome> biome = level.getBiome(hookPos);
-        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
-                ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
-        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
-        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
-        FishProfile.Elevation elevation = FishProfile.Elevation.fromY(hookPos.getY(), level.getSeaLevel());
+        EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        List<Holder<Item>> fishPool = getFishPool(player, baitEffect);
+        boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
+        List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
+                .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
+                .filter(h -> FishtasticFishItem.isZoneEligible(h, fishProfileRegistry, env.zone()))
+                .toList();
 
         Holder<Item> best = null;
         int bestWeight = 0;
         for (Holder<Item> candidate : fishPool) {
             int weight = FishtasticFishItem.getFishingLootWeight(
-                    candidate, lootparams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, baitEffect, charmEffect);
+                    candidate, lootparams, fishProfileRegistry, env.biome(), env.timeOfDay(), env.weather(), env.moonPhase(), baitEffect, charmEffect);
             if (weight > bestWeight) {
                 bestWeight = weight;
                 best = candidate;
@@ -565,7 +586,6 @@ public class FishingMinigameManager {
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
             net.minecraft.world.level.MoonPhase moonPhase,
-            FishProfile.Elevation elevation,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect,
@@ -575,7 +595,7 @@ public class FishingMinigameManager {
         for (int n = 0; n < numRewards; n++) {
             ItemStack reward = FishtasticFishItem.sampleRandomFish(
                     randomSource, lootParams, fishPool,
-                    fishProfileRegistry, biome, timeOfDay, weather, moonPhase, elevation, qualityBias, baitEffect, charmEffect);
+                    fishProfileRegistry, biome, timeOfDay, weather, moonPhase, qualityBias, baitEffect, charmEffect);
             if (!reward.isEmpty()) rewardStacks.add(reward);
         }
         return rewardStacks;

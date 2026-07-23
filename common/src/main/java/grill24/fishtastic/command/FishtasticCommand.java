@@ -28,6 +28,7 @@ public class FishtasticCommand {
                 .then(SetFishQualityCommand.build())
                 .then(DebugFishDataCommand.build())
                 .then(FishProfileCommand.build())
+                .then(FishZoneCommand.build())
                 .then(TemperamentCommand.build())
                 .then(TestQuestNotifyCommand.build())
                 .then(TutorialCommand.build())

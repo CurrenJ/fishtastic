@@ -1,6 +1,7 @@
 {
   "base_weight": 2,
   "size": { "mean": 80.0, "std_dev": 15.0 },
+  "zones": ["ocean", "deep_ocean"],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
     { "time": "dawn", "multiplier": 1.5 }

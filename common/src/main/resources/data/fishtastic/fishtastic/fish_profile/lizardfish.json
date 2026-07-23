@@ -1,9 +1,7 @@
 {
   "base_weight": 8,
   "size": { "mean": 50.0, "std_dev": 15.0 },
-  "biome_weights": [
-    { "biome": "minecraft:is_ocean", "multiplier": 1.5 }
-  ],
+  "zones": ["ocean", "deep_ocean"],
   "moon_weights": [
     { "phase": "new_moon", "multiplier": 1.8 },
     { "phase": "waxing_crescent", "multiplier": 1.3 },

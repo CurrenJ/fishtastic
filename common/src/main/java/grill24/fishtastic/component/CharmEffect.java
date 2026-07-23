@@ -18,7 +18,6 @@ public record CharmEffect(
         boolean showRarityOutline,
         float trashChanceDelta,
         float treasureChanceDelta,
-        float vanillaFishMultiplier,
         boolean forceNightFishing,
         float nightMultiplierBonus,
         List<BaitEffect.FishGroupAffinity> fishGroupAffinities,
@@ -26,30 +25,29 @@ public record CharmEffect(
 ) {
 
     public static final CharmEffect AMETHYST_CHARM = new CharmEffect(
-            1.5f, false, 0.0f, 0.0f, 1.0f, false, 1.0f, List.of(), false);
+            1.5f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false);
 
     public static final CharmEffect CRYSTAL_BALL_CHARM = new CharmEffect(
-            1.0f, true, 0.0f, 0.0f, 1.0f, false, 1.0f, List.of(), false);
+            1.0f, true, 0.0f, 0.0f, false, 1.0f, List.of(), false);
 
     public static final CharmEffect FOUR_LEAF_CHARM = new CharmEffect(
-            1.0f, false, -0.03f, 0.03f, 0.85f, false, 1.0f, List.of(), false);
+            1.0f, false, -0.03f, 0.03f, false, 1.0f, List.of(), false);
 
     public static final CharmEffect LUNA_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 0.0f, 1.0f, true, 1.25f, List.of(), false);
+            1.0f, false, 0.0f, 0.0f, true, 1.25f, List.of(), false);
 
     public static final CharmEffect BANANA_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 0.0f, 1.0f, false, 1.0f,
-            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f)), false);
+            1.0f, false, 0.0f, 0.0f, false, 1.0f,
+            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f, 1.0f)), false);
 
     public static final CharmEffect ANGLERS_ALMANAC = new CharmEffect(
-            1.0f, false, 0.0f, 0.0f, 1.0f, false, 1.0f, List.of(), true);
+            1.0f, false, 0.0f, 0.0f, false, 1.0f, List.of(), true);
 
     public static final Codec<CharmEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("input_force_multiplier", 1.0f).forGetter(CharmEffect::inputForceMultiplier),
             Codec.BOOL.optionalFieldOf("show_rarity_outline", false).forGetter(CharmEffect::showRarityOutline),
             Codec.FLOAT.optionalFieldOf("trash_chance_delta", 0.0f).forGetter(CharmEffect::trashChanceDelta),
             Codec.FLOAT.optionalFieldOf("treasure_chance_delta", 0.0f).forGetter(CharmEffect::treasureChanceDelta),
-            Codec.FLOAT.optionalFieldOf("vanilla_fish_multiplier", 1.0f).forGetter(CharmEffect::vanillaFishMultiplier),
             Codec.BOOL.optionalFieldOf("force_night_fishing", false).forGetter(CharmEffect::forceNightFishing),
             Codec.FLOAT.optionalFieldOf("night_multiplier_bonus", 1.0f).forGetter(CharmEffect::nightMultiplierBonus),
             BaitEffect.FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(CharmEffect::fishGroupAffinities),
@@ -75,10 +73,6 @@ public record CharmEffect(
         if (treasureChanceDelta != 0.0f) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.treasure_chance_delta", (int) (treasureChanceDelta * 100))
                     .withStyle(ChatFormatting.GOLD));
-        }
-        if (vanillaFishMultiplier != 1.0f) {
-            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.vanilla_fish_multiplier", vanillaFishMultiplier)
-                    .withStyle(ChatFormatting.GRAY));
         }
         if (forceNightFishing) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.force_night_fishing")
