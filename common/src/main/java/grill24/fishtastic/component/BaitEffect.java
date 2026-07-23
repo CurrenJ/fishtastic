@@ -56,19 +56,19 @@ public record BaitEffect(
     // Worms: the moment a player puts on any bait at all, vanilla fish drop out of the pool
     // entirely (see FishingMinigameManager) — Worms is the cheap, guaranteed-mod-fish starter.
     public static final BaitEffect WORMS = new BaitEffect(
-            0.5f, 0.10f, 0.05f, 1, 1.25f, 0.0f, Optional.empty(), List.of());
+            0.0f, 0.10f, 0.05f, 1, 1.25f, 0.0f, Optional.empty(), List.of());
 
     // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
     // Deliberately weaker on raw mod-fish weight than the specialist baits (Small Fish/Calm/
     // Frenzy/Trophy Bait), so it stays the generalist "biggest catch" tool rather than also
     // being the best way to farm any one subset.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            1.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of());
+            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of());
 
     // Blazed Grub: treasure hunter + exotic fish only pool — already a focused specialist,
     // so it shouldn't also dodge trash on top of finding treasure and exotic fish.
     public static final BaitEffect BLAZED_GRUB = new BaitEffect(
-            2.0f, 0.50f, 0.0f, 0, 1.0f, 0.5f,
+            0.0f, 0.50f, 0.0f, 0, 1.0f, 0.5f,
             Optional.of(FishtasticItemTags.EXOTIC_FISH), List.of());
 
     public static final Codec<BaitEffect> CODEC = RecordCodecBuilder.create(i -> i.group(

@@ -10,13 +10,13 @@ import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
+import grill24.fishtastic.gametest.MarineCompostGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
-import grill24.fishtastic.gametest.WormBinGameTests;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.GameTestInstance;
@@ -69,35 +69,27 @@ public class NeoForgeGameTestRegistration {
             new TestEnvironmentDefinition.AllOf(java.util.List.of())
         );
 
-        // ----- Worm Bin tests -----
-        register(event, env, "worm_bin_starts_empty", 200,
-            WormBinGameTests::wormBinStartsEmpty);
-        register(event, env, "deposit_fish_adds_to_list", 200,
-            WormBinGameTests::depositFishAddsToList);
-        register(event, env, "deposit_cap_at_five", 200,
-            WormBinGameTests::depositCapAtFive);
+        // ----- Marine Compost tests -----
         register(event, env, "aeration_cap_at_five", 200,
-            WormBinGameTests::aerationCapAtFive);
+            MarineCompostGameTests::aerationCapAtFive);
         register(event, env, "conversion_takes_base_ticks", 6100,
-            WormBinGameTests::conversionTakesBaseTicks);
+            MarineCompostGameTests::conversionTakesBaseTicks);
         register(event, env, "aeration_reduces_conversion_time", 5000,
-            WormBinGameTests::aerationReducesConversionTime);
+            MarineCompostGameTests::aerationReducesConversionTime);
         register(event, env, "common_fish_yield", 6100,
-            WormBinGameTests::commonFishYield);
+            MarineCompostGameTests::commonFishYield);
+        register(event, env, "rare_fish_yield", 6100,
+            MarineCompostGameTests::rareFishYield);
         register(event, env, "legendary_fish_yield", 6100,
-            WormBinGameTests::legendaryFishYield);
+            MarineCompostGameTests::legendaryFishYield);
         register(event, env, "aeration_adds_to_yield", 5000,
-            WormBinGameTests::aerationAddsToYield);
-        register(event, env, "mixed_quality_yield", 6100,
-            WormBinGameTests::mixedQualityYield);
-        register(event, env, "harvest_resets_to_empty", 6100,
-            WormBinGameTests::harvestResetsToEmpty);
-        register(event, env, "deposited_fish_list_retains_order", 200,
-            WormBinGameTests::depositedFishListRetainsOrder);
+            MarineCompostGameTests::aerationAddsToYield);
+        register(event, env, "no_quality_defaults_to_common_yield", 6100,
+            MarineCompostGameTests::noQualityDefaultsToCommonYield);
         register(event, env, "aeration_cooldown_blocks_too_early_attempt", 200,
-            WormBinGameTests::aerationCooldownBlocksTooEarlyAttempt);
+            MarineCompostGameTests::aerationCooldownBlocksTooEarlyAttempt);
         register(event, env, "aeration_cooldown_allows_after_cooldown", 200,
-            WormBinGameTests::aerationCooldownAllowsAfterCooldown);
+            MarineCompostGameTests::aerationCooldownAllowsAfterCooldown);
 
         // ----- Fish Catch Data tests -----
         register(event, env, "recording_non_fish_is_ignored", 200,

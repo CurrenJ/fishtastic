@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "phase=dry": { "model": "fishtastic:block/marine_compost_dry" },
+    "phase=wet": { "model": "fishtastic:block/marine_compost_wet" },
+    "phase=ready": { "model": "fishtastic:block/marine_compost_ready" }
+  }
+}

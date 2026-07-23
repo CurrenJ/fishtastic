@@ -168,7 +168,7 @@ public final class ItemComponentGameTests {
      */
     public static void baitEffectWormsPreset(GameTestHelper helper) {
         BaitEffect worms = BaitEffect.WORMS;
-        helper.assertTrue(worms.luckBonus() == 0.5f,        "WORMS luckBonus must be 0.5");
+        helper.assertTrue(worms.luckBonus() == 0.0f,        "WORMS luckBonus must be 0.0");
         helper.assertTrue(worms.treasureChance() == 0.10f,  "WORMS treasureChance must be 0.10");
         helper.assertTrue(worms.targetCountBonus() == 1,    "WORMS targetCountBonus must be 1");
         helper.assertTrue(worms.modFishMultiplier() == 1.25f, "WORMS modFishMultiplier must be 1.25");

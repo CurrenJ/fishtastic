@@ -3,7 +3,7 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.blockentity.WormBinBlockEntity;
+import grill24.fishtastic.blockentity.MarineCompostBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.block.Block;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public class FishtasticBlockEntityTypes {
     public static Holder<BlockEntityType<?>> FISH_TANK;
     public static Holder<BlockEntityType<?>> FISH_TANK_ASSEMBLY;
-    public static Holder<BlockEntityType<?>> WORM_BIN;
+    public static Holder<BlockEntityType<?>> MARINE_COMPOST;
 
     public static void registerBlockEntityTypes() {
         FISH_TANK = RegistrationApiSided.getInstance().registerBlockEntityType(
@@ -26,10 +26,10 @@ public class FishtasticBlockEntityTypes {
             FishTankAssemblyBlockEntity::new,
             () -> new Block[] { FishtasticBlocks.FISH_TANK_ASSEMBLY.value() }
         );
-        WORM_BIN = RegistrationApiSided.getInstance().registerBlockEntityType(
-            "worm_bin",
-            WormBinBlockEntity::new,
-            () -> new Block[] { FishtasticBlocks.WORM_BIN.value() }
+        MARINE_COMPOST = RegistrationApiSided.getInstance().registerBlockEntityType(
+            "marine_compost",
+            MarineCompostBlockEntity::new,
+            () -> new Block[] { FishtasticBlocks.MARINE_COMPOST.value() }
         );
     }
 

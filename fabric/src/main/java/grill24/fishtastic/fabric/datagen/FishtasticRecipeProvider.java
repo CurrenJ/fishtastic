@@ -2,6 +2,7 @@ package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.recipe.MarineCompostRecipe;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.core.Holder;
@@ -9,11 +10,14 @@ import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.*;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CookingBookCategory;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -73,15 +77,13 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
 
-                // Worm Bin: a ring of wooden slabs packed with dirt, composter-style
-                ShapedRecipeBuilder.shaped(items, RecipeCategory.MISC, FishtasticBlocks.WORM_BIN.value())
-                        .pattern("S S")
-                        .pattern("SDS")
-                        .pattern("SSS")
-                        .define('S', ItemTags.WOODEN_SLABS)
-                        .define('D', Items.DIRT)
-                        .unlockedBy("has_dirt", has(Items.DIRT))
-                        .save(this.output);
+                // Marine Compost: 1 dirt + 1 sized fish, shapeless. A custom recipe type since the
+                // fish's quality must be copied onto the result (see MarineCompostRecipe). No datagen
+                // advancement is emitted here - it's hand-authored alongside the recipe JSON.
+                this.output.accept(
+                        ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath("fishtastic", "marine_compost")),
+                        new MarineCompostRecipe(CraftingBookCategory.MISC),
+                        null);
             }
 
             // -----------------------------------------------------------------

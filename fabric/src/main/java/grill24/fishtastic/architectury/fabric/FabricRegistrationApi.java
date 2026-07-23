@@ -20,6 +20,8 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -100,6 +102,14 @@ public class FabricRegistrationApi implements IRegistrationApi {
         MenuType<M> menuType = new MenuType<>(factory::create, net.minecraft.world.flag.FeatureFlags.VANILLA_SET);
         @SuppressWarnings("unchecked")
         Holder<MenuType<?>> holder = (Holder<MenuType<?>>) (Holder<?>) register(BuiltInRegistries.MENU, name, loc -> menuType);
+        return holder;
+    }
+
+    @Override
+    public <T extends Recipe<?>> Holder<RecipeSerializer<?>> registerRecipeSerializer(String name, Supplier<RecipeSerializer<T>> supplier) {
+        @SuppressWarnings("unchecked")
+        Holder<RecipeSerializer<?>> holder = (Holder<RecipeSerializer<?>>) (Holder<?>)
+                register(BuiltInRegistries.RECIPE_SERIALIZER, name, loc -> supplier.get());
         return holder;
     }
 

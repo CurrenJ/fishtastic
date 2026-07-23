@@ -1,7 +1,9 @@
 {
-  "base_weight": 6,
+  "base_weight": 5,
   "size": { "mean": 55.0, "std_dev": 15.0 },
-  "zones": ["ocean"],
+  "zones": [
+    "ocean"
+  ],
   "time_weights": [
     { "time": "day", "multiplier": 2.0 }
   ],

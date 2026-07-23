@@ -52,7 +52,7 @@ Nothing in this loop routes the player away from fishing. No crafting chains tha
 - **Quest tracking** — `QuestTracker.onCatch()` checks species, tag, quality, biome, time, weather; called after each rewarded catch in `FishingMinigameManager`
 - **Network layer** — `CompleteQuestPacket` (client→server claim), `QuestSyncPacket` (server→client state sync); `QuestClientCache` on client; login sync on both platforms
 - **Quest Token item** — `QUEST_TOKEN` registered in `FishtasticItems`
-- **Worm Bin** — `WormBinBlock` + `WormBinBlockEntity` fully implemented (deposit fish → CONVERTING → aerate → READY → harvest worms); blockstate JSON, block models, item model all stubbed
+- **Marine Compost** — `MarineCompostBlock` + `MarineCompostBlockEntity` fully implemented (crafted from 1 dirt + 1 fish via `MarineCompostRecipe`, single-use: place → DRY/WET aerate cycle → READY → break to harvest worms); blockstate JSON, block models, item model all in place
 - **Targeted fishing** — `BaitEffect.FishGroupAffinity` field added; `FRESHWATER_BAIT`, `OCEAN_BAIT`, `PREDATOR_BAIT` registered with 2.5× group multiplier; fish group tags (`freshwater_fish`, `ocean_fish`, `deep_sea_fish`, `predator_fish`) populated
 
 ### Remaining

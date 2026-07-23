@@ -1,80 +1,77 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
-import grill24.fishtastic.block.WormBinBlock;
-import grill24.fishtastic.block.WormBinPhase;
+import grill24.fishtastic.block.MarineCompostBlock;
+import grill24.fishtastic.block.MarineCompostPhase;
 import grill24.fishtastic.component.FishQuality;
-import grill24.fishtastic.util.FishQualityHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
-public class WormBinBlockEntity extends BlockEntity {
-    private static final int MAX_FISH_SLOTS = 5;
+public class MarineCompostBlockEntity extends BlockEntity {
     private static final int MAX_AERATION_TURNS = 5;
     private static final int BASE_CONVERSION_TICKS = 6000;
     private static final int AERATION_TICK_REDUCTION = 240;
     static final int AERATION_COOLDOWN_TICKS = 1200;
 
-    private final List<ItemStack> depositedFish = new ArrayList<>();
+    @Nullable
+    private FishQuality.Quality quality;
     private int conversionTicks = 0;
     private int aerationTurns = 0;
     private int pendingWorms = 0;
     private long lastAerationTick = -AERATION_COOLDOWN_TICKS;
 
-    public WormBinBlockEntity(BlockPos pos, BlockState state) {
-        super(FishtasticBlockEntityTypes.WORM_BIN.value(), pos, state);
+    public MarineCompostBlockEntity(BlockPos pos, BlockState state) {
+        super(FishtasticBlockEntityTypes.MARINE_COMPOST.value(), pos, state);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, WormBinBlockEntity bin) {
-        if (state.getValue(WormBinBlock.PHASE) != WormBinPhase.CONVERTING) return;
+    /**
+     * Seeds this compost with the quality of the fish it was crafted from. Called once, right after placement.
+     */
+    public void initialize(@Nullable FishQuality.Quality quality) {
+        this.quality = quality;
+    }
+
+    public static void tick(Level level, BlockPos pos, BlockState state, MarineCompostBlockEntity bin) {
+        MarineCompostPhase phase = state.getValue(MarineCompostBlock.PHASE);
+        if (phase != MarineCompostPhase.DRY && phase != MarineCompostPhase.WET) return;
 
         bin.conversionTicks++;
         int maxTicks = BASE_CONVERSION_TICKS - bin.aerationTurns * AERATION_TICK_REDUCTION;
         if (bin.conversionTicks >= maxTicks) {
             bin.pendingWorms = bin.computeYield();
-            bin.depositedFish.clear();
             bin.conversionTicks = 0;
-            level.setBlockAndUpdate(pos, state.setValue(WormBinBlock.PHASE, WormBinPhase.READY));
+            level.setBlockAndUpdate(pos, state.setValue(MarineCompostBlock.PHASE, MarineCompostPhase.READY));
             bin.setChanged();
+            return;
+        }
+
+        MarineCompostPhase correctPhase = bin.canAerate(level.getGameTime()) ? MarineCompostPhase.DRY : MarineCompostPhase.WET;
+        if (phase != correctPhase) {
+            level.setBlockAndUpdate(pos, state.setValue(MarineCompostBlock.PHASE, correctPhase));
         }
     }
 
     private int computeYield() {
-        int total = 0;
-        for (ItemStack fish : depositedFish) {
-            FishQuality.Quality quality = FishQualityHelper.getQuality(fish);
-            if (quality == null) quality = FishQuality.Quality.COMMON;
-            total += switch (quality) {
-                case COMMON -> 1;
-                case UNCOMMON -> 3;
-                case RARE -> 6;
-                case EPIC -> 12;
-                case LEGENDARY -> 25;
-            };
-        }
-        total += aerationTurns;
-        return Math.max(1, total);
-    }
-
-    public boolean canDeposit() {
-        return depositedFish.size() < MAX_FISH_SLOTS;
+        FishQuality.Quality effectiveQuality = quality != null ? quality : FishQuality.Quality.COMMON;
+        int base = switch (effectiveQuality) {
+            case COMMON -> 1;
+            case UNCOMMON -> 3;
+            case RARE -> 6;
+            case EPIC -> 12;
+            case LEGENDARY -> 25;
+        };
+        return Math.max(1, base + aerationTurns);
     }
 
     public boolean canAerate(long currentTick) {
         return aerationTurns < MAX_AERATION_TURNS
             && currentTick - lastAerationTick >= AERATION_COOLDOWN_TICKS;
-    }
-
-    public void depositFish(ItemStack fish) {
-        if (canDeposit()) depositedFish.add(fish.copy());
     }
 
     public void aerate(long currentTick) {
@@ -88,40 +85,23 @@ public class WormBinBlockEntity extends BlockEntity {
         return pendingWorms;
     }
 
-    public List<ItemStack> getDepositedFish() {
-        return List.copyOf(depositedFish);
-    }
-
-    public void reset() {
-        depositedFish.clear();
-        conversionTicks = 0;
-        aerationTurns = 0;
-        pendingWorms = 0;
-        lastAerationTick = -AERATION_COOLDOWN_TICKS;
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
+        if (quality != null) output.store("quality", FishQuality.Quality.CODEC, quality);
         output.putInt("conversion_ticks", conversionTicks);
         output.putInt("aeration_turns", aerationTurns);
         output.putInt("pending_worms", pendingWorms);
         output.putLong("last_aeration_tick", lastAerationTick);
-        ValueOutput.ValueOutputList fishList = output.childrenList("deposited_fish");
-        for (ItemStack fish : depositedFish) {
-            fishList.addChild().store("stack", ItemStack.CODEC, fish);
-        }
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
+        quality = input.read("quality", FishQuality.Quality.CODEC).orElse(null);
         conversionTicks = input.getIntOr("conversion_ticks", 0);
         aerationTurns = input.getIntOr("aeration_turns", 0);
         pendingWorms = input.getIntOr("pending_worms", 0);
         lastAerationTick = input.getLongOr("last_aeration_tick", -AERATION_COOLDOWN_TICKS);
-        depositedFish.clear();
-        input.childrenListOrEmpty("deposited_fish").forEach(e ->
-                e.read("stack", ItemStack.CODEC).ifPresent(depositedFish::add));
     }
 }

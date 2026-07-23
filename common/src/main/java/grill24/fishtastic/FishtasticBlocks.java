@@ -3,7 +3,7 @@ package grill24.fishtastic;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.block.FishTankAssemblyBlock;
 import grill24.fishtastic.block.FishTankBlock;
-import grill24.fishtastic.block.WormBinBlock;
+import grill24.fishtastic.block.MarineCompostBlock;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StainedGlassBlock;
+import net.minecraft.world.level.material.PushReaction;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -19,7 +20,7 @@ import java.util.Map;
 public class FishtasticBlocks {
     public static Holder<Block> FISH_TANK;
     public static Holder<Block> FISH_TANK_ASSEMBLY;
-    public static Holder<Block> WORM_BIN;
+    public static Holder<Block> MARINE_COMPOST;
 
     // Undyed glass variants (no color)
     public static Holder<Block> BORDERLESS_GLASS;
@@ -68,12 +69,13 @@ public class FishtasticBlocks {
                 .sound(SoundType.WOOD)
         ));
 
-        WORM_BIN = RegistrationApiSided.getInstance().registerBlock("worm_bin",
-            loc -> new WormBinBlock(Block.Properties.of()
+        MARINE_COMPOST = RegistrationApiSided.getInstance().registerBlock("marine_compost",
+            loc -> new MarineCompostBlock(Block.Properties.of()
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(1.5f)
                 .sound(SoundType.WOOD)
                 .noOcclusion()
+                .pushReaction(PushReaction.DESTROY)
         ));
     }
 

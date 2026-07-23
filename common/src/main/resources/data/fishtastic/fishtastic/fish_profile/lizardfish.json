@@ -1,7 +1,10 @@
 {
-  "base_weight": 8,
+  "base_weight": 6,
   "size": { "mean": 50.0, "std_dev": 15.0 },
-  "zones": ["ocean", "deep_ocean"],
+  "zones": [
+    "ocean",
+    "deep_ocean"
+  ],
   "moon_weights": [
     { "phase": "new_moon", "multiplier": 1.8 },
     { "phase": "waxing_crescent", "multiplier": 1.3 },

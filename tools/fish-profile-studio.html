@@ -421,6 +421,30 @@ const ELEVATIONS = ["deep", "surface", "high"];
 // Mirrors FishProfile.Zone exactly — six canonical zones, hard gate (not a multiplier).
 const ZONES = ["ocean", "deep_ocean", "river", "nether", "cave", "high_altitude"];
 const MOONS = ["full_moon","waning_gibbous","third_quarter","waning_crescent","new_moon","waxing_crescent","first_quarter","waxing_gibbous"];
+// Direct biome ids selectable for a BiomeWeight condition — mirrors FishProfile.BiomeWeight's
+// HolderSet<Biome> codec, which accepts a specific biome id as an alternative to a "#tag" ref.
+// Hardcoded (no live registry in a static tool) against vanilla's biome list; the mod adds none.
+const VANILLA_BIOMES = [
+  "minecraft:ocean","minecraft:deep_ocean","minecraft:warm_ocean","minecraft:lukewarm_ocean",
+  "minecraft:deep_lukewarm_ocean","minecraft:cold_ocean","minecraft:deep_cold_ocean",
+  "minecraft:frozen_ocean","minecraft:deep_frozen_ocean","minecraft:river","minecraft:frozen_river",
+  "minecraft:beach","minecraft:snowy_beach","minecraft:stony_shore","minecraft:plains",
+  "minecraft:sunflower_plains","minecraft:snowy_plains","minecraft:ice_spikes","minecraft:desert",
+  "minecraft:savanna","minecraft:savanna_plateau","minecraft:windswept_savanna","minecraft:forest",
+  "minecraft:flower_forest","minecraft:birch_forest","minecraft:old_growth_birch_forest",
+  "minecraft:dark_forest","minecraft:old_growth_pine_taiga","minecraft:old_growth_spruce_taiga",
+  "minecraft:taiga","minecraft:snowy_taiga","minecraft:jungle","minecraft:sparse_jungle",
+  "minecraft:bamboo_jungle","minecraft:swamp","minecraft:mangrove_swamp","minecraft:mushroom_fields",
+  "minecraft:badlands","minecraft:eroded_badlands","minecraft:wooded_badlands","minecraft:meadow",
+  "minecraft:cherry_grove","minecraft:grove","minecraft:snowy_slopes","minecraft:frozen_peaks",
+  "minecraft:jagged_peaks","minecraft:stony_peaks","minecraft:windswept_hills",
+  "minecraft:windswept_gravelly_hills","minecraft:windswept_forest","minecraft:dripstone_caves",
+  "minecraft:lush_caves","minecraft:deep_dark",
+  "minecraft:nether_wastes","minecraft:crimson_forest","minecraft:warped_forest",
+  "minecraft:soul_sand_valley","minecraft:basalt_deltas",
+  "minecraft:the_end","minecraft:end_highlands","minecraft:end_midlands","minecraft:end_barrens",
+  "minecraft:small_end_islands",
+].sort();
 const QUALITIES = ["common","uncommon","rare","epic","legendary"];
 const QUALITY_WEIGHTS = [6400, 2500, 750, 250, 100];
 /* GaussianModifier(meanOffset, stdDevOffset, meanMultiplier, stdDevMultiplier).
@@ -485,19 +509,22 @@ const CHARM_PRESETS = {
   luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, forceNight: true,  nightBonus: 1.25, affinities: [] },
   banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5 }] },
 };
+// `id` is the concrete biome this preset represents, when it maps to exactly one (used to drive
+// the direct-biome dropdown/condition matching); presets standing in for a whole category (e.g.
+// "Jungle River" — no single vanilla biome is both a river and jungle) omit it.
 const BIOME_PRESETS = [
-  { name: "Ocean",           tags: ["minecraft:is_ocean"] },
-  { name: "Deep Ocean",      tags: ["minecraft:is_ocean", "minecraft:is_deep_ocean"] },
-  { name: "River",           tags: ["minecraft:is_river"] },
+  { name: "Ocean",           tags: ["minecraft:is_ocean"], id: "minecraft:ocean" },
+  { name: "Deep Ocean",      tags: ["minecraft:is_ocean", "minecraft:is_deep_ocean"], id: "minecraft:deep_ocean" },
+  { name: "River",           tags: ["minecraft:is_river"], id: "minecraft:river" },
   { name: "Jungle River",    tags: ["minecraft:is_river", "minecraft:is_jungle"] },
-  { name: "Cherry Grove",    tags: ["fishtastic:is_cherry_grove"] },
-  { name: "Lush Caves",      tags: ["fishtastic:is_lush_caves", "fishtastic:is_cave_biome"] },
-  { name: "Dripstone Caves", tags: ["fishtastic:is_cave_biome"] },
-  { name: "Deep Dark",       tags: ["fishtastic:is_cave_biome"] },
-  { name: "Snowy Peaks",     tags: ["fishtastic:is_snowy_peaks"] },
-  { name: "Mushroom Fields", tags: ["fishtastic:is_mushroom"] },
-  { name: "Nether",          tags: ["minecraft:is_nether"] },
-  { name: "Plains pond",     tags: [] },
+  { name: "Cherry Grove",    tags: ["fishtastic:is_cherry_grove"], id: "minecraft:cherry_grove" },
+  { name: "Lush Caves",      tags: ["fishtastic:is_lush_caves", "fishtastic:is_cave_biome"], id: "minecraft:lush_caves" },
+  { name: "Dripstone Caves", tags: ["fishtastic:is_cave_biome"], id: "minecraft:dripstone_caves" },
+  { name: "Deep Dark",       tags: ["fishtastic:is_cave_biome"], id: "minecraft:deep_dark" },
+  { name: "Snowy Peaks",     tags: ["fishtastic:is_snowy_peaks"], id: "minecraft:frozen_peaks" },
+  { name: "Mushroom Fields", tags: ["fishtastic:is_mushroom"], id: "minecraft:mushroom_fields" },
+  { name: "Nether",          tags: ["minecraft:is_nether"], id: "minecraft:nether_wastes" },
+  { name: "Plains pond",     tags: [], id: "minecraft:plains" },
 ];
 // Tag files in tags/item that are gear config, not fish groupings
 const NON_GROUP_TAGS = new Set(["fishing_rods","fishing_hooks","fishing_charms","fishing_bait","trash","treasure"]);
@@ -512,7 +539,7 @@ const S = {
   lang: {},
   textures: new Map(),   // "bluegill" -> objectURL
   trashItems: [],
-  env: { biomes: new Set(["minecraft:is_ocean"]), time: "day", weather: "clear", moon: "full_moon", elevation: "surface" },
+  env: { biomes: new Set(["minecraft:is_ocean"]), biomeId: "minecraft:ocean", time: "day", weather: "clear", moon: "full_moon", elevation: "surface" },
   gear: { bait: "none", baitQuality: "common", custom: { ...BAIT_PRESETS.custom }, hook: "none", charm: "none", diamonds: 0 },
   tagFilter: new Set(), // fishtastic:*_fish group tags — restricts which fish are shown, across every tab
   tagFilterMode: "or",  // "or" = any selected tag matches; "and" = all selected tags must match
@@ -774,16 +801,24 @@ function firstMatch(list, tier, pred) {
   }
   return 1.0;
 }
+/* FishProfile.BiomeWeight.biome — a HolderSet<Biome>, so a condition value is either a "#tag"
+   ref (matches by tag membership, i.e. env.biomes) or one-or-more direct biome ids (matches by
+   exact id, i.e. env.biomeId — the one concrete biome the current preset represents). */
+function matchesBiomeCondition(v, env) {
+  if (Array.isArray(v)) return env.biomeId != null && v.includes(env.biomeId);
+  if (typeof v === "string" && v.startsWith("#")) return env.biomes.has(v.slice(1));
+  return env.biomeId === v;
+}
 function envMultiplier(profile, env) {
   // FishProfile.computeEnvironmentMultiplier
   const moonVisible = env.time === "night" && env.weather === "clear";
   let p = 1.0;
-  p *= firstMatch(profile.biome_weights, "primary", w => env.biomes.has(w.biome));
+  p *= firstMatch(profile.biome_weights, "primary", w => matchesBiomeCondition(w.biome, env));
   p *= firstMatch(profile.time_weights, "primary", w => w.time === env.time);
   p *= firstMatch(profile.weather_weights, "primary", w => w.weather === env.weather);
   if (moonVisible) p *= firstMatch(profile.moon_weights, "primary", w => w.phase === env.moon);
   let s = 0.0;
-  s += firstMatch(profile.biome_weights, "secondary", w => env.biomes.has(w.biome)) - 1.0;
+  s += firstMatch(profile.biome_weights, "secondary", w => matchesBiomeCondition(w.biome, env)) - 1.0;
   s += firstMatch(profile.time_weights, "secondary", w => w.time === env.time) - 1.0;
   s += firstMatch(profile.weather_weights, "secondary", w => w.weather === env.weather) - 1.0;
   if (moonVisible) s += firstMatch(profile.moon_weights, "secondary", w => w.phase === env.moon) - 1.0;
@@ -1033,8 +1068,22 @@ function lintAll() {
         const key = (w.tier || "primary") + "|" + cond;
         if (seen.has(key)) out.push({ sev: "info", fish: name, msg: `Duplicate ${ax.label.toLowerCase()} entry "${cond}" in the same tier — only the first match ever applies.` });
         seen.add(key);
-        if (ax.key === "biome_weights" && cond.startsWith("fishtastic:") && !S.biomeTagsKnown.has(cond)) {
-          out.push({ sev: "serious", fish: name, msg: `Biome tag "${cond}" has no file under tags/worldgen/biome — it will never match.` });
+        if (ax.key === "biome_weights") {
+          for (const v of Array.isArray(cond) ? cond : [cond]) {
+            if (typeof v !== "string") continue;
+            if (v.startsWith("#")) {
+              const tag = v.slice(1);
+              if (tag.startsWith("fishtastic:") && !S.biomeTagsKnown.has(tag)) {
+                out.push({ sev: "serious", fish: name, msg: `Biome tag "${v}" has no file under tags/worldgen/biome — it will never match.` });
+              }
+            } else if (!VANILLA_BIOMES.includes(v)) {
+              // Direct biome ids aren't validated against a registry here (this is a static tool),
+              // but an unrecognized one is either a typo or a modded biome fishtastic doesn't ship —
+              // typos here are a hard datapack load error in-game (unlike an unmatched tag, which
+              // just silently never matches), so flag it.
+              out.push({ sev: "warn", fish: name, msg: `Biome id "${v}" isn't in the known vanilla biome list — double-check it's a real biome id (unlike tags, a bad direct-biome id fails to load in-game).` });
+            }
+          }
         }
         if (ax.key === "time_weights" && !TIMES.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown time "${cond}".` });
         if (ax.key === "weather_weights" && !WEATHERS.includes(cond)) out.push({ sev: "serious", fish: name, msg: `Unknown weather "${cond}".` });
@@ -1158,10 +1207,25 @@ function renderHeader() {
   $("#dirtyText").textContent = n + " unsaved";
   $("#saveBtn").disabled = n === 0;
 }
+// Tag half of the biome condition space — values as bare tag ids (no leading "#"), used for the
+// env tag chips and the "#tag" branch of the biome_weights condition dropdown.
 function allBiomeTagOptions() {
   const s = new Set(["minecraft:is_ocean","minecraft:is_deep_ocean","minecraft:is_river","minecraft:is_jungle","minecraft:is_nether"]);
   for (const t of S.biomeTagsKnown) s.add(t);
-  for (const p of S.profiles.values()) for (const w of p.json.biome_weights || []) s.add(w.biome);
+  for (const p of S.profiles.values()) for (const w of p.json.biome_weights || []) {
+    if (typeof w.biome === "string" && w.biome.startsWith("#")) s.add(w.biome.slice(1));
+  }
+  return [...s].sort();
+}
+// Direct-biome half — includes every hardcoded vanilla id plus any custom id already authored in
+// a profile (e.g. from hand-edited JSON), so an unrecognized-but-real entry doesn't disappear.
+function allBiomeIdOptions() {
+  const s = new Set(VANILLA_BIOMES);
+  for (const p of S.profiles.values()) for (const w of p.json.biome_weights || []) {
+    const v = w.biome;
+    if (typeof v === "string" && !v.startsWith("#")) s.add(v);
+    else if (Array.isArray(v)) for (const x of v) s.add(x);
+  }
   return [...s].sort();
 }
 function renderContext() {
@@ -1171,14 +1235,19 @@ function renderContext() {
   // --- environment row: biomes
   const presetSel = el("select", { onchange: e => {
     const p = BIOME_PRESETS[e.target.value];
-    if (p) { S.env.biomes = new Set(p.tags); renderContext(); renderTab(); refreshEditorCalc(); }
+    if (p) { S.env.biomes = new Set(p.tags); S.env.biomeId = p.id || null; renderContext(); renderTab(); refreshEditorCalc(); }
   }}, el("option", { value: "" }, "presets…"), BIOME_PRESETS.map((p, i) => el("option", { value: i }, p.name)));
+  const biomeIdSel = el("select", {
+    "data-tip": "The concrete biome this simulated location is — matched against direct-biome (non-#) BiomeWeight conditions. Independent of the tag chips below.",
+    onchange: e => { S.env.biomeId = e.target.value || null; renderContext(); renderTab(); refreshEditorCalc(); },
+  }, el("option", { value: "" }, "(no specific biome)"),
+     allBiomeIdOptions().map(b => el("option", { value: b, selected: S.env.biomeId === b ? "" : null }, b)));
   const chips = allBiomeTagOptions().map(tag =>
     el("span", { class: "tagchip" + (S.env.biomes.has(tag) ? " on" : ""), onclick: () => {
       S.env.biomes.has(tag) ? S.env.biomes.delete(tag) : S.env.biomes.add(tag);
       renderContext(); renderTab(); refreshEditorCalc();
     }}, tag.replace(/^minecraft:/, "mc:").replace(/^fishtastic:/, "ft:")));
-  c.append(el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Biome tags"), presetSel, chips));
+  c.append(el("div", { class: "ctx-row" }, el("span", { class: "ctx-label" }, "Biome"), presetSel, biomeIdSel, chips));
 
   // --- tag filter row: restricts which fish are shown, across every tab
   const filterTags = groupTagIds().filter(t => t !== "fishtastic:fish");
@@ -1288,6 +1357,12 @@ function spriteEl(id, cls) {
 }
 
 /* ===================== tab: profiles ===================== */
+// Compact display label for any condition value — biome_weights values may now be a "#tag",
+// a direct biome id, or (hand-authored) a list of direct ids; other axes are always plain strings.
+function condLabel(v) {
+  if (Array.isArray(v)) return v.map(x => String(x).replace(/^minecraft:|^fishtastic:/, "")).join(",");
+  return String(v).replace(/^#?minecraft:is_|^#?fishtastic:is_/, "");
+}
 function condChipsFor(json, name) {
   const chips = [];
   for (const ax of AXES) {
@@ -1296,7 +1371,7 @@ function condChipsFor(json, name) {
       chips.push(el("span", {
         class: "cc" + ((w.tier || "primary") === "secondary" ? " sec" : "") + (hot ? " hot" : ""),
         "data-tip": `${ax.label}: ${w[ax.field]}\n×${fmtF(w.multiplier)} · ${(w.tier || "primary")} tier` + (hot ? "\n⚠ exceeds 2.0× cap" : ""),
-      }, `${String(w[ax.field]).replace(/^minecraft:is_|^fishtastic:is_/, "")} ×${fmtF(w.multiplier)}`));
+      }, `${condLabel(w[ax.field])} ×${fmtF(w.multiplier)}`));
     }
   }
   return chips;
@@ -1605,7 +1680,7 @@ function renderEditor() {
     const head = el("h4", null, ax.label + " weights",
       ax.key === "moon_weights" ? el("span", { class: "hint", style: "text-transform:none;letter-spacing:0" }, "night + clear only") : null,
       el("button", { onclick: () => {
-        const def = ax.key === "biome_weights" ? "minecraft:is_ocean" : ax.key === "time_weights" ? "day" : ax.key === "weather_weights" ? "clear" : "full_moon";
+        const def = ax.key === "biome_weights" ? "#minecraft:is_ocean" : ax.key === "time_weights" ? "day" : ax.key === "weather_weights" ? "clear" : "full_moon";
         list.push({ [ax.field]: def, multiplier: 1.5 });
         touch(); renderEditor();
       } }, "+ add"));
@@ -1613,7 +1688,25 @@ function renderEditor() {
     list.forEach((w, i) => {
       let condInput;
       if (ax.key === "biome_weights") {
-        condInput = el("input", { type: "text", list: "biomeTagList", value: w[ax.field], onchange: e => { w[ax.field] = e.target.value.trim(); touch(); } });
+        // FishProfile.BiomeWeight.biome is a HolderSet<Biome>: "#ns:tag" matches by tag
+        // membership, a plain "ns:biome" matches one specific biome. A hand-authored list of
+        // direct biomes (JSON array) is shown as a read-only "(list)" fallback option — editing
+        // multi-biome lists isn't supported by this dropdown, only single tag-or-biome picks.
+        const cur = w[ax.field];
+        const curKey = Array.isArray(cur) ? cur.join(", ") : cur;
+        const isKnownTag = typeof cur === "string" && cur.startsWith("#") && allBiomeTagOptions().includes(cur.slice(1));
+        const isKnownId = typeof cur === "string" && !cur.startsWith("#") && allBiomeIdOptions().includes(cur);
+        condInput = el("select", {
+          "data-tip": "#tag entries match by tag membership. Plain entries match one specific biome.",
+          onchange: e => { w[ax.field] = e.target.value; touch(); },
+        },
+          (!isKnownTag && !isKnownId) ? el("option", { value: curKey, selected: "" },
+            curKey + (Array.isArray(cur) ? " (list — edit JSON directly)" : " (custom)")) : null,
+          el("optgroup", { label: "Biome Tags" },
+            allBiomeTagOptions().map(t => el("option", { value: "#" + t, selected: cur === "#" + t ? "" : null }, "#" + t))),
+          el("optgroup", { label: "Biomes" },
+            allBiomeIdOptions().map(b => el("option", { value: b, selected: cur === b ? "" : null }, b)))
+        );
       } else {
         const opts = ax.key === "time_weights" ? TIMES : ax.key === "weather_weights" ? WEATHERS : MOONS;
         condInput = el("select", { onchange: e => { w[ax.field] = e.target.value; touch(); } },
@@ -1743,7 +1836,7 @@ function renderAnalytics(v) {
         if (!list.length) return el("td", { class: "mut" }, "—");
         return el("td", null, list.map(w =>
           el("span", { class: "cc" + ((w.tier || "primary") === "secondary" ? " sec" : "") + (w.multiplier > MULT_CAP && !MULT_CAP_EXEMPT.has(name) ? " hot" : ""), style: "margin-right:4px" },
-            `${String(w[ax.field]).replace(/^minecraft:is_|^fishtastic:is_/, "")}×${fmtF(w.multiplier)}${(w.tier || "primary") === "secondary" ? "ˢ" : ""}`)));
+            `${condLabel(w[ax.field])}×${fmtF(w.multiplier)}${(w.tier || "primary") === "secondary" ? "ˢ" : ""}`)));
       }),
       el("td", { class: "mut" }, p.json.temperament ? p.json.temperament.split(":")[1] : "—"),
       el("td", { class: "mut", style: "font-size:10.5px;font-family:var(--mono)" },
@@ -1976,18 +2069,13 @@ function renderSim(v) {
 }
 
 /* ===================== boot ===================== */
-const dl = el("datalist", { id: "biomeTagList" });
-document.body.append(dl);
-function refreshBiomeDatalist() {
-  dl.replaceChildren(...allBiomeTagOptions().map(t => el("option", { value: t })));
-}
 $("#connectBtn").addEventListener("click", () => connect());
 $("#reconnectBtn").addEventListener("click", async () => {
   const h = await kvGet("dirHandle");
   if (h) connect(h);
 });
 $("#rescanBtn").addEventListener("click", async () => {
-  await loadAll(); refreshBiomeDatalist(); renderAll(); toast("Rescanned data folder");
+  await loadAll(); renderAll(); toast("Rescanned data folder");
 });
 $("#saveBtn").addEventListener("click", saveAll);
 document.addEventListener("keydown", e => {
@@ -2012,9 +2100,6 @@ window.addEventListener("beforeunload", e => { if (dirtyCount() > 0) e.preventDe
     }
   } catch (e) { /* first run */ }
 })();
-// re-render datalist after each load
-const _origLoadAll = loadAll;
-loadAll = async function () { await _origLoadAll(); refreshBiomeDatalist(); };
 </script>
 </body>
 </html>

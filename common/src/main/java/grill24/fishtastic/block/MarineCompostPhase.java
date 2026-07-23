@@ -3,12 +3,12 @@ package grill24.fishtastic.block;
 import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 
-public enum WormBinPhase implements StringRepresentable {
-    EMPTY("empty"), CONVERTING("converting"), READY("ready");
+public enum MarineCompostPhase implements StringRepresentable {
+    DRY("dry"), WET("wet"), READY("ready");
 
     private final String name;
 
-    WormBinPhase(String name) {
+    MarineCompostPhase(String name) {
         this.name = name;
     }
 

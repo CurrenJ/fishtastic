@@ -65,7 +65,7 @@ public class FishProfileCommand {
                     .withStyle(ChatFormatting.AQUA), false);
             for (FishProfile.BiomeWeight bw : profile.biomeWeights()) {
                 source.sendSuccess(() -> Component.literal(
-                        String.format("    %-40s  %.2fx", bw.biome().location(), bw.multiplier()))
+                        String.format("    %-40s  %.2fx", bw.describe(), bw.multiplier()))
                         .withStyle(ChatFormatting.GRAY), false);
             }
         }

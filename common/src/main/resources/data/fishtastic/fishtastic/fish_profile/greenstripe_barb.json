@@ -1,9 +1,11 @@
 {
-  "base_weight": 13,
+  "base_weight": 40,
   "size": { "mean": 25.0, "std_dev": 6.0 },
-  "zones": ["river"],
+  "zones": [
+    "river"
+  ],
   "biome_weights": [
-    { "biome": "minecraft:is_jungle", "multiplier": 1.5 }
+    { "biome": "#minecraft:is_jungle", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:sprinter"
 }

@@ -1,7 +1,9 @@
 {
-  "base_weight": 16,
+  "base_weight": 50,
   "size": { "mean": 25.0, "std_dev": 5.0 },
-  "zones": ["ocean"],
+  "zones": [
+    "ocean"
+  ],
   "temperament": "fishtastic:docile",
   "swarm": {
     "count": 6,

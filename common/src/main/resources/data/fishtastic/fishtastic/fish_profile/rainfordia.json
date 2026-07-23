@@ -3,7 +3,7 @@
   "size": { "mean": 50.0, "std_dev": 15.0 },
   "zones": ["river"],
   "biome_weights": [
-    { "biome": "minecraft:is_jungle", "multiplier": 2.0 }
+    { "biome": "#minecraft:is_jungle", "multiplier": 2.0 }
   ],
   "weather_weights": [
     { "weather": "rain", "multiplier": 2.0 }

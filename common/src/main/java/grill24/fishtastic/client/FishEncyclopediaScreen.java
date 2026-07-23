@@ -545,7 +545,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         boolean any = false;
         any |= addAxisRows(content, profile.biomeWeights(), FishProfile.BiomeWeight::tier, FishProfile.BiomeWeight::multiplier,
-                bw -> Utility.prettyName(bw.biome().location().getPath()), FishEncyclopediaScreen::isBiomeWeightMet);
+                bw -> Utility.prettyName(bw.pathDisplay()), FishEncyclopediaScreen::isBiomeWeightMet);
         any |= addAxisRows(content, profile.timeWeights(), FishProfile.TimeWeight::tier, FishProfile.TimeWeight::multiplier,
                 tw -> Utility.prettyName(tw.time().name()), FishEncyclopediaScreen::isTimeWeightMet);
         any |= addAxisRows(content, profile.weatherWeights(), FishProfile.WeatherWeight::tier, FishProfile.WeatherWeight::multiplier,
@@ -621,7 +621,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static boolean isBiomeWeightMet(FishProfile.BiomeWeight bw) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return false;
-        return mc.level.getBiome(mc.player.blockPosition()).is(bw.biome());
+        return bw.biome().contains(mc.level.getBiome(mc.player.blockPosition()));
     }
 
     private static boolean isTimeWeightMet(FishProfile.TimeWeight tw) {

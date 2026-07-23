@@ -1,9 +1,11 @@
 {
-  "base_weight": 10,
+  "base_weight": 15,
   "size": { "mean": 40.0, "std_dev": 10.0 },
-  "zones": ["ocean"],
+  "zones": [
+    "ocean"
+  ],
   "biome_weights": [
-    { "biome": "fishtastic:is_mushroom", "multiplier": 1.5 }
+    { "biome": "#fishtastic:is_mushroom", "multiplier": 1.5 }
   ],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
@@ -20,6 +22,6 @@
     "count": 5,
     "depth_layers": 3,
     "xz_spread": 0.28,
-    "y_range": 0.0
+    "y_range": 0
   }
 }

@@ -69,6 +69,11 @@ public final class FishtasticNeoForge {
         FishtasticParticleTypes.registerParticleTypes();
         FishtasticRegistriesNeoForge.PARTICLE_TYPES.register(modEventBus);
 
+        grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
+        FishtasticRegistriesNeoForge.RECIPE_SERIALIZERS.register(modEventBus);
+
+        grill24.fishtastic.FishtasticDispenseBehaviors.registerDispenseBehaviors();
+
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
 

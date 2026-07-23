@@ -1,7 +1,0 @@
-{
-  "variants": {
-    "phase=empty": { "model": "fishtastic:block/worm_bin_empty" },
-    "phase=converting": { "model": "fishtastic:block/worm_bin_converting" },
-    "phase=ready": { "model": "fishtastic:block/worm_bin_ready" }
-  }
-}

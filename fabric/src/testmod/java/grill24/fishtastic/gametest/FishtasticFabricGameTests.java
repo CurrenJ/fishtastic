@@ -19,77 +19,57 @@ import net.minecraft.gametest.framework.GameTestHelper;
 public class FishtasticFabricGameTests {
 
     // -------------------------------------------------------------------------
-    // Worm Bin tests  (max 6100 ticks — conversion takes up to 6000)
+    // Marine Compost tests  (max 6100 ticks — conversion takes up to 6000)
     // -------------------------------------------------------------------------
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void wormBinStartsEmpty(GameTestHelper helper) {
-        WormBinGameTests.wormBinStartsEmpty(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void depositFishAddsToList(GameTestHelper helper) {
-        WormBinGameTests.depositFishAddsToList(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void depositCapAtFive(GameTestHelper helper) {
-        WormBinGameTests.depositCapAtFive(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void aerationCapAtFive(GameTestHelper helper) {
-        WormBinGameTests.aerationCapAtFive(helper);
+        MarineCompostGameTests.aerationCapAtFive(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
     public void conversionTakesBaseTicks(GameTestHelper helper) {
-        WormBinGameTests.conversionTakesBaseTicks(helper);
+        MarineCompostGameTests.conversionTakesBaseTicks(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 5000)
     public void aerationReducesConversionTime(GameTestHelper helper) {
-        WormBinGameTests.aerationReducesConversionTime(helper);
+        MarineCompostGameTests.aerationReducesConversionTime(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
     public void commonFishYield(GameTestHelper helper) {
-        WormBinGameTests.commonFishYield(helper);
+        MarineCompostGameTests.commonFishYield(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    public void rareFishYield(GameTestHelper helper) {
+        MarineCompostGameTests.rareFishYield(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
     public void legendaryFishYield(GameTestHelper helper) {
-        WormBinGameTests.legendaryFishYield(helper);
+        MarineCompostGameTests.legendaryFishYield(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 5000)
     public void aerationAddsToYield(GameTestHelper helper) {
-        WormBinGameTests.aerationAddsToYield(helper);
+        MarineCompostGameTests.aerationAddsToYield(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
-    public void mixedQualityYield(GameTestHelper helper) {
-        WormBinGameTests.mixedQualityYield(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
-    public void harvestResetsToEmpty(GameTestHelper helper) {
-        WormBinGameTests.harvestResetsToEmpty(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void depositedFishListRetainsOrder(GameTestHelper helper) {
-        WormBinGameTests.depositedFishListRetainsOrder(helper);
+    public void noQualityDefaultsToCommonYield(GameTestHelper helper) {
+        MarineCompostGameTests.noQualityDefaultsToCommonYield(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void aerationCooldownBlocksTooEarlyAttempt(GameTestHelper helper) {
-        WormBinGameTests.aerationCooldownBlocksTooEarlyAttempt(helper);
+        MarineCompostGameTests.aerationCooldownBlocksTooEarlyAttempt(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void aerationCooldownAllowsAfterCooldown(GameTestHelper helper) {
-        WormBinGameTests.aerationCooldownAllowsAfterCooldown(helper);
+        MarineCompostGameTests.aerationCooldownAllowsAfterCooldown(helper);
     }
 
     // -------------------------------------------------------------------------

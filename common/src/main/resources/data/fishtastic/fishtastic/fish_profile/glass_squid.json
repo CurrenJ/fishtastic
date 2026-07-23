@@ -1,7 +1,9 @@
 {
-  "base_weight": 5,
+  "base_weight": 4,
   "size": { "mean": 40.0, "std_dev": 12.0 },
-  "zones": ["deep_ocean"],
+  "zones": [
+    "deep_ocean"
+  ],
   "time_weights": [
     { "time": "night", "multiplier": 2.0 },
     { "time": "dusk", "multiplier": 1.5 }
@@ -12,5 +14,7 @@
     { "phase": "waning_gibbous", "multiplier": 1.1, "tier": "secondary" }
   ],
   "temperament": "fishtastic:ghost",
-  "animation": { "mode": "upright_float" }
+  "animation": {
+    "mode": "upright_float"
+  }
 }

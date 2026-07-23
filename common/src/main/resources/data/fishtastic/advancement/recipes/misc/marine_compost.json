@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "fishtastic:worm_bin"
+        "recipe": "fishtastic:marine_compost"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -26,7 +26,7 @@
   ],
   "rewards": {
     "recipes": [
-      "fishtastic:worm_bin"
+      "fishtastic:marine_compost"
     ]
   }
 }

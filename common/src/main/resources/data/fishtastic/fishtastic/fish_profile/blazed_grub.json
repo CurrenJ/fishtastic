@@ -1,12 +1,8 @@
 {
-  "base_weight": 5,
+  "base_weight": 100,
   "size": { "mean": 30.0, "std_dev": 10.0 },
-  "zones": ["nether"],
-  "time_weights": [
-    { "time": "night", "multiplier": 2.0 }
-  ],
-  "weather_weights": [
-    { "weather": "thunder", "multiplier": 2.0 }
+  "zones": [
+    "nether"
   ],
   "temperament": "fishtastic:erratic"
 }

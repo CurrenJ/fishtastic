@@ -1,12 +1,15 @@
 {
-  "base_weight": 20,
+  "base_weight": 75,
   "size": { "mean": 30.0, "std_dev": 8.0 },
-  "zones": ["river", "high_altitude"],
+  "zones": [
+    "river",
+    "high_altitude"
+  ],
   "biome_weights": [
-    { "biome": "fishtastic:is_cherry_grove", "multiplier": 1.5 }
+    { "biome": "#fishtastic:is_cherry_grove", "multiplier": 1.5 }
   ],
   "time_weights": [
-    { "time": "day", "multiplier": 2.0 },
+    { "time": "day", "multiplier": 1.5 },
     { "time": "night", "multiplier": 0.5 }
   ],
   "temperament": "fishtastic:docile"

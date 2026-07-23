@@ -1,6 +1,8 @@
 {
-  "base_weight": 12,
+  "base_weight": 30,
   "size": { "mean": 20.0, "std_dev": 4.0 },
-  "zones": ["ocean"],
+  "zones": [
+    "ocean"
+  ],
   "temperament": "fishtastic:skittish"
 }

@@ -21,6 +21,8 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -84,6 +86,14 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(String name, MenuFactory<M> factory) {
         return FishtasticRegistriesNeoForge.MENU_TYPES.register(name, loc -> new MenuType<>(factory::create, FeatureFlags.VANILLA_SET));
+    }
+
+    @Override
+    public <T extends Recipe<?>> Holder<RecipeSerializer<?>> registerRecipeSerializer(String name, Supplier<RecipeSerializer<T>> supplier) {
+        @SuppressWarnings("unchecked")
+        Holder<RecipeSerializer<?>> holder = (Holder<RecipeSerializer<?>>) (Holder<?>)
+                FishtasticRegistriesNeoForge.RECIPE_SERIALIZERS.register(name, supplier::get);
+        return holder;
     }
 
     @Override

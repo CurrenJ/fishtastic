@@ -1,18 +1,8 @@
 {
   "base_weight": 2,
   "size": { "mean": 55.0, "std_dev": 10.0 },
-  "zones": ["nether"],
-  "time_weights": [
-    { "time": "night", "multiplier": 1.5 }
-  ],
-  "weather_weights": [
-    { "weather": "thunder", "multiplier": 2.0 },
-    { "weather": "clear", "multiplier": 0.4 }
-  ],
-  "moon_weights": [
-    { "phase": "full_moon", "multiplier": 3.0 },
-    { "phase": "waxing_gibbous", "multiplier": 1.5 },
-    { "phase": "waning_gibbous", "multiplier": 1.5 }
+  "zones": [
+    "nether"
   ],
   "temperament": "fishtastic:erratic"
 }

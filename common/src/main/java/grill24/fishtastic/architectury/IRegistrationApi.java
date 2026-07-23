@@ -14,6 +14,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -33,6 +35,7 @@ public interface IRegistrationApi {
     Holder<SoundEvent> registerSoundEvent(final String name);
     Holder<SimpleParticleType> registerParticleType(final String name);
     <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(final String name, final MenuFactory<M> factory);
+    <T extends Recipe<?>> Holder<RecipeSerializer<?>> registerRecipeSerializer(final String name, final Supplier<RecipeSerializer<T>> supplier);
 
     /** Stand-in for {@code MenuType.MenuSupplier}, which is package-private. */
     @FunctionalInterface

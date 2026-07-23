@@ -4,11 +4,5 @@
   "zones": [
     "nether"
   ],
-  "time_weights": [
-    { "time": "day", "multiplier": 2.0 }
-  ],
-  "weather_weights": [
-    { "weather": "clear", "multiplier": 1.5 }
-  ],
   "temperament": "fishtastic:docile"
 }

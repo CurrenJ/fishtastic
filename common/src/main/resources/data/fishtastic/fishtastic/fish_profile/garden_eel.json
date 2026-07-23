@@ -1,7 +1,9 @@
 {
-  "base_weight": 10,
+  "base_weight": 20,
   "size": { "mean": 35.0, "std_dev": 10.0 },
-  "zones": ["ocean"],
+  "zones": [
+    "ocean"
+  ],
   "time_weights": [
     { "time": "day", "multiplier": 1.8 }
   ],
@@ -13,7 +15,7 @@
     "count": 5,
     "depth_layers": 3,
     "xz_spread": 0.28,
-    "y_range": 0.0,
-    "rotation_jitter": 0.0
+    "y_range": 0,
+    "rotation_jitter": 0
   }
 }

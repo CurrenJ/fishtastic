@@ -1,13 +1,18 @@
 {
-  "base_weight": 8,
+  "base_weight": 3,
   "size": { "mean": 28.0, "std_dev": 6.0 },
-  "zones": ["cave"],
+  "zones": [
+    "cave"
+  ],
   "biome_weights": [
-    { "biome": "fishtastic:is_lush_caves", "multiplier": 1.5 }
+    { "biome": "#fishtastic:is_lush_caves", "multiplier": 1.5 }
   ],
   "time_weights": [
     { "time": "night", "multiplier": 1.5 },
-    { "time": "day", "multiplier": 0.6 }
+    { "time": "day", "multiplier": 0.1 }
   ],
-  "temperament": "fishtastic:skittish"
+  "temperament": "fishtastic:skittish",
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 1.5 }
+  ]
 }

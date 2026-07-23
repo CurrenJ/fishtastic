@@ -53,6 +53,8 @@ public final class FishtasticFabric implements ModInitializer {
         FishtasticCreativeTabs.registerCreativeTabs();
         FishtasticSounds.registerSounds();
         FishtasticParticleTypes.registerParticleTypes();
+        grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
+        grill24.fishtastic.FishtasticDispenseBehaviors.registerDispenseBehaviors();
 
         // Register network packets (server-side)
         FabricPacketRegistrar.registerServerReceiver();

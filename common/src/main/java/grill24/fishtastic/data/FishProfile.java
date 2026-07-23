@@ -6,10 +6,11 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBiomeTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.MoonPhase;
@@ -24,6 +25,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 public record FishProfile(
         int baseWeight,
@@ -118,12 +120,38 @@ public record FishProfile(
         }
     }
 
-    public record BiomeWeight(TagKey<Biome> biome, float multiplier, ConditionTier tier) {
+    /**
+     * {@code biome} accepts either a tag reference ({@code "#namespace:tag"}) or one or more
+     * direct biome ids ({@code "namespace:biome"} or a list of them) via
+     * {@link RegistryCodecs#homogeneousList}, so an author can target a single specific biome
+     * without needing a dedicated tag file for it.
+     */
+    public record BiomeWeight(HolderSet<Biome> biome, float multiplier, ConditionTier tier) {
         public static final Codec<BiomeWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
-                TagKey.codec(Registries.BIOME).fieldOf("biome").forGetter(BiomeWeight::biome),
+                RegistryCodecs.homogeneousList(Registries.BIOME).fieldOf("biome").forGetter(BiomeWeight::biome),
                 Codec.FLOAT.fieldOf("multiplier").forGetter(BiomeWeight::multiplier),
                 ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(BiomeWeight::tier)
         ).apply(i, BiomeWeight::new));
+
+        /** Full descriptor for debug output: {@code "#namespace:tag"} or comma-joined direct ids. */
+        public String describe() {
+            return biome.unwrap().map(
+                    tag -> "#" + tag.location(),
+                    list -> list.stream()
+                            .map(h -> h.unwrapKey().map(k -> k.identifier().toString()).orElse("?"))
+                            .collect(Collectors.joining(", "))
+            );
+        }
+
+        /** Path-only display (no namespace/#) for prettified UI labels. */
+        public String pathDisplay() {
+            return biome.unwrap().map(
+                    tag -> tag.location().getPath(),
+                    list -> list.stream()
+                            .map(h -> h.unwrapKey().map(k -> k.identifier().getPath()).orElse("?"))
+                            .collect(Collectors.joining(", "))
+            );
+        }
     }
 
     public record TimeWeight(TimeOfDay time, float multiplier, ConditionTier tier) {
@@ -221,7 +249,7 @@ public record FishProfile(
         boolean moonVisible = timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR;
 
         float primaryProduct = 1.0f;
-        primaryProduct *= firstMatch(biomeWeights, ConditionTier.PRIMARY, BiomeWeight::tier, bw -> biome.is(bw.biome()), BiomeWeight::multiplier);
+        primaryProduct *= firstMatch(biomeWeights, ConditionTier.PRIMARY, BiomeWeight::tier, bw -> bw.biome().contains(biome), BiomeWeight::multiplier);
         primaryProduct *= firstMatch(timeWeights, ConditionTier.PRIMARY, TimeWeight::tier, tw -> tw.time() == timeOfDay, TimeWeight::multiplier);
         primaryProduct *= firstMatch(weatherWeights, ConditionTier.PRIMARY, WeatherWeight::tier, ww -> ww.weather() == weather, WeatherWeight::multiplier);
         if (moonVisible) {
@@ -229,7 +257,7 @@ public record FishProfile(
         }
 
         float secondaryBonus = 0.0f;
-        secondaryBonus += firstMatch(biomeWeights, ConditionTier.SECONDARY, BiomeWeight::tier, bw -> biome.is(bw.biome()), BiomeWeight::multiplier) - 1.0f;
+        secondaryBonus += firstMatch(biomeWeights, ConditionTier.SECONDARY, BiomeWeight::tier, bw -> bw.biome().contains(biome), BiomeWeight::multiplier) - 1.0f;
         secondaryBonus += firstMatch(timeWeights, ConditionTier.SECONDARY, TimeWeight::tier, tw -> tw.time() == timeOfDay, TimeWeight::multiplier) - 1.0f;
         secondaryBonus += firstMatch(weatherWeights, ConditionTier.SECONDARY, WeatherWeight::tier, ww -> ww.weather() == weather, WeatherWeight::multiplier) - 1.0f;
         if (moonVisible) {

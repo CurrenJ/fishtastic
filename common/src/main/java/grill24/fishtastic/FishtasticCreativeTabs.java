@@ -77,7 +77,7 @@ public class FishtasticCreativeTabs {
 
                     // Fish tank
                     output.accept(FishtasticBlocks.FISH_TANK.value());
-                    output.accept(FishtasticBlocks.WORM_BIN.value());
+                    output.accept(FishtasticBlocks.MARINE_COMPOST.value());
 
                     // Undyed glass
                     output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());

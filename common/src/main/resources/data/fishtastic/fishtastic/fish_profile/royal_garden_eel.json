@@ -3,7 +3,7 @@
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "zones": ["ocean", "cave"],
   "biome_weights": [
-    { "biome": "fishtastic:is_lush_caves", "multiplier": 2.0 }
+    { "biome": "#fishtastic:is_lush_caves", "multiplier": 2.0 }
   ],
   "time_weights": [
     { "time": "dawn", "multiplier": 2.0 },

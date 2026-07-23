@@ -3,7 +3,7 @@
   "size": { "mean": 45.0, "std_dev": 10.0 },
   "zones": ["high_altitude"],
   "biome_weights": [
-    { "biome": "fishtastic:is_snowy_peaks", "multiplier": 2.0 }
+    { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 2.0 }
   ],
   "weather_weights": [
     { "weather": "snow", "multiplier": 1.8 }

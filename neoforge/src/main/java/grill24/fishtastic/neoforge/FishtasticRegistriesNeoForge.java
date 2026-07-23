@@ -11,6 +11,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -28,6 +29,7 @@ public class FishtasticRegistriesNeoForge {
     public static DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, Fishtastic.MOD_ID);
     public static DeferredRegister<ParticleType<?>> PARTICLE_TYPES = DeferredRegister.create(Registries.PARTICLE_TYPE, Fishtastic.MOD_ID);
     public static DeferredRegister<MenuType<?>> MENU_TYPES = DeferredRegister.create(Registries.MENU, Fishtastic.MOD_ID);
+    public static DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, Fishtastic.MOD_ID);
 
     public static final DefaultedRegistry<FishTankFrameType> FISH_TANK_FRAME_TYPE_REGISTRY = (DefaultedRegistry<FishTankFrameType>) new RegistryBuilder<>(FishtasticRegistries.FISH_TANK_FRAME_TYPE_REGISTRY_KEY).defaultKey(ft("oak")).sync(false).create();
 

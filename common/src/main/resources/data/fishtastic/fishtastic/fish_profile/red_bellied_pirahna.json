@@ -1,14 +1,22 @@
 {
-  "base_weight": 9,
+  "base_weight": 4,
   "size": { "mean": 25.0, "std_dev": 6.0 },
-  "zones": ["river"],
+  "zones": [
+    "river"
+  ],
   "biome_weights": [
-    { "biome": "minecraft:is_jungle", "multiplier": 1.8 }
+    { "biome": "#minecraft:is_jungle", "multiplier": 1.8 }
   ],
   "time_weights": [
     { "time": "dusk", "multiplier": 1.8 },
     { "time": "day", "multiplier": 1.3 }
   ],
   "temperament": "fishtastic:aggressive",
-  "swarm": { "count": 5, "depth_layers": 3, "xz_spread": 0.24, "y_range": 0.2, "rotation_jitter": 5 }
+  "swarm": {
+    "count": 5,
+    "depth_layers": 3,
+    "xz_spread": 0.24,
+    "y_range": 0.2,
+    "rotation_jitter": 5
+  }
 }
