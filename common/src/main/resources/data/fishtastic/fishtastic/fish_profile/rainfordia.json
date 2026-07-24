@@ -1,7 +1,9 @@
 {
   "base_weight": 5,
-  "size": { "mean": 50.0, "std_dev": 15.0 },
-  "zones": ["river"],
+  "size": { "mean": 25.0, "std_dev": 6.0 },
+  "zones": [
+    "river"
+  ],
   "biome_weights": [
     { "biome": "#minecraft:is_jungle", "multiplier": 2.0 }
   ],
