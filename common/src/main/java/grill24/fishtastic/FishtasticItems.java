@@ -42,6 +42,15 @@ public class FishtasticItems {
     public static Holder<Item> GENERIC_FISH;
     public static Holder<Item> REWARD_CHEST;
 
+    // Zone icons for the fishing minigame HUD (top-right of the bar) — one per FishProfile.Zone.
+    // Textures are placeholders pending dedicated art; see FishtasticModelProvider.
+    public static Holder<Item> FISHING_MINIGAME_ZONE_OCEAN;
+    public static Holder<Item> FISHING_MINIGAME_ZONE_DEEP_OCEAN;
+    public static Holder<Item> FISHING_MINIGAME_ZONE_RIVER;
+    public static Holder<Item> FISHING_MINIGAME_ZONE_NETHER;
+    public static Holder<Item> FISHING_MINIGAME_ZONE_CAVE;
+    public static Holder<Item> FISHING_MINIGAME_ZONE_HIGH_ALTITUDE;
+
     // ----- Debug Tools -----
     public static Holder<Item> COSMETIC_CAPTURE_WAND;
 
@@ -156,6 +165,12 @@ public class FishtasticItems {
 
         FISHING_MINIGAME_ROD_BACKGROUND = RegistrationApiSided.getInstance().registerItem("fishing_minigame_rod_background", loc -> new TestItem(props(loc).stacksTo(1)));
         FISHING_MINIGAME_BOBBER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_bobber", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_OCEAN = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_ocean", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_DEEP_OCEAN = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_deep_ocean", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_RIVER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_river", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_NETHER = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_nether", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_CAVE = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_cave", loc -> new TestItem(props(loc).stacksTo(1)));
+        FISHING_MINIGAME_ZONE_HIGH_ALTITUDE = RegistrationApiSided.getInstance().registerItem("fishing_minigame_zone_high_altitude", loc -> new TestItem(props(loc).stacksTo(1)));
         SPARKLE = RegistrationApiSided.getInstance().registerItem("sparkle", loc -> new Item(props(loc).stacksTo(1)));
         GENERIC_FISH = RegistrationApiSided.getInstance().registerItem("generic_fish", loc -> new FishtasticFishItem(props(loc)));
         REWARD_CHEST = RegistrationApiSided.getInstance().registerItem("reward_chest", loc -> new Item(props(loc).stacksTo(1)));

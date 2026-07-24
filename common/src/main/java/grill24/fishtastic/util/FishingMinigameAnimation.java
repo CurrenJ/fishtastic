@@ -8,10 +8,13 @@ import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.FishProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -21,8 +24,12 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
@@ -63,6 +70,22 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     @Nullable private ItemStack equippedBaitStack = null;
     @Nullable private ItemStack equippedHookStack = null;
     @Nullable private ItemStack equippedCharmStack = null;
+
+    // Zone(s) the current cast resolved to (server-computed, see FishProfile.Zone#resolve),
+    // rendered as a small icon stack tucked against the bar's top-right corner — the mirror image
+    // of the equipped-gear column on the left. Usually one zone, occasionally two (e.g. a mountain
+    // river is both RIVER and HIGH_ALTITUDE at once).
+    @Nullable private Set<FishProfile.Zone> currentZones = null;
+
+    private static final Map<FishProfile.Zone, java.util.function.Supplier<Holder<Item>>> ZONE_ICONS = new EnumMap<>(FishProfile.Zone.class);
+    static {
+        ZONE_ICONS.put(FishProfile.Zone.OCEAN, () -> FishtasticItems.FISHING_MINIGAME_ZONE_OCEAN);
+        ZONE_ICONS.put(FishProfile.Zone.DEEP_OCEAN, () -> FishtasticItems.FISHING_MINIGAME_ZONE_DEEP_OCEAN);
+        ZONE_ICONS.put(FishProfile.Zone.RIVER, () -> FishtasticItems.FISHING_MINIGAME_ZONE_RIVER);
+        ZONE_ICONS.put(FishProfile.Zone.NETHER, () -> FishtasticItems.FISHING_MINIGAME_ZONE_NETHER);
+        ZONE_ICONS.put(FishProfile.Zone.CAVE, () -> FishtasticItems.FISHING_MINIGAME_ZONE_CAVE);
+        ZONE_ICONS.put(FishProfile.Zone.HIGH_ALTITUDE, () -> FishtasticItems.FISHING_MINIGAME_ZONE_HIGH_ALTITUDE);
+    }
 
     private static final int SIDE_PANEL_ICON_SIZE = 24;
     private static final int SIDE_PANEL_MARGIN = 48;
@@ -254,6 +277,15 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     /**
+     * Called once at minigame start with the server-resolved zone(s) for the current cast
+     * location. Copied into an EnumSet so the icon stack renders in a stable, deterministic order
+     * (natural Zone declaration order) regardless of the incoming set's iteration order.
+     */
+    public void setCurrentZones(@Nullable Set<FishProfile.Zone> zones) {
+        this.currentZones = (zones == null || zones.isEmpty()) ? null : EnumSet.copyOf(zones);
+    }
+
+    /**
      * Applies an upward impulse to the bobber (player interaction)
      * Does nothing if the minigame is hiding or in intro animation.
      */
@@ -341,6 +373,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // the bar's own intro/hide motion, not relative to its momentarily-offset position.
         renderAlmanacPreview(guiGraphics, partialTick, screenWidth, screenHeight);
         renderEquippedGear(guiGraphics, partialTick, x, y, screenHeight);
+        renderZoneIcons(guiGraphics, partialTick, x, y, screenHeight);
     }
 
     /**
@@ -451,6 +484,44 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
             renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY);
         }
+    }
+
+    /**
+     * Renders the current cast location's zone(s) as a small icon stack just outside the fishing
+     * bar's top-right corner — the mirror image of {@link #renderEquippedGear} on the left. Plain
+     * itemstack icons (no silhouette), same slide-in/out treatment as the gear column but sliding
+     * from the top edge on the opposite side, so the two readouts book-end the bar.
+     */
+    private void renderZoneIcons(GuiGraphicsExtractor guiGraphics, float partialTick, int x, int y, int screenHeight) {
+        if (currentZones == null) return;
+
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        Vector2f barTopRight = barContentTopRight(x, y, screenHeight);
+        float slotX = barTopRight.x() + GEAR_PANEL_GAP + GEAR_ICON_SIZE / 2f;
+        float slotYTop = barTopRight.y() + GEAR_ICON_SIZE / 2f;
+        float stackGap = GEAR_ICON_SIZE + GEAR_ICON_GAP;
+
+        int index = 0;
+        for (FishProfile.Zone zone : currentZones) {
+            var iconSupplier = ZONE_ICONS.get(zone);
+            if (iconSupplier == null) continue;
+            Holder<Item> icon = iconSupplier.get();
+            if (icon == null) continue;
+
+            float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * index) * screenHeight;
+            renderGearIcon(extension, guiGraphics, new ItemStack(icon), slotX, slotYTop + stackGap * index + slideY);
+            index++;
+        }
+    }
+
+    /** Mirror of {@link #barContentTopLeft} — top-right corner of the bar's visible content. */
+    private static Vector2f barContentTopRight(int x, int y, int screenHeight) {
+        float scale = 2 * screenHeight / 3f;
+        GuiTextureItem bar = LAYOUT.bar();
+        float barWidthPx = (bar.uw() / (float) bar.texWidth()) * scale;
+        float barHeightPx = (bar.vh() / (float) bar.texHeight()) * scale;
+        return new Vector2f(x + barWidthPx / 2f, y - barHeightPx / 2f);
     }
 
     /**

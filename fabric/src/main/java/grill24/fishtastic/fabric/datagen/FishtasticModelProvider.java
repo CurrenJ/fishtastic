@@ -76,6 +76,15 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND.value(), Fishtastic.id("item/fishing_bar"));
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_BOBBER.value(), Fishtastic.id("item/fishing_bobber"));
 
+        // Zone HUD icons — textures don't exist yet (hand-drawn art pending); these will render
+        // as the standard missing-texture placeholder until item/zone/<name>.png is added.
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_OCEAN.value(), Fishtastic.id("item/zone/ocean"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_DEEP_OCEAN.value(), Fishtastic.id("item/zone/deep_ocean"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_RIVER.value(), Fishtastic.id("item/zone/river"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_NETHER.value(), Fishtastic.id("item/zone/nether"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_CAVE.value(), Fishtastic.id("item/zone/cave"));
+        generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_HIGH_ALTITUDE.value(), Fishtastic.id("item/zone/high_altitude"));
+
         // Standard flat items
         itemModelGenerators.generateFlatItem(FishtasticItems.SPARKLE.value(), ModelTemplates.FLAT_ITEM);
         itemModelGenerators.generateFlatItem(FishtasticItems.REWARD_CHEST.value(), ModelTemplates.FLAT_ITEM);

@@ -1,6 +1,7 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -9,6 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Sent from server to client to start a fishing minigame session.
@@ -18,7 +20,8 @@ public record StartFishingMinigamePacket(
         int sessionId,
         List<TargetData> targets,
         boolean isTutorial,
-        ItemStack topWeightedFishPreview
+        ItemStack topWeightedFishPreview,
+        Set<FishProfile.Zone> zones
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
@@ -33,6 +36,11 @@ public record StartFishingMinigamePacket(
             StartFishingMinigamePacket::isTutorial,
             ItemStack.OPTIONAL_STREAM_CODEC,
             StartFishingMinigamePacket::topWeightedFishPreview,
+            ByteBufCodecs.INT.map(
+                    i -> FishProfile.Zone.values()[i],
+                    Enum::ordinal
+            ).apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
+            StartFishingMinigamePacket::zones,
             StartFishingMinigamePacket::new
     );
 

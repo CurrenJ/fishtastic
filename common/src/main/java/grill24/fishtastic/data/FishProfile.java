@@ -201,8 +201,11 @@ public record FishProfile(
          * commonly sit below {@code seaLevel - BAND_OFFSET} on their own — that's still ocean
          * fishing, not a cave. Explicit cave biomes (lush caves, dripstone caves, deep dark) always
          * grant CAVE regardless of Y, since those biomes can generate above the Y-band cutoff.
-         * Nether is checked unconditionally first since {@code level.getSeaLevel()} isn't
-         * meaningful in that dimension, and it never combines with any other zone.
+         * Peak biomes (jagged peaks, frozen peaks, snowy slopes, grove — the {@code is_snowy_peaks}
+         * tag) likewise always grant HIGH_ALTITUDE regardless of Y, since plateaus and passes on
+         * those biomes commonly sit below the y+30 cutoff despite being unambiguously "the
+         * mountains." Nether is checked unconditionally first since {@code level.getSeaLevel()}
+         * isn't meaningful in that dimension, and it never combines with any other zone.
          * <p>
          * {@code minecraft:is_deep_ocean} is a subset of {@code minecraft:is_ocean} in vanilla —
          * every deep ocean biome is also a regular ocean biome — so both are added independently
@@ -224,6 +227,7 @@ public record FishProfile(
                 if (y > seaLevel + BAND_OFFSET) zones.add(HIGH_ALTITUDE);
             }
             if (biome.is(FishtasticBiomeTags.IS_CAVE_BIOME)) zones.add(CAVE);
+            if (biome.is(FishtasticBiomeTags.IS_SNOWY_PEAKS)) zones.add(HIGH_ALTITUDE);
 
             if (zones.isEmpty()) zones.add(RIVER);
             return zones;

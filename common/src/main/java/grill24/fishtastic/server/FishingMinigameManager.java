@@ -152,6 +152,7 @@ public class FishingMinigameManager {
                 ? FishProfile.TimeOfDay.NIGHT
                 : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
+        Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
                 sessionBiome, sessionTimeOfDay, sessionWeather);
@@ -168,7 +169,7 @@ public class FishingMinigameManager {
             ));
         }
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false, topWeightedFishPreview));
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false, topWeightedFishPreview, sessionZones));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -207,7 +208,8 @@ public class FishingMinigameManager {
                 level.getGameTime(), biome, timeOfDay, weather);
         activeSessions.put(playerId, session);
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, ItemStack.EMPTY));
+        Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, ItemStack.EMPTY, tutorialZones));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());

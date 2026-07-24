@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -88,7 +90,8 @@ public final class PacketRoundTripGameTests {
             List.of(phase)
         );
         ItemStack topWeightedFish = new ItemStack(FishtasticItems.ACUTE_IASPIS.value());
-        StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish);
+        Set<FishProfile.Zone> zones = Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.HIGH_ALTITUDE);
+        StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
@@ -98,6 +101,7 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.isTutorial() == original.isTutorial(), "isTutorial must round-trip");
         helper.assertTrue(decoded.targets().size() == 1, "targets list size must round-trip");
         assertStacksMatch(helper, topWeightedFish, decoded.topWeightedFishPreview(), "topWeightedFishPreview");
+        helper.assertTrue(decoded.zones().equals(original.zones()), "zones must round-trip");
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
         helper.assertTrue(decodedTarget.category() == target.category(), "TargetData.category must round-trip");
