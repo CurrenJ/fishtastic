@@ -1,0 +1,10 @@
+{
+  "lore": "A vividly patterned jungle river fish, rainfordia grows bold and active the moment rain starts falling, as if the storm itself wakes it up.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

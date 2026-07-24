@@ -1,0 +1,10 @@
+{
+  "lore": "With a leg span that can dwarf a diver, the Japanese spider crab picks its way across the deep ocean floor at night, patient and watchful, in no hurry at all.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

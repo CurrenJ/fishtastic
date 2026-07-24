@@ -1,0 +1,10 @@
+{
+  "lore": "A cold-blooded specialist of mountain lakes, the arctic char thrives where most fish would freeze solid, feeding hardest at dawn and dusk when the snow falls thickest around the peaks.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

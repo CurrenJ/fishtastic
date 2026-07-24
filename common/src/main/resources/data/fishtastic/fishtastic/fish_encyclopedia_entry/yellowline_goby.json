@@ -1,0 +1,10 @@
+{
+  "lore": "A small, high-strung reef fish with a single bright stripe down its flank, the yellowline goby darts for cover at the faintest disturbance and rarely strays far from a bolt-hole.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

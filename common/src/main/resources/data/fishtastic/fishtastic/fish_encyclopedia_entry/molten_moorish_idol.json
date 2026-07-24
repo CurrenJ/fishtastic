@@ -1,0 +1,10 @@
+{
+  "lore": "Legend among anglers holds that a moorish idol strayed too close to a lava vent and was reborn in flame, its fins glowing like embers that never cool. It surfaces only on the rarest nights, when a full moon somehow burns bright even through the Nether's haze -- most who fish for it a lifetime never see one.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

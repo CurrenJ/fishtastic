@@ -1,0 +1,10 @@
+{
+  "lore": "A tiny, brightly patterned sea slug barely bigger than a fingertip, trapania scurra clings to the same patch of reef for most of its short, unhurried life.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

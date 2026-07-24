@@ -1,0 +1,10 @@
+{
+  "lore": "Nobody quite agrees on whether the blazed grub is a fish that adapted to fire or a creature of fire that merely looks like one. Either way, it swarms the Nether's lava-warmed pools in numbers no other species there can match.",
+  "thresholds": {
+    "name_reveal_catches": 2,
+    "stats_catches": 3,
+    "types_catches": 10,
+    "spawn_conditions_catches": 4,
+    "lore_catches": 30
+  }
+}

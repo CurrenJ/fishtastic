@@ -1,0 +1,10 @@
+{
+  "lore": "Tiny and impossibly bright, a shoal of neon tetras lights up jungle rivers and lush caves alike like a scattering of blue-and-red sparks -- and scatters just as fast at the first sign of a shadow overhead.",
+  "thresholds": {
+    "name_reveal_catches": 2,
+    "stats_catches": 3,
+    "types_catches": 10,
+    "spawn_conditions_catches": 4,
+    "lore_catches": 30
+  }
+}

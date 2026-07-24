@@ -1,0 +1,10 @@
+{
+  "lore": "Small, unassuming, and everywhere at once, shrimp drift through ocean shallows in loose swarms -- easy pickings for nearly everything else in these waters, and about the most common catch an angler will ever land.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

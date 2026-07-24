@@ -1,0 +1,10 @@
+{
+  "lore": "An unbothered, easygoing fish found in slow rivers and high mountain lakes alike, the bluegill bites readily by day and rarely puts up much of a fight -- the reliable first catch for most anglers.",
+  "thresholds": {
+    "name_reveal_catches": 2,
+    "stats_catches": 3,
+    "types_catches": 10,
+    "spawn_conditions_catches": 4,
+    "lore_catches": 30
+  }
+}

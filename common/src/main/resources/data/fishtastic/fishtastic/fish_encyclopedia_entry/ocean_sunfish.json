@@ -1,0 +1,10 @@
+{
+  "lore": "The ocean sunfish is an enormous, drifting oddity that basks near the surface on calm sunny days -- and all but disappears the moment a storm rolls in, sinking back into the depths until the weather clears.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

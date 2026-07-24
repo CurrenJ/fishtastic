@@ -1,0 +1,10 @@
+{
+  "lore": "Flashes of impossible color dart between jungle roots and swamp shallows by day -- the betta is as territorial as it is beautiful, and prone to sudden fits of aggression toward its own reflection.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

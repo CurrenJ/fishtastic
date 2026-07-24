@@ -1,0 +1,10 @@
+{
+  "lore": "Slow, radially symmetrical, and utterly unbothered by anything, the starfish creeps across the ocean floor after dark, most often turning up near mushroom-choked shallows on the darkest nights.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

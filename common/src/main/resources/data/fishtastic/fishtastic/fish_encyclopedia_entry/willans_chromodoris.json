@@ -1,0 +1,10 @@
+{
+  "lore": "Another jewel-toned nudibranch of the open reef, willans chromodoris advertises its toxicity in bold color rather than hiding from it -- nothing much bothers to eat something so loudly poisonous.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

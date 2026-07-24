@@ -1,0 +1,10 @@
+{
+  "lore": "Striking black-and-yellow bands and a trailing dorsal fin make the moorish idol one of the ocean's most recognizable reef fish -- and one of the quickest to dart away the moment it's spotted.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "lore": "Round, soft-bodied, and almost weightless in the water, the flapjack octopus drifts through the deep ocean night like a ghost, folding its webbed arms into an umbrella shape when startled.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

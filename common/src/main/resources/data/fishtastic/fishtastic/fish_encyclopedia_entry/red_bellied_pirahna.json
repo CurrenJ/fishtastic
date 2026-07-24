@@ -1,0 +1,10 @@
+{
+  "lore": "Piranhas hunt in tight, coordinated shoals through jungle rivers, growing most aggressive as dusk falls -- a single one is cautious, but a whole shoal rarely hesitates.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

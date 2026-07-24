@@ -1,0 +1,10 @@
+{
+  "lore": "Somehow, impossibly, a shrimp thrives in the Nether's boiling pools -- already cooked by the very heat it swims in. No angler has worked out why it doesn't simply dissolve, and the shrimp, for its part, doesn't seem to mind.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "lore": "Nearly transparent but for the faint outline of its organs, the glass squid is almost invisible against the deep ocean dark, surfacing to hunt only as night falls and the moon's phase aligns.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

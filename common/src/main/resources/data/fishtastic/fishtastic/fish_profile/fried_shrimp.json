@@ -1,5 +1,5 @@
 {
-  "base_weight": 2,
+  "base_weight": 9,
   "size": { "mean": 25.0, "std_dev": 5.0 },
   "zones": [
     "nether"
