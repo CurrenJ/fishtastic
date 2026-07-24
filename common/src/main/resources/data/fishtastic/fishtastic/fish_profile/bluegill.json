@@ -2,8 +2,7 @@
   "base_weight": 75,
   "size": { "mean": 30.0, "std_dev": 8.0 },
   "zones": [
-    "river",
-    "high_altitude"
+    "river"
   ],
   "biome_weights": [
     { "biome": "#fishtastic:is_cherry_grove", "multiplier": 1.5 }

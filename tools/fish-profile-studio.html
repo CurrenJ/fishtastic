@@ -479,12 +479,12 @@ const MULT_CAP_EXEMPT = new Set(["molten_moorish_idol"]); // flagship exception
 const BAIT_PRESETS = {
   none:        { label: "None (bare hook)", luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 0.15, qualityBias: 0.0, exclusive: null, affinities: [] },
   worms:       { label: "Worms",            luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 1, modMult: 1.25, qualityBias: 0.0, exclusive: null, affinities: [] },
-  gummy_worms: { label: "Gummy Worms",      luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [], flatten: 0.7 },
+  gummy_worms: { label: "Gummy Worms",      luck: 0.0, treasure: 0.10,  trash: 0.05, targets: 0, modMult: 2.0,  qualityBias: 2.0, exclusive: null, affinities: [], flatten: 0.85 },
   blazed_grub: { label: "Blazed Grub",      luck: 0.0, treasure: 0.50,  trash: 0.0,  targets: 0, modMult: 1.0,  qualityBias: 0.5, exclusive: "fishtastic:exotic_fish", affinities: [], qualityScales: true },
   freshwater:  { label: "Small Fish Bait",  luck: 0.0, treasure: 0.05,  trash: 0.1,  targets: 1, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:small_fish", mult: 2.0, nonMult: 0.3, exp: 0.35 }] },
   ocean:       { label: "Calm Bait",        luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:calm_fish", mult: 2.0, nonMult: 0.3, exp: 0.4 }] },
-  predator:    { label: "Frenzy Bait",      luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 1.5, nonMult: 0.3, exp: 0.35 }] },
-  deep_sea:    { label: "Trophy Bait",      luck: 0.0, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 1.5, nonMult: 0.3, exp: 0.6 }] },
+  predator:    { label: "Frenzy Bait",      luck: 0.0, treasure: 0.10,  trash: 0.1,  targets: 0, modMult: 1.0,  qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:frenzy_fish", mult: 2.2, nonMult: 0.3, exp: 0.35 }] },
+  deep_sea:    { label: "Trophy Bait",      luck: 0.0, treasure: 0.15,  trash: 0.1,  targets: -1, modMult: 1.0, qualityBias: 0.25, exclusive: null, affinities: [{ group: "fishtastic:big_fish", mult: 2.2, nonMult: 0.3, exp: 0.45 }] },
   custom:      { label: "Custom…",          luck: 0.0, treasure: 0.167, trash: 0.12, targets: 0, modMult: 1.0,  qualityBias: 0.0, exclusive: null, affinities: [] },
 };
 // fixed categorical hue per bait (Base Weights tab lane preview) — blue/green are reserved

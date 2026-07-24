@@ -98,9 +98,18 @@ public class TutorialManager {
         }
     }
 
-    /** Call when CompleteQuestPacket handler grants quest rewards. */
+    /**
+     * Call when CompleteQuestPacket handler grants quest rewards. CompleteQuestPacket itself has
+     * no tutorial-step gate — a player can reach and click the claim button via a path that never
+     * sent the QUEST_INTRO->QUEST_CLAIM advance packet (e.g. opening the quest log some way other
+     * than the tracked keybind before that packet lands), claiming the quest while still on
+     * CATCH_RESULT or QUEST_INTRO. Since the quest is then permanently marked claimed, an exact
+     * QUEST_CLAIM match here would never fire again and softlock the tutorial. The claim is
+     * strictly stronger evidence of progress than either step it's meant to satisfy, so accept it
+     * at any point before SHOP_BROWSE rather than requiring the exact expected step.
+     */
     public static void onQuestClaimed(ServerPlayer player, Identifier questId) {
-        if (TUTORIAL_QUEST_ID.equals(questId) && getStep(player) == TutorialStep.QUEST_CLAIM) {
+        if (TUTORIAL_QUEST_ID.equals(questId) && getStep(player).ordinal() < TutorialStep.SHOP_BROWSE.ordinal()) {
             setStep(player, TutorialStep.SHOP_BROWSE);
         }
     }

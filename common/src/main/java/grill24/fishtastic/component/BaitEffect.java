@@ -96,13 +96,16 @@ public record BaitEffect(
     // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
     // Deliberately weaker on raw mod-fish weight than the specialist baits (Small Fish/Calm/
     // Frenzy/Trophy Bait), so it stays the generalist "biggest catch" tool rather than also
-    // being the best way to farm any one subset. rarityFlattening=0.7 is a mild, pool-wide
+    // being the best way to farm any one subset. rarityFlattening=0.85 is a mild, pool-wide
     // version of the specialist baits' per-group flattening — no single tag to target here,
     // so it takes the edge off the highest base_weight fish (bluegill/neon_tetra/blazed_grub)
-    // dominating the whole mod-fish pool without going as aggressive as the 0.35-0.4 used on
-    // the tighter, tag-scoped specialist pools.
+    // dominating the whole mod-fish pool without going as aggressive as the 0.35-0.45 used on
+    // the tighter, tag-scoped specialist pools. Kept soft (0.85, not the old 0.7) specifically
+    // so Gummy Worms doesn't out-flatten — and therefore out-perform — Trophy/Frenzy Bait on
+    // their own rare tag-mates; see FishtasticItems.TROPHY_BAIT/FRENZY_BAIT for the other side
+    // of that fix.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of(), 0.7f);
+            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of(), 0.85f);
 
     // Blazed Grub: treasure hunter + exotic fish only pool — already a focused specialist,
     // so it shouldn't also dodge trash on top of finding treasure and exotic fish.
