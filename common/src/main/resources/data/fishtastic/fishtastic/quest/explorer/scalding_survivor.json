@@ -1,0 +1,12 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:devils_hole_pupfish",
+    "target_count": 1,
+    "biome_condition": "minecraft:is_nether"
+  },
+  "reward": { "quest_tokens": 12, "items": [] },
+  "hidden": true,
+  "display_name": "Scalding Survivor",
+  "description": "Catch a Devil's Hole Pupfish in the Nether."
+}

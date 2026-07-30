@@ -128,7 +128,7 @@ public class FishingMinigameManager {
 
         int sessionId = sessionIdGenerator.incrementAndGet();
 
-        ItemStack rod = findCopperRod(player);
+        ItemStack rod = findFishtasticRod(player);
         ItemStack bait = CopperFishingRod.getBait(rod);
         BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
         ItemStack hookStack = CopperFishingRod.getHook(rod);
@@ -603,11 +603,11 @@ public class FishingMinigameManager {
         return rewardStacks;
     }
 
-    private static ItemStack findCopperRod(ServerPlayer player) {
-        if (player.getMainHandItem().is(FishtasticItems.COPPER_FISHING_ROD)) {
+    private static ItemStack findFishtasticRod(ServerPlayer player) {
+        if (player.getMainHandItem().is(FishtasticItemTags.FISHING_RODS)) {
             return player.getMainHandItem();
         }
-        if (player.getOffhandItem().is(FishtasticItems.COPPER_FISHING_ROD)) {
+        if (player.getOffhandItem().is(FishtasticItemTags.FISHING_RODS)) {
             return player.getOffhandItem();
         }
         return ItemStack.EMPTY;
@@ -615,7 +615,7 @@ public class FishingMinigameManager {
 
     /** @return a single copy of the bait item if this consumption emptied the stack, else EMPTY. */
     private static ItemStack consumeBait(ServerPlayer player) {
-        ItemStack rod = findCopperRod(player);
+        ItemStack rod = findFishtasticRod(player);
         if (rod.isEmpty()) return ItemStack.EMPTY;
         ItemStack bait = CopperFishingRod.getBait(rod);
         if (bait.isEmpty()) return ItemStack.EMPTY;
@@ -626,7 +626,7 @@ public class FishingMinigameManager {
     }
 
     private static void damageUpgrades(ServerPlayer player) {
-        ItemStack rod = findCopperRod(player);
+        ItemStack rod = findFishtasticRod(player);
         if (rod.isEmpty()) return;
 
         ItemStack hook = CopperFishingRod.getHook(rod);

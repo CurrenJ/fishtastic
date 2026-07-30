@@ -4,7 +4,7 @@
     "target_species_tag": "fishtastic:fish",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true,
-    "target_count": 28
+    "target_count": 32
   },
   "reward": { "quest_tokens": 100, "items": [] },
   "hidden": false,

@@ -1,0 +1,11 @@
+{
+  "base_weight": 12,
+  "size": { "mean": 28.0, "std_dev": 6.0 },
+  "zones": [
+    "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:warped_forest"], "multiplier": 1.8 }
+  ],
+  "temperament": "fishtastic:skittish"
+}

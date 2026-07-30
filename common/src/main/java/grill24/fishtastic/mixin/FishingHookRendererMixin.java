@@ -1,6 +1,6 @@
 package grill24.fishtastic.mixin;
 
-import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticItemTags;
 import net.minecraft.client.renderer.entity.FishingHookRenderer;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
@@ -18,9 +18,9 @@ public class FishingHookRendererMixin {
     @Inject(method = "getHoldingArm", at = @At("HEAD"), cancellable = true)
     private static void fishtastic$getHoldingArmForCopperRod(Player owner, CallbackInfoReturnable<HumanoidArm> cir) {
         ItemStack mainHand = owner.getMainHandItem();
-        if (mainHand.is(FishtasticItems.COPPER_FISHING_ROD)) {
+        if (mainHand.is(FishtasticItemTags.FISHING_RODS)) {
             cir.setReturnValue(owner.getMainArm());
-        } else if (owner.getOffhandItem().is(FishtasticItems.COPPER_FISHING_ROD)) {
+        } else if (owner.getOffhandItem().is(FishtasticItemTags.FISHING_RODS)) {
             cir.setReturnValue(owner.getMainArm().getOpposite());
         }
     }

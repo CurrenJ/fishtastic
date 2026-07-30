@@ -1,8 +1,11 @@
 {
-  "base_weight": 100,
+  "base_weight": 4,
   "size": { "mean": 30.0, "std_dev": 10.0 },
   "zones": [
     "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:basalt_deltas"], "multiplier": 1.8 }
   ],
   "temperament": "fishtastic:erratic"
 }

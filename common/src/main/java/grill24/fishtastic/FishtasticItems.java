@@ -10,6 +10,7 @@ import grill24.fishtastic.component.RodCharmContents;
 import grill24.fishtastic.component.RodHookContents;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.item.ObsidianFishingRod;
 import grill24.fishtastic.item.CosmeticCaptureWandItem;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -56,6 +57,7 @@ public class FishtasticItems {
 
     // ----- Fishing Rods -----
     public static Holder<Item> COPPER_FISHING_ROD;
+    public static Holder<Item> OBSIDIAN_FISHING_ROD;
 
     // ----- Fish Items -----
     public static Holder<Item> ACUTE_IASPIS;
@@ -132,11 +134,14 @@ public class FishtasticItems {
     public static Holder<Item> ARCTIC_CHAR;
     public static Holder<Item> BLIND_CAVEFISH;
     public static Holder<Item> BLUEGILL;
+    public static Holder<Item> DEVILS_HOLE_PUPFISH;
+    public static Holder<Item> DISCUS;
     public static Holder<Item> FLAPJACK_OCTOPUS;
     public static Holder<Item> FRIED_SHRIMP;
     public static Holder<Item> FROZEN_GIANT_MANTA_RAY;
     public static Holder<Item> GARDEN_EEL;
     public static Holder<Item> GIANT_MANTA_RAY;
+    public static Holder<Item> GIRAFFE_CICHLID;
     public static Holder<Item> GLASS_SQUID;
     public static Holder<Item> GREENSTRIPE_BARB;
     public static Holder<Item> JAPANESE_SPIDER_CRAB;
@@ -155,6 +160,7 @@ public class FishtasticItems {
     public static Holder<Item> ROYAL_GARDEN_EEL;
     public static Holder<Item> SHRIMP;
     public static Holder<Item> STARFISH;
+    public static Holder<Item> SULPHUR_MOLLY;
     public static Holder<Item> TRAPANIA_SCURRA;
     public static Holder<Item> WILLANS_CHROMODORIS;
     public static Holder<Item> YELLOWLINE_GOBY;
@@ -181,6 +187,12 @@ public class FishtasticItems {
                         .component(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY)
                         .component(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY)));
 
+        OBSIDIAN_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("obsidian_fishing_rod",
+                loc -> new ObsidianFishingRod(props(loc).durability(250)
+                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)
+                        .component(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY)
+                        .component(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY)));
+
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
         ANGLER_FISH = RegistrationApiSided.getInstance().registerItem("angler_fish", loc -> new FishtasticFishItem(props(loc)));
@@ -188,11 +200,14 @@ public class FishtasticItems {
         BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVEFISH = RegistrationApiSided.getInstance().registerItem("blind_cavefish", loc -> new FishtasticFishItem(props(loc)));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(props(loc)));
+        DEVILS_HOLE_PUPFISH = RegistrationApiSided.getInstance().registerItem("devils_hole_pupfish", loc -> new FishtasticFishItem(props(loc)));
+        DISCUS = RegistrationApiSided.getInstance().registerItem("discus", loc -> new FishtasticFishItem(props(loc)));
         FLAPJACK_OCTOPUS = RegistrationApiSided.getInstance().registerItem("flapjack_octopus", loc -> new FishtasticFishItem(props(loc)));
         FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(props(loc)));
         FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
         GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> new FishtasticFishItem(props(loc)));
         GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
+        GIRAFFE_CICHLID = RegistrationApiSided.getInstance().registerItem("giraffe_cichlid", loc -> new FishtasticFishItem(props(loc)));
         GLASS_SQUID = RegistrationApiSided.getInstance().registerItem("glass_squid", loc -> new FishtasticFishItem(props(loc)));
         GREENSTRIPE_BARB = RegistrationApiSided.getInstance().registerItem("greenstripe_barb", loc -> new FishtasticFishItem(props(loc)));
         JAPANESE_SPIDER_CRAB = RegistrationApiSided.getInstance().registerItem("japanese_spider_crab", loc -> new FishtasticFishItem(props(loc)));
@@ -211,6 +226,7 @@ public class FishtasticItems {
         ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> new FishtasticFishItem(props(loc)));
         SHRIMP = RegistrationApiSided.getInstance().registerItem("shrimp", loc -> new FishtasticFishItem(props(loc)));
         STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFishItem(props(loc)));
+        SULPHUR_MOLLY = RegistrationApiSided.getInstance().registerItem("sulphur_molly", loc -> new FishtasticFishItem(props(loc)));
         TRAPANIA_SCURRA = RegistrationApiSided.getInstance().registerItem("trapania_scurra", loc -> new FishtasticFishItem(props(loc)));
         WILLANS_CHROMODORIS = RegistrationApiSided.getInstance().registerItem("willans_chromodoris", loc -> new FishtasticFishItem(props(loc)));
         YELLOWLINE_GOBY = RegistrationApiSided.getInstance().registerItem("yellowline_goby", loc -> new FishtasticFishItem(props(loc)));

@@ -92,8 +92,9 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.COSMETIC_CAPTURE_WAND.value(),
                 Identifier.fromNamespaceAndPath("minecraft", "item/stick"));
 
-        // ----- Copper fishing rod (fishing rod style with _cast variant) -----
+        // ----- Copper / obsidian fishing rods (fishing rod style with _cast variant) -----
         itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
+        itemModelGenerators.generateFishingRod(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
         // ----- Fish items (textures in item/fish/ subdirectory) -----
         generateFishItemModel(itemModelGenerators, FishtasticItems.GENERIC_FISH.value(), "generic_fish");
@@ -104,11 +105,14 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLAZED_GRUB.value(), "blazed_grub");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLIND_CAVEFISH.value(), "blind_cavefish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLUEGILL.value(), "bluegill");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.DEVILS_HOLE_PUPFISH.value(), "devils_hole_pupfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.DISCUS.value(), "discus");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FLAPJACK_OCTOPUS.value(), "flapjack_octopus");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FRIED_SHRIMP.value(), "fried_shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FROZEN_GIANT_MANTA_RAY.value(), "frozen_giant_manta_ray");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GARDEN_EEL.value(), "garden_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GIANT_MANTA_RAY.value(), "giant_manta_ray");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.GIRAFFE_CICHLID.value(), "giraffe_cichlid");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GLASS_SQUID.value(), "glass_squid");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GREENSTRIPE_BARB.value(), "greenstripe_barb");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GUMMY_WORMS.value(), "gummy_worms");
@@ -128,6 +132,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.ROYAL_GARDEN_EEL.value(), "royal_garden_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.SHRIMP.value(), "shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.STARFISH.value(), "starfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.SULPHUR_MOLLY.value(), "sulphur_molly");
         generateFishItemModel(itemModelGenerators, FishtasticItems.TRAPANIA_SCURRA.value(), "trapania_scurra");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WILLANS_CHROMODORIS.value(), "willans_chromodoris");
         generateFishItemModel(itemModelGenerators, FishtasticItems.YELLOWLINE_GOBY.value(), "yellowline_goby");

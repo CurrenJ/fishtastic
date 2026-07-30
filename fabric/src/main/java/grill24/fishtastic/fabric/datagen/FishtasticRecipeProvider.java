@@ -69,6 +69,16 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
                         .save(this.output);
 
+                // Obsidian Fishing Rod: diagonal of 3 obsidian + 2 strings — the intended lava-fishing tool
+                ShapedRecipeBuilder.shaped(items, RecipeCategory.TOOLS, FishtasticItems.OBSIDIAN_FISHING_ROD.value())
+                        .pattern("  C")
+                        .pattern(" CS")
+                        .pattern("C S")
+                        .define('C', Items.OBSIDIAN)
+                        .define('S', Items.STRING)
+                        .unlockedBy("has_obsidian", has(Items.OBSIDIAN))
+                        .save(this.output);
+
                 // Fish Tank Assembly: a sized fish shows the crafting table what it's for;
                 // materials are chosen afterward in the assembly block's own menu, not here.
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.DECORATIONS, FishtasticBlocks.FISH_TANK_ASSEMBLY.value())

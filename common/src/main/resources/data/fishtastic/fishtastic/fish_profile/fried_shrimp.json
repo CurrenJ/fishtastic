@@ -1,8 +1,11 @@
 {
-  "base_weight": 9,
+  "base_weight": 2,
   "size": { "mean": 25.0, "std_dev": 5.0 },
   "zones": [
     "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:nether_wastes"], "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:docile"
 }

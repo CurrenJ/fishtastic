@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": "minecraft:obsidian",
+    "S": "minecraft:string"
+  },
+  "pattern": [
+    "  C",
+    " CS",
+    "C S"
+  ],
+  "result": {
+    "id": "fishtastic:obsidian_fishing_rod"
+  }
+}

@@ -23,6 +23,12 @@ public sealed interface FishAnimationConfig
             }
     );
 
+    // Force-loads every permit class up front so parallel registry decoding never races to
+    // classload one lazily, which can deadlock the classloader in NeoForge dev.
+    boolean WARMED_UP = HorizontalSwim.DEFAULT != null && UprightFloat.DEFAULT != null
+            && FloorSit.DEFAULT != null && Planted.DEFAULT != null
+            && BellyDown.DEFAULT != null && UprightSit.DEFAULT != null;
+
     String modeName();
 
     /**

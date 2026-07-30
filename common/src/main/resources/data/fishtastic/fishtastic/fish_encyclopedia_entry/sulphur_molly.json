@@ -1,0 +1,10 @@
+{
+  "lore": "Long before anyone imagined a Nether, this molly was already thriving in scalding, sulfur-choked springs back on the surface -- gulping air at the surface to survive water that would kill most fish outright. Of everything swimming down here, it's the one species that seems the least surprised to be here.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "base_weight": 50,
+  "size": { "mean": 18.0, "std_dev": 4.0 },
+  "zones": [
+    "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:nether_wastes"], "multiplier": 1.6 }
+  ],
+  "temperament": "fishtastic:sprinter",
+  "swarm": {
+    "count": 6,
+    "depth_layers": 3,
+    "xz_spread": 0.22,
+    "y_range": 0.25,
+    "rotation_jitter": 5
+  }
+}

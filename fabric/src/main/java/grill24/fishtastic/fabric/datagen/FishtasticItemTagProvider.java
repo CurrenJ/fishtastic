@@ -23,7 +23,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
     protected void addTags(HolderLookup.Provider provider) {
         // Fishing rods tag
         valueLookupBuilder(FishtasticItemTags.FISHING_RODS)
-                .add(FishtasticItems.COPPER_FISHING_ROD.value());
+                .add(FishtasticItems.COPPER_FISHING_ROD.value())
+                .add(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
         // Fish tag
         valueLookupBuilder(FishtasticItemTags.FISH)

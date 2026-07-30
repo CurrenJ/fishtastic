@@ -4,11 +4,8 @@
   "zones": [
     "nether"
   ],
-  "time_weights": [
-    { "time": "night", "multiplier": 2.0 }
-  ],
-  "moon_weights": [
-    { "phase": "full_moon", "multiplier": 3.0 }
+  "biome_weights": [
+    { "biome": ["minecraft:basalt_deltas"], "multiplier": 2.0 }
   ],
   "temperament": "fishtastic:erratic"
 }

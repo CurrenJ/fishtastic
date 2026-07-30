@@ -20,6 +20,9 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.particle.LavaBubbleParticle;
+import grill24.fishtastic.client.particle.LavaSplashParticle;
+import grill24.fishtastic.client.particle.LavaWakeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
@@ -147,6 +150,9 @@ public final class FishtasticNeoForgeClient {
         event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
         event.registerSpriteSet(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
         event.registerSpriteSet(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
         Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
     }
 

@@ -1,0 +1,6 @@
+{
+  "parent": "fishtastic:item/obsidian_fishing_rod",
+  "textures": {
+    "layer0": "fishtastic:item/obsidian_fishing_rod_cast"
+  }
+}

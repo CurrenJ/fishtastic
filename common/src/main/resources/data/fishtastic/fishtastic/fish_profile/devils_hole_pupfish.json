@@ -1,0 +1,11 @@
+{
+  "base_weight": 15,
+  "size": { "mean": 15.0, "std_dev": 3.0 },
+  "zones": [
+    "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:soul_sand_valley"], "multiplier": 2.0 }
+  ],
+  "temperament": "fishtastic:aggressive"
+}

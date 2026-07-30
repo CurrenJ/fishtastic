@@ -22,6 +22,9 @@ import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TankCosmeticTooltip;
+import grill24.fishtastic.client.particle.LavaBubbleParticle;
+import grill24.fishtastic.client.particle.LavaSplashParticle;
+import grill24.fishtastic.client.particle.LavaWakeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
@@ -130,6 +133,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
+
+        // Register lava fishing bite-cycle particle providers
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
 
         // Clear caches on world join
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
