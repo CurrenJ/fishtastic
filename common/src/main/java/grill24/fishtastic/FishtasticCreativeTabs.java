@@ -80,6 +80,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.PLASTIC_LITTER.value());
 
                     // Fish tank
+                    output.accept(FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.MARINE_COMPOST.value());
 
