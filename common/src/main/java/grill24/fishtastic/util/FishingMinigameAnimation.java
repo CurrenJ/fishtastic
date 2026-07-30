@@ -70,6 +70,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     @Nullable private ItemStack equippedHookStack = null;
     @Nullable private ItemStack equippedCharmStack = null;
 
+    // Set once, the first time a catch is about to empty the equipped bait stack (i.e. its count
+    // was 1 at minigame start — the same condition FishingMinigameManager#consumeBait uses
+    // server-side to detect depletion). We predict it client-side rather than waiting on the
+    // server's confirmation because that confirmation only arrives after sendMinigameResults(),
+    // by which point this animation instance is normally already hidden/discarded.
+    private boolean baitPopTriggered = false;
+    @Nullable private PhysicsSimulation baitDepletedSimulation = null;
+    private int baitDepletedAnimationTick = 0;
+    private static final int BAIT_DEPLETED_ANIMATION_MAX_DURATION = 100;
+    // Scales down the rendered pop-off motion relative to a full reward item's (see
+    // renderBaitDepletedAnimation) — tune this to make the bait icon's pop faster/slower.
+    private static final float BAIT_POP_SPEED_SCALE = 0.4f;
+
     // Zone(s) the current cast resolved to (server-computed, see FishProfile.Zone#resolve),
     // rendered as a small icon stack tucked against the bar's top-right corner — the mirror image
     // of the equipped-gear column on the left. Usually one zone, occasionally two (e.g. a mountain
@@ -208,6 +221,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                     target.startCollectionAnimation(0, 0);
                     caughtTargetIndices.add(targetIndex);
+
+                    if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
+                        baitPopTriggered = true;
+                        baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
+                        equippedBaitStack = null;
+                    }
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
                 } else {
@@ -217,9 +236,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         }
         minigameState.resetSweptRange();
 
-        // Hide once every target has fully completed its animation
+        if (baitDepletedSimulation != null) {
+            baitDepletedAnimationTick++;
+            baitDepletedSimulation.tick();
+            if (baitDepletedSimulation.isOffScreen() || baitDepletedAnimationTick >= BAIT_DEPLETED_ANIMATION_MAX_DURATION) {
+                baitDepletedSimulation = null;
+            }
+        }
+
+        // Hide once every target has fully completed its animation (and the bait pop-off, if any)
         boolean allComplete = !targets.isEmpty()
-                && targets.stream().allMatch(FishingTarget::isAnimationComplete);
+                && targets.stream().allMatch(FishingTarget::isAnimationComplete)
+                && baitDepletedSimulation == null;
         if (!anyOngoing && allComplete) {
             if (!isHiding) {
                 // Send results to server before hiding (via reflection to avoid client dependency)
@@ -367,6 +395,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // the bar's own intro/hide motion, not relative to its momentarily-offset position.
         renderAlmanacPreview(guiGraphics, partialTick, screenWidth, screenHeight);
         renderEquippedGear(guiGraphics, partialTick, x, y, screenHeight);
+        renderBaitDepletedAnimation(guiGraphics, partialTick, x, y, screenHeight);
         renderZoneIcons(guiGraphics, partialTick, x, y, screenHeight);
     }
 
@@ -478,6 +507,38 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
             renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY);
         }
+    }
+
+    /**
+     * Renders the equipped bait icon's pop-off, triggered the moment a catch is about to empty its
+     * stack (see the {@code baitPopTriggered} check in {@link #tick()}). Reuses the same
+     * {@link PhysicsSimulation} the caught fish's reward items animate with, so running out of bait
+     * reads as the same kind of "spent" event rather than the gear icon just disappearing. That
+     * simulation's units are tuned for the bar's own {@code 2 * screenHeight / 3} render scale (see
+     * {@link #renderFishingBar}); this panel renders in raw screen pixels like the rest of the gear
+     * column, so the interpolated offset is remapped through that same scale before being applied —
+     * then further damped by {@link #BAIT_POP_SPEED_SCALE} so the small gear icon drifts off gently
+     * rather than launching as far/fast as a full-size reward item would.
+     */
+    private void renderBaitDepletedAnimation(GuiGraphicsExtractor guiGraphics, float partialTick, int x, int y, int screenHeight) {
+        if (baitDepletedSimulation == null) return;
+
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+
+        Vector2f barTopLeft = barContentTopLeft(x, y, screenHeight);
+        float slotX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE / 2f;
+        float slotYTop = barTopLeft.y() + GEAR_ICON_SIZE / 2f;
+
+        float physScale = 2 * screenHeight / 3f * BAIT_POP_SPEED_SCALE;
+        Vector2f physPos = baitDepletedSimulation.getInterpolatedPosition(partialTick);
+        Vector3f physRot = baitDepletedSimulation.getInterpolatedRotation(partialTick);
+
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(slotX + physPos.x() * physScale, slotYTop - physPos.y() * physScale);
+        guiGraphics.pose().rotate((float) Math.toRadians(physRot.z()));
+        guiGraphics.pose().scale(GEAR_ICON_SIZE, GEAR_ICON_SIZE);
+        extension.fishtastic$renderItem(baitDepletedSimulation.getItemStack(), 0, 0);
+        guiGraphics.pose().popMatrix();
     }
 
     /**
