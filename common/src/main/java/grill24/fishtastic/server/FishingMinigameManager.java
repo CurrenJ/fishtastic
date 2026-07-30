@@ -245,7 +245,7 @@ public class FishingMinigameManager {
                 for (ItemStack rewardStack : target.rewardStacks()) {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
-                        if (catchDb.recordCatch(player.getUUID(), player.getName().getString(), reward)) {
+                        if (catchDb.recordCatch(catchDb.resolvePlayerKey(player), player.getName().getString(), reward)) {
                             firstCatchItems.add(reward.copy());
                         }
                         questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place

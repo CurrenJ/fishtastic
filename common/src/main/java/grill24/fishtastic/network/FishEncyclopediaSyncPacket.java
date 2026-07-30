@@ -45,11 +45,12 @@ public record FishEncyclopediaSyncPacket(
     }
 
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data) {
+        java.util.UUID key = data.resolvePlayerKey(player);
         Map<Identifier, Integer> catchCounts = new HashMap<>();
-        data.getPersonalCatchCounts(player.getUUID(), FishCatchSavedData.PERSONAL_CATCH_COUNT_DESC)
+        data.getPersonalCatchCounts(key, FishCatchSavedData.PERSONAL_CATCH_COUNT_DESC)
                 .forEach(e -> catchCounts.put(e.fishType(), e.totalCatches()));
 
-        List<LeaderboardEntry> personalBest = data.getPersonalBestSizes(player.getUUID(), FishCatchSavedData.PERSONAL_BEST_SIZE_DESC)
+        List<LeaderboardEntry> personalBest = data.getPersonalBestSizes(key, FishCatchSavedData.PERSONAL_BEST_SIZE_DESC)
                 .stream()
                 .map(e -> LeaderboardEntry.personalBestSize(e.fishType(), e.bestSize(), e.bestQuality()))
                 .toList();

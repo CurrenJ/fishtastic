@@ -48,8 +48,9 @@ public class DebugEncyclopediaCommand {
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         String playerName = target.getName().getString();
+        java.util.UUID key = data.resolvePlayerKey(target);
         for (var entry : profileRegistry.entrySet()) {
-            data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), REVEAL_CATCH_COUNT);
+            data.setCatchCount(key, playerName, entry.getKey().identifier(), REVEAL_CATCH_COUNT);
         }
 
         int count = profileRegistry.size();
@@ -72,8 +73,9 @@ public class DebugEncyclopediaCommand {
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         String playerName = target.getName().getString();
+        java.util.UUID key = data.resolvePlayerKey(target);
         for (var entry : profileRegistry.entrySet()) {
-            data.setCatchCount(target.getUUID(), playerName, entry.getKey().identifier(), 0);
+            data.setCatchCount(key, playerName, entry.getKey().identifier(), 0);
         }
 
         int count = profileRegistry.size();

@@ -328,8 +328,9 @@ public class FishCatchSavedData extends SavedData {
 
     /** Wipes quest progress (including token balance and shop purchases) and catch history for one player. */
     public void resetPlayerProgress(ServerPlayer player) {
-        questStates.remove(resolvePlayerKey(player));
-        playerData.remove(player.getUUID());
+        UUID key = resolvePlayerKey(player);
+        questStates.remove(key);
+        playerData.remove(key);
         setDirty();
     }
 
@@ -355,7 +356,7 @@ public class FishCatchSavedData extends SavedData {
         setDirty();
     }
 
-    UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
+    public UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
         MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
         if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
             return SINGLEPLAYER_QUEST_UUID;

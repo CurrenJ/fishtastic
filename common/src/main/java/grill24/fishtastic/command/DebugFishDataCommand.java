@@ -47,7 +47,7 @@ public class DebugFishDataCommand {
                 .withStyle(ChatFormatting.GOLD), false);
 
         if (personalTarget != null) {
-            UUID uuid = personalTarget.getUUID();
+            UUID uuid = db.resolvePlayerKey(personalTarget);
             String name = personalTarget.getName().getString();
 
             // Personal best sizes

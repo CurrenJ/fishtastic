@@ -69,7 +69,7 @@ public record RequestLeaderboardPacket(
                                                         FishCatchSavedData db,
                                                         ServerPlayer requester) {
         boolean asc = packet.ascending();
-        UUID targetUuid = packet.targetPlayer().orElse(requester.getUUID());
+        UUID targetUuid = packet.targetPlayer().orElse(db.resolvePlayerKey(requester));
 
         return switch (packet.leaderboardType()) {
             case PERSONAL_BEST_SIZE -> db.getPersonalBestSizes(targetUuid,
