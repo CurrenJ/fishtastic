@@ -1,20 +1,21 @@
 package grill24.fishtastic.util;
 
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
-import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
+import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
+import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.core.Holder;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -24,10 +25,8 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -77,16 +76,6 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // river is both RIVER and HIGH_ALTITUDE at once).
     @Nullable private Set<FishProfile.Zone> currentZones = null;
 
-    private static final Map<FishProfile.Zone, java.util.function.Supplier<Holder<Item>>> ZONE_ICONS = new EnumMap<>(FishProfile.Zone.class);
-    static {
-        ZONE_ICONS.put(FishProfile.Zone.OCEAN, () -> FishtasticItems.FISHING_MINIGAME_ZONE_OCEAN);
-        ZONE_ICONS.put(FishProfile.Zone.DEEP_OCEAN, () -> FishtasticItems.FISHING_MINIGAME_ZONE_DEEP_OCEAN);
-        ZONE_ICONS.put(FishProfile.Zone.RIVER, () -> FishtasticItems.FISHING_MINIGAME_ZONE_RIVER);
-        ZONE_ICONS.put(FishProfile.Zone.NETHER, () -> FishtasticItems.FISHING_MINIGAME_ZONE_NETHER);
-        ZONE_ICONS.put(FishProfile.Zone.CAVE, () -> FishtasticItems.FISHING_MINIGAME_ZONE_CAVE);
-        ZONE_ICONS.put(FishProfile.Zone.HIGH_ALTITUDE, () -> FishtasticItems.FISHING_MINIGAME_ZONE_HIGH_ALTITUDE);
-    }
-
     private static final int SIDE_PANEL_ICON_SIZE = 24;
     private static final int SIDE_PANEL_MARGIN = 48;
     // Gear readout (hook/charm) renders smaller than the almanac preview, tucked right up
@@ -94,6 +83,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private static final int GEAR_ICON_SIZE = 16;
     private static final int GEAR_ICON_GAP = 4;
     private static final int GEAR_PANEL_GAP = 6;
+    // Zone art is 32x32 native. Keep the on-screen size a whole multiple of it so each source
+    // texel lands on the same number of screen pixels at every GUI scale.
+    private static final int ZONE_ICON_TEXTURE_PX = ZoneIconTextures.TEXTURE_PX;
+    private static final int ZONE_ICON_SCALE = 1;
+    private static final int ZONE_ICON_SIZE = ZONE_ICON_TEXTURE_PX * ZONE_ICON_SCALE;
     // Ticks the charm icon waits after the hook icon before starting its own slide.
     private static final float GEAR_STAGGER_DELAY_TICKS = 3f;
 
@@ -488,31 +482,51 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /**
      * Renders the current cast location's zone(s) as a small icon stack just outside the fishing
-     * bar's top-right corner — the mirror image of {@link #renderEquippedGear} on the left. Plain
-     * itemstack icons (no silhouette), same slide-in/out treatment as the gear column but sliding
-     * from the top edge on the opposite side, so the two readouts book-end the bar.
+     * bar's top-right corner — the mirror image of {@link #renderEquippedGear} on the left. Same
+     * slide-in/out treatment as the gear column but sliding from the top edge on the opposite side,
+     * so the two readouts book-end the bar.
      */
     private void renderZoneIcons(GuiGraphicsExtractor guiGraphics, float partialTick, int x, int y, int screenHeight) {
         if (currentZones == null) return;
 
-        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
-
         Vector2f barTopRight = barContentTopRight(x, y, screenHeight);
-        float slotX = barTopRight.x() + GEAR_PANEL_GAP + GEAR_ICON_SIZE / 2f;
-        float slotYTop = barTopRight.y() + GEAR_ICON_SIZE / 2f;
-        float stackGap = GEAR_ICON_SIZE + GEAR_ICON_GAP;
+        float slotX = barTopRight.x() + GEAR_PANEL_GAP + ZONE_ICON_SIZE / 2f;
+        float slotYTop = barTopRight.y() + ZONE_ICON_SIZE / 2f;
+        float stackGap = ZONE_ICON_SIZE + GEAR_ICON_GAP;
 
         int index = 0;
         for (FishProfile.Zone zone : currentZones) {
-            var iconSupplier = ZONE_ICONS.get(zone);
-            if (iconSupplier == null) continue;
-            Holder<Item> icon = iconSupplier.get();
-            if (icon == null) continue;
+            Identifier texture = ZoneIconTextures.get(zone);
+            if (texture == null) continue;
 
             float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * index) * screenHeight;
-            renderGearIcon(extension, guiGraphics, new ItemStack(icon), slotX, slotYTop + stackGap * index + slideY);
+            renderZoneIcon(guiGraphics, texture, slotX, slotYTop + stackGap * index + slideY);
             index++;
         }
+    }
+
+    /**
+     * Draws one zone icon centered at ({@code x}, {@code y}) as a direct texture blit plus a black
+     * outline pass. Blitted rather than item-rendered for the reason given on {@link #renderItem}.
+     */
+    private static void renderZoneIcon(GuiGraphicsExtractor guiGraphics, Identifier texture, float x, float y) {
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(x, y);
+
+        // blit() takes integer coords, so work in source texels and scale them down to size.
+        float texelScale = ZONE_ICON_SIZE / (float) ZONE_ICON_TEXTURE_PX;
+        guiGraphics.pose().scale(texelScale, texelScale);
+        int half = ZONE_ICON_TEXTURE_PX / 2;
+
+        // Outline first, icon over it — matches the item path's submission order.
+        guiGraphics.blit(FishtasticTextureOutlineEffect.getOrCreatePipeline(), texture,
+                -half, -half, 0f, 0f,
+                ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture,
+                -half, -half, 0f, 0f,
+                ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX);
+
+        guiGraphics.pose().popMatrix();
     }
 
     /** Mirror of {@link #barContentTopLeft} — top-right corner of the bar's visible content. */
@@ -763,7 +777,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // -------------------------------------------------------------------------
 
     /**
-     * Texture coordinates and associated item stack for one sprite.
+     * Texture coordinates and texture location for one sprite.
      *
      * @param u        Left edge of the sprite content within the texture (px)
      * @param v        Top edge of the sprite content within the texture (px)
@@ -771,10 +785,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * @param vh       Height of the sprite content (px)
      * @param texWidth  Full texture width (px)
      * @param texHeight Full texture height (px)
+     * @param texture   Standalone texture to blit — a full resource path, not an item-model reference
      */
-    public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack, Vector2f localPivot) {
-        public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ItemStack itemStack) {
-            this(u, v, uw, vh, texWidth, texHeight, itemStack, calculateLocalPivot(u, v, uw, vh, texWidth, texHeight));
+    public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, Identifier texture, Vector2f localPivot) {
+        public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, Identifier texture) {
+            this(u, v, uw, vh, texWidth, texHeight, texture, calculateLocalPivot(u, v, uw, vh, texWidth, texHeight));
         }
 
         private static Vector2f calculateLocalPivot(int u, int v, int uw, int vh, int texWidth, int texHeight) {
@@ -813,13 +828,22 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     public static final FishingBarLayout LAYOUT = new FishingBarLayout(
-            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND)),
-            new GuiTextureItem(0, 0, 8, 32, 32, 32, new ItemStack(FishtasticItems.FISHING_MINIGAME_BOBBER)),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, Fishtastic.id("textures/item/fishing_bar.png")),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, Fishtastic.id("textures/item/fishing_bobber.png")),
             28,  // travel zone: 32px texture minus ~2px margin at each end
             9,   // bobber height in pixels
             26   // target zone: slightly tighter margins than the bobber travel zone
     );
 
+    /**
+     * Draws one sprite as a direct texture blit, centered on the current pose origin and occupying a
+     * 1×1 unit box, so callers set the on-screen size purely via their own pose scale.
+     *
+     * <p>Not an item render: {@code GuiGraphicsExtractor.item()} rasterizes into a
+     * {@code 16 * guiScale} px atlas slot regardless of on-screen size, starving any 32px sprite
+     * drawn larger than 16 GUI units. The gear icons stay on the item path — they render arbitrary
+     * stacks, rely on {@link FishtasticGlintState}, and at 16 units the slot is big enough.
+     */
     private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphicsExtractor guiGraphics, Minecraft minecraft, float angle, int zOffset) {
         guiGraphics.pose().pushMatrix();
 
@@ -827,8 +851,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().rotate((float) Math.toRadians(angle)); // Rotate around sprite center
         guiGraphics.pose().translate(-pivot.x(), -pivot.y()); // Center sprite content at screen origin
 
-        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
-        extension.fishtastic$renderItem(guiTextureItem.itemStack(), 0, 0);
+        // blit() takes integer coords, so work in texel units and shrink one texel to 1/texWidth of
+        // a unit — the full texture then spans the 1×1 box callers' pose scale already assumes.
+        int texW = guiTextureItem.texWidth();
+        int texH = guiTextureItem.texHeight();
+        guiGraphics.pose().scale(1f / texW, 1f / texH);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, guiTextureItem.texture(),
+                -texW / 2, -texH / 2, 0f, 0f, texW, texH, texW, texH);
 
         guiGraphics.pose().popMatrix();
     }

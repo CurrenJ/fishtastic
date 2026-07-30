@@ -71,6 +71,25 @@ public final class FishtasticRenderPipelines {
                 .build();
     }
 
+    /**
+     * Creates an outline pipeline for GUI sprites blitted directly from their own texture rather than
+     * through the item atlas. Same vertex shader and UBO as {@link #createOutlinePipeline}; the
+     * fragment shader differs in how it measures width and bounds its neighbour search.
+     */
+    public static RenderPipeline createTextureOutlinePipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_texture_outline"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
+
     /** Creates a per-effect legendary (animated pinwheel) outline pipeline with a unique location ID. */
     public static RenderPipeline createLegendaryOutlinePipeline(Identifier location) {
         return RenderPipeline.builder()

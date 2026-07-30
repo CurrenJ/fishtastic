@@ -76,8 +76,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ROD_BACKGROUND.value(), Fishtastic.id("item/fishing_bar"));
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_BOBBER.value(), Fishtastic.id("item/fishing_bobber"));
 
-        // Zone HUD icons — textures don't exist yet (hand-drawn art pending); these will render
-        // as the standard missing-texture placeholder until item/zone/<name>.png is added.
+        // Zone HUD icons
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_OCEAN.value(), Fishtastic.id("item/zone/ocean"));
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_DEEP_OCEAN.value(), Fishtastic.id("item/zone/deep_ocean"));
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.FISHING_MINIGAME_ZONE_RIVER.value(), Fishtastic.id("item/zone/river"));

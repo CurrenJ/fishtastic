@@ -5,6 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
@@ -75,6 +76,12 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final Identifier STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
     private static final float STATUS_PIP_SIZE = 5f;
 
+    // Zone icon shown atop each Zones-section column, same art (and outline shader) the fishing
+    // minigame's HUD zone stack uses — rendered larger than a normal row icon since Zones is now
+    // its own always-visible section rather than a line item tucked into Types.
+    private static final float ZONE_ICON_SIZE = 32f;
+    private static final float ZONE_ICON_HOVER_SCALE = 2.0f;
+
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
 
@@ -98,6 +105,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private Label nameLabel;
     private Label caughtCountLabel;
     private VBox recordsContainer;
+    private VBox zonesContainer;
     private VBox statsContainer;
     private VBox typesContainer;
     private VBox spawnContainer;
@@ -105,11 +113,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // Re-evaluated every tick so a spawn condition's pip reacts live to the player walking
     // between biomes, day/night passing, or weather changing — see containerTick().
     private final List<Runnable> spawnConditionPipUpdaters = new ArrayList<>();
-    // Separate list for the always-visible Types section's zone pips — kept apart from
+    // Separate list for the always-visible Zones section's pips — kept apart from
     // spawnConditionPipUpdaters because that list is cleared inside buildSpawnConditionsContent,
-    // which (being gated) doesn't always run on a given refresh; Types always runs, so it owns
+    // which (being gated) doesn't always run on a given refresh; Zones always runs, so it owns
     // its own clear/populate lifecycle.
-    private final List<Runnable> typeZonePipUpdaters = new ArrayList<>();
+    private final List<Runnable> zonePipUpdaters = new ArrayList<>();
 
     public FishEncyclopediaScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.literal("Fish Encyclopedia"));
@@ -184,7 +192,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         for (Runnable updater : spawnConditionPipUpdaters) {
             updater.run();
         }
-        for (Runnable updater : typeZonePipUpdaters) {
+        for (Runnable updater : zonePipUpdaters) {
             updater.run();
         }
     }
@@ -207,12 +215,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         nameLabel = null;
         caughtCountLabel = null;
         recordsContainer = null;
+        zonesContainer = null;
         statsContainer = null;
         typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
-        typeZonePipUpdaters.clear();
+        zonePipUpdaters.clear();
 
         Minecraft mc = Minecraft.getInstance();
 
@@ -388,12 +397,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         nameLabel = null;
         caughtCountLabel = null;
         recordsContainer = null;
+        zonesContainer = null;
         statsContainer = null;
         typesContainer = null;
         spawnContainer = null;
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
-        typeZonePipUpdaters.clear();
+        zonePipUpdaters.clear();
 
         // Piggybacks the keyframe-animation system purely for its completion callback — the
         // actual motion above is driven by the exponential setTargetPosition/setTargetScale
@@ -443,6 +453,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         recordsContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(recordsContainer);
 
+        zonesContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
+        page.addChild(zonesContainer);
+
         statsContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(statsContainer);
 
@@ -477,11 +490,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         caughtCountLabel.setVisible(nameRevealed);
 
         populateRecordsSection(fishId, catchCount);
+        zonesContainer.clearChildren();
+        zonesContainer.addChild(buildUngatedSection("Zones", () -> buildZonesContent(selectedProfile)));
         statsContainer.clearChildren();
         statsContainer.addChild(buildGatedSection("Stats", catchCount, thresholds.statsCatches(),
                 () -> buildStatsContent(selectedProfile)));
         typesContainer.clearChildren();
-        typesContainer.addChild(buildUngatedSection("Types", () -> buildTypesContent(fishId, selectedProfile)));
+        typesContainer.addChild(buildGatedSection("Types", catchCount, thresholds.typesCatches(),
+                () -> buildTypesContent(fishId)));
         spawnContainer.clearChildren();
         spawnContainer.addChild(buildGatedSection("Spawn Conditions", catchCount, thresholds.spawnConditionsCatches(),
                 () -> buildSpawnConditionsContent(selectedProfile)));
@@ -519,8 +535,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return content;
     }
 
-    private VBox buildTypesContent(Identifier fishId, FishProfile profile) {
-        typeZonePipUpdaters.clear();
+    private VBox buildTypesContent(Identifier fishId) {
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
         List<TagKey<Item>> groups = FishtasticItemTags.FISH_GROUPS.stream()
@@ -533,11 +548,53 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 content.addChild(label(Utility.prettyName(group.location().getPath()), 0xFFCCCCCC));
             }
         }
-        for (FishProfile.Zone zone : profile.zones()) {
-            ConditionSegment segment = new ConditionSegment(Utility.prettyName(zone.name()), () -> isZoneMet(zone));
-            content.addChild(buildSpawnConditionRow(List.of(segment), typeZonePipUpdaters, 0xFF88CCFF, STATUS_PIP_RED_TEXTURE));
-        }
         return content;
+    }
+
+    /**
+     * Builds the Zones section content: one column per zone the fish can be caught in, each a
+     * largeish {@link ZoneIconRectangle} (same art and outline shader the fishing minigame's HUD
+     * zone stack uses) with a status pip + name beneath it — the pip lit green while the player
+     * currently stands in that zone, red otherwise, live-updated via {@link #zonePipUpdaters}
+     * (see {@link #containerTick}). Ungated (unlike the other info sections below it): a fish's
+     * zones are a hard gate on catchability, so the player needs this before their first catch,
+     * not as a reward for one.
+     */
+    private VBox buildZonesContent(FishProfile profile) {
+        zonePipUpdaters.clear();
+        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+        if (profile.zones().isEmpty()) {
+            content.addChild(label("No zone restrictions.", 0xFF888888));
+            return content;
+        }
+        HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
+        for (FishProfile.Zone zone : profile.zones()) {
+            row.addChild(buildZoneColumn(zone, zonePipUpdaters));
+        }
+        content.addChild(row);
+        return content;
+    }
+
+    /** One icon+name column within {@link #buildZonesContent}; skips the icon if {@code zone} has no registered texture. */
+    private VBox buildZoneColumn(FishProfile.Zone zone, List<Runnable> pipUpdaters) {
+        VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+        Identifier icon = ZoneIconTextures.get(zone);
+        if (icon != null) {
+            ZoneIconRectangle iconElement = new ZoneIconRectangle(ZONE_ICON_SIZE, icon, ZoneIconTextures.TEXTURE_PX);
+            iconElement.onMouseEnter(e -> iconElement.setTargetScale(ZONE_ICON_HOVER_SCALE, true));
+            iconElement.onMouseExit(e -> iconElement.setTargetScale(1.0f, true));
+            column.addChild(iconElement);
+        }
+        ConditionSegment segment = new ConditionSegment(Utility.prettyName(zone.name()), () -> isZoneMet(zone));
+        HBox statusRow = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
+        SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
+                .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_RED_TEXTURE));
+        pipUpdaters.add(() ->
+                pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_RED_TEXTURE)));
+        statusRow.addChild(pip);
+        statusRow.addChild(label(segment.text(), 0xFF88CCFF));
+        column.addChild(statusRow);
+        return column;
     }
 
     private VBox buildSpawnConditionsContent(FishProfile profile) {
