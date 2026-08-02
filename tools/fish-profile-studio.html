@@ -1061,13 +1061,18 @@ function runSimulation() {
     return rows[lo].id;
   }
 
-  const res = {
-    casts: n, targets: 0, fish: 0, trash: 0, treasure: 0,
+  // Accumulate onto any prior run's results — S.sim.results only clears via resetSimulation().
+  const res = S.sim.results || {
+    casts: 0, targets: 0, fish: 0, trash: 0, treasure: 0,
     species: new Map(), qualities: Object.fromEntries(QUALITIES.map(q => [q, 0])),
     sizes: [], biggest: null, trashCounts: new Map(),
-    expected: new Map(rows.map(r => [r.id, r.share])),
-    poolTotal: total,
+    expected: new Map(), poolTotal: 0,
   };
+  res.casts += n;
+  // expected/poolTotal describe the current context's odds, not an accumulated quantity — always
+  // refresh them to the latest environment/gear so they stay meaningful after a context change.
+  res.expected = new Map(rows.map(r => [r.id, r.share]));
+  res.poolTotal = total;
   function recordFish() {
     const id = sampleSpecies();
     if (id === null) return;
@@ -1106,6 +1111,11 @@ function runSimulation() {
     }
   }
   S.sim.results = res;
+  renderTab();
+}
+
+function resetSimulation() {
+  S.sim.results = null;
   renderTab();
 }
 
@@ -2000,12 +2010,17 @@ function renderSim(v) {
       return s;
     })(),
     el("button", { class: "primary", onclick: runSimulation }, "▶ Run simulation"),
-    el("span", { class: "hint" }, "uses the environment + gear context above; exact game math incl. int truncation, min-weight 1, target-count gaussian"),
+    el("button", { class: "danger", disabled: S.sim.results ? null : "", onclick: () => {
+      if (!S.sim.results) return;
+      if (confirm("Clear all accumulated simulation stats?")) resetSimulation();
+    } }, "✕ Clear stats"),
+    el("span", { class: "hint" }, "runs accumulate onto prior results until cleared; exact game math incl. int truncation, min-weight 1, target-count gaussian"),
   );
   v.append(el("div", { class: "panel" }, el("h3", null, "Catch simulator"), controls));
 
   const res = S.sim.results;
   if (!res) { v.append(el("div", { class: "panel mut" }, "No results yet — hit Run.")); return; }
+  v.append(el("div", { class: "panel mut", style: "padding:6px 14px;font-size:11px" }, `Accumulated across runs since last clear — ${res.casts.toLocaleString()} total casts.`));
 
   // --- stat tiles
   const tiles = el("div", { class: "tiles" },
