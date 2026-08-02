@@ -2,7 +2,6 @@
   "base_weight": 6,
   "size": { "mean": 42.0, "std_dev": 9.0 },
   "zones": [
-    "river",
     "high_altitude"
   ],
   "biome_weights": [

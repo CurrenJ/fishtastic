@@ -210,7 +210,10 @@ public record FishProfile(
          * {@code minecraft:is_deep_ocean} is a subset of {@code minecraft:is_ocean} in vanilla —
          * every deep ocean biome is also a regular ocean biome — so both are added independently
          * rather than as an if/else-if; otherwise plain OCEAN-zoned fish would be silently barred
-         * from every deep ocean biome despite it being ocean.
+         * from every deep ocean biome despite it being ocean. HIGH_ALTITUDE mirrors this: there's
+         * no vanilla tag hierarchy making elevated water a subset of {@code is_river}, so RIVER is
+         * added explicitly alongside it — an alpine lake/pond that isn't literally a river biome
+         * should still draw from the full river pool, with high-altitude-only fish layered on top.
          */
         public static Set<Zone> resolve(Holder<Biome> biome, int y, int seaLevel) {
             if (biome.is(BiomeTags.IS_NETHER)) return EnumSet.of(NETHER);
@@ -224,10 +227,10 @@ public record FishProfile(
 
             if (!isDeepOcean && !isOcean) {
                 if (y < seaLevel - BAND_OFFSET) zones.add(CAVE);
-                if (y > seaLevel + BAND_OFFSET) zones.add(HIGH_ALTITUDE);
+                if (y > seaLevel + BAND_OFFSET) { zones.add(HIGH_ALTITUDE); zones.add(RIVER); }
             }
             if (biome.is(FishtasticBiomeTags.IS_CAVE_BIOME)) zones.add(CAVE);
-            if (biome.is(FishtasticBiomeTags.IS_SNOWY_PEAKS)) zones.add(HIGH_ALTITUDE);
+            if (biome.is(FishtasticBiomeTags.IS_SNOWY_PEAKS)) { zones.add(HIGH_ALTITUDE); zones.add(RIVER); }
 
             if (zones.isEmpty()) zones.add(RIVER);
             return zones;

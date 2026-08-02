@@ -557,6 +557,7 @@ const S = {
   tagFilterMode: "or",  // "or" = any selected tag matches; "and" = all selected tags must match
   tab: "profiles",
   search: "",
+  zoneFilter: false, // Profiles tab: hide fish whose zones (or vanilla zones) don't overlap the current resolved zone(s)
   sweepFish: null,
   sim: { n: 1000, mode: "full", results: null },
   editing: null,
@@ -841,7 +842,11 @@ function envMultiplier(profile, env) {
    (cave/high_altitude, from the Y picker) are independent axes that combine — a mountain river
    resolves to {river, high_altitude} together, not one replacing the other. is_deep_ocean is a
    subset of is_ocean in vanilla, so both are added independently rather than if/else-if, or
-   plain OCEAN-zoned fish would be silently barred from deep ocean. Elevation is skipped for
+   plain OCEAN-zoned fish would be silently barred from deep ocean. HIGH_ALTITUDE mirrors this
+   deliberately: there's no vanilla tag hierarchy making elevated water a subset of is_river, so
+   river is added explicitly alongside high_altitude (both from the elevation picker and from
+   fishtastic:is_snowy_peaks) — an alpine lake that isn't literally a river biome still draws from
+   the full river pool, with high-altitude-only fish layered on top. Elevation is skipped for
    ocean/deep_ocean (a deep trench isn't a "cave" just because it's low). fishtastic:is_cave_biome
    (lush caves/dripstone caves/deep dark) always grants cave regardless of Y, mirroring
    FishtasticBiomeTags.IS_CAVE_BIOME, since those biomes can generate above the cave Y cutoff.
@@ -858,9 +863,10 @@ function resolveZone(env) {
 
   if (!isOcean && !isDeepOcean) {
     if (env.elevation === "deep") zones.add("cave");
-    if (env.elevation === "high") zones.add("high_altitude");
+    if (env.elevation === "high") { zones.add("high_altitude"); zones.add("river"); }
   }
   if (env.biomes.has("fishtastic:is_cave_biome")) zones.add("cave");
+  if (env.biomes.has("fishtastic:is_snowy_peaks")) { zones.add("high_altitude"); zones.add("river"); }
 
   if (zones.size === 0) zones.add("river");
   return [...zones];
@@ -1447,13 +1453,23 @@ function condChipsFor(json, name) {
 function renderProfiles(v) {
   const pw = poolWeights();
   const shareOf = new Map(pw.rows.map(r => [r.id, r]));
+  const currentZones = resolveZone(S.env);
+  const zoneCb = el("input", {
+    class: "cb", type: "checkbox", checked: S.zoneFilter ? "" : null,
+    onchange: e => { S.zoneFilter = e.target.checked; renderTab(); },
+  });
+  const countEl = el("span", { class: "hint" }, `${S.profiles.size} profiles · pool of ${pw.rows.length} under current context (total weight ${pw.total})`);
   const toolbar = el("div", { class: "toolbar" },
     el("input", { type: "search", placeholder: "search fish…", value: S.search, style: "width:240px",
       oninput: e => { S.search = e.target.value; renderTab(); } }),
-    el("span", { class: "hint" }, `${S.profiles.size} profiles · pool of ${pw.rows.length} under current context (total weight ${pw.total})`),
+    el("label", { style: "display:inline-flex;align-items:center;gap:6px;cursor:pointer",
+      "data-tip": "Hides fish whose \"zones\" don't overlap the zone(s) resolved from the current biome/elevation context (the hard gate FishtasticFishItem.isZoneEligible checks) — currently: " + currentZones.join(" + ") },
+      zoneCb, el("span", { class: "hint" }, "zone-eligible only")),
+    countEl,
   );
   const cards = el("div", { class: "cards" });
   const q = S.search.trim().toLowerCase();
+  let shown = 0;
   for (const id of poolIds()) {
     const [ns, path] = id.split(":");
     const name = displayName(id);
@@ -1461,6 +1477,10 @@ function renderProfiles(v) {
     if (!passesTagFilter(id)) continue;
     const isV = VANILLA_IDS.has(id);
     const p = isV ? null : S.profiles.get(path);
+    if (S.zoneFilter) {
+      const declaredZones = isV ? VANILLA_FISH.find(f => f.id === id).zones : (p ? p.json.zones : null);
+      if (!isZoneEligible(declaredZones, currentZones)) continue;
+    }
     const r = shareOf.get(id);
     const base = isV ? VANILLA_FISH.find(f => f.id === id).weight : (p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT);
     const effCls = r && r.weight > base ? "eff-up" : (r && r.weight < base ? "eff-down" : "");
@@ -1480,7 +1500,9 @@ function renderProfiles(v) {
     else if (p.dirty) card.append(el("span", { class: "badge dirty" }, "EDITED"));
     else if (inTag(id, "fishtastic:unlisted_fish")) card.append(el("span", { class: "badge unlisted" }, "UNLISTED"));
     cards.append(card);
+    shown++;
   }
+  countEl.textContent = `${S.profiles.size} profiles · showing ${shown} of ${pw.rows.length} in pool under current context (total weight ${pw.total})`;
   v.append(toolbar, cards);
 }
 
