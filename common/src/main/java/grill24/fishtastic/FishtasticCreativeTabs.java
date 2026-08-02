@@ -28,6 +28,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.BLIND_CAVEFISH.value());
                     output.accept(FishtasticItems.BLIND_CAVE_TETRA.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
+                    output.accept(FishtasticItems.BULL_TROUT.value());
                     output.accept(FishtasticItems.DEVILS_HOLE_PUPFISH.value());
                     output.accept(FishtasticItems.DISCUS.value());
                     output.accept(FishtasticItems.EUROPEAN_GRAYLING.value());
