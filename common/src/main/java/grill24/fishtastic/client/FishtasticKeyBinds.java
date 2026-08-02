@@ -8,6 +8,9 @@ import grill24.fishtastic.client.TutorialClientHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.FishingRodItem;
 
 /**
  * Manages custom key bindings for Fishtastic
@@ -61,6 +64,18 @@ public class FishtasticKeyBinds {
             // minigame ends.  When a FishingMinigameAnimation is active its render() method
             // handles the impulse at frame rate via rising-edge key detection — applying it
             // here a second time would double the impulse on the same press.
+            //
+            // If no minigame is running yet but the player has a bobber out (e.g. it just
+            // got a bite), let the impulse key also reel it in and start the minigame, the
+            // same way right-click/use-item already does.
+            Player player = minecraft.player;
+            if (!FishingMinigameClientHandler.hasActiveSession() && player != null && player.fishing != null && minecraft.screen == null) {
+                if (player.getMainHandItem().getItem() instanceof FishingRodItem) {
+                    minecraft.gameMode.useItem(player, InteractionHand.MAIN_HAND);
+                } else if (player.getOffhandItem().getItem() instanceof FishingRodItem) {
+                    minecraft.gameMode.useItem(player, InteractionHand.OFF_HAND);
+                }
+            }
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
             TutorialClientHandler.onQuestLogKeyPressed();

@@ -1,0 +1,10 @@
+{
+  "lore": "Using pelvic fins fused into a makeshift sucker, the cave angelfish inches straight up sheer, waterfall-slick stone -- a climb no ordinary fish could survive. It thrives only where cave streams run loud and fast.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

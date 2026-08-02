@@ -1,0 +1,15 @@
+{
+  "base_weight": 15,
+  "size": { "mean": 24.0, "std_dev": 5.0 },
+  "zones": [
+    "cave"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:deep_dark"], "multiplier": 2.0 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.4 },
+    { "time": "day", "multiplier": 0.3 }
+  ],
+  "temperament": "fishtastic:ghost"
+}

@@ -1,0 +1,10 @@
+{
+  "lore": "Millennia in the deepest, most lightless caverns stripped this tetra of eyes and pigment alike, leaving a pale, near-transparent silhouette that reads its surroundings entirely by touch and vibration.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

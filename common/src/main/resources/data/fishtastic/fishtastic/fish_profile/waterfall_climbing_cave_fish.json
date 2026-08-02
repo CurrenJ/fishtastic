@@ -1,0 +1,14 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 18.0, "std_dev": 4.0 },
+  "zones": [
+    "cave"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:dripstone_caves"], "multiplier": 2.2 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 1.4 }
+  ],
+  "temperament": "fishtastic:sprinter"
+}

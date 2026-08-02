@@ -1,5 +1,5 @@
 {
-  "base_weight": 75,
+  "base_weight": 40,
   "size": { "mean": 30.0, "std_dev": 5.0 },
   "zones": [
     "river",

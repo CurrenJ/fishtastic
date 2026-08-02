@@ -1,0 +1,16 @@
+{
+  "base_weight": 6,
+  "size": { "mean": 42.0, "std_dev": 9.0 },
+  "zones": [
+    "river",
+    "high_altitude"
+  ],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 1.6 }
+  ],
+  "time_weights": [
+    { "time": "dawn", "multiplier": 1.6 },
+    { "time": "dusk", "multiplier": 1.6 }
+  ],
+  "temperament": "fishtastic:wily"
+}

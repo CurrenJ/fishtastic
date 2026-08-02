@@ -133,15 +133,18 @@ public class FishtasticItems {
     public static Holder<Item> ANGLER_FISH;
     public static Holder<Item> ARCTIC_CHAR;
     public static Holder<Item> BLIND_CAVEFISH;
+    public static Holder<Item> BLIND_CAVE_TETRA;
     public static Holder<Item> BLUEGILL;
     public static Holder<Item> DEVILS_HOLE_PUPFISH;
     public static Holder<Item> DISCUS;
+    public static Holder<Item> EUROPEAN_GRAYLING;
     public static Holder<Item> FLAPJACK_OCTOPUS;
     public static Holder<Item> FRIED_SHRIMP;
     public static Holder<Item> FROZEN_GIANT_MANTA_RAY;
     public static Holder<Item> GARDEN_EEL;
     public static Holder<Item> GIANT_MANTA_RAY;
     public static Holder<Item> GIRAFFE_CICHLID;
+    public static Holder<Item> GLASS_CATFISH;
     public static Holder<Item> GLASS_SQUID;
     public static Holder<Item> GREENSTRIPE_BARB;
     public static Holder<Item> JAPANESE_SPIDER_CRAB;
@@ -155,6 +158,7 @@ public class FishtasticItems {
     public static Holder<Item> OCEAN_SUNFISH;
     public static Holder<Item> PARROTFISH;
     public static Holder<Item> PORTUGUESE_MAN_O_WAR;
+    public static Holder<Item> RAINBOW_TROUT;
     public static Holder<Item> RAINFORDIA;
     public static Holder<Item> RED_BELLIED_PIRAHNA;
     public static Holder<Item> ROYAL_GARDEN_EEL;
@@ -162,6 +166,7 @@ public class FishtasticItems {
     public static Holder<Item> STARFISH;
     public static Holder<Item> SULPHUR_MOLLY;
     public static Holder<Item> TRAPANIA_SCURRA;
+    public static Holder<Item> WATERFALL_CLIMBING_CAVE_FISH;
     public static Holder<Item> WILLANS_CHROMODORIS;
     public static Holder<Item> YELLOWLINE_GOBY;
 
@@ -199,15 +204,18 @@ public class FishtasticItems {
         ARCTIC_CHAR = RegistrationApiSided.getInstance().registerItem("arctic_char", loc -> new FishtasticFishItem(props(loc)));
         BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVEFISH = RegistrationApiSided.getInstance().registerItem("blind_cavefish", loc -> new FishtasticFishItem(props(loc)));
+        BLIND_CAVE_TETRA = RegistrationApiSided.getInstance().registerItem("blind_cave_tetra", loc -> new FishtasticFishItem(props(loc)));
         BLUEGILL = RegistrationApiSided.getInstance().registerItem("bluegill", loc -> new FishtasticFishItem(props(loc)));
         DEVILS_HOLE_PUPFISH = RegistrationApiSided.getInstance().registerItem("devils_hole_pupfish", loc -> new FishtasticFishItem(props(loc)));
         DISCUS = RegistrationApiSided.getInstance().registerItem("discus", loc -> new FishtasticFishItem(props(loc)));
+        EUROPEAN_GRAYLING = RegistrationApiSided.getInstance().registerItem("european_grayling", loc -> new FishtasticFishItem(props(loc)));
         FLAPJACK_OCTOPUS = RegistrationApiSided.getInstance().registerItem("flapjack_octopus", loc -> new FishtasticFishItem(props(loc)));
         FRIED_SHRIMP = RegistrationApiSided.getInstance().registerItem("fried_shrimp", loc -> new FishtasticFishItem(props(loc)));
         FROZEN_GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("frozen_giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
         GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("garden_eel", loc -> new FishtasticFishItem(props(loc)));
         GIANT_MANTA_RAY = RegistrationApiSided.getInstance().registerItem("giant_manta_ray", loc -> new FishtasticFishItem(props(loc)));
         GIRAFFE_CICHLID = RegistrationApiSided.getInstance().registerItem("giraffe_cichlid", loc -> new FishtasticFishItem(props(loc)));
+        GLASS_CATFISH = RegistrationApiSided.getInstance().registerItem("glass_catfish", loc -> new FishtasticFishItem(props(loc)));
         GLASS_SQUID = RegistrationApiSided.getInstance().registerItem("glass_squid", loc -> new FishtasticFishItem(props(loc)));
         GREENSTRIPE_BARB = RegistrationApiSided.getInstance().registerItem("greenstripe_barb", loc -> new FishtasticFishItem(props(loc)));
         JAPANESE_SPIDER_CRAB = RegistrationApiSided.getInstance().registerItem("japanese_spider_crab", loc -> new FishtasticFishItem(props(loc)));
@@ -221,6 +229,7 @@ public class FishtasticItems {
         OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(props(loc)));
         PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> new FishtasticFishItem(props(loc)));
         PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> new FishtasticFishItem(props(loc)));
+        RAINBOW_TROUT = RegistrationApiSided.getInstance().registerItem("rainbow_trout", loc -> new FishtasticFishItem(props(loc)));
         RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> new FishtasticFishItem(props(loc)));
         RED_BELLIED_PIRAHNA = RegistrationApiSided.getInstance().registerItem("red_bellied_pirahna", loc -> new FishtasticFishItem(props(loc)));
         ROYAL_GARDEN_EEL = RegistrationApiSided.getInstance().registerItem("royal_garden_eel", loc -> new FishtasticFishItem(props(loc)));
@@ -228,6 +237,7 @@ public class FishtasticItems {
         STARFISH = RegistrationApiSided.getInstance().registerItem("starfish", loc -> new FishtasticFishItem(props(loc)));
         SULPHUR_MOLLY = RegistrationApiSided.getInstance().registerItem("sulphur_molly", loc -> new FishtasticFishItem(props(loc)));
         TRAPANIA_SCURRA = RegistrationApiSided.getInstance().registerItem("trapania_scurra", loc -> new FishtasticFishItem(props(loc)));
+        WATERFALL_CLIMBING_CAVE_FISH = RegistrationApiSided.getInstance().registerItem("waterfall_climbing_cave_fish", loc -> new FishtasticFishItem(props(loc)));
         WILLANS_CHROMODORIS = RegistrationApiSided.getInstance().registerItem("willans_chromodoris", loc -> new FishtasticFishItem(props(loc)));
         YELLOWLINE_GOBY = RegistrationApiSided.getInstance().registerItem("yellowline_goby", loc -> new FishtasticFishItem(props(loc)));
 

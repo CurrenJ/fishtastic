@@ -26,15 +26,18 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.BETTA.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLIND_CAVEFISH.value());
+                    output.accept(FishtasticItems.BLIND_CAVE_TETRA.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
                     output.accept(FishtasticItems.DEVILS_HOLE_PUPFISH.value());
                     output.accept(FishtasticItems.DISCUS.value());
+                    output.accept(FishtasticItems.EUROPEAN_GRAYLING.value());
                     output.accept(FishtasticItems.FLAPJACK_OCTOPUS.value());
                     output.accept(FishtasticItems.FRIED_SHRIMP.value());
                     output.accept(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value());
                     output.accept(FishtasticItems.GARDEN_EEL.value());
                     output.accept(FishtasticItems.GIANT_MANTA_RAY.value());
                     output.accept(FishtasticItems.GIRAFFE_CICHLID.value());
+                    output.accept(FishtasticItems.GLASS_CATFISH.value());
                     output.accept(FishtasticItems.GLASS_SQUID.value());
                     output.accept(FishtasticItems.GREENSTRIPE_BARB.value());
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
@@ -49,6 +52,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.OCEAN_SUNFISH.value());
                     output.accept(FishtasticItems.PARROTFISH.value());
                     output.accept(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
+                    output.accept(FishtasticItems.RAINBOW_TROUT.value());
                     output.accept(FishtasticItems.RAINFORDIA.value());
                     output.accept(FishtasticItems.RED_BELLIED_PIRAHNA.value());
                     output.accept(FishtasticItems.ROYAL_GARDEN_EEL.value());
@@ -56,6 +60,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.STARFISH.value());
                     output.accept(FishtasticItems.SULPHUR_MOLLY.value());
                     output.accept(FishtasticItems.TRAPANIA_SCURRA.value());
+                    output.accept(FishtasticItems.WATERFALL_CLIMBING_CAVE_FISH.value());
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
                     output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
                     output.accept(FishtasticItems.WORMS.value());

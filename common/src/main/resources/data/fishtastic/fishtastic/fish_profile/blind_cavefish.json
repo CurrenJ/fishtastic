@@ -1,5 +1,5 @@
 {
-  "base_weight": 3,
+  "base_weight": 5,
   "size": { "mean": 28.0, "std_dev": 6.0 },
   "zones": [
     "cave"
