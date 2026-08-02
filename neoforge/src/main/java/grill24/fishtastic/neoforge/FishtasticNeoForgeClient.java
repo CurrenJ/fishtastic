@@ -81,7 +81,8 @@ public final class FishtasticNeoForgeClient {
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes()));
+                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
+                        packet.claimedRewardKeys()));
 
         // Register cosmetic capture wand session sync packet client handler
         CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);

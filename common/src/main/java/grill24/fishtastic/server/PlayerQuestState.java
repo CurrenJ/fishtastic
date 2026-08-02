@@ -3,6 +3,7 @@ package grill24.fishtastic.server;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
 import io.netty.buffer.ByteBuf;
@@ -13,8 +14,10 @@ import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class PlayerQuestState {
     public static final int ACTIVE_DAILY_COUNT = 4;
@@ -23,6 +26,9 @@ public class PlayerQuestState {
     private int tokenBalance = 0;
     private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
     private long lastPurchaseResetDay = -1;
+    // Composite keys from EncyclopediaRewardSection#key — one entry per fish/section reward
+    // slot the player has claimed, ever. See claimEncyclopediaReward.
+    private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
 
     /**
      * {@code caughtSpecies} is only populated for "distinct species" objectives (e.g. the
@@ -63,8 +69,10 @@ public class PlayerQuestState {
                         state.purchaseCounts.forEach((k, v) -> map.put(k.identifier(), v));
                         return map;
                     }),
-            Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay)
-    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay) -> {
+            Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay),
+            Codec.STRING.listOf().optionalFieldOf("claimed_encyclopedia_rewards", List.of())
+                    .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards))
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
@@ -72,6 +80,7 @@ public class PlayerQuestState {
         purchaseMap.forEach((id, count) ->
                 s.purchaseCounts.put(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, id), count));
         s.lastPurchaseResetDay = lastPurchaseResetDay;
+        s.claimedEncyclopediaRewards.addAll(claimedRewards);
         return s;
     }));
 
@@ -190,5 +199,24 @@ public class PlayerQuestState {
         Map<Identifier, Integer> snap = new HashMap<>();
         purchaseCounts.forEach((k, v) -> snap.put(k.identifier(), v));
         return snap;
+    }
+
+    // -------------------------------------------------------------------------
+    // Encyclopedia reward claim API
+    // -------------------------------------------------------------------------
+
+    public boolean isEncyclopediaRewardClaimed(Identifier fishId, EncyclopediaRewardSection section) {
+        return claimedEncyclopediaRewards.contains(section.key(fishId));
+    }
+
+    /** @return false if this reward was already claimed (no-op), true if it was newly granted. */
+    public boolean claimEncyclopediaReward(Identifier fishId, EncyclopediaRewardSection section) {
+        if (!claimedEncyclopediaRewards.add(section.key(fishId))) return false;
+        tokenBalance += section.coinReward();
+        return true;
+    }
+
+    public Set<String> getClaimedEncyclopediaRewardsSnapshot() {
+        return new HashSet<>(claimedEncyclopediaRewards);
     }
 }

@@ -278,6 +278,14 @@ public class FishCatchSavedData extends SavedData {
                 .toList();
     }
 
+    /** Direct single-fish catch count lookup, 0 if the player has never caught it. */
+    public int getCatchCount(UUID playerUuid, Identifier fishType) {
+        PlayerCatchData data = playerData.get(playerUuid);
+        if (data == null) return 0;
+        FishTypeData ftd = data.perFish.get(fishType);
+        return ftd == null ? 0 : ftd.totalCatches;
+    }
+
     public List<GlobalCatchCountEntry> getGlobalCatchCounts(Comparator<GlobalCatchCountEntry> order) {
         return playerData.values().stream()
                 .map(pd -> new GlobalCatchCountEntry(pd.uuid, pd.lastKnownName, pd.totalCatches()))

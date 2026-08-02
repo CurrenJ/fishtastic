@@ -1,10 +1,12 @@
 package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
@@ -37,5 +39,17 @@ public final class FishEncyclopediaClientHelper {
         ResourceKey<FishEncyclopediaEntry> entryKey = ResourceKey.create(
                 FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.identifier());
         return registry.getOptional(entryKey).orElse(FishEncyclopediaEntry.DEFAULT);
+    }
+
+    /** Whether this fish has at least one unlocked-but-unclaimed reward; drives the green pip. */
+    public static boolean fishHasUnclaimedReward(RegistryAccess registryAccess, ResourceKey<FishProfile> fishKey, Identifier fishId) {
+        FishEncyclopediaEntry.UnlockThresholds thresholds = getEncyclopediaEntry(registryAccess, fishKey).thresholds();
+        int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
+        for (EncyclopediaRewardSection section : EncyclopediaRewardSection.values()) {
+            if (catchCount >= section.threshold(thresholds) && !FishEncyclopediaClientCache.isRewardClaimed(fishId, section)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

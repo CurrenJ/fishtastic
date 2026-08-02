@@ -48,8 +48,13 @@ public record FishQuality(Quality quality) implements TooltipProvider {
             return color;
         }
 
+        /** Untranslated fallback name; prefer {@link #getTranslatableName()} for player-facing text. */
         public String getDisplayName() {
             return displayName;
+        }
+
+        public Component getTranslatableName() {
+            return Component.translatable("fishtastic.quality." + name);
         }
 
         public static final Codec<Quality> CODEC = StringRepresentable.fromEnum(Quality::values);
@@ -70,7 +75,7 @@ public record FishQuality(Quality quality) implements TooltipProvider {
     @Override
     public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
         // Add the quality information to the tooltip with appropriate color
-        tooltipAdder.accept(Component.literal("Quality: " + quality.getDisplayName())
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_quality", quality.getTranslatableName())
                 .withStyle(quality.getColor()));
     }
 

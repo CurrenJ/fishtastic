@@ -10,6 +10,8 @@ import io.github.currenj.gelatinui.gui.UIEvent;
 import net.minecraft.resources.ResourceKey;
 import org.joml.Vector2f;
 
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -317,6 +319,20 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
     @Override
     protected void renderSelf(IRenderContext context) {
         // The disc itself draws nothing; children render themselves.
+    }
+
+    /** Second pip-only render pass over reward icons so pips always sit above overlapping neighbors. */
+    @Override
+    protected void renderChildren(IRenderContext context, Rectangle2D viewport) {
+        super.renderChildren(context, viewport);
+
+        for (IUIElement child : new ArrayList<>(children)) {
+            if (child.isVisible() && child instanceof SilhouetteItemButton icon && icon.hasUnclaimedReward()) {
+                icon.setPipOverlayOnly(true);
+                icon.render(context, viewport);
+                icon.setPipOverlayOnly(false);
+            }
+        }
     }
 
     @Override

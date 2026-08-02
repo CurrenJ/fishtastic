@@ -47,7 +47,7 @@ public final class FishEncyclopediaClientGameTests {
         Identifier bluegill = Identifier.fromNamespaceAndPath("fishtastic", "bluegill");
         Identifier trout = Identifier.fromNamespaceAndPath("fishtastic", "trout");
 
-        FishEncyclopediaClientCache.update(Map.of(bluegill, 7, trout, 2), List.of(), List.of());
+        FishEncyclopediaClientCache.update(Map.of(bluegill, 7, trout, 2), List.of(), List.of(), List.of());
 
         helper.assertTrue(FishEncyclopediaClientCache.getCatchCount(bluegill) == 7, "catch count for bluegill must come from the update() map");
         helper.assertTrue(FishEncyclopediaClientCache.getCatchCount(trout) == 2, "catch count for trout must come from the update() map");
@@ -62,7 +62,7 @@ public final class FishEncyclopediaClientGameTests {
         LeaderboardEntry personal = LeaderboardEntry.personalBestSize(bluegill, 18.5f, FishQuality.Quality.RARE);
         LeaderboardEntry global = LeaderboardEntry.globalBestSize(bluegill, otherPlayer, "SomePlayer", 24f, FishQuality.Quality.LEGENDARY);
 
-        FishEncyclopediaClientCache.update(Map.of(), List.of(personal), List.of(global));
+        FishEncyclopediaClientCache.update(Map.of(), List.of(personal), List.of(global), List.of());
 
         helper.assertTrue(FishEncyclopediaClientCache.getPersonalBest(bluegill).equals(personal), "personal best must be indexed by fishType");
         helper.assertTrue(FishEncyclopediaClientCache.getGlobalBest(bluegill).equals(global), "global best must be indexed by fishType");
@@ -74,8 +74,8 @@ public final class FishEncyclopediaClientGameTests {
         Identifier bluegill = Identifier.fromNamespaceAndPath("fishtastic", "bluegill");
         Identifier trout = Identifier.fromNamespaceAndPath("fishtastic", "trout");
 
-        FishEncyclopediaClientCache.update(Map.of(bluegill, 7), List.of(), List.of());
-        FishEncyclopediaClientCache.update(Map.of(trout, 3), List.of(), List.of());
+        FishEncyclopediaClientCache.update(Map.of(bluegill, 7), List.of(), List.of(), List.of());
+        FishEncyclopediaClientCache.update(Map.of(trout, 3), List.of(), List.of(), List.of());
 
         helper.assertTrue(FishEncyclopediaClientCache.getCatchCount(trout) == 3, "the second update's data must be present");
         helper.assertTrue(FishEncyclopediaClientCache.getCatchCount(bluegill) == 0, "the first update's data must not survive a later update()");
@@ -88,7 +88,8 @@ public final class FishEncyclopediaClientGameTests {
         FishEncyclopediaClientCache.update(
             Map.of(bluegill, 7),
             List.of(LeaderboardEntry.personalBestSize(bluegill, 1f, FishQuality.Quality.COMMON)),
-            List.of(LeaderboardEntry.globalBestSize(bluegill, UUID.randomUUID(), "P", 1f, FishQuality.Quality.COMMON))
+            List.of(LeaderboardEntry.globalBestSize(bluegill, UUID.randomUUID(), "P", 1f, FishQuality.Quality.COMMON)),
+            List.of()
         );
 
         FishEncyclopediaClientCache.reset();

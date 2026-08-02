@@ -33,11 +33,9 @@ public record ItemSize(float size) implements TooltipProvider {
 
     @Override
     public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
-        // Format the size with 2 decimal places
         String sizeText = String.format("%.1f", size);
 
-        // Add the size information to the tooltip
-        tooltipAdder.accept(Component.literal("Size: " + sizeText)
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.item_size", sizeText)
                 .withStyle(ChatFormatting.GRAY));
     }
 }

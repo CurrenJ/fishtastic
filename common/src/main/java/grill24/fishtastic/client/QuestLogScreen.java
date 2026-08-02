@@ -199,7 +199,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float COIN_SPIN_SPEED_MAX = 900f;
 
     public QuestLogScreen(GelatinMenu menu, Inventory inv) {
-        super(menu, inv, Component.literal("Quest Log"));
+        super(menu, inv, Component.translatable("screen.fishtastic.quest_log.title"));
     }
 
     @Override
@@ -226,13 +226,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // Ticked locally every frame rather than only on quest-sync packets, so the countdown
         // text counts down smoothly instead of jumping only when the player catches something.
         if (dailyResetLabel != null) {
-            dailyResetLabel.text(formatResetCountdown("Dailies reset in ", QuestClientCache.getTicksUntilDailyReset()));
+            dailyResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.dailies_reset", QuestClientCache.getTicksUntilDailyReset()));
         }
         if (cleanupGoalResetLabel != null) {
-            cleanupGoalResetLabel.text(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()));
+            cleanupGoalResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()));
         }
         if (shopResetLabel != null) {
-            shopResetLabel.text(formatResetCountdown("Shop resets in ", QuestClientCache.getTicksUntilDailyReset()));
+            shopResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.shop.resets", QuestClientCache.getTicksUntilDailyReset()));
         }
         // Ticked locally (rather than only on quest-sync) so a conditioned quest's pip reacts
         // live to weather changing, day/night passing, or the player walking between biomes.
@@ -244,17 +244,22 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
-    /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero. */
-    private static String formatResetCountdown(String prefix, long ticksRemaining) {
-        if (ticksRemaining < 0) return prefix + "--:--";
-        long totalSeconds = ticksRemaining / 20L;
-        long days = totalSeconds / 86400L;
-        long hours = (totalSeconds % 86400L) / 3600L;
-        long minutes = (totalSeconds % 3600L) / 60L;
-        long seconds = totalSeconds % 60L;
-        if (days > 0) return prefix + String.format("%dd %02d:%02d:%02d", days, hours, minutes, seconds);
-        if (hours > 0) return prefix + String.format("%d:%02d:%02d", hours, minutes, seconds);
-        return prefix + String.format("%02d:%02d", minutes, seconds);
+    /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero, and substitutes it into {@code translationKey} (e.g. "Dailies reset in %s"). */
+    private static String formatResetCountdown(String translationKey, long ticksRemaining) {
+        String countdown;
+        if (ticksRemaining < 0) {
+            countdown = "--:--";
+        } else {
+            long totalSeconds = ticksRemaining / 20L;
+            long days = totalSeconds / 86400L;
+            long hours = (totalSeconds % 86400L) / 3600L;
+            long minutes = (totalSeconds % 3600L) / 60L;
+            long seconds = totalSeconds % 60L;
+            if (days > 0) countdown = String.format("%dd %02d:%02d:%02d", days, hours, minutes, seconds);
+            else if (hours > 0) countdown = String.format("%d:%02d:%02d", hours, minutes, seconds);
+            else countdown = String.format("%02d:%02d", minutes, seconds);
+        }
+        return translated(translationKey, countdown);
     }
 
     @Override
@@ -281,7 +286,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         try {
             questRegistry = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
-            Label err = new Label("Quest registry unavailable.", 0xFFFF4444).init(tempContext);
+            Label err = new Label(translated("screen.fishtastic.quest_log.registry_unavailable"), 0xFFFF4444).init(tempContext);
             VBox errorRoot = UI.vbox().alignment(VBox.Alignment.CENTER);
             errorRoot.addChild(err);
             uiScreen.setRoot(errorRoot);
@@ -338,13 +343,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             questKeysByCategory.put(cat, keys);
         }
 
-        Label titleLabel = new Label("Quest Log", 0xFFFFFFFF).init(tempContext);
+        Label titleLabel = new Label(translated("screen.fishtastic.quest_log.title"), 0xFFFFFFFF).init(tempContext);
         titleLabel.scale(1.3f);
         titleLabel.addBreatheEffect();
         titleLabel.onMouseEnter(e -> titleLabel.setTargetScale(1.5f, true));
         titleLabel.onMouseExit(e -> titleLabel.setTargetScale(1.3f, true));
 
-        tokenBalanceLabel = new Label(QuestClientCache.getTokenBalance() + " tokens", 0xFFFFAA00).init(tempContext);
+        tokenBalanceLabel = new Label(translated("screen.fishtastic.quest_log.tokens", QuestClientCache.getTokenBalance()), 0xFFFFAA00).init(tempContext);
         HBox tokenLabel = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
         tokenLabel.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
         tokenLabel.addChild(tokenBalanceLabel);
@@ -427,12 +432,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             boolean isDailyTab) {
         VBox list = UI.vbox().spacing(5).padding(4).alignment(VBox.Alignment.CENTER);
         if (isDailyTab) {
-            dailyResetLabel = new Label(formatResetCountdown("Dailies reset in ", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
+            dailyResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.dailies_reset", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
                     .init(tempContext);
             list.addChild(dailyResetLabel);
         }
         if (quests.isEmpty()) {
-            list.addChild(new Label("No quests available.", 0xFF888888).init(tempContext));
+            list.addChild(new Label(translated("screen.fishtastic.quest_log.no_quests"), 0xFF888888).init(tempContext));
         } else {
             for (int i = 0; i < quests.size(); i += QUESTS_PER_ROW) {
                 int rowEnd = Math.min(i + QUESTS_PER_ROW, quests.size());
@@ -523,7 +528,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         obj.biomeCondition().ifPresent(tag -> parts.add(formatConditionWord(tag.location().getPath())));
         obj.timeCondition().ifPresent(t -> parts.add(formatConditionWord(t.getSerializedName())));
         obj.weatherCondition().ifPresent(w -> parts.add(formatConditionWord(w.getSerializedName())));
-        return "Requires: " + String.join(", ", parts);
+        return translated("screen.fishtastic.quest_log.condition_requires", String.join(", ", parts));
     }
 
     private static String formatConditionWord(String raw) {
@@ -561,7 +566,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         String baseDisplayName = quest.displayName().isEmpty() ? questId.getPath() : quest.displayName();
         int nameColor = claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
-        String nameText = claimed ? "[Done] " + baseDisplayName : baseDisplayName;
+        String nameText = claimed ? translated("screen.fishtastic.quest_log.quest_done", baseDisplayName) : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         row.backgroundSprite(questRowBackgroundSprite(claimed));
@@ -573,7 +578,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         SpriteButton claimBtn = new SpriteButton(40f, 14f, QUEST_CLAIM_BUTTON_TEXTURE)
                 .texture(questClaimButtonSprite())
-                .text("Claim", 0xFFFFFFFF);
+                .text(translated("screen.fishtastic.quest_log.claim"), 0xFFFFFFFF);
         claimBtn.onMouseEnter(e -> claimBtn.setTargetScale(1.12f, true));
         claimBtn.onMouseExit(e -> claimBtn.setTargetScale(1.0f, true));
         final Identifier fId = questId;
@@ -616,7 +621,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             row.addChild(new Label(quest.description(), 0xFF888888).maxWidth(150).centered(true).init(tempContext));
         }
 
-        Label countLabel = new Label(currentCount + " / " + targetCount, 0xFFAAAAAA).init(tempContext);
+        Label countLabel = new Label(translated("screen.fishtastic.quest_log.progress_count", currentCount, targetCount), 0xFFAAAAAA).init(tempContext);
         ThinProgressBar bar = new ThinProgressBar();
         bar.progressImmediate(fraction);
 
@@ -679,7 +684,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         tokenBalanceLabel.playAnimation(new FloatKeyframeAnimation(
                 "token-balance-count",
                 List.of(new Keyframe(0f, (float) oldBalance), new Keyframe(totalDuration, (float) newBalance)),
-                v -> tokenBalanceLabel.text(Math.round(v) + " tokens"),
+                v -> tokenBalanceLabel.text(translated("screen.fishtastic.quest_log.tokens", Math.round(v))),
                 () -> tokenIconRow.addClickBounceEffect()));
     }
 
@@ -769,7 +774,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
         if (quest.reward().questTokens() > 0) {
             row.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
-            row.addChild(new Label(quest.reward().questTokens() + " tokens", 0xFFFFAA00).init(tempContext));
+            row.addChild(new Label(translated("screen.fishtastic.quest_log.tokens", quest.reward().questTokens()), 0xFFFFAA00).init(tempContext));
         }
         if (!quest.reward().items().isEmpty()) {
             if (quest.reward().questTokens() > 0) {
@@ -791,13 +796,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildCleanupGoalPanel() {
         VBox panel = UI.vbox().spacing(6).padding(4).alignment(VBox.Alignment.CENTER);
 
-        Label title = new Label("Clean Up the Waters", 0xFFFFFFFF).init(tempContext);
+        Label title = new Label(translated("screen.fishtastic.quest_log.cleanup.title"), 0xFFFFFFFF).init(tempContext);
         title.scale(1.1f);
         panel.addChild(title);
 
         // Combined into a single label (rather than two separate paragraphs) to cut a whole
         // block's worth of height off the panel's natural size.
-        panel.addChild(new Label("A shared, server-wide goal — every trash catch counts toward it, by anyone. Tokens are split between every contributor each time a milestone is reached.", 0xFF888888)
+        panel.addChild(new Label(translated("screen.fishtastic.quest_log.cleanup.description"), 0xFF888888)
                 .maxWidth(CLEANUP_GOAL_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext));
 
         int total = QuestClientCache.getCleanupGoalTotal();
@@ -807,17 +812,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         cleanupGoalBar = UI.progressBar();
         cleanupGoalBar.progressImmediate(fraction);
-        cleanupGoalCountLabel = new Label(intoCurrentTier + " / " + threshold, 0xFFAAAAAA).init(tempContext);
+        cleanupGoalCountLabel = new Label(translated("screen.fishtastic.quest_log.progress_count", intoCurrentTier, threshold), 0xFFAAAAAA).init(tempContext);
 
         HBox progressRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
         progressRow.addChild(cleanupGoalBar);
         progressRow.addChild(cleanupGoalCountLabel);
         panel.addChild(progressRow);
 
-        cleanupGoalTotalLabel = new Label("Total cleaned so far: " + total, 0xFFFFAA00).init(tempContext);
+        cleanupGoalTotalLabel = new Label(translated("screen.fishtastic.quest_log.cleanup.total", total), 0xFFFFAA00).init(tempContext);
         panel.addChild(cleanupGoalTotalLabel);
 
-        cleanupGoalResetLabel = new Label(formatResetCountdown("Goal resets in ", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
+        cleanupGoalResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
                 .init(tempContext);
         panel.addChild(cleanupGoalResetLabel);
 
@@ -828,7 +833,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         VBox panel = UI.vbox().spacing(8).padding(4).alignment(VBox.Alignment.CENTER);
 
         if (shopRegistry == null || shopRegistry.entrySet().isEmpty()) {
-            panel.addChild(new Label("No shop entries available.", 0xFF888888).init(tempContext));
+            panel.addChild(new Label(translated("screen.fishtastic.quest_log.shop.no_entries"), 0xFF888888).init(tempContext));
             return panel;
         }
 
@@ -836,11 +841,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
 
-        Label shopTitle = new Label("Today's Stock", 0xFFFFFFFF).init(tempContext);
+        Label shopTitle = new Label(translated("screen.fishtastic.quest_log.shop.title"), 0xFFFFFFFF).init(tempContext);
         shopTitle.scale(1.1f);
         panel.addChild(shopTitle);
 
-        shopResetLabel = new Label(formatResetCountdown("Shop resets in ", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
+        shopResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.shop.resets", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
                 .init(tempContext);
         panel.addChild(shopResetLabel);
 
@@ -911,7 +916,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         nameLabel.setVisible(!soldOut);
 
         // Sold out label — toggled by updateShopCardVisuals
-        Label soldOutLabel = new Label("Sold Out", 0xFF555555).init(tempContext);
+        Label soldOutLabel = new Label(translated("screen.fishtastic.quest_log.shop.sold_out"), 0xFF555555).init(tempContext);
         soldOutLabel.setVisible(soldOut);
 
         // Cost row — hidden when sold out
@@ -943,7 +948,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .textureSize(SHOP_BUY_BUTTON_FILE_WIDTH, SHOP_BUY_BUTTON_FILE_HEIGHT);
         SpriteButton buyBtn = new SpriteButton(SHOP_BUY_BUTTON_WIDTH, SHOP_BUY_BUTTON_HEIGHT, SHOP_BUY_BUTTON_TEXTURE)
                 .texture(buyButtonSprite)
-                .text("Buy", 0xFFFFFFFF)
+                .text(translated("screen.fishtastic.quest_log.shop.buy"), 0xFFFFFFFF)
                 .scaleFromCenter();
         buyBtn.onMouseEnter(e -> buyBtn.setTargetScale(1.12f, true));
         buyBtn.onMouseExit(e -> buyBtn.setTargetScale(1.0f, true));
@@ -959,7 +964,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         buyBtn.setVisible(canAfford && !soldOut);
         inner.addChild(buyBtn);
 
-        Label notEnoughLabel = new Label("Not enough tokens", 0xFFFF4444).init(tempContext);
+        Label notEnoughLabel = new Label(translated("screen.fishtastic.quest_log.shop.not_enough_tokens"), 0xFFFF4444).init(tempContext);
         notEnoughLabel.setVisible(!canAfford && !soldOut);
         inner.addChild(notEnoughLabel);
 
@@ -1050,7 +1055,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     private void updateInPlace() {
         if (tokenBalanceLabel != null) {
-            tokenBalanceLabel.text(QuestClientCache.getTokenBalance() + " tokens");
+            tokenBalanceLabel.text(translated("screen.fishtastic.quest_log.tokens", QuestClientCache.getTokenBalance()));
         }
 
         if (cleanupGoalTotalLabel != null) {
@@ -1058,8 +1063,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             int threshold = Math.max(1, QuestClientCache.getCleanupGoalThreshold());
             int intoCurrentTier = total % threshold;
             float fraction = (float) intoCurrentTier / threshold;
-            cleanupGoalTotalLabel.text("Total cleaned so far: " + total);
-            cleanupGoalCountLabel.text(intoCurrentTier + " / " + threshold);
+            cleanupGoalTotalLabel.text(translated("screen.fishtastic.quest_log.cleanup.total", total));
+            cleanupGoalCountLabel.text(translated("screen.fishtastic.quest_log.progress_count", intoCurrentTier, threshold));
             cleanupGoalBar.progressImmediate(fraction);
         }
 
@@ -1076,12 +1081,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             float fraction = refs.targetCount() > 0 ? Math.min(1f, (float) currentCount / refs.targetCount()) : 0f;
 
             int nameColor = claimed ? 0xFFAAAAAA : 0xFFFFFFFF;
-            String nameText = claimed ? "[Done] " + refs.baseDisplayName() : refs.baseDisplayName();
+            String nameText = claimed ? translated("screen.fishtastic.quest_log.quest_done", refs.baseDisplayName()) : refs.baseDisplayName();
 
             refs.nameLabel().text(nameText).color(nameColor);
             refs.claimButton().setVisible(canClaim);
             refs.progressBar().progressImmediate(fraction);
-            refs.countLabel().text(currentCount + " / " + refs.targetCount());
+            refs.countLabel().text(translated("screen.fishtastic.quest_log.progress_count", currentCount, refs.targetCount()));
             refs.row().backgroundSprite(questRowBackgroundSprite(claimed));
             refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
             updateStatusPip(refs, claimed);
@@ -1097,5 +1102,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (handlerInstalled) {
             QuestSyncPacket.registerClientHandler(savedHandler);
         }
+    }
+
+    private static String translated(String key, Object... args) {
+        return Component.translatable(key, args).getString();
     }
 }

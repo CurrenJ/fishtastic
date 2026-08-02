@@ -5,27 +5,34 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.CopperFishingRod;
+import grill24.fishtastic.network.ClaimEncyclopediaRewardPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.util.Utility;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
+import io.github.currenj.gelatinui.gui.IRenderContext;
 import io.github.currenj.gelatinui.gui.IUIElement;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.HBox;
+import io.github.currenj.gelatinui.gui.components.ItemRenderer;
 import io.github.currenj.gelatinui.gui.components.Label;
+import io.github.currenj.gelatinui.gui.components.ManualContainer;
 import io.github.currenj.gelatinui.gui.components.SpriteButton;
 import io.github.currenj.gelatinui.gui.components.SpriteData;
 import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
 import io.github.currenj.gelatinui.gui.components.SpriteRectangle;
+import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
@@ -45,6 +52,7 @@ import net.minecraft.world.item.Items;
 import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
 
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -68,6 +76,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float CLOSE_TRAVEL_DURATION = 0.3f;
     private static final float SCREEN_FADE_DURATION = 0.2f;
 
+    // Staggers unclaimed-reward pip pop-ins across the disc instead of all popping at once.
+    private static final float REWARD_PIP_POP_INITIAL_DELAY = 1.2f;
+    private static final float REWARD_PIP_POP_STAGGER = 0.1f;
+
     // Status pip shown to the left of each spawn condition row — lit green while that
     // condition currently holds for the player, dim otherwise. Mirrors QuestLogScreen's
     // per-objective status pip, but evaluated per spawn-weight row rather than per quest.
@@ -82,6 +94,21 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float ZONE_ICON_SIZE = 32f;
     private static final float ZONE_ICON_HOVER_SCALE = 2.0f;
 
+    // Reward claim button background, reused from QuestLogScreen's claimed-panel texture.
+    private static final Identifier CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final int CLAIM_BUTTON_SOURCE_WIDTH = 20;
+    private static final int CLAIM_BUTTON_SOURCE_HEIGHT = 24;
+    private static final int CLAIM_BUTTON_SLICE_LEFT = 4;
+    private static final int CLAIM_BUTTON_SLICE_TOP = 4;
+    private static final int CLAIM_BUTTON_SLICE_RIGHT = CLAIM_BUTTON_SOURCE_WIDTH - (CLAIM_BUTTON_SLICE_LEFT + 12);
+    private static final int CLAIM_BUTTON_SLICE_BOTTOM = CLAIM_BUTTON_SOURCE_HEIGHT - (CLAIM_BUTTON_SLICE_TOP + 16);
+    // Coin icon blitted over the claim button in place of "+N" text; button size follows the icon.
+    private static final float CLAIM_BUTTON_ICON_PADDING = 3f;
+    private record CoinIcon(Identifier texture, float width, float height) {}
+    private static final CoinIcon COIN_ICON_ONE = new CoinIcon(Fishtastic.id("textures/gui/one_coin.png"), 8f, 7f);
+    private static final CoinIcon COIN_ICON_TWO = new CoinIcon(Fishtastic.id("textures/gui/two_coins.png"), 12f, 8f);
+    private static final CoinIcon COIN_ICON_THREE = new CoinIcon(Fishtastic.id("textures/gui/three_coins.png"), 8f, 11f);
+
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
 
@@ -91,6 +118,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private FreeformContainer root;
     private FishSphereContainer sphere;
+    // Zero-size overlay hosting the reward coin-fly flourish; screen-scoped like QuestLogScreen's coinFlyOverlay.
+    private ManualContainer rewardFlyOverlay;
     private final Map<ResourceKey<FishProfile>, SilhouetteItemButton> iconRefs = new LinkedHashMap<>();
 
     // Info page state — non-null only while the info page is showing.
@@ -103,6 +132,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private boolean closing = false;
     private IUIElement closingIcon;
     private Label nameLabel;
+    private SpriteButton nameClaimButton;
     private Label caughtCountLabel;
     private VBox recordsContainer;
     private VBox zonesContainer;
@@ -120,7 +150,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private final List<Runnable> zonePipUpdaters = new ArrayList<>();
 
     public FishEncyclopediaScreen(GelatinMenu menu, Inventory inv) {
-        super(menu, inv, Component.literal("Fish Encyclopedia"));
+        super(menu, inv, Component.translatable("screen.fishtastic.encyclopedia.title"));
     }
 
     @Override
@@ -129,7 +159,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = FishEncyclopediaSyncPacket.clientHandler;
             handlerInstalled = true;
             FishEncyclopediaSyncPacket.registerClientHandler(packet -> {
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes());
+                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(), packet.claimedRewardKeys());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     refreshFromCache();
@@ -213,6 +243,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         closing = false;
         closingIcon = null;
         nameLabel = null;
+        nameClaimButton = null;
         caughtCountLabel = null;
         recordsContainer = null;
         zonesContainer = null;
@@ -250,6 +281,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
                 SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
                 icon.setSilhouette(!caught);
+                icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
+                        mc.level.registryAccess(), fishKey, fishKey.identifier()));
                 iconItems.add(Map.entry(fishKey, icon));
                 iconRefs.put(fishKey, icon);
             }
@@ -257,6 +290,12 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         root.addChild(sphere);
+
+        scheduleRewardPipPopIns();
+
+        rewardFlyOverlay = UI.manualContainer().setSize(0, 0);
+        rewardFlyOverlay.setDebugName("encyclopediaRewardCoinOverlay");
+        root.addChild(rewardFlyOverlay);
 
         uiScreen.setRoot(root);
         uiScreen.setAutoCenterRoot(false);
@@ -287,12 +326,29 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private void refreshFromCache() {
+        Minecraft mc = Minecraft.getInstance();
         for (Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton> entry : iconRefs.entrySet()) {
-            entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(entry.getKey().identifier()) <= 0);
+            ResourceKey<FishProfile> fishKey = entry.getKey();
+            Identifier fishId = fishKey.identifier();
+            entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
+            if (mc.level != null) {
+                entry.getValue().setHasUnclaimedReward(
+                        FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
+            }
         }
         if (selectedFishKey != null) {
             refreshInfoPage();
             updateRootContentSize();
+        }
+    }
+
+    /** Staggers unclaimed-reward pip pop-ins across the disc, in icon order. Called once on screen open only. */
+    private void scheduleRewardPipPopIns() {
+        float delay = REWARD_PIP_POP_INITIAL_DELAY;
+        for (SilhouetteItemButton icon : iconRefs.values()) {
+            if (!icon.hasUnclaimedReward()) continue;
+            icon.playPipPopIn(delay);
+            delay += REWARD_PIP_POP_STAGGER;
         }
     }
 
@@ -431,7 +487,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // Phase 6: info page content & unlock gating
 
     private void buildInfoPage(float startY) {
-        SpriteButton backBtn = UI.spriteButton(40f, 14f, 0xFF666666).text("Back", 0xFFFFFFFF);
+        SpriteButton backBtn = UI.spriteButton(40f, 14f, 0xFF666666).text(translated("screen.fishtastic.encyclopedia.back"), 0xFFFFFFFF);
         backBtn.onMouseEnter(e -> backBtn.setTargetScale(1.1f, true));
         backBtn.onMouseExit(e -> backBtn.setTargetScale(1.0f, true));
         backBtn.onClick(e -> goBackToDisc());
@@ -443,9 +499,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         VBox page = UI.vbox().spacing(8).padding(6).alignment(VBox.Alignment.CENTER);
 
+        HBox nameRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
         nameLabel = new Label("", 0xFFFFD700).init(tempContext);
         nameLabel.scale(1.2f);
-        page.addChild(nameLabel);
+        nameRow.addChild(nameLabel);
+        nameClaimButton = buildClaimButton(selectedFishKey.identifier(), EncyclopediaRewardSection.NAME_REVEAL);
+        nameRow.addChild(nameClaimButton);
+        page.addChild(nameRow);
 
         caughtCountLabel = new Label("", 0xFFAAAAAA).init(tempContext);
         page.addChild(caughtCountLabel);
@@ -484,26 +544,30 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaEntry.UnlockThresholds thresholds = selectedEntry.thresholds();
 
         boolean nameRevealed = catchCount >= thresholds.nameRevealCatches();
-        String displayName = nameRevealed ? Utility.prettyName(fishId.getPath()) : "???";
+        String displayName = nameRevealed
+                ? BuiltInRegistries.ITEM.getOptional(fishId).map(item -> item.getName(new ItemStack(item))).map(Component::getString)
+                        .orElseGet(() -> Utility.prettyName(fishId.getPath()))
+                : translated("screen.fishtastic.encyclopedia.locked_placeholder");
         nameLabel.text(displayName).color(nameRevealed ? 0xFFFFFFFF : 0xFF888888);
-        caughtCountLabel.text(nameRevealed ? "Caught " + catchCount + " times" : "");
+        nameClaimButton.setVisible(nameRevealed && !FishEncyclopediaClientCache.isRewardClaimed(fishId, EncyclopediaRewardSection.NAME_REVEAL));
+        caughtCountLabel.text(nameRevealed ? translated("screen.fishtastic.encyclopedia.caught_count", catchCount) : "");
         caughtCountLabel.setVisible(nameRevealed);
 
         populateRecordsSection(fishId, catchCount);
         zonesContainer.clearChildren();
-        zonesContainer.addChild(buildUngatedSection("Zones", () -> buildZonesContent(selectedProfile)));
+        zonesContainer.addChild(buildUngatedSection(translated("screen.fishtastic.encyclopedia.section.zones"), () -> buildZonesContent(selectedProfile)));
         statsContainer.clearChildren();
-        statsContainer.addChild(buildGatedSection("Stats", catchCount, thresholds.statsCatches(),
-                () -> buildStatsContent(selectedProfile)));
+        statsContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.stats"), catchCount, thresholds.statsCatches(),
+                fishId, EncyclopediaRewardSection.STATS, () -> buildStatsContent(selectedProfile)));
         typesContainer.clearChildren();
-        typesContainer.addChild(buildGatedSection("Types", catchCount, thresholds.typesCatches(),
-                () -> buildTypesContent(fishId)));
+        typesContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.types"), catchCount, thresholds.typesCatches(),
+                fishId, EncyclopediaRewardSection.TYPES, () -> buildTypesContent(fishId)));
         spawnContainer.clearChildren();
-        spawnContainer.addChild(buildGatedSection("Spawn Conditions", catchCount, thresholds.spawnConditionsCatches(),
-                () -> buildSpawnConditionsContent(selectedProfile)));
+        spawnContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.spawn_conditions"), catchCount, thresholds.spawnConditionsCatches(),
+                fishId, EncyclopediaRewardSection.SPAWN_CONDITIONS, () -> buildSpawnConditionsContent(selectedProfile)));
         loreContainer.clearChildren();
-        loreContainer.addChild(buildGatedSection("Lore", catchCount, thresholds.loreCatches(),
-                () -> buildLoreContent(selectedEntry)));
+        loreContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.lore"), catchCount, thresholds.loreCatches(),
+                fishId, EncyclopediaRewardSection.LORE, () -> buildLoreContent(selectedEntry)));
     }
 
     private void populateRecordsSection(Identifier fishId, int catchCount) {
@@ -514,15 +578,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         LeaderboardEntry personalBest = FishEncyclopediaClientCache.getPersonalBest(fishId);
         if (personalBest != null) {
-            card.addChild(label("Your Best: " + String.format("%.0f cm", personalBest.size())
-                    + " (" + personalBest.quality().getDisplayName() + ")", 0xFFFFFFFF));
+            card.addChild(label(translated("screen.fishtastic.encyclopedia.your_best",
+                    Component.translatable("tooltip.fishtastic.item_size.cm", String.format("%.0f", personalBest.size())),
+                    personalBest.quality().getTranslatableName()), 0xFFFFFFFF));
         }
-        card.addChild(label("Your Catches: " + catchCount, 0xFFFFFFFF));
+        card.addChild(label(translated("screen.fishtastic.encyclopedia.your_catches", catchCount), 0xFFFFFFFF));
 
         LeaderboardEntry globalBest = FishEncyclopediaClientCache.getGlobalBest(fishId);
         if (globalBest != null) {
-            String holder = globalBest.playerName().orElse("Unknown");
-            card.addChild(label("Server Best: " + holder + " - " + String.format("%.0f cm", globalBest.size()), 0xFFFFAA00));
+            Component holder = globalBest.playerName().<Component>map(Component::literal)
+                    .orElseGet(() -> Component.translatable("screen.fishtastic.encyclopedia.unknown_player"));
+            card.addChild(label(translated("screen.fishtastic.encyclopedia.server_best",
+                    holder, Component.translatable("tooltip.fishtastic.item_size.cm", String.format("%.0f", globalBest.size()))), 0xFFFFAA00));
         }
 
         recordsContainer.addChild(card);
@@ -530,8 +597,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private VBox buildStatsContent(FishProfile profile) {
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        content.addChild(label("Base Weight: " + profile.baseWeight(), 0xFFFFFFFF));
-        content.addChild(label(String.format("Average Size: %.0f cm (±%.0f)", profile.size().mean(), profile.size().stdDev()), 0xFFFFFFFF));
+        content.addChild(label(translated("screen.fishtastic.encyclopedia.base_weight", profile.baseWeight()), 0xFFFFFFFF));
+        content.addChild(label(translated("screen.fishtastic.encyclopedia.average_size",
+                String.format("%.0f", profile.size().mean()), String.format("%.0f", profile.size().stdDev())), 0xFFFFFFFF));
         return content;
     }
 
@@ -542,7 +610,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 .filter(item.builtInRegistryHolder()::is)
                 .toList();
         if (groups.isEmpty()) {
-            content.addChild(label("No bait affinities.", 0xFF888888));
+            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_bait_affinities"), 0xFF888888));
         } else {
             for (TagKey<Item> group : groups) {
                 content.addChild(label(Utility.prettyName(group.location().getPath()), 0xFFCCCCCC));
@@ -564,7 +632,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         zonePipUpdaters.clear();
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         if (profile.zones().isEmpty()) {
-            content.addChild(label("No zone restrictions.", 0xFF888888));
+            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_zone_restrictions"), 0xFF888888));
             return content;
         }
         HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
@@ -610,7 +678,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         any |= addAxisRows(content, profile.moonWeights(), FishProfile.MoonWeight::tier, FishProfile.MoonWeight::multiplier,
                 mw -> Utility.prettyName(mw.phase().name()), FishEncyclopediaScreen::isMoonWeightMet);
         if (!any) {
-            content.addChild(label("No special conditions.", 0xFF888888));
+            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_special_conditions"), 0xFF888888));
         }
         return content;
     }
@@ -742,7 +810,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private VBox buildLoreContent(FishEncyclopediaEntry entry) {
         VBox content = UI.vbox().spacing(2).padding(4).alignment(VBox.Alignment.CENTER).backgroundColor(0x44222222);
-        String lore = entry.lore().orElse("No lore recorded yet.");
+        String lore = entry.lore().orElseGet(() -> translated("screen.fishtastic.encyclopedia.no_lore"));
         content.addChild(new Label(lore, 0xFFDDDDDD).maxWidth(150).centered(true).init(tempContext));
         return content;
     }
@@ -760,26 +828,118 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     /**
-     * Renders {@code unlockedContentBuilder}'s content if {@code currentCatches >= targetCatches},
-     * otherwise a ghost {@code "???"} row plus a progress bar and "catch N more" label.
+     * Renders {@code unlockedContentBuilder}'s content if unlocked, else a ghost row with progress bar.
+     * Adds a claim button next to the title while unlocked but unclaimed.
      */
-    private VBox buildGatedSection(String title, int currentCatches, int targetCatches, Supplier<VBox> unlockedContentBuilder) {
+    private VBox buildGatedSection(String title, int currentCatches, int targetCatches, Identifier fishId,
+                                    EncyclopediaRewardSection rewardSection, Supplier<VBox> unlockedContentBuilder) {
         VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        Label titleLabel = new Label(title, 0xFFFFD700).init(tempContext);
-        section.addChild(titleLabel);
+        boolean unlocked = currentCatches >= targetCatches;
 
-        if (currentCatches >= targetCatches) {
+        if (unlocked && !FishEncyclopediaClientCache.isRewardClaimed(fishId, rewardSection)) {
+            HBox titleRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
+            titleRow.addChild(new Label(title, 0xFFFFD700).init(tempContext));
+            titleRow.addChild(buildClaimButton(fishId, rewardSection));
+            section.addChild(titleRow);
+        } else {
+            section.addChild(new Label(title, 0xFFFFD700).init(tempContext));
+        }
+
+        if (unlocked) {
             section.addChild(unlockedContentBuilder.get());
         } else {
-            section.addChild(label("???", 0xFF666666));
+            section.addChild(label(translated("screen.fishtastic.encyclopedia.locked_placeholder"), 0xFF666666));
             SpriteProgressBar bar = UI.progressBar();
             float fraction = targetCatches > 0 ? Math.min(1f, (float) currentCatches / targetCatches) : 0f;
             bar.progressImmediate(fraction);
             section.addChild(bar);
-            section.addChild(label("Catch " + Math.max(0, targetCatches - currentCatches) + " more to unlock " + title
-                    + " (" + currentCatches + "/" + targetCatches + ")", 0xFF888888));
+            section.addChild(label(translated("screen.fishtastic.encyclopedia.unlock_progress",
+                    Math.max(0, targetCatches - currentCatches), title, currentCatches, targetCatches), 0xFF888888));
         }
         return section;
+    }
+
+    /** Claim button for one fish's reward slot; disappearance is driven by the next server sync, not optimistically. */
+    private SpriteButton buildClaimButton(Identifier fishId, EncyclopediaRewardSection rewardSection) {
+        CoinIcon icon = coinIconFor(rewardSection.coinReward());
+        float btnWidth = icon.width() + CLAIM_BUTTON_ICON_PADDING * 2f;
+        float btnHeight = icon.height() + CLAIM_BUTTON_ICON_PADDING * 2f;
+        CoinClaimButton btn = new CoinClaimButton(btnWidth, btnHeight, icon);
+        btn.texture(claimButtonSprite());
+        btn.onMouseEnter(e -> btn.setTargetScale(1.15f, true));
+        btn.onMouseExit(e -> btn.setTargetScale(1.0f, true));
+        btn.onClick(e -> {
+            btn.addClickBounceEffect();
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                mc.player.connection.send(new ServerboundCustomPayloadPacket(new ClaimEncyclopediaRewardPacket(fishId, rewardSection)));
+            }
+            playRewardClaimFlourish(btn);
+        });
+        return btn;
+    }
+
+    private SpriteData claimButtonSprite() {
+        return new SpriteData(CLAIM_BUTTON_TEXTURE)
+                .uv(0, 0, CLAIM_BUTTON_SOURCE_WIDTH, CLAIM_BUTTON_SOURCE_HEIGHT)
+                .textureSize(CLAIM_BUTTON_SOURCE_WIDTH, CLAIM_BUTTON_SOURCE_HEIGHT)
+                .renderMode(SpriteRenderMode.SLICE)
+                .slice(CLAIM_BUTTON_SLICE_LEFT, CLAIM_BUTTON_SLICE_RIGHT, CLAIM_BUTTON_SLICE_TOP, CLAIM_BUTTON_SLICE_BOTTOM);
+    }
+
+    private static CoinIcon coinIconFor(int coinReward) {
+        return switch (coinReward) {
+            case 1 -> COIN_ICON_ONE;
+            case 2 -> COIN_ICON_TWO;
+            default -> COIN_ICON_THREE;
+        };
+    }
+
+    /** A {@link SpriteButton} that blits a coin-count icon over its background instead of "+N" text. */
+    private static class CoinClaimButton extends SpriteButton {
+        private final CoinIcon icon;
+
+        CoinClaimButton(float width, float height, CoinIcon icon) {
+            super(width, height, CLAIM_BUTTON_TEXTURE);
+            this.icon = icon;
+        }
+
+        @Override
+        protected void renderSelf(IRenderContext context) {
+            super.renderSelf(context);
+            context.drawSprite(new SpriteData(icon.texture()),
+                    CLAIM_BUTTON_ICON_PADDING, CLAIM_BUTTON_ICON_PADDING,
+                    (int) icon.width(), (int) icon.height());
+        }
+    }
+
+    /** A single mini coin arcing up and fading away from {@code origin}; a smaller {@link QuestLogScreen} claim burst. */
+    private void playRewardClaimFlourish(UIElement<?> origin) {
+        if (rewardFlyOverlay == null) return;
+
+        Rectangle2D originBounds = origin.getBounds();
+        float originCx = (float) (originBounds.getX() + originBounds.getWidth() / 2);
+        float originCy = (float) (originBounds.getY() + originBounds.getHeight() / 2);
+
+        Vector2f overlayGlobalPos = rewardFlyOverlay.getGlobalPosition();
+        float overlayScale = Math.max(0.0001f, rewardFlyOverlay.getGlobalScale());
+        float startX = (originCx - overlayGlobalPos.x) / overlayScale;
+        float startY = (originCy - overlayGlobalPos.y) / overlayScale;
+
+        ItemRenderer.ItemRendererImpl coin = UI.itemRenderer(new ItemStack(FishtasticItems.QUEST_TOKEN.value()));
+        coin.showCount(false);
+        rewardFlyOverlay.addChildAt(coin, startX, startY);
+
+        float duration = 0.6f;
+        coin.addEffect(new CoinArcEffect("encyclopedia-reward-coin", 0, duration)
+                .setDisplacement(0f, -24f)
+                .setArcHeight(8f)
+                .setShrink(0.5f, 0.1f));
+        coin.playAnimation(new FloatKeyframeAnimation(
+                "encyclopedia-reward-coin-life",
+                List.of(new Keyframe(0f, 0f), new Keyframe(duration, 1f)),
+                v -> {},
+                () -> uiScreen.runDeferred(() -> rewardFlyOverlay.removeChild(coin))));
     }
 
     // -------------------------------------------------------------------------
@@ -787,6 +947,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private Label label(String text, int color) {
         return new Label(text, color).init(tempContext);
+    }
+
+    private static String translated(String key, Object... args) {
+        return Component.translatable(key, args).getString();
     }
 
 }

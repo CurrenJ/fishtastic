@@ -9,20 +9,17 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Server→client sync of the data the fish encyclopedia screen needs: personal catch counts
- * for every fish the player has ever caught (drives home-screen silhouette state), and the
- * Records panel data (personal/global best sizes), reusing {@link LeaderboardEntry} as the
- * wire DTO exactly as {@code LeaderboardResponsePacket} does.
- */
+/** Server→client sync of catch counts, Records panel data, and claimed encyclopedia reward slots. */
 public record FishEncyclopediaSyncPacket(
         Map<Identifier, Integer> personalCatchCounts,
         List<LeaderboardEntry> personalBestSizes,
-        List<LeaderboardEntry> globalBestSizes
+        List<LeaderboardEntry> globalBestSizes,
+        List<String> claimedRewardKeys
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<FishEncyclopediaSyncPacket> TYPE =
@@ -36,6 +33,8 @@ public record FishEncyclopediaSyncPacket(
                     FishEncyclopediaSyncPacket::personalBestSizes,
                     LeaderboardEntry.STREAM_CODEC.apply(ByteBufCodecs.list()),
                     FishEncyclopediaSyncPacket::globalBestSizes,
+                    ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()),
+                    FishEncyclopediaSyncPacket::claimedRewardKeys,
                     FishEncyclopediaSyncPacket::new
             );
 
@@ -60,7 +59,9 @@ public record FishEncyclopediaSyncPacket(
                 .map(e -> LeaderboardEntry.globalBestSize(e.fishType(), e.playerUuid(), e.playerName(), e.bestSize(), e.bestQuality()))
                 .toList();
 
-        FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest);
+        List<String> claimedRewardKeys = new ArrayList<>(data.getOrCreateQuestState(player).getClaimedEncyclopediaRewardsSnapshot());
+
+        FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

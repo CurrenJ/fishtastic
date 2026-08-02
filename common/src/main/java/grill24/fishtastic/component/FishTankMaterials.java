@@ -58,11 +58,11 @@ public record FishTankMaterials(Block frame, Block sand, Block glass) implements
 
     @Override
     public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
-        tooltipAdder.accept(Component.literal("Frame: ").withStyle(ChatFormatting.GRAY)
-                .append(frame.getName().copy().withStyle(ChatFormatting.WHITE)));
-        tooltipAdder.accept(Component.literal("Sand: ").withStyle(ChatFormatting.GRAY)
-                .append(sand.getName().copy().withStyle(ChatFormatting.WHITE)));
-        tooltipAdder.accept(Component.literal("Glass: ").withStyle(ChatFormatting.GRAY)
-                .append(glass.getName().copy().withStyle(ChatFormatting.WHITE)));
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.frame",
+                frame.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.sand",
+                sand.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.glass",
+                glass.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
     }
 }

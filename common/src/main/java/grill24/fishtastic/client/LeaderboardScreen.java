@@ -64,7 +64,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     private MinecraftRenderContext tempContext;
 
     public LeaderboardScreen(GelatinMenu menu, Inventory inv) {
-        super(menu, inv, Component.literal("Leaderboards"));
+        super(menu, inv, Component.translatable("screen.fishtastic.leaderboard.title"));
     }
 
     @Override
@@ -77,7 +77,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
         // --- Leaderboard content ---
         listWrapper = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        listWrapper.addChild(label("Loading...", 0xFF888888));
+        listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
 
         titleLabel = new Label(titleText(), 0xFFFFFFFF).init(tempContext);
         titleLabel.scale(1.2f);
@@ -181,7 +181,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private String titleText() {
-        return isPersonal ? "Personal Best" : "Fishing Leaderboard";
+        return translated(isPersonal ? "screen.fishtastic.leaderboard.title_personal" : "screen.fishtastic.leaderboard.title_global");
     }
 
     // -------------------------------------------------------------------------
@@ -204,7 +204,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
                 },
                 () -> {
                     listWrapper.clearChildren();
-                    listWrapper.addChild(label("Loading...", 0xFF888888));
+                    listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
                     requestLeaderboard();
                 }
         );
@@ -260,7 +260,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
         List<LeaderboardEntry> entries = packet.entries();
         if (entries.isEmpty()) {
-            listWrapper.addChild(label("No entries yet.", 0xFF888888));
+            listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.no_entries"), 0xFF888888));
         } else {
             for (int i = 0; i < entries.size(); i++) {
                 listWrapper.addChild(buildEntryRow(i + 1, entries.get(i), packet.leaderboardType()));
@@ -276,7 +276,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     private HBox buildEntryRow(int rank, LeaderboardEntry entry, LeaderboardType type) {
         HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
 
-        row.addChild(label(rank + ".", 0xFFAAAAAA));
+        row.addChild(label(translated("screen.fishtastic.leaderboard.rank", rank), 0xFFAAAAAA));
 
         if (type == LeaderboardType.GLOBAL_CATCH_COUNT) {
             entry.playerUuid().ifPresent(uuid ->
@@ -308,16 +308,30 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     private static String entryText(LeaderboardEntry entry, LeaderboardType type) {
         return switch (type) {
-            case PERSONAL_BEST_SIZE, GLOBAL_BEST_SIZE -> {
-                String fish = entry.fishType().map(loc -> prettyName(loc.getPath())).orElse("Unknown");
-                yield fish + "  " + String.format("%.0f cm", entry.size());
-            }
-            case PERSONAL_CATCH_COUNT -> {
-                String fish = entry.fishType().map(loc -> prettyName(loc.getPath())).orElse("Unknown");
-                yield fish + "  x" + entry.catchCount();
-            }
-            case GLOBAL_CATCH_COUNT -> entry.playerName().orElse("Unknown") + "  x" + entry.catchCount();
+            case PERSONAL_BEST_SIZE, GLOBAL_BEST_SIZE -> Component.translatable(
+                    "screen.fishtastic.leaderboard.entry_size",
+                    fishDisplayName(entry),
+                    Component.translatable("tooltip.fishtastic.item_size.cm", String.format("%.0f", entry.size()))
+            ).getString();
+            case PERSONAL_CATCH_COUNT -> Component.translatable(
+                    "screen.fishtastic.leaderboard.entry_count",
+                    fishDisplayName(entry), entry.catchCount()
+            ).getString();
+            case GLOBAL_CATCH_COUNT -> Component.translatable(
+                    "screen.fishtastic.leaderboard.entry_count",
+                    entry.playerName().<Component>map(Component::literal)
+                            .orElseGet(() -> Component.translatable("screen.fishtastic.leaderboard.unknown_player")),
+                    entry.catchCount()
+            ).getString();
         };
+    }
+
+    private static Component fishDisplayName(LeaderboardEntry entry) {
+        return entry.fishType()
+                .<Component>map(loc -> BuiltInRegistries.ITEM.getOptional(loc)
+                        .<Component>map(item -> Component.translatable(item.getDescriptionId()))
+                        .orElseGet(() -> Component.literal(prettyName(loc.getPath()))))
+                .orElseGet(() -> Component.translatable("screen.fishtastic.leaderboard.unknown_fish"));
     }
 
     private static String prettyName(String path) {
@@ -328,6 +342,10 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
             if (!part.isEmpty()) sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
         }
         return sb.toString();
+    }
+
+    private static String translated(String key, Object... args) {
+        return Component.translatable(key, args).getString();
     }
 
     private Label label(String text, int color) {
