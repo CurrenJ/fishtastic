@@ -1,0 +1,10 @@
+{
+  "lore": "A gregarious reef dweller with bold yellow stripes, the yellowstripe grunt schools by the hundreds over sandy flats by day and scatters to hunt at night.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

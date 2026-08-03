@@ -1,0 +1,8 @@
+{
+  "base_weight": 25,
+  "size": { "mean": 5.0, "std_dev": 1.0 },
+  "zones": [
+    "ocean"
+  ],
+  "temperament": "fishtastic:docile"
+}

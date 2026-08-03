@@ -126,6 +126,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.LONGNOSE_GAR.value(), "longnose_gar");
         generateFishItemModel(itemModelGenerators, FishtasticItems.MOLTEN_MOORISH_IDOL.value(), "molten_moorish_idol");
         generateFishItemModel(itemModelGenerators, FishtasticItems.MOORISH_IDOL.value(), "moorish_idol");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.NEON_GOBY.value(), "neon_goby");
         generateFishItemModel(itemModelGenerators, FishtasticItems.NEON_TETRA.value(), "neon_tetra");
         generateFishItemModel(itemModelGenerators, FishtasticItems.NORTHERN_PIKE.value(), "northern_pike");
         generateFishItemModel(itemModelGenerators, FishtasticItems.OCEAN_SUNFISH.value(), "ocean_sunfish");
@@ -142,6 +143,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.WATERFALL_CLIMBING_CAVE_FISH.value(), "waterfall_climbing_cave_fish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WILLANS_CHROMODORIS.value(), "willans_chromodoris");
         generateFishItemModel(itemModelGenerators, FishtasticItems.YELLOWLINE_GOBY.value(), "yellowline_goby");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.YELLOWSTRIPE_GRUNT.value(), "yellowstripe_grunt");
         generateFishItemModel(itemModelGenerators, FishtasticItems.WORMS.value(), "worms");
 
         // ----- Trash items (textures in item/fish/ subdirectory) -----

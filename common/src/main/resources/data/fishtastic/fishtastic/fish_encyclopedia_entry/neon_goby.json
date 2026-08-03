@@ -1,0 +1,10 @@
+{
+  "lore": "A tiny, electric-blue-striped goby that sets up cleaning stations on coral heads, picking parasites off larger fish that queue patiently for a turn.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}

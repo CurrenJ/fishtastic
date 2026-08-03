@@ -48,6 +48,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.LONGNOSE_GAR.value());
                     output.accept(FishtasticItems.MOLTEN_MOORISH_IDOL.value());
                     output.accept(FishtasticItems.MOORISH_IDOL.value());
+                    output.accept(FishtasticItems.NEON_GOBY.value());
                     output.accept(FishtasticItems.NEON_TETRA.value());
                     output.accept(FishtasticItems.NORTHERN_PIKE.value());
                     output.accept(FishtasticItems.OCEAN_SUNFISH.value());
@@ -64,6 +65,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.WATERFALL_CLIMBING_CAVE_FISH.value());
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
                     output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
+                    output.accept(FishtasticItems.YELLOWSTRIPE_GRUNT.value());
                     output.accept(FishtasticItems.WORMS.value());
                     output.accept(FishtasticItems.SMALL_FISH_BAIT.value());
                     output.accept(FishtasticItems.CALM_BAIT.value());

@@ -154,6 +154,7 @@ public class FishtasticItems {
     public static Holder<Item> LONGNOSE_GAR;
     public static Holder<Item> MOLTEN_MOORISH_IDOL;
     public static Holder<Item> MOORISH_IDOL;
+    public static Holder<Item> NEON_GOBY;
     public static Holder<Item> NEON_TETRA;
     public static Holder<Item> NORTHERN_PIKE;
     public static Holder<Item> OCEAN_SUNFISH;
@@ -170,6 +171,7 @@ public class FishtasticItems {
     public static Holder<Item> WATERFALL_CLIMBING_CAVE_FISH;
     public static Holder<Item> WILLANS_CHROMODORIS;
     public static Holder<Item> YELLOWLINE_GOBY;
+    public static Holder<Item> YELLOWSTRIPE_GRUNT;
 
     public static void registerItems() {
         COSMETIC_CAPTURE_WAND = RegistrationApiSided.getInstance().registerItem("cosmetic_capture_wand",
@@ -226,6 +228,7 @@ public class FishtasticItems {
         LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> new FishtasticFishItem(props(loc)));
         MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> new FishtasticFishItem(props(loc)));
         MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("moorish_idol", loc -> new FishtasticFishItem(props(loc)));
+        NEON_GOBY = RegistrationApiSided.getInstance().registerItem("neon_goby", loc -> new FishtasticFishItem(props(loc)));
         NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> new FishtasticFishItem(props(loc)));
         NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> new FishtasticFishItem(props(loc)));
         OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(props(loc)));
@@ -242,6 +245,7 @@ public class FishtasticItems {
         WATERFALL_CLIMBING_CAVE_FISH = RegistrationApiSided.getInstance().registerItem("waterfall_climbing_cave_fish", loc -> new FishtasticFishItem(props(loc)));
         WILLANS_CHROMODORIS = RegistrationApiSided.getInstance().registerItem("willans_chromodoris", loc -> new FishtasticFishItem(props(loc)));
         YELLOWLINE_GOBY = RegistrationApiSided.getInstance().registerItem("yellowline_goby", loc -> new FishtasticFishItem(props(loc)));
+        YELLOWSTRIPE_GRUNT = RegistrationApiSided.getInstance().registerItem("yellowstripe_grunt", loc -> new FishtasticFishItem(props(loc)));
 
         // Bait items — BaitEffect component drives fishing behavior
         WORMS = RegistrationApiSided.getInstance().registerItem("worms",
