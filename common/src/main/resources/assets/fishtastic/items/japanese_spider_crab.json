@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/japanese_spider_crab" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/japanese_spider_crab"
+  }
+}

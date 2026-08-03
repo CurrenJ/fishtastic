@@ -131,3 +131,14 @@ loom {
 // with "Working directory '...\build\datagen' does not exist".
 file("build/datagen").mkdirs()
 file("build/gametest").mkdirs()
+
+tasks.register("copyGeneratedAssetsToCommon", Exec) {
+    group = "fishtastic"
+    description = "Merges fabric's datagen output into the common module's resources."
+    workingDir rootProject.projectDir
+    commandLine "python3", "scripts/copy_assets_to_common.py"
+}
+
+tasks.named("runDatagen") {
+    finalizedBy tasks.named("copyGeneratedAssetsToCommon")
+}

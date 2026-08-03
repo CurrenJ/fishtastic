@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/angler_fish" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/angler_fish"
+  }
+}

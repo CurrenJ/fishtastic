@@ -1,0 +1,129 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    }
+  ],
+  "item_icon": {
+    "offsetX": 0.15,
+    "offsetY": 0.2,
+    "rotY": -25.0,
+    "scale": 1.25
+  },
+  "parts": [
+    {
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:exposed_copper_lantern",
+        "Properties": {
+          "hanging": "true",
+          "waterlogged": "false"
+        }
+      }
+    },
+    {
+      "offsetX": 1.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "false",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "false"
+        }
+      }
+    },
+    {
+      "offsetX": 1.0,
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "false",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "false"
+        }
+      }
+    },
+    {
+      "offsetX": 1.0,
+      "offsetY": 2.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "false",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "true"
+        }
+      }
+    },
+    {
+      "offsetX": -1.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "false",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "false"
+        }
+      }
+    },
+    {
+      "offsetX": -1.0,
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "false",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "false"
+        }
+      }
+    },
+    {
+      "offsetX": -1.0,
+      "offsetY": 2.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "true",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "false"
+        }
+      }
+    },
+    {
+      "offsetY": 2.0,
+      "state": {
+        "Name": "minecraft:birch_fence",
+        "Properties": {
+          "east": "true",
+          "north": "false",
+          "south": "false",
+          "waterlogged": "false",
+          "west": "true"
+        }
+      }
+    }
+  ]
+}

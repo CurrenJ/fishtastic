@@ -1,0 +1,26 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
+  "item_icon": {
+    "offsetX": 0.5,
+    "scale": 1.0
+  },
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      }
+    },
+    {
+      "offsetY": 1.0,
+      "state": {
+        "Name": "minecraft:shroomlight"
+      }
+    }
+  ],
+  "scale": 0.21875
+}

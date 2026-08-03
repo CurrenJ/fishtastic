@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/blind_cavefish" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/blind_cavefish"
+  }
+}

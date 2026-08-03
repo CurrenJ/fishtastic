@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "fishtastic:magenta_borderless_stained_glass",
+    "minecraft:glass"
+  ],
+  "result": {
+    "id": "fishtastic:magenta_clear_stained_glass"
+  }
+}

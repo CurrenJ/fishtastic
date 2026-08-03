@@ -1,0 +1,12 @@
+{
+  "conditions": [
+    {
+      "type": "component_value",
+      "component": "fishtastic:fish_quality",
+      "field": "quality",
+      "value": "rare"
+    }
+  ],
+  "priority": 30,
+  "texture": "fishtastic:textures/misc/rare_quality_glow.png"
+}

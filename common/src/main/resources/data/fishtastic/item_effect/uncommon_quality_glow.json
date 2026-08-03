@@ -1,0 +1,12 @@
+{
+  "conditions": [
+    {
+      "type": "component_value",
+      "component": "fishtastic:fish_quality",
+      "field": "quality",
+      "value": "uncommon"
+    }
+  ],
+  "priority": 20,
+  "texture": "fishtastic:textures/misc/uncommon_quality_glow.png"
+}

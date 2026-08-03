@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_borderless_stained_glass": {
+      "conditions": {
+        "items": [
+          {
+            "items": "fishtastic:brown_borderless_stained_glass"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "fishtastic:brown_borderless_stained_glass_plus_glass_to_clear"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_borderless_stained_glass"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "fishtastic:brown_borderless_stained_glass_plus_glass_to_clear"
+    ]
+  }
+}

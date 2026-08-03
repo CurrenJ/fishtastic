@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/arctic_char" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/arctic_char"
+  }
+}

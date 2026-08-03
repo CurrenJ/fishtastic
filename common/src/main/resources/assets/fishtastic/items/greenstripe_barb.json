@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/greenstripe_barb" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/greenstripe_barb"
+  }
+}

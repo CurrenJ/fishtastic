@@ -26,8 +26,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -50,41 +52,17 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.COPPER_FISHING_ROD.value())
                 .add(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
-        // Fish tag
-        valueLookupBuilder(FishtasticItemTags.FISH)
-                .add(FishtasticItems.BETTA.value())
-                .add(FishtasticItems.BLUEGILL.value())
-                .add(FishtasticItems.GARDEN_EEL.value())
-                .add(FishtasticItems.GIANT_MANTA_RAY.value())
-                .add(FishtasticItems.LIZARDFISH.value())
-                .add(FishtasticItems.LONGNOSE_GAR.value())
-                .add(FishtasticItems.MOORISH_IDOL.value())
-                .add(FishtasticItems.NEON_TETRA.value())
-                .add(FishtasticItems.NORTHERN_PIKE.value())
-                .add(FishtasticItems.OCEAN_SUNFISH.value())
-                .add(FishtasticItems.PARROTFISH.value())
-                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
-                .add(FishtasticItems.RAINFORDIA.value())
-                .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
-                .add(FishtasticItems.BLAZED_GRUB.value())
-                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
-                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
-                .add(FishtasticItems.STARFISH.value())
-                .add(FishtasticItems.SHRIMP.value())
-                .add(FishtasticItems.GLASS_SQUID.value())
-                .add(FishtasticItems.GREENSTRIPE_BARB.value())
-                .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
-                .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
-                .add(FishtasticItems.WILLANS_CHROMODORIS.value())
-                .add(FishtasticItems.YELLOWLINE_GOBY.value())
-                .add(FishtasticItems.TRAPANIA_SCURRA.value())
-                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
-                .add(FishtasticItems.FRIED_SHRIMP.value())
-                .add(FishtasticItems.ACUTE_IASPIS.value())
-                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
-                .add(FishtasticItems.BLIND_CAVEFISH.value())
-                .add(FishtasticItems.ARCTIC_CHAR.value())
-                .add(FishtasticItems.ANGLER_FISH.value());
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, provider);
+        Map<Identifier, FishProfile> fishProfiles = loadFishProfiles(ops);
+
+        // Fish tag: every fish_profile entry is, by definition, a fish, so this is derived
+        // rather than hand-listed - a hardcoded list previously drifted out of sync (missing
+        // 12 fish) as new fish were added without updating it. See addZoneTags for the same
+        // derive-don't-hardcode rationale.
+        TagAppender<Item, Item> fishTagBuilder = valueLookupBuilder(FishtasticItemTags.FISH);
+        for (Identifier id : fishProfiles.keySet()) {
+            fishTagBuilder.add(itemForFishProfile(id));
+        }
 
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
@@ -124,34 +102,32 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FRIED_SHRIMP.value())
                 .add(FishtasticItems.ACUTE_IASPIS.value());
 
-        addZoneTags(provider);
+        addZoneTags(fishProfiles);
     }
 
     /**
      * Zone tags (fishtastic:zone_ocean, etc.) are derived from each fish's real fish_profile
      * JSON rather than hand-listed, so they can't drift out of sync as fish are added, removed,
-     * or reassigned to a different zone. The fish_profile registry itself is plain JSON with no
-     * Java-side bootstrap, so it isn't part of the datagen registries future - instead this reads
-     * the fish_profile/*.json files directly off the classpath and decodes each with the real
-     * {@link FishProfile#CODEC}, using the vanilla Biome registry from {@code provider} to
-     * resolve any biome_weights tag references.
+     * or reassigned to a different zone.
      */
-    private void addZoneTags(HolderLookup.Provider provider) {
-        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, provider);
-
+    private void addZoneTags(Map<Identifier, FishProfile> fishProfiles) {
         Map<FishProfile.Zone, TagAppender<Item, Item>> zoneBuilders = new EnumMap<>(FishProfile.Zone.class);
         for (FishProfile.Zone zone : FishProfile.Zone.values()) {
             zoneBuilders.put(zone, valueLookupBuilder(zoneTag(zone)));
         }
 
-        for (Map.Entry<Identifier, FishProfile> entry : loadFishProfiles(ops).entrySet()) {
-            Item item = BuiltInRegistries.ITEM.getOptional(entry.getKey())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "fish_profile/" + entry.getKey().getPath() + ".json has no matching item"));
+        for (Map.Entry<Identifier, FishProfile> entry : fishProfiles.entrySet()) {
+            Item item = itemForFishProfile(entry.getKey());
             for (FishProfile.Zone zone : entry.getValue().zones()) {
                 zoneBuilders.get(zone).add(item);
             }
         }
+    }
+
+    private static Item itemForFishProfile(Identifier id) {
+        return BuiltInRegistries.ITEM.getOptional(id)
+                .orElseThrow(() -> new IllegalStateException(
+                        "fish_profile/" + id.getPath() + ".json has no matching item"));
     }
 
     private static TagKey<Item> zoneTag(FishProfile.Zone zone) {
@@ -181,7 +157,11 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         Map<Identifier, FishProfile> profiles = new LinkedHashMap<>();
         try (Stream<Path> files = Files.list(dir)) {
-            for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".json")).toList()) {
+            // Sorted for deterministic tag output - Files.list() order isn't guaranteed.
+            List<Path> sortedFiles = files.filter(p -> p.getFileName().toString().endsWith(".json"))
+                    .sorted(Comparator.comparing(p -> p.getFileName().toString()))
+                    .toList();
+            for (Path file : sortedFiles) {
                 String fileName = file.getFileName().toString();
                 Identifier id = Fishtastic.id(fileName.substring(0, fileName.length() - ".json".length()));
                 JsonElement element = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));
