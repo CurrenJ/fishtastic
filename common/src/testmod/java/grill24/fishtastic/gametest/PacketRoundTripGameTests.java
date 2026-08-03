@@ -153,7 +153,7 @@ public final class PacketRoundTripGameTests {
 
         QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
                 new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0), 12345L,
-                baitStack, firstCatchItems);
+                baitStack, firstCatchItems, 3);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -179,6 +179,9 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.firstCatchItems().size() == 1, "firstCatchItems list size must round-trip");
         assertStacksMatch(helper, firstCatchItems.get(0), decoded.firstCatchItems().get(0), "firstCatchItems[0]");
 
+        helper.assertTrue(decoded.shopRefreshCount() == original.shopRefreshCount(),
+            "shopRefreshCount must round-trip, expected " + original.shopRefreshCount() + " got " + decoded.shopRefreshCount());
+
         helper.succeed();
     }
 
@@ -191,7 +194,7 @@ public final class PacketRoundTripGameTests {
         QuestSyncPacket original = new QuestSyncPacket(
             Map.of(), 0, Map.of(), Map.of(),
             new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400), 0L,
-            ItemStack.EMPTY, List.of());
+            ItemStack.EMPTY, List.of(), 0);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -224,7 +227,9 @@ public final class PacketRoundTripGameTests {
             LeaderboardEntry.globalBestSize(trout, otherPlayer, "SomePlayer", 24f, FishQuality.Quality.LEGENDARY)
         );
 
-        FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest);
+        List<String> claimedRewardKeys = List.of(bluegill.toString() + "#0");
+
+        FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         FishEncyclopediaSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -233,6 +238,7 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.personalCatchCounts().equals(original.personalCatchCounts()), "personalCatchCounts map must round-trip via equals()");
         helper.assertTrue(decoded.personalBestSizes().equals(original.personalBestSizes()), "personalBestSizes (clean record list) must round-trip via equals()");
         helper.assertTrue(decoded.globalBestSizes().equals(original.globalBestSizes()), "globalBestSizes (clean record list) must round-trip via equals()");
+        helper.assertTrue(decoded.claimedRewardKeys().equals(original.claimedRewardKeys()), "claimedRewardKeys list must round-trip via equals()");
 
         helper.succeed();
     }

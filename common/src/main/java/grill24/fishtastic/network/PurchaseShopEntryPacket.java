@@ -55,12 +55,12 @@ public record PurchaseShopEntryPacket(Identifier entryId) implements CustomPacke
             ShopEntry entry = shopRegistry.getOptional(entryKey).orElse(null);
             if (entry == null) return;
 
-            long currentDay = server.overworld().getGameTime() / 24000L;
-            Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(shopRegistry, currentDay);
-            if (!activeToday.contains(entryKey)) return;
-
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
+
+            long currentDay = server.overworld().getGameTime() / 24000L;
+            Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(shopRegistry, currentDay, state.getShopRefreshCount());
+            if (!activeToday.contains(entryKey)) return;
 
             if (!state.purchase(entryKey, entry)) return;
 

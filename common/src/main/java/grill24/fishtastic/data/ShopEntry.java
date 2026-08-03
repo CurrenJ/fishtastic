@@ -21,6 +21,8 @@ public record ShopEntry(
         int dailyMaxPurchases
 ) {
     public static final int DAILY_SHOP_COUNT = 4;
+    /** Fixed token cost to manually reroll today's active shop entries — see {@link grill24.fishtastic.network.RefreshShopPacket}. */
+    public static final int SHOP_REFRESH_COST = 25;
     /** Floor applied to {@link #weight} so a zero/negative weight can't blow up the 1/weight exponent below. */
     private static final float MIN_WEIGHT = 0.0001f;
 
@@ -63,12 +65,22 @@ public record ShopEntry(
      * crowd out the rest of the shop.
      */
     public static Set<ResourceKey<ShopEntry>> getActiveDailyShop(Registry<ShopEntry> registry, long currentDay) {
+        return getActiveDailyShop(registry, currentDay, 0);
+    }
+
+    /**
+     * Same as {@link #getActiveDailyShop(Registry, long)}, but mixes in a per-player
+     * {@code refreshNonce} (see {@link grill24.fishtastic.server.PlayerQuestState#getShopRefreshCount()})
+     * so a manual reroll changes the drawn set without waiting for the next in-game day.
+     */
+    public static Set<ResourceKey<ShopEntry>> getActiveDailyShop(Registry<ShopEntry> registry, long currentDay, int refreshNonce) {
         List<ResourceKey<ShopEntry>> keys = registry.entrySet().stream()
                 .map(Map.Entry::getKey)
                 .sorted(Comparator.comparing(k -> k.identifier().toString()))
                 .toList();
 
-        Random random = new Random(currentDay);
+        long seed = currentDay ^ (refreshNonce * 0x9E3779B97F4A7C15L);
+        Random random = new Random(seed);
         Map<ResourceKey<ShopEntry>, Double> priority = new LinkedHashMap<>();
         for (ResourceKey<ShopEntry> key : keys) {
             float weight = Math.max(registry.getValue(key).weight(), MIN_WEIGHT);

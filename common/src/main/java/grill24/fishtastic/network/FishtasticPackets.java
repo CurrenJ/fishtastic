@@ -19,6 +19,7 @@ public class FishtasticPackets {
     public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
     public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
     public static final Identifier PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
+    public static final Identifier REFRESH_SHOP_ID = Fishtastic.id("refresh_shop");
     public static final Identifier TUTORIAL_SYNC_ID = Fishtastic.id("tutorial_sync");
     public static final Identifier TUTORIAL_ADVANCE_ID = Fishtastic.id("tutorial_advance");
     public static final Identifier REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
@@ -67,6 +68,11 @@ public class FishtasticPackets {
                 PurchaseShopEntryPacket.TYPE,
                 PurchaseShopEntryPacket.STREAM_CODEC,
                 PurchaseShopEntryPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                RefreshShopPacket.TYPE,
+                RefreshShopPacket.STREAM_CODEC,
+                RefreshShopPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 TutorialAdvancePacket.TYPE,

@@ -19,6 +19,7 @@ public class QuestClientCache {
     private static Map<Identifier, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
     private static int tokenBalance = 0;
     private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
+    private static int shopRefreshCount = 0;
     private static CleanupGoalProgress cleanupGoal = CleanupGoalProgress.EMPTY;
     private static boolean isInitialSync = true;
     private static QuestProgressListener listener;
@@ -85,7 +86,7 @@ public class QuestClientCache {
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
         update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of());
+                ItemStack.EMPTY, List.of(), 0);
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
@@ -94,7 +95,8 @@ public class QuestClientCache {
                               CleanupGoalProgress newCleanupGoal,
                               long serverGameTime,
                               ItemStack baitDepletedItem,
-                              List<ItemStack> firstCatchItems) {
+                              List<ItemStack> firstCatchItems,
+                              int newShopRefreshCount) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
             Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
@@ -129,6 +131,7 @@ public class QuestClientCache {
         questProgress = new HashMap<>(progress);
         tokenBalance = tokens;
         purchaseCounts = new HashMap<>(newPurchaseCounts);
+        shopRefreshCount = newShopRefreshCount;
         cleanupGoal = newCleanupGoal;
         if (serverGameTime >= 0) {
             syncedServerGameTime = serverGameTime;
@@ -139,13 +142,13 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
         update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of());
+                ItemStack.EMPTY, List.of(), 0);
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
         update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of());
+                ItemStack.EMPTY, List.of(), 0);
     }
 
     public static int getCleanupGoalTotal() {
@@ -170,6 +173,10 @@ public class QuestClientCache {
 
     public static int getPurchaseCount(Identifier entryId) {
         return purchaseCounts.getOrDefault(entryId, 0);
+    }
+
+    public static int getShopRefreshCount() {
+        return shopRefreshCount;
     }
 
     /** Estimated server overworld game time right now, or -1 if no sync has carried one yet. */
@@ -197,6 +204,7 @@ public class QuestClientCache {
         questProgress = new HashMap<>();
         tokenBalance = 0;
         purchaseCounts = new HashMap<>();
+        shopRefreshCount = 0;
         cleanupGoal = CleanupGoalProgress.EMPTY;
         isInitialSync = true;
         syncedServerGameTime = -1;

@@ -26,6 +26,10 @@ public class PlayerQuestState {
     private int tokenBalance = 0;
     private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
     private long lastPurchaseResetDay = -1;
+    // Incremented each time the player spends tokens to manually reroll the shop (see refreshShop) -
+    // mixed into ShopEntry#getActiveDailyShop's seed so the drawn set changes without waiting for
+    // the next in-game day. Reset alongside the daily purchase-count rotation.
+    private int shopRefreshCount = 0;
     // Composite keys from EncyclopediaRewardSection#key — one entry per fish/section reward
     // slot the player has claimed, ever. See claimEncyclopediaReward.
     private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
@@ -71,8 +75,9 @@ public class PlayerQuestState {
                     }),
             Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay),
             Codec.STRING.listOf().optionalFieldOf("claimed_encyclopedia_rewards", List.of())
-                    .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards))
-    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards) -> {
+                    .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards)),
+            Codec.INT.optionalFieldOf("shop_refresh_count", 0).forGetter(state -> state.shopRefreshCount)
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
@@ -81,6 +86,7 @@ public class PlayerQuestState {
                 s.purchaseCounts.put(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, id), count));
         s.lastPurchaseResetDay = lastPurchaseResetDay;
         s.claimedEncyclopediaRewards.addAll(claimedRewards);
+        s.shopRefreshCount = shopRefreshCount;
         return s;
     }));
 
@@ -175,7 +181,23 @@ public class PlayerQuestState {
         if (lastPurchaseResetDay < currentDay) {
             purchaseCounts.clear();
             lastPurchaseResetDay = currentDay;
+            shopRefreshCount = 0;
         }
+    }
+
+    public int getShopRefreshCount() {
+        return shopRefreshCount;
+    }
+
+    /**
+     * Attempt to spend {@code cost} tokens to reroll today's active shop entries.
+     * Returns false if the player can't afford it.
+     */
+    public boolean refreshShop(int cost) {
+        if (tokenBalance < cost) return false;
+        tokenBalance -= cost;
+        shopRefreshCount++;
+        return true;
     }
 
     /** Force-clears purchase counts regardless of the current day — used by the admin refresh command. */

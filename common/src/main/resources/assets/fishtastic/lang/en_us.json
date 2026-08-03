@@ -167,6 +167,7 @@
   "screen.fishtastic.quest_log.shop.resets": "Shop resets in %s",
   "screen.fishtastic.quest_log.shop.sold_out": "Sold Out",
   "screen.fishtastic.quest_log.shop.buy": "Buy",
+  "screen.fishtastic.quest_log.shop.refresh": "Refresh",
   "screen.fishtastic.quest_log.shop.not_enough_tokens": "Not enough tokens",
 
   "key.categories.fishtastic": "Fishtastic",

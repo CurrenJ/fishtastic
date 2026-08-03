@@ -16,6 +16,7 @@ import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.network.CompleteQuestPacket;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
+import grill24.fishtastic.network.RefreshShopPacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.server.QuestTracker;
 import io.github.currenj.gelatinui.GelatinUIScreen;
@@ -68,6 +69,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private Label dailyResetLabel;
     private Label cleanupGoalResetLabel;
     private Label shopResetLabel;
+    private SpriteButton shopRefreshBtn;
+    private Label shopRefreshCostLabel;
+    private Label shopRefreshNotEnoughLabel;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
@@ -209,12 +213,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = QuestSyncPacket.clientHandler;
             handlerInstalled = true;
             QuestSyncPacket.registerClientHandler(packet -> {
+                int previousShopRefreshCount = QuestClientCache.getShopRefreshCount();
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems());
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
-                    updateInPlace();
+                    // A shop refresh changes which entries are active, not just their visuals -
+                    // a full rebuild is needed rather than the usual in-place widget update.
+                    if (packet.shopRefreshCount() != previousShopRefreshCount) {
+                        buildUI();
+                    } else {
+                        updateInPlace();
+                    }
                 }
             });
         }
@@ -277,6 +288,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         dailyResetLabel = null;
         cleanupGoalResetLabel = null;
         shopResetLabel = null;
+        shopRefreshBtn = null;
+        shopRefreshCostLabel = null;
+        shopRefreshNotEnoughLabel = null;
 
         tempContext = new MinecraftRenderContext(null, this.font);
 
@@ -846,7 +860,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             return panel;
         }
 
-        Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(shopRegistry, currentDay);
+        Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(shopRegistry, currentDay, QuestClientCache.getShopRefreshCount());
 
         List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
 
@@ -858,6 +872,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .init(tempContext);
         panel.addChild(shopResetLabel);
 
+        panel.addChild(buildShopRefreshRow());
+
         HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.TOP);
         for (ResourceKey<ShopEntry> key : activeList) {
             ShopEntry entry = shopRegistry.getOptional(key).orElse(null);
@@ -866,6 +882,46 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         panel.addChild(row);
 
         return panel;
+    }
+
+    /** Header row letting the player spend a fixed token cost to reroll today's active shop entries. */
+    private HBox buildShopRefreshRow() {
+        boolean canAfford = QuestClientCache.getTokenBalance() >= ShopEntry.SHOP_REFRESH_COST;
+
+        HBox refreshRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
+
+        SpriteData refreshButtonSprite = new SpriteData(SHOP_BUY_BUTTON_TEXTURE)
+                .uv(0, 0, SHOP_BUY_BUTTON_SOURCE_WIDTH, SHOP_BUY_BUTTON_SOURCE_HEIGHT)
+                .textureSize(SHOP_BUY_BUTTON_FILE_WIDTH, SHOP_BUY_BUTTON_FILE_HEIGHT);
+        SpriteButton refreshBtn = new SpriteButton(SHOP_BUY_BUTTON_WIDTH, SHOP_BUY_BUTTON_HEIGHT, SHOP_BUY_BUTTON_TEXTURE)
+                .texture(refreshButtonSprite)
+                .text(translated("screen.fishtastic.quest_log.shop.refresh"), 0xFFFFFFFF)
+                .scaleFromCenter();
+        refreshBtn.onMouseEnter(e -> refreshBtn.setTargetScale(1.12f, true));
+        refreshBtn.onMouseExit(e -> refreshBtn.setTargetScale(1.0f, true));
+        refreshBtn.onClick(e -> {
+            refreshBtn.addClickBounceEffect();
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                mc.player.connection.send(new ServerboundCustomPayloadPacket(new RefreshShopPacket()));
+            }
+        });
+        refreshBtn.setVisible(canAfford);
+        shopRefreshBtn = refreshBtn;
+
+        Label costLabel = new Label(String.valueOf(ShopEntry.SHOP_REFRESH_COST), canAfford ? 0xFFFFAA00 : 0xFFFF4444).init(tempContext);
+        shopRefreshCostLabel = costLabel;
+
+        Label notEnoughLabel = new Label(translated("screen.fishtastic.quest_log.shop.not_enough_tokens"), 0xFFFF4444).init(tempContext);
+        notEnoughLabel.setVisible(!canAfford);
+        shopRefreshNotEnoughLabel = notEnoughLabel;
+
+        refreshRow.addChild(refreshBtn);
+        refreshRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        refreshRow.addChild(costLabel);
+        refreshRow.addChild(notEnoughLabel);
+
+        return refreshRow;
     }
 
     private VBox buildShopEntryCard(ResourceKey<ShopEntry> key, ShopEntry entry) {
@@ -1047,6 +1103,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.costLabel().color(canAfford ? 0xFFFFAA00 : 0xFFFF4444);
             refs.buyBtn().setVisible(canAfford && !soldOut);
             refs.notEnoughLabel().setVisible(!canAfford && !soldOut);
+        }
+
+        if (shopRefreshBtn != null) {
+            boolean canAffordRefresh = QuestClientCache.getTokenBalance() >= ShopEntry.SHOP_REFRESH_COST;
+            shopRefreshBtn.setVisible(canAffordRefresh);
+            shopRefreshCostLabel.color(canAffordRefresh ? 0xFFFFAA00 : 0xFFFF4444);
+            shopRefreshNotEnoughLabel.setVisible(!canAffordRefresh);
         }
     }
 

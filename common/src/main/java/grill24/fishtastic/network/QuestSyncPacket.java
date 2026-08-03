@@ -24,7 +24,8 @@ public record QuestSyncPacket(
         CleanupGoalProgress cleanupGoal,
         long serverGameTime,
         ItemStack baitDepletedItem,
-        List<ItemStack> firstCatchItems
+        List<ItemStack> firstCatchItems,
+        int shopRefreshCount
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -48,6 +49,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::baitDepletedItem,
                     ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
                     QuestSyncPacket::firstCatchItems,
+                    ByteBufCodecs.VAR_INT,
+                    QuestSyncPacket::shopRefreshCount,
                     QuestSyncPacket::new
             );
 
@@ -91,7 +94,7 @@ public record QuestSyncPacket(
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
-                baitDepletedItem, firstCatchItems);
+                baitDepletedItem, firstCatchItems, state.getShopRefreshCount());
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 
