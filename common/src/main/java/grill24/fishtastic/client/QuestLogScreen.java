@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import io.github.currenj.gelatinui.gui.effects.CoinSpinEffect;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -492,7 +493,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private static boolean hasEnvironmentCondition(QuestObjective obj) {
-        return obj.biomeCondition().isPresent() || obj.timeCondition().isPresent() || obj.weatherCondition().isPresent();
+        return obj.biomeCondition().isPresent() || obj.timeCondition().isPresent() || obj.weatherCondition().isPresent()
+                || obj.zoneCondition().isPresent();
     }
 
     /**
@@ -519,6 +521,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (weather != obj.weatherCondition().get()) return false;
         }
 
+        if (obj.zoneCondition().isPresent()) {
+            BlockPos pos = mc.player.blockPosition();
+            Set<FishProfile.Zone> currentZones = FishProfile.Zone.resolve(mc.level.getBiome(pos), pos.getY(), mc.level.getSeaLevel());
+            if (!currentZones.contains(obj.zoneCondition().get())) return false;
+        }
+
         return true;
     }
 
@@ -528,6 +536,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         obj.biomeCondition().ifPresent(tag -> parts.add(formatConditionWord(tag.location().getPath())));
         obj.timeCondition().ifPresent(t -> parts.add(formatConditionWord(t.getSerializedName())));
         obj.weatherCondition().ifPresent(w -> parts.add(formatConditionWord(w.getSerializedName())));
+        obj.zoneCondition().ifPresent(z -> parts.add(formatConditionWord(z.getSerializedName())));
         return translated("screen.fishtastic.quest_log.condition_requires", String.join(", ", parts));
     }
 

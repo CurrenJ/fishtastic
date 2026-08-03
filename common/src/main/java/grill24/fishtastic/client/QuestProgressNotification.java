@@ -32,7 +32,9 @@ public class QuestProgressNotification {
     // Layout
     private static final float SCALE = 0.5f;
     private static final int PADDING = 8;
-    private static final int MARGIN = 10;
+    static final int MARGIN = 10;
+    /** Vertical gap between stacked banners, applied by {@link QuestProgressNotificationManager}. */
+    static final int STACK_GAP = 6;
     private static final int ROW_SPACING = 4;
     private static final int BAR_COUNT_GAP = 6;
     private static final int ITEM_SIZE = 16;
@@ -74,6 +76,14 @@ public class QuestProgressNotification {
     private final BackgroundVariant bgVariant;
     private float previousDisplayX; // for partial-tick interpolation
     private float displayX;
+    // Vertical slot position, eased toward targetY rather than snapped — when a banner
+    // above this one finishes and is removed, the remaining stack should slide smoothly
+    // up into place instead of popping to the new position. See setTargetY().
+    private float previousDisplayY;
+    private float displayY;
+    private float targetY;
+    private boolean yInitialized;
+    private static final float Y_EASE_SPEED = 0.25f; // fraction of remaining distance closed per tick
     private final SpriteProgressBar progressBar;
     private float barTargetFraction;
     private float displayedBarFraction; // manually interpolated — bar's built-in animation has lifecycle issues standalone
@@ -81,6 +91,10 @@ public class QuestProgressNotification {
     private int completeFlashTimer;
     private boolean barAnimationStarted;
     private static final int COMPLETE_FLASH_DURATION = 12; // ticks for green pulse
+    // Ticks to wait before beginning SLIDE_IN, so several notifications activated in the
+    // same burst don't all animate in on top of each other. Set by the manager via
+    // setStartDelay() at activation time; counts down to 0 before the phase machine runs.
+    private int startDelay;
 
     private static final Rectangle2D FULL_VIEWPORT = new Rectangle2D.Float(0, 0, 4096, 4096);
 
@@ -175,12 +189,23 @@ public class QuestProgressNotification {
     // ---- Lifecycle ----
 
     public void tick() {
-        tickCounter++;
         Minecraft mc = Minecraft.getInstance();
         float screenWidth = mc.getWindow().getGuiScaledWidth();
 
         // Save previous position for partial-tick interpolation in render()
         previousDisplayX = displayX;
+        previousDisplayY = displayY;
+        displayY += (targetY - displayY) * Y_EASE_SPEED;
+        if (Math.abs(targetY - displayY) < 0.05f) {
+            displayY = targetY;
+        }
+
+        if (startDelay > 0) {
+            startDelay--;
+            return;
+        }
+
+        tickCounter++;
 
         switch (phase) {
             case SLIDE_IN -> {
@@ -252,6 +277,31 @@ public class QuestProgressNotification {
         }
     }
 
+    /** Ticks to wait before this notification begins its SLIDE_IN animation. */
+    void setStartDelay(int startDelay) {
+        this.startDelay = startDelay;
+    }
+
+    /** This banner's on-screen height (post-SCALE), used by the manager to stack banners vertically. */
+    int getScaledHeight() {
+        return Math.round(panelHeight * SCALE);
+    }
+
+    /**
+     * Assigns this banner's vertical slot. The first call snaps immediately (a freshly
+     * activated banner should appear in the right row right away); later calls just move
+     * the easing target, so a shift caused by another banner above leaving the stack
+     * animates smoothly instead of snapping.
+     */
+    void setTargetY(int y) {
+        if (!yInitialized) {
+            displayY = y;
+            previousDisplayY = y;
+            yInitialized = true;
+        }
+        targetY = y;
+    }
+
     // ---- Render ----
 
     public void render(Minecraft mc, GuiGraphicsExtractor graphics, float partialTick) {
@@ -259,10 +309,10 @@ public class QuestProgressNotification {
 
         int fontHeight = mc.font.lineHeight;
         int barHeight = (int) progressBar.getSize().y;
-        int panelY = MARGIN;
 
-        // Interpolate X for smooth slide using partial tick between last two tick values
+        // Interpolate X/Y for smooth motion using partial tick between last two tick values
         int panelX = (int) MathUtil.lerp(previousDisplayX, displayX, partialTick);
+        int panelY = (int) MathUtil.lerp(previousDisplayY, displayY, partialTick);
 
         // Apply uniform scale to the entire notification
         var pose = graphics.pose();

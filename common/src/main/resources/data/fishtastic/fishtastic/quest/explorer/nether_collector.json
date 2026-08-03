@@ -1,0 +1,14 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:zone_nether",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true,
+    "target_count": 6,
+    "zone_condition": "nether"
+  },
+  "reward": { "quest_tokens": 30, "items": [] },
+  "hidden": false,
+  "display_name": "Infernal Registrar",
+  "description": "Catch every species of fish found in the Nether's molten waters."
+}

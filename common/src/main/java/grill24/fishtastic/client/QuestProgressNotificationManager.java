@@ -9,12 +9,17 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 /**
  * Singleton that manages a queue of QuestProgressNotifications.
- * One notification is displayed at a time; additional events queue behind it.
- * Ticks and renders the active notification, advancing the queue on completion.
+ * Up to MAX_ACTIVE notifications are displayed simultaneously, stacked vertically;
+ * additional events queue behind them. When several notifications are activated in
+ * quick succession, each one's slide-in is staggered by STAGGER_DELAY_TICKS so they
+ * don't all animate in at once.
+ * Ticks and renders the active notifications, advancing the queue as slots free up.
  *
  * Usage:
  *   1. Call install() once during client init to wire the QuestClientCache listener.
@@ -25,9 +30,13 @@ public class QuestProgressNotificationManager {
 
     private static final QuestProgressNotificationManager INSTANCE = new QuestProgressNotificationManager();
     private static final int MAX_QUEUE_SIZE = 5;
+    private static final int MAX_ACTIVE = 3;
+    private static final int STAGGER_DELAY_TICKS = 6;
 
-    private QuestProgressNotification active;
+    private final List<QuestProgressNotification> active = new ArrayList<>(MAX_ACTIVE);
     private final Deque<QuestProgressEvent> pending = new ArrayDeque<>();
+    /** Ticks until the next newly-activated notification is allowed to start its slide-in. */
+    private int nextStaggerDelay;
     private boolean installed;
 
     public static QuestProgressNotificationManager getInstance() {
@@ -73,9 +82,11 @@ public class QuestProgressNotificationManager {
     /** Enqueue a progress event for display. */
     public void enqueue(QuestProgressEvent event) {
         // If same quest is already active, update in-place
-        if (active != null && !active.isDone() && active.questId().equals(event.questId())) {
-            active.updateProgress(event);
-            return;
+        for (QuestProgressNotification n : active) {
+            if (!n.isDone() && n.questId().equals(event.questId())) {
+                n.updateProgress(event);
+                return;
+            }
         }
 
         // If same quest is already pending, replace the pending entry
@@ -87,9 +98,10 @@ public class QuestProgressNotificationManager {
             }
         }
 
-        // If nothing active, start immediately
-        if (active == null || active.isDone()) {
-            active = new QuestProgressNotification(event);
+        // If there's a free slot, activate immediately (staggered against any
+        // notifications that were just activated this same burst)
+        if (active.size() < MAX_ACTIVE) {
+            activate(event);
             return;
         }
 
@@ -100,27 +112,61 @@ public class QuestProgressNotificationManager {
         }
     }
 
-    /** Call once per client tick. Drives the active notification's lifecycle. */
-    public void tick() {
-        if (active != null) {
-            active.tick();
-            if (active.isDone()) {
-                // Advance to next pending
-                active = null;
-                if (!pending.isEmpty()) {
-                    active = new QuestProgressNotification(pending.removeFirst());
-                }
-            }
+    /** Move an event into an active slot, staggering its slide-in start against recently-activated notifications. */
+    private void activate(QuestProgressEvent event) {
+        QuestProgressNotification notification = new QuestProgressNotification(event);
+        notification.setStartDelay(nextStaggerDelay);
+        nextStaggerDelay += STAGGER_DELAY_TICKS;
+        active.add(notification);
+        // Assign this one's slot immediately (it snaps on first assignment — see
+        // setTargetY) so it's positioned correctly even if render() runs before the
+        // next tick().
+        layoutSlots();
+    }
+
+    /**
+     * Assigns each active notification's target vertical slot based on current stack
+     * order. Notifications already on screen ease toward a changed target rather than
+     * snapping (see QuestProgressNotification#setTargetY), so when a banner above exits
+     * and is removed, the rest of the stack slides smoothly up instead of popping.
+     */
+    private void layoutSlots() {
+        int y = QuestProgressNotification.MARGIN;
+        for (QuestProgressNotification n : active) {
+            n.setTargetY(y);
+            y += n.getScaledHeight() + QuestProgressNotification.STACK_GAP;
         }
     }
 
-    /** Render the active notification, if any. Called from the platform HUD pipeline. */
+    /** Call once per client tick. Drives the active notifications' lifecycles. */
+    public void tick() {
+        if (nextStaggerDelay > 0) {
+            nextStaggerDelay--;
+        }
+
+        for (QuestProgressNotification n : active) {
+            n.tick();
+        }
+        active.removeIf(QuestProgressNotification::isDone);
+
+        while (active.size() < MAX_ACTIVE && !pending.isEmpty()) {
+            activate(pending.removeFirst());
+        }
+
+        // Re-layout in case a banner above left the stack without a promotion filling
+        // its slot (activate() above already covers the promotion case).
+        layoutSlots();
+    }
+
+    /** Render all active notifications, stacked vertically top to bottom. Called from the platform HUD pipeline. */
     public void render(GuiGraphicsExtractor graphics, float partialTick) {
-        if (active != null && !active.isDone()) {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.level != null) {
-                active.render(mc, graphics, partialTick);
-            }
+        if (active.isEmpty()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        for (QuestProgressNotification n : active) {
+            if (n.isDone()) continue;
+            n.render(mc, graphics, partialTick);
         }
     }
 }

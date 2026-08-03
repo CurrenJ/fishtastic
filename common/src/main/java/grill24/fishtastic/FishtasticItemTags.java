@@ -24,6 +24,12 @@ public class FishtasticItemTags {
     public static final TagKey<Item> STEADY_FISH = create("steady_fish");
     public static final TagKey<Item> FRENZY_FISH = create("frenzy_fish");
     public static final TagKey<Item> COLOR_YELLOW = create("color_yellow");
+    public static final TagKey<Item> ZONE_OCEAN = create("zone_ocean");
+    public static final TagKey<Item> ZONE_DEEP_OCEAN = create("zone_deep_ocean");
+    public static final TagKey<Item> ZONE_RIVER = create("zone_river");
+    public static final TagKey<Item> ZONE_NETHER = create("zone_nether");
+    public static final TagKey<Item> ZONE_CAVE = create("zone_cave");
+    public static final TagKey<Item> ZONE_HIGH_ALTITUDE = create("zone_high_altitude");
 
     /** The bait-affinity groups a fish can belong to — used by bait tooltips and the encyclopedia's Types section. */
     public static final List<TagKey<Item>> FISH_GROUPS = List.of(

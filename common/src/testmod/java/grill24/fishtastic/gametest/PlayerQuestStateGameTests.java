@@ -28,7 +28,7 @@ public final class PlayerQuestStateGameTests {
     private static Quest quest(int targetCount) {
         QuestObjective objective = new QuestObjective(
             Optional.empty(), Optional.empty(), Optional.empty(), false, targetCount,
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
         return new Quest(QuestCategory.DAILY, objective, new QuestReward(50, List.of()),
             Optional.empty(), false, "Test Quest", "A test quest");
     }

@@ -1,0 +1,14 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:zone_deep_ocean",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true,
+    "target_count": 6,
+    "zone_condition": "deep_ocean"
+  },
+  "reward": { "quest_tokens": 30, "items": [] },
+  "hidden": false,
+  "display_name": "Abyssal Cartographer",
+  "description": "Catch every species of fish lurking in the deep ocean."
+}

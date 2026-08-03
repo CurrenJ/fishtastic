@@ -1,0 +1,14 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species_tag": "fishtastic:zone_river",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true,
+    "target_count": 9,
+    "zone_condition": "river"
+  },
+  "reward": { "quest_tokens": 45, "items": [] },
+  "hidden": false,
+  "display_name": "River Chronicler",
+  "description": "Catch every species of fish that calls the river home."
+}

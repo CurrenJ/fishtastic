@@ -50,35 +50,35 @@ public final class QuestTrackerGameTests {
     // -------------------------------------------------------------------------
 
     private static QuestObjective wildcardObjective() {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective targetSpeciesObjective(ResourceKey<Item> species) {
-        return new QuestObjective(Optional.of(species), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.of(species), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective targetSpeciesTagObjective(TagKey<Item> tag) {
-        return new QuestObjective(Optional.empty(), Optional.of(tag), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.of(tag), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective minQualityObjective(FishQuality.Quality quality) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.of(quality), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.of(quality), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective minSizeObjective(float size) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.of(size), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.of(size), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective biomeObjective(TagKey<Biome> tag) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.of(tag), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.of(tag), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective timeObjective(FishProfile.TimeOfDay time) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(time), Optional.empty(), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(time), Optional.empty(), Optional.empty(), Optional.empty(), 1);
     }
 
     private static QuestObjective weatherObjective(FishProfile.WeatherCondition weather) {
-        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(weather), Optional.empty(), 1);
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(weather), Optional.empty(), Optional.empty(), 1);
     }
 
     private static ResourceKey<Item> keyOf(Item item) {
@@ -246,7 +246,7 @@ public final class QuestTrackerGameTests {
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresTwoPerSession = new QuestObjective(
             Optional.of(keyOf(Items.COD)), Optional.empty(), Optional.empty(), false, 1, Optional.empty(), Optional.empty(),
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(2), 1
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(2), 1
         );
         ItemStack cod = new ItemStack(Items.COD);
 
@@ -269,6 +269,7 @@ public final class QuestTrackerGameTests {
             Optional.empty(),
             Optional.empty(),
             Optional.of(FishProfile.TimeOfDay.DAY),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             1
