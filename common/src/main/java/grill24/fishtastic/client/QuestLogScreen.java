@@ -569,7 +569,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         boolean completed = progress.completed();
         boolean canClaim = completed && !claimed;
 
-        int targetCount = quest.objective().targetCount();
+        int targetCount = quest.objective().effectiveTargetCount(Minecraft.getInstance().level.registryAccess());
         int currentCount = progress.currentCount();
         float fraction = targetCount > 0 ? Math.min(1f, (float) currentCount / targetCount) : 0f;
 

@@ -3,6 +3,9 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.component.FishQuality;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -16,7 +19,7 @@ public record QuestObjective(
         Optional<TagKey<Item>> targetSpeciesTag,
         Optional<TagKey<Item>> excludeSpeciesTag,
         boolean distinctSpecies,
-        int targetCount,
+        Optional<Integer> targetCount,
         Optional<FishQuality.Quality> minQuality,
         Optional<Float> minSize,
         Optional<TagKey<Biome>> biomeCondition,
@@ -38,7 +41,7 @@ public record QuestObjective(
             TagKey.codec(Registries.ITEM).optionalFieldOf("target_species_tag").forGetter(QuestObjective::targetSpeciesTag),
             TagKey.codec(Registries.ITEM).optionalFieldOf("exclude_species_tag").forGetter(QuestObjective::excludeSpeciesTag),
             Codec.BOOL.optionalFieldOf("distinct_species", false).forGetter(QuestObjective::distinctSpecies),
-            Codec.INT.optionalFieldOf("target_count", 1).forGetter(QuestObjective::targetCount),
+            Codec.INT.optionalFieldOf("target_count").forGetter(QuestObjective::targetCount),
             FishQuality.Quality.CODEC.optionalFieldOf("min_quality").forGetter(QuestObjective::minQuality),
             Codec.FLOAT.optionalFieldOf("min_size").forGetter(QuestObjective::minSize),
             TagKey.codec(Registries.BIOME).optionalFieldOf("biome_condition").forGetter(QuestObjective::biomeCondition),
@@ -48,4 +51,26 @@ public record QuestObjective(
             Codec.INT.optionalFieldOf("min_session_catches").forGetter(QuestObjective::minSessionCatches),
             Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval)
     ).apply(i, QuestObjective::new));
+
+    /**
+     * Resolves the quest's completion target. {@code target_count} may be omitted entirely
+     * for a "collect one of each" objective ({@code distinct_species} paired with
+     * {@code target_species_tag}) — the target is then derived as the number of items
+     * currently in the tag (minus any also in {@code exclude_species_tag}), so authored
+     * quests never drift out of sync as fish are added to or removed from a zone tag.
+     * Any other objective shape falls back to 1 if {@code target_count} is unspecified.
+     */
+    public int effectiveTargetCount(RegistryAccess registryAccess) {
+        if (targetCount.isPresent()) return targetCount.get();
+        if (distinctSpecies && targetSpeciesTag.isPresent()) {
+            Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
+            int count = 0;
+            for (Holder<Item> holder : items.getTagOrEmpty(targetSpeciesTag.get())) {
+                if (excludeSpeciesTag.isPresent() && holder.is(excludeSpeciesTag.get())) continue;
+                count++;
+            }
+            return count;
+        }
+        return 1;
+    }
 }

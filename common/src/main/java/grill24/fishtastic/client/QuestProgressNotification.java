@@ -130,7 +130,7 @@ public class QuestProgressNotification {
                 Quest quest = questRegistry.getOptional(questKey).orElse(null);
                 if (quest != null) {
                     name = quest.displayName().isEmpty() ? event.questId().getPath() : quest.displayName();
-                    tgt = quest.objective().targetCount();
+                    tgt = quest.objective().effectiveTargetCount(mc.level.registryAccess());
                 }
             }
         } catch (Exception ignored) {

@@ -28,7 +28,7 @@ Quests are defined as JSON files under `data/fishtastic/fishtastic/quest/<quest_
 |---|---|---|
 | `target_species` | Identifier? | Specific item key, e.g. `fishtastic:ocean_sunfish` |
 | `target_species_tag` | TagKey? | Item tag, e.g. `fishtastic:ocean_fish` |
-| `target_count` | int | Number of qualifying catches required |
+| `target_count` | int? | Number of qualifying catches required. Optional when `distinct_species` is paired with `target_species_tag` — the target is then derived automatically as "one of every item currently in the tag" (minus anything also in `exclude_species_tag`), so collector-style quests never drift out of sync as fish are added to a zone tag. |
 | `min_quality` | FishQuality? | Minimum quality tier (COMMON → LEGENDARY) |
 | `biome_condition` | TagKey? | Biome tag the hook must be in |
 | `time_condition` | enum? | `DAY`, `NIGHT`, or `DAWN_DUSK` |

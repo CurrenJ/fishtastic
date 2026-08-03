@@ -4,7 +4,6 @@
     "target_species_tag": "fishtastic:zone_cave",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true,
-    "target_count": 6,
     "zone_condition": "cave"
   },
   "reward": { "quest_tokens": 30, "items": [] },

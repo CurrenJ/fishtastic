@@ -20,6 +20,7 @@ import net.minecraft.commands.arguments.ResourceKeyArgument;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Map;
@@ -160,7 +161,7 @@ public class QuestsCommand {
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = source.getServer().overworld().getGameTime() / 24000L;
 
-        applyDebugCompletion(target, state, questKey, quest, currentDay, claim);
+        applyDebugCompletion(source.getServer(), target, state, questKey, quest, currentDay, claim);
         data.setDirty();
         QuestSyncPacket.sendToPlayer(target, data);
 
@@ -183,7 +184,7 @@ public class QuestsCommand {
 
         int count = 0;
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
-            applyDebugCompletion(target, state, entry.getKey(), entry.getValue(), currentDay, claim);
+            applyDebugCompletion(source.getServer(), target, state, entry.getKey(), entry.getValue(), currentDay, claim);
             count++;
         }
 
@@ -198,9 +199,10 @@ public class QuestsCommand {
         return count;
     }
 
-    private static void applyDebugCompletion(ServerPlayer target, PlayerQuestState state,
-            ResourceKey<Quest> questKey, Quest quest, long currentDay, boolean claim) {
-        state.setProgress(questKey, quest.objective().targetCount(), quest, currentDay);
+    private static void applyDebugCompletion(MinecraftServer server, ServerPlayer target,
+            PlayerQuestState state, ResourceKey<Quest> questKey, Quest quest, long currentDay, boolean claim) {
+        int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
+        state.setProgress(questKey, targetCount, targetCount, currentDay);
         if (claim) {
             for (QuestReward.RewardItem item : quest.reward().items()) {
                 target.getInventory().add(item.toStack());
@@ -233,13 +235,14 @@ public class QuestsCommand {
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = source.getServer().overworld().getGameTime() / 24000L;
 
-        state.setProgress(questKey, amount, quest, currentDay);
+        int targetCount = quest.objective().effectiveTargetCount(source.getServer().registryAccess());
+        state.setProgress(questKey, amount, targetCount, currentDay);
         data.setDirty();
         QuestSyncPacket.sendToPlayer(target, data);
 
         source.sendSuccess(() -> Component.literal(
                 "Set progress for quest " + questKey.identifier() + " to " + amount + "/"
-                        + quest.objective().targetCount() + " for " + target.getName().getString() + ".")
+                        + targetCount + " for " + target.getName().getString() + ".")
                 .withStyle(ChatFormatting.GREEN), true);
         return amount;
     }

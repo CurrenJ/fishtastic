@@ -56,7 +56,8 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
-            if (!state.canClaim(questKey, quest)) return;
+            int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
+            if (!state.canClaim(questKey, targetCount)) return;
 
             for (QuestReward.RewardItem item : quest.reward().items()) {
                 serverPlayer.getInventory().add(item.toStack());

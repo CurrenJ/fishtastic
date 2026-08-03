@@ -88,10 +88,10 @@ public class PlayerQuestState {
         return progress.getOrDefault(questId, new QuestProgress(0, -1, false, false, List.of()));
     }
 
-    public void incrementCount(ResourceKey<Quest> questId, Quest quest, long currentDay) {
+    public void incrementCount(ResourceKey<Quest> questId, int targetCount, long currentDay) {
         QuestProgress existing = getProgress(questId);
         int newCount = existing.currentCount() + 1;
-        boolean completed = newCount >= quest.objective().targetCount();
+        boolean completed = newCount >= targetCount;
         // If this quest has never been reset before, anchor it to the current day
         // so that resetDailyIfNeeded won't wipe the progress on the next server start.
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
@@ -103,19 +103,19 @@ public class PlayerQuestState {
      * A no-op if this species was already credited, so repeat catches of the same fish don't
      * inflate progress — only new species advance the count.
      */
-    public void incrementDistinctSpecies(ResourceKey<Quest> questId, Quest quest, long currentDay, Identifier speciesId) {
+    public void incrementDistinctSpecies(ResourceKey<Quest> questId, int targetCount, long currentDay, Identifier speciesId) {
         QuestProgress existing = getProgress(questId);
         if (existing.caughtSpecies().contains(speciesId)) return;
         List<Identifier> updated = new ArrayList<>(existing.caughtSpecies());
         updated.add(speciesId);
-        boolean completed = updated.size() >= quest.objective().targetCount();
+        boolean completed = updated.size() >= targetCount;
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
         progress.put(questId, new QuestProgress(updated.size(), lastReset, completed, existing.claimed(), updated));
     }
 
-    public boolean canClaim(ResourceKey<Quest> questId, Quest quest) {
+    public boolean canClaim(ResourceKey<Quest> questId, int targetCount) {
         QuestProgress p = getProgress(questId);
-        return p.completed() && !p.claimed() && p.currentCount() >= quest.objective().targetCount();
+        return p.completed() && !p.claimed() && p.currentCount() >= targetCount;
     }
 
     public void claim(ResourceKey<Quest> questId, int tokens) {
@@ -129,9 +129,9 @@ public class PlayerQuestState {
     }
 
     /** Directly sets a quest's progress count — used by the admin debug/cheat command. */
-    public void setProgress(ResourceKey<Quest> questId, int count, Quest quest, long currentDay) {
+    public void setProgress(ResourceKey<Quest> questId, int count, int targetCount, long currentDay) {
         QuestProgress existing = getProgress(questId);
-        boolean completed = count >= quest.objective().targetCount();
+        boolean completed = count >= targetCount;
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
         progress.put(questId, new QuestProgress(count, lastReset, completed, existing.claimed(), existing.caughtSpecies()));
     }

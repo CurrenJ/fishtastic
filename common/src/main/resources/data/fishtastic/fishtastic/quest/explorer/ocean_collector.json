@@ -4,7 +4,6 @@
     "target_species_tag": "fishtastic:zone_ocean",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true,
-    "target_count": 15,
     "zone_condition": "ocean"
   },
   "reward": { "quest_tokens": 75, "items": [] },

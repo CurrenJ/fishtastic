@@ -27,7 +27,7 @@ public final class PlayerQuestStateGameTests {
 
     private static Quest quest(int targetCount) {
         QuestObjective objective = new QuestObjective(
-            Optional.empty(), Optional.empty(), Optional.empty(), false, targetCount,
+            Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(targetCount),
             Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
         return new Quest(QuestCategory.DAILY, objective, new QuestReward(50, List.of()),
             Optional.empty(), false, "Test Quest", "A test quest");
@@ -68,17 +68,17 @@ public final class PlayerQuestStateGameTests {
      */
     public static void incrementCountRaisesCountAndFlipsCompleted(GameTestHelper helper) {
         PlayerQuestState state = new PlayerQuestState();
-        Quest q = quest(3);
+        int targetCount = 3;
         ResourceKey<Quest> id = questId("increment_test");
 
-        state.incrementCount(id, q, 10L);
+        state.incrementCount(id, targetCount, 10L);
         helper.assertTrue(state.getProgress(id).currentCount() == 1, "Count must be 1 after first increment");
         helper.assertTrue(!state.getProgress(id).completed(), "Must not be completed below target count");
 
-        state.incrementCount(id, q, 10L);
+        state.incrementCount(id, targetCount, 10L);
         helper.assertTrue(!state.getProgress(id).completed(), "Must not be completed one below target count");
 
-        state.incrementCount(id, q, 10L);
+        state.incrementCount(id, targetCount, 10L);
         helper.assertTrue(state.getProgress(id).currentCount() == 3, "Count must be 3 after third increment");
         helper.assertTrue(state.getProgress(id).completed(), "Must be completed exactly at target count");
         helper.succeed();
@@ -91,16 +91,17 @@ public final class PlayerQuestStateGameTests {
     public static void canClaimTrueOnlyBetweenCompletionAndClaim(GameTestHelper helper) {
         PlayerQuestState state = new PlayerQuestState();
         Quest q = quest(2);
+        int targetCount = 2;
         ResourceKey<Quest> id = questId("can_claim_test");
 
-        state.incrementCount(id, q, 1L);
-        helper.assertTrue(!state.canClaim(id, q), "Must not be claimable before completion");
+        state.incrementCount(id, targetCount, 1L);
+        helper.assertTrue(!state.canClaim(id, targetCount), "Must not be claimable before completion");
 
-        state.incrementCount(id, q, 1L);
-        helper.assertTrue(state.canClaim(id, q), "Must be claimable immediately after completion");
+        state.incrementCount(id, targetCount, 1L);
+        helper.assertTrue(state.canClaim(id, targetCount), "Must be claimable immediately after completion");
 
         state.claim(id, q.reward().questTokens());
-        helper.assertTrue(!state.canClaim(id, q), "Must not be claimable again after claim()");
+        helper.assertTrue(!state.canClaim(id, targetCount), "Must not be claimable again after claim()");
         helper.succeed();
     }
 
@@ -112,7 +113,7 @@ public final class PlayerQuestStateGameTests {
         Quest q = quest(1);
         ResourceKey<Quest> id = questId("claim_test");
 
-        state.incrementCount(id, q, 1L);
+        state.incrementCount(id, 1, 1L);
         int balanceBefore = state.getTokenBalance();
         state.claim(id, q.reward().questTokens());
 
@@ -130,10 +131,9 @@ public final class PlayerQuestStateGameTests {
      */
     public static void resetDailyIfNeededOnlyOnNewDay(GameTestHelper helper) {
         PlayerQuestState state = new PlayerQuestState();
-        Quest q = quest(1);
         ResourceKey<Quest> id = questId("reset_test");
 
-        state.incrementCount(id, q, 5L);
+        state.incrementCount(id, 1, 5L);
         state.resetDailyIfNeeded(id, 5L);
         helper.assertTrue(state.getProgress(id).currentCount() == 1,
             "Same-day reset must be a no-op, count was reset unexpectedly");
@@ -250,9 +250,8 @@ public final class PlayerQuestStateGameTests {
      */
     public static void snapshotsReflectMutations(GameTestHelper helper) {
         PlayerQuestState state = new PlayerQuestState();
-        Quest q = quest(1);
         ResourceKey<Quest> qId = questId("snapshot_quest");
-        state.incrementCount(qId, q, 1L);
+        state.incrementCount(qId, 1, 1L);
 
         ShopEntry entry = shopEntry(0, 0);
         ResourceKey<ShopEntry> sId = shopEntryId("snapshot_entry");

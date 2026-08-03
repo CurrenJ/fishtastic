@@ -72,12 +72,13 @@ public class QuestTracker {
             }
 
             if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather)) {
+                int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
                 int oldCount = state.getProgress(questKey).currentCount();
                 if (quest.objective().distinctSpecies()) {
                     Identifier caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
-                    state.incrementDistinctSpecies(questKey, quest, currentDay, caughtId);
+                    state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
                 } else {
-                    state.incrementCount(questKey, quest, currentDay);
+                    state.incrementCount(questKey, targetCount, currentDay);
                 }
                 int newCount = state.getProgress(questKey).currentCount();
 
@@ -85,8 +86,8 @@ public class QuestTracker {
                 int oldBucket = oldCount / interval;
                 int newBucket = newCount / interval;
                 boolean crossedInterval = newBucket > oldBucket;
-                boolean justCompleted = newCount >= quest.objective().targetCount()
-                        && oldCount < quest.objective().targetCount();
+                boolean justCompleted = newCount >= targetCount
+                        && oldCount < targetCount;
                 if (crossedInterval || justCompleted) {
                     triggeringItems.put(questKey.identifier(), caughtStack.copy());
                 }
@@ -144,13 +145,14 @@ public class QuestTracker {
                     .toList();
             if (matchingStacks.isEmpty()) continue;
 
+            int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
             int oldCount = state.getProgress(questKey).currentCount();
             if (quest.objective().distinctSpecies()) {
                 // Completionist-style objectives credit each newly-seen species once, ignoring
                 // minSessionCatches — a batch just offers however many distinct species it contains.
                 for (ItemStack stack : matchingStacks) {
                     Identifier caughtId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-                    state.incrementDistinctSpecies(questKey, quest, currentDay, caughtId);
+                    state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
                 }
             } else {
                 // A session-catch quest (e.g. "catch 2 fish in one minigame") only progresses once
@@ -166,7 +168,7 @@ public class QuestTracker {
                 if (increments == 0) continue;
 
                 for (int i = 0; i < increments; i++) {
-                    state.incrementCount(questKey, quest, currentDay);
+                    state.incrementCount(questKey, targetCount, currentDay);
                 }
             }
             int newCount = state.getProgress(questKey).currentCount();
@@ -176,8 +178,8 @@ public class QuestTracker {
             int oldBucket = oldCount / interval;
             int newBucket = newCount / interval;
             boolean crossedInterval = newBucket > oldBucket;
-            boolean justCompleted = newCount >= quest.objective().targetCount()
-                    && oldCount < quest.objective().targetCount();
+            boolean justCompleted = newCount >= targetCount
+                    && oldCount < targetCount;
             if (crossedInterval || justCompleted) {
                 triggeringItems.put(questKey.identifier(), matchingStacks.get(matchingStacks.size() - 1).copy());
             }

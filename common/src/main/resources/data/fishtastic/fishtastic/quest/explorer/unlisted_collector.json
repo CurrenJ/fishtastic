@@ -2,8 +2,7 @@
   "category": "explorer",
   "objective": {
     "target_species_tag": "fishtastic:unlisted_fish",
-    "distinct_species": true,
-    "target_count": 5
+    "distinct_species": true
   },
   "reward": { "quest_tokens": 50, "items": [] },
   "hidden": true,

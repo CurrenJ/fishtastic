@@ -4,7 +4,6 @@
     "target_species_tag": "fishtastic:zone_high_altitude",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true,
-    "target_count": 6,
     "zone_condition": "high_altitude"
   },
   "reward": { "quest_tokens": 30, "items": [] },
