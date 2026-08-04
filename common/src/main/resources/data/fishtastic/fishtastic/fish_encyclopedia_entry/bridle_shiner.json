@@ -1,0 +1,10 @@
+{
+  "lore": "A slender, silver-gold minnow marked by a dark stripe running from snout to tail, the bridle shiner keeps to dense weed beds in slow river shallows, schooling tightly and scattering at the first sign of a shadow overhead.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 2,
+    "types_catches": 5,
+    "spawn_conditions_catches": 2,
+    "lore_catches": 15
+  }
+}
