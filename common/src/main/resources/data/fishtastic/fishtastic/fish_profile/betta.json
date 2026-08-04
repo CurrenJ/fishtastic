@@ -1,5 +1,5 @@
 {
-  "base_weight": 5,
+  "base_weight": 4,
   "size": { "mean": 35.0, "std_dev": 8.0 },
   "zones": [
     "river",
@@ -7,7 +7,7 @@
   ],
   "biome_weights": [
     { "biome": "#minecraft:is_jungle", "multiplier": 2.0 },
-    { "biome": ["minecraft:swamp", "minecraft:mangrove_swamp"], "multiplier": 1.5 },
+    { "biome": ["minecraft:swamp","minecraft:mangrove_swamp"], "multiplier": 1.5 },
     { "biome": "#fishtastic:is_lush_caves", "multiplier": 1.3 }
   ],
   "time_weights": [

@@ -1,0 +1,18 @@
+{
+  "base_weight": 8,
+  "size": { "mean": 20.0, "std_dev": 4.0 },
+  "zones": [
+    "cave"
+  ],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_lush_caves", "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:skittish",
+  "swarm": {
+    "count": 3,
+    "depth_layers": 2,
+    "xz_spread": 0.2,
+    "y_range": 0,
+    "rotation_jitter": 0
+  }
+}
