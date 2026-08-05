@@ -405,6 +405,11 @@ a { color: var(--accent); }
    - FishingMinigameManager target/trash/treasure flow
    - BaitEffect / CharmEffect / HookEffect presets
    ===================================================================== */
+// Vanilla weights are HARDCODED in FishtasticFishItem.getFishingLootWeight's non-FishtasticFishItem
+// branch (200/200/50/25) — the base_weight in data/minecraft/fishtastic/fish_profile/*.json is dead
+// data for these four and is deliberately NOT read here. Their `zones` however are live (the
+// fish_profile registry is a datapack registry, so minecraft-namespaced files are real entries and
+// isZoneEligible reads them); `zones` below is only a fallback for when those files can't be loaded.
 const VANILLA_FISH = [
   { id: "minecraft:cod",           name: "Cod",           weight: 200, zones: ["ocean", "river"] },
   { id: "minecraft:salmon",        name: "Salmon",        weight: 200, zones: ["ocean", "river"] },
@@ -467,8 +472,10 @@ const MULT_CAP = 2.0;
 const MULT_CAP_EXEMPT = new Set(["molten_moorish_idol"]); // flagship exception
 
 // vanilla fish are excluded from the pool entirely for every preset except "none" (bare hook) —
-// see fishWeight(), which checks bait === BAIT_PRESETS.none by reference, mirroring
-// FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java. There is no
+// see fishWeight(), which tests `bait.key === "none"`. Java's gate is
+// `baitEffect.equals(BaitEffect.NO_BAIT)` — record value equality, so a Custom… bait configured
+// to NO_BAIT's exact field values would re-admit vanilla in game but not here; a deliberate
+// simplification, since no real bait item is field-identical to NO_BAIT. There is no
 // vanillaMult field anymore; that axis was removed as dead tuning surface once the rule became
 // a binary "is any bait equipped" check.
 // affinity.exp mirrors BaitEffect.FishGroupAffinity.rarityExponent — temperature-style flattening
@@ -506,13 +513,17 @@ const HOOK_PRESETS = {
   hook:       { label: "Hook",            qualityBias: 0.5,  trashDelta: -0.04 },
   old_copper: { label: "Old Copper Hook", qualityBias: -0.5, trashDelta: 0.08 },
 };
+// Mirrors CharmEffect's constants. Amethyst (inputForceMultiplier), Crystal Ball
+// (showRarityOutline) and Angler's Almanac (showTopWeightedFish) are loot-neutral — they only
+// touch minigame physics/UI — but they're listed so the roster matches the six real charm items.
 const CHARM_PRESETS = {
   none:        { label: "None",              trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
   amethyst:    { label: "Amethyst Charm",    trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
   crystal:     { label: "Crystal Ball",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
   four_leaf:   { label: "Four-Leaf Charm",   trashDelta: -0.03, treasureDelta: 0.03, forceNight: false, nightBonus: 1.0, affinities: [] },
   luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, forceNight: true,  nightBonus: 1.25, affinities: [] },
-  banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5 }] },
+  banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5, nonMult: 1.0 }] },
+  almanac:     { label: "Angler's Almanac",  trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
 };
 // `id` is the concrete biome this preset represents, when it maps to exactly one (used to drive
 // the direct-biome dropdown/condition matching); presets standing in for a whole category (e.g.
@@ -531,8 +542,17 @@ const BIOME_PRESETS = [
   { name: "Nether",          tags: ["minecraft:is_nether"], id: "minecraft:nether_wastes" },
   { name: "Plains pond",     tags: [], id: "minecraft:plains" },
 ];
-// Tag files in tags/item that are gear config, not fish groupings
-const NON_GROUP_TAGS = new Set(["fishing_rods","fishing_hooks","fishing_charms","fishing_bait","trash","treasure"]);
+// Tag files in tags/item that are gear config, not fish groupings.
+// zone_* are excluded for a different reason: they're a *projection* of each profile's `zones`
+// array, emitted by FishtasticItemTagProvider.addZoneTags, not an independent grouping — showing
+// them as toggleable group tags would invite edits that datagen immediately reverts.
+const NON_GROUP_TAGS = new Set(["fishing_rods","fishing_hooks","fishing_charms","fishing_bait","trash","treasure",
+  "zone_ocean","zone_deep_ocean","zone_river","zone_nether","zone_cave","zone_high_altitude"]);
+// Tag files written by datagen (FishtasticItemTagProvider) rather than by hand — `fish` is derived
+// from the set of fish_profile files, zone_* from each profile's `zones`. Editing them here would
+// be silently reverted by the next `./gradlew :fabric:runDatagen`, so the Tags tab locks them.
+const DATAGEN_DERIVED_TAGS = new Set(["fishtastic:fish", "fishtastic:zone_ocean", "fishtastic:zone_deep_ocean",
+  "fishtastic:zone_river", "fishtastic:zone_nether", "fishtastic:zone_cave", "fishtastic:zone_high_altitude"]);
 // Mirrors FishtasticItemTags.FISH_GROUPS exactly — the mod's curated size/temperament taxonomy,
 // as opposed to groupTagIds() below which includes every fishtastic:* tag (catch-all "fish",
 // "unlisted_fish", "color_yellow", etc.) for UI badge/filter purposes. Used to scope
@@ -545,6 +565,8 @@ const FISH_GROUP_TAGS = ["fishtastic:small_fish", "fishtastic:big_fish", "fishta
 const S = {
   rootHandle: null, resRoot: null, profileDir: null,
   profiles: new Map(),   // "bluegill" -> {name, json, dirty}
+  vanillaProfiles: new Map(), // "minecraft:cod" -> json, from data/minecraft/fishtastic/fish_profile
+                              // (same datapack registry, so these are live zone/temperament data)
   itemTags: new Map(),   // "fishtastic:fish" -> {values:[], dirty}
   biomeTagsKnown: new Set(),
   temperaments: [],
@@ -695,7 +717,7 @@ function setConn(ok, name) {
   $("#connText").textContent = ok ? name : "not connected";
 }
 async function loadAll() {
-  S.profiles.clear(); S.itemTags.clear(); S.textures.forEach(u => URL.revokeObjectURL(u));
+  S.profiles.clear(); S.vanillaProfiles.clear(); S.itemTags.clear(); S.textures.forEach(u => URL.revokeObjectURL(u));
   S.textures.clear(); S.biomeTagsKnown.clear(); S.temperaments = []; S.lang = {};
   const root = S.resRoot;
 
@@ -709,6 +731,19 @@ async function loadAll() {
       S.profiles.set(name, { name, json, dirty: false });
     } catch (e) { console.warn("Bad profile JSON", entry.name, e); toast("Parse error in " + entry.name, true); }
   }
+  // vanilla fish profiles — fish_profile is a datapack registry, so data/minecraft/fishtastic/
+  // fish_profile/*.json are real registry entries: they supply cod/salmon/tropical_fish/pufferfish
+  // their `zones` (which isZoneEligible enforces) and `temperament`. Their base_weight is inert —
+  // getFishingLootWeight's vanilla branch never reads a profile — so these stay read-only here.
+  try {
+    const vDir = await getDirPath(root, "data/minecraft/fishtastic/fish_profile");
+    for await (const entry of vDir.values()) {
+      if (entry.kind !== "file" || !entry.name.endsWith(".json")) continue;
+      const id = "minecraft:" + entry.name.replace(/\.json$/, "");
+      try { S.vanillaProfiles.set(id, JSON.parse(await (await entry.getFile()).text())); }
+      catch (e) { console.warn("Bad vanilla profile JSON", entry.name, e); }
+    }
+  } catch (e) { /* fine — falls back to VANILLA_FISH.zones */ }
   // item tags (fishtastic + minecraft:fishes)
   try {
     const tagDir = await getDirPath(root, "data/fishtastic/tags/item");
@@ -880,6 +915,14 @@ function isZoneEligible(zones, currentZones) {
   if (!zones || zones.length === 0) return true;
   return zones.some(z => currentZones.includes(z));
 }
+/** The zones a vanilla fish actually declares — its loaded minecraft-ns profile if present,
+ *  else the hardcoded VANILLA_FISH fallback. */
+function vanillaZones(id) {
+  const vp = S.vanillaProfiles.get(id);
+  if (vp && Array.isArray(vp.zones)) return vp.zones;
+  const vf = VANILLA_FISH.find(f => f.id === id);
+  return vf ? vf.zones : null;
+}
 function resolveBait(key) {
   const g = S.gear;
   let b = key === "custom" ? { ...g.custom } : { ...BAIT_PRESETS[key] };
@@ -944,7 +987,7 @@ function fishWeightBreakdown(id, env, bait, charm, diamonds) {
     // mirrors FishingMinigameManager's `baitEffect.equals(BaitEffect.NO_BAIT)` gate in Java.
     if (bait.key !== "none") return { excluded: true, reason: "any bait other than bare hook excludes vanilla fish", weight: 0 };
     const vf = VANILLA_FISH.find(f => f.id === id);
-    if (!isZoneEligible(vf.zones, zone)) return { excluded: true, reason: "out of zone", weight: 0 };
+    if (!isZoneEligible(vanillaZones(id), zone)) return { excluded: true, reason: "out of zone", weight: 0 };
     const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
     let charmGroupMult = 1.0;
     for (const a of charm.affinities) charmGroupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
@@ -955,7 +998,9 @@ function fishWeightBreakdown(id, env, bait, charm, diamonds) {
   if (p && !isZoneEligible(p.json.zones, zone)) return { excluded: true, reason: "out of zone", weight: 0 };
   const nightMult = (S.gear.charm !== "none" && env.time === "night") ? charm.nightBonus : 1.0;
   let charmGroupMult = 1.0;
-  for (const a of charm.affinities) if (inTag(id, a.group)) charmGroupMult *= a.mult;
+  // getFishingLootWeight applies nonMemberMultiplier to non-members, exactly as on the vanilla
+  // branch above — a charm affinity is a two-sided boost/suppress pair, not an opt-in bonus.
+  for (const a of charm.affinities) charmGroupMult *= inTag(id, a.group) ? a.mult : (a.nonMult ?? 1.0);
   let base = p ? (p.json.base_weight ?? DEFAULT_BASE_WEIGHT) : DEFAULT_BASE_WEIGHT;
   if (id === "fishtastic:acute_iaspis") base += diamonds; // AcuteIapsisItem: +1/diamond in inventory
   const eMult = p ? envMultiplier(p.json, env) : 1.0;
@@ -1179,6 +1224,27 @@ function lintAll() {
       for (const z of p.json.zones) {
         if (!ZONES.includes(z)) out.push({ sev: "serious", fish: name, msg: `Unknown zone "${z}".` });
       }
+    }
+  }
+  // Vanilla profiles (data/minecraft/fishtastic/fish_profile) are read-only here but are live
+  // registry entries, so a bad zone/temperament in one breaks vanilla fishing just as surely.
+  for (const [id, vj] of S.vanillaProfiles) {
+    const path = id.split(":")[1];
+    if (!vj.zones || vj.zones.length === 0) {
+      out.push({ sev: "serious", fish: path, msg: `Vanilla profile is missing "zones" — required field, won't load.` });
+    } else for (const z of vj.zones) {
+      if (!ZONES.includes(z)) out.push({ sev: "serious", fish: path, msg: `Vanilla profile has unknown zone "${z}".` });
+    }
+    if (vj.temperament && !S.temperaments.includes(vj.temperament)) {
+      out.push({ sev: "serious", fish: path, msg: `Vanilla profile temperament "${vj.temperament}" has no file under fishtastic/temperament.` });
+    }
+    if (vj.base_weight !== undefined) {
+      out.push({ sev: "info", fish: path, msg: `Vanilla profile declares base_weight ${vj.base_weight}, but getFishingLootWeight's vanilla branch hardcodes its weight — the field is inert.` });
+    }
+  }
+  for (const id of VANILLA_IDS) {
+    if (!S.vanillaProfiles.has(id)) {
+      out.push({ sev: "warn", fish: id.split(":")[1], msg: `No profile under data/minecraft/fishtastic/fish_profile — zone gating fails open, so it's catchable in every zone.` });
     }
   }
   for (const id of pool) {
@@ -1478,7 +1544,7 @@ function renderProfiles(v) {
     const isV = VANILLA_IDS.has(id);
     const p = isV ? null : S.profiles.get(path);
     if (S.zoneFilter) {
-      const declaredZones = isV ? VANILLA_FISH.find(f => f.id === id).zones : (p ? p.json.zones : null);
+      const declaredZones = isV ? vanillaZones(id) : (p ? p.json.zones : null);
       if (!isZoneEligible(declaredZones, currentZones)) continue;
     }
     const r = shareOf.get(id);
@@ -1573,7 +1639,10 @@ function renderBaseStats(v) {
   const rows = entries.map(r => {
     const lanes = laneInfo.map(b => {
       if (b.raw) return { ...b, color: r.isV ? "#90ee90" : "var(--s1)", excluded: false, mult: 1, effVal: r.val };
-      const excluded = !!(b.preset.exclusive && !inTag(r.id, b.preset.exclusive));
+      // two independent ways a lane can zero out: the bait's exclusive pool, and the blanket
+      // vanilla ban that any non-bare-hook bait applies (baitEffectiveWeight returns 0 for those).
+      const excluded = !!(b.preset.exclusive && !inTag(r.id, b.preset.exclusive))
+        || (r.isV && b.preset.key !== "none");
       const effVal = excluded ? 0 : baitEffectiveWeight(r.id, r.val, b.preset);
       const mult = r.val > 0 ? effVal / r.val : 0; // display-only ratio; not a pure scalar once rarityExponent < 1
       return { ...b, excluded, mult, effVal };
@@ -1595,7 +1664,8 @@ function renderBaseStats(v) {
       const tip = l.raw
         ? `${l.label}\n${fmtF(l.effVal)}`
         : l.excluded
-          ? `${l.label}\nExcluded from pool (exclusive to ${l.preset.exclusive})`
+          ? `${l.label}\nExcluded from pool (` + (l.preset.exclusive && !inTag(id, l.preset.exclusive)
+              ? `exclusive to ${l.preset.exclusive}` : "any bait bars vanilla fish") + ")"
           : `${l.label}\n×${fmtF(l.mult)} → ${fmtF(l.effVal)}`;
       track.append(el("div", {
         class: "hbar-fill bait-overlay" + (l.excluded ? " excluded" : (l.other ? " other" : "")),
@@ -1973,7 +2043,9 @@ function renderTags(v) {
   const headRow = el("tr", null, el("th", null, "Fish"));
   for (const t of tags) {
     const tt = S.itemTags.get(t);
-    headRow.append(el("th", { "data-tip": t + (tt.dirty ? "\n(edited)" : "") }, t.split(":")[1] + (tt.dirty ? " •" : "")));
+    const derived = DATAGEN_DERIVED_TAGS.has(t);
+    headRow.append(el("th", { "data-tip": t + (derived ? "\nDatagen-derived from fish_profile — read-only" : "") + (tt.dirty ? "\n(edited)" : "") },
+      t.split(":")[1] + (derived ? " 🔒" : "") + (tt.dirty ? " •" : "")));
   }
   table.append(el("thead", null, headRow));
   const tb = el("tbody");
@@ -1984,9 +2056,15 @@ function renderTags(v) {
       const tag = S.itemTags.get(t);
       const direct = tag.values.includes(id);
       const inherited = !direct && inTag(id, t);
+      const derived = DATAGEN_DERIVED_TAGS.has(t);
       const cb = el("input", { class: "cb", type: "checkbox" });
       cb.checked = direct || inherited;
       if (inherited) { cb.disabled = true; cb.title = "included via a nested #tag reference"; }
+      if (derived) {
+        cb.disabled = true;
+        cb.title = "derived by datagen from fish_profile — edit the profile's zones (or add/remove the "
+          + "profile file) and re-run :fabric:runDatagen; edits here would be reverted";
+      }
       cb.addEventListener("change", () => {
         if (cb.checked) tag.values.push(id);
         else tag.values = tag.values.filter(x => x !== id);
@@ -2000,17 +2078,20 @@ function renderTags(v) {
   table.append(tb);
   v.append(el("div", { class: "panel" },
     el("h3", null, "Group membership matrix",
-      el("span", { class: "note" }, "— checkboxes write tags/item/*.json on save. Disabled = inherited via nested #tag. fish = the catchable pool; unlisted_fish = hidden in the encyclopedia until first catch.")),
+      el("span", { class: "note" }, "— checkboxes write tags/item/*.json on save. Disabled = inherited via nested #tag, or 🔒 datagen-derived. zone_* are omitted for the same reason: like fish, they're projected from fish_profile by :fabric:runDatagen, so edit the profile instead. unlisted_fish = hidden in the encyclopedia until first catch.")),
     el("div", { class: "scrollbox", style: "max-height:600px" }, table)));
 
   // gear affinity reference
+  // Mirrors FishtasticItems' BaitEffect constructions — keep in step with them.
   const refRows = [
-    ["Small Fish Bait", "small_fish ×4.0 / others ×0.3 · +1 target"],
-    ["Calm Bait", "calm_fish ×4.0 / others ×0.3"],
-    ["Frenzy Bait", "frenzy_fish ×4.0 / others ×0.3"],
-    ["Trophy Bait", "big_fish ×4.0 / others ×0.3 · −1 target"],
-    ["Blazed Grub", "exclusive pool → exotic_fish only · treasure 50%"],
-    ["Banana Charm", "color_yellow ×1.5"],
+    ["Small Fish Bait", "small_fish ×2.0 / others ×0.3 · rarity exp 0.35 · +1 target"],
+    ["Calm Bait", "calm_fish ×2.0 / others ×0.3 · rarity exp 0.40"],
+    ["Frenzy Bait", "frenzy_fish ×2.2 / others ×0.3 · rarity exp 0.35"],
+    ["Trophy Bait", "big_fish ×2.2 / others ×0.3 · rarity exp 0.45 · −1 target"],
+    ["Gummy Worms", "no affinity · mod fish ×2.0 · pool-wide rarity flattening 0.85 (FISH_GROUPS only)"],
+    ["Worms", "mod fish ×1.25 · +1 target"],
+    ["Blazed Grub", "exclusive pool → exotic_fish only · treasure 50% · scales +10%/quality tier"],
+    ["Banana Charm", "color_yellow ×1.5 / others ×1.0"],
     ["(any bait)", "vanilla fish excluded entirely — see NO_BAIT"],
   ];
   v.append(el("div", { class: "panel" },
@@ -2058,9 +2139,17 @@ function renderSim(v) {
   );
   v.append(el("div", { class: "panel" }, el("h3", null, "Outcome"), tiles));
 
-  // --- encyclopedia progress (distinct mod-fish species caught this run; vanilla fish have no
-  // encyclopedia entry — see FishEncyclopediaScreen, which lists getAllFishProfilesSorted())
-  const modPoolIds = poolIds().filter(id => !VANILLA_IDS.has(id) && passesTagFilter(id));
+  // --- encyclopedia progress. FishEncyclopediaScreen lists getAllFishProfilesSorted(), i.e. the
+  // WHOLE fish_profile registry — which includes the four minecraft-namespaced vanilla profiles,
+  // so cod/salmon/tropical_fish/pufferfish each occupy a disc slot too. Unlisted fish are skipped
+  // until caught (screen's UNLISTED_FISH check), so they're excluded from the denominator here
+  // unless this run actually caught one.
+  const modPoolIds = poolIds().filter(id => {
+    if (!passesTagFilter(id)) return false;
+    const hasProfile = VANILLA_IDS.has(id) ? S.vanillaProfiles.has(id) : S.profiles.has(id.split(":")[1]);
+    if (!hasProfile) return false;
+    return !inTag(id, "fishtastic:unlisted_fish") || (res.species.get(id)?.count || 0) > 0;
+  });
   const epTotal = modPoolIds.length;
   const epDiscovered = modPoolIds.filter(id => (res.species.get(id)?.count || 0) > 0).length;
   const epPct = epTotal > 0 ? epDiscovered / epTotal : 0;
@@ -2072,7 +2161,7 @@ function renderSim(v) {
   const SHOWN_UNDISC = 12;
   v.append(el("div", { class: "panel viz-root" },
     el("h3", null, "Encyclopedia progress",
-      el("span", { class: "note" }, `— distinct mod species caught this run vs. total profiles${S.tagFilter.size ? " (filtered)" : ""}`)),
+      el("span", { class: "note" }, `— distinct species caught this run vs. every fish_profile the disc lists, vanilla included; uncaught unlisted_fish get no slot${S.tagFilter.size ? " · filtered" : ""}`)),
     el("div", { class: "epbar-track", "data-tip": `${epDiscovered} of ${epTotal} species discovered (${pct(epPct, 1)})` },
       el("div", { class: "epbar-fill", style: `width:${(epPct * 100).toFixed(2)}%` }),
       el("div", { class: "epbar-label" }, `${epDiscovered} / ${epTotal} discovered · ${pct(epPct, 1)}`)),
