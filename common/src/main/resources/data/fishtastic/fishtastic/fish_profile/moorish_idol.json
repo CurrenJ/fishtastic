@@ -1,11 +1,11 @@
 {
-  "base_weight": 5,
+  "base_weight": 4,
   "size": { "mean": 55.0, "std_dev": 15.0 },
   "zones": [
     "ocean"
   ],
   "time_weights": [
-    { "time": "day", "multiplier": 2.0 }
+    { "time": "dawn", "multiplier": 2.0 }
   ],
   "temperament": "fishtastic:sprinter"
 }

@@ -1,18 +1,11 @@
 {
-  "base_weight": 15,
+  "base_weight": 10,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "zones": [
     "ocean"
   ],
   "biome_weights": [
     { "biome": "#fishtastic:is_mushroom", "multiplier": 1.5 }
-  ],
-  "time_weights": [
-    { "time": "night", "multiplier": 2.0 },
-    { "time": "dusk", "multiplier": 1.5 }
-  ],
-  "moon_weights": [
-    { "phase": "new_moon", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:docile",
   "animation": {
@@ -23,5 +16,8 @@
     "depth_layers": 3,
     "xz_spread": 0.28,
     "y_range": 0
-  }
+  },
+  "weather_weights": [
+    { "weather": "clear", "multiplier": 0.25 }
+  ]
 }

@@ -7,8 +7,7 @@
   ],
   "moon_weights": [
     { "phase": "new_moon", "multiplier": 1.8 },
-    { "phase": "waxing_crescent", "multiplier": 1.3 },
-    { "phase": "waning_crescent", "multiplier": 1.3 }
+    { "phase": "waxing_crescent", "multiplier": 1.3 }
   ],
   "temperament": "fishtastic:wily"
 }

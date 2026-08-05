@@ -5,8 +5,8 @@
     "ocean"
   ],
   "time_weights": [
-    { "time": "dawn", "multiplier": 2.0 },
-    { "time": "day", "multiplier": 1.5 }
+    { "time": "dusk", "multiplier": 2.0 },
+    { "time": "night", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:ghost",
   "animation": {

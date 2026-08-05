@@ -1,5 +1,5 @@
 {
-  "base_weight": 50,
+  "base_weight": 100,
   "size": { "mean": 25.0, "std_dev": 5.0 },
   "zones": [
     "ocean"
@@ -11,5 +11,9 @@
     "xz_spread": 0.22,
     "y_range": 0.25,
     "rotation_jitter": 5
-  }
+  },
+  "time_weights": [
+    { "time": "dusk", "multiplier": 0.5 },
+    { "time": "dawn", "multiplier": 0.5 }
+  ]
 }

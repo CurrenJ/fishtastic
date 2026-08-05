@@ -1,11 +1,12 @@
 {
-  "base_weight": 20,
+  "base_weight": 30,
   "size": { "mean": 35.0, "std_dev": 10.0 },
   "zones": [
     "ocean"
   ],
   "time_weights": [
-    { "time": "day", "multiplier": 1.8 }
+    { "time": "day", "multiplier": 1.2 },
+    { "time": "night", "multiplier": 0.5 }
   ],
   "temperament": "fishtastic:metronome",
   "animation": {

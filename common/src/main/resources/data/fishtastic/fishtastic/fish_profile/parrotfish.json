@@ -1,9 +1,11 @@
 {
-  "base_weight": 7,
+  "base_weight": 5,
   "size": { "mean": 50.0, "std_dev": 15.0 },
-  "zones": ["ocean"],
-  "time_weights": [
-    { "time": "day", "multiplier": 1.5 }
+  "zones": [
+    "ocean"
   ],
-  "temperament": "fishtastic:wily"
+  "temperament": "fishtastic:wily",
+  "moon_weights": [
+    { "phase": "full_moon", "multiplier": 1.5 }
+  ]
 }

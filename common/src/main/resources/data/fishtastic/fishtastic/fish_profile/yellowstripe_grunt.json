@@ -1,8 +1,12 @@
 {
-  "base_weight": 20,
+  "base_weight": 8,
   "size": { "mean": 25.0, "std_dev": 5.0 },
   "zones": [
     "ocean"
   ],
-  "temperament": "fishtastic:skittish"
+  "temperament": "fishtastic:skittish",
+  "time_weights": [
+    { "time": "day", "multiplier": 1.5 },
+    { "time": "dawn", "multiplier": 2.0 }
+  ]
 }
