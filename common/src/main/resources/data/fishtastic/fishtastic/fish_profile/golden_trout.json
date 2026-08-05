@@ -1,0 +1,14 @@
+{
+  "base_weight": 6,
+  "size": { "mean": 34.0, "std_dev": 9.0 },
+  "zones": [
+    "high_altitude"
+  ],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 1.4 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 1.3 }
+  ],
+  "temperament": "fishtastic:sprinter"
+}

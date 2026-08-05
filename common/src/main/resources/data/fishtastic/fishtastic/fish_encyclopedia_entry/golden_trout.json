@@ -1,0 +1,10 @@
+{
+  "lore": "California's state fish, and arguably its most beautiful: a golden-orange flank streaked with a crimson stripe and dusted with black spots. It survives only in the coldest, clearest alpine waters high above the treeline.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

@@ -41,6 +41,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.GIRAFFE_CICHLID.value());
                     output.accept(FishtasticItems.GLASS_CATFISH.value());
                     output.accept(FishtasticItems.GLASS_SQUID.value());
+                    output.accept(FishtasticItems.GOLDEN_TROUT.value());
                     output.accept(FishtasticItems.GREENSTRIPE_BARB.value());
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.INDIAN_GLASSY_FISH.value());

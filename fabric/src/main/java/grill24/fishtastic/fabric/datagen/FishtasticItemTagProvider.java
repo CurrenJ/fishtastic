@@ -92,7 +92,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
                 .add(FishtasticItems.GLASS_SQUID.value())
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
-                .add(FishtasticItems.FLAPJACK_OCTOPUS.value());
+                .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
+                .add(FishtasticItems.GOLDEN_TROUT.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
