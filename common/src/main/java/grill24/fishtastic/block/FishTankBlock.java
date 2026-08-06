@@ -9,10 +9,14 @@ import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.item.FishtasticFishItem;
+import grill24.fishtastic.item.PileOfFishItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
@@ -23,7 +27,9 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
@@ -38,6 +44,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -269,6 +276,24 @@ public class FishTankBlock extends Block implements EntityBlock {
             return useWithoutItem(blockState, level, blockPos, player, blockHitResult);
         }
 
+        // Pile-specific interaction takes priority over the generic "insert held item as display
+        // content" fallback below: a plain click with a Pile of Fish in hand pops just its top
+        // fish into the tank instead of inserting the whole pile as a single display item.
+        //
+        // The shift-click "pull topmost fish into hand" interaction is NOT handled here — vanilla
+        // suppresses Block#useItemOn entirely whenever the player sneaks with a non-empty hand
+        // (see ServerPlayerGameMode#useItemOn's suppressUsingBlock check; item.doesSneakBypassUse
+        // defaults to false), so this method never even runs for that case. It's implemented
+        // instead as an Item#use() override on PileOfFishItem/FishtasticFishItem, which does its
+        // own raycast — see FishTankBlock#tryShiftExtractFromTargetedTank.
+        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND
+                && itemStack.getItem() instanceof PileOfFishItem && !player.isShiftKeyDown()) {
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof FishTankBlockEntity fishTank) {
+                return popPileTopIntoTank(player, blockPos, itemStack, fishTank);
+            }
+        }
+
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity fishTank) {
@@ -310,6 +335,106 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
 
         return InteractionResult.PASS;
+    }
+
+    /** Pops just the top fish off a held Pile of Fish and adds it to the tank as display content. */
+    private InteractionResult popPileTopIntoTank(Player player, BlockPos blockPos, ItemStack itemStack, FishTankBlockEntity fishTank) {
+        BundleContents.Mutable contents = new BundleContents.Mutable(
+                itemStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+        ItemStack popped = contents.removeOne();
+        if (popped == null) {
+            player.sendSystemMessage(Component.literal("Pile of Fish is empty"));
+            return InteractionResult.FAIL;
+        }
+        float rotation = calculateRotationTowardPlayer(player, blockPos);
+        if (!fishTank.addItem(popped, rotation)) {
+            // Tank has no room — leave the pile untouched.
+            player.sendSystemMessage(Component.literal("Fish tank is full"));
+            return InteractionResult.FAIL;
+        }
+        itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        player.sendSystemMessage(Component.literal("Added item to fish tank"));
+        return InteractionResult.SUCCESS;
+    }
+
+    /**
+     * Entry point for the shift-click "pull topmost fish into hand" interaction, called from
+     * {@link PileOfFishItem#use} / {@link FishtasticFishItem#use}. It can't live in
+     * {@link #useItemOn} because vanilla never calls that method for this case: sneaking with a
+     * non-empty hand makes {@code ServerPlayerGameMode#useItemOn} skip {@code Block#useItemOn}
+     * entirely and fall through to {@code Item#use} instead (see
+     * {@code ItemStack#doesSneakBypassUse}, which defaults to false for ordinary items). So this
+     * does its own raycast, mirroring what the suppressed block interaction would have targeted.
+     *
+     * @return {@code null} if the player isn't sneaking or isn't targeting a fish tank with an
+     * eligible item, so the caller can fall back to its normal {@code use()} behavior.
+     */
+    @Nullable
+    public static InteractionResult tryShiftExtractFromTargetedTank(Level level, Player player, InteractionHand hand) {
+        ItemStack itemStack = player.getItemInHand(hand);
+        boolean isPile = itemStack.getItem() instanceof PileOfFishItem;
+        if (!player.isShiftKeyDown() || !(isPile || PileOfFishItem.canInsertInPile(itemStack))) {
+            return null;
+        }
+        // Mirrors Item#getPlayerPOVHitResult (protected, not accessible from here) — this
+        // reconstructs the block the player is looking at, since the suppressed block
+        // interaction never gave us a BlockHitResult to work with.
+        Vec3 from = player.getEyePosition();
+        Vec3 to = from.add(player.calculateViewVector(player.getXRot(), player.getYRot()).scale(player.blockInteractionRange()));
+        BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        if (hit.getType() != HitResult.Type.BLOCK) {
+            return null;
+        }
+        BlockEntity be = level.getBlockEntity(hit.getBlockPos());
+        if (!(be instanceof FishTankBlockEntity fishTank)) {
+            return null;
+        }
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        return extractTopFishIntoHand(player, hand, itemStack, fishTank);
+    }
+
+    /**
+     * Extracts the topmost fish from the tank into the held item. If a Pile of Fish is held, the
+     * fish is added to it directly; if a single fish item is held instead, it's combined with the
+     * extracted fish into a new pile (replacing the held stack, or split off into a new stack
+     * alongside the remainder when more than one was held).
+     */
+    private static InteractionResult extractTopFishIntoHand(Player player, InteractionHand hand, ItemStack itemStack, FishTankBlockEntity fishTank) {
+        ItemStack extracted = fishTank.extractItem();
+        if (extracted.isEmpty()) {
+            player.sendSystemMessage(Component.literal("Fish tank is empty"));
+            return InteractionResult.FAIL;
+        }
+        if (itemStack.getItem() instanceof PileOfFishItem) {
+            BundleContents.Mutable contents = new BundleContents.Mutable(
+                    itemStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+            contents.tryInsert(extracted);
+            if (!extracted.isEmpty()) {
+                // Pile is full — put the fish back in the tank rather than losing it.
+                fishTank.addItem(extracted);
+                player.sendSystemMessage(Component.literal("Pile of Fish is full"));
+                return InteractionResult.FAIL;
+            }
+            itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        } else {
+            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
+            contents.tryInsert(extracted);
+            contents.tryInsert(itemStack.copyWithCount(1));
+            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            if (itemStack.getCount() == 1) {
+                player.setItemInHand(hand, newPile);
+            } else {
+                itemStack.shrink(1);
+                if (!player.getInventory().add(newPile)) {
+                    player.drop(newPile, false);
+                }
+            }
+        }
+        player.sendSystemMessage(Component.literal("Removed item from fish tank"));
+        return InteractionResult.SUCCESS;
     }
 
     /**

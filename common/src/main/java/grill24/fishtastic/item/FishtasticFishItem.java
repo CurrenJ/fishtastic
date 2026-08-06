@@ -8,6 +8,7 @@ import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
@@ -16,11 +17,15 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.LootParams;
 import org.jetbrains.annotations.Nullable;
@@ -79,6 +84,19 @@ public class FishtasticFishItem extends Item {
         if (charmEffect != null) {
             charmEffect.tooltipLines().forEach(builder);
         }
+    }
+
+    /**
+     * Shift-click pulls the topmost fish out of a targeted fish tank and combines it with this
+     * item into a new Pile of Fish. Vanilla suppresses {@code FishTankBlock#useItemOn} while
+     * sneaking with a non-empty hand, so this has to be handled here instead — see
+     * {@link FishTankBlock#tryShiftExtractFromTargetedTank}. No-op for non-fish
+     * {@code FishtasticFishItem}s (e.g. charms), which {@code canInsertInPile} rejects.
+     */
+    @Override
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
+        return tankResult != null ? tankResult : super.use(level, player, hand);
     }
 
     // ----- Loot Sampling -----

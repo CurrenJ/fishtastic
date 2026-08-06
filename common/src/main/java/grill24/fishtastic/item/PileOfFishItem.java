@@ -2,9 +2,12 @@ package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.block.FishTankBlock;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.SlotAccess;
@@ -16,6 +19,7 @@ import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
 public class PileOfFishItem extends BundleItem {
@@ -33,6 +37,19 @@ public class PileOfFishItem extends BundleItem {
                 && stack.getItem().canFitInsideContainerItems()
                 && (stack.is(FishtasticItemTags.FISH)
                     || stack.has(FishtasticDataComponents.ITEM_SIZE.value()));
+    }
+
+    // --- Fish tank interaction ---
+
+    /**
+     * Shift-click pulls the topmost fish out of a targeted fish tank into this pile. Vanilla
+     * suppresses {@code FishTankBlock#useItemOn} while sneaking with a non-empty hand, so this
+     * has to be handled here instead — see {@link FishTankBlock#tryShiftExtractFromTargetedTank}.
+     */
+    @Override
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
+        return tankResult != null ? tankResult : super.use(level, player, hand);
     }
 
     // --- Pile merging helpers ---
