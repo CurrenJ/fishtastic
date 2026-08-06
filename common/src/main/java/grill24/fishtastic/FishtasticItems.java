@@ -325,25 +325,25 @@ public class FishtasticItems {
 
         // Charm items — loaded into the rod's charm slot; affect fishing minigame physics
         AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.AMETHYST_CHARM)));
         CRYSTAL_BALL_CHARM = RegistrationApiSided.getInstance().registerItem("crystal_ball_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.CRYSTAL_BALL_CHARM)));
         FOUR_LEAF_CHARM = RegistrationApiSided.getInstance().registerItem("four_leaf_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.FOUR_LEAF_CHARM)));
         LUNA_CHARM = RegistrationApiSided.getInstance().registerItem("luna_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LUNA_CHARM)));
         BANANA_CHARM = RegistrationApiSided.getInstance().registerItem("banana_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BANANA_CHARM)));
         ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac",
-                loc -> new FishtasticFishItem(props(loc).durability(5)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.ANGLERS_ALMANAC)));
         LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box",
-                loc -> new FishtasticFishItem(props(loc).durability(200)
+                loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LITTLE_FISH_BOX)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",

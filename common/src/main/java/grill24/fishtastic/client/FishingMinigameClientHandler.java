@@ -76,7 +76,7 @@ public class FishingMinigameClientHandler {
             animation.setTutorial(true);
         }
 
-        animation.setTopWeightedFishPreview(packet.topWeightedFishPreview());
+        animation.setTopWeightedFishPreviews(packet.topWeightedFishPreviews());
         animation.setCurrentZones(packet.zones());
 
         // Display the animation

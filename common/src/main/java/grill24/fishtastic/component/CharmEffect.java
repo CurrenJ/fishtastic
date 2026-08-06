@@ -99,6 +99,8 @@ public record CharmEffect(
         if (autoPileFish) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.auto_pile_fish")
                     .withStyle(ChatFormatting.YELLOW));
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.auto_pile_fish_passive")
+                    .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }
         return lines;
     }

@@ -60,9 +60,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // Equipped charm (client-side only; drives the crystal-ball rarity outline)
     @Nullable private CharmEffect equippedCharmEffect = null;
 
-    // Angler's Almanac preview: the top-weighted fish under current conditions, or null if no
-    // charm revealing it is equipped. Rendered off to the right of the minigame bar.
-    @Nullable private ItemStack topWeightedFishPreview = null;
+    // Angler's Almanac preview: the top-weighted fish (highest first) under current conditions,
+    // or empty if no charm revealing it is equipped. Rendered off to the right of the minigame bar.
+    private List<ItemStack> topWeightedFishPreviews = List.of();
 
     // Currently equipped bait/hook/charm itemstacks (client-side only, for the gear readout
     // rendered off to the left of the minigame bar, mirroring the almanac preview on the right).
@@ -91,6 +91,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     private static final int SIDE_PANEL_ICON_SIZE = 24;
     private static final int SIDE_PANEL_MARGIN = 48;
+    // Vertical gap between stacked almanac preview icons.
+    private static final int ALMANAC_ICON_GAP = 4;
     // Gear readout (hook/charm) renders smaller than the almanac preview, tucked right up
     // against the bar's corner rather than out at the screen edge.
     private static final int GEAR_ICON_SIZE = 16;
@@ -286,9 +288,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         this.equippedCharmEffect = charmEffect;
     }
 
-    /** Called once at minigame start with the server-computed top-weighted fish, if any charm reveals it. */
-    public void setTopWeightedFishPreview(@Nullable ItemStack stack) {
-        this.topWeightedFishPreview = (stack == null || stack.isEmpty()) ? null : stack;
+    /** Called once at minigame start with the server-computed top-weighted fish (highest first), if any charm reveals them. */
+    public void setTopWeightedFishPreviews(@Nullable List<ItemStack> stacks) {
+        this.topWeightedFishPreviews = (stacks == null) ? List.of() : stacks;
     }
 
     /** Called once at minigame start with the rod's currently equipped bait/hook/charm itemstacks, if any. */
@@ -445,27 +447,34 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /**
      * Renders the Angler's Almanac's top-weighted-fish preview off to the right of the minigame
-     * bar, as a plain itemstack icon — silhouetted the same way the fish encyclopedia silhouettes
-     * never-caught species, via the {@link FishtasticGlintState#SILHOUETTE_REQUESTED} thread-local.
-     * Slides in/out from the right edge of the screen — its nearest side.
+     * bar, as a vertical stack of plain itemstack icons (highest-weighted first) — each
+     * silhouetted the same way the fish encyclopedia silhouettes never-caught species, via the
+     * {@link FishtasticGlintState#SILHOUETTE_REQUESTED} thread-local. The stack is centered on
+     * the bar's midline and cascades in/out from the right edge of the screen, top entry leading.
      */
     private void renderAlmanacPreview(GuiGraphicsExtractor guiGraphics, float partialTick, int screenWidth, int screenHeight) {
-        if (topWeightedFishPreview == null) return;
+        if (topWeightedFishPreviews.isEmpty()) return;
 
-        float slideX = sidePanelDisplacement(partialTick, 0f) * screenWidth;
-        boolean discovered = isFishDiscovered(topWeightedFishPreview);
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+        float stackGap = SIDE_PANEL_ICON_SIZE + ALMANAC_ICON_GAP;
+        float slotYTop = screenHeight / 2f - (topWeightedFishPreviews.size() - 1) * stackGap / 2f;
 
-        guiGraphics.pose().pushMatrix();
-        guiGraphics.pose().translate(screenWidth - SIDE_PANEL_MARGIN + slideX, screenHeight / 2f);
-        guiGraphics.pose().scale(SIDE_PANEL_ICON_SIZE, SIDE_PANEL_ICON_SIZE);
-        if (!discovered) FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
-        try {
-            extension.fishtastic$renderItem(topWeightedFishPreview, 0, 0);
-        } finally {
-            FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+        for (int i = 0; i < topWeightedFishPreviews.size(); i++) {
+            ItemStack stack = topWeightedFishPreviews.get(i);
+            float slideX = sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * i) * screenWidth;
+            boolean discovered = isFishDiscovered(stack);
+
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(screenWidth - SIDE_PANEL_MARGIN + slideX, slotYTop + stackGap * i);
+            guiGraphics.pose().scale(SIDE_PANEL_ICON_SIZE, SIDE_PANEL_ICON_SIZE);
+            if (!discovered) FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
+            try {
+                extension.fishtastic$renderItem(stack, 0, 0);
+            } finally {
+                FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+            }
+            guiGraphics.pose().popMatrix();
         }
-        guiGraphics.pose().popMatrix();
     }
 
     private static boolean isFishDiscovered(ItemStack stack) {

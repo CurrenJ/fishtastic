@@ -141,9 +141,9 @@ public class FishingMinigameManager {
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
-        ItemStack topWeightedFishPreview = (charmEffect != null && charmEffect.showTopWeightedFish())
+        List<ItemStack> topWeightedFishPreview = (charmEffect != null && charmEffect.showTopWeightedFish())
                 ? computeTopWeightedFish(player, baitEffect, charmEffect)
-                : ItemStack.EMPTY;
+                : List.of();
 
         // Capture environment context at hook position for quest tracking
         FishingHook sessionHook = player.fishing;
@@ -212,7 +212,7 @@ public class FishingMinigameManager {
         activeSessions.put(playerId, session);
 
         Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, ItemStack.EMPTY, tutorialZones));
+        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
@@ -244,7 +244,8 @@ public class FishingMinigameManager {
 
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
-        boolean autoPileFish = deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish();
+        boolean autoPileFish = (deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish())
+                || hasAutoPileFishInInventory(player);
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
         for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
             if (index >= 0 && index < session.targets.size()) {
@@ -474,16 +475,20 @@ public class FishingMinigameManager {
         return new EnvironmentContext(biome, timeOfDay, weather, moonPhase, zone);
     }
 
+    // Number of top-weighted species the Angler's Almanac reveals, ranked highest-weight first.
+    private static final int TOP_WEIGHTED_FISH_PREVIEW_COUNT = 3;
+
     /**
-     * Scans the fish pool under the current hook's environment context and returns the single
-     * highest-weighted species — i.e. what {@link FishtasticFishItem#sampleRandomFish} is most
-     * likely to roll right now. Mirrors the environment/pool resolution in
-     * {@link #generateTargets} but picks the max instead of a weighted random draw. Only called
-     * when the equipped charm (Angler's Almanac) reveals this.
+     * Scans the fish pool under the current hook's environment context and returns the
+     * {@link #TOP_WEIGHTED_FISH_PREVIEW_COUNT} highest-weighted species, ranked descending —
+     * i.e. what {@link FishtasticFishItem#sampleRandomFish} is most likely to roll right now.
+     * Mirrors the environment/pool resolution in {@link #generateTargets} but ranks by weight
+     * instead of drawing a single weighted-random pick. Only called when the equipped charm
+     * (Angler's Almanac) reveals this.
      */
-    private ItemStack computeTopWeightedFish(ServerPlayer player, @Nullable BaitEffect baitEffect, @Nullable CharmEffect charmEffect) {
+    private List<ItemStack> computeTopWeightedFish(ServerPlayer player, @Nullable BaitEffect baitEffect, @Nullable CharmEffect charmEffect) {
         FishingHook hook = player.fishing;
-        if (hook == null) return ItemStack.EMPTY;
+        if (hook == null) return List.of();
         IFishingHookExtension hookExt = (IFishingHookExtension) hook;
 
         float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
@@ -504,17 +509,22 @@ public class FishingMinigameManager {
                 .filter(h -> FishtasticFishItem.isZoneEligible(h, fishProfileRegistry, env.zone()))
                 .toList();
 
-        Holder<Item> best = null;
-        int bestWeight = 0;
+        record WeightedFish(Holder<Item> holder, int weight) {}
+        List<WeightedFish> ranked = new ArrayList<>();
         for (Holder<Item> candidate : fishPool) {
             int weight = FishtasticFishItem.getFishingLootWeight(
                     candidate, lootparams, fishProfileRegistry, env.biome(), env.timeOfDay(), env.weather(), env.moonPhase(), baitEffect, charmEffect);
-            if (weight > bestWeight) {
-                bestWeight = weight;
-                best = candidate;
+            if (weight > 0) {
+                ranked.add(new WeightedFish(candidate, weight));
             }
         }
-        return best != null ? new ItemStack(best) : ItemStack.EMPTY;
+        ranked.sort(Comparator.comparingInt(WeightedFish::weight).reversed());
+
+        List<ItemStack> top = new ArrayList<>(TOP_WEIGHTED_FISH_PREVIEW_COUNT);
+        for (int i = 0; i < ranked.size() && i < TOP_WEIGHTED_FISH_PREVIEW_COUNT; i++) {
+            top.add(new ItemStack(ranked.get(i).holder()));
+        }
+        return top;
     }
 
     /**
@@ -625,6 +635,27 @@ public class FishingMinigameManager {
     }
 
     /**
+     * The Little Fish Box charm's auto-pile effect is passive: unlike every other charm, it works
+     * from anywhere in the player's inventory, not just the rod's charm slot — so it can be carried
+     * alongside another charm that's actually equipped.
+     */
+    private static boolean hasAutoPileFishInInventory(ServerPlayer player) {
+        return findAutoPileFishCharmSlot(player) >= 0;
+    }
+
+    /** @return the first inventory slot holding a charm with {@code autoPileFish} set, or -1. */
+    private static int findAutoPileFishCharmSlot(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
+            if (effect != null && effect.autoPileFish()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Delivery effect for the Little Fish Box charm: fills existing Pile of Fish stacks in the
      * player's inventory first, then creates new piles for any remainder. Mirrors the manual
      * click-driven insertion in {@link PileOfFishItem} but goes straight through
@@ -689,22 +720,30 @@ public class FishingMinigameManager {
 
     private static void damageUpgrades(ServerPlayer player) {
         ItemStack rod = findFishtasticRod(player);
-        if (rod.isEmpty()) return;
+        if (!rod.isEmpty()) {
+            ItemStack hook = CopperFishingRod.getHook(rod);
+            if (!hook.isEmpty()) {
+                hook.setDamageValue(hook.getDamageValue() + 1);
+                boolean broken = hook.getDamageValue() >= hook.getMaxDamage();
+                if (broken) playBreakEffect(player, hook);
+                CopperFishingRod.setHook(rod, broken ? ItemStack.EMPTY : hook);
+            }
 
-        ItemStack hook = CopperFishingRod.getHook(rod);
-        if (!hook.isEmpty()) {
-            hook.setDamageValue(hook.getDamageValue() + 1);
-            boolean broken = hook.getDamageValue() >= hook.getMaxDamage();
-            if (broken) playBreakEffect(player, hook);
-            CopperFishingRod.setHook(rod, broken ? ItemStack.EMPTY : hook);
+            ItemStack charm = CopperFishingRod.getCharm(rod);
+            if (!charm.isEmpty()) {
+                charm.setDamageValue(charm.getDamageValue() + 1);
+                boolean broken = charm.getDamageValue() >= charm.getMaxDamage();
+                if (broken) playBreakEffect(player, charm);
+                CopperFishingRod.setCharm(rod, broken ? ItemStack.EMPTY : charm);
+            }
         }
 
-        ItemStack charm = CopperFishingRod.getCharm(rod);
-        if (!charm.isEmpty()) {
-            charm.setDamageValue(charm.getDamageValue() + 1);
-            boolean broken = charm.getDamageValue() >= charm.getMaxDamage();
-            if (broken) playBreakEffect(player, charm);
-            CopperFishingRod.setCharm(rod, broken ? ItemStack.EMPTY : charm);
+        // Little Fish Box working from the inventory (see hasAutoPileFishInInventory) still
+        // costs durability, same as every other charm effect — it's a real ItemStack in a real
+        // slot here, so vanilla hurtAndBreak handles the damage/break sound/shrink-on-break itself.
+        int passiveCharmSlot = findAutoPileFishCharmSlot(player);
+        if (passiveCharmSlot >= 0) {
+            player.getInventory().getItem(passiveCharmSlot).hurtAndBreak(1, (ServerLevel) player.level(), player, item -> {});
         }
     }
 

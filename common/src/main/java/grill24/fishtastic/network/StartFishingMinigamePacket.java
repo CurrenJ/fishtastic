@@ -20,7 +20,7 @@ public record StartFishingMinigamePacket(
         int sessionId,
         List<TargetData> targets,
         boolean isTutorial,
-        ItemStack topWeightedFishPreview,
+        List<ItemStack> topWeightedFishPreviews,
         Set<FishProfile.Zone> zones
 ) implements CustomPacketPayload {
 
@@ -34,8 +34,8 @@ public record StartFishingMinigamePacket(
             StartFishingMinigamePacket::targets,
             ByteBufCodecs.BOOL,
             StartFishingMinigamePacket::isTutorial,
-            ItemStack.OPTIONAL_STREAM_CODEC,
-            StartFishingMinigamePacket::topWeightedFishPreview,
+            ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            StartFishingMinigamePacket::topWeightedFishPreviews,
             ByteBufCodecs.INT.map(
                     i -> FishProfile.Zone.values()[i],
                     Enum::ordinal

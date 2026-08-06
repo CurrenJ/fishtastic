@@ -89,7 +89,10 @@ public final class PacketRoundTripGameTests {
             0.25f,
             List.of(phase)
         );
-        ItemStack topWeightedFish = new ItemStack(FishtasticItems.ACUTE_IASPIS.value());
+        List<ItemStack> topWeightedFish = List.of(
+            new ItemStack(FishtasticItems.ACUTE_IASPIS.value()),
+            new ItemStack(FishtasticItems.BLUEGILL.value())
+        );
         Set<FishProfile.Zone> zones = Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.HIGH_ALTITUDE);
         StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones);
 
@@ -100,7 +103,10 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.sessionId() == original.sessionId(), "sessionId must round-trip");
         helper.assertTrue(decoded.isTutorial() == original.isTutorial(), "isTutorial must round-trip");
         helper.assertTrue(decoded.targets().size() == 1, "targets list size must round-trip");
-        assertStacksMatch(helper, topWeightedFish, decoded.topWeightedFishPreview(), "topWeightedFishPreview");
+        helper.assertTrue(decoded.topWeightedFishPreviews().size() == topWeightedFish.size(), "topWeightedFishPreviews size must round-trip");
+        for (int i = 0; i < topWeightedFish.size(); i++) {
+            assertStacksMatch(helper, topWeightedFish.get(i), decoded.topWeightedFishPreviews().get(i), "topWeightedFishPreviews[" + i + "]");
+        }
         helper.assertTrue(decoded.zones().equals(original.zones()), "zones must round-trip");
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
