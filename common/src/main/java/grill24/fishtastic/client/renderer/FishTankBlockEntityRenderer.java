@@ -354,19 +354,7 @@ public class FishTankBlockEntityRenderer
     }
 
     private static SwarmConfig resolveSwarmConfig(ItemStack stack, Level level) {
-        if (stack.isEmpty()) return SwarmConfig.DEFAULT;
-
-        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
-        if (itemKey.isEmpty()) return SwarmConfig.DEFAULT;
-
-        ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
-
-        return level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
-                .getOptional(profileKey)
-                .map(FishProfile::swarm)
-                .orElse(SwarmConfig.DEFAULT);
+        return SwarmConfig.resolve(stack, level);
     }
 
     /** Resolves each placed structure's definition once here (render thread never does registry lookups). */

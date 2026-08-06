@@ -2,6 +2,11 @@ package grill24.fishtastic.data;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.FishtasticRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 /**
  * Configures multi-fish swarm display for a species. When present on a FishProfile, the tank
@@ -24,4 +29,25 @@ public record SwarmConfig(
             Codec.FLOAT.optionalFieldOf("y_range", 0.25f).forGetter(SwarmConfig::yRange),
             Codec.FLOAT.optionalFieldOf("rotation_jitter", 0f).forGetter(SwarmConfig::rotationJitter)
     ).apply(i, SwarmConfig::new));
+
+    /**
+     * Looks up the swarm config for the given item's fish profile, or {@link #DEFAULT} if it has
+     * none. Shared by the tank renderer (to decide how many fish to draw) and
+     * {@code FishTankBlockEntity} (to cap insertion at that same count) so the two never disagree.
+     */
+    public static SwarmConfig resolve(ItemStack stack, Level level) {
+        if (stack.isEmpty()) return DEFAULT;
+
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) return DEFAULT;
+
+        ResourceKey<FishProfile> profileKey = ResourceKey.create(
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+
+        return level.registryAccess()
+                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(profileKey)
+                .map(FishProfile::swarm)
+                .orElse(DEFAULT);
+    }
 }

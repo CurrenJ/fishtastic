@@ -55,6 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Server-side manager for fishing minigame sessions (TRUST-BASED).
@@ -141,7 +142,9 @@ public class FishingMinigameManager {
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
-        List<ItemStack> topWeightedFishPreview = (charmEffect != null && charmEffect.showTopWeightedFish())
+        boolean revealTopWeightedFish = (charmEffect != null && charmEffect.showTopWeightedFish())
+                || hasCharmEffectInInventory(player, CharmEffect::showTopWeightedFish);
+        List<ItemStack> topWeightedFishPreview = revealTopWeightedFish
                 ? computeTopWeightedFish(player, baitEffect, charmEffect)
                 : List.of();
 
@@ -245,7 +248,7 @@ public class FishingMinigameManager {
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
         boolean autoPileFish = (deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish())
-                || hasAutoPileFishInInventory(player);
+                || hasCharmEffectInInventory(player, CharmEffect::autoPileFish);
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
         for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
             if (index >= 0 && index < session.targets.size()) {
@@ -635,20 +638,21 @@ public class FishingMinigameManager {
     }
 
     /**
-     * The Little Fish Box charm's auto-pile effect is passive: unlike every other charm, it works
-     * from anywhere in the player's inventory, not just the rod's charm slot — so it can be carried
-     * alongside another charm that's actually equipped.
+     * The Little Fish Box's auto-pile effect and the Angler's Almanac's top-weighted-fish reveal
+     * are passive: unlike every other charm effect, they work from anywhere in the player's
+     * inventory, not just the rod's charm slot — so either can be carried alongside another charm
+     * that's actually equipped.
      */
-    private static boolean hasAutoPileFishInInventory(ServerPlayer player) {
-        return findAutoPileFishCharmSlot(player) >= 0;
+    private static boolean hasCharmEffectInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
+        return findCharmSlotInInventory(player, predicate) >= 0;
     }
 
-    /** @return the first inventory slot holding a charm with {@code autoPileFish} set, or -1. */
-    private static int findAutoPileFishCharmSlot(ServerPlayer player) {
+    /** @return the first inventory slot holding a charm matching {@code predicate}, or -1. */
+    private static int findCharmSlotInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
         Inventory inventory = player.getInventory();
         for (int i = 0; i < inventory.getContainerSize(); i++) {
             CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
-            if (effect != null && effect.autoPileFish()) {
+            if (effect != null && predicate.test(effect)) {
                 return i;
             }
         }
@@ -738,12 +742,18 @@ public class FishingMinigameManager {
             }
         }
 
-        // Little Fish Box working from the inventory (see hasAutoPileFishInInventory) still
-        // costs durability, same as every other charm effect — it's a real ItemStack in a real
-        // slot here, so vanilla hurtAndBreak handles the damage/break sound/shrink-on-break itself.
-        int passiveCharmSlot = findAutoPileFishCharmSlot(player);
-        if (passiveCharmSlot >= 0) {
-            player.getInventory().getItem(passiveCharmSlot).hurtAndBreak(1, (ServerLevel) player.level(), player, item -> {});
+        // Little Fish Box and Angler's Almanac working from the inventory (see
+        // hasCharmEffectInInventory) still cost durability, same as every other charm effect —
+        // they're real ItemStacks in real slots here, so vanilla hurtAndBreak handles the
+        // damage/break sound/shrink-on-break itself.
+        damagePassiveCharmInInventory(player, CharmEffect::autoPileFish);
+        damagePassiveCharmInInventory(player, CharmEffect::showTopWeightedFish);
+    }
+
+    private static void damagePassiveCharmInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
+        int slot = findCharmSlotInInventory(player, predicate);
+        if (slot >= 0) {
+            player.getInventory().getItem(slot).hurtAndBreak(1, (ServerLevel) player.level(), player, item -> {});
         }
     }
 

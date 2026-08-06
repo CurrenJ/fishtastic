@@ -29,7 +29,7 @@
   "tooltip.fishtastic.charm_effect.group_affinity": "%s: x%s",
   "tooltip.fishtastic.charm_effect.show_top_weighted_fish": "Reveals your most likely catches",
   "tooltip.fishtastic.charm_effect.auto_pile_fish": "Automatically piles caught fish",
-  "tooltip.fishtastic.charm_effect.auto_pile_fish_passive": "Active in inventory",
+  "tooltip.fishtastic.charm_effect.passive_inventory": "Active in inventory",
 
   "tooltip.fishtastic.bait_effect.luck": "Luck: +%s",
   "tooltip.fishtastic.bait_effect.treasure_chance": "Treasure Chance: %s%%",

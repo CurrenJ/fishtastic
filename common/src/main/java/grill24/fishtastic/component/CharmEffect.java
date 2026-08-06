@@ -95,11 +95,13 @@ public record CharmEffect(
         if (showTopWeightedFish) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.show_top_weighted_fish")
                     .withStyle(ChatFormatting.GREEN));
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.passive_inventory")
+                    .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }
         if (autoPileFish) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.auto_pile_fish")
                     .withStyle(ChatFormatting.YELLOW));
-            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.auto_pile_fish_passive")
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.passive_inventory")
                     .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }
         return lines;

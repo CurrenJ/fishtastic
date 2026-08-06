@@ -7,6 +7,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
@@ -509,6 +510,16 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         return true;
     }
 
+    private int countOccupiedSlots() {
+        int count = 0;
+        for (ItemStack stack : items) {
+            if (!stack.isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     @Override
     public ItemStack getItem(int slot) {
         if (slot >= 0 && slot < items.size()) {
@@ -610,6 +621,19 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                         return true;
                     }
                 }
+            }
+        }
+
+        // Reject filling a new slot once the tank already holds as many fish as its swarm config
+        // will actually render — items beyond that would be stored but permanently invisible.
+        // An empty tank has no established species yet, so the incoming item sets its own cap;
+        // otherwise the cap follows whatever species already occupies the first (lowest) slot,
+        // matching FishTankBlockEntityRenderer's resolveSwarmConfig.
+        if (level != null) {
+            ItemStack capReference = isEmpty() ? stack : getFirstItem();
+            SwarmConfig swarm = SwarmConfig.resolve(capReference, level);
+            if (countOccupiedSlots() >= swarm.count()) {
+                return false;
             }
         }
 

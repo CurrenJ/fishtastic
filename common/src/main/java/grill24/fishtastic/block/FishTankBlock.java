@@ -155,6 +155,15 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
+        // A held Fish Tank must never become decorative content in another tank — always fall
+        // through to PASS so vanilla's normal BlockItem placement (a new adjacent tank) runs,
+        // exactly like it already does today via the shift-click path (which bypasses this whole
+        // method — see tryShiftExtractFromTargetedTank's javadoc). This makes that placement
+        // behavior the default for a held tank, not just a shift-click side effect.
+        if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof FishTankBlock) {
+            return InteractionResult.PASS;
+        }
+
         // Cosmetic placement: custom FishTankCosmeticItem or any vanilla item in the #tank_cosmetics tag.
         Block cosmeticBlock = getCosmeticBlock(itemStack);
         if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND && cosmeticBlock != null) {
