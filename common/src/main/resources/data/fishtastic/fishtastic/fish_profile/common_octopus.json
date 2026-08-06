@@ -1,0 +1,15 @@
+{
+  "base_weight": 4,
+  "size": { "mean": 45.0, "std_dev": 12.0 },
+  "zones": ["ocean"],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.5 },
+    { "time": "dusk", "multiplier": 1.3 }
+  ],
+  "temperament": "fishtastic:wily",
+  "animation": {
+    "mode": "upright_sit",
+    "floor_offset": 0.08,
+    "diagonal_texture": false
+  }
+}

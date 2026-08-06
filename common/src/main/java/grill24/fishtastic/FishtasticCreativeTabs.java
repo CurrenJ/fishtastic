@@ -30,6 +30,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.BLUEGILL.value());
                     output.accept(FishtasticItems.BRIDLE_SHINER.value());
                     output.accept(FishtasticItems.BULL_TROUT.value());
+                    output.accept(FishtasticItems.COMMON_OCTOPUS.value());
                     output.accept(FishtasticItems.DEVILS_HOLE_PUPFISH.value());
                     output.accept(FishtasticItems.DISCUS.value());
                     output.accept(FishtasticItems.EUROPEAN_GRAYLING.value());

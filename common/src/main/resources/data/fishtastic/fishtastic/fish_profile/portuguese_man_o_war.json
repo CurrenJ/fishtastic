@@ -5,7 +5,7 @@
     "ocean"
   ],
   "weather_weights": [
-    { "weather": "rain", "multiplier": 2.0 },
+    { "weather": "rain", "multiplier": 1.5 },
     { "weather": "thunder", "multiplier": 2.0 }
   ],
   "moon_weights": [

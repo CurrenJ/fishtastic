@@ -1,0 +1,10 @@
+{
+  "lore": "A master of disguise, the common octopus can shift the color and texture of its skin in an instant to vanish against rock and coral. Fiercely intelligent and solitary, it dens alone by day and hunts crabs and shellfish by night, jetting away in a cloud of ink at the first sign of danger.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}
