@@ -9,7 +9,7 @@
   "temperament": "fishtastic:wily",
   "animation": {
     "mode": "upright_sit",
-    "floor_offset": 0.08,
+    "floor_offset": 0.12,
     "diagonal_texture": false
   }
 }
