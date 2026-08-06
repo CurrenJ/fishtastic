@@ -85,6 +85,7 @@ public class FishtasticItems {
     public static Holder<Item> FOUR_LEAF_CHARM;
     public static Holder<Item> LUNA_CHARM;
     public static Holder<Item> BANANA_CHARM;
+    public static Holder<Item> LITTLE_FISH_BOX;
     public static Holder<Item> ANGLERS_ALMANAC;
 
     // ----- Quest Items -----
@@ -341,6 +342,9 @@ public class FishtasticItems {
         ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac",
                 loc -> new FishtasticFishItem(props(loc).durability(5)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.ANGLERS_ALMANAC)));
+        LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box",
+                loc -> new FishtasticFishItem(props(loc).durability(200)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LITTLE_FISH_BOX)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));

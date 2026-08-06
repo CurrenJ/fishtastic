@@ -16,6 +16,7 @@
   "item.fishtastic.luna_charm": "Luna Charm",
   "item.fishtastic.banana_charm": "Banana Charm",
   "item.fishtastic.anglers_almanac": "Angler's Almanac",
+  "item.fishtastic.little_fish_box": "Little Fish Box",
 
   "tooltip.fishtastic.hook_effect.quality_bias": "Quality Bias: %s",
   "tooltip.fishtastic.hook_effect.trash_chance_delta": "Trash Chance: %s%%",
@@ -27,6 +28,7 @@
   "tooltip.fishtastic.charm_effect.night_multiplier_bonus": "Night Fish: x%s",
   "tooltip.fishtastic.charm_effect.group_affinity": "%s: x%s",
   "tooltip.fishtastic.charm_effect.show_top_weighted_fish": "Reveals your most likely catch",
+  "tooltip.fishtastic.charm_effect.auto_pile_fish": "Automatically piles caught fish",
 
   "tooltip.fishtastic.bait_effect.luck": "Luck: +%s",
   "tooltip.fishtastic.bait_effect.treasure_chance": "Treasure Chance: %s%%",

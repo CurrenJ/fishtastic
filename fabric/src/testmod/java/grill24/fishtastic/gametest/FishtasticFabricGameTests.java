@@ -753,6 +753,21 @@ public class FishtasticFabricGameTests {
         ShopEntryGameTests.shopEntryCodecDefaultsWeightToOneWhenAbsent(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopCharmReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopCharmReplacementRateMatchesConfiguredChance(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopNeverReplacesWithoutACharmPool(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopNeverReplacesWithoutACharmPool(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(helper);
+    }
+
     // -------------------------------------------------------------------------
     // Creative tab tests
     // -------------------------------------------------------------------------

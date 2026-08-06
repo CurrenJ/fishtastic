@@ -4,5 +4,6 @@
   "cost": 20,
   "weight": 0.15,
   "reward": [{ "id": "fishtastic:banana_charm", "count": 1 }],
-  "daily_max_purchases": 1
+  "daily_max_purchases": 1,
+  "is_charm": true
 }

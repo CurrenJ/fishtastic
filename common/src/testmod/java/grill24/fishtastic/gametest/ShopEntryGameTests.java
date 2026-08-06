@@ -31,7 +31,11 @@ public final class ShopEntryGameTests {
     }
 
     private static ShopEntry entry(float weight) {
-        return new ShopEntry("", "", 10, weight, List.of(), 0);
+        return new ShopEntry("", "", 10, weight, List.of(), 0, false);
+    }
+
+    private static ShopEntry charmEntry(float weight) {
+        return new ShopEntry("", "", 10, weight, List.of(), 0, true);
     }
 
     private static Registry<ShopEntry> buildRegistry(int count) {
@@ -48,6 +52,24 @@ public final class ShopEntryGameTests {
             registry.register(key, entry(weights.get(i)), RegistrationInfo.BUILT_IN);
         }
         return registry;
+    }
+
+    /** Builds a fixture registry with {@code mainCount} non-charm entries plus {@code charmCount} charm entries, all weight 1.0. */
+    private static Registry<ShopEntry> buildRegistryWithCharms(int mainCount, int charmCount) {
+        MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
+        for (int i = 0; i < mainCount; i++) {
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "main_" + i));
+            registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        for (int i = 0; i < charmCount; i++) {
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "charm_" + i));
+            registry.register(key, charmEntry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        return registry;
+    }
+
+    private static boolean containsAnyCharm(Set<ResourceKey<ShopEntry>> active) {
+        return active.stream().anyMatch(k -> k.identifier().getPath().startsWith("charm_"));
     }
 
     public static void getActiveDailyShopIsStablePerDay(GameTestHelper helper) {
@@ -116,6 +138,52 @@ public final class ShopEntryGameTests {
 
         helper.assertTrue(active.size() == Math.min(ShopEntry.DAILY_SHOP_COUNT, 5),
             "Non-positive weights must not throw and selection size must still be capped correctly, got " + active.size());
+        helper.succeed();
+    }
+
+    /**
+     * With a charm pool present, the fraction of days containing at least one charm should
+     * track {@link ShopEntry#CHARM_REPLACE_CHANCE} — this is what a broken roll-order or an
+     * accidentally-inverted condition in the replacement branch would silently defeat.
+     */
+    public static void getActiveDailyShopCharmReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistryWithCharms(10, 3);
+
+        int trials = 3000;
+        int withCharm = 0;
+        for (long day = 0; day < trials; day++) {
+            Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, day);
+            helper.assertTrue(active.size() == ShopEntry.DAILY_SHOP_COUNT,
+                "Charm replacement must not change the slot count, got " + active.size());
+            if (containsAnyCharm(active)) withCharm++;
+        }
+
+        double rate = withCharm / (double) trials;
+        double expected = ShopEntry.CHARM_REPLACE_CHANCE;
+        helper.assertTrue(Math.abs(rate - expected) < 0.05,
+            "Charm appearance rate should be close to " + expected + ", got " + rate);
+        helper.succeed();
+    }
+
+    /** No charm pool at all — the replacement branch must never fire and never crash. */
+    public static void getActiveDailyShopNeverReplacesWithoutACharmPool(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistry(10);
+
+        for (long day = 0; day < 200; day++) {
+            Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, day);
+            helper.assertTrue(active.size() == ShopEntry.DAILY_SHOP_COUNT,
+                "Without a charm pool, the main draw size must be unaffected, got " + active.size());
+        }
+        helper.succeed();
+    }
+
+    /** An empty main pool must not crash the replacement roll's random.nextInt(slots.size()). */
+    public static void getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistryWithCharms(0, 3);
+
+        Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, 5L);
+
+        helper.assertTrue(active.isEmpty(), "With no main-pool entries, no slots can be drawn or replaced, got " + active.size());
         helper.succeed();
     }
 

@@ -21,27 +21,31 @@ public record CharmEffect(
         boolean forceNightFishing,
         float nightMultiplierBonus,
         List<BaitEffect.FishGroupAffinity> fishGroupAffinities,
-        boolean showTopWeightedFish
+        boolean showTopWeightedFish,
+        boolean autoPileFish
 ) {
 
     public static final CharmEffect AMETHYST_CHARM = new CharmEffect(
-            1.5f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false);
+            1.5f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false, false);
 
     public static final CharmEffect CRYSTAL_BALL_CHARM = new CharmEffect(
-            1.0f, true, 0.0f, 0.0f, false, 1.0f, List.of(), false);
+            1.0f, true, 0.0f, 0.0f, false, 1.0f, List.of(), false, false);
 
     public static final CharmEffect FOUR_LEAF_CHARM = new CharmEffect(
-            1.0f, false, -0.03f, 0.03f, false, 1.0f, List.of(), false);
+            1.0f, false, -0.03f, 0.03f, false, 1.0f, List.of(), false, false);
 
     public static final CharmEffect LUNA_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 0.0f, true, 1.25f, List.of(), false);
+            1.0f, false, 0.0f, 0.0f, true, 1.25f, List.of(), false, false);
 
     public static final CharmEffect BANANA_CHARM = new CharmEffect(
             1.0f, false, 0.0f, 0.0f, false, 1.0f,
-            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f, 1.0f)), false);
+            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f, 1.0f)), false, false);
 
     public static final CharmEffect ANGLERS_ALMANAC = new CharmEffect(
-            1.0f, false, 0.0f, 0.0f, false, 1.0f, List.of(), true);
+            1.0f, false, 0.0f, 0.0f, false, 1.0f, List.of(), true, false);
+
+    public static final CharmEffect LITTLE_FISH_BOX = new CharmEffect(
+            1.0f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false, true);
 
     public static final Codec<CharmEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("input_force_multiplier", 1.0f).forGetter(CharmEffect::inputForceMultiplier),
@@ -51,7 +55,8 @@ public record CharmEffect(
             Codec.BOOL.optionalFieldOf("force_night_fishing", false).forGetter(CharmEffect::forceNightFishing),
             Codec.FLOAT.optionalFieldOf("night_multiplier_bonus", 1.0f).forGetter(CharmEffect::nightMultiplierBonus),
             BaitEffect.FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(CharmEffect::fishGroupAffinities),
-            Codec.BOOL.optionalFieldOf("show_top_weighted_fish", false).forGetter(CharmEffect::showTopWeightedFish)
+            Codec.BOOL.optionalFieldOf("show_top_weighted_fish", false).forGetter(CharmEffect::showTopWeightedFish),
+            Codec.BOOL.optionalFieldOf("auto_pile_fish", false).forGetter(CharmEffect::autoPileFish)
     ).apply(i, CharmEffect::new));
 
     public static final StreamCodec<ByteBuf, CharmEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
@@ -90,6 +95,10 @@ public record CharmEffect(
         if (showTopWeightedFish) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.show_top_weighted_fish")
                     .withStyle(ChatFormatting.GREEN));
+        }
+        if (autoPileFish) {
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.auto_pile_fish")
+                    .withStyle(ChatFormatting.YELLOW));
         }
         return lines;
     }

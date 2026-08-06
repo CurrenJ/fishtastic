@@ -1,0 +1,9 @@
+{
+  "display_name": "Little Fish Box",
+  "description": "Automatically sorts caught fish into Piles of Fish in your inventory, filling existing piles first and creating new ones as needed.",
+  "cost": 25,
+  "weight": 0.15,
+  "reward": [{ "id": "fishtastic:little_fish_box", "count": 1 }],
+  "daily_max_purchases": 1,
+  "is_charm": true
+}

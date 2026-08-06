@@ -2,7 +2,8 @@
   "display_name": "Angler's Almanac",
   "description": "Highlights the highest-weighted fish profile for the current conditions on the minigame HUD.",
   "cost": 15,
-  "weight": 0.3,
+  "weight": 0.15,
   "reward": [{ "id": "fishtastic:anglers_almanac", "count": 1 }],
-  "daily_max_purchases": 1
+  "daily_max_purchases": 1,
+  "is_charm": true
 }

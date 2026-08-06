@@ -16,6 +16,7 @@ import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
+import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingTarget;
@@ -36,10 +37,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -238,6 +241,10 @@ public class FishingMinigameManager {
         List<ItemStack> firstCatchItems = new ArrayList<>();
         int trashCaught = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
+
+        ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
+        CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        boolean autoPileFish = deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish();
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
         for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
             if (index >= 0 && index < session.targets.size()) {
@@ -253,9 +260,13 @@ public class FishingMinigameManager {
                         // (usually 0) — reading these after the call under-counts trash almost every time.
                         boolean isTrash = reward.is(FishtasticItemTags.TRASH);
                         int caughtCount = reward.getCount();
-                        player.getInventory().add(reward);
+                        if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
+                            addToFishPiles(player, reward);
+                        } else {
+                            player.getInventory().add(reward);
+                        }
                         if (!reward.isEmpty()) {
-                            // inventory.add() leaves any leftover count in reward when full/partially full
+                            // inventory.add() / addToFishPiles() leaves any leftover count in reward when full/partially full
                             player.drop(reward, false);
                         }
                         rewards.add(reward);
@@ -611,6 +622,57 @@ public class FishingMinigameManager {
             return player.getOffhandItem();
         }
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * Delivery effect for the Little Fish Box charm: fills existing Pile of Fish stacks in the
+     * player's inventory first, then creates new piles for any remainder. Mirrors the manual
+     * click-driven insertion in {@link PileOfFishItem} but goes straight through
+     * {@link BundleContents.Mutable} since there's no slot/click to route through here.
+     * <p>
+     * When a new pile has to be created, any other loose fish/sized items already sitting in
+     * the inventory are swept into it too. This isn't just a convenience — {@link PileOfFishItem}
+     * auto-unpacks any pile that drops to exactly 1 item back into a loose stack on the next
+     * inventory tick (its single-item safety net). Since most catches are a single fish, a
+     * freshly-created pile with just that one fish would otherwise get unpacked again before
+     * the next cast, so single catches would never actually accumulate. Combining with a loose
+     * item up front (or, failing that, letting the *next* catch's sweep find this one after it
+     * unpacks) keeps the pile at 2+ items so it survives.
+     */
+    private static void addToFishPiles(ServerPlayer player, ItemStack reward) {
+        Inventory inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize() && !reward.isEmpty(); i++) {
+            ItemStack slotStack = inventory.getItem(i);
+            if (slotStack.is(FishtasticItems.PILE_OF_FISH.value())) {
+                BundleContents.Mutable contents = new BundleContents.Mutable(
+                        slotStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+                contents.tryInsert(reward);
+                slotStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            }
+        }
+        while (!reward.isEmpty()) {
+            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
+            int beforeCount = reward.getCount();
+            contents.tryInsert(reward);
+            if (reward.getCount() == beforeCount) {
+                break; // a fresh, empty pile couldn't accept anything — avoid spinning forever
+            }
+
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack slotStack = inventory.getItem(i);
+                if (!slotStack.isEmpty() && !slotStack.is(FishtasticItems.PILE_OF_FISH.value())
+                        && PileOfFishItem.canInsertInPile(slotStack)) {
+                    contents.tryInsert(slotStack);
+                }
+            }
+
+            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            inventory.add(newPile);
+            if (!newPile.isEmpty()) {
+                player.drop(newPile, false);
+            }
+        }
     }
 
     /** @return a single copy of the bait item if this consumption emptied the stack, else EMPTY. */

@@ -368,6 +368,12 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopHandlesNonPositiveWeightWithoutError);
         register(event, env, "shop_entry_codec_defaults_weight_to_one_when_absent", 200,
             ShopEntryGameTests::shopEntryCodecDefaultsWeightToOneWhenAbsent);
+        register(event, env, "get_active_daily_shop_charm_replacement_rate_matches_configured_chance", 200,
+            ShopEntryGameTests::getActiveDailyShopCharmReplacementRateMatchesConfiguredChance);
+        register(event, env, "get_active_daily_shop_never_replaces_without_a_charm_pool", 200,
+            ShopEntryGameTests::getActiveDailyShopNeverReplacesWithoutACharmPool);
+        register(event, env, "get_active_daily_shop_handles_empty_main_pool_with_charms_only", 200,
+            ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly);
 
         // ----- Creative tab tests -----
         register(event, env, "decorations_tab_contains_exactly_cosmetic_structures_and_decorations", 200,
