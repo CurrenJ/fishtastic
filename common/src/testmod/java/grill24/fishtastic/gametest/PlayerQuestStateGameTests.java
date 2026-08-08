@@ -3,6 +3,7 @@ package grill24.fishtastic.gametest;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
@@ -29,7 +30,7 @@ public final class PlayerQuestStateGameTests {
         QuestObjective objective = new QuestObjective(
             Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(targetCount),
             Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1, false);
-        return new Quest(QuestCategory.DAILY, objective, new QuestReward(50, List.of()),
+        return new Quest(QuestCategory.DAILY, QuestDifficulty.BRONZE, objective, new QuestReward(50, List.of()),
             Optional.empty(), false, "Test Quest", "A test quest");
     }
 

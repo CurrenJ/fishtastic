@@ -4,6 +4,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.util.MathUtil;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
 
 import java.awt.geom.Rectangle2D;
+import java.util.Map;
 
 /**
  * Manages the lifecycle and rendering of a single quest-progress notification banner
@@ -47,13 +49,25 @@ public class QuestProgressNotification {
     private record BackgroundVariant(Identifier texture, int fileSize, int contentWidth) {}
 
     private static final int PANEL_BG_TEXTURE_CONTENT_HEIGHT = 22;
-    private static final BackgroundVariant[] PANEL_BG_VARIANTS = {
-            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_tiny.png"), 64, 48),
-            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_small.png"), 64, 64),
-            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_smedium.png"), 128, 80),
-            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_medium.png"), 128, 96),
-            new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_large.png"), 128, 128),
-    };
+
+    // One variant set per QuestDifficulty tier, same 5 sizes each, only the texture
+    // differs (filename suffixed with the tier, e.g. "_silver"/"_gold"). BRONZE reuses the
+    // original unsuffixed files. Keyed by ordinal via EnumMap-style array indexing.
+    private static BackgroundVariant[] variantsForTier(String suffix) {
+        return new BackgroundVariant[] {
+                new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_tiny" + suffix + ".png"), 64, 48),
+                new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_small" + suffix + ".png"), 64, 64),
+                new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_smedium" + suffix + ".png"), 128, 80),
+                new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_medium" + suffix + ".png"), 128, 96),
+                new BackgroundVariant(Fishtastic.id("textures/gui/notification_banner_large" + suffix + ".png"), 128, 128),
+        };
+    }
+
+    private static final Map<QuestDifficulty, BackgroundVariant[]> PANEL_BG_VARIANTS_BY_DIFFICULTY = Map.of(
+            QuestDifficulty.BRONZE, variantsForTier(""),
+            QuestDifficulty.SILVER, variantsForTier("_silver"),
+            QuestDifficulty.GOLD, variantsForTier("_gold")
+    );
 
     // Animation durations (ticks)
     private static final int SLIDE_IN_DURATION = 15;
@@ -122,6 +136,9 @@ public class QuestProgressNotification {
         }
         this.showProgress = showProgress;
         int tgt = event.targetCount();
+        // Synthetic banners (cleanup goal, out-of-bait, first-catch) have no backing Quest
+        // to read a difficulty off, so they always render at the base BRONZE tier.
+        QuestDifficulty difficulty = QuestDifficulty.BRONZE;
         try {
             if (!isSyntheticBanner && mc.level != null) {
                 Registry<Quest> questRegistry = mc.level.registryAccess()
@@ -131,6 +148,7 @@ public class QuestProgressNotification {
                 if (quest != null) {
                     name = quest.displayName().isEmpty() ? event.questId().getPath() : quest.displayName();
                     tgt = quest.objective().effectiveTargetCount(mc.level.registryAccess());
+                    difficulty = quest.difficulty();
                 }
             }
         } catch (Exception ignored) {
@@ -163,8 +181,9 @@ public class QuestProgressNotification {
                 : PADDING + fontHeight + PADDING;
         float bgScale = (float) panelHeight / PANEL_BG_TEXTURE_CONTENT_HEIGHT;
 
-        BackgroundVariant chosen = PANEL_BG_VARIANTS[PANEL_BG_VARIANTS.length - 1];
-        for (BackgroundVariant variant : PANEL_BG_VARIANTS) {
+        BackgroundVariant[] tierVariants = PANEL_BG_VARIANTS_BY_DIFFICULTY.get(difficulty);
+        BackgroundVariant chosen = tierVariants[tierVariants.length - 1];
+        for (BackgroundVariant variant : tierVariants) {
             if (Math.round(variant.contentWidth() * bgScale) >= desiredWidth) {
                 chosen = variant;
                 break;

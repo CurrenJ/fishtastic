@@ -3,6 +3,7 @@ package grill24.fishtastic.gametest;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -33,7 +34,7 @@ public final class QuestLogVisibilityGameTests {
                 ? Optional.empty()
                 : Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
                         Identifier.parse(prerequisite)));
-        return new Quest(QuestCategory.MASTERY, objective, new QuestReward(0, List.of()),
+        return new Quest(QuestCategory.MASTERY, QuestDifficulty.BRONZE, objective, new QuestReward(0, List.of()),
                 prereq, hidden, "Test Quest", "");
     }
 

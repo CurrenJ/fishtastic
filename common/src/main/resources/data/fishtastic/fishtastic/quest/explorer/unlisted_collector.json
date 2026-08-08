@@ -1,5 +1,6 @@
 {
   "category": "explorer",
+  "difficulty": "silver",
   "objective": {
     "target_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true

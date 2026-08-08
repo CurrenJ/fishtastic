@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public record Quest(
         QuestCategory category,
+        QuestDifficulty difficulty,
         QuestObjective objective,
         QuestReward reward,
         Optional<ResourceKey<Quest>> prerequisiteQuestId,
@@ -18,6 +19,7 @@ public record Quest(
 ) {
     public static final Codec<Quest> CODEC = RecordCodecBuilder.create(i -> i.group(
             QuestCategory.CODEC.fieldOf("category").forGetter(Quest::category),
+            QuestDifficulty.CODEC.optionalFieldOf("difficulty", QuestDifficulty.BRONZE).forGetter(Quest::difficulty),
             QuestObjective.CODEC.fieldOf("objective").forGetter(Quest::objective),
             QuestReward.CODEC.fieldOf("reward").forGetter(Quest::reward),
             ResourceKey.codec(FishtasticRegistries.QUEST_REGISTRY_KEY).optionalFieldOf("prerequisite").forGetter(Quest::prerequisiteQuestId),

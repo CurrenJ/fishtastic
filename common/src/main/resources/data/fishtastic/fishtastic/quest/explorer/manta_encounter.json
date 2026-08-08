@@ -1,5 +1,6 @@
 {
   "category": "explorer",
+  "difficulty": "silver",
   "objective": {
     "target_species": "fishtastic:giant_manta_ray",
     "target_count": 3,

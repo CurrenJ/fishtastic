@@ -5,6 +5,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.server.QuestTracker;
@@ -303,11 +304,11 @@ public final class QuestTrackerGameTests {
     // -------------------------------------------------------------------------
 
     private static Quest dailyQuest() {
-        return new Quest(QuestCategory.DAILY, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
+        return new Quest(QuestCategory.DAILY, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
     }
 
     private static Quest tutorialQuest() {
-        return new Quest(QuestCategory.TUTORIAL, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
+        return new Quest(QuestCategory.TUTORIAL, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
     }
 
     private static Registry<Quest> buildRegistry(int dailyCount, int tutorialCount) {

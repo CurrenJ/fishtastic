@@ -1,5 +1,6 @@
 {
   "category": "explorer",
+  "difficulty": "gold",
   "objective": {
     "target_species_tag": "fishtastic:fish",
     "exclude_species_tag": "fishtastic:unlisted_fish",

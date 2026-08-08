@@ -1,5 +1,6 @@
 {
   "category": "challenge",
+  "difficulty": "silver",
   "objective": {
     "target_count": 3,
     "min_quality": "epic"

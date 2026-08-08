@@ -1,5 +1,6 @@
 {
   "category": "mastery",
+  "difficulty": "gold",
   "objective": {
     "target_species": "fishtastic:neon_tetra",
     "target_count": 60,

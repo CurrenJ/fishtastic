@@ -1,5 +1,6 @@
 {
   "category": "mastery",
+  "difficulty": "gold",
   "objective": {
     "target_species": "fishtastic:longnose_gar",
     "target_count": 25,

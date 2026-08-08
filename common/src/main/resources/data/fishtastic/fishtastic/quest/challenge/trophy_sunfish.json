@@ -1,5 +1,6 @@
 {
   "category": "challenge",
+  "difficulty": "silver",
   "objective": {
     "target_species": "fishtastic:ocean_sunfish",
     "target_count": 1,

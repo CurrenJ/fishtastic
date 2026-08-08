@@ -1,5 +1,6 @@
 {
   "category": "challenge",
+  "difficulty": "silver",
   "objective": {
     "target_species_tag": "fishtastic:frenzy_fish",
     "target_count": 10,

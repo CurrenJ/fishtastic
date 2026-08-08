@@ -1,5 +1,6 @@
 {
   "category": "challenge",
+  "difficulty": "gold",
   "objective": {
     "target_count": 5,
     "min_quality": "legendary"

@@ -1,5 +1,6 @@
 {
   "category": "explorer",
+  "difficulty": "silver",
   "objective": {
     "target_species": "fishtastic:moorish_idol",
     "target_count": 3,

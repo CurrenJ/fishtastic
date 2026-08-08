@@ -9,6 +9,7 @@ import grill24.fishtastic.client.effects.PendulumSwingEffect;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
@@ -92,6 +93,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             int targetCount,
             String baseDisplayName,
             QuestObjective objective,
+            QuestDifficulty difficulty,
             SpriteRectangle.SpriteRectangleImpl statusPip
     ) {}
 
@@ -155,7 +157,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Quest row background — reuses the shop item panel texture, 9-sliced so the border art
     // stays crisp while the middle stretches to fit each row's actual (varying) size.
     private static final Identifier QUEST_ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
-    // Claimed quests use a green-tinted variant of the same panel to signal completion.
+    // Silver/gold difficulty tiers reuse the same 20x24 canvas and slice metrics, just with a
+    // different border color, so no separate slice constants are needed for them.
+    private static final Identifier QUEST_ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
+    private static final Identifier QUEST_ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
+    // Claimed quests use a green-tinted variant of the same panel to signal completion,
+    // regardless of difficulty tier — there's no claimed+silver/gold art, and "claimed" is
+    // the more important signal to show once it applies.
     private static final Identifier QUEST_ROW_BG_TEXTURE_CLAIMED = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
     private static final int QUEST_ROW_BG_SOURCE_WIDTH = 20;
     private static final int QUEST_ROW_BG_SOURCE_HEIGHT = 24;
@@ -494,8 +502,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return list;
     }
 
-    private SpriteData questRowBackgroundSprite(boolean claimed) {
-        Identifier texture = claimed ? QUEST_ROW_BG_TEXTURE_CLAIMED : QUEST_ROW_BG_TEXTURE;
+    private SpriteData questRowBackgroundSprite(boolean claimed, QuestDifficulty difficulty) {
+        Identifier texture;
+        if (claimed) {
+            texture = QUEST_ROW_BG_TEXTURE_CLAIMED;
+        } else {
+            texture = switch (difficulty) {
+                case GOLD -> QUEST_ROW_BG_TEXTURE_GOLD;
+                case SILVER -> QUEST_ROW_BG_TEXTURE_SILVER;
+                case BRONZE -> QUEST_ROW_BG_TEXTURE;
+            };
+        }
         return new SpriteData(texture)
                 .uv(0, 0, QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
                 .textureSize(QUEST_ROW_BG_SOURCE_WIDTH, QUEST_ROW_BG_SOURCE_HEIGHT)
@@ -597,7 +614,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         String nameText = claimed ? translated("screen.fishtastic.quest_log.quest_done", baseDisplayName) : baseDisplayName;
 
         VBox row = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        row.backgroundSprite(questRowBackgroundSprite(claimed));
+        row.backgroundSprite(questRowBackgroundSprite(claimed, quest.difficulty()));
         if (claimed) {
             row.setTargetScale(CLAIMED_QUEST_ROW_SCALE, false);
         }
@@ -668,7 +685,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // hit target. claimBtn is excluded since it already drives its own, larger hover scale.
         attachLeafHoverScale(row, QUEST_ROW_LEAF_HOVER_SCALE, Set.of(claimBtn));
 
-        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, quest.objective(), statusPip));
+        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, quest.objective(), quest.difficulty(), statusPip));
         return row;
     }
 
@@ -1168,7 +1185,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.claimButton().setVisible(canClaim);
             refs.progressBar().progressImmediate(fraction);
             refs.countLabel().text(translated("screen.fishtastic.quest_log.progress_count", currentCount, refs.targetCount()));
-            refs.row().backgroundSprite(questRowBackgroundSprite(claimed));
+            refs.row().backgroundSprite(questRowBackgroundSprite(claimed, refs.difficulty()));
             refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
             updateStatusPip(refs, claimed);
         }
