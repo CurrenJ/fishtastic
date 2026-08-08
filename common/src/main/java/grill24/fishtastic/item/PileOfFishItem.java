@@ -12,10 +12,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
+import grill24.fishtastic.FishtasticItems;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BundleItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
@@ -72,6 +74,102 @@ public class PileOfFishItem extends BundleItem {
         }
         BundleContents result = leftover.toImmutable();
         return result.isEmpty() ? null : result;
+    }
+
+    // --- Quick-collect (double-click) ---
+
+    /**
+     * Returns the single fish/item species a stack represents for quick-collect matching purposes,
+     * or {@code null} if the stack isn't eligible (e.g. an empty pile, or a pile mixing species).
+     */
+    @Nullable
+    private static Item getQuickCollectSpecies(ItemStack stack) {
+        if (stack.getItem() instanceof PileOfFishItem) {
+            BundleContents contents = stack.get(DataComponents.BUNDLE_CONTENTS);
+            if (contents == null || contents.items().isEmpty()) {
+                return null;
+            }
+            Item species = contents.items().getFirst().item().value();
+            for (ItemStackTemplate template : contents.items()) {
+                if (template.item().value() != species) {
+                    return null;
+                }
+            }
+            return species;
+        }
+        return canInsertInPile(stack) ? stack.getItem() : null;
+    }
+
+    /**
+     * Vanilla double-click ("collect all") matches by {@code isSameItemSameComponents}, which never
+     * matches two fish of the same species (each has its own random {@code ItemSize}/{@code FishQuality}),
+     * and doesn't know how to fold matches into a bundle rather than just growing a count. This
+     * reimplements collection for that case: double-clicking a sized fish/item stack or a single-species
+     * pile gathers every matching fish/item (and single-species pile) in the menu into a pile on the cursor.
+     * Mirrors the slot-scan structure of {@code AbstractContainerMenu#doClick}'s {@code PICKUP_ALL} branch.
+     */
+    public static boolean tryQuickCollectIntoPile(AbstractContainerMenu menu, Player player, int buttonNum) {
+        ItemStack carried = menu.getCarried();
+        Item species = getQuickCollectSpecies(carried);
+        if (species == null) {
+            return false;
+        }
+
+        boolean wasPile = carried.getItem() instanceof PileOfFishItem;
+        BundleContents.Mutable acc = wasPile
+                ? new BundleContents.Mutable(carried.get(DataComponents.BUNDLE_CONTENTS))
+                : new BundleContents.Mutable(BundleContents.EMPTY);
+        if (!wasPile) {
+            acc.tryInsert(carried.copy());
+        }
+
+        boolean collectedAny = false;
+        int start = buttonNum == 0 ? 0 : menu.slots.size() - 1;
+        int step = buttonNum == 0 ? 1 : -1;
+        for (int i = start; i >= 0 && i < menu.slots.size(); i += step) {
+            Slot slot = menu.slots.get(i);
+            if (!slot.hasItem() || !slot.mayPickup(player)) {
+                continue;
+            }
+            ItemStack slotStack = slot.getItem();
+            if (getQuickCollectSpecies(slotStack) != species) {
+                continue;
+            }
+
+            if (slotStack.getItem() instanceof PileOfFishItem) {
+                BundleContents slotContents = slotStack.get(DataComponents.BUNDLE_CONTENTS);
+                if (slotContents == null) {
+                    continue;
+                }
+                BundleContents leftover = mergeContents(slotContents, acc);
+                int leftoverSize = leftover == null ? 0 : leftover.items().size();
+                if (leftoverSize == slotContents.items().size()) {
+                    continue; // nothing fit
+                }
+
+                if (leftover == null) {
+                    slot.set(ItemStack.EMPTY);
+                } else if (leftoverSize == 1) {
+                    slot.set(leftover.items().getFirst().create());
+                } else {
+                    slotStack.set(DataComponents.BUNDLE_CONTENTS, leftover);
+                }
+                collectedAny = true;
+            } else if (acc.tryTransfer(slot, player) > 0) {
+                collectedAny = true;
+            }
+        }
+
+        if (!collectedAny) {
+            return false;
+        }
+
+        ItemStack pile = wasPile ? carried : new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+        pile.set(DataComponents.BUNDLE_CONTENTS, acc.toImmutable());
+        menu.setCarried(pile);
+        playInsertSound(player);
+        menu.broadcastChanges();
+        return true;
     }
 
     // --- Overrides to gate insertion through canInsertInPile ---

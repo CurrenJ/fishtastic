@@ -26,6 +26,7 @@
   },
   "mixins": [
     "FishingHookMixin",
+    "QuickCollectPileMixin",
     "ResultSlotMixin",
     "SizedItemClickMixin"
   ]
