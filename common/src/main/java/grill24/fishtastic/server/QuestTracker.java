@@ -95,7 +95,7 @@ public class QuestTracker {
                 boolean crossedInterval = newBucket > oldBucket;
                 boolean justCompleted = newCount >= targetCount
                         && oldCount < targetCount;
-                if (crossedInterval || justCompleted) {
+                if ((crossedInterval || justCompleted) && isVisibleForNotification(quest, state, justCompleted)) {
                     triggeringItems.put(questKey.identifier(), caughtStack.copy());
                 }
             }
@@ -195,7 +195,7 @@ public class QuestTracker {
             boolean crossedInterval = newBucket > oldBucket;
             boolean justCompleted = newCount >= targetCount
                     && oldCount < targetCount;
-            if (crossedInterval || justCompleted) {
+            if ((crossedInterval || justCompleted) && isVisibleForNotification(quest, state, justCompleted)) {
                 triggeringItems.put(questKey.identifier(), matchingStacks.get(matchingStacks.size() - 1).copy());
             }
         }
@@ -240,6 +240,21 @@ public class QuestTracker {
                             return excludeTag.isEmpty() || !holder.is(excludeTag.get());
                         })
                         .orElse(false));
+    }
+
+    /**
+     * Whether a quest that just crossed a notification interval or completed should actually
+     * surface a banner. A quest still hidden from the log (see {@link Quest#isHiddenFromLog}) —
+     * e.g. an unclaimed mastery tier progressing in the background via lifetime counting — stays
+     * silent until it becomes visible, so a single catch can't fire a banner for every tier of a
+     * chain at once. Completion always overrides hidden, so a tier that finishes while still
+     * locked still announces itself immediately.
+     */
+    private static boolean isVisibleForNotification(Quest quest, PlayerQuestState state, boolean justCompleted) {
+        boolean prerequisiteClaimed = quest.prerequisiteQuestId()
+                .map(prereq -> state.getProgress(prereq).claimed())
+                .orElse(false);
+        return !quest.isHiddenFromLog(justCompleted, prerequisiteClaimed);
     }
 
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,

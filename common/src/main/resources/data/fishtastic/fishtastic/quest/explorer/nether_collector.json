@@ -12,7 +12,7 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 1,
+        "count": 4,
         "components": {
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:polished_blackstone",

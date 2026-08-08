@@ -4,7 +4,20 @@
     "target_count": 1,
     "notification_interval": 1
   },
-  "reward": { "quest_tokens": 15, "items": [{ "id": "fishtastic:worms", "count": 4 }] },
+  "reward": { "quest_tokens": 15, "items": [
+    { "id": "fishtastic:worms", "count": 4 },
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 4,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:oak_planks",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:blue_clear_stained_glass"
+        }
+      }
+    }
+  ] },
   "hidden": false,
   "display_name": "First Catch",
   "description": "Catch any fish to learn the ropes."
