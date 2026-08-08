@@ -4,7 +4,22 @@
     "target_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true
   },
-  "reward": { "quest_tokens": 50, "items": [] },
+  "reward": {
+    "quest_tokens": 50,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:oxidized_copper",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:green_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": true,
   "display_name": "The Unlisted",
   "description": "Find every one-off oddity swimming out there. No one else knows they exist."

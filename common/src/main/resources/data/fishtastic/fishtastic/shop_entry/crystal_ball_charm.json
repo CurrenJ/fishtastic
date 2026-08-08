@@ -1,9 +1,15 @@
 {
   "display_name": "Crystal Ball Charm",
   "description": "Reveals a glowing rarity outline around hooked fish before you reel them in.",
-  "cost": 20,
+  "cost": 55,
   "weight": 0.15,
-  "reward": [{ "id": "fishtastic:crystal_ball_charm", "count": 1 }],
+  "reward": [
+    {
+      "id": "fishtastic:crystal_ball_charm",
+      "count": 1
+    }
+  ],
   "daily_max_purchases": 1,
-  "is_charm": true
+  "is_charm": true,
+  "unlock_quest": "fishtastic:challenge/quality_run"
 }

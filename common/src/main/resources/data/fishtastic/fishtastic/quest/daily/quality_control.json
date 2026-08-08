@@ -1,0 +1,14 @@
+{
+  "category": "daily",
+  "objective": {
+    "target_count": 2,
+    "min_quality": "uncommon"
+  },
+  "reward": {
+    "quest_tokens": 5,
+    "items": []
+  },
+  "hidden": false,
+  "display_name": "Quality Control",
+  "description": "Catch 2 fish at Uncommon quality or better."
+}

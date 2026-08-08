@@ -5,7 +5,22 @@
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true
   },
-  "reward": { "quest_tokens": 100, "items": [] },
+  "reward": {
+    "quest_tokens": 100,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:diamond_block",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:light_blue_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Completionist",
   "description": "Catch every known species of fish at least once."

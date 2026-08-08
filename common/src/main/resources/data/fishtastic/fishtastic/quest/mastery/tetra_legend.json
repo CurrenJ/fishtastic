@@ -2,11 +2,16 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:neon_tetra",
-    "target_count": 50
+    "target_count": 60,
+    "lifetime_count": true,
+    "notification_interval": 12
   },
-  "reward": { "quest_tokens": 85, "items": [] },
+  "reward": {
+    "quest_tokens": 85,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/tetra_scholar",
   "display_name": "Tetra Legend",
-  "description": "Catch 50 Neon Tetra total."
+  "description": "Catch 60 Neon Tetra in total."
 }

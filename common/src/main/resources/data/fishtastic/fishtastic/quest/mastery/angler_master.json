@@ -3,11 +3,15 @@
   "objective": {
     "target_species_tag": "minecraft:fishes",
     "target_count": 250,
-    "notification_interval": 25
+    "notification_interval": 25,
+    "lifetime_count": true
   },
-  "reward": { "quest_tokens": 93, "items": [] },
+  "reward": {
+    "quest_tokens": 93,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/angler_journeyman",
   "display_name": "Angler Master",
-  "description": "Catch 250 fish total."
+  "description": "Catch 250 fish in total."
 }

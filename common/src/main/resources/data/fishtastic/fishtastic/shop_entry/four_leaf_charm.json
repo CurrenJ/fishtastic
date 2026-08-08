@@ -1,9 +1,15 @@
 {
   "display_name": "Four-Leaf Charm",
-  "description": "Gently bends luck in your favor — -3%% trash chance, +3%% treasure chance, and fewer vanilla fish.",
-  "cost": 25,
+  "description": "Gently bends luck in your favor \u2014 -3%% trash chance, +3%% treasure chance, and fewer vanilla fish.",
+  "cost": 40,
   "weight": 0.15,
-  "reward": [{ "id": "fishtastic:four_leaf_charm", "count": 1 }],
+  "reward": [
+    {
+      "id": "fishtastic:four_leaf_charm",
+      "count": 1
+    }
+  ],
   "daily_max_purchases": 1,
-  "is_charm": true
+  "is_charm": true,
+  "unlock_quest": "fishtastic:challenge/treasure_hoarder"
 }

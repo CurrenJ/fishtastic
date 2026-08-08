@@ -1,0 +1,21 @@
+{
+  "display_name": "Abyssal Fish Tank",
+  "description": "A abyssal-framed tank, earned for a complete deep-ocean survey. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:dark_prismarine",
+          "sand": "minecraft:gravel",
+          "glass": "fishtastic:blue_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:explorer/deep_ocean_collector"
+}

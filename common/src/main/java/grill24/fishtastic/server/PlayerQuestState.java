@@ -49,6 +49,25 @@ public class PlayerQuestState {
                 Codec.list(Identifier.CODEC).optionalFieldOf("caught_species", List.of()).forGetter(QuestProgress::caughtSpecies)
         ).apply(i, QuestProgress::new));
 
+        /**
+         * The count to show in the quest log, clamped to {@code targetCount}.
+         *
+         * <p>{@link #currentCount} can legitimately exceed the target. A lifetime-count quest reads
+         * a running total, so a tier completed at 11 lifetime catches freezes at 11/10 the moment
+         * {@code QuestTracker} stops updating completed quests; a batched catch can likewise
+         * overshoot ("catch 3 treasure" credited 5 at once). Both produce a bar reading over 100%
+         * and, worse, an inconsistency between a finished tier stuck at 11/10 and a live one
+         * showing 23/25 — the same underlying number rendered two different ways.
+         *
+         * <p>Clamping is the right call rather than showing the raw total: once a quest is done the
+         * number's job is to say "done", not to keep reporting how far past the line you are. The
+         * live lifetime total stays visible on the next unfinished tier, which is where it's
+         * actually actionable.
+         */
+        public int displayCount(int targetCount) {
+            return targetCount > 0 ? Math.min(currentCount, targetCount) : currentCount;
+        }
+
         public static final StreamCodec<ByteBuf, QuestProgress> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, QuestProgress::currentCount,
                 ByteBufCodecs.VAR_LONG, QuestProgress::lastResetGameDay,

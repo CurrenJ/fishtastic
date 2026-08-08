@@ -1,0 +1,21 @@
+{
+  "display_name": "Mossy Fish Tank",
+  "description": "A mossy-framed tank, earned for a complete river survey. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:mossy_cobblestone",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:lime_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:explorer/river_collector"
+}

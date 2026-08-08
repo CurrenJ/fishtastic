@@ -2,11 +2,16 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:bluegill",
-    "target_count": 50
+    "target_count": 70,
+    "lifetime_count": true,
+    "notification_interval": 14
   },
-  "reward": { "quest_tokens": 85, "items": [] },
+  "reward": {
+    "quest_tokens": 85,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/bluegill_adept",
   "display_name": "Bluegill Master",
-  "description": "Catch 50 Bluegill total."
+  "description": "Catch 70 Bluegill in total."
 }

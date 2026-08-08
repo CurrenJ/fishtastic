@@ -1,0 +1,12 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:moorish_idol",
+    "target_count": 3,
+    "lifetime_count": true
+  },
+  "reward": { "quest_tokens": 55, "items": [] },
+  "hidden": false,
+  "display_name": "Idol Admirer",
+  "description": "Catch 3 Moorish Idol in total. Dawn is your best window."
+}

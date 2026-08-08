@@ -2,10 +2,15 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:neon_tetra",
-    "target_count": 10
+    "target_count": 8,
+    "lifetime_count": true,
+    "notification_interval": 2
   },
-  "reward": { "quest_tokens": 15, "items": [] },
+  "reward": {
+    "quest_tokens": 15,
+    "items": []
+  },
   "hidden": false,
   "display_name": "Tetra Tracker",
-  "description": "Catch 10 Neon Tetra."
+  "description": "Catch 8 Neon Tetra in total."
 }

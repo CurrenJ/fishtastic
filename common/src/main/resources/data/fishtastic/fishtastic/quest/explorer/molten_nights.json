@@ -3,11 +3,11 @@
   "objective": {
     "target_species": "fishtastic:molten_moorish_idol",
     "target_count": 1,
-    "time_condition": "night",
-    "weather_condition": "thunder"
+    "biome_condition": "fishtastic:is_basalt_deltas",
+    "time_condition": "night"
   },
   "reward": { "quest_tokens": 10, "items": [] },
   "hidden": true,
   "display_name": "Molten Nights",
-  "description": "Catch a Molten Moorish Idol at night during a thunderstorm."
+  "description": "Catch a Molten Moorish Idol in the basalt deltas at night."
 }

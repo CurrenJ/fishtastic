@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -31,11 +32,11 @@ public final class ShopEntryGameTests {
     }
 
     private static ShopEntry entry(float weight) {
-        return new ShopEntry("", "", 10, weight, List.of(), 0, false);
+        return new ShopEntry("", "", 10, weight, List.of(), 0, false, Optional.empty());
     }
 
     private static ShopEntry charmEntry(float weight) {
-        return new ShopEntry("", "", 10, weight, List.of(), 0, true);
+        return new ShopEntry("", "", 10, weight, List.of(), 0, true, Optional.empty());
     }
 
     private static Registry<ShopEntry> buildRegistry(int count) {

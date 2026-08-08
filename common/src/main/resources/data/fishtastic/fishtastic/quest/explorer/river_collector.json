@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "river"
   },
-  "reward": { "quest_tokens": 45, "items": [] },
+  "reward": {
+    "quest_tokens": 45,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:mossy_cobblestone",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:lime_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "River Chronicler",
   "description": "Catch every species of fish that calls the river home."

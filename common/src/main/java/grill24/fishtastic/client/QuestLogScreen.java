@@ -331,12 +331,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // stays hidden rather than listed as "inactive", so players discover it as it rotates in.
         byCategory.get(QuestCategory.DAILY).removeIf(entry -> !activeDailies.contains(entry.getKey()));
 
-        // Secret quests (e.g. unlisted-fish reveals, completionist capstones) stay out of the log
-        // entirely until their objective is met — progress still tracks silently in the background
-        // (QuestTracker doesn't check `hidden`), so they surface already complete, ready to claim.
+        // Secrets stay out of the log until completed; chain rungs appear once their prerequisite
+        // is claimed. See Quest#isHiddenFromLog for why the two cases differ.
         for (var list : byCategory.values()) {
-            list.removeIf(entry -> entry.getValue().hidden()
-                    && !QuestClientCache.getProgress(entry.getKey().identifier()).completed());
+            list.removeIf(entry -> {
+                Quest quest = entry.getValue();
+                boolean completed = QuestClientCache.getProgress(entry.getKey().identifier()).completed();
+                boolean prerequisiteClaimed = quest.prerequisiteQuestId()
+                        .map(prereq -> QuestClientCache.getProgress(prereq.identifier()).claimed())
+                        .orElse(false);
+                return quest.isHiddenFromLog(completed, prerequisiteClaimed);
+            });
         }
 
         // During the tutorial, pin tutorial quests to the top of the Daily tab.
@@ -584,7 +589,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         boolean canClaim = completed && !claimed;
 
         int targetCount = quest.objective().effectiveTargetCount(Minecraft.getInstance().level.registryAccess());
-        int currentCount = progress.currentCount();
+        int currentCount = progress.displayCount(targetCount);
         float fraction = targetCount > 0 ? Math.min(1f, (float) currentCount / targetCount) : 0f;
 
         String baseDisplayName = quest.displayName().isEmpty() ? questId.getPath() : quest.displayName();
@@ -860,7 +865,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             return panel;
         }
 
-        Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(shopRegistry, currentDay, QuestClientCache.getShopRefreshCount());
+        Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(
+                shopRegistry, currentDay, QuestClientCache.getShopRefreshCount(),
+                questKey -> QuestClientCache.getProgress(questKey.identifier()).claimed());
 
         List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
 
@@ -886,7 +893,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     /** Header row letting the player spend a fixed token cost to reroll today's active shop entries. */
     private HBox buildShopRefreshRow() {
-        boolean canAfford = QuestClientCache.getTokenBalance() >= ShopEntry.SHOP_REFRESH_COST;
+        int refreshCost = ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+        boolean canAfford = QuestClientCache.getTokenBalance() >= refreshCost;
 
         HBox refreshRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
 
@@ -909,7 +917,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         refreshBtn.setVisible(canAfford);
         shopRefreshBtn = refreshBtn;
 
-        Label costLabel = new Label(String.valueOf(ShopEntry.SHOP_REFRESH_COST), canAfford ? 0xFFFFAA00 : 0xFFFF4444).init(tempContext);
+        Label costLabel = new Label(String.valueOf(refreshCost), canAfford ? 0xFFFFAA00 : 0xFFFF4444).init(tempContext);
         shopRefreshCostLabel = costLabel;
 
         Label notEnoughLabel = new Label(translated("screen.fishtastic.quest_log.shop.not_enough_tokens"), 0xFFFF4444).init(tempContext);
@@ -1106,7 +1114,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         if (shopRefreshBtn != null) {
-            boolean canAffordRefresh = QuestClientCache.getTokenBalance() >= ShopEntry.SHOP_REFRESH_COST;
+            boolean canAffordRefresh = QuestClientCache.getTokenBalance()
+                    >= ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
             shopRefreshBtn.setVisible(canAffordRefresh);
             shopRefreshCostLabel.color(canAffordRefresh ? 0xFFFFAA00 : 0xFFFF4444);
             shopRefreshNotEnoughLabel.setVisible(!canAffordRefresh);
@@ -1149,7 +1158,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             boolean completed = progress.completed();
             boolean canClaim = completed && !claimed;
 
-            int currentCount = progress.currentCount();
+            int currentCount = progress.displayCount(refs.targetCount());
             float fraction = refs.targetCount() > 0 ? Math.min(1f, (float) currentCount / refs.targetCount()) : 0f;
 
             int nameColor = claimed ? 0xFFAAAAAA : 0xFFFFFFFF;

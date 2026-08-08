@@ -574,6 +574,147 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Quest content validation  (runs against the live quest/fish_profile/biome registries)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void everyTargetSpeciesQuestIsSatisfiable(GameTestHelper helper) {
+        QuestSatisfiabilityGameTests.everyTargetSpeciesQuestIsSatisfiable(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void everyPrerequisiteResolves(GameTestHelper helper) {
+        QuestSatisfiabilityGameTests.everyPrerequisiteResolves(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void noPrerequisiteCycles(GameTestHelper helper) {
+        QuestSatisfiabilityGameTests.noPrerequisiteCycles(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void nonHiddenQuestIsAlwaysListed(GameTestHelper helper) {
+        QuestLogVisibilityGameTests.nonHiddenQuestIsAlwaysListed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void hiddenSecretStaysOutUntilCompleted(GameTestHelper helper) {
+        QuestLogVisibilityGameTests.hiddenSecretStaysOutUntilCompleted(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void hiddenChainQuestAppearsOncePrerequisiteClaimed(GameTestHelper helper) {
+        QuestLogVisibilityGameTests.hiddenChainQuestAppearsOncePrerequisiteClaimed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void completedChainQuestIsListedEvenIfPrerequisiteUnclaimed(GameTestHelper helper) {
+        QuestLogVisibilityGameTests.completedChainQuestIsListedEvenIfPrerequisiteUnclaimed(helper);
+    }
+
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void gatedEntriesAreAbsentUntilTheirQuestIsClaimed(GameTestHelper helper) {
+        CapstoneRewardGameTests.gatedEntriesAreAbsentUntilTheirQuestIsClaimed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void gatedEntriesCanAppearOnceTheirQuestIsClaimed(GameTestHelper helper) {
+        CapstoneRewardGameTests.gatedEntriesCanAppearOnceTheirQuestIsClaimed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lockedEntriesDoNotConsumeShopSlots(GameTestHelper helper) {
+        CapstoneRewardGameTests.lockedEntriesDoNotConsumeShopSlots(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void gatedEntrySellsTheSameItemItsQuestGranted(GameTestHelper helper) {
+        CapstoneRewardGameTests.gatedEntrySellsTheSameItemItsQuestGranted(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void unlockGatesNeverPointAtDailyQuests(GameTestHelper helper) {
+        CapstoneRewardGameTests.unlockGatesNeverPointAtDailyQuests(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void capstoneTanksCarryTheirMaterialsComponent(GameTestHelper helper) {
+        CapstoneRewardGameTests.capstoneTanksCarryTheirMaterialsComponent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void displayCountClampsOvershootToTheTarget(GameTestHelper helper) {
+        PlayerQuestStateGameTests.displayCountClampsOvershootToTheTarget(helper);
+    }
+
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void stormCharmIsSlottableIntoTheRod(GameTestHelper helper) {
+        StormCharmGameTests.stormCharmIsSlottableIntoTheRod(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void stormCharmCarriesNoCharmEffect(GameTestHelper helper) {
+        StormCharmGameTests.stormCharmCarriesNoCharmEffect(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void stormCharmStacksUnlikeRodCharms(GameTestHelper helper) {
+        StormCharmGameTests.stormCharmStacksUnlikeRodCharms(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void summonedStormIsReadAsThunderByQuestConditions(GameTestHelper helper) {
+        StormCharmGameTests.summonedStormIsReadAsThunderByQuestConditions(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void handUseChargesUpAndIsFreeToCancel(GameTestHelper helper) {
+        StormCharmGameTests.handUseChargesUpAndIsFreeToCancel(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void stormDurationIsWithinVanillaThunderRange(GameTestHelper helper) {
+        StormCharmGameTests.stormDurationIsWithinVanillaThunderRange(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void dailyPoolIsLargerThanTheDrawAndActuallyRotates(GameTestHelper helper) {
+        QuestSatisfiabilityGameTests.dailyPoolIsLargerThanTheDrawAndActuallyRotates(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeQuestsCarryNoUnreplayableConditions(GameTestHelper helper) {
+        QuestSatisfiabilityGameTests.lifetimeQuestsCarryNoUnreplayableConditions(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void catchCountMatchingScopesToTheRequestedSpecies(GameTestHelper helper) {
+        LifetimeQuestProgressGameTests.catchCountMatchingScopesToTheRequestedSpecies(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeCountsAreIsolatedPerPlayer(GameTestHelper helper) {
+        LifetimeQuestProgressGameTests.lifetimeCountsAreIsolatedPerPlayer(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void oneLifetimeTotalSatisfiesEveryTierItHasPassed(GameTestHelper helper) {
+        LifetimeQuestProgressGameTests.oneLifetimeTotalSatisfiesEveryTierItHasPassed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void nonFishCatchesDoNotAdvanceLifetimeChains(GameTestHelper helper) {
+        LifetimeQuestProgressGameTests.nonFishCatchesDoNotAdvanceLifetimeChains(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeCompatibilityRejectsEnvironmentalConditions(GameTestHelper helper) {
+        LifetimeQuestProgressGameTests.lifetimeCompatibilityRejectsEnvironmentalConditions(helper);
+    }
+
+    // -------------------------------------------------------------------------
     // Packet round-trip tests  (pure StreamCodec encode/decode, no player needed)
     // -------------------------------------------------------------------------
 

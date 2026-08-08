@@ -4,7 +4,22 @@
     "target_count": 5,
     "min_quality": "legendary"
   },
-  "reward": { "quest_tokens": 160, "items": [] },
+  "reward": {
+    "quest_tokens": 160,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:gold_block",
+            "sand": "minecraft:red_sand",
+            "glass": "fishtastic:yellow_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "The Grand Haul",
   "description": "Catch 5 fish at Legendary quality."

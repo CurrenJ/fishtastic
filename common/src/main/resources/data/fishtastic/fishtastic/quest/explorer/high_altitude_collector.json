@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "high_altitude"
   },
-  "reward": { "quest_tokens": 30, "items": [] },
+  "reward": {
+    "quest_tokens": 30,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:calcite",
+            "sand": "minecraft:snow_block",
+            "glass": "fishtastic:white_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Summit Naturalist",
   "description": "Catch every species of fish found in high-altitude waters."

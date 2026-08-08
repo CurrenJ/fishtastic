@@ -3,11 +3,15 @@
   "objective": {
     "target_species_tag": "minecraft:fishes",
     "target_count": 500,
-    "notification_interval": 50
+    "notification_interval": 50,
+    "lifetime_count": true
   },
-  "reward": { "quest_tokens": 206, "items": [] },
+  "reward": {
+    "quest_tokens": 206,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/angler_master",
   "display_name": "Angler Legend",
-  "description": "Catch 500 fish total."
+  "description": "Catch 500 fish in total."
 }

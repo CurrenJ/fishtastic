@@ -7,7 +7,6 @@
   "item.fishtastic.obsidian_fishing_rod.no_bait": "No Bait Loaded",
   "item.fishtastic.obsidian_fishing_rod.no_hook": "No Hook Equipped",
   "item.fishtastic.obsidian_fishing_rod.no_charm": "No Charm Equipped",
-
   "item.fishtastic.hook": "Hook",
   "item.fishtastic.old_copper_hook": "Old Copper Hook",
   "item.fishtastic.amethyst_charm": "Amethyst Charm",
@@ -17,7 +16,6 @@
   "item.fishtastic.banana_charm": "Banana Charm",
   "item.fishtastic.anglers_almanac": "Angler's Almanac",
   "item.fishtastic.little_fish_box": "Little Fish Box",
-
   "tooltip.fishtastic.hook_effect.quality_bias": "Quality Bias: %s",
   "tooltip.fishtastic.hook_effect.trash_chance_delta": "Trash Chance: %s%%",
   "tooltip.fishtastic.charm_effect.input_force_multiplier": "Reel Force: x%s",
@@ -30,7 +28,6 @@
   "tooltip.fishtastic.charm_effect.show_top_weighted_fish": "Reveals your most likely catches",
   "tooltip.fishtastic.charm_effect.auto_pile_fish": "Automatically piles caught fish",
   "tooltip.fishtastic.charm_effect.passive_inventory": "Active in inventory",
-
   "tooltip.fishtastic.bait_effect.luck": "Luck: +%s",
   "tooltip.fishtastic.bait_effect.treasure_chance": "Treasure Chance: %s%%",
   "tooltip.fishtastic.bait_effect.trash_chance": "Trash Chance: %s%%",
@@ -39,7 +36,6 @@
   "tooltip.fishtastic.bait_effect.quality_bias": "Quality Bias: +%s",
   "tooltip.fishtastic.bait_effect.exclusive_pool": "Only catches: %s",
   "tooltip.fishtastic.bait_effect.group_affinity": "%s: x%s",
-
   "item.fishtastic.acute_iaspis": "Acute Iaspis",
   "item.fishtastic.angler_fish": "Angler Fish",
   "item.fishtastic.arctic_char": "Arctic Char",
@@ -91,9 +87,7 @@
   "item.fishtastic.yellowline_goby": "Yellowline Goby",
   "item.fishtastic.yellowstripe_grunt": "Yellowstripe Grunt",
   "item.fishtastic.worms": "Worms",
-
   "item.fishtastic.pile_of_fish": "Pile of Fish",
-
   "item.fishtastic.cosmetic_capture_wand": "Cosmetic Capture Wand",
   "item.fishtastic.fishing_minigame_rod_background": "Fishing Minigame Rod Background",
   "item.fishtastic.fishing_minigame_bobber": "Fishing Minigame Bobber",
@@ -106,24 +100,20 @@
   "item.fishtastic.deep_sea_bait": "Trophy Bait",
   "item.fishtastic.pile_of_coins": "Pile of Coins",
   "item.fishtastic.quest_token": "Quest Token",
-
   "item.fishtastic.sea_glass": "Sea Glass",
   "item.fishtastic.old_tire": "Old Tire",
   "item.fishtastic.plastic_litter": "Plastic Litter",
-
   "tooltip.fishtastic.item_size.cm": "%s cm",
   "tooltip.fishtastic.item_size": "Size: %s",
   "tooltip.fishtastic.fish_quality": "Quality: %s",
   "tooltip.fishtastic.fish_tank_materials.frame": "Frame: %s",
   "tooltip.fishtastic.fish_tank_materials.sand": "Sand: %s",
   "tooltip.fishtastic.fish_tank_materials.glass": "Glass: %s",
-
   "fishtastic.quality.common": "Common",
   "fishtastic.quality.uncommon": "Uncommon",
   "fishtastic.quality.rare": "Rare",
   "fishtastic.quality.epic": "Epic",
   "fishtastic.quality.legendary": "Legendary",
-
   "screen.fishtastic.leaderboard.title": "Leaderboards",
   "screen.fishtastic.leaderboard.loading": "Loading...",
   "screen.fishtastic.leaderboard.title_personal": "Personal Best",
@@ -134,7 +124,6 @@
   "screen.fishtastic.leaderboard.entry_count": "%s  x%s",
   "screen.fishtastic.leaderboard.unknown_fish": "Unknown",
   "screen.fishtastic.leaderboard.unknown_player": "Unknown",
-
   "screen.fishtastic.encyclopedia.title": "Fish Encyclopedia",
   "screen.fishtastic.encyclopedia.back": "Back",
   "screen.fishtastic.encyclopedia.locked_placeholder": "???",
@@ -155,7 +144,6 @@
   "screen.fishtastic.encyclopedia.no_special_conditions": "No special conditions.",
   "screen.fishtastic.encyclopedia.no_lore": "No lore recorded yet.",
   "screen.fishtastic.encyclopedia.unlock_progress": "Catch %s more to unlock %s (%s/%s)",
-
   "screen.fishtastic.quest_log.title": "Quest Log",
   "screen.fishtastic.quest_log.tokens": "%s tokens",
   "screen.fishtastic.quest_log.dailies_reset": "Dailies reset in %s",
@@ -176,13 +164,11 @@
   "screen.fishtastic.quest_log.shop.buy": "Buy",
   "screen.fishtastic.quest_log.shop.refresh": "Refresh",
   "screen.fishtastic.quest_log.shop.not_enough_tokens": "Not enough tokens",
-
   "key.categories.fishtastic": "Fishtastic",
   "key.fishtastic.fishing_minigame_impulse": "Fishing Minigame Impulse",
   "key.fishtastic.open_quest_log": "Open Quest Log",
   "key.fishtastic.toggle_fish_tank_edit_mode": "Toggle Fish Tank Edit Mode",
   "key.fishtastic.open_fish_encyclopedia": "Open Fish Encyclopedia",
-
   "item.fishtastic.cosmetic_treasure_chest": "Treasure Chest",
   "item.fishtastic.cosmetic_mossy_boulder": "Mossy Boulder",
   "item.fishtastic.cosmetic_petals": "Pink Petals",
@@ -215,19 +201,15 @@
   "item.fishtastic.cosmetic_lamp_amethyst": "Amethyst Lamp",
   "item.fishtastic.cosmetic_lamp_prismarine_bricks": "Prismarine Brick Lamp",
   "item.fishtastic.cosmetic_lamp_crying_obsidian": "Crying Obsidian Lamp",
-
   "tooltip.fishtastic.tank_cosmetic": "Tank Cosmetic",
-
   "block.fishtastic.fish_tank": "Fish Tank",
   "item.fishtastic.fish_tank": "Fish Tank",
   "block.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
   "item.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
-
   "block.fishtastic.borderless_glass": "Borderless Glass",
   "item.fishtastic.borderless_glass": "Borderless Glass",
   "block.fishtastic.clear_glass": "Clear Glass",
   "item.fishtastic.clear_glass": "Clear Glass",
-
   ".fishtastic.white_borderless_stained_glass": "White Borderless Stained Glass",
   "block.fishtastic.orange_borderless_stained_glass": "Orange Borderless Stained Glass",
   "block.fishtastic.magenta_borderless_stained_glass": "Magenta Borderless Stained Glass",
@@ -244,7 +226,6 @@
   "block.fishtastic.green_borderless_stained_glass": "Green Borderless Stained Glass",
   "block.fishtastic.red_borderless_stained_glass": "Red Borderless Stained Glass",
   "block.fishtastic.black_borderless_stained_glass": "Black Borderless Stained Glass",
-
   "item.fishtastic.white_borderless_stained_glass": "White Borderless Stained Glass",
   "item.fishtastic.orange_borderless_stained_glass": "Orange Borderless Stained Glass",
   "item.fishtastic.magenta_borderless_stained_glass": "Magenta Borderless Stained Glass",
@@ -261,7 +242,6 @@
   "item.fishtastic.green_borderless_stained_glass": "Green Borderless Stained Glass",
   "item.fishtastic.red_borderless_stained_glass": "Red Borderless Stained Glass",
   "item.fishtastic.black_borderless_stained_glass": "Black Borderless Stained Glass",
-
   "block.fishtastic.white_clear_stained_glass": "White Clear Stained Glass",
   "block.fishtastic.orange_clear_stained_glass": "Orange Clear Stained Glass",
   "block.fishtastic.magenta_clear_stained_glass": "Magenta Clear Stained Glass",
@@ -278,7 +258,6 @@
   "block.fishtastic.green_clear_stained_glass": "Green Clear Stained Glass",
   "block.fishtastic.red_clear_stained_glass": "Red Clear Stained Glass",
   "block.fishtastic.black_clear_stained_glass": "Black Clear Stained Glass",
-
   "item.fishtastic.white_clear_stained_glass": "White Clear Stained Glass",
   "item.fishtastic.orange_clear_stained_glass": "Orange Clear Stained Glass",
   "item.fishtastic.magenta_clear_stained_glass": "Magenta Clear Stained Glass",
@@ -295,43 +274,39 @@
   "item.fishtastic.green_clear_stained_glass": "Green Clear Stained Glass",
   "item.fishtastic.red_clear_stained_glass": "Red Clear Stained Glass",
   "item.fishtastic.black_clear_stained_glass": "Black Clear Stained Glass",
-
   "tutorial.fishtastic.bait_load.title": "Load your bait",
   "tutorial.fishtastic.bait_load.body": "Shift-click the worms onto your fishing rod in your hotbar to load them.",
   "tutorial.fishtastic.bait_load.hint": "Shift-click worms onto the rod in your hotbar",
-
   "tutorial.fishtastic.waiting_for_cast.title": "Cast your line!",
   "tutorial.fishtastic.waiting_for_cast.body": "Find some water and right-click with your fishing rod to cast your line.",
   "tutorial.fishtastic.waiting_for_cast.hint": "Right-click with your rod near water",
-
   "tutorial.fishtastic.hook_in_water.title": "Line is in the water",
   "tutorial.fishtastic.hook_in_water.body": "Wait for a bite — then reel in!",
   "tutorial.fishtastic.hook_in_water.hint": "Waiting for a bite...",
-
   "tutorial.fishtastic.minigame_intro.title": "The fishing minigame",
   "tutorial.fishtastic.minigame_intro.body": "Your catch zone appears on the green bar. The moving fish is your target.",
   "tutorial.fishtastic.minigame_intro.hint": "Keep them overlapping to catch it!",
-
   "tutorial.fishtastic.minigame_control.title": "Controls",
   "tutorial.fishtastic.minigame_control.body": "Right-click to push the bobber upward. Gravity pulls it down.",
   "tutorial.fishtastic.minigame_control.hint": "Right-click to continue",
-
   "tutorial.fishtastic.minigame_catch.title": "Keep the overlap going!",
   "tutorial.fishtastic.minigame_catch.body": "Keep going to catch the fish!",
-
   "tutorial.fishtastic.catch_result.title": "You caught one!",
   "tutorial.fishtastic.catch_result.body": "Fish have a Quality tier shown by their border color — from Common to Legendary.",
   "tutorial.fishtastic.catch_result.hint": "Higher quality gives bigger worm yields.",
-
   "tutorial.fishtastic.quest_intro.title": "You made quest progress",
   "tutorial.fishtastic.quest_intro.body": "Catching fish completes quests and earns Fishing Tokens.",
   "tutorial.fishtastic.quest_intro.hint": "Press [%s] to open Quest Log",
-
   "tutorial.fishtastic.quest_claim.title": "Claim your reward",
   "tutorial.fishtastic.quest_claim.body": "Your tutorial quest is complete! Click Claim to collect your Fishing Tokens and a bonus bait.",
   "tutorial.fishtastic.quest_claim.hint": "Click Claim in the Quest Log",
-
   "tutorial.fishtastic.shop_browse.title": "Browse and buy",
   "tutorial.fishtastic.shop_browse.body": "Each day, different items are available. Check back daily for new stock.",
-  "tutorial.fishtastic.shop_browse.hint": "That's all! Happy fishing!"
+  "tutorial.fishtastic.shop_browse.hint": "That's all! Happy fishing!",
+  "item.fishtastic.storm_charm": "Storm Charm",
+  "tooltip.fishtastic.storm_charm.summons": "Summons a thunderstorm for %s minutes",
+  "tooltip.fishtastic.storm_charm.single_use": "Hold to call it down — consumed on use",
+  "message.fishtastic.storm_charm.no_sky": "There is no sky here to answer.",
+  "message.fishtastic.storm_charm.weather_frozen": "The weather is held fast — a storm summoned now would never pass.",
+  "message.fishtastic.storm_charm.already_storming": "The storm is already upon you."
 }

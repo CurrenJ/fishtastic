@@ -34,7 +34,23 @@ public record QuestObjective(
          */
         Optional<FishProfile.Zone> zoneCondition,
         Optional<Integer> minSessionCatches,
-        int notificationInterval
+        int notificationInterval,
+        /**
+         * When true, progress is not an incrementing counter but a direct read of the player's
+         * <em>lifetime</em> catch totals from {@code FishCatchSavedData} (see
+         * {@code QuestTracker#lifetimeProgress}). This is what makes a tiered chain's
+         * "Catch 50 X total" literally true: tier 3 reads 50 lifetime catches rather than
+         * restarting at 0 and demanding 50 <em>more</em> after tier 2 is claimed.
+         * <p>
+         * It also removes the claim-timing trap — a lifetime quest is exempt from the
+         * prerequisite gate in {@code QuestTracker}, so catches banked before the player got
+         * around to claiming the previous tier still count instead of being silently discarded.
+         * <p>
+         * Only valid on objectives whose conditions are expressible as a species/tag filter:
+         * lifetime data records species, size and quality bests, but not the biome, time or
+         * weather a fish was caught under, so those conditions cannot be replayed against it.
+         */
+        boolean lifetimeCount
 ) {
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceKey.codec(Registries.ITEM).optionalFieldOf("target_species").forGetter(QuestObjective::targetSpecies),
@@ -49,8 +65,21 @@ public record QuestObjective(
             FishProfile.WeatherCondition.CODEC.optionalFieldOf("weather_condition").forGetter(QuestObjective::weatherCondition),
             FishProfile.Zone.CODEC.optionalFieldOf("zone_condition").forGetter(QuestObjective::zoneCondition),
             Codec.INT.optionalFieldOf("min_session_catches").forGetter(QuestObjective::minSessionCatches),
-            Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval)
+            Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval),
+            Codec.BOOL.optionalFieldOf("lifetime_count", false).forGetter(QuestObjective::lifetimeCount)
     ).apply(i, QuestObjective::new));
+
+    /**
+     * Whether this objective's conditions can be evaluated against lifetime catch records.
+     * Lifetime data stores species and counts, not the environment a fish was caught in, so an
+     * objective carrying an environmental or per-catch condition can't be replayed against it.
+     * Used to fail fast on mis-authored quests rather than silently ignoring the conditions.
+     */
+    public boolean isLifetimeCompatible() {
+        return minQuality.isEmpty() && minSize.isEmpty() && biomeCondition.isEmpty()
+                && timeCondition.isEmpty() && weatherCondition.isEmpty()
+                && minSessionCatches.isEmpty() && !distinctSpecies;
+    }
 
     /**
      * Resolves the quest's completion target. {@code target_count} may be omitted entirely

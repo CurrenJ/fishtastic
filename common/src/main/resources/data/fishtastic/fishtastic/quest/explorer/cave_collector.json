@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "cave"
   },
-  "reward": { "quest_tokens": 30, "items": [] },
+  "reward": {
+    "quest_tokens": 30,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:polished_deepslate",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:gray_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Cavern Surveyor",
   "description": "Catch every species of fish found in cave waters."

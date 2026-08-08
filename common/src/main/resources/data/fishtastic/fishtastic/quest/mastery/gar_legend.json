@@ -2,11 +2,16 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:longnose_gar",
-    "target_count": 50
+    "target_count": 25,
+    "lifetime_count": true,
+    "notification_interval": 5
   },
-  "reward": { "quest_tokens": 113, "items": [] },
+  "reward": {
+    "quest_tokens": 113,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/gar_veteran",
   "display_name": "Night Predator",
-  "description": "Catch 50 Longnose Gar total."
+  "description": "Catch 25 Longnose Gar in total."
 }

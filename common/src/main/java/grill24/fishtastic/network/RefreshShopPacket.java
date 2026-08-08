@@ -35,7 +35,9 @@ public record RefreshShopPacket() implements CustomPacketPayload {
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
-            if (!state.refreshShop(ShopEntry.SHOP_REFRESH_COST)) return;
+            // Price is read from the player's current reroll count, so the server — not the
+            // client's rendered label — decides what this reroll costs.
+            if (!state.refreshShop(ShopEntry.refreshCost(state.getShopRefreshCount()))) return;
 
             data.setDirty();
             QuestSyncPacket.sendToPlayer(serverPlayer, data);

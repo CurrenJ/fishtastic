@@ -2,11 +2,16 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:longnose_gar",
-    "target_count": 25
+    "target_count": 10,
+    "lifetime_count": true,
+    "notification_interval": 2
   },
-  "reward": { "quest_tokens": 53, "items": [] },
+  "reward": {
+    "quest_tokens": 53,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/gar_hunter",
   "display_name": "Gar Veteran",
-  "description": "Catch 25 Longnose Gar total."
+  "description": "Catch 10 Longnose Gar in total."
 }

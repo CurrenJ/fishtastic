@@ -3,11 +3,20 @@
   "objective": {
     "target_species_tag": "minecraft:fishes",
     "target_count": 100,
-    "notification_interval": 10
+    "notification_interval": 10,
+    "lifetime_count": true
   },
-  "reward": { "quest_tokens": 33, "items": [] },
+  "reward": {
+    "quest_tokens": 33,
+    "items": [
+      {
+        "id": "fishtastic:amethyst_charm",
+        "count": 1
+      }
+    ]
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/angler_apprentice",
   "display_name": "Angler Journeyman",
-  "description": "Catch 100 fish total."
+  "description": "Catch 100 fish in total."
 }

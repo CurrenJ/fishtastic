@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "ocean"
   },
-  "reward": { "quest_tokens": 75, "items": [] },
+  "reward": {
+    "quest_tokens": 75,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:prismarine_bricks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:cyan_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Coastal Cataloguer",
   "description": "Catch every species of fish that calls the open ocean home."

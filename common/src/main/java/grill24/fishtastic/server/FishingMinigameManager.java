@@ -17,6 +17,7 @@ import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
+import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingTarget;
@@ -138,6 +139,18 @@ public class FishingMinigameManager {
         ItemStack hookStack = CopperFishingRod.getHook(rod);
         HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
         ItemStack charmStack = CopperFishingRod.getCharm(rod);
+
+        // A Storm Charm sitting in the charm slot fires on the cast and is consumed. It carries no
+        // CharmEffect, so it would otherwise be inert in a slot players reach for instinctively.
+        // Done here — ahead of generateTargets and the environment capture below — so the weather
+        // is already thundering when this cast resolves its fish pool and quest conditions.
+        if (!charmStack.isEmpty() && charmStack.getItem() instanceof StormCharmItem
+                && StormCharmItem.trySummonStorm(level, player)) {
+            charmStack.shrink(1);
+            CopperFishingRod.setCharm(rod, charmStack.isEmpty() ? ItemStack.EMPTY : charmStack);
+            charmStack = CopperFishingRod.getCharm(rod);
+        }
+
         CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
 
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);

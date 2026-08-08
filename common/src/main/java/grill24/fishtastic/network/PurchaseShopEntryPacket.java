@@ -59,7 +59,11 @@ public record PurchaseShopEntryPacket(Identifier entryId) implements CustomPacke
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
             long currentDay = server.overworld().getGameTime() / 24000L;
-            Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(shopRegistry, currentDay, state.getShopRefreshCount());
+            // Re-derive the draw with this player's unlocks so a gated capstone entry can't be
+            // bought by anyone who hasn't claimed the quest that unlocks it, whatever the client sent.
+            Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(
+                    shopRegistry, currentDay, state.getShopRefreshCount(),
+                    questKey -> state.getProgress(questKey).claimed());
             if (!activeToday.contains(entryKey)) return;
 
             if (!state.purchase(entryKey, entry)) return;

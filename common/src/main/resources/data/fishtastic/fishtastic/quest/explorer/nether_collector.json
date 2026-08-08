@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "nether"
   },
-  "reward": { "quest_tokens": 30, "items": [] },
+  "reward": {
+    "quest_tokens": 30,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:polished_blackstone",
+            "sand": "minecraft:soul_sand",
+            "glass": "fishtastic:red_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Infernal Registrar",
   "description": "Catch every species of fish found in the Nether's molten waters."

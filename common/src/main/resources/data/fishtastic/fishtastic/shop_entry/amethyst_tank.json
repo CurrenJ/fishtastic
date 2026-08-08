@@ -1,0 +1,21 @@
+{
+  "display_name": "Amethyst Fish Tank",
+  "description": "A amethyst-framed tank, earned for a first legendary catch. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:amethyst_block",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:purple_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:challenge/legendary_seeker"
+}

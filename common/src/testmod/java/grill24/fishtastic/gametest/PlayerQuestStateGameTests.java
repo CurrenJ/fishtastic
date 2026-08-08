@@ -28,7 +28,7 @@ public final class PlayerQuestStateGameTests {
     private static Quest quest(int targetCount) {
         QuestObjective objective = new QuestObjective(
             Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(targetCount),
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1, false);
         return new Quest(QuestCategory.DAILY, objective, new QuestReward(50, List.of()),
             Optional.empty(), false, "Test Quest", "A test quest");
     }
@@ -38,11 +38,37 @@ public final class PlayerQuestStateGameTests {
     }
 
     private static ShopEntry shopEntry(int cost, int dailyMaxPurchases) {
-        return new ShopEntry("Test Item", "A test item", cost, 1.0f, List.of(), dailyMaxPurchases, false);
+        return new ShopEntry("Test Item", "A test item", cost, 1.0f, List.of(), dailyMaxPurchases, false, Optional.empty());
     }
 
     private static ResourceKey<ShopEntry> shopEntryId(String path) {
         return ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Utility.ft(path));
+    }
+
+    /**
+     * currentCount can exceed the target — a lifetime-count tier freezes wherever it happened to
+     * complete (11/10), and a batched catch can overshoot in one go. The log must render a clamped
+     * number so a finished tier reads "10/10" instead of "11/10" while a live tier still reports
+     * real progress.
+     */
+    public static void displayCountClampsOvershootToTheTarget(GameTestHelper helper) {
+        PlayerQuestState.QuestProgress overshot =
+            new PlayerQuestState.QuestProgress(11, 0L, true, false, List.of());
+        helper.assertTrue(overshot.displayCount(10) == 10,
+            "A completed tier that overshot must display 10/10, got " + overshot.displayCount(10));
+
+        PlayerQuestState.QuestProgress inProgress =
+            new PlayerQuestState.QuestProgress(23, 0L, false, false, List.of());
+        helper.assertTrue(inProgress.displayCount(25) == 23,
+            "An unfinished tier must display its real count, got " + inProgress.displayCount(25));
+
+        helper.assertTrue(inProgress.displayCount(0) == 23,
+            "A zero/unknown target must not clamp the count to zero");
+
+        PlayerQuestState.QuestProgress exact =
+            new PlayerQuestState.QuestProgress(10, 0L, true, true, List.of());
+        helper.assertTrue(exact.displayCount(10) == 10, "An exact completion must display unchanged");
+        helper.succeed();
     }
 
     // -------------------------------------------------------------------------

@@ -19,6 +19,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.biome.Biome;
 
@@ -65,7 +66,10 @@ public class QuestTracker {
 
             if (progress.completed() || progress.claimed()) continue;
 
-            if (quest.prerequisiteQuestId().isPresent()) {
+            // A lifetime-count quest is exempt from the prerequisite gate: its progress is a
+            // running total that was already banked, so gating it here would re-introduce exactly
+            // the discarded-catches problem lifetime counting exists to fix.
+            if (quest.prerequisiteQuestId().isPresent() && !quest.objective().lifetimeCount()) {
                 ResourceKey<Quest> prereq = quest.prerequisiteQuestId().get();
                 PlayerQuestState.QuestProgress prereqProgress = state.getProgress(prereq);
                 if (!prereqProgress.claimed()) continue;
@@ -74,7 +78,10 @@ public class QuestTracker {
             if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather)) {
                 int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
                 int oldCount = state.getProgress(questKey).currentCount();
-                if (quest.objective().distinctSpecies()) {
+                if (quest.objective().lifetimeCount()) {
+                    state.setProgress(questKey, lifetimeProgress(server, catchData,
+                            catchData.resolvePlayerKey(player), quest.objective()), targetCount, currentDay);
+                } else if (quest.objective().distinctSpecies()) {
                     Identifier caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
                     state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
                 } else {
@@ -134,7 +141,9 @@ public class QuestTracker {
 
             if (progress.completed() || progress.claimed()) continue;
 
-            if (quest.prerequisiteQuestId().isPresent()) {
+            // See onCatch: lifetime-count quests skip the prerequisite gate so banked catches
+            // aren't discarded while the previous tier sits unclaimed.
+            if (quest.prerequisiteQuestId().isPresent() && !quest.objective().lifetimeCount()) {
                 ResourceKey<Quest> prereq = quest.prerequisiteQuestId().get();
                 PlayerQuestState.QuestProgress prereqProgress = state.getProgress(prereq);
                 if (!prereqProgress.claimed()) continue;
@@ -147,7 +156,13 @@ public class QuestTracker {
 
             int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
             int oldCount = state.getProgress(questKey).currentCount();
-            if (quest.objective().distinctSpecies()) {
+            if (quest.objective().lifetimeCount()) {
+                // One read of the running total covers the whole batch — FishingMinigameManager
+                // calls catchDb.recordCatch() for every reward before it calls onCatchBatch, so
+                // this session's fish are already reflected here.
+                state.setProgress(questKey, lifetimeProgress(server, catchData,
+                        catchData.resolvePlayerKey(player), quest.objective()), targetCount, currentDay);
+            } else if (quest.objective().distinctSpecies()) {
                 // Completionist-style objectives credit each newly-seen species once, ignoring
                 // minSessionCatches — a batch just offers however many distinct species it contains.
                 for (ItemStack stack : matchingStacks) {
@@ -187,6 +202,44 @@ public class QuestTracker {
 
         catchData.setDirty();
         QuestSyncPacket.sendToPlayer(player, catchData, triggeringItems);
+    }
+
+    /**
+     * Resolves a {@link QuestObjective#lifetimeCount()} objective's progress by reading the
+     * player's lifetime catch records instead of an incrementing per-quest counter.
+     *
+     * <p>This is what makes the mastery chains' "Catch 50 X total" honest. With incrementing
+     * counters, tier 3 started from 0 once tier 2 was claimed, so the chain actually cost
+     * 10 + 25 + 50 = 85 catches; worse, {@code QuestTracker} skips a quest whose prerequisite is
+     * unclaimed, so every catch made between finishing a tier and getting round to claiming it was
+     * silently discarded. Reading a lifetime total removes both problems: tiers overlap correctly
+     * and claim timing stops mattering.
+     *
+     * <p>Scoped by the objective's species filter — a specific {@code target_species}, else the
+     * members of {@code target_species_tag} minus {@code exclude_species_tag}, else every fish.
+     */
+    private static int lifetimeProgress(MinecraftServer server, FishCatchSavedData catchData,
+            UUID playerKey, QuestObjective objective) {
+        if (objective.targetSpecies().isPresent()) {
+            return catchData.getCatchCount(playerKey, objective.targetSpecies().get().identifier());
+        }
+
+        Registry<net.minecraft.world.item.Item> items =
+                server.registryAccess().lookupOrThrow(BuiltInRegistries.ITEM.key());
+        Optional<TagKey<net.minecraft.world.item.Item>> includeTag = objective.targetSpeciesTag();
+        Optional<TagKey<net.minecraft.world.item.Item>> excludeTag = objective.excludeSpeciesTag();
+        if (includeTag.isEmpty() && excludeTag.isEmpty()) {
+            return catchData.getTotalCatchCount(playerKey);
+        }
+
+        return catchData.getCatchCountMatching(playerKey, speciesId ->
+                items.getOptional(speciesId)
+                        .map(item -> {
+                            Holder<net.minecraft.world.item.Item> holder = item.builtInRegistryHolder();
+                            if (includeTag.isPresent() && !holder.is(includeTag.get())) return false;
+                            return excludeTag.isEmpty() || !holder.is(excludeTag.get());
+                        })
+                        .orElse(false));
     }
 
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,

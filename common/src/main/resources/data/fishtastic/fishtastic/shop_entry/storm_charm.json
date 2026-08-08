@@ -1,0 +1,12 @@
+{
+  "display_name": "Storm Charm",
+  "description": "Snap it and the sky answers — a real thunderstorm for five minutes. One use only.",
+  "cost": 25,
+  "reward": [
+    {
+      "id": "fishtastic:storm_charm",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 2
+}

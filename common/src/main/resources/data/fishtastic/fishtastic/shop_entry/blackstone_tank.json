@@ -1,0 +1,21 @@
+{
+  "display_name": "Blackstone Fish Tank",
+  "description": "A blackstone-framed tank, earned for a complete Nether survey. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:polished_blackstone",
+          "sand": "minecraft:soul_sand",
+          "glass": "fishtastic:red_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:explorer/nether_collector"
+}

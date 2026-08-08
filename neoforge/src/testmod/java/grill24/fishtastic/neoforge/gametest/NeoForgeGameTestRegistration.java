@@ -1,7 +1,11 @@
 package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.gametest.CapstoneRewardGameTests;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
+import grill24.fishtastic.gametest.LifetimeQuestProgressGameTests;
+import grill24.fishtastic.gametest.QuestLogVisibilityGameTests;
+import grill24.fishtastic.gametest.QuestSatisfiabilityGameTests;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
@@ -16,6 +20,7 @@ import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
+import grill24.fishtastic.gametest.StormCharmGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -374,6 +379,71 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopNeverReplacesWithoutACharmPool);
         register(event, env, "get_active_daily_shop_handles_empty_main_pool_with_charms_only", 200,
             ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly);
+
+        register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
+            PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);
+
+        // ----- Storm Charm -----
+        register(event, env, "storm_charm_is_slottable_into_the_rod", 200,
+            StormCharmGameTests::stormCharmIsSlottableIntoTheRod);
+        register(event, env, "storm_charm_carries_no_charm_effect", 200,
+            StormCharmGameTests::stormCharmCarriesNoCharmEffect);
+        register(event, env, "storm_charm_stacks_unlike_rod_charms", 200,
+            StormCharmGameTests::stormCharmStacksUnlikeRodCharms);
+        register(event, env, "summoned_storm_is_read_as_thunder_by_quest_conditions", 200,
+            StormCharmGameTests::summonedStormIsReadAsThunderByQuestConditions);
+        register(event, env, "hand_use_charges_up_and_is_free_to_cancel", 200,
+            StormCharmGameTests::handUseChargesUpAndIsFreeToCancel);
+        register(event, env, "storm_duration_is_within_vanilla_thunder_range", 200,
+            StormCharmGameTests::stormDurationIsWithinVanillaThunderRange);
+
+        // ----- Quest content validation -----
+        register(event, env, "every_target_species_quest_is_satisfiable", 200,
+            QuestSatisfiabilityGameTests::everyTargetSpeciesQuestIsSatisfiable);
+        register(event, env, "every_prerequisite_resolves", 200,
+            QuestSatisfiabilityGameTests::everyPrerequisiteResolves);
+        register(event, env, "no_prerequisite_cycles", 200,
+            QuestSatisfiabilityGameTests::noPrerequisiteCycles);
+        register(event, env, "daily_pool_is_larger_than_the_draw_and_actually_rotates", 200,
+            QuestSatisfiabilityGameTests::dailyPoolIsLargerThanTheDrawAndActuallyRotates);
+        register(event, env, "lifetime_quests_carry_no_unreplayable_conditions", 200,
+            QuestSatisfiabilityGameTests::lifetimeQuestsCarryNoUnreplayableConditions);
+
+        // ----- Quest log visibility -----
+        register(event, env, "non_hidden_quest_is_always_listed", 200,
+            QuestLogVisibilityGameTests::nonHiddenQuestIsAlwaysListed);
+        register(event, env, "hidden_secret_stays_out_until_completed", 200,
+            QuestLogVisibilityGameTests::hiddenSecretStaysOutUntilCompleted);
+        register(event, env, "hidden_chain_quest_appears_once_prerequisite_claimed", 200,
+            QuestLogVisibilityGameTests::hiddenChainQuestAppearsOncePrerequisiteClaimed);
+        register(event, env, "completed_chain_quest_is_listed_even_if_prerequisite_unclaimed", 200,
+            QuestLogVisibilityGameTests::completedChainQuestIsListedEvenIfPrerequisiteUnclaimed);
+
+        // ----- Lifetime quest progress -----
+        register(event, env, "catch_count_matching_scopes_to_the_requested_species", 200,
+            LifetimeQuestProgressGameTests::catchCountMatchingScopesToTheRequestedSpecies);
+        register(event, env, "lifetime_counts_are_isolated_per_player", 200,
+            LifetimeQuestProgressGameTests::lifetimeCountsAreIsolatedPerPlayer);
+        register(event, env, "one_lifetime_total_satisfies_every_tier_it_has_passed", 200,
+            LifetimeQuestProgressGameTests::oneLifetimeTotalSatisfiesEveryTierItHasPassed);
+        register(event, env, "non_fish_catches_do_not_advance_lifetime_chains", 200,
+            LifetimeQuestProgressGameTests::nonFishCatchesDoNotAdvanceLifetimeChains);
+        register(event, env, "lifetime_compatibility_rejects_environmental_conditions", 200,
+            LifetimeQuestProgressGameTests::lifetimeCompatibilityRejectsEnvironmentalConditions);
+
+        // ----- Capstone rewards / unlock-gated shop -----
+        register(event, env, "gated_entries_are_absent_until_their_quest_is_claimed", 200,
+            CapstoneRewardGameTests::gatedEntriesAreAbsentUntilTheirQuestIsClaimed);
+        register(event, env, "gated_entries_can_appear_once_their_quest_is_claimed", 200,
+            CapstoneRewardGameTests::gatedEntriesCanAppearOnceTheirQuestIsClaimed);
+        register(event, env, "locked_entries_do_not_consume_shop_slots", 200,
+            CapstoneRewardGameTests::lockedEntriesDoNotConsumeShopSlots);
+        register(event, env, "gated_entry_sells_the_same_item_its_quest_granted", 200,
+            CapstoneRewardGameTests::gatedEntrySellsTheSameItemItsQuestGranted);
+        register(event, env, "unlock_gates_never_point_at_daily_quests", 200,
+            CapstoneRewardGameTests::unlockGatesNeverPointAtDailyQuests);
+        register(event, env, "capstone_tanks_carry_their_materials_component", 200,
+            CapstoneRewardGameTests::capstoneTanksCarryTheirMaterialsComponent);
 
         // ----- Creative tab tests -----
         register(event, env, "decorations_tab_contains_exactly_cosmetic_structures_and_decorations", 200,

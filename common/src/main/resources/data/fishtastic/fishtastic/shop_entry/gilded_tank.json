@@ -1,0 +1,21 @@
+{
+  "display_name": "Gilded Fish Tank",
+  "description": "A gilded-framed tank, earned for five legendary catches. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:gold_block",
+          "sand": "minecraft:red_sand",
+          "glass": "fishtastic:yellow_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:challenge/the_grand_haul"
+}

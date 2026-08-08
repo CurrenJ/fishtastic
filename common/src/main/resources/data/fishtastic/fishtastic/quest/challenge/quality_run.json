@@ -4,7 +4,15 @@
     "target_count": 3,
     "min_quality": "epic"
   },
-  "reward": { "quest_tokens": 25, "items": [] },
+  "reward": {
+    "quest_tokens": 25,
+    "items": [
+      {
+        "id": "fishtastic:crystal_ball_charm",
+        "count": 1
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Quality Run",
   "description": "Catch 3 fish at Epic quality or better."

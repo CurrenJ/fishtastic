@@ -16,6 +16,7 @@ import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
+import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Holder;
@@ -84,6 +85,7 @@ public class FishtasticItems {
     public static Holder<Item> CRYSTAL_BALL_CHARM;
     public static Holder<Item> FOUR_LEAF_CHARM;
     public static Holder<Item> LUNA_CHARM;
+    public static Holder<Item> STORM_CHARM;
     public static Holder<Item> BANANA_CHARM;
     public static Holder<Item> LITTLE_FISH_BOX;
     public static Holder<Item> ANGLERS_ALMANAC;
@@ -342,6 +344,10 @@ public class FishtasticItems {
         ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac",
                 loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.ANGLERS_ALMANAC)));
+        // Not a rod-slot charm and deliberately absent from FISHING_CHARMS — single-use, used
+        // from the hand, and it changes the world's weather for real. See StormCharmItem.
+        STORM_CHARM = RegistrationApiSided.getInstance().registerItem("storm_charm",
+                loc -> new StormCharmItem(props(loc).stacksTo(16)));
         LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box",
                 loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LITTLE_FISH_BOX)));

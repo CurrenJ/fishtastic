@@ -22,6 +22,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Persistent server-side storage for all-time fish catch statistics.
@@ -284,6 +285,31 @@ public class FishCatchSavedData extends SavedData {
         if (data == null) return 0;
         FishTypeData ftd = data.perFish.get(fishType);
         return ftd == null ? 0 : ftd.totalCatches;
+    }
+
+    /**
+     * Lifetime catches summed across every species the player has ever caught that passes
+     * {@code speciesFilter}. Backs lifetime-count quest objectives (see
+     * {@code QuestTracker#lifetimeProgress}), where a tiered chain reads a running total rather
+     * than incrementing its own per-tier counter.
+     * <p>
+     * Iterates the player's own recorded species rather than the objective's tag so the cost
+     * scales with what they've actually caught, and so a species that later leaves a tag stops
+     * counting without needing a migration.
+     */
+    public int getCatchCountMatching(UUID playerUuid, Predicate<Identifier> speciesFilter) {
+        PlayerCatchData data = playerData.get(playerUuid);
+        if (data == null) return 0;
+        int total = 0;
+        for (Map.Entry<Identifier, FishTypeData> e : data.perFish.entrySet()) {
+            if (speciesFilter.test(e.getKey())) total += e.getValue().totalCatches;
+        }
+        return total;
+    }
+
+    /** Lifetime catches across every species — the "catch N fish total" chain. */
+    public int getTotalCatchCount(UUID playerUuid) {
+        return getCatchCountMatching(playerUuid, id -> true);
     }
 
     public List<GlobalCatchCountEntry> getGlobalCatchCounts(Comparator<GlobalCatchCountEntry> order) {

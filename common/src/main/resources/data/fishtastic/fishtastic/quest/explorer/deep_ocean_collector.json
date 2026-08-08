@@ -6,7 +6,22 @@
     "distinct_species": true,
     "zone_condition": "deep_ocean"
   },
-  "reward": { "quest_tokens": 30, "items": [] },
+  "reward": {
+    "quest_tokens": 30,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:dark_prismarine",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:blue_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Abyssal Cartographer",
   "description": "Catch every species of fish lurking in the deep ocean."

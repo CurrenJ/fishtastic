@@ -3,10 +3,14 @@
   "objective": {
     "target_species_tag": "minecraft:fishes",
     "target_count": 50,
-    "notification_interval": 5
+    "notification_interval": 5,
+    "lifetime_count": true
   },
-  "reward": { "quest_tokens": 15, "items": [] },
+  "reward": {
+    "quest_tokens": 15,
+    "items": []
+  },
   "hidden": false,
   "display_name": "Angler Apprentice",
-  "description": "Catch 50 fish total."
+  "description": "Catch 50 fish in total."
 }

@@ -1,0 +1,21 @@
+{
+  "display_name": "Calcite Fish Tank",
+  "description": "A calcite-framed tank, earned for a complete high-altitude survey. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:calcite",
+          "sand": "minecraft:snow_block",
+          "glass": "fishtastic:white_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:explorer/high_altitude_collector"
+}

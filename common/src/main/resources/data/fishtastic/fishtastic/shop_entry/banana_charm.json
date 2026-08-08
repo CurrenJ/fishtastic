@@ -1,9 +1,15 @@
 {
   "display_name": "Banana Charm",
-  "description": "Attracts yellow-hued fish with a 1.5× affinity multiplier — banana for scale included.",
-  "cost": 20,
+  "description": "Attracts yellow-hued fish with a 1.5\u00d7 affinity multiplier \u2014 banana for scale included.",
+  "cost": 40,
   "weight": 0.15,
-  "reward": [{ "id": "fishtastic:banana_charm", "count": 1 }],
+  "reward": [
+    {
+      "id": "fishtastic:banana_charm",
+      "count": 1
+    }
+  ],
   "daily_max_purchases": 1,
-  "is_charm": true
+  "is_charm": true,
+  "unlock_quest": "fishtastic:mastery/bluegill_adept"
 }

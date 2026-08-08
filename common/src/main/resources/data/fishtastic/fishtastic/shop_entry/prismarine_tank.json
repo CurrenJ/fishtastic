@@ -1,0 +1,21 @@
+{
+  "display_name": "Prismarine Fish Tank",
+  "description": "A prismarine-framed tank, earned for a complete ocean survey. Only you can buy more.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:prismarine_bricks",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:cyan_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "daily_max_purchases": 1,
+  "unlock_quest": "fishtastic:explorer/ocean_collector"
+}

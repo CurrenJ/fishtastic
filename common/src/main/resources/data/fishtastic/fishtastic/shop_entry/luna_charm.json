@@ -1,9 +1,15 @@
 {
   "display_name": "Luna Charm",
   "description": "Forces night-fishing conditions regardless of time of day, with a +25%% multiplier under moonlight.",
-  "cost": 25,
+  "cost": 85,
   "weight": 0.15,
-  "reward": [{ "id": "fishtastic:luna_charm", "count": 1 }],
+  "reward": [
+    {
+      "id": "fishtastic:luna_charm",
+      "count": 1
+    }
+  ],
   "daily_max_purchases": 1,
-  "is_charm": true
+  "is_charm": true,
+  "unlock_quest": "fishtastic:challenge/ghost_ships_sting"
 }

@@ -4,7 +4,22 @@
     "target_count": 1,
     "min_quality": "legendary"
   },
-  "reward": { "quest_tokens": 50, "items": [] },
+  "reward": {
+    "quest_tokens": 50,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:amethyst_block",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:purple_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Legendary Seeker",
   "description": "Catch any fish at Legendary quality."

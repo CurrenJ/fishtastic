@@ -2,11 +2,16 @@
   "category": "mastery",
   "objective": {
     "target_species": "fishtastic:neon_tetra",
-    "target_count": 25
+    "target_count": 25,
+    "lifetime_count": true,
+    "notification_interval": 5
   },
-  "reward": { "quest_tokens": 40, "items": [] },
+  "reward": {
+    "quest_tokens": 40,
+    "items": []
+  },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/tetra_tracker",
   "display_name": "Tetra Scholar",
-  "description": "Catch 25 Neon Tetra total."
+  "description": "Catch 25 Neon Tetra in total."
 }

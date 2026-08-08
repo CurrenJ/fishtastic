@@ -1,0 +1,12 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:giant_manta_ray",
+    "target_count": 3,
+    "lifetime_count": true
+  },
+  "reward": { "quest_tokens": 55, "items": [] },
+  "hidden": false,
+  "display_name": "Manta Encounter",
+  "description": "Catch 3 Giant Manta Ray in total. They favour dusk and open ocean."
+}
