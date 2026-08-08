@@ -38,6 +38,7 @@ public final class CreativeTabGameTests {
 
         Set<Item> expected = new HashSet<>();
         expected.add(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+        expected.add(FishtasticItems.COSMETIC_LIT_CAMPFIRE.value());
         expected.add(FishtasticItems.COSMETIC_MOSSY_BOULDER.value());
         expected.add(FishtasticItems.COSMETIC_PETALS.value());
         expected.add(FishtasticItems.COSMETIC_SPRUCE_GAZEBO.value());

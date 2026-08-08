@@ -102,6 +102,15 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         return furnaceLastParticleTick;
     }
 
+    // Client-side only: game time a lit campfire cosmetic last spawned a smoke particle. Same
+    // reasoning as furnaceLastParticleTick above; single-cell cosmetics only need the grid cell
+    // itself as the key, not a compound part key.
+    private final transient Map<CosmeticGridCell, Long> campfireLastParticleTick = new HashMap<>();
+
+    public Map<CosmeticGridCell, Long> getCampfireLastParticleTick() {
+        return campfireLastParticleTick;
+    }
+
     /**
      * Get the frame block for this fish tank.
      */

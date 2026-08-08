@@ -103,6 +103,7 @@ public class FishtasticItems {
 
     // ----- Fish Tank Cosmetics -----
     public static Holder<Item> COSMETIC_TREASURE_CHEST;
+    public static Holder<Item> COSMETIC_LIT_CAMPFIRE;
     public static Holder<Item> COSMETIC_MOSSY_BOULDER;
     public static Holder<Item> COSMETIC_PETALS;
     public static Holder<Item> COSMETIC_SPRUCE_GAZEBO;
@@ -365,6 +366,8 @@ public class FishtasticItems {
         // Fish tank cosmetics — custom items for quest rewards / rare drops
         COSMETIC_TREASURE_CHEST = RegistrationApiSided.getInstance().registerItem("cosmetic_treasure_chest",
                 loc -> new FishTankCosmeticItem(Blocks.CHEST, props(loc).stacksTo(1)));
+        COSMETIC_LIT_CAMPFIRE = RegistrationApiSided.getInstance().registerItem("cosmetic_lit_campfire",
+                loc -> new FishTankCosmeticItem(Blocks.CAMPFIRE, props(loc).stacksTo(1)));
         COSMETIC_MOSSY_BOULDER = RegistrationApiSided.getInstance().registerItem("cosmetic_mossy_boulder",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("mossy_boulder")),

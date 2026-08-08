@@ -1,0 +1,7 @@
+{
+  "display_name": "Lit Campfire",
+  "description": "A tiny crackling campfire for your fish tank, with a rising wisp of smoke.",
+  "cost": 20,
+  "reward": [{ "id": "fishtastic:cosmetic_lit_campfire", "count": 1 }],
+  "daily_max_purchases": 1
+}

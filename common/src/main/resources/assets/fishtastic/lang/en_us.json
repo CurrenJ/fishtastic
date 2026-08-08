@@ -170,6 +170,7 @@
   "key.fishtastic.toggle_fish_tank_edit_mode": "Toggle Fish Tank Edit Mode",
   "key.fishtastic.open_fish_encyclopedia": "Open Fish Encyclopedia",
   "item.fishtastic.cosmetic_treasure_chest": "Treasure Chest",
+  "item.fishtastic.cosmetic_lit_campfire": "Lit Campfire",
   "item.fishtastic.cosmetic_mossy_boulder": "Mossy Boulder",
   "item.fishtastic.cosmetic_petals": "Pink Petals",
   "item.fishtastic.cosmetic_vintage_vine": "Vintage Vine",
@@ -305,7 +306,7 @@
   "tutorial.fishtastic.shop_browse.hint": "That's all! Happy fishing!",
   "item.fishtastic.storm_charm": "Storm Charm",
   "tooltip.fishtastic.storm_charm.summons": "Summons a thunderstorm for %s minutes",
-  "tooltip.fishtastic.storm_charm.single_use": "Hold to call it down — consumed on use",
+  "tooltip.fishtastic.storm_charm.single_use": "Single-use consumable",
   "message.fishtastic.storm_charm.no_sky": "There is no sky here to answer.",
   "message.fishtastic.storm_charm.weather_frozen": "The weather is held fast — a storm summoned now would never pass.",
   "message.fishtastic.storm_charm.already_storming": "The storm is already upon you."

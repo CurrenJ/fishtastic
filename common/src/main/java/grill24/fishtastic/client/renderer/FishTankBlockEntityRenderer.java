@@ -46,6 +46,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractFurnaceBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -95,6 +96,10 @@ public class FishTankBlockEntityRenderer
     // every-tick rate since these cosmetics render far smaller than a real furnace.
     private static final int FURNACE_PARTICLE_INTERVAL_TICKS = 10;
 
+    // Lit-campfire single-cell cosmetic: smoke spawn interval, same reasoning as the furnace family.
+    // Tighter than the furnace's 10-tick interval since the smoke is the cosmetic's whole visual hook.
+    private static final int CAMPFIRE_SMOKE_INTERVAL_TICKS = 5;
+
     // Usable half-width inside the tank walls for swarm scatter (block units from centre).
     private static final float TANK_HALF_EXTENT = 0.35f;
     // Minimum 3D separation between swarm fish before rejection sampling gives up.
@@ -132,6 +137,7 @@ public class FishTankBlockEntityRenderer
         if (level instanceof ClientLevel clientLevel) {
             spawnDueChestBubbles(clientLevel, blockEntity.getBlockPos(), blockPosHash, state);
             spawnDueFurnaceParticles(clientLevel, blockEntity, state);
+            spawnDueCampfireSmoke(clientLevel, blockEntity, state);
         }
 
         // Resolve swarm config from the first non-empty item's fish profile.
@@ -626,6 +632,52 @@ public class FishTankBlockEntityRenderer
 
         level.addParticle(FishtasticParticleTypes.MINI_SMOKE.value(), x + dx, y + dy, z + dz, 0.0, 0.0, 0.0);
         level.addParticle(FishtasticParticleTypes.MINI_FLAME.value(), x + dx, y + dy, z + dz, 0.0, 0.0, 0.0);
+    }
+
+    /**
+     * Mirrors {@link #spawnDueFurnaceParticles} for the single-cell lit-campfire cosmetic: periodically
+     * spawns the soft rising campfire-smoke puff (not the furnace family's ash particle — vanilla's own
+     * campfire doesn't spawn that from its fire either) while {@code LIT} is true. Throttle state lives
+     * on {@code blockEntity}, not {@link FishTankRenderState}, for the same reason furnace particles do.
+     */
+    private static void spawnDueCampfireSmoke(ClientLevel level, FishTankBlockEntity blockEntity, FishTankRenderState state) {
+        BlockPos blockPos = blockEntity.getBlockPos();
+        Map<CosmeticGridCell, Long> lastParticleTick = blockEntity.getCampfireLastParticleTick();
+        long gameTime = level.getGameTime();
+
+        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : state.cosmetics.entrySet()) {
+            PlacedCosmetic cosmetic = entry.getValue();
+            if (cosmetic.block() != Blocks.CAMPFIRE || !cosmetic.blockState().getValue(CampfireBlock.LIT)) continue;
+
+            CosmeticGridCell cell = entry.getKey();
+            Long lastSpawnTick = lastParticleTick.get(cell);
+            if (lastSpawnTick != null && gameTime - lastSpawnTick < CAMPFIRE_SMOKE_INTERVAL_TICKS) continue;
+
+            lastParticleTick.put(cell, gameTime);
+            spawnCampfireSmoke(level, blockPos, cell);
+        }
+    }
+
+    /**
+     * Scaled-down replica of vanilla {@code CampfireBlock.makeParticles}' smoke spawn geometry. The
+     * flame quads in {@code block/template_campfire}'s model span local Y 1–17 (of 16, i.e. roughly
+     * the upper two-thirds of the model up to just above it), so the jitter is centered on the flame's
+     * upper half rather than the model's base — spawning down at the logs would read as smoke coming
+     * from nowhere, blended into the fire.
+     */
+    private static void spawnCampfireSmoke(ClientLevel level, BlockPos blockPos, CosmeticGridCell cell) {
+        CosmeticTransforms.Transform transform = CosmeticTransforms.get(Blocks.CAMPFIRE);
+        float scale = transform.scale();
+        double x = blockPos.getX() + cell.localX() + transform.offsetX();
+        double y = blockPos.getY() + COSMETIC_FLOOR_Y + transform.offsetY();
+        double z = blockPos.getZ() + cell.localZ() + transform.offsetZ();
+
+        RandomSource random = level.getRandom();
+        double dx = (random.nextDouble() * 0.6 - 0.3) * scale;
+        double dy = (0.6 + random.nextDouble() * 0.5) * scale;
+        double dz = (random.nextDouble() * 0.6 - 0.3) * scale;
+
+        level.addParticle(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), x + dx, y + dy, z + dz, 0.0, 0.0, 0.0);
     }
 
     /** Walks upward through tanks connected via an open UP face, so bubbles rise to the true top of a vertical stack. */

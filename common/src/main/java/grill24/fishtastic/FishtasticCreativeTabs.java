@@ -122,6 +122,7 @@ public class FishtasticCreativeTabs {
                 .builder(CreativeModeTab.Row.TOP, 8)
                 .displayItems((parameters, output) -> {
                     output.accept(FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+                    output.accept(FishtasticItems.COSMETIC_LIT_CAMPFIRE.value());
                     output.accept(FishtasticItems.COSMETIC_MOSSY_BOULDER.value());
                     output.accept(FishtasticItems.COSMETIC_PETALS.value());
                     output.accept(FishtasticItems.COSMETIC_SPRUCE_GAZEBO.value());
