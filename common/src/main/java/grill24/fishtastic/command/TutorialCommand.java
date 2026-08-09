@@ -2,9 +2,11 @@ package grill24.fishtastic.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import grill24.fishtastic.network.EncyclopediaTutorialSyncPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
+import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
 import net.minecraft.ChatFormatting;
@@ -49,12 +51,14 @@ public class TutorialCommand {
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
         data.setTutorialStep(player, TutorialStep.WAITING_FOR_CAST);
+        data.setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.NOT_STARTED);
 
         PlayerQuestState questState = data.getOrCreateQuestState(player);
         questState.resetProgress(TutorialManager.TUTORIAL_QUEST_KEY);
 
-        // Sync both tutorial step and quest state to client
+        // Sync tutorial step, encyclopedia tutorial step, and quest state to client
         grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.WAITING_FOR_CAST);
+        EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.NOT_STARTED);
         QuestSyncPacket.sendToPlayer(player, data);
 
         ctx.getSource().sendSuccess(() -> Component.literal(

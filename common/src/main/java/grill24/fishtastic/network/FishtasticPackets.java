@@ -26,6 +26,8 @@ public class FishtasticPackets {
     public static final Identifier FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
     public static final Identifier CLAIM_ENCYCLOPEDIA_REWARD_ID = Fishtastic.id("claim_encyclopedia_reward");
     public static final Identifier COSMETIC_CAPTURE_SYNC_ID = Fishtastic.id("cosmetic_capture_sync");
+    public static final Identifier ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
+    public static final Identifier ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -89,6 +91,11 @@ public class FishtasticPackets {
                 ClaimEncyclopediaRewardPacket.STREAM_CODEC,
                 ClaimEncyclopediaRewardPacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                EncyclopediaTutorialAdvancePacket.TYPE,
+                EncyclopediaTutorialAdvancePacket.STREAM_CODEC,
+                EncyclopediaTutorialAdvancePacket::handleClientToServer
+        );
     }
 
     /**
@@ -125,6 +132,11 @@ public class FishtasticPackets {
                 CosmeticCaptureSyncPacket.STREAM_CODEC,
                 CosmeticCaptureSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                EncyclopediaTutorialSyncPacket.TYPE,
+                EncyclopediaTutorialSyncPacket.STREAM_CODEC,
+                EncyclopediaTutorialSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -142,6 +154,7 @@ public class FishtasticPackets {
         registrar.accept(TutorialSyncPacket.TYPE, TutorialSyncPacket.STREAM_CODEC);
         registrar.accept(FishEncyclopediaSyncPacket.TYPE, FishEncyclopediaSyncPacket.STREAM_CODEC);
         registrar.accept(CosmeticCaptureSyncPacket.TYPE, CosmeticCaptureSyncPacket.STREAM_CODEC);
+        registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
     }
 
     /**

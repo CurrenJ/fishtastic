@@ -6,6 +6,7 @@ import grill24.fishtastic.gametest.CreativeTabGameTests;
 import grill24.fishtastic.gametest.LifetimeQuestProgressGameTests;
 import grill24.fishtastic.gametest.QuestLogVisibilityGameTests;
 import grill24.fishtastic.gametest.QuestSatisfiabilityGameTests;
+import grill24.fishtastic.gametest.EncyclopediaTutorialManagerGameTests;
 import grill24.fishtastic.gametest.FishCatchDataGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
@@ -273,6 +274,18 @@ public class NeoForgeGameTestRegistration {
             helper -> TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "on_quest_claimed_only_advances_on_matching_tutorial_quest_id", 200,
             helper -> TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- EncyclopediaTutorialManager tests -----
+        register(event, env, "opening_encyclopedia_from_not_started_starts_intro", 200,
+            helper -> EncyclopediaTutorialManagerGameTests.openingEncyclopediaFromNotStartedStartsIntro(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "reopening_encyclopedia_while_in_progress_is_idempotent", 200,
+            helper -> EncyclopediaTutorialManagerGameTests.reopeningEncyclopediaWhileInProgressIsIdempotent(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "opening_encyclopedia_after_complete_does_not_restart", 200,
+            helper -> EncyclopediaTutorialManagerGameTests.openingEncyclopediaAfterCompleteDoesNotRestart(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "encyclopedia_advance_step_no_op_when_from_step_does_not_match_current", 200,
+            helper -> EncyclopediaTutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "encyclopedia_tutorial_walks_full_chain_to_completion", 200,
+            helper -> EncyclopediaTutorialManagerGameTests.encyclopediaTutorialWalksFullChainToCompletion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- QuestTracker tests -----
         register(event, env, "target_species_gates_match_when_present", 200,

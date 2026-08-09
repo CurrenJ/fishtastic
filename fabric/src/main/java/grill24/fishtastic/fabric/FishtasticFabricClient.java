@@ -6,11 +6,13 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
+import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
+import grill24.fishtastic.network.EncyclopediaTutorialSyncPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -107,6 +109,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
+        // Register encyclopedia tutorial sync packet client handler
+        EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
                 FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
@@ -148,6 +153,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             QuestClientCache.reset();
             TutorialClientHandler.reset();
+            EncyclopediaTutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
             CosmeticCaptureClientState.reset();
         });
@@ -167,6 +173,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 TutorialClientHandler.tick();
+                EncyclopediaTutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
                 // Tick quest progress notifications
@@ -208,6 +215,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
                 TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
+                EncyclopediaTutorialClientHandler.render(graphics, tickProgress);
             });
         });
 

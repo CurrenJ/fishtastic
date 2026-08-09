@@ -5,11 +5,13 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
+import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
+import grill24.fishtastic.network.EncyclopediaTutorialSyncPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -79,6 +81,9 @@ public final class FishtasticNeoForgeClient {
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
+
+        // Register encyclopedia tutorial sync packet client handler
+        EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -196,6 +201,7 @@ public final class FishtasticNeoForgeClient {
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
         QuestClientCache.reset();
         TutorialClientHandler.reset();
+        EncyclopediaTutorialClientHandler.reset();
         FishEncyclopediaClientCache.reset();
         CosmeticCaptureClientState.reset();
     }
@@ -223,6 +229,7 @@ public final class FishtasticNeoForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             TutorialClientHandler.tick();
+            EncyclopediaTutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications
@@ -239,6 +246,7 @@ public final class FishtasticNeoForgeClient {
 
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         TutorialClientHandler.renderScreenOverlay(event.getGuiGraphics(), event.getPartialTick());
+        EncyclopediaTutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick());
     }
 
     public static void onRenderGui(RenderGuiEvent.Post event) {

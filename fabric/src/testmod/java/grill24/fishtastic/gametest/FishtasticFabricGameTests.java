@@ -510,6 +510,35 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // EncyclopediaTutorialManager tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void openingEncyclopediaFromNotStartedStartsIntro(GameTestHelper helper) {
+        EncyclopediaTutorialManagerGameTests.openingEncyclopediaFromNotStartedStartsIntro(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void reopeningEncyclopediaWhileInProgressIsIdempotent(GameTestHelper helper) {
+        EncyclopediaTutorialManagerGameTests.reopeningEncyclopediaWhileInProgressIsIdempotent(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void openingEncyclopediaAfterCompleteDoesNotRestart(GameTestHelper helper) {
+        EncyclopediaTutorialManagerGameTests.openingEncyclopediaAfterCompleteDoesNotRestart(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void encyclopediaAdvanceStepNoOpWhenFromStepDoesNotMatchCurrent(GameTestHelper helper) {
+        EncyclopediaTutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void encyclopediaTutorialWalksFullChainToCompletion(GameTestHelper helper) {
+        EncyclopediaTutorialManagerGameTests.encyclopediaTutorialWalksFullChainToCompletion(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    // -------------------------------------------------------------------------
     // QuestTracker tests  (pure matching logic + throwaway registry, no player needed)
     // -------------------------------------------------------------------------
 

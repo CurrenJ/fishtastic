@@ -6,6 +6,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -172,6 +173,7 @@ public class FishCatchSavedData extends SavedData {
     private final Map<UUID, PlayerCatchData> playerData = new HashMap<>();
     private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
     private final Map<UUID, TutorialStep> tutorialSteps = new HashMap<>();
+    private final Map<UUID, EncyclopediaTutorialStep> encyclopediaTutorialSteps = new HashMap<>();
     private CleanupGoalState cleanupGoal = new CleanupGoalState();
 
     // -------------------------------------------------------------------------
@@ -185,13 +187,16 @@ public class FishCatchSavedData extends SavedData {
                     .optionalFieldOf("quest_states", Map.of()).forGetter(d -> new HashMap<>(d.questStates)),
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, TutorialStep.CODEC)
                     .optionalFieldOf("tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.tutorialSteps)),
-            CleanupGoalState.CODEC.optionalFieldOf("cleanup_goal", new CleanupGoalState()).forGetter(d -> d.cleanupGoal)
-        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal) -> {
+            CleanupGoalState.CODEC.optionalFieldOf("cleanup_goal", new CleanupGoalState()).forGetter(d -> d.cleanupGoal),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, EncyclopediaTutorialStep.CODEC)
+                    .optionalFieldOf("encyclopedia_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.encyclopediaTutorialSteps))
+        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal, encyclopediaTutorialMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
             data.questStates.putAll(questMap);
             data.tutorialSteps.putAll(tutorialMap);
             data.cleanupGoal = cleanupGoal;
+            data.encyclopediaTutorialSteps.putAll(encyclopediaTutorialMap);
             return data;
         })
     );
@@ -387,6 +392,22 @@ public class FishCatchSavedData extends SavedData {
     public void setTutorialStep(net.minecraft.server.level.ServerPlayer player, TutorialStep step) {
         UUID key = resolvePlayerKey(player);
         tutorialSteps.put(key, step);
+        setDirty();
+    }
+
+    // -------------------------------------------------------------------------
+    // Encyclopedia tutorial state API — separate FTUE from the main fishing tutorial above,
+    // see EncyclopediaTutorialManager for why it's a distinct state machine.
+    // -------------------------------------------------------------------------
+
+    public EncyclopediaTutorialStep getEncyclopediaTutorialStep(net.minecraft.server.level.ServerPlayer player) {
+        UUID key = resolvePlayerKey(player);
+        return encyclopediaTutorialSteps.getOrDefault(key, EncyclopediaTutorialStep.NOT_STARTED);
+    }
+
+    public void setEncyclopediaTutorialStep(net.minecraft.server.level.ServerPlayer player, EncyclopediaTutorialStep step) {
+        UUID key = resolvePlayerKey(player);
+        encyclopediaTutorialSteps.put(key, step);
         setDirty();
     }
 

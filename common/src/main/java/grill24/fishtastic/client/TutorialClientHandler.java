@@ -170,11 +170,18 @@ public class TutorialClientHandler {
         renderTextBox(graphics, mc, sw, sh, partialTick);
     }
 
-    /** Called after the screen renders so the text box appears on top of the quest/shop UI. */
+    /**
+     * Called after the screen renders so the text box appears on top of the quest/shop UI.
+     * Gated to {@link QuestLogScreen} specifically — this hook fires after any screen renders,
+     * and without the check a step that outlives its screen (player closes the Quest Log before
+     * the auto-advance timer fires, then opens something else, e.g. the Fish Encyclopedia) would
+     * bleed the box onto whatever they open next.
+     */
     public static void renderScreenOverlay(GuiGraphicsExtractor graphics, float partialTick) {
         if (!isScreenStep()) return;
 
         Minecraft mc = Minecraft.getInstance();
+        if (!(mc.screen instanceof QuestLogScreen)) return;
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
@@ -313,8 +320,9 @@ public class TutorialClientHandler {
             case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.body");
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.body");
             case MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.body");
-            case MINIGAME_CATCH   -> Component.translatable("tutorial.fishtastic.minigame_catch.body");
-            case CATCH_RESULT     -> Component.translatable("tutorial.fishtastic.catch_result.body");
+            case MINIGAME_CATCH   -> null; // title alone ("Keep the overlap going!") already says it; body would just repeat it
+            case CATCH_RESULT     -> Component.translatable("tutorial.fishtastic.catch_result.body",
+                    FishtasticKeyBinds.openFishEncyclopedia.getTranslatedKeyMessage());
             case QUEST_INTRO      -> Component.translatable("tutorial.fishtastic.quest_intro.body",
                     FishtasticKeyBinds.openQuestLog.getTranslatedKeyMessage());
             case QUEST_CLAIM      -> Component.translatable("tutorial.fishtastic.quest_claim.body");
@@ -327,11 +335,14 @@ public class TutorialClientHandler {
         return switch (step) {
             case BAIT_LOAD        -> Component.translatable("tutorial.fishtastic.bait_load.hint");
             case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.hint");
-            case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.hint");
+            case HOOK_IN_WATER    -> null; // body ("Wait for a bite — then reel in!") already says it
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.hint");
-            case MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.hint");
-            case MINIGAME_CATCH   -> null;
-            case CATCH_RESULT     -> Component.translatable("tutorial.fishtastic.catch_result.hint");
+            case MINIGAME_CONTROL -> FishtasticKeyBinds.fishingMinigameImpulse.isUnbound()
+                    ? Component.translatable("tutorial.fishtastic.minigame_control.hint")
+                    : Component.translatable("tutorial.fishtastic.minigame_control.hint_with_key",
+                            FishtasticKeyBinds.fishingMinigameImpulse.getTranslatedKeyMessage());
+            case MINIGAME_CATCH   -> Component.translatable("tutorial.fishtastic.minigame_catch.hint");
+            case CATCH_RESULT     -> null; // encyclopedia key mention moved into the body
             case QUEST_INTRO      -> Component.translatable("tutorial.fishtastic.quest_intro.hint",
                     FishtasticKeyBinds.openQuestLog.getTranslatedKeyMessage());
             case QUEST_CLAIM      -> Component.translatable("tutorial.fishtastic.quest_claim.hint");
