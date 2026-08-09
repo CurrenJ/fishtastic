@@ -1,0 +1,10 @@
+{
+  "lore": "Coiled and half-hidden in the murk, the electric eel needs no speed to hunt -- a jolt from specialized organs along its flank is enough to stun anything foolish enough to drift too close.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

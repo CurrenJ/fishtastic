@@ -1,0 +1,8 @@
+{
+  "base_weight": 8,
+  "size": { "mean": 35.0, "std_dev": 8.0 },
+  "zones": [
+    "river"
+  ],
+  "temperament": "fishtastic:aggressive"
+}

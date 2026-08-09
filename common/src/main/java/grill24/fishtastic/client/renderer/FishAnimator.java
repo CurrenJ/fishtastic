@@ -44,7 +44,7 @@ public final class FishAnimator {
         float surfAngle = getSurfingAngle(random, t, cfg.bobAmplitude(), hertz) * cfg.surfFactor();
         float yWiggle = getOrganicWiggle(random, t) * cfg.wiggleScale();
         poseStack.mulPose(Axis.YP.rotationDegrees(yWiggle));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(surfAngle + 45f));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(surfAngle + (cfg.diagonalTexture() ? 45f : 0f)));
     }
 
     private static void applyUprightFloat(PoseStack poseStack, FishAnimationConfig.UprightFloat cfg,

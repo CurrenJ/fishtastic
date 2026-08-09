@@ -1,0 +1,11 @@
+{
+  "base_weight": 4,
+  "size": { "mean": 95.0, "std_dev": 20.0 },
+  "zones": [
+    "high_altitude"
+  ],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 1.4 }
+  ],
+  "temperament": "fishtastic:aggressive"
+}

@@ -1,0 +1,15 @@
+{
+  "base_weight": 15,
+  "size": { "mean": 25.0, "std_dev": 6.0 },
+  "zones": [
+    "river"
+  ],
+  "temperament": "fishtastic:erratic",
+  "swarm": {
+    "count": 5,
+    "depth_layers": 2,
+    "xz_spread": 0.24,
+    "y_range": 0,
+    "rotation_jitter": 0
+  }
+}

@@ -39,15 +39,21 @@ public sealed interface FishAnimationConfig
             float bobAmplitude,
             float bobHertz,
             float wiggleScale,
-            float surfFactor
+            float surfFactor,
+            boolean diagonalTexture
     ) implements FishAnimationConfig {
-        public static final HorizontalSwim DEFAULT = new HorizontalSwim(0.125f, 0.08f, 0.5f, 0.12f);
+        public static final HorizontalSwim DEFAULT = new HorizontalSwim(0.125f, 0.08f, 0.5f, 0.12f, true);
 
         static final MapCodec<HorizontalSwim> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("bob_amplitude", 0.125f).forGetter(HorizontalSwim::bobAmplitude),
                 Codec.FLOAT.optionalFieldOf("bob_hertz",     0.08f ).forGetter(HorizontalSwim::bobHertz),
                 Codec.FLOAT.optionalFieldOf("wiggle_scale",  0.5f  ).forGetter(HorizontalSwim::wiggleScale),
-                Codec.FLOAT.optionalFieldOf("surf_factor",   0.12f ).forGetter(HorizontalSwim::surfFactor)
+                Codec.FLOAT.optionalFieldOf("surf_factor",   0.12f ).forGetter(HorizontalSwim::surfFactor),
+                // See UprightFloat.diagonalTexture: most fish textures are painted diagonally
+                // (facing the top-right corner, like vanilla Cod/Salmon), so a +45° roll is needed
+                // to lay them horizontal. Set false for a texture already painted facing straight
+                // right, to render with no extra roll at all.
+                Codec.BOOL.optionalFieldOf("diagonal_texture", true ).forGetter(HorizontalSwim::diagonalTexture)
         ).apply(i, HorizontalSwim::new));
 
         @Override public String modeName() { return "horizontal_swim"; }

@@ -1,0 +1,13 @@
+{
+  "base_weight": 2,
+  "size": { "mean": 65.0, "std_dev": 15.0 },
+  "zones": [
+    "river",
+    "cave"
+  ],
+  "temperament": "fishtastic:aggressive",
+  "animation": {
+    "mode": "horizontal_swim",
+    "diagonal_texture": false
+  }
+}
