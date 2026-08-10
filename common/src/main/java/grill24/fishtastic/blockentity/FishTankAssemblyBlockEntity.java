@@ -26,8 +26,8 @@ import org.jetbrains.annotations.Nullable;
 public class FishTankAssemblyBlockEntity extends BlockEntity implements Container, MenuProvider {
     public static final int CONTAINER_SIZE = 3;
     public static final int FRAME_SLOT = 0;
-    public static final int SAND_SLOT = 1;
-    public static final int GLASS_SLOT = 2;
+    public static final int GLASS_SLOT = 1;
+    public static final int SAND_SLOT = 2;
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
 

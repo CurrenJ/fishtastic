@@ -305,29 +305,28 @@ public class FishtasticItems {
         SMALL_FISH_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, 0.05f, 0.1f, 1, 1.0f, 0.25f,
+                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 1, 1.0f, 0.25f,
                                 Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 2.0f, 0.3f, 0.35f))))));
         CALM_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, 0.10f, 0.1f, 0, 1.0f, 0.25f,
+                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
                                 Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 2.0f, 0.3f, 0.4f))))));
         // multiplier raised 1.5->2.2 (and, for Trophy Bait, rarityExponent steepened 0.6->0.45)
-        // per the 2026-07-24 bait balance audit: at the old values both baits were mathematically
-        // dominated by Gummy Worms across most or all of their own target group, since Gummy
-        // Worms' flat 2.0x modFishMultiplier applied everywhere beat a weaker in-group-only
-        // multiplier. The new values win Frenzy/Trophy Bait back their group's rare/uncommon
-        // members (crossover point vs Gummy Worms now sits around base_weight 12-13, up from
-        // ~4.4 for Frenzy and ~0.6 for Trophy) — see [[feedback_fish_multiplier_cap]] memory.
+        // per the 2026-07-24 bait balance audit: Gummy Worms' rarityFlattening=0.85 was
+        // dominating both baits' rare/uncommon tag-mates. New values move the crossover point
+        // vs Gummy Worms to base_weight ~12-13 (up from ~4.4 for Frenzy, ~0.6 for Trophy) — see
+        // [[feedback_fish_multiplier_cap]] memory. (Not Gummy Worms' modFishMultiplier — that's
+        // a flat pool-wide scalar, inert against anything; see its field doc.)
         FRENZY_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, 0.10f, 0.1f, 0, 1.0f, 0.25f,
+                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
                                 Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 2.2f, 0.3f, 0.35f))))));
         TROPHY_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, 0.15f, 0.1f, -1, 1.0f, 0.25f,
+                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, -1, 1.0f, 0.25f,
                                 Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 2.2f, 0.3f, 0.45f))))));
 
         // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance

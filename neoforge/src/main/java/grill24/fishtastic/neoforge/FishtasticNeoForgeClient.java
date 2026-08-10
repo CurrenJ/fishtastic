@@ -35,8 +35,8 @@ import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.TankCosmeticTooltip;
 import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
-import grill24.fishtastic.client.tooltip.ClientRodBaitTooltip;
-import grill24.fishtastic.client.tooltip.RodBaitTooltip;
+import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
+import grill24.fishtastic.client.tooltip.RodGearTooltip;
 import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
 import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -174,7 +174,7 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void registerTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
-        event.register(RodBaitTooltip.class, tooltip -> new ClientRodBaitTooltip(tooltip.bait()));
+        event.register(RodGearTooltip.class, tooltip -> new ClientRodGearTooltip(tooltip.bait(), tooltip.hook(), tooltip.charm()));
     }
 
     // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system

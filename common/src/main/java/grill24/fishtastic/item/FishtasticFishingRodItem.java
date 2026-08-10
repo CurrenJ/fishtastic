@@ -3,7 +3,7 @@ package grill24.fishtastic.item;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.tutorial.TutorialManager;
-import grill24.fishtastic.client.tooltip.RodBaitTooltip;
+import grill24.fishtastic.client.tooltip.RodGearTooltip;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.HookEffect;
@@ -209,11 +209,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
 
     @Override
     public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
-        ItemStack bait = getBait(stack);
-        if (!bait.isEmpty()) {
-            return Optional.of(new RodBaitTooltip(bait));
-        }
-        return Optional.empty();
+        return Optional.of(new RodGearTooltip(getBait(stack), getHook(stack), getCharm(stack)));
     }
 
     @Override
@@ -221,14 +217,11 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
                                  Consumer<Component> builder, TooltipFlag flag) {
         super.appendHoverText(stack, context, display, builder, flag);
 
-        String descriptionId = this.getDescriptionId();
-
-        // Bait
+        // Bait — empty slot is communicated by the ghost icon in the tooltip image, not text.
         ItemStack bait = getBait(stack);
-        if (bait.isEmpty()) {
-            builder.accept(Component.translatable(descriptionId + ".no_bait")
-                    .withStyle(ChatFormatting.GRAY));
-        } else {
+        if (!bait.isEmpty()) {
+            builder.accept(Component.literal(bait.getHoverName().getString())
+                    .withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE));
             BaitEffect baitEffect = BaitEffect.fromStack(bait);
             if (baitEffect != null) {
                 baitEffect.tooltipLines().forEach(builder);
@@ -237,12 +230,9 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
 
         // Hook
         ItemStack hook = getHook(stack);
-        if (hook.isEmpty()) {
-            builder.accept(Component.translatable(descriptionId + ".no_hook")
-                    .withStyle(ChatFormatting.GRAY));
-        } else {
+        if (!hook.isEmpty()) {
             builder.accept(Component.literal(hook.getHoverName().getString())
-                    .withStyle(ChatFormatting.YELLOW));
+                    .withStyle(ChatFormatting.YELLOW, ChatFormatting.UNDERLINE));
             HookEffect hookEffect = hook.get(FishtasticDataComponents.HOOK_EFFECT.value());
             if (hookEffect != null) {
                 hookEffect.tooltipLines().forEach(builder);
@@ -251,12 +241,9 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
 
         // Charm
         ItemStack charm = getCharm(stack);
-        if (charm.isEmpty()) {
-            builder.accept(Component.translatable(descriptionId + ".no_charm")
-                    .withStyle(ChatFormatting.GRAY));
-        } else {
+        if (!charm.isEmpty()) {
             builder.accept(Component.literal(charm.getHoverName().getString())
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+                    .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.UNDERLINE));
             CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
             if (charmEffect != null) {
                 charmEffect.tooltipLines().forEach(builder);

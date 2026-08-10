@@ -169,9 +169,10 @@ public final class ItemComponentGameTests {
     public static void baitEffectWormsPreset(GameTestHelper helper) {
         BaitEffect worms = BaitEffect.WORMS;
         helper.assertTrue(worms.luckBonus() == 0.0f,        "WORMS luckBonus must be 0.0");
-        helper.assertTrue(worms.treasureChance() == 0.10f,  "WORMS treasureChance must be 0.10");
+        helper.assertTrue(worms.treasureChance() == BaitEffect.DEFAULT_TREASURE_CHANCE,
+            "WORMS treasureChance must be left at the default (" + BaitEffect.DEFAULT_TREASURE_CHANCE + ")");
         helper.assertTrue(worms.targetCountBonus() == 1,    "WORMS targetCountBonus must be 1");
-        helper.assertTrue(worms.modFishMultiplier() == 1.25f, "WORMS modFishMultiplier must be 1.25");
+        helper.assertTrue(worms.modFishMultiplier() == 1.0f, "WORMS modFishMultiplier must be 1.0 (no-op — see BaitEffect field doc)");
         helper.assertTrue(worms.qualityBias() == 0.0f,      "WORMS qualityBias must be 0.0");
         helper.assertTrue(worms.exclusiveFishPool().isEmpty(), "WORMS must have no exclusive pool");
         helper.succeed();
@@ -220,17 +221,17 @@ public final class ItemComponentGameTests {
     }
 
     /**
-     * Each preset's trashChance matches the documented balance value — trash competes against the
-     * combined fish pool, so NO_BAIT (the rarest mod-fish baseline) carries the highest trash risk,
-     * while the exotic-fish specialist BLAZED_GRUB carries none.
+     * Each preset's trashChance matches the documented balance value — NO_BAIT deliberately
+     * carries a high trash rate to discourage bare-hook treasure farming, WORMS/GUMMY_WORMS are
+     * left at the shared default, and the exotic-fish specialist BLAZED_GRUB carries none.
      */
     public static void baitEffectTrashChancePresets(GameTestHelper helper) {
-        helper.assertTrue(BaitEffect.NO_BAIT.trashChance() == 0.12f,
-            "NO_BAIT trashChance must be 0.12, got " + BaitEffect.NO_BAIT.trashChance());
-        helper.assertTrue(BaitEffect.WORMS.trashChance() == 0.05f,
-            "WORMS trashChance must be 0.05, got " + BaitEffect.WORMS.trashChance());
-        helper.assertTrue(BaitEffect.GUMMY_WORMS.trashChance() == 0.05f,
-            "GUMMY_WORMS trashChance must be 0.05, got " + BaitEffect.GUMMY_WORMS.trashChance());
+        helper.assertTrue(BaitEffect.NO_BAIT.trashChance() == 0.5f,
+            "NO_BAIT trashChance must be 0.5, got " + BaitEffect.NO_BAIT.trashChance());
+        helper.assertTrue(BaitEffect.WORMS.trashChance() == BaitEffect.DEFAULT_TRASH_CHANCE,
+            "WORMS trashChance must be left at the default, got " + BaitEffect.WORMS.trashChance());
+        helper.assertTrue(BaitEffect.GUMMY_WORMS.trashChance() == BaitEffect.DEFAULT_TRASH_CHANCE,
+            "GUMMY_WORMS trashChance must be left at the default, got " + BaitEffect.GUMMY_WORMS.trashChance());
         helper.assertTrue(BaitEffect.BLAZED_GRUB.trashChance() == 0.0f,
             "BLAZED_GRUB trashChance must be 0.0 (already a focused specialist), got " + BaitEffect.BLAZED_GRUB.trashChance());
         helper.succeed();

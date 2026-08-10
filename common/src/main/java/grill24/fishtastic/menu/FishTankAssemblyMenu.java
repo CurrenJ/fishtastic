@@ -24,16 +24,16 @@ import net.minecraft.world.level.block.Block;
  */
 public class FishTankAssemblyMenu extends GelatinMenu {
     public static final int FRAME_SLOT = 0;
-    public static final int SAND_SLOT = 1;
-    public static final int GLASS_SLOT = 2;
+    public static final int GLASS_SLOT = 1;
+    public static final int SAND_SLOT = 2;
     public static final int RESULT_SLOT = 3;
     private static final int INPUT_SLOT_COUNT = 3;
 
     // GUI-space slot positions, matching fish_tank_assembly_side.png's hand-edited layout.
     // Input slots inset 2px, result slot inset 6px, to sit centered in their drawn frames.
     private static final int FRAME_X = 56, FRAME_Y = 17;
-    private static final int SAND_X = 56, SAND_Y = 53;
     private static final int GLASS_X = 56, GLASS_Y = 35;
+    private static final int SAND_X = 56, SAND_Y = 53;
     private static final int RESULT_X = 116, RESULT_Y = 35;
     private static final int INV_X = 8, INV_Y = 84;
     private static final int HOTBAR_Y = 142;
@@ -56,8 +56,8 @@ public class FishTankAssemblyMenu extends GelatinMenu {
         this.inputContainer = inputContainer;
 
         addSlot(new MaterialSlot(inputContainer, FRAME_SLOT, FRAME_X, FRAME_Y, "frame"));
-        addSlot(new MaterialSlot(inputContainer, SAND_SLOT, SAND_X, SAND_Y, "sand"));
         addSlot(new MaterialSlot(inputContainer, GLASS_SLOT, GLASS_X, GLASS_Y, "glass"));
+        addSlot(new MaterialSlot(inputContainer, SAND_SLOT, SAND_X, SAND_Y, "sand"));
         addSlot(new ResultSlot(resultContainer, 0, RESULT_X, RESULT_Y));
 
         for (int row = 0; row < 3; row++) {

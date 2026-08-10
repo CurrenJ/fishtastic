@@ -25,17 +25,21 @@ public record HookEffect(
 
     public static final StreamCodec<ByteBuf, HookEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
+    // Qualitative, same reasoning as BaitEffect's tooltip lines — sign is what the player
+    // actually experiences, the exact magnitude isn't something they can reason about in play.
     public List<Component> tooltipLines() {
         List<Component> lines = new ArrayList<>();
         if (qualityBias != 0f) {
-            String sign = qualityBias > 0 ? "+" : "";
-            lines.add(Component.translatable("tooltip.fishtastic.hook_effect.quality_bias", sign + qualityBias)
-                    .withStyle(ChatFormatting.GRAY));
+            String key = qualityBias > 0
+                    ? "tooltip.fishtastic.hook_effect.quality_bias_positive"
+                    : "tooltip.fishtastic.hook_effect.quality_bias_negative";
+            lines.add(Component.translatable(key).withStyle(ChatFormatting.GRAY));
         }
         if (trashChanceDelta != 0f) {
-            String sign = trashChanceDelta > 0 ? "+" : "";
-            lines.add(Component.translatable("tooltip.fishtastic.hook_effect.trash_chance_delta",
-                    sign + (int) (trashChanceDelta * 100)).withStyle(ChatFormatting.GRAY));
+            String key = trashChanceDelta > 0
+                    ? "tooltip.fishtastic.hook_effect.trash_chance_delta_more"
+                    : "tooltip.fishtastic.hook_effect.trash_chance_delta_less";
+            lines.add(Component.translatable(key).withStyle(ChatFormatting.GRAY));
         }
         return lines;
     }

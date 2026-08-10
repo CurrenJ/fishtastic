@@ -36,6 +36,12 @@ public record BaitEffect(
         float treasureChance,
         float trashChance,
         int targetCountBonus,
+        // Only does real work for NO_BAIT. Once any bait is equipped, vanilla fish are hard
+        // -excluded from the pool (see FishingMinigameManager), so every candidate in
+        // FishtasticFishItem.sampleRandomFish's weighted list is a mod fish getting this same
+        // scalar — it cancels out of the weighted-random ratio and has zero effect on catch
+        // odds. NO_BAIT is the sole case where mod fish share the pool with (unscaled) vanilla
+        // fish, so it's the only preset where this value should differ from 1.0.
         float modFishMultiplier,
         float qualityBias,
         Optional<TagKey<Item>> exclusiveFishPool,
@@ -81,31 +87,44 @@ public record BaitEffect(
                 ByteBufCodecs.fromCodec(CODEC);
     }
 
+    // Baseline treasure_chance/trash_chance — also the codec's optionalFieldOf defaults below.
+    // Worms and the affinity baits (Small Fish/Calm/Frenzy/Trophy/Gummy) deliberately leave
+    // both at these values rather than tuning them per-bait, so tooltipLines() can omit the
+    // lines entirely for those baits instead of displaying uninformative default numbers.
+    public static final float DEFAULT_TREASURE_CHANCE = 0.1f;
+    public static final float DEFAULT_TRASH_CHANCE = 0.05f;
+
     // No bait: vanilla fishing — mod fish are rare finds. This is the one and only case where
     // vanilla fish are still in the pool at all — see FishingMinigameManager's pool filter,
     // which excludes vanilla fish outright for every other BaitEffect (equality against this
-    // constant is the trigger, not modFishMultiplier or any other field).
+    // constant is the trigger, not modFishMultiplier or any other field). Trash/treasure are
+    // deliberately off the shared default — high trash (0.5) and low treasure (0.02) discourage
+    // bare-hook fishing as a treasure-farming strategy.
     public static final BaitEffect NO_BAIT = new BaitEffect(
-            0.0f, 0.167f, 0.12f, 0, 0.15f, 0.0f, Optional.empty(), List.of());
+            0.0f, 0.02f, 0.5f, 0, 0.15f, 0.0f, Optional.empty(), List.of());
 
     // Worms: the moment a player puts on any bait at all, vanilla fish drop out of the pool
     // entirely (see FishingMinigameManager) — Worms is the cheap, guaranteed-mod-fish starter.
+    // modFishMultiplier left at 1.0 (no-op — see the field doc above); treasure/trash left at
+    // the defaults, same as the other worm-family baits.
     public static final BaitEffect WORMS = new BaitEffect(
-            0.0f, 0.10f, 0.05f, 1, 1.25f, 0.0f, Optional.empty(), List.of());
+            0.0f, DEFAULT_TREASURE_CHANCE, DEFAULT_TRASH_CHANCE, 1, 1.0f, 0.0f, Optional.empty(), List.of());
 
     // Gummy Worms: quality/size chaser — broad mild mod-fish boost, strong quality bias.
-    // Deliberately weaker on raw mod-fish weight than the specialist baits (Small Fish/Calm/
-    // Frenzy/Trophy Bait), so it stays the generalist "biggest catch" tool rather than also
-    // being the best way to farm any one subset. rarityFlattening=0.85 is a mild, pool-wide
+    // Its actual "generalist boost" is entirely rarityFlattening=0.85, a mild, pool-wide
     // version of the specialist baits' per-group flattening — no single tag to target here,
     // so it takes the edge off the highest base_weight fish (bluegill/neon_tetra/blazed_grub)
     // dominating the whole mod-fish pool without going as aggressive as the 0.35-0.45 used on
     // the tighter, tag-scoped specialist pools. Kept soft (0.85, not the old 0.7) specifically
     // so Gummy Worms doesn't out-flatten — and therefore out-perform — Trophy/Frenzy Bait on
     // their own rare tag-mates; see FishtasticItems.TROPHY_BAIT/FRENZY_BAIT for the other side
-    // of that fix.
+    // of that fix. modFishMultiplier left at 1.0 (no-op — see the field doc above); it used to
+    // be set to 2.0 on the mistaken belief that a flat pool-wide multiplier could out-compete
+    // the specialist baits' group affinities, which isn't possible once vanilla is out of the
+    // pool — see the 2026-08-10 mod-fish-multiplier audit. Treasure/trash left at the defaults,
+    // same as the other worm-family baits.
     public static final BaitEffect GUMMY_WORMS = new BaitEffect(
-            0.0f, 0.10f, 0.05f, 0, 2.0f, 2.0f, Optional.empty(), List.of(), 0.85f);
+            0.0f, DEFAULT_TREASURE_CHANCE, DEFAULT_TRASH_CHANCE, 0, 1.0f, 2.0f, Optional.empty(), List.of(), 0.85f);
 
     // Blazed Grub: treasure hunter + exotic fish only pool — already a focused specialist,
     // so it shouldn't also dodge trash on top of finding treasure and exotic fish.
@@ -115,8 +134,8 @@ public record BaitEffect(
 
     public static final Codec<BaitEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("luck_bonus", 0.0f).forGetter(BaitEffect::luckBonus),
-            Codec.FLOAT.optionalFieldOf("treasure_chance", 0.167f).forGetter(BaitEffect::treasureChance),
-            Codec.FLOAT.optionalFieldOf("trash_chance", 0.12f).forGetter(BaitEffect::trashChance),
+            Codec.FLOAT.optionalFieldOf("treasure_chance", DEFAULT_TREASURE_CHANCE).forGetter(BaitEffect::treasureChance),
+            Codec.FLOAT.optionalFieldOf("trash_chance", DEFAULT_TRASH_CHANCE).forGetter(BaitEffect::trashChance),
             Codec.INT.optionalFieldOf("target_count_bonus", 0).forGetter(BaitEffect::targetCountBonus),
             Codec.FLOAT.optionalFieldOf("mod_fish_multiplier", 1.0f).forGetter(BaitEffect::modFishMultiplier),
             Codec.FLOAT.optionalFieldOf("quality_bias", 0.0f).forGetter(BaitEffect::qualityBias),
@@ -170,29 +189,55 @@ public record BaitEffect(
         if (luckBonus != 0f) {
             lines.add(Component.translatable("tooltip.fishtastic.bait_effect.luck", luckBonus).withStyle(ChatFormatting.GRAY));
         }
-        lines.add(Component.translatable("tooltip.fishtastic.bait_effect.treasure_chance", (int) (treasureChance * 100))
-                .withStyle(ChatFormatting.GRAY));
-        if (trashChance != 0f) {
+        if (treasureChance != DEFAULT_TREASURE_CHANCE) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.treasure_chance", (int) (treasureChance * 100))
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        if (trashChance != DEFAULT_TRASH_CHANCE) {
             lines.add(Component.translatable("tooltip.fishtastic.bait_effect.trash_chance", (int) (trashChance * 100))
                     .withStyle(ChatFormatting.GRAY));
         }
+        // Qualitative, same reasoning as the other lines below — "+1"/"-1" is exact, but "more/
+        // fewer fish per cast" is what the player actually experiences session to session.
         if (targetCountBonus != 0) {
-            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.target_count_bonus", targetCountBonus)
-                    .withStyle(ChatFormatting.GRAY));
+            String key = targetCountBonus > 0
+                    ? "tooltip.fishtastic.bait_effect.target_count_bonus_more"
+                    : "tooltip.fishtastic.bait_effect.target_count_bonus_fewer";
+            lines.add(Component.translatable(key).withStyle(ChatFormatting.GRAY));
         }
         if (modFishMultiplier != 1.0f) {
             lines.add(Component.translatable("tooltip.fishtastic.bait_effect.mod_fish_multiplier", modFishMultiplier)
                     .withStyle(ChatFormatting.GREEN));
         }
+        // Qualitative for the same reason as group affinity below — the actual size/quality
+        // distribution shift isn't something a player can reconstruct from a raw bias number.
+        // Tiers: 0.25 (the 4 specialist baits) = low, 0.5 (Blazed Grub) = mid, 2.0 (Gummy Worms,
+        // the mod's dedicated quality chaser) = high.
         if (qualityBias != 0f) {
-            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.quality_bias", qualityBias)
+            String key = qualityBias >= 1.0f
+                    ? "tooltip.fishtastic.bait_effect.quality_bias_high"
+                    : qualityBias >= 0.5f
+                            ? "tooltip.fishtastic.bait_effect.quality_bias_mid"
+                            : "tooltip.fishtastic.bait_effect.quality_bias_low";
+            lines.add(Component.translatable(key).withStyle(ChatFormatting.GRAY));
+        }
+        // Qualitative — only Gummy Worms uses this (0.85; see its field doc above), so a single
+        // line covers every case that currently exists.
+        if (rarityFlattening != 1.0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.rarity_flattening")
                     .withStyle(ChatFormatting.GRAY));
         }
         exclusiveFishPool.ifPresent(tag -> lines.add(Component.translatable("tooltip.fishtastic.bait_effect.exclusive_pool",
                 Utility.prettyName(tag.location().getPath())).withStyle(ChatFormatting.GOLD)));
+        // Qualitative, not the raw multiplier — the actual catch-odds shift also depends on
+        // nonMemberMultiplier and rarityExponent, so a precise number here would be more
+        // precision than the player can actually reason about. 2.2 is Frenzy/Trophy's tier
+        // (vs. 2.0 for Small Fish/Calm); see FishtasticItems' bait registrations.
         for (FishGroupAffinity affinity : fishGroupAffinities) {
-            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.group_affinity",
-                            Utility.prettyName(affinity.group().location().getPath()), affinity.multiplier())
+            String key = affinity.multiplier() >= 2.2f
+                    ? "tooltip.fishtastic.bait_effect.group_affinity_strong"
+                    : "tooltip.fishtastic.bait_effect.group_affinity";
+            lines.add(Component.translatable(key, Utility.prettyName(affinity.group().location().getPath()))
                     .withStyle(ChatFormatting.AQUA));
         }
         return lines;
