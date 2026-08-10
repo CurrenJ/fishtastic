@@ -38,5 +38,30 @@
     "sounds": [
       "fishtastic:new_species_discovered"
     ]
+  },
+  "catch_common": {
+    "sounds": [
+      "fishtastic:catch_common"
+    ]
+  },
+  "catch_uncommon": {
+    "sounds": [
+      "fishtastic:catch_uncommon"
+    ]
+  },
+  "catch_rare": {
+    "sounds": [
+      "fishtastic:catch_rare"
+    ]
+  },
+  "catch_epic": {
+    "sounds": [
+      "fishtastic:catch_epic"
+    ]
+  },
+  "catch_legendary": {
+    "sounds": [
+      "fishtastic:catch_legendary"
+    ]
   }
 }

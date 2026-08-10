@@ -2,6 +2,7 @@ package grill24.fishtastic.util;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TutorialClientHandler;
@@ -14,8 +15,10 @@ import grill24.fishtastic.data.FishProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -223,6 +226,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                     target.startCollectionAnimation(0, 0);
                     caughtTargetIndices.add(targetIndex);
+                    playCatchSound(target);
 
                     if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
                         baitPopTriggered = true;
@@ -262,6 +266,33 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 }
             }
             isHiding = true;
+        }
+    }
+
+    /** Plays the rarity-specific catch jingle for a just-caught target's best reward. */
+    private void playCatchSound(FishingTarget target) {
+        FishQuality.Quality bestQuality = null;
+        for (ItemStack reward : target.getAllRewardItems()) {
+            FishQuality fishQuality = reward.get(FishtasticDataComponents.FISH_QUALITY.value());
+            if (fishQuality != null && (bestQuality == null || fishQuality.quality().ordinal() > bestQuality.ordinal())) {
+                bestQuality = fishQuality.quality();
+            }
+        }
+        if (bestQuality == null) {
+            bestQuality = FishQuality.Quality.COMMON;
+        }
+
+        SoundEvent sound = switch (bestQuality) {
+            case COMMON -> FishtasticSounds.CATCH_COMMON.value();
+            case UNCOMMON -> FishtasticSounds.CATCH_UNCOMMON.value();
+            case RARE -> FishtasticSounds.CATCH_RARE.value();
+            case EPIC -> FishtasticSounds.CATCH_EPIC.value();
+            case LEGENDARY -> FishtasticSounds.CATCH_LEGENDARY.value();
+        };
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getSoundManager() != null) {
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f));
         }
     }
 

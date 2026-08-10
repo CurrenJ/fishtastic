@@ -18,6 +18,11 @@ public class FishtasticSounds {
     public static Holder<SoundEvent> QUEST_COMPLETE_SILVER;
     public static Holder<SoundEvent> QUEST_COMPLETE_GOLD;
     public static Holder<SoundEvent> NEW_SPECIES_DISCOVERED;
+    public static Holder<SoundEvent> CATCH_COMMON;
+    public static Holder<SoundEvent> CATCH_UNCOMMON;
+    public static Holder<SoundEvent> CATCH_RARE;
+    public static Holder<SoundEvent> CATCH_EPIC;
+    public static Holder<SoundEvent> CATCH_LEGENDARY;
 
     public static void registerSounds() {
         QUEST_PROGRESS = RegistrationApiSided.getInstance().registerSoundEvent("quest_progress");
@@ -28,5 +33,10 @@ public class FishtasticSounds {
         QUEST_COMPLETE_SILVER = RegistrationApiSided.getInstance().registerSoundEvent("quest_complete_silver");
         QUEST_COMPLETE_GOLD = RegistrationApiSided.getInstance().registerSoundEvent("quest_complete_gold");
         NEW_SPECIES_DISCOVERED = RegistrationApiSided.getInstance().registerSoundEvent("new_species_discovered");
+        CATCH_COMMON = RegistrationApiSided.getInstance().registerSoundEvent("catch_common");
+        CATCH_UNCOMMON = RegistrationApiSided.getInstance().registerSoundEvent("catch_uncommon");
+        CATCH_RARE = RegistrationApiSided.getInstance().registerSoundEvent("catch_rare");
+        CATCH_EPIC = RegistrationApiSided.getInstance().registerSoundEvent("catch_epic");
+        CATCH_LEGENDARY = RegistrationApiSided.getInstance().registerSoundEvent("catch_legendary");
     }
 }
