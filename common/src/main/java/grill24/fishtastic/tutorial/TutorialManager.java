@@ -11,6 +11,7 @@ import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishingTarget;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -35,6 +36,16 @@ public class TutorialManager {
 
     private static final Identifier TUTORIAL_QUEST_ID = TUTORIAL_QUEST_KEY.identifier();
 
+    /**
+     * The {@code minecraft:recipe_crafted} advancement that {@code PlayerAdvancementsMixin}
+     * watches for to drive {@link #onItemCrafted}. Also referenced by {@code TutorialCommand}'s
+     * reset, which must revoke it — otherwise a re-crafted rod after a debug reset would never
+     * re-fire the advancement criterion (already granted) and the tutorial would stay stuck.
+     */
+    public static final Identifier TUTORIAL_ROD_ADVANCEMENT_ID =
+            Identifier.fromNamespaceAndPath("fishtastic", "tutorial/craft_copper_fishing_rod");
+    public static final String TUTORIAL_ROD_ADVANCEMENT_CRITERION = "crafted_copper_fishing_rod";
+
     // -------------------------------------------------------------------------
     // Hooks — called by external systems (one-line callsites)
     // -------------------------------------------------------------------------
@@ -42,14 +53,50 @@ public class TutorialManager {
     /** Call when server detects the player joined. Resumes tutorial state. */
     public static void onPlayerJoin(ServerPlayer player) {
         TutorialStep step = getStep(player);
+        // WAITING_FOR_CAST doubles as both the genuine "rod's ready, go cast" step and the
+        // default/pre-tutorial sentinel for a player who's never crafted the starter rod (or
+        // was just debug-reset, which revokes the rod-crafted advancement) — see
+        // hasCraftedStarterRod(). Skip the sync for the sentinel case so the client doesn't
+        // show "Cast your line!" before the player owns a rod; the client already defaults to
+        // no-overlay (COMPLETE) until it hears otherwise.
+        if (step == TutorialStep.WAITING_FOR_CAST && !hasCraftedStarterRod(player)) {
+            return;
+        }
         if (step != TutorialStep.COMPLETE) {
             TutorialSyncPacket.sendToPlayer(player, step);
         }
     }
 
-    /** Call when the player takes an item from a crafting result slot. */
-    public static void onItemCrafted(ServerPlayer player, ItemStack stack) {
-        if (!stack.is(FishtasticItems.COPPER_FISHING_ROD)) return;
+    /**
+     * Revokes {@link #TUTORIAL_ROD_ADVANCEMENT_ID} so a player who re-crafts the starter rod
+     * after a debug {@code /tutorial reset} can re-trigger {@code PlayerAdvancementsMixin} and
+     * reach BAIT_LOAD again — without this, the advancement criterion stays granted forever and
+     * {@link #onItemCrafted} never fires a second time.
+     */
+    public static void revokeRodCraftedAdvancement(ServerPlayer player) {
+        AdvancementHolder rodAdvancement =
+                player.level().getServer().getAdvancements().get(TUTORIAL_ROD_ADVANCEMENT_ID);
+        if (rodAdvancement != null) {
+            player.getAdvancements().revoke(rodAdvancement, TUTORIAL_ROD_ADVANCEMENT_CRITERION);
+        }
+    }
+
+    /**
+     * True once the player has actually crafted the starter copper fishing rod. Used to tell
+     * WAITING_FOR_CAST's two meanings apart — see {@link #onPlayerJoin}.
+     */
+    public static boolean hasCraftedStarterRod(ServerPlayer player) {
+        AdvancementHolder rodAdvancement =
+                player.level().getServer().getAdvancements().get(TUTORIAL_ROD_ADVANCEMENT_ID);
+        if (rodAdvancement == null) return false;
+        return player.getAdvancements().getOrStartProgress(rodAdvancement).isDone();
+    }
+
+    /**
+     * Call when the player is granted the {@code fishtastic:tutorial/craft_copper_fishing_rod}
+     * advancement (i.e. actually crafted the starter rod, by any take-from-result-slot path).
+     */
+    public static void onItemCrafted(ServerPlayer player) {
         TutorialStep current = getStep(player);
         // Only start if tutorial hasn't been started yet (WAITING_FOR_CAST is default/pre-tutorial)
         if (current == TutorialStep.WAITING_FOR_CAST) {

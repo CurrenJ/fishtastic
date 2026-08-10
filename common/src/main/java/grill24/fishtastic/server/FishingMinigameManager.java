@@ -174,7 +174,7 @@ public class FishingMinigameManager {
         Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionBiome, sessionTimeOfDay, sessionWeather);
+                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -222,12 +222,12 @@ public class FishingMinigameManager {
         Holder<net.minecraft.world.level.biome.Biome> biome = level.getBiome(tutorialPos);
         FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
+        Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
-                level.getGameTime(), biome, timeOfDay, weather);
+                level.getGameTime(), biome, timeOfDay, weather, tutorialZones);
         activeSessions.put(playerId, session);
 
-        Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
         sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones));
         TutorialManager.onMinigameStarted(player);
 
@@ -307,7 +307,7 @@ public class FishingMinigameManager {
         // Batch quest tracking — only one sync packet for all catches in this session
         if (!questStacks.isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
-                    session.hookBiome, session.hookTimeOfDay, session.hookWeather);
+                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones);
         }
 
         TutorialManager.onMinigameComplete(player);
@@ -810,8 +810,9 @@ public class FishingMinigameManager {
         }
 
         Holder<Biome> biome = level.getBiome(player.blockPosition());
+        Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, player.blockPosition().getY(), level.getSeaLevel());
         activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR));
+                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones));
         return sessionId;
     }
 
@@ -823,9 +824,11 @@ public class FishingMinigameManager {
         final Holder<Biome> hookBiome;
         final FishProfile.TimeOfDay hookTimeOfDay;
         final FishProfile.WeatherCondition hookWeather;
+        final Set<FishProfile.Zone> hookZones;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
-                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather) {
+                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
+                Set<FishProfile.Zone> hookZones) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
@@ -833,6 +836,7 @@ public class FishingMinigameManager {
             this.hookBiome = hookBiome;
             this.hookTimeOfDay = hookTimeOfDay;
             this.hookWeather = hookWeather;
+            this.hookZones = hookZones;
         }
     }
 

@@ -173,7 +173,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 TutorialClientHandler.tick();
-                EncyclopediaTutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
                 // Tick quest progress notifications

@@ -75,9 +75,22 @@ public class QuestProgressNotification {
     private static final int HOLD_DURATION_COMPLETE = 80;
     private static final int SLIDE_OUT_DURATION = 15;
 
+    // Minimum gap enforced between successive plays of the new-species fanfare, so catching
+    // several new fish in quick succession (e.g. one sync packet triggering several first-catch
+    // banners at once) doesn't stack the sound on top of itself. Tracked globally (static) since
+    // it applies across all banner instances, not per-banner; delay is always clamped to this
+    // window so a stale value left over from a previous world (game time isn't continuous across
+    // world switches) can never cause an unexpectedly long wait — see scheduleActivationSound().
+    private static final int NEW_SPECIES_SOUND_COOLDOWN_TICKS = 15;
+    private static long nextNewSpeciesSoundTick = Long.MIN_VALUE;
+    // Ticks left before a delayed activation sound plays; 0 = none pending. Counted down in
+    // tick() independent of phase, since it's set once SLIDE_IN completes (phase is HOLD by then).
+    private int pendingSoundDelayTicks;
+
     private Phase phase = Phase.SLIDE_IN;
     private int tickCounter;
     private final QuestProgressEvent event;
+    private final NotificationPriority priority;
     private final String displayName;
     private final int targetCount;
     private final ItemStack targetItem;
@@ -114,6 +127,7 @@ public class QuestProgressNotification {
 
     public QuestProgressNotification(QuestProgressEvent event) {
         this.event = event;
+        this.priority = NotificationPriority.classify(event);
 
         // Resolve quest display name and target count
         Minecraft mc = Minecraft.getInstance();
@@ -237,7 +251,7 @@ public class QuestProgressNotification {
                 if (tickCounter >= SLIDE_IN_DURATION) {
                     phase = Phase.HOLD;
                     tickCounter = 0;
-                    playSound(mc, FishtasticSounds.QUEST_PROGRESS.value());
+                    scheduleActivationSound(mc);
                     soundPlayed = true;
                     // Kick off bar fill animation now that the banner is fully visible
                     barAnimationStarted = true;
@@ -269,6 +283,13 @@ public class QuestProgressNotification {
             }
         }
 
+        // Count down and fire a sound whose play was pushed back by scheduleActivationSound()
+        // to respect NEW_SPECIES_SOUND_COOLDOWN_TICKS. Independent of phase — set once SLIDE_IN
+        // completes above, so this always runs during HOLD (or later, if HOLD is very short).
+        if (pendingSoundDelayTicks > 0 && --pendingSoundDelayTicks == 0) {
+            playSound(mc, activationSound());
+        }
+
         // Manually interpolate bar fill — SpriteProgressBar's built-in animation has
         // lifecycle issues outside a full GelatinUI tree (needsUpdate guard blocks it).
         if (barAnimationStarted) {
@@ -291,7 +312,7 @@ public class QuestProgressNotification {
 
         // If new event completes the quest, trigger completion sound + flash
         if (newEvent.completed() && !event.completed()) {
-            playSound(Minecraft.getInstance(), FishtasticSounds.QUEST_COMPLETE.value());
+            playSound(Minecraft.getInstance(), completionSound(NotificationPriority.classify(newEvent)));
             completeFlashTimer = 0;
         }
     }
@@ -409,6 +430,56 @@ public class QuestProgressNotification {
     public Phase phase() { return phase; }
 
     // ---- Helpers ----
+
+    /**
+     * Sound played once, when this banner finishes sliding in. Picks the tier-specific
+     * progress sound for real quests still in progress, the tier-specific completion sound
+     * for quests that are already complete on first display (e.g. the final increment also
+     * completed it), the dedicated fanfare for new-species banners, and the generic
+     * fallback for other one-shot announcements (out-of-bait, cleanup-goal milestone).
+     */
+    /**
+     * Plays the activation sound, unless it's the new-species fanfare and another one played
+     * (or was itself scheduled) too recently — in that case, pushes this one back just far
+     * enough to land NEW_SPECIES_SOUND_COOLDOWN_TICKS after the last one, via pendingSoundDelayTicks.
+     * The computed delay is always clamped to that same window, so a stale nextNewSpeciesSoundTick
+     * left over from a previous world (game time resets/differs per world) can't cause a long wait.
+     */
+    private void scheduleActivationSound(Minecraft mc) {
+        if (priority != NotificationPriority.NEW_SPECIES) {
+            playSound(mc, activationSound());
+            return;
+        }
+
+        long now = mc.level != null ? mc.level.getGameTime() : 0L;
+        int delay = (int) Math.max(0, Math.min(NEW_SPECIES_SOUND_COOLDOWN_TICKS, nextNewSpeciesSoundTick - now));
+        nextNewSpeciesSoundTick = now + delay + NEW_SPECIES_SOUND_COOLDOWN_TICKS;
+
+        if (delay <= 0) {
+            playSound(mc, activationSound());
+        } else {
+            pendingSoundDelayTicks = delay;
+        }
+    }
+
+    private SoundEvent activationSound() {
+        return switch (priority) {
+            case NEW_SPECIES -> FishtasticSounds.NEW_SPECIES_DISCOVERED.value();
+            case OTHER -> FishtasticSounds.QUEST_PROGRESS.value();
+            case COMPLETION_BRONZE, COMPLETION_SILVER, COMPLETION_GOLD -> completionSound(priority);
+            case PROGRESS_BRONZE -> FishtasticSounds.QUEST_PROGRESS_BRONZE.value();
+            case PROGRESS_SILVER -> FishtasticSounds.QUEST_PROGRESS_SILVER.value();
+            case PROGRESS_GOLD -> FishtasticSounds.QUEST_PROGRESS_GOLD.value();
+        };
+    }
+
+    private static SoundEvent completionSound(NotificationPriority completionTier) {
+        return switch (completionTier) {
+            case COMPLETION_SILVER -> FishtasticSounds.QUEST_COMPLETE_SILVER.value();
+            case COMPLETION_GOLD -> FishtasticSounds.QUEST_COMPLETE_GOLD.value();
+            default -> FishtasticSounds.QUEST_COMPLETE_BRONZE.value();
+        };
+    }
 
     private void playSound(Minecraft mc, SoundEvent sound) {
         if (mc.getSoundManager() != null) {

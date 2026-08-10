@@ -4,8 +4,7 @@
   "objective": {
     "target_species_tag": "fishtastic:zone_river",
     "exclude_species_tag": "fishtastic:unlisted_fish",
-    "distinct_species": true,
-    "zone_condition": "river"
+    "distinct_species": true
   },
   "reward": {
     "quest_tokens": 45,

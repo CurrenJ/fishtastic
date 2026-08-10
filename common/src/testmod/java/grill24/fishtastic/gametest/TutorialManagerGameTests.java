@@ -4,10 +4,18 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Supplier;
@@ -56,7 +64,7 @@ public final class TutorialManagerGameTests {
             "An untouched player must default to WAITING_FOR_CAST"
         );
 
-        TutorialManager.onItemCrafted(player, copperRod());
+        TutorialManager.onItemCrafted(player);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -70,13 +78,13 @@ public final class TutorialManagerGameTests {
     /** Crafting the rod again once already past WAITING_FOR_CAST must not re-grant worms or change the step. */
     public static void craftingRodAgainAfterAdvancingIsNoOp(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
-        TutorialManager.onItemCrafted(player, copperRod());
+        TutorialManager.onItemCrafted(player);
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
             "Sanity check: first craft must reach BAIT_LOAD"
         );
 
-        TutorialManager.onItemCrafted(player, copperRod());
+        TutorialManager.onItemCrafted(player);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -164,7 +172,7 @@ public final class TutorialManagerGameTests {
     public static void tutorialWalksFullDocumentedChainToCompletion(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
 
-        TutorialManager.onItemCrafted(player, copperRod());
+        TutorialManager.onItemCrafted(player);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD, "Expected BAIT_LOAD after crafting");
 
         TutorialManager.onBaitLoaded(player);
@@ -220,6 +228,122 @@ public final class TutorialManagerGameTests {
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.SHOP_BROWSE,
             "Claiming the tutorial quest while in QUEST_CLAIM must advance to SHOP_BROWSE"
+        );
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Real container-click code paths (PlayerAdvancementsMixin via the vanilla
+    // minecraft:recipe_crafted trigger, FishtasticFishingRodItem#overrideOtherStackedOnMe)
+    // rather than calling TutorialManager hooks directly — these are what actually run when a
+    // player clicks in-game. Sets up a real CraftingMenu with real ingredients (not just the
+    // result slot pre-filled) so the recipe is actually computed and RecipeCraftingHolder has
+    // real recipe-used data to award, exercising the same path the advancement's
+    // minecraft:recipe_crafted criterion relies on.
+    // -------------------------------------------------------------------------
+
+    /** Places real copper-fishing-rod ingredients into a real CraftingMenu's craft grid. */
+    private static CraftingMenu realCraftingMenuWithRodIngredients(GameTestHelper helper, ServerPlayer player) {
+        ServerLevel level = helper.getLevel();
+        BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
+        CraftingMenu menu = new CraftingMenu(1, player.getInventory(), ContainerLevelAccess.create(level, pos));
+
+        // Matches copper_fishing_rod.json's pattern ("  C" / " CS" / "C S"): craft-grid slots
+        // are menu slots 1-9 (CraftingMenu.CRAFT_SLOT_START), row-major from the 3x3 pattern.
+        menu.getSlot(3).set(new ItemStack(Items.COPPER_INGOT));
+        menu.getSlot(5).set(new ItemStack(Items.COPPER_INGOT));
+        menu.getSlot(6).set(new ItemStack(Items.STRING));
+        menu.getSlot(7).set(new ItemStack(Items.COPPER_INGOT));
+        menu.getSlot(9).set(new ItemStack(Items.STRING));
+
+        helper.assertTrue(
+            menu.getSlot(CraftingMenu.RESULT_SLOT).getItem().is(FishtasticItems.COPPER_FISHING_ROD),
+            "Sanity check: real ingredients in the craft grid must produce a copper fishing rod in the result slot"
+        );
+        return menu;
+    }
+
+    /** Shift-clicking the crafting result must reach TutorialManager too, not just a normal click (PlayerAdvancementsMixin). */
+    public static void craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
+
+        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.QUICK_MOVE, player);
+
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
+            "Shift-clicking the crafted rod out of a real crafting table's result slot must advance WAITING_FOR_CAST to BAIT_LOAD, got "
+                + TutorialManager.getStep(player)
+        );
+        helper.succeed();
+    }
+
+    /** Same as above but via a normal (non-shift) left-click, as a control to confirm the advancement path works either way. */
+    public static void craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
+
+        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.PICKUP, player);
+
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
+            "Left-clicking the crafted rod out of a real crafting table's result slot must advance WAITING_FOR_CAST to BAIT_LOAD, got "
+                + TutorialManager.getStep(player)
+        );
+        helper.succeed();
+    }
+
+    /** Picking up worms in the survival inventory screen and left-clicking them onto the rod sitting in the hotbar must load the bait. */
+    public static void loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        setStep(helper, player, TutorialStep.BAIT_LOAD);
+        player.getInventory().setItem(0, copperRod()); // hotbar slot 0
+
+        InventoryMenu menu = player.inventoryMenu;
+        menu.setCarried(new ItemStack(FishtasticItems.WORMS.value(), 8));
+
+        int rodMenuSlot = 36; // hotbar slot 0 in InventoryMenu's slot layout (9 + 27 main inv slots offset)
+        menu.clicked(rodMenuSlot, 0, ContainerInput.PICKUP, player);
+
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST,
+            "Left-clicking worms onto the rod in the hotbar must advance BAIT_LOAD to WAITING_FOR_CAST, got "
+                + TutorialManager.getStep(player)
+        );
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // revokeRodCraftedAdvancement — debug /tutorial reset must un-stick a re-craft
+    // -------------------------------------------------------------------------
+
+    /**
+     * Without revoking the advancement on reset, the criterion stays granted forever, so
+     * re-crafting the rod after a debug reset would never re-fire PlayerAdvancementsMixin and
+     * the player would be stuck at WAITING_FOR_CAST. This drives the same two calls
+     * TutorialCommand's reset makes (setStep back to WAITING_FOR_CAST, then revoke) and confirms
+     * a second grant of the criterion re-advances the tutorial.
+     */
+    public static void revokingRodAdvancementAllowsReTriggeringAfterReset(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        AdvancementHolder rodAdvancement = helper.getLevel().getServer().getAdvancements().get(TutorialManager.TUTORIAL_ROD_ADVANCEMENT_ID);
+        helper.assertTrue(rodAdvancement != null, "Sanity check: the tutorial rod advancement must be loaded");
+
+        player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
+            "Sanity check: granting the rod-crafted advancement criterion must advance WAITING_FOR_CAST to BAIT_LOAD"
+        );
+
+        // Simulate a debug /tutorial reset, then re-craft the rod.
+        setStep(helper, player, TutorialStep.WAITING_FOR_CAST);
+        TutorialManager.revokeRodCraftedAdvancement(player);
+        player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
+
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
+            "Re-granting the advancement criterion after a revoke (simulating reset then re-crafting) must advance to BAIT_LOAD again, got "
+                + TutorialManager.getStep(player)
         );
         helper.succeed();
     }

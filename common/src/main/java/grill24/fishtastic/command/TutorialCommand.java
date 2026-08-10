@@ -56,8 +56,14 @@ public class TutorialCommand {
         PlayerQuestState questState = data.getOrCreateQuestState(player);
         questState.resetProgress(TutorialManager.TUTORIAL_QUEST_KEY);
 
-        // Sync tutorial step, encyclopedia tutorial step, and quest state to client
-        grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.WAITING_FOR_CAST);
+        TutorialManager.revokeRodCraftedAdvancement(player);
+
+        // Sync tutorial step, encyclopedia tutorial step, and quest state to client. The
+        // persisted step is the WAITING_FOR_CAST sentinel (default/pre-tutorial), but that value
+        // also means "rod's ready, go cast" once the rod-crafted advancement is granted — since
+        // reset just revoked it, sync COMPLETE (client's no-overlay state) instead so "Cast your
+        // line!" doesn't show until the player actually re-crafts the rod.
+        grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.COMPLETE);
         EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.NOT_STARTED);
         QuestSyncPacket.sendToPlayer(player, data);
 

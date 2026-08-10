@@ -248,8 +248,8 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::addItemIntoEmptyTankSucceeds);
         register(event, env, "add_item_merges_into_existing_stack_before_new_slot", 200,
             FishTankGameTests::addItemMergesIntoExistingStackBeforeNewSlot);
-        register(event, env, "add_item_fails_when_all_slots_full", 200,
-            FishTankGameTests::addItemFailsWhenAllSlotsFull);
+        register(event, env, "add_item_fails_once_swarm_cap_reached", 200,
+            FishTankGameTests::addItemFailsOnceSwarmCapReached);
         register(event, env, "extract_item_removes_last_slot_lifo_order", 200,
             FishTankGameTests::extractItemRemovesLastSlotLifoOrder);
         register(event, env, "first_item_rotation_reflects_slot_zero_insert", 200,
@@ -274,6 +274,14 @@ public class NeoForgeGameTestRegistration {
             helper -> TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "on_quest_claimed_only_advances_on_matching_tutorial_quest_id", 200,
             helper -> TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "crafting_rod_via_shift_click_from_result_slot_advances_to_bait_load", 200,
+            helper -> TutorialManagerGameTests.craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "crafting_rod_via_simple_click_from_result_slot_advances_to_bait_load", 200,
+            helper -> TutorialManagerGameTests.craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "loading_bait_via_left_click_in_inventory_screen_advances_to_waiting_for_cast", 200,
+            helper -> TutorialManagerGameTests.loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "revoking_rod_advancement_allows_re_triggering_after_reset", 200,
+            helper -> TutorialManagerGameTests.revokingRodAdvancementAllowsReTriggeringAfterReset(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- EncyclopediaTutorialManager tests -----
         register(event, env, "opening_encyclopedia_from_not_started_starts_intro", 200,
@@ -300,6 +308,8 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::timeConditionGatesMatchWhenPresent);
         register(event, env, "weather_condition_gates_match_when_present", 200,
             QuestTrackerGameTests::weatherConditionGatesMatchWhenPresent);
+        register(event, env, "zone_condition_gates_match_when_present", 200,
+            QuestTrackerGameTests::zoneConditionGatesMatchWhenPresent);
         register(event, env, "min_size_is_floor", 200,
             QuestTrackerGameTests::minSizeIsFloor);
         register(event, env, "min_session_catches_does_not_affect_per_stack_matching", 200,

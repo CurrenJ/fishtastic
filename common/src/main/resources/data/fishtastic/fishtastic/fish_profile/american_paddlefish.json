@@ -1,0 +1,10 @@
+{
+  "base_weight": 5,
+  "size": { "mean": 120.0, "std_dev": 20.0 },
+  "zones": ["river"],
+  "time_weights": [
+    { "time": "dusk", "multiplier": 2.0 },
+    { "time": "night", "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:ghost"
+}

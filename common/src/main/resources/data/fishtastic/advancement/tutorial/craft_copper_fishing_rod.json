@@ -1,0 +1,16 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "crafted_copper_fishing_rod": {
+      "trigger": "minecraft:recipe_crafted",
+      "conditions": {
+        "recipe_id": "fishtastic:copper_fishing_rod"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "crafted_copper_fishing_rod"
+    ]
+  ]
+}

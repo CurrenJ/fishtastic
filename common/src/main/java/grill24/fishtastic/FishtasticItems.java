@@ -134,6 +134,7 @@ public class FishtasticItems {
     public static final Map<String, Holder<Item>> COSMETIC_LAMP = new LinkedHashMap<>();
 
     // ----- Fish Items -----
+    public static Holder<Item> AMERICAN_PADDLEFISH;
     public static Holder<Item> ANGLER_FISH;
     public static Holder<Item> ARCTIC_CHAR;
     public static Holder<Item> BLIND_CAVEFISH;
@@ -216,6 +217,7 @@ public class FishtasticItems {
 
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
+        AMERICAN_PADDLEFISH = RegistrationApiSided.getInstance().registerItem("american_paddlefish", loc -> new FishtasticFishItem(props(loc)));
         ANGLER_FISH = RegistrationApiSided.getInstance().registerItem("angler_fish", loc -> new FishtasticFishItem(props(loc)));
         ARCTIC_CHAR = RegistrationApiSided.getInstance().registerItem("arctic_char", loc -> new FishtasticFishItem(props(loc)));
         BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));

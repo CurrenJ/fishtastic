@@ -36,7 +36,8 @@ public class QuestTracker {
      */
     public static void onCatch(MinecraftServer server, ServerPlayer player,
             ItemStack caughtStack, Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather) {
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones) {
 
         if (caughtStack.isEmpty()) return;
 
@@ -75,7 +76,7 @@ public class QuestTracker {
                 if (!prereqProgress.claimed()) continue;
             }
 
-            if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather)) {
+            if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather, zones)) {
                 int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
                 int oldCount = state.getProgress(questKey).currentCount();
                 if (quest.objective().lifetimeCount()) {
@@ -112,7 +113,8 @@ public class QuestTracker {
      */
     public static void onCatchBatch(MinecraftServer server, ServerPlayer player,
             List<ItemStack> caughtStacks, Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather) {
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones) {
 
         Registry<Quest> questRegistry;
         try {
@@ -150,7 +152,7 @@ public class QuestTracker {
             }
 
             List<ItemStack> matchingStacks = nonEmptyStacks.stream()
-                    .filter(stack -> matchesObjective(quest.objective(), stack, biome, timeOfDay, weather))
+                    .filter(stack -> matchesObjective(quest.objective(), stack, biome, timeOfDay, weather, zones))
                     .toList();
             if (matchingStacks.isEmpty()) continue;
 
@@ -258,7 +260,8 @@ public class QuestTracker {
     }
 
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather) {
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones) {
         if (obj.targetSpecies().isPresent()) {
             Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
                     stack.getItem().builtInRegistryHolder().unwrapKey();
@@ -292,6 +295,10 @@ public class QuestTracker {
 
         if (obj.weatherCondition().isPresent()) {
             if (weather != obj.weatherCondition().get()) return false;
+        }
+
+        if (obj.zoneCondition().isPresent()) {
+            if (!zones.contains(obj.zoneCondition().get())) return false;
         }
 
         return true;

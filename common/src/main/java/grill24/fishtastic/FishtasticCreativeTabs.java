@@ -21,6 +21,7 @@ public class FishtasticCreativeTabs {
 
                     // Fish items
                     output.accept(FishtasticItems.ACUTE_IASPIS.value());
+                    output.accept(FishtasticItems.AMERICAN_PADDLEFISH.value());
                     output.accept(FishtasticItems.ANGLER_FISH.value());
                     output.accept(FishtasticItems.ARCTIC_CHAR.value());
                     output.accept(FishtasticItems.BETTA.value());

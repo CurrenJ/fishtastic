@@ -72,8 +72,8 @@ public class FishtasticBlocks {
         MARINE_COMPOST = RegistrationApiSided.getInstance().registerBlock("marine_compost",
             loc -> new MarineCompostBlock(Block.Properties.of()
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
-                .strength(1.5f)
-                .sound(SoundType.WOOD)
+                .strength(0.5f)
+                .sound(SoundType.GRAVEL)
                 .noOcclusion()
                 .pushReaction(PushReaction.DESTROY)
         ));

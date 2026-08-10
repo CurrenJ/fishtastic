@@ -46,6 +46,9 @@ public final class QuestTrackerGameTests {
 
     private QuestTrackerGameTests() {}
 
+    /** Placeholder hook-zone set for tests whose objective doesn't set zoneCondition — irrelevant when absent. */
+    private static final Set<FishProfile.Zone> ANY_ZONES = Set.of(FishProfile.Zone.RIVER);
+
     // -------------------------------------------------------------------------
     // QuestObjective fixtures — each sets exactly one condition, rest wildcarded
     // -------------------------------------------------------------------------
@@ -82,6 +85,10 @@ public final class QuestTrackerGameTests {
         return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(weather), Optional.empty(), Optional.empty(), 1, false);
     }
 
+    private static QuestObjective zoneObjective(FishProfile.Zone zone) {
+        return new QuestObjective(Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(zone), Optional.empty(), 1, false);
+    }
+
     private static ResourceKey<Item> keyOf(Item item) {
         return item.builtInRegistryHolder().unwrapKey().orElseThrow();
     }
@@ -99,15 +106,15 @@ public final class QuestTrackerGameTests {
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.COD)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.COD)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch matching the required species must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.DIAMOND)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.DIAMOND)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch of a different species must not match"
         );
         helper.assertTrue(
-            QuestTracker.matchesObjective(wildcardObjective(), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(wildcardObjective(), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "An absent targetSpecies condition must not block the match"
         );
         helper.succeed();
@@ -120,11 +127,11 @@ public final class QuestTrackerGameTests {
         QuestObjective fishesTag = targetSpeciesTagObjective(ItemTags.FISHES);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(fishesTag, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(fishesTag, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Cod must match the vanilla fishes tag condition"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(fishesTag, diamond, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(fishesTag, diamond, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Diamond must not match the vanilla fishes tag condition"
         );
         helper.succeed();
@@ -138,27 +145,27 @@ public final class QuestTrackerGameTests {
         ItemStack uncommon = new ItemStack(Items.COD);
         FishQualityHelper.setQuality(uncommon, FishQuality.Quality.UNCOMMON);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresRare, uncommon, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requiresRare, uncommon, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch one tier below the required quality must not match"
         );
 
         ItemStack rare = new ItemStack(Items.COD);
         FishQualityHelper.setQuality(rare, FishQuality.Quality.RARE);
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresRare, rare, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresRare, rare, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch exactly at the required quality must match"
         );
 
         ItemStack epic = new ItemStack(Items.COD);
         FishQualityHelper.setQuality(epic, FishQuality.Quality.EPIC);
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresRare, epic, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresRare, epic, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch above the required quality must match"
         );
 
         ItemStack noQuality = new ItemStack(Items.COD);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresRare, noQuality, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requiresRare, noQuality, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch with no quality component must not match a minQuality requirement"
         );
         helper.succeed();
@@ -169,11 +176,11 @@ public final class QuestTrackerGameTests {
         QuestObjective requiresOcean = biomeObjective(BiomeTags.IS_OCEAN);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.OCEAN), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.OCEAN), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in an ocean biome must match an is_ocean biome condition"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.PLAINS), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.PLAINS), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in plains must not match an is_ocean biome condition"
         );
         helper.succeed();
@@ -185,11 +192,11 @@ public final class QuestTrackerGameTests {
         QuestObjective requiresDay = timeObjective(FishProfile.TimeOfDay.DAY);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching during the required time of day must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching at a different time of day must not match"
         );
         helper.succeed();
@@ -201,12 +208,37 @@ public final class QuestTrackerGameTests {
         QuestObjective requiresClear = weatherObjective(FishProfile.WeatherCondition.CLEAR);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in the required weather must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.RAIN),
+            !QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.RAIN, ANY_ZONES),
             "Catching in different weather must not match"
+        );
+        helper.succeed();
+    }
+
+    /**
+     * zoneCondition gates on the hook's actual resolved zone set, not just tag membership — this
+     * is what stops a river+cave dual-zone fish from silently completing a cave-only quest while
+     * the player was fishing in an ordinary river.
+     */
+    public static void zoneConditionGatesMatchWhenPresent(GameTestHelper helper) {
+        ItemStack cod = new ItemStack(Items.COD);
+        Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
+        QuestObjective requiresCave = zoneObjective(FishProfile.Zone.CAVE);
+
+        helper.assertTrue(
+            QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.CAVE)),
+            "Catching while the hook's zone set contains the required zone must match"
+        );
+        helper.assertTrue(
+            QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.CAVE)),
+            "A dual-zone catch (e.g. river+cave) must still match as long as the required zone is one of them"
+        );
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER)),
+            "A river-only catch of a fish that also happens to be cave-tagged must not match a cave zone requirement"
         );
         helper.succeed();
     }
@@ -219,20 +251,20 @@ public final class QuestTrackerGameTests {
         ItemStack small = new ItemStack(Items.COD);
         ItemSizeHelper.setSize(small, 39.9f);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requires40, small, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requires40, small, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch smaller than the required size must not match"
         );
 
         ItemStack exact = new ItemStack(Items.COD);
         ItemSizeHelper.setSize(exact, 40.0f);
         helper.assertTrue(
-            QuestTracker.matchesObjective(requires40, exact, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requires40, exact, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch exactly at the required size must match"
         );
 
         ItemStack noSize = new ItemStack(Items.COD);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requires40, noSize, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(requires40, noSize, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch with no size component must not match a minSize requirement"
         );
         helper.succeed();
@@ -252,7 +284,7 @@ public final class QuestTrackerGameTests {
         ItemStack cod = new ItemStack(Items.COD);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresTwoPerSession, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(requiresTwoPerSession, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A single matching stack must still satisfy matchesObjective regardless of minSessionCatches"
         );
         helper.succeed();
@@ -282,18 +314,18 @@ public final class QuestTrackerGameTests {
         FishQualityHelper.setQuality(rareCod, FishQuality.Quality.RARE);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch satisfying every set condition must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Failing just the time-of-day axis must fail the whole AND, even though species/quality still match"
         );
 
         ItemStack uncommonCod = new ItemStack(Items.COD);
         FishQualityHelper.setQuality(uncommonCod, FishQuality.Quality.UNCOMMON);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(combined, uncommonCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR),
+            !QuestTracker.matchesObjective(combined, uncommonCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Failing just the quality axis must fail the whole AND, even though species/time still match"
         );
         helper.succeed();

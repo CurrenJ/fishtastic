@@ -26,11 +26,16 @@ public record QuestObjective(
         Optional<FishProfile.TimeOfDay> timeCondition,
         Optional<FishProfile.WeatherCondition> weatherCondition,
         /**
-         * UI-only hint for the quest log's status pip (QuestLogScreen), lit while the player
-         * currently stands in this zone. Not checked by QuestTracker#matchesObjective - a fish can
-         * only ever be tagged into a zone's target_species_tag if it was zone-eligible to spawn in
-         * the first place (see FishtasticFishItem#isZoneEligible), so the tag alone already fully
-         * gates which catches count; this field never needs to re-check location server-side.
+         * Gates a match to catches made while the player's hook position actually resolves to this
+         * {@link FishProfile.Zone} (checked in {@code QuestTracker#matchesObjective} against the
+         * session's real {@code FishProfile.Zone.resolve()} result). Also lights the quest log's
+         * status pip (QuestLogScreen) as a UI hint.
+         * <p>
+         * This re-check is necessary despite {@code target_species_tag} membership already implying
+         * zone-eligibility: a fish's {@code zones} list in fish_profile can name more than one zone
+         * (e.g. a river+cave fish), so tag membership alone doesn't mean *this* catch happened in
+         * the zone the quest cares about — only where {@code Zone.resolve()} actually placed the
+         * hook does.
          */
         Optional<FishProfile.Zone> zoneCondition,
         Optional<Integer> minSessionCatches,
@@ -47,8 +52,9 @@ public record QuestObjective(
          * around to claiming the previous tier still count instead of being silently discarded.
          * <p>
          * Only valid on objectives whose conditions are expressible as a species/tag filter:
-         * lifetime data records species, size and quality bests, but not the biome, time or
-         * weather a fish was caught under, so those conditions cannot be replayed against it.
+         * lifetime data records species, size and quality bests, but not the biome, time,
+         * weather, or zone a fish was caught under, so those conditions cannot be replayed
+         * against it.
          */
         boolean lifetimeCount
 ) {
@@ -77,7 +83,7 @@ public record QuestObjective(
      */
     public boolean isLifetimeCompatible() {
         return minQuality.isEmpty() && minSize.isEmpty() && biomeCondition.isEmpty()
-                && timeCondition.isEmpty() && weatherCondition.isEmpty()
+                && timeCondition.isEmpty() && weatherCondition.isEmpty() && zoneCondition.isEmpty()
                 && minSessionCatches.isEmpty() && !distinctSpecies;
     }
 

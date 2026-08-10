@@ -17,42 +17,42 @@ import java.util.List;
  * Client-side half of the small, independent Fish Encyclopedia FTUE — see
  * {@link grill24.fishtastic.tutorial.EncyclopediaTutorialManager} for why this isn't just more
  * cases in {@link TutorialClientHandler}.
+ * <p>
+ * Responsive rather than timer-driven: each step advances on a concrete action the player takes
+ * in the screen it's teaching, not after N ticks elapse. {@link FishEncyclopediaScreen} calls
+ * {@link #onFishClicked()} and {@link #onInfoPageClosed()} at the relevant points.
  */
 public class EncyclopediaTutorialClientHandler {
 
     private static EncyclopediaTutorialStep currentStep = EncyclopediaTutorialStep.COMPLETE;
-    private static int stepTicks = 0;
     private static boolean sentAdvanceThisStep = false;
-
-    private static final int INTRO_AUTO_ADVANCE_TICKS = 160;              // 8 seconds
-    private static final int ZONES_AND_REWARDS_AUTO_ADVANCE_TICKS = 200;  // 10 seconds
 
     public static final EncyclopediaTutorialSyncPacket.ClientHandler PACKET_HANDLER = packet -> {
         currentStep = packet.step();
-        stepTicks = 0;
         sentAdvanceThisStep = false;
     };
 
-    public static void tick() {
-        if (!currentStep.hasOverlay() || sentAdvanceThisStep) return;
-        stepTicks++;
-        switch (currentStep) {
-            case INTRO -> {
-                if (stepTicks >= INTRO_AUTO_ADVANCE_TICKS) sendAdvance();
-            }
-            case ZONES_AND_REWARDS -> {
-                if (stepTicks >= ZONES_AND_REWARDS_AUTO_ADVANCE_TICKS) sendAdvance();
-            }
-            default -> {}
-        }
+    /** Call when the player clicks a fish icon on the encyclopedia disc — advances past INTRO. */
+    public static void onFishClicked() {
+        if (currentStep == EncyclopediaTutorialStep.INTRO) sendAdvance();
     }
+
+    /** Call when the info page is left (back to disc, or the screen closes from it) — completes ZONES_AND_REWARDS. */
+    public static void onInfoPageClosed() {
+        if (currentStep == EncyclopediaTutorialStep.ZONES_AND_REWARDS) sendAdvance();
+    }
+
+    // Docked to the screen's right edge as a side panel, rather than a bottom-center bar, so it
+    // never overlaps the disc/info page content which are centered, or the back button (top-left).
+    private static final int SIDE_PANEL_WIDTH = 150;
+    private static final int SIDE_PANEL_MARGIN = 16;
 
     /**
      * Called after any screen renders. Gated to {@link FishEncyclopediaScreen} specifically
      * (unlike {@link TutorialClientHandler}'s screen overlay, which is only ever active for the
      * one or two screen-bound tutorial steps) because this step can outlive the screen it was
-     * written for — a player who closes the encyclopedia before the auto-advance timer fires
-     * would otherwise see the box bleed onto whatever screen they open next.
+     * written for — a player who closes the encyclopedia before advancing this step would
+     * otherwise see the panel bleed onto whatever screen they open next.
      */
     public static void render(GuiGraphicsExtractor graphics, float partialTick) {
         if (!currentStep.hasOverlay()) return;
@@ -67,7 +67,7 @@ public class EncyclopediaTutorialClientHandler {
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
         int innerPad = 10;
-        int boxWidth = Math.min(360, sw - 40);
+        int boxWidth = Math.min(SIDE_PANEL_WIDTH, sw - SIDE_PANEL_MARGIN * 2);
         int lineH = font.lineHeight + 2;
         int maxLineW = boxWidth - innerPad * 2;
 
@@ -75,8 +75,8 @@ public class EncyclopediaTutorialClientHandler {
         List<FormattedCharSequence> bodyLines = font.split(body.copy().withStyle(ChatFormatting.GRAY), maxLineW);
 
         int boxH = innerPad * 2 + titleLines.size() * lineH + 4 + bodyLines.size() * lineH;
-        int boxX = (sw - boxWidth) / 2;
-        int boxY = sh - boxH - 24;
+        int boxX = sw - boxWidth - SIDE_PANEL_MARGIN;
+        int boxY = (sh - boxH) / 2;
 
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxH, 0xD0101820);
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + 2, 0xFF4488CC);
@@ -100,7 +100,6 @@ public class EncyclopediaTutorialClientHandler {
     /** Call on disconnect/world-leave so the overlay doesn't persist into the main menu. */
     public static void reset() {
         currentStep = EncyclopediaTutorialStep.COMPLETE;
-        stepTicks = 0;
         sentAdvanceThisStep = false;
     }
 

@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
  *   <li>Borderless Stained Glass (×16) – shapeless, 1 vanilla stained glass → 1 borderless</li>
  *   <li>Clear Stained Glass (×16) – shapeless, 1 vanilla stained glass + 1 glass → 1 clear</li>
  *   <li>Bait items – shapeless, themed vanilla ingredients</li>
- *   <li>Fried Shrimp – smelting shrimp</li>
+ *   <li>Trash catches – old tire smelts to coal, sea glass smelts to glass, plastic litter stonecuts to string</li>
  * </ul>
  */
 public class FishtasticRecipeProvider extends FabricRecipeProvider {
@@ -52,6 +52,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 buildGlassRecipes(items);
                 buildBaitAndFoodRecipes(items);
                 buildHookAndCharmRecipes(items);
+                buildTrashRecipes(items);
             }
 
             // -----------------------------------------------------------------
@@ -213,47 +214,29 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(Items.STRING)
                         .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
                         .save(this.output);
+            }
 
-                // Amethyst Charm: amethyst shard bound with string, boosts minigame input force
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.AMETHYST_CHARM.value())
-                        .requires(Items.AMETHYST_SHARD)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_amethyst_shard", has(Items.AMETHYST_SHARD))
+            // -----------------------------------------------------------------
+            // Trash catches
+            // -----------------------------------------------------------------
+
+            private void buildTrashRecipes(HolderGetter<Item> items) {
+                // Old Tire: smelts down to coal
+                SimpleCookingRecipeBuilder.smelting(Ingredient.of(FishtasticItems.OLD_TIRE.value()), RecipeCategory.MISC,
+                                CookingBookCategory.MISC, Items.COAL, 0.1F, 200)
+                        .unlockedBy("has_old_tire", has(FishtasticItems.OLD_TIRE.value()))
                         .save(this.output);
 
-                // Crystal Ball Charm: an eye of ender bound with string, reveals target rarity
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.CRYSTAL_BALL_CHARM.value())
-                        .requires(Items.ENDER_EYE)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_ender_eye", has(Items.ENDER_EYE))
+                // Sea Glass: smelts down to plain glass
+                SimpleCookingRecipeBuilder.smelting(Ingredient.of(FishtasticItems.SEA_GLASS.value()), RecipeCategory.BUILDING_BLOCKS,
+                                CookingBookCategory.BLOCKS, Items.GLASS, 0.1F, 200)
+                        .unlockedBy("has_sea_glass", has(FishtasticItems.SEA_GLASS.value()))
                         .save(this.output);
 
-                // Four-Leaf Charm: a rabbit's foot bound with string, tilts rewards toward treasure
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.FOUR_LEAF_CHARM.value())
-                        .requires(Items.RABBIT_FOOT)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_rabbit_foot", has(Items.RABBIT_FOOT))
-                        .save(this.output);
-
-                // Luna Charm: a phantom membrane bound with string, forces night fishing conditions
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.LUNA_CHARM.value())
-                        .requires(Items.PHANTOM_MEMBRANE)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_phantom_membrane", has(Items.PHANTOM_MEMBRANE))
-                        .save(this.output);
-
-                // Banana Charm: yellow dye bound with string, boosts yellow-colored fish
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.BANANA_CHARM.value())
-                        .requires(Items.YELLOW_DYE)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_yellow_dye", has(Items.YELLOW_DYE))
-                        .save(this.output);
-
-                // Angler's Almanac: a clock bound with string, reveals the top-weighted catch
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.TOOLS, FishtasticItems.ANGLERS_ALMANAC.value())
-                        .requires(Items.CLOCK)
-                        .requires(Items.STRING)
-                        .unlockedBy("has_clock", has(Items.CLOCK))
+                // Plastic Litter: stonecut apart into string
+                SingleItemRecipeBuilder.stonecutting(Ingredient.of(FishtasticItems.PLASTIC_LITTER.value()), RecipeCategory.MISC,
+                                Items.STRING, 1)
+                        .unlockedBy("has_plastic_litter", has(FishtasticItems.PLASTIC_LITTER.value()))
                         .save(this.output);
             }
 

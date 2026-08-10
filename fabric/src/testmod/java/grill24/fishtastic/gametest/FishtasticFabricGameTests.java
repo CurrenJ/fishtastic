@@ -446,8 +446,8 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void addItemFailsWhenAllSlotsFull(GameTestHelper helper) {
-        FishTankGameTests.addItemFailsWhenAllSlotsFull(helper);
+    public void addItemFailsOnceSwarmCapReached(GameTestHelper helper) {
+        FishTankGameTests.addItemFailsOnceSwarmCapReached(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -502,6 +502,26 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void tutorialWalksFullDocumentedChainToCompletion(GameTestHelper helper) {
         TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper) {
+        TutorialManagerGameTests.craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper) {
+        TutorialManagerGameTests.craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(GameTestHelper helper) {
+        TutorialManagerGameTests.loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void revokingRodAdvancementAllowsReTriggeringAfterReset(GameTestHelper helper) {
+        TutorialManagerGameTests.revokingRodAdvancementAllowsReTriggeringAfterReset(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -570,6 +590,11 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void weatherConditionGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.weatherConditionGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void zoneConditionGatesMatchWhenPresent(GameTestHelper helper) {
+        QuestTrackerGameTests.zoneConditionGatesMatchWhenPresent(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

@@ -32,8 +32,8 @@ public class FishTankAssemblyMenu extends GelatinMenu {
     // GUI-space slot positions, matching fish_tank_assembly_side.png's hand-edited layout.
     // Input slots inset 2px, result slot inset 6px, to sit centered in their drawn frames.
     private static final int FRAME_X = 56, FRAME_Y = 17;
-    private static final int SAND_X = 56, SAND_Y = 35;
-    private static final int GLASS_X = 56, GLASS_Y = 53;
+    private static final int SAND_X = 56, SAND_Y = 53;
+    private static final int GLASS_X = 56, GLASS_Y = 35;
     private static final int RESULT_X = 116, RESULT_Y = 35;
     private static final int INV_X = 8, INV_Y = 84;
     private static final int HOTBAR_Y = 142;

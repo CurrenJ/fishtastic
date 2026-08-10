@@ -180,6 +180,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     public void onClose() {
         if (closingScreen) return;
+        if (selectedFishKey != null) EncyclopediaTutorialClientHandler.onInfoPageClosed();
         closingScreen = true;
         closingAtNanos = System.nanoTime();
         if (sphere != null) sphere.startOutroAnimation();
@@ -358,6 +359,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void onFishSelected(IUIElement icon, ResourceKey<FishProfile> fishKey) {
         if (fishKey == null || !(icon instanceof UIElement<?> uiIcon)) return;
 
+        EncyclopediaTutorialClientHandler.onFishClicked();
+
         uiIcon.reparentTo(root, true);
         uiScreen.setScrollY(0f);
 
@@ -425,6 +428,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             closing = false;
             return;
         }
+
+        EncyclopediaTutorialClientHandler.onInfoPageClosed();
 
         if (backButton != null) {
             root.removeChild(backButton);

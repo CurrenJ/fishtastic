@@ -8,7 +8,6 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 
@@ -34,6 +33,9 @@ public class TutorialClientHandler {
     private static final int CATCH_RESULT_AUTO_ADVANCE_TICKS = 200;  // 10 seconds
     private static final int SHOP_BROWSE_AUTO_ADVANCE_TICKS = 200;   // 15 seconds
     private static final int MINIGAME_CONTROL_MIN_SHOW_TICKS = 60;   // 3 seconds, even if right-click is pressed early
+
+    // Gap between the bottom-center layout box (in-world non-minigame steps) and the screen edge.
+    private static final int BOTTOM_LAYOUT_MARGIN = 40;
 
     // -------------------------------------------------------------------------
     // Packet handler (registered in platform client inits)
@@ -63,7 +65,7 @@ public class TutorialClientHandler {
     // -------------------------------------------------------------------------
 
     public static void tick() {
-        if (currentStep == TutorialStep.COMPLETE || currentStep == TutorialStep.WAITING_FOR_CAST) return;
+        if (currentStep == TutorialStep.COMPLETE) return;
         stepTicks++;
 
         // Drive slide animation
@@ -158,7 +160,9 @@ public class TutorialClientHandler {
         if (isScreenStep()) return;  // rendered on top of screen via renderScreenOverlay()
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.screen instanceof PauseScreen) return;
+        // World-space hint only — bail whenever any screen (encyclopedia, quest log, inventory,
+        // pause, ...) is open rather than just PauseScreen, so it doesn't bleed through behind it.
+        if (mc.level == null || mc.screen != null) return;
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
@@ -221,15 +225,19 @@ public class TutorialClientHandler {
         Component hint = getHint(currentStep);
         if (title == null) return;
 
-        // QUEST_CLAIM and SHOP_BROWSE are screen steps (rendered via renderScreenOverlay) but use
-        // the bottom-hint layout rather than the side layout reserved for in-world minigame steps.
+        // Minigame steps dock left/vertically-centered; QUEST_CLAIM and SHOP_BROWSE (rendered via
+        // renderScreenOverlay, on top of the Quest Log screen) dock top-left; everything else
+        // (in-world non-minigame hints) is bottom-center.
         boolean sideLayout = isMinigameStep();
+        boolean topLeftLayout = isScreenStep();
 
         net.minecraft.client.gui.Font font = mc.font;
         int innerPad = 10;
-        int boxWidth = sideLayout ? Math.min(220, sw / 3) : Math.min(360, sw - 40);
+        // Cap used only to bound word-wrap — the bottom-center and top-left layouts' actual box
+        // width shrink-wraps to its widest line below rather than always filling this cap.
+        int wrapCap = sideLayout ? Math.min(220, sw / 3) : Math.min(360, sw - 40);
         int lineH = font.lineHeight + 2;
-        int maxLineW = boxWidth - innerPad * 2;
+        int maxLineW = wrapCap - innerPad * 2;
 
         // Pre-split all text so box height and width are computed correctly
         var titleLines = font.split(title.copy().withStyle(ChatFormatting.BOLD, ChatFormatting.WHITE), maxLineW);
@@ -240,18 +248,27 @@ public class TutorialClientHandler {
                 ? font.split(hint, maxLineW)
                 : java.util.List.<net.minecraft.util.FormattedCharSequence>of();
 
+        int boxWidth = wrapCap;
+        if (!sideLayout) {
+            int contentW = 0;
+            for (var line : titleLines) contentW = Math.max(contentW, font.width(line));
+            for (var line : bodyLines) contentW = Math.max(contentW, font.width(line));
+            for (var line : hintLines) contentW = Math.max(contentW, font.width(line));
+            boxWidth = contentW + innerPad * 2;
+        }
+
         int boxH = innerPad * 2 + titleLines.size() * lineH;
         if (!bodyLines.isEmpty()) boxH += 4 + bodyLines.size() * lineH;
         if (!hintLines.isEmpty()) boxH += 4 + hintLines.size() * lineH;
 
-        int boxX = sideLayout ? 12 : (sw - boxWidth) / 2;
-        int boxY = sideLayout ? (sh - boxH) / 2 : sh - boxH - 24;
+        int boxX = sideLayout || topLeftLayout ? 12 : (sw - boxWidth) / 2;
+        int boxY = sideLayout ? (sh - boxH) / 2 : topLeftLayout ? 12 : sh - boxH - BOTTOM_LAYOUT_MARGIN;
 
         // Slide animation offset — lerp prev→current for sub-tick smoothness, then smoothstep
         float t = prevAnimOffset + (animOffset - prevAnimOffset) * partialTick;
         float eased = t * t * (3 - 2 * t);
         float slideX = sideLayout ? -(boxX + boxWidth) * eased : 0;
-        float slideY = sideLayout ? 0 : (sh - boxY + 8) * eased;
+        float slideY = sideLayout ? 0 : topLeftLayout ? -(boxY + boxH + 8) * eased : (sh - boxY + 8) * eased;
 
         graphics.pose().pushMatrix();
         graphics.pose().translate(slideX, slideY);
@@ -316,7 +333,7 @@ public class TutorialClientHandler {
     private static Component getBody(TutorialStep step) {
         return switch (step) {
             case BAIT_LOAD        -> Component.translatable("tutorial.fishtastic.bait_load.body");
-            case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.body");
+            case WAITING_FOR_CAST -> null;
             case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.body");
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.body");
             case MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.body");
@@ -333,7 +350,7 @@ public class TutorialClientHandler {
 
     private static Component getHint(TutorialStep step) {
         return switch (step) {
-            case BAIT_LOAD        -> Component.translatable("tutorial.fishtastic.bait_load.hint");
+            case BAIT_LOAD        -> null;
             case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.hint");
             case HOOK_IN_WATER    -> null; // body ("Wait for a bite — then reel in!") already says it
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.hint");

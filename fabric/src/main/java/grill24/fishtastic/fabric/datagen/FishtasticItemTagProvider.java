@@ -96,7 +96,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.GOLDEN_TROUT.value())
                 .add(FishtasticItems.CLOWN_LOACH.value())
                 .add(FishtasticItems.ELECTRIC_EEL.value())
-                .add(FishtasticItems.ORNATE_BICHIR.value());
+                .add(FishtasticItems.ORNATE_BICHIR.value())
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)

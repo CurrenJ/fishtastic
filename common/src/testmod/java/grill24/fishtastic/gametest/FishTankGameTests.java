@@ -2,6 +2,7 @@ package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.core.BlockPos;
@@ -78,18 +79,22 @@ public final class FishTankGameTests {
     }
 
     /**
-     * addItem returns false and leaves the tank unchanged once all CONTAINER_SIZE slots are full.
+     * addItem returns false and leaves the tank unchanged once the active swarm cap is reached —
+     * items beyond that would be stored but never rendered (FishTankBlockEntityRenderer only
+     * draws up to swarm.count() items). Items.DIAMOND has no fish_profile entry, so it resolves
+     * to SwarmConfig.DEFAULT rather than CONTAINER_SIZE (27); see FishTankBlockEntity#addItem.
      */
-    public static void addItemFailsWhenAllSlotsFull(GameTestHelper helper) {
+    public static void addItemFailsOnceSwarmCapReached(GameTestHelper helper) {
         FishTankBlockEntity tank = placeFishTank(helper);
-        for (int i = 0; i < FishTankBlockEntity.CONTAINER_SIZE; i++) {
+        int cap = SwarmConfig.DEFAULT.count();
+        for (int i = 0; i < cap; i++) {
             helper.assertTrue(tank.addItem(new ItemStack(Items.DIAMOND, 64)),
-                "Slot " + i + " insert must succeed while the tank still has room");
+                "Slot " + i + " insert must succeed while under the swarm cap (" + cap + ")");
         }
 
         ItemStack overflow = new ItemStack(Items.DIAMOND, 64);
         boolean result = tank.addItem(overflow);
-        helper.assertTrue(!result, "addItem must fail once all " + FishTankBlockEntity.CONTAINER_SIZE + " slots are full");
+        helper.assertTrue(!result, "addItem must fail once the swarm cap (" + cap + ") is reached");
         helper.assertTrue(overflow.getCount() == 64, "Rejected stack must be left unchanged");
         helper.succeed();
     }

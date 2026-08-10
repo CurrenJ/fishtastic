@@ -229,7 +229,6 @@ public final class FishtasticNeoForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             TutorialClientHandler.tick();
-            EncyclopediaTutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications

@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
 
@@ -20,6 +21,12 @@ import java.util.List;
  * quick succession, each one's slide-in is staggered by STAGGER_DELAY_TICKS so they
  * don't all animate in at once.
  * Ticks and renders the active notifications, advancing the queue as slots free up.
+ *
+ * Active slots are filled strictly by {@link NotificationPriority} tier: only one tier
+ * occupies the active set at a time. Once a tier is showing, lower-priority (higher
+ * ordinal) pending events wait — even into free slots — until that tier has fully
+ * drained (nothing left active or pending at that tier); higher-priority arrivals never
+ * preempt a tier already on screen. See {@link #fillActiveSlots()}.
  *
  * Usage:
  *   1. Call install() once during client init to wire the QuestClientCache listener.
@@ -98,18 +105,53 @@ public class QuestProgressNotificationManager {
             }
         }
 
-        // If there's a free slot, activate immediately (staggered against any
-        // notifications that were just activated this same burst)
-        if (active.size() < MAX_ACTIVE) {
-            activate(event);
-            return;
-        }
-
-        // Otherwise queue
         pending.addLast(event);
+        // Only fast-track into a free slot here if a tier is already locked in by the
+        // active set — safe because that tier was already decided independently of
+        // arrival order. If active is empty, deliberately do NOT activate here: several
+        // enqueue() calls often land synchronously in the same burst (e.g. one sync
+        // packet triggering several quests at once via QuestClientCache's listener
+        // loop), and activating on the very first one would lock in whichever event
+        // happened to arrive first as "the" tier, starving any higher-priority event
+        // that arrives a moment later in the same burst. Leaving it queued lets tick()
+        // pick the true minimum-priority tier once the whole burst has landed.
+        if (!active.isEmpty()) {
+            fillActiveSlots();
+        }
         while (pending.size() > MAX_QUEUE_SIZE) {
             pending.removeFirst();
         }
+    }
+
+    /**
+     * Fills free active slots from the pending queue, restricted to a single
+     * {@link NotificationPriority} tier at a time: the tier already occupying the active
+     * set (if any), or otherwise the highest-priority tier present in pending. Lower-
+     * priority pending events are left waiting even when slots are free, so a tier is
+     * always fully displayed and exits before the next tier gets a turn.
+     */
+    private void fillActiveSlots() {
+        NotificationPriority currentTier = active.isEmpty()
+                ? pending.stream().map(NotificationPriority::classify).min(Comparator.naturalOrder()).orElse(null)
+                : NotificationPriority.classify(active.get(0).event());
+
+        while (active.size() < MAX_ACTIVE && currentTier != null) {
+            QuestProgressEvent next = removeFirstPendingOfTier(currentTier);
+            if (next == null) break;
+            activate(next);
+        }
+    }
+
+    /** Removes and returns the first pending event matching the given tier, or null if none. */
+    private QuestProgressEvent removeFirstPendingOfTier(NotificationPriority tier) {
+        for (var it = pending.iterator(); it.hasNext(); ) {
+            QuestProgressEvent event = it.next();
+            if (NotificationPriority.classify(event) == tier) {
+                it.remove();
+                return event;
+            }
+        }
+        return null;
     }
 
     /** Move an event into an active slot, staggering its slide-in start against recently-activated notifications. */
@@ -149,9 +191,7 @@ public class QuestProgressNotificationManager {
         }
         active.removeIf(QuestProgressNotification::isDone);
 
-        while (active.size() < MAX_ACTIVE && !pending.isEmpty()) {
-            activate(pending.removeFirst());
-        }
+        fillActiveSlots();
 
         // Re-layout in case a banner above left the stack without a promotion filling
         // its slot (activate() above already covers the promotion case).

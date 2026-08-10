@@ -23,3 +23,5 @@ MCP causes lag buildup and eventual softlock/crash
 Exclude MCP package from builds
 
 Check two fish in one session quest is working properoly - chests are triggering it i think
+
+Encyclopedia and quest book items with own pip
