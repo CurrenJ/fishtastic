@@ -2,12 +2,15 @@ package grill24.fishtastic.item;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Registry;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -20,10 +23,13 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Opens the Quest Log on use. Wears the alert texture ({@link FishtasticDataComponents#HAS_ALERT})
@@ -76,5 +82,17 @@ public class QuestBookItem extends Item {
             if (state.canClaim(entry.getKey(), target)) return true;
         }
         return false;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
+                                 Consumer<Component> builder, TooltipFlag flag) {
+        super.appendHoverText(stack, context, display, builder, flag);
+
+        if (FishtasticKeyBinds.openQuestLog != null && !FishtasticKeyBinds.openQuestLog.isUnbound()) {
+            builder.accept(Component.translatable("tooltip.fishtastic.keybind_hint",
+                            FishtasticKeyBinds.openQuestLog.getTranslatedKeyMessage())
+                    .withStyle(ChatFormatting.GRAY));
+        }
     }
 }

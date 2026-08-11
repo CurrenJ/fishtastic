@@ -96,7 +96,7 @@ public class CatchCelebration {
      * noteworthy without stopping the game every time an early-game player finds a new common fish.
      */
     public static final Timings DISCOVERY_TIMINGS =
-            new Timings(2f, 6f, 7f, 8f, 16f, 30f, 2.0f, 0.5f, 1.0f, 30, 2f);
+            new Timings(2f, 6f, 10f, 8f, 16f, 30f, 2.0f, 0.5f, 1.0f, 30, 2f);
 
     /**
      * The fishing bar renders at {@code 2 * screenHeight / 3}, so one unit of the bar's own
@@ -110,6 +110,8 @@ public class CatchCelebration {
     private static final float HANG_OFFSET_Y = -0.10f;
     /** Length of the impact and reveal flashes, in ticks. */
     private static final float FLASH_DURATION = 3f;
+    /** Peak opacity of the full-screen flash — less than 1 so it punctuates without ever fully whiting out the screen. */
+    private static final float MAX_FLASH_ALPHA = 0.2f;
     /** Peak rotation of the hang wobble, in degrees. */
     private static final float HANG_ROTATION_DEGREES = 12f;
     /** Full wobble cycles per second while hanging. */
@@ -465,7 +467,7 @@ public class CatchCelebration {
     private static float flashFalloff(float sinceFlash) {
         if (sinceFlash < 0f || sinceFlash >= FLASH_DURATION) return 0f;
         float t = sinceFlash / FLASH_DURATION;
-        return (1f - t) * (1f - t);
+        return MAX_FLASH_ALPHA * (1f - t) * (1f - t);
     }
 
     /**

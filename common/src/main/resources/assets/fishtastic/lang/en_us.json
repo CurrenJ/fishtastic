@@ -113,6 +113,7 @@
   "item.fishtastic.fishopedia": "Fishopedia",
   "item.fishtastic.quest_book": "Quest Book",
   "tooltip.fishtastic.fishopedia.progress": "Discovered: %s / %s species",
+  "tooltip.fishtastic.keybind_hint": "[%s] Open",
   "tooltip.fishtastic.item_size.cm": "%s cm",
   "tooltip.fishtastic.item_size": "Size: %s",
   "tooltip.fishtastic.fish_quality": "Quality: %s",

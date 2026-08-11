@@ -16,7 +16,9 @@
           "glass": "fishtastic:blue_clear_stained_glass"
         }
       }
-    }
+    },
+    { "id": "fishtastic:fishopedia", "count": 1 },
+    { "id": "fishtastic:quest_book", "count": 1 }
   ] },
   "hidden": false,
   "display_name": "First Catch",

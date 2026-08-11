@@ -53,6 +53,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 buildBaitAndFoodRecipes(items);
                 buildHookAndCharmRecipes(items);
                 buildTrashRecipes(items);
+                buildBookRecipes(items);
             }
 
             // -----------------------------------------------------------------
@@ -237,6 +238,26 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 SingleItemRecipeBuilder.stonecutting(Ingredient.of(FishtasticItems.PLASTIC_LITTER.value()), RecipeCategory.MISC,
                                 Items.STRING, 1)
                         .unlockedBy("has_plastic_litter", has(FishtasticItems.PLASTIC_LITTER.value()))
+                        .save(this.output);
+            }
+
+            // -----------------------------------------------------------------
+            // Books
+            // -----------------------------------------------------------------
+
+            private void buildBookRecipes(HolderGetter<Item> items) {
+                // Fishopedia: a book gilded with gold to bind the encyclopedia
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FISHOPEDIA.value())
+                        .requires(Items.BOOK)
+                        .requires(Items.GOLD_INGOT)
+                        .unlockedBy("has_book", has(Items.BOOK))
+                        .save(this.output);
+
+                // Quest Book: a book pressed with any fish to bind the quest log
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.QUEST_BOOK.value())
+                        .requires(Items.BOOK)
+                        .requires(grill24.fishtastic.FishtasticItemTags.FISH)
+                        .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
             }
 

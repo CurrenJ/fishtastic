@@ -3,6 +3,7 @@ package grill24.fishtastic.item;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
+import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
@@ -138,5 +139,11 @@ public class FishopediaItem extends Item {
 
         builder.accept(Component.translatable("tooltip.fishtastic.fishopedia.progress", discovered, total)
                 .withStyle(ChatFormatting.AQUA));
+
+        if (FishtasticKeyBinds.openFishEncyclopedia != null && !FishtasticKeyBinds.openFishEncyclopedia.isUnbound()) {
+            builder.accept(Component.translatable("tooltip.fishtastic.keybind_hint",
+                            FishtasticKeyBinds.openFishEncyclopedia.getTranslatedKeyMessage())
+                    .withStyle(ChatFormatting.GRAY));
+        }
     }
 }
