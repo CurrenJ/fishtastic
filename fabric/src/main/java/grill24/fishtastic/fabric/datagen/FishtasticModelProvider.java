@@ -2,9 +2,11 @@ package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
+import net.minecraft.client.renderer.item.properties.conditional.HasComponent;
 import net.minecraft.core.Holder;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
@@ -164,6 +166,33 @@ public class FishtasticModelProvider extends FabricModelProvider {
         // ----- Block items -----
         // Fish tank: declare as custom model (uses custom block model / renderer)
         itemModelGenerators.declareCustomModelItem(FishtasticBlocks.FISH_TANK.value().asItem());
+
+        // ----- Menu-opening items — swap to the _alert texture whenever HAS_ALERT is present -----
+        generateAlertConditionedItem(itemModelGenerators, FishtasticItems.FISHOPEDIA.value(), "fishopedia");
+        generateAlertConditionedItem(itemModelGenerators, FishtasticItems.QUEST_BOOK.value(), "quest_book");
+    }
+
+    /**
+     * Generates a base + "_alert" flat item model pair and dispatches between them via
+     * {@link FishtasticDataComponents#HAS_ALERT}'s presence on the stack, mirroring the
+     * {@code minecraft:condition} pattern {@code generateFishingRod} uses for the rod's own
+     * cast-state model swap.
+     */
+    private static void generateAlertConditionedItem(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
+        Identifier baseModel = ModelTemplates.FLAT_ITEM.create(
+                ModelLocationUtils.getModelLocation(item),
+                TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName))),
+                itemModelGenerators.modelOutput);
+        Identifier alertModel = ModelTemplates.FLAT_ITEM.create(
+                ModelLocationUtils.getModelLocation(item, "_alert"),
+                TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName + "_alert"))),
+                itemModelGenerators.modelOutput);
+
+        itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.conditional(
+                new HasComponent(FishtasticDataComponents.HAS_ALERT.value(), false),
+                ItemModelUtils.plainModel(alertModel),
+                ItemModelUtils.plainModel(baseModel)
+        ));
     }
 
     /**

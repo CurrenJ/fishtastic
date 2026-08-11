@@ -12,6 +12,8 @@ import grill24.fishtastic.component.RodCharmContents;
 import grill24.fishtastic.component.RodHookContents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.Unit;
 
 public class FishtasticDataComponents {
     public static Holder<DataComponentType<ItemSize>> ITEM_SIZE;
@@ -23,6 +25,14 @@ public class FishtasticDataComponents {
     public static Holder<DataComponentType<HookEffect>> HOOK_EFFECT;
     public static Holder<DataComponentType<CharmEffect>> CHARM_EFFECT;
     public static Holder<DataComponentType<FishTankMaterials>> FISH_TANK_MATERIALS;
+    /**
+     * Marker-only presence component (no persisted value) driving the fishopedia/quest_book item
+     * models' alert-texture swap. Set/cleared every server inventory tick from live player state —
+     * see {@code FishopediaItem}/{@code QuestBookItem} — so it is deliberately not
+     * {@code .persistent(...)}, only {@code .networkSynchronized(...)}: it would just go stale in
+     * NBT between ticks, and the client needs it purely to pick a model at render time.
+     */
+    public static Holder<DataComponentType<Unit>> HAS_ALERT;
 
     public static void registerDataComponents() {
         ITEM_SIZE = RegistrationApiSided.getInstance().registerDataComponent(
@@ -86,6 +96,11 @@ public class FishtasticDataComponents {
                 builder -> builder
                         .persistent(FishTankMaterials.CODEC)
                         .networkSynchronized(FishTankMaterials.STREAM_CODEC)
+        );
+
+        HAS_ALERT = RegistrationApiSided.getInstance().registerDataComponent(
+                "has_alert",
+                builder -> builder.networkSynchronized(StreamCodec.unit(Unit.INSTANCE))
         );
     }
 }

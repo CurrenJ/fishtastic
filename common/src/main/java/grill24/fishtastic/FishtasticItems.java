@@ -14,8 +14,10 @@ import grill24.fishtastic.item.ObsidianFishingRod;
 import grill24.fishtastic.item.CosmeticCaptureWandItem;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.item.FishopediaItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
+import grill24.fishtastic.item.QuestBookItem;
 import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.world.level.block.Blocks;
@@ -95,6 +97,10 @@ public class FishtasticItems {
     public static Holder<Item> PILE_OF_COINS;
     // Single-coin texture, decorative only — used for the mini coin-fly particles on quest claim.
     public static Holder<Item> QUEST_TOKEN;
+
+    // ----- Menu-Opening Items -----
+    public static Holder<Item> FISHOPEDIA;
+    public static Holder<Item> QUEST_BOOK;
 
     // ----- Trash Items -----
     public static Holder<Item> SEA_GLASS;
@@ -368,6 +374,13 @@ public class FishtasticItems {
                 loc -> new Item(props(loc).stacksTo(64)));
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));
+
+        // Menu-opening items — right-click opens the Fish Encyclopedia / Quest Log screen; wear
+        // the _alert texture when there's an unclaimed encyclopedia reward / claimable quest.
+        FISHOPEDIA = RegistrationApiSided.getInstance().registerItem("fishopedia",
+                loc -> new FishopediaItem(props(loc).stacksTo(1)));
+        QUEST_BOOK = RegistrationApiSided.getInstance().registerItem("quest_book",
+                loc -> new QuestBookItem(props(loc).stacksTo(1)));
 
         // Trash items — caught instead of fish/treasure, feed the global cleanup goal
         SEA_GLASS = RegistrationApiSided.getInstance().registerItem("sea_glass", loc -> new Item(props(loc).stacksTo(64)));

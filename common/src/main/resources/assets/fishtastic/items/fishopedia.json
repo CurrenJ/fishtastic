@@ -1,0 +1,15 @@
+{
+  "model": {
+    "type": "minecraft:condition",
+    "component": "fishtastic:has_alert",
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "fishtastic:item/fishopedia"
+    },
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "fishtastic:item/fishopedia_alert"
+    },
+    "property": "minecraft:has_component"
+  }
+}

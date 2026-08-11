@@ -93,6 +93,8 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.STORM_CHARM.value());
                     output.accept(FishtasticItems.PILE_OF_COINS.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
+                    output.accept(FishtasticItems.FISHOPEDIA.value());
+                    output.accept(FishtasticItems.QUEST_BOOK.value());
 
                     // Trash
                     output.accept(FishtasticItems.SEA_GLASS.value());
