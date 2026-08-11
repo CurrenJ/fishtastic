@@ -451,6 +451,14 @@ public class QuestProgressNotification {
             return;
         }
 
+        // The catch celebration announces a discovery at its reveal, seconds before this banner
+        // arrives. Play it once, at the moment it lands — not again when the banner catches up.
+        // The banner itself still shows; only the duplicated fanfare is dropped, and the cooldown
+        // below is deliberately left untouched since no sound was spent.
+        if (QuestProgressNotificationManager.consumeDiscoveryFanfareClaim(questId())) {
+            return;
+        }
+
         long now = mc.level != null ? mc.level.getGameTime() : 0L;
         int delay = (int) Math.max(0, Math.min(NEW_SPECIES_SOUND_COOLDOWN_TICKS, nextNewSpeciesSoundTick - now));
         nextNewSpeciesSoundTick = now + delay + NEW_SPECIES_SOUND_COOLDOWN_TICKS;

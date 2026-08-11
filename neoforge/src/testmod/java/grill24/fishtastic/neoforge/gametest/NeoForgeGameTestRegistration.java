@@ -12,6 +12,7 @@ import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
 import grill24.fishtastic.gametest.FishTankGameTests;
 import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
+import grill24.fishtastic.gametest.CatchCelebrationGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
@@ -192,6 +193,66 @@ public class NeoForgeGameTestRegistration {
             MathUtilGameTests::utilityFtCreatesNamespacedIdentifier);
         register(event, env, "utility_interpolate_color_boundaries", 200,
             MathUtilGameTests::utilityInterpolateColorBoundaries);
+
+        // ----- Catch celebration tests -----
+        register(event, env, "legendary_resolves_to_hero_tier", 200,
+            CatchCelebrationGameTests::legendaryResolvesToHeroTier);
+        register(event, env, "ordinary_catch_resolves_to_none", 200,
+            CatchCelebrationGameTests::ordinaryCatchResolvesToNone);
+        register(event, env, "undiscovered_resolves_to_discovery_tier", 200,
+            CatchCelebrationGameTests::undiscoveredResolvesToDiscoveryTier);
+        register(event, env, "legendary_outranks_discovery", 200,
+            CatchCelebrationGameTests::legendaryOutranksDiscovery);
+        register(event, env, "empty_rewards_resolve_to_none", 200,
+            CatchCelebrationGameTests::emptyRewardsResolveToNone);
+        register(event, env, "hero_stack_picks_highest_quality", 200,
+            CatchCelebrationGameTests::heroStackPicksHighestQuality);
+        register(event, env, "hero_stack_picks_new_species_on_discovery", 200,
+            CatchCelebrationGameTests::heroStackPicksNewSpeciesOnDiscovery);
+        register(event, env, "phase_boundaries_follow_timings", 200,
+            CatchCelebrationGameTests::phaseBoundariesFollowTimings);
+        register(event, env, "clock_clamps_at_total", 200,
+            CatchCelebrationGameTests::clockClampsAtTotal);
+        register(event, env, "time_scale_freezes_then_ramps_back", 200,
+            CatchCelebrationGameTests::timeScaleFreezesThenRampsBack);
+        register(event, env, "discovery_has_no_slow_motion_hold", 200,
+            CatchCelebrationGameTests::discoveryHasNoSlowMotionHold);
+        register(event, env, "hero_scale_grows_to_peak_then_returns_to_normal", 200,
+            CatchCelebrationGameTests::heroScaleGrowsToPeakThenReturnsToNormal);
+        register(event, env, "settle_releases_into_physics", 200,
+            CatchCelebrationGameTests::settleReleasesIntoPhysics);
+        register(event, env, "settle_finishes_once_item_leaves_screen", 200,
+            CatchCelebrationGameTests::settleFinishesOnceItemLeavesScreen);
+        register(event, env, "settle_physics_decelerates_under_gravity", 200,
+            CatchCelebrationGameTests::settlePhysicsDeceleratesUnderGravity);
+        register(event, env, "settle_rotation_comes_from_physics", 200,
+            CatchCelebrationGameTests::settleRotationComesFromPhysics);
+        register(event, env, "silhouette_drops_at_reveal", 200,
+            CatchCelebrationGameTests::silhouetteDropsAtReveal);
+        register(event, env, "reveal_swap_happens_while_edge_on", 200,
+            CatchCelebrationGameTests::revealSwapHappensWhileEdgeOn);
+        register(event, env, "hero_is_unsqueezed_outside_the_turn", 200,
+            CatchCelebrationGameTests::heroIsUnsqueezedOutsideTheTurn);
+        register(event, env, "sparkle_burst_fires_once_at_reveal", 200,
+            CatchCelebrationGameTests::sparkleBurstFiresOnceAtReveal);
+        register(event, env, "skip_jumps_to_settle", 200,
+            CatchCelebrationGameTests::skipJumpsToSettle);
+        register(event, env, "skip_ignored_before_reveal", 200,
+            CatchCelebrationGameTests::skipIgnoredBeforeReveal);
+        register(event, env, "skip_after_reveal_keeps_burst_consumed", 200,
+            CatchCelebrationGameTests::skipAfterRevealKeepsBurstConsumed);
+        register(event, env, "skip_does_not_rewind", 200,
+            CatchCelebrationGameTests::skipDoesNotRewind);
+        register(event, env, "gameplay_suppressed_until_finished", 200,
+            CatchCelebrationGameTests::gameplaySuppressedUntilFinished);
+        register(event, env, "shake_decays_then_rebuilds_into_the_reveal", 200,
+            CatchCelebrationGameTests::shakeDecaysThenRebuildsIntoTheReveal);
+        register(event, env, "celebration_none_tier_is_rejected", 200,
+            CatchCelebrationGameTests::noneTierIsRejected);
+        register(event, env, "apply_quality_and_size_sets_both_components", 200,
+            CatchCelebrationGameTests::applyQualityAndSizeSetsBothComponents);
+        register(event, env, "apply_quality_and_size_overwrites_existing_quality", 200,
+            CatchCelebrationGameTests::applyQualityAndSizeOverwritesExistingQuality);
 
         // ----- FishingTarget tests -----
         register(event, env, "high_overlap_eventually_catches", 200,

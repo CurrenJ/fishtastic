@@ -18,6 +18,7 @@ import grill24.fishtastic.util.FishingTarget;
 import io.netty.buffer.Unpooled;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
@@ -94,7 +95,12 @@ public final class PacketRoundTripGameTests {
             new ItemStack(FishtasticItems.BLUEGILL.value())
         );
         Set<FishProfile.Zone> zones = Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.HIGH_ALTITUDE);
-        StartFishingMinigamePacket original = new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones);
+        Set<Identifier> undiscovered = Set.of(
+            BuiltInRegistries.ITEM.getKey(FishtasticItems.ACUTE_IASPIS.value()),
+            BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value())
+        );
+        StartFishingMinigamePacket original =
+            new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
@@ -108,6 +114,8 @@ public final class PacketRoundTripGameTests {
             assertStacksMatch(helper, topWeightedFish.get(i), decoded.topWeightedFishPreviews().get(i), "topWeightedFishPreviews[" + i + "]");
         }
         helper.assertTrue(decoded.zones().equals(original.zones()), "zones must round-trip");
+        helper.assertTrue(decoded.undiscoveredSpecies().equals(original.undiscoveredSpecies()),
+            "undiscoveredSpecies must round-trip, got " + decoded.undiscoveredSpecies());
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
         helper.assertTrue(decodedTarget.category() == target.category(), "TargetData.category must round-trip");

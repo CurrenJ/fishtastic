@@ -26,6 +26,7 @@ public class FishtasticCommand {
                 .then(CosmeticCommand.build())
                 .then(SetItemSizeCommand.build())
                 .then(SetFishQualityCommand.build())
+                .then(ForceQualityCommand.build())
                 .then(DebugFishDataCommand.build())
                 .then(FishProfileCommand.build())
                 .then(FishZoneCommand.build())
@@ -42,6 +43,9 @@ public class FishtasticCommand {
         // resolved and the server fails to start.
         if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
             command.then(McpBridgeCommand.build());
+            // Tuning tool for the catch celebration's timings — dev-only, and client-driven, so it
+            // never reaches a dedicated server's command tree.
+            command.then(CelebrationCommand.build());
         }
 
         dispatcher.register(command);

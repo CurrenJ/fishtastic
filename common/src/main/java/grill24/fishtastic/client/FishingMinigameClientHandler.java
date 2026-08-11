@@ -78,6 +78,7 @@ public class FishingMinigameClientHandler {
 
         animation.setTopWeightedFishPreviews(packet.topWeightedFishPreviews());
         animation.setCurrentZones(packet.zones());
+        animation.setUndiscoveredSpecies(packet.undiscoveredSpecies());
 
         // Display the animation
         IGameRendererExtension gameRendererExt = (IGameRendererExtension) minecraft.gameRenderer;

@@ -129,24 +129,7 @@ public class FishtasticFishItem extends Item {
                 Holder<Item> fishHolder = fishItems.get(i);
                 ItemStack stack = new ItemStack(fishHolder);
                 FishQuality.Quality quality = sampleRandomQuality(randomSource, qualityBias);
-
-                float mean = FishProfile.DEFAULT_MEAN_SIZE;
-                float stdDev = FishProfile.DEFAULT_STDDEV_SIZE;
-                Optional<ResourceKey<Item>> itemKey = fishHolder.unwrapKey();
-                if (itemKey.isPresent()) {
-                    ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                            FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
-                    FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
-                    if (profile != null) {
-                        mean = profile.size().mean();
-                        stdDev = profile.size().stdDev();
-                    }
-                }
-
-                float size = getRandomSize(randomSource, quality, mean, stdDev);
-                ItemSizeHelper.setSize(stack, size);
-                FishQualityHelper.setQuality(stack, quality);
-                stack.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
+                applyQualityAndSize(stack, quality, randomSource, fishProfileRegistry);
                 return stack;
             }
         }
@@ -256,6 +239,39 @@ public class FishtasticFishItem extends Item {
             baseStdDevSize = baseStdDevSize * modifier.meanMultiplier + modifier.stdDevOffset;
         }
         return MathUtil.randomGaussian(randomSource, baseMeanSize, baseStdDevSize);
+    }
+
+    /**
+     * Stamps a quality onto a fish stack and rolls a size to match it, using the species'
+     * {@link FishProfile} size distribution where one exists.
+     *
+     * <p>Quality and size are set together because they aren't independent — {@link #getRandomSize}
+     * shifts the distribution by quality, so a stack that has one changed without the other ends up
+     * describing a fish that could never have been caught (a legendary rolled off the common size
+     * curve). Shared by the ordinary loot roll and by the debug quality override, so both produce
+     * stacks that are indistinguishable from each other.
+     */
+    public static void applyQualityAndSize(
+            ItemStack stack,
+            FishQuality.Quality quality,
+            RandomSource randomSource,
+            Registry<FishProfile> fishProfileRegistry
+    ) {
+        float mean = FishProfile.DEFAULT_MEAN_SIZE;
+        float stdDev = FishProfile.DEFAULT_STDDEV_SIZE;
+        Optional<ResourceKey<Item>> itemKey = stack.typeHolder().unwrapKey();
+        if (itemKey.isPresent()) {
+            ResourceKey<FishProfile> profileKey = ResourceKey.create(
+                    FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+            FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
+            if (profile != null) {
+                mean = profile.size().mean();
+                stdDev = profile.size().stdDev();
+            }
+        }
+
+        ItemSizeHelper.setSize(stack, getRandomSize(randomSource, quality, mean, stdDev));
+        FishQualityHelper.setQuality(stack, quality);
     }
 
     public static FishQuality.Quality sampleRandomQuality(RandomSource randomSource, float qualityBias) {

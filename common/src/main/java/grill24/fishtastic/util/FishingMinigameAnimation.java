@@ -1,10 +1,9 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticSounds;
-import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
+import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
@@ -27,8 +26,8 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -112,6 +111,54 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // Track caught targets BEFORE they get removed
     private final List<Integer> caughtTargetIndices = new ArrayList<>();
 
+    // ---- Catch celebration ----
+    // The hero-moment sequence for the rarest catches. Only one runs at a time: while it's active
+    // the rest of the minigame is frozen (see the guard in tick()), so a second target can't be
+    // landed behind it.
+    @Nullable private CatchCelebration celebration = null;
+
+    /**
+     * Species already celebrated during this minigame session, so hooking two of the same brand-new
+     * fish in one cast only fires the discovery sequence once. The encyclopedia cache can't do this
+     * for us — it isn't updated until the results reach the server, which happens after this
+     * animation has already hidden.
+     */
+    private final Set<Identifier> celebratedSpecies = new HashSet<>();
+
+    /**
+     * Species in this session the player had never caught when they cast, sent by the server with
+     * the start packet. The client can't work this out for itself: {@code FishEncyclopediaClientCache}
+     * is populated only while the encyclopedia screen is open — see the handler swap in
+     * {@code FishEncyclopediaScreen} — so consulting it during normal fishing reports every species
+     * as never-caught and makes every catch look like a first discovery.
+     */
+    private Set<Identifier> undiscoveredSpecies = Set.of();
+
+    /**
+     * Ceiling on how long a celebration may hold the minigame frozen, in ticks — comfortably past
+     * the longest sequence (50 ticks) so it never fires during normal play. See the watchdog note
+     * in {@link #tick()}.
+     */
+    private static final int CELEBRATION_WATCHDOG_TICKS = 200;
+    private int celebrationWatchdogTicks = 0;
+
+    /**
+     * Converts offsets between the bar's own coordinates and the fraction-of-screen-height space
+     * {@link CatchCelebration} works in. Defined there, since the celebration converts its physics
+     * output through the same factor.
+     */
+    private static final float BAR_SPACE_TO_SCREEN_FRACTION = CatchCelebration.BAR_SPACE_TO_SCREEN_FRACTION;
+
+    // ---- Anticipation audio ----
+    // A rising pitch ladder over the last stretch of catch progress — the "you're about to land it"
+    // cue. Deliberately fires for every target, not just rare ones, so it reads as proximity to a
+    // catch rather than as a rarity tell that would spoil the celebration's reveal.
+    private static final float ANTICIPATION_THRESHOLD = 0.85f;
+    private static final int ANTICIPATION_INTERVAL_TICKS = 2;
+    private static final float ANTICIPATION_MIN_PITCH = 1.2f;
+    private static final float ANTICIPATION_MAX_PITCH = 2.0f;
+    private int lastAnticipationTick = -ANTICIPATION_INTERVAL_TICKS;
+
     public FishingMinigameAnimation() {
         this.minigameState = new FishingMinigameState(LAYOUT.bobberSize(), (1.0f - LAYOUT.bobberSize()) / 2f);
 
@@ -120,6 +167,33 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.STONE)), FishingTarget.TargetCategory.TREASURE, random, 0.3f));
         minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.DIAMOND)), FishingTarget.TargetCategory.TREASURE, random, 0.6f));
         minigameState.addTarget(new FishingTarget(List.of(new ItemStack(Items.GOLD_INGOT)), FishingTarget.TargetCategory.TREASURE, random, 0.8f));
+    }
+
+    /**
+     * Dev tooling: stages a celebration on its own, without fishing for one.
+     *
+     * <p>The sequence is entirely timing — phase lengths, the peak scale, how hard the HUD shakes —
+     * and none of that can be judged except by watching it. Waiting on a real legendary to evaluate
+     * a tweak would make each iteration minutes long instead of seconds.
+     *
+     * <p>Skips {@link #resolveCelebrationTier} deliberately: the caller names the tier outright, so
+     * the discovery variant can be previewed without needing a species the player has never caught.
+     */
+    public static FishingMinigameAnimation createCelebrationPreview(CatchCelebration.Tier tier, ItemStack hero) {
+        FishingMinigameAnimation animation = new FishingMinigameAnimation();
+        animation.isIntro = false;
+
+        // One already-retired target, so the ordinary "everything finished, hide the bar" check
+        // still fires once the celebration ends instead of leaving the preview on screen forever.
+        List<FishingTarget> targets = animation.getMinigameState().getTargets();
+        targets.clear();
+        FishingTarget target = new FishingTarget(
+                List.of(hero), FishingTarget.TargetCategory.FISH, new Random(), 0.5f);
+        target.startCelebrationHandoff();
+        targets.add(target);
+
+        animation.celebration = new CatchCelebration(tier, hero, 0f, animation.sparkleRandom);
+        return animation;
     }
 
     @Override
@@ -132,12 +206,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         if (target.getCategory() == FishingTarget.TargetCategory.TREASURE) {
             return 16;
         }
-        FishQuality.Quality best = target.getAllRewardItems().stream()
-                .map(stack -> stack.get(FishtasticDataComponents.FISH_QUALITY.value()))
-                .filter(q -> q != null)
-                .map(FishQuality::quality)
-                .max(Comparator.comparingInt(Enum::ordinal))
-                .orElse(null);
+        FishQuality.Quality best = FishQualityHelper.bestQuality(target.getAllRewardItems());
         if (best == null) return 4; // vanilla fish
         return switch (best) {
             case COMMON    -> 0;
@@ -176,6 +245,29 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             return; // Don't update minigame state or targets during hide animation
         }
 
+        // A celebration owns the screen while it runs: targets hold still, catch progress stops
+        // accumulating, and the bait pop-off waits its turn. The celebration itself advances on its
+        // own clock in render(), not here — see CatchCelebration's class docs for why.
+        //
+        // That dependency on render() is also why the watchdog exists. This tick runs at a steady
+        // 20 Hz no matter what, but the HUD layer the celebration renders from does not — hiding
+        // the GUI stops it outright. Without a ceiling on how long a celebration may hold the
+        // minigame frozen, a player who hid the HUD at the wrong moment would strand the session
+        // and never receive the catch, since results are only sent once the bar hides.
+        if (celebration != null) {
+            celebrationWatchdogTicks++;
+            if (!celebration.isFinished() && celebrationWatchdogTicks < CELEBRATION_WATCHDOG_TICKS) return;
+            celebration = null;
+            celebrationWatchdogTicks = 0;
+        }
+
+        // No freeze on an ordinary catch. A brief one was tried here to give the catch some impact,
+        // but this early return also skips minigameState.tick(), which is what advances the reward's
+        // PhysicsSimulation inside FishingTarget#tick — so the item spawned visible and then hung
+        // motionless for the duration before launching. Freezing the one thing the player is looking
+        // at reads as a hitch, not an impact. The tiered celebrations keep their own HITSTOP phase,
+        // where the held item is a silhouette that is meant to be still.
+
         // Only update minigame state and targets when not in intro or hiding
         minigameState.tick();
 
@@ -198,6 +290,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // tracking that is sent to the server.  Targets stay in their original slot forever; we
         // just stop updating them once they are no longer ACTIVE.
         boolean anyOngoing = false;
+        float highestActiveProgress = 0f;
         List<FishingTarget> targets = minigameState.getTargets();
         for (int targetIndex = 0; targetIndex < targets.size(); targetIndex++) {
             FishingTarget target = targets.get(targetIndex);
@@ -217,16 +310,16 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 if (target.isCaught()) {
                     float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
-                    int sparkleCount = sparkleCountForTarget(target);
-                    List<SparkleParticle> burst = new ArrayList<>();
-                    for (int i = 0; i < sparkleCount; i++) {
-                        burst.add(new SparkleParticle(0, 0, sparkleRandom, 20 + sparkleRandom.nextInt(15)));
-                    }
-                    sparkleBursts.add(new SparkleBurst(burst, targetYOffset));
-
-                    target.startCollectionAnimation(0, 0);
                     caughtTargetIndices.add(targetIndex);
-                    playCatchSound(target);
+
+                    CatchCelebration.Tier tier = resolveCelebrationTier(target);
+                    if (tier != CatchCelebration.Tier.NONE) {
+                        startCelebration(target, tier, targetYOffset);
+                    } else {
+                        spawnSparkleBurst(sparkleCountForTarget(target), targetYOffset);
+                        target.startCollectionAnimation(0, 0);
+                        playCatchSound(target);
+                    }
 
                     if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
                         baitPopTriggered = true;
@@ -237,10 +330,14 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                     target.startFailAnimation();
                 } else {
                     anyOngoing = true;
+                    highestActiveProgress = Math.max(highestActiveProgress, target.getCatchProgress());
                 }
             }
         }
         minigameState.resetSweptRange();
+        // Driven off the single closest-to-caught target so a multi-target cast doesn't stack
+        // overlapping ladders on top of each other.
+        playAnticipationBlip(highestActiveProgress);
 
         if (baitDepletedSimulation != null) {
             baitDepletedAnimationTick++;
@@ -250,10 +347,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
         }
 
-        // Hide once every target has fully completed its animation (and the bait pop-off, if any)
+        // Hide once every target has fully completed its animation (and the bait pop-off, if any).
+        //
+        // The celebration has to be checked here as well as at the top of this method. A catch
+        // starts one partway through the loop above, so on that one tick execution reaches this
+        // point with a celebration freshly created — and the caught target is already COMPLETE,
+        // having handed its reward over. Without this term the bar would begin hiding on the very
+        // tick the celebration starts, and the isHiding branch above returns before the celebration
+        // guard ever runs, so the whole overlay would be torn down mid-sequence.
         boolean allComplete = !targets.isEmpty()
                 && targets.stream().allMatch(FishingTarget::isAnimationComplete)
-                && baitDepletedSimulation == null;
+                && baitDepletedSimulation == null
+                && celebration == null;
         if (!anyOngoing && allComplete) {
             if (!isHiding) {
                 // Send results to server before hiding (via reflection to avoid client dependency)
@@ -269,15 +374,93 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         }
     }
 
+    /**
+     * Decides how much ceremony a just-caught target earns. Only fish qualify for the discovery
+     * tier — treasure and trash have no encyclopedia entry, so "never caught before" is meaningless
+     * for them and {@code getCatchCount} would read 0 for every rock ever pulled up.
+     */
+    private CatchCelebration.Tier resolveCelebrationTier(FishingTarget target) {
+        if (celebration != null) return CatchCelebration.Tier.NONE; // one at a time
+        boolean isFish = target.getCategory() == FishingTarget.TargetCategory.FISH;
+        return CatchCelebration.resolveTier(
+                target.getAllRewardItems(),
+                stack -> isFish && isUncelebratedNewSpecies(stack));
+    }
+
+    /** True if this stack is a species the player has never caught and hasn't already celebrated this cast. */
+    private boolean isUncelebratedNewSpecies(ItemStack stack) {
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return !celebratedSpecies.contains(id) && undiscoveredSpecies.contains(id);
+    }
+
+    /**
+     * Hands a caught target over to a celebration: the sequence takes ownership of presenting the
+     * reward, so the target retires without its usual physics pop-off. The sparkle burst is
+     * deliberately not spawned here — it waits for the reveal, which is the whole point of the
+     * sequence.
+     */
+    private void startCelebration(FishingTarget target, CatchCelebration.Tier tier, float targetYOffset) {
+        List<ItemStack> rewards = target.getAllRewardItems();
+        boolean isFish = target.getCategory() == FishingTarget.TargetCategory.FISH;
+        ItemStack hero = CatchCelebration.pickHeroStack(
+                rewards, tier, stack -> isFish && isUncelebratedNewSpecies(stack));
+
+        celebratedSpecies.add(BuiltInRegistries.ITEM.getKey(hero.getItem()));
+        // Bar-space offsets are negated on the way to screen space (the renderer translates by
+        // -targetYOffset), and one bar unit is BAR_SPACE_TO_SCREEN_FRACTION of the screen height.
+        celebration = new CatchCelebration(
+                tier, hero.copy(), -targetYOffset * BAR_SPACE_TO_SCREEN_FRACTION, sparkleRandom);
+        target.startCelebrationHandoff();
+
+        SoundEvent sound = tier == CatchCelebration.Tier.HERO
+                ? FishtasticSounds.CATCH_LEGENDARY.value()
+                : FishtasticSounds.NEW_SPECIES_DISCOVERED.value();
+        playUiSound(sound, 1.0f);
+
+        if (tier == CatchCelebration.Tier.DISCOVERY) {
+            // The first-catch banner arrives seconds later and would otherwise replay this same
+            // fanfare; claiming it here keeps the announcement on the reveal, where the player is
+            // actually looking.
+            QuestProgressNotificationManager.claimDiscoveryFanfare(
+                    BuiltInRegistries.ITEM.getKey(hero.getItem()));
+        }
+    }
+
+    /** Spawns a sparkle burst centred on a bar-space vertical offset. */
+    private void spawnSparkleBurst(int sparkleCount, float targetYOffset) {
+        List<SparkleParticle> burst = new ArrayList<>();
+        for (int i = 0; i < sparkleCount; i++) {
+            burst.add(new SparkleParticle(0, 0, sparkleRandom, 20 + sparkleRandom.nextInt(15)));
+        }
+        sparkleBursts.add(new SparkleBurst(burst, targetYOffset));
+    }
+
+    /**
+     * Plays the rising-pitch "nearly there" ladder over the last stretch of catch progress. The
+     * window matches {@code FishingTarget}'s own precision slowdown, which already stretches these
+     * final ticks out — so the ladder lands on a beat the player can feel rather than one invented
+     * for the audio.
+     */
+    private void playAnticipationBlip(float progress) {
+        if (progress < ANTICIPATION_THRESHOLD) return;
+        if (tickCount - lastAnticipationTick < ANTICIPATION_INTERVAL_TICKS) return;
+        lastAnticipationTick = tickCount;
+
+        float t = MathUtil.clamp((progress - ANTICIPATION_THRESHOLD) / (1f - ANTICIPATION_THRESHOLD), 0f, 1f);
+        playUiSound(FishtasticSounds.QUEST_PROGRESS.value(),
+                MathUtil.lerp(ANTICIPATION_MIN_PITCH, ANTICIPATION_MAX_PITCH, t));
+    }
+
+    private static void playUiSound(SoundEvent sound, float pitch) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getSoundManager() != null) {
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch));
+        }
+    }
+
     /** Plays the rarity-specific catch jingle for a just-caught target's best reward. */
     private void playCatchSound(FishingTarget target) {
-        FishQuality.Quality bestQuality = null;
-        for (ItemStack reward : target.getAllRewardItems()) {
-            FishQuality fishQuality = reward.get(FishtasticDataComponents.FISH_QUALITY.value());
-            if (fishQuality != null && (bestQuality == null || fishQuality.quality().ordinal() > bestQuality.ordinal())) {
-                bestQuality = fishQuality.quality();
-            }
-        }
+        FishQuality.Quality bestQuality = FishQualityHelper.bestQuality(target.getAllRewardItems());
         if (bestQuality == null) {
             bestQuality = FishQuality.Quality.COMMON;
         }
@@ -290,10 +473,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             case LEGENDARY -> FishtasticSounds.CATCH_LEGENDARY.value();
         };
 
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.getSoundManager() != null) {
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f));
-        }
+        playUiSound(sound, 1.0f);
     }
 
     public void setTutorial(boolean tutorial) {
@@ -322,6 +502,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     /** Called once at minigame start with the server-computed top-weighted fish (highest first), if any charm reveals them. */
     public void setTopWeightedFishPreviews(@Nullable List<ItemStack> stacks) {
         this.topWeightedFishPreviews = (stacks == null) ? List.of() : stacks;
+    }
+
+    /** Called once at minigame start with the species the player had never caught when they cast. */
+    public void setUndiscoveredSpecies(@Nullable Set<Identifier> species) {
+        this.undiscoveredSpecies = (species == null) ? Set.of() : Set.copyOf(species);
     }
 
     /** Called once at minigame start with the rod's currently equipped bait/hook/charm itemstacks, if any. */
@@ -378,6 +563,15 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float deltaTime = Math.min(absoluteTime - lastRenderTime, 3.0f); // clamp against lag spikes
         lastRenderTime = absoluteTime;
 
+        // The celebration runs on real elapsed time rather than the 20 Hz tick, so it's advanced
+        // here. timeScale is what it hands back to the rest of the minigame: 0 freezes it outright,
+        // fractions put it in slow motion.
+        float timeScale = 1f;
+        if (celebration != null) {
+            celebration.advance(deltaTime);
+            timeScale = celebration.getTimeScale();
+        }
+
         // Per-frame input and physics — skip during intro / hide so the bobber is stable
         if (!isIntro && !isHiding) {
             // Poll both the dedicated keybind and vanilla's "use item" mapping (default: right
@@ -386,7 +580,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             boolean isImpulseDown = (FishtasticKeyBinds.fishingMinigameImpulse != null
                     && FishtasticKeyBinds.fishingMinigameImpulse.isDown())
                     || minecraft.options.keyUse.isDown();
-            if (isImpulseDown) {
+            if (celebration != null) {
+                // During a celebration the same input skips it instead of driving the bobber, so
+                // the sequence can always be dismissed by a player who just wants to keep fishing.
+                if (isImpulseDown && !wasImpulseKeyDown) {
+                    celebration.skipToSettle();
+                }
+            } else if (isImpulseDown) {
                 // Apply a small continuous force each frame, scaled by deltaTime so the
                 // accumulated velocity per second is frame-rate independent.
                 minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
@@ -397,7 +597,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
             wasImpulseKeyDown = isImpulseDown;
 
-            minigameState.updatePhysics(deltaTime);
+            minigameState.updatePhysics(deltaTime * timeScale);
         }
 
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
@@ -417,6 +617,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private void render(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, float partialTick, float progress, int x, int y, int screenWidth, int screenHeight) {
         // ----- Render Fishing Bar + Bobber -----
         guiGraphics.pose().pushMatrix();
+        // Celebration shake, applied in screen pixels before the bar's own translate + giant scale
+        // so the whole bar assembly (bar, bobber, targets, sparkles) moves as one piece.
+        if (celebration != null) {
+            guiGraphics.pose().translate(celebration.getShakeX(), celebration.getShakeY());
+        }
         renderFishingBar(minecraft, guiGraphics, partialTick, progress, x, y, screenHeight);
         renderTargets(guiGraphics, partialTick);
         renderSparkles(guiGraphics, partialTick);
@@ -430,6 +635,67 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         renderEquippedGear(guiGraphics, partialTick, x, y, screenHeight);
         renderBaitDepletedAnimation(guiGraphics, partialTick, x, y, screenHeight);
         renderZoneIcons(guiGraphics, partialTick, x, y, screenHeight);
+
+        // Last, so the hero item and the flash sit on top of every other layer.
+        renderCelebration(guiGraphics, screenWidth, screenHeight);
+    }
+
+    /**
+     * Draws the catch celebration's screen flash and hero item, on top of everything else.
+     *
+     * <p>The hero goes through the normal item path rather than a direct texture blit, which is
+     * what lets the existing quality outline shaders (see {@code gui_item_outline_legendary.fsh})
+     * decorate it for free — the stack still carries its {@code FISH_QUALITY} component. The cost
+     * is that the item rasterizes into a {@code 16 * guiScale} atlas slot regardless of how large
+     * it's drawn (see {@link #renderItem}), so a heavily scaled-up fish is a chunky upscale rather
+     * than a crisp one. That reads as deliberate at Minecraft's art scale; if it ever doesn't, the
+     * fix is to lower {@code CatchCelebration}'s peak scale rather than to leave the item path.
+     */
+    private void renderCelebration(GuiGraphicsExtractor guiGraphics, int screenWidth, int screenHeight) {
+        if (celebration == null) return;
+
+        float flashAlpha = celebration.getFlashAlpha();
+        if (flashAlpha > 0.01f) {
+            int alpha = (int) (MathUtil.clamp(flashAlpha, 0f, 1f) * 255f);
+            guiGraphics.fill(0, 0, screenWidth, screenHeight, (alpha << 24) | 0x00FFFFFF);
+        }
+
+        ItemStack hero = celebration.getHeroStack();
+        if (hero.isEmpty()) return;
+
+        // A normal reward item renders at (2/16) of the bar's 2*screenHeight/3 scale; the hero's
+        // scale is expressed as a multiple of exactly that, so it stays proportional at any window
+        // size the same way every other element of the bar does.
+        float baseItemPx = (2f / 16f) * (2 * screenHeight / 3f);
+        float heroPx = baseItemPx * celebration.getHeroScale();
+
+        IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
+        guiGraphics.pose().pushMatrix();
+        // Shaken along with the bar, so the held silhouette visibly strains during the suspense
+        // build rather than sitting perfectly still while everything behind it rattles.
+        guiGraphics.pose().translate(
+                screenWidth / 2f + celebration.getHeroOffsetX() * screenHeight + celebration.getShakeX(),
+                screenHeight / 2f + celebration.getHeroOffsetY() * screenHeight + celebration.getShakeY());
+        guiGraphics.pose().rotate((float) Math.toRadians(celebration.getHeroRotation()));
+        // Horizontal squeeze only — this is the Y-axis turn, faked the same way the fail animation
+        // fakes its spin (see renderTargets), since GUI items have no real third axis.
+        guiGraphics.pose().scale(heroPx * celebration.getHeroFlipScaleX(), heroPx);
+        if (celebration.isSilhouetted()) {
+            FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
+        }
+        try {
+            extension.fishtastic$renderItem(hero, 0, 0);
+        } finally {
+            FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+        }
+        guiGraphics.pose().popMatrix();
+
+        // Fires once, the frame the reveal starts — the burst is the punctuation on the reveal, so
+        // it can't be spawned back when the catch actually happened.
+        if (celebration.consumeSparkleBurst()) {
+            spawnSparkleBurst(celebration.getSparkleCount(),
+                    -celebration.getHeroOffsetY() / BAR_SPACE_TO_SCREEN_FRACTION);
+        }
     }
 
     /**
@@ -508,9 +774,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         }
     }
 
-    private static boolean isFishDiscovered(ItemStack stack) {
-        Identifier fishId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return FishEncyclopediaClientCache.getCatchCount(fishId) > 0;
+    /**
+     * Read from the server-sent set rather than {@code FishEncyclopediaClientCache}, which this
+     * previously consulted. That cache is only filled while the encyclopedia screen is open, so
+     * during a cast it reported every species as never-caught and silhouetted the entire preview.
+     */
+    private boolean isFishDiscovered(ItemStack stack) {
+        return !undiscoveredSpecies.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()));
     }
 
     /**

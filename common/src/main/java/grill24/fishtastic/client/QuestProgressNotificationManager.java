@@ -12,7 +12,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Singleton that manages a queue of QuestProgressNotifications.
@@ -66,6 +68,50 @@ public class QuestProgressNotificationManager {
      */
     public static final String FIRST_CATCH_ID_PREFIX = "first_catch/";
 
+    /** The synthetic quest id used for a species' first-catch banner. */
+    public static Identifier firstCatchQuestId(Identifier fishId) {
+        return Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath());
+    }
+
+    /**
+     * First-catch banners whose fanfare has already been played by something else — in practice the
+     * catch celebration, which announces a discovery at its reveal, seconds before the banner
+     * arrives. Keyed by banner quest id and consumed once.
+     *
+     * <p>The banner still shows; only its sound is dropped. The discovery is worth announcing once,
+     * at the moment it lands, and the banner turning up later to replay the same fanfare is the
+     * duplicate — the reveal is where the player is actually looking.
+     */
+    private static final Map<Identifier, Long> FANFARE_CLAIMS = new HashMap<>();
+
+    /**
+     * How long a claim stays valid. Long enough to cover the celebration plus the round trip that
+     * records the catch and sends the banner back, short enough that a claim left behind by a catch
+     * that never registered can't mute an unrelated banner later.
+     */
+    private static final int FANFARE_CLAIM_WINDOW_TICKS = 200;
+
+    /** Called when something else has already played the discovery fanfare for this species. */
+    public static void claimDiscoveryFanfare(Identifier fishId) {
+        FANFARE_CLAIMS.put(firstCatchQuestId(fishId), gameTime() + FANFARE_CLAIM_WINDOW_TICKS);
+    }
+
+    /** True if this banner's fanfare was already played elsewhere; consumes the claim. */
+    public static boolean consumeDiscoveryFanfareClaim(Identifier questId) {
+        Long expiry = FANFARE_CLAIMS.remove(questId);
+        if (expiry == null) return false;
+
+        long now = gameTime();
+        // Game time restarts per world, so a claim carried across worlds can look arbitrarily far
+        // in the future. Treat anything beyond the window as stale rather than trusting it.
+        return now <= expiry && expiry - now <= FANFARE_CLAIM_WINDOW_TICKS;
+    }
+
+    private static long gameTime() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.level != null ? mc.level.getGameTime() : 0L;
+    }
+
     /** Wire the QuestClientCache listener so progress events feed into this manager. */
     public void install() {
         if (installed) return;
@@ -81,8 +127,7 @@ public class QuestProgressNotificationManager {
                 enqueue(new QuestProgressEvent(OUT_OF_BAIT_ID, 0, 1, 1, true, baitItem)));
         QuestClientCache.setFirstCatchListener(fishItem -> {
             Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
-            enqueue(new QuestProgressEvent(Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath()),
-                    0, 1, 1, true, fishItem));
+            enqueue(new QuestProgressEvent(firstCatchQuestId(fishId), 0, 1, 1, true, fishItem));
         });
     }
 

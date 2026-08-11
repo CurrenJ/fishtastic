@@ -7,6 +7,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -16,12 +17,21 @@ import java.util.Set;
  * Sent from server to client to start a fishing minigame session.
  * Contains the session ID and all target items with their properties.
  */
+/**
+ * @param undiscoveredSpecies item ids appearing in this session — among the rewards and the
+ *                            almanac previews — that the player has never caught. Computed
+ *                            server-side because the client has no standing record of its own:
+ *                            {@code FishEncyclopediaClientCache} is only populated while the
+ *                            encyclopedia screen is open, so outside that screen it reports every
+ *                            species as never-caught.
+ */
 public record StartFishingMinigamePacket(
         int sessionId,
         List<TargetData> targets,
         boolean isTutorial,
         List<ItemStack> topWeightedFishPreviews,
-        Set<FishProfile.Zone> zones
+        Set<FishProfile.Zone> zones,
+        Set<Identifier> undiscoveredSpecies
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
@@ -41,6 +51,8 @@ public record StartFishingMinigamePacket(
                     Enum::ordinal
             ).apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::zones,
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
+            StartFishingMinigamePacket::undiscoveredSpecies,
             StartFishingMinigamePacket::new
     );
 

@@ -31,6 +31,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -95,6 +96,25 @@ public class FishingMinigameManager {
 
     public static Optional<Float> getForcedDifficulty(UUID playerId) {
         return Optional.ofNullable(FORCED_DIFFICULTIES.get(playerId));
+    }
+
+    // Debug: per-player forced quality override, stamped onto every fish reward in a session after
+    // the loot roll. Exists so the rare-catch celebration sequences can be seen in a real cast
+    // rather than only in isolation — the odds of rolling a Legendary on demand are the whole
+    // problem. Applied before the quality difficulty boost, so a forced Legendary also fights like
+    // one instead of being a common fish wearing a gold tooltip.
+    private static final Map<UUID, FishQuality.Quality> FORCED_QUALITIES = new HashMap<>();
+
+    public static void setForcedQuality(UUID playerId, FishQuality.Quality quality) {
+        FORCED_QUALITIES.put(playerId, quality);
+    }
+
+    public static void clearForcedQuality(UUID playerId) {
+        FORCED_QUALITIES.remove(playerId);
+    }
+
+    public static Optional<FishQuality.Quality> getForcedQuality(UUID playerId) {
+        return Optional.ofNullable(FORCED_QUALITIES.get(playerId));
     }
 
     private final Map<UUID, ActiveSession> activeSessions = new HashMap<>();
@@ -188,7 +208,10 @@ public class FishingMinigameManager {
             ));
         }
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, targetData, false, topWeightedFishPreview, sessionZones));
+        Set<Identifier> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
+
+        sendToPlayer(player, new StartFishingMinigamePacket(
+                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -228,7 +251,10 @@ public class FishingMinigameManager {
                 level.getGameTime(), biome, timeOfDay, weather, tutorialZones);
         activeSessions.put(playerId, session);
 
-        sendToPlayer(player, new StartFishingMinigamePacket(sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones));
+        // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
+        // the undiscovered set is deliberately empty regardless of the player's catch history.
+        sendToPlayer(player, new StartFishingMinigamePacket(
+                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of()));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
@@ -408,6 +434,10 @@ public class FishingMinigameManager {
         if (forcedDifficulty != null) {
             Fishtastic.LOGGER.info("Applying forced difficulty override ({}) for player {}", forcedDifficulty, player.getName().getString());
         }
+        FishQuality.Quality forcedQuality = getForcedQuality(player.getUUID()).orElse(null);
+        if (forcedQuality != null) {
+            Fishtastic.LOGGER.info("Applying forced quality override ({}) for player {}", forcedQuality, player.getName().getString());
+        }
 
         for (int i = 0; i < targetCount; i++) {
             float roll = randomSource.nextFloat();
@@ -420,6 +450,13 @@ public class FishingMinigameManager {
             if (isFishReward) {
                 rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
                         fishProfileRegistry, biome, timeOfDay, weather, moonPhase, qualityBias, baitEffect, charmEffect, numRewards);
+                if (forcedQuality != null) {
+                    // Restamped after the roll rather than forced during it, so species selection
+                    // stays completely natural and only the quality is pinned.
+                    for (ItemStack rewardStack : rewardStacks) {
+                        FishtasticFishItem.applyQualityAndSize(rewardStack, forcedQuality, randomSource, fishProfileRegistry);
+                    }
+                }
             } else if (isTreasure) {
                 rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
             } else {
@@ -600,6 +637,41 @@ public class FishingMinigameManager {
             rewardStacks.add(new ItemStack(trash));
         }
         return rewardStacks;
+    }
+
+    /**
+     * Item ids in this session that the player has never caught, across both the hidden rewards and
+     * the almanac preview.
+     *
+     * <p>Answered here rather than on the client because the client keeps no standing record:
+     * {@code FishEncyclopediaClientCache} is filled only while the encyclopedia screen is open and
+     * is empty the rest of the time, which would make every catch look like a first discovery.
+     * Evaluated at session start, before any of these catches are recorded, so the reading is the
+     * state the player had when they cast.
+     */
+    private static Set<Identifier> computeUndiscoveredSpecies(
+            ServerPlayer player, List<ServerFishingTarget> targets, List<ItemStack> previews) {
+        FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(player.level().getServer());
+        UUID playerKey = catchDb.resolvePlayerKey(player);
+
+        Set<Identifier> undiscovered = new HashSet<>();
+        for (ServerFishingTarget target : targets) {
+            if (target.category() != FishingTarget.TargetCategory.FISH) continue;
+            for (ItemStack stack : target.rewardStacks()) {
+                addIfUndiscovered(catchDb, playerKey, stack, undiscovered);
+            }
+        }
+        for (ItemStack stack : previews) {
+            addIfUndiscovered(catchDb, playerKey, stack, undiscovered);
+        }
+        return undiscovered;
+    }
+
+    private static void addIfUndiscovered(FishCatchSavedData catchDb, UUID playerKey,
+                                          ItemStack stack, Set<Identifier> out) {
+        if (stack.isEmpty()) return;
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (catchDb.getCatchCount(playerKey, id) == 0) out.add(id);
     }
 
     private static @NotNull List<Holder<Item>> getFishPool(ServerPlayer player, @Nullable BaitEffect baitEffect) {

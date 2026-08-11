@@ -922,6 +922,20 @@ public class FishingTarget {
         }
     }
 
+    /**
+     * Retires this target without the usual pop-off, for catches a {@link CatchCelebration} has
+     * taken over. The celebration renders the reward itself on its own scripted arc, so the target
+     * must not also fling a physics copy across the bar. Goes straight to COMPLETE with no
+     * simulations; the minigame's hide check is separately gated on the celebration finishing, so
+     * completing here doesn't cut the sequence short.
+     */
+    public void startCelebrationHandoff() {
+        state = TargetState.COMPLETE;
+        animationTick = 0;
+        previousAnimationTick = 0;
+        physicsSimulations.clear();
+    }
+
     public float getFailSpinAngle(float partialTick) {
         if (state != TargetState.ANIMATING_FAIL) return 0f;
         float interpolatedTick = previousAnimationTick + (animationTick - previousAnimationTick) * partialTick;

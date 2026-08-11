@@ -37,6 +37,25 @@ public class FishQualityHelper {
     }
 
     /**
+     * Get the highest quality present across a group of stacks — e.g. every reward on one fishing
+     * target, where the group's rarity is whatever its best item is.
+     *
+     * @param stacks The stacks to scan
+     * @return The highest quality found, or null if none of them carry a quality component
+     */
+    @Nullable
+    public static FishQuality.Quality bestQuality(Iterable<ItemStack> stacks) {
+        FishQuality.Quality best = null;
+        for (ItemStack stack : stacks) {
+            FishQuality.Quality quality = getQuality(stack);
+            if (quality != null && (best == null || quality.ordinal() > best.ordinal())) {
+                best = quality;
+            }
+        }
+        return best;
+    }
+
+    /**
      * Check if an item stack has a quality component.
      * @param stack The item stack to check
      * @return True if the stack has a quality component

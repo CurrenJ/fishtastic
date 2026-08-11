@@ -981,4 +981,153 @@ public class FishtasticFabricGameTests {
     public void advanceStepBaitLoadTransitionsToWaitingForCast(GameTestHelper helper) {
         TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, helper::makeMockServerPlayerInLevel);
     }
+
+    // -------------------------------------------------------------------------
+    // Catch celebration tests  (pure timeline logic, zero rendering)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void legendaryResolvesToHeroTier(GameTestHelper helper) {
+        CatchCelebrationGameTests.legendaryResolvesToHeroTier(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void ordinaryCatchResolvesToNone(GameTestHelper helper) {
+        CatchCelebrationGameTests.ordinaryCatchResolvesToNone(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void undiscoveredResolvesToDiscoveryTier(GameTestHelper helper) {
+        CatchCelebrationGameTests.undiscoveredResolvesToDiscoveryTier(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void legendaryOutranksDiscovery(GameTestHelper helper) {
+        CatchCelebrationGameTests.legendaryOutranksDiscovery(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void emptyRewardsResolveToNone(GameTestHelper helper) {
+        CatchCelebrationGameTests.emptyRewardsResolveToNone(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void heroStackPicksHighestQuality(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroStackPicksHighestQuality(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void heroStackPicksNewSpeciesOnDiscovery(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroStackPicksNewSpeciesOnDiscovery(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void phaseBoundariesFollowTimings(GameTestHelper helper) {
+        CatchCelebrationGameTests.phaseBoundariesFollowTimings(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void clockClampsAtTotal(GameTestHelper helper) {
+        CatchCelebrationGameTests.clockClampsAtTotal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void timeScaleFreezesThenRampsBack(GameTestHelper helper) {
+        CatchCelebrationGameTests.timeScaleFreezesThenRampsBack(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void discoveryHasNoSlowMotionHold(GameTestHelper helper) {
+        CatchCelebrationGameTests.discoveryHasNoSlowMotionHold(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void heroScaleGrowsToPeakThenReturnsToNormal(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroScaleGrowsToPeakThenReturnsToNormal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void settleReleasesIntoPhysics(GameTestHelper helper) {
+        CatchCelebrationGameTests.settleReleasesIntoPhysics(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void settleFinishesOnceItemLeavesScreen(GameTestHelper helper) {
+        CatchCelebrationGameTests.settleFinishesOnceItemLeavesScreen(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void settlePhysicsDeceleratesUnderGravity(GameTestHelper helper) {
+        CatchCelebrationGameTests.settlePhysicsDeceleratesUnderGravity(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void settleRotationComesFromPhysics(GameTestHelper helper) {
+        CatchCelebrationGameTests.settleRotationComesFromPhysics(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void silhouetteDropsAtReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.silhouetteDropsAtReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void revealSwapHappensWhileEdgeOn(GameTestHelper helper) {
+        CatchCelebrationGameTests.revealSwapHappensWhileEdgeOn(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void heroIsUnsqueezedOutsideTheTurn(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroIsUnsqueezedOutsideTheTurn(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void sparkleBurstFiresOnceAtReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.sparkleBurstFiresOnceAtReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void skipJumpsToSettle(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipJumpsToSettle(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void skipIgnoredBeforeReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipIgnoredBeforeReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void skipAfterRevealKeepsBurstConsumed(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipAfterRevealKeepsBurstConsumed(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void skipDoesNotRewind(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipDoesNotRewind(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void gameplaySuppressedUntilFinished(GameTestHelper helper) {
+        CatchCelebrationGameTests.gameplaySuppressedUntilFinished(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void shakeDecaysThenRebuildsIntoTheReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.shakeDecaysThenRebuildsIntoTheReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationNoneTierIsRejected(GameTestHelper helper) {
+        CatchCelebrationGameTests.noneTierIsRejected(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void applyQualityAndSizeSetsBothComponents(GameTestHelper helper) {
+        CatchCelebrationGameTests.applyQualityAndSizeSetsBothComponents(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void applyQualityAndSizeOverwritesExistingQuality(GameTestHelper helper) {
+        CatchCelebrationGameTests.applyQualityAndSizeOverwritesExistingQuality(helper);
+    }
 }
