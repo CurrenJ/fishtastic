@@ -976,4 +976,9 @@ public class FishtasticFabricGameTests {
     public void mainTabNoLongerContainsMovedCosmetics(GameTestHelper helper) {
         CreativeTabGameTests.mainTabNoLongerContainsMovedCosmetics(helper);
     }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void advanceStepBaitLoadTransitionsToWaitingForCast(GameTestHelper helper) {
+        TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, helper::makeMockServerPlayerInLevel);
+    }
 }

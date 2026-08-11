@@ -119,6 +119,30 @@ public final class TutorialManagerGameTests {
         helper.succeed();
     }
 
+    /**
+     * advanceStep(player, BAIT_LOAD) is the client-polled path TutorialClientHandler uses to
+     * cover creative's Inventory tab, where clicks never reach the server — must produce the same
+     * transition as the direct-call path (onBaitLoaded), and stay a no-op from any other step.
+     */
+    public static void advanceStepBaitLoadTransitionsToWaitingForCast(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        setStep(helper, player, TutorialStep.HOOK_IN_WATER);
+
+        TutorialManager.advanceStep(player, TutorialStep.BAIT_LOAD);
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.HOOK_IN_WATER,
+            "advanceStep(BAIT_LOAD) must be a no-op when the current step isn't BAIT_LOAD"
+        );
+
+        setStep(helper, player, TutorialStep.BAIT_LOAD);
+        TutorialManager.advanceStep(player, TutorialStep.BAIT_LOAD);
+        helper.assertTrue(
+            TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST,
+            "advanceStep(BAIT_LOAD) must advance BAIT_LOAD to WAITING_FOR_CAST"
+        );
+        helper.succeed();
+    }
+
     /** onHookCast advances from either WAITING_FOR_CAST or BAIT_LOAD, and is a no-op otherwise. */
     public static void onHookCastOnlyAdvancesFromCastableSteps(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer waitingPlayer = mockPlayer.get();

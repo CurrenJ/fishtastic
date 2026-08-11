@@ -108,7 +108,13 @@ public class TutorialManager {
         }
     }
 
-    /** Call after bait component is set on the player's rod. */
+    /**
+     * Call after bait component is set on the player's rod, from a code path that's already
+     * running server-side (e.g. a normal survival container click). Creative's Inventory tab
+     * never sends its rearrangement clicks to the server, so bait loaded there instead reaches
+     * this same transition via {@link #advanceStep}'s BAIT_LOAD case, polled client-side by
+     * TutorialClientHandler and sent as a TutorialAdvancePacket.
+     */
     public static void onBaitLoaded(ServerPlayer player) {
         if (getStep(player) == TutorialStep.BAIT_LOAD) {
             setStep(player, TutorialStep.WAITING_FOR_CAST);
@@ -165,6 +171,7 @@ public class TutorialManager {
     public static void advanceStep(ServerPlayer player, TutorialStep fromStep) {
         if (getStep(player) != fromStep) return;
         TutorialStep next = switch (fromStep) {
+            case BAIT_LOAD         -> TutorialStep.WAITING_FOR_CAST;
             case MINIGAME_INTRO    -> TutorialStep.MINIGAME_CONTROL;
             case MINIGAME_CONTROL  -> TutorialStep.MINIGAME_CATCH;
             case CATCH_RESULT      -> TutorialStep.QUEST_INTRO;

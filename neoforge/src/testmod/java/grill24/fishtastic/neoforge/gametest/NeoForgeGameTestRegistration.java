@@ -473,6 +473,9 @@ public class NeoForgeGameTestRegistration {
             CreativeTabGameTests::decorationsTabContainsExactlyCosmeticStructuresAndDecorations);
         register(event, env, "main_tab_no_longer_contains_moved_cosmetics", 200,
             CreativeTabGameTests::mainTabNoLongerContainsMovedCosmetics);
+
+        register(event, env, "advance_step_bait_load_transitions_to_waiting_for_cast", 200,
+            helper -> TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
     }
 
     private static void register(

@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.item.FishtasticFishingRodItem;
 import grill24.fishtastic.network.TutorialAdvancePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.tutorial.TutorialStep;
@@ -10,6 +11,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * All client-side FTUE (tutorial) logic lives here.
@@ -21,6 +24,10 @@ public class TutorialClientHandler {
     private static int stepTicks = 0;
     private static boolean sentAdvanceThisStep = false;
     private static boolean minigameControlAdvancePending = false;
+    // How many rods already had bait loaded when BAIT_LOAD started — a player who already owns
+    // an unrelated baited rod (a spare, a shop purchase) must not skip the step instantly; only
+    // an increase from this baseline counts as "the player just loaded bait."
+    private static int baitLoadedRodCountAtStepStart = 0;
 
     // Slide animation — 0 = fully shown, 1 = fully hidden (start/end position)
     private static float animOffset = 1.0f;
@@ -52,6 +59,9 @@ public class TutorialClientHandler {
         isExiting = false;
 
         Minecraft mc = Minecraft.getInstance();
+        if (currentStep == TutorialStep.BAIT_LOAD) {
+            baitLoadedRodCountAtStepStart = mc.player != null ? countRodsWithBaitLoaded(mc.player) : 0;
+        }
         if (mc.gameRenderer == null) return;
 
         var activeAnimation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
@@ -80,6 +90,18 @@ public class TutorialClientHandler {
         if (sentAdvanceThisStep) return;
 
         switch (currentStep) {
+            case BAIT_LOAD -> {
+                // Creative's Inventory tab never sends its rearrangement clicks to the server, so
+                // the server-side FishtasticFishingRodItem bait-insert path that normally calls
+                // TutorialManager.onBaitLoaded never runs there. Poll for the resulting state
+                // instead — works identically for survival and creative, and for however the
+                // player got bait onto a rod. Compared against the step-start baseline (not just
+                // "any rod has bait") so an unrelated already-baited rod can't skip the step.
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null && countRodsWithBaitLoaded(mc.player) > baitLoadedRodCountAtStepStart) {
+                    sendAdvance();
+                }
+            }
             case MINIGAME_INTRO -> {
                 if (stepTicks >= MINIGAME_INTRO_AUTO_ADVANCE_TICKS) sendAdvance();
             }
@@ -132,6 +154,7 @@ public class TutorialClientHandler {
         stepTicks = 0;
         sentAdvanceThisStep = false;
         minigameControlAdvancePending = false;
+        baitLoadedRodCountAtStepStart = 0;
         animOffset = 1.0f;
         prevAnimOffset = 1.0f;
         isExiting = false;
@@ -371,6 +394,17 @@ public class TutorialClientHandler {
     // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
+
+    private static int countRodsWithBaitLoaded(Player player) {
+        int count = 0;
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (stack.getItem() instanceof FishtasticFishingRodItem
+                    && !FishtasticFishingRodItem.getBait(stack).isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     private static void sendAdvance() {
         Minecraft mc = Minecraft.getInstance();
