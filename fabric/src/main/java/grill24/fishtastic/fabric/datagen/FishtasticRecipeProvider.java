@@ -62,23 +62,25 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
             // -----------------------------------------------------------------
 
             private void buildEquipmentRecipes(HolderGetter<Item> items) {
-                // Copper Fishing Rod: diagonal of 3 copper ingots + 2 strings
+                // Copper Fishing Rod: 2 copper ingots + a stick handle + 2 strings
                 ShapedRecipeBuilder.shaped(items, RecipeCategory.TOOLS, FishtasticItems.COPPER_FISHING_ROD.value())
                         .pattern("  C")
                         .pattern(" CS")
-                        .pattern("C S")
+                        .pattern("I S")
                         .define('C', Items.COPPER_INGOT)
                         .define('S', Items.STRING)
+                        .define('I', Items.STICK)
                         .unlockedBy("has_copper_ingot", has(Items.COPPER_INGOT))
                         .save(this.output);
 
-                // Obsidian Fishing Rod: diagonal of 3 obsidian + 2 strings — the intended lava-fishing tool
+                // Obsidian Fishing Rod: 2 obsidian + a stick handle + 2 strings — the intended lava-fishing tool
                 ShapedRecipeBuilder.shaped(items, RecipeCategory.TOOLS, FishtasticItems.OBSIDIAN_FISHING_ROD.value())
                         .pattern("  C")
                         .pattern(" CS")
-                        .pattern("C S")
+                        .pattern("I S")
                         .define('C', Items.OBSIDIAN)
                         .define('S', Items.STRING)
+                        .define('I', Items.STICK)
                         .unlockedBy("has_obsidian", has(Items.OBSIDIAN))
                         .save(this.output);
 

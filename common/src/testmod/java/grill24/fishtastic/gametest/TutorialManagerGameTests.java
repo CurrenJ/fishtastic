@@ -272,12 +272,12 @@ public final class TutorialManagerGameTests {
         BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
         CraftingMenu menu = new CraftingMenu(1, player.getInventory(), ContainerLevelAccess.create(level, pos));
 
-        // Matches copper_fishing_rod.json's pattern ("  C" / " CS" / "C S"): craft-grid slots
+        // Matches copper_fishing_rod.json's pattern ("  C" / " CS" / "I S"): craft-grid slots
         // are menu slots 1-9 (CraftingMenu.CRAFT_SLOT_START), row-major from the 3x3 pattern.
         menu.getSlot(3).set(new ItemStack(Items.COPPER_INGOT));
         menu.getSlot(5).set(new ItemStack(Items.COPPER_INGOT));
         menu.getSlot(6).set(new ItemStack(Items.STRING));
-        menu.getSlot(7).set(new ItemStack(Items.COPPER_INGOT));
+        menu.getSlot(7).set(new ItemStack(Items.STICK));
         menu.getSlot(9).set(new ItemStack(Items.STRING));
 
         helper.assertTrue(

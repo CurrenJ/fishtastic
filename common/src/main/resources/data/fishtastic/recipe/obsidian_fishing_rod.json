@@ -3,12 +3,13 @@
   "category": "equipment",
   "key": {
     "C": "minecraft:obsidian",
-    "S": "minecraft:string"
+    "S": "minecraft:string",
+    "I": "minecraft:stick"
   },
   "pattern": [
     "  C",
     " CS",
-    "C S"
+    "I S"
   ],
   "result": {
     "id": "fishtastic:obsidian_fishing_rod"
