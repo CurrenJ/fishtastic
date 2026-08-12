@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 7 treasure items.",
+  "difficulty": "gold",
+  "display_name": "Treasure Haul",
+  "objective": {
+    "target_count": 7,
+    "target_species_tag": "fishtastic:treasure"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:copper_block",
+            "glass": "fishtastic:yellow_clear_stained_glass",
+            "sand": "minecraft:red_sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 21
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 8 fish after dark.",
+  "difficulty": "gold",
+  "display_name": "Night Bite",
+  "objective": {
+    "target_count": 8,
+    "time_condition": "night"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:deepslate_bricks",
+            "glass": "fishtastic:black_clear_stained_glass",
+            "sand": "minecraft:soul_sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 16
+  }
+}

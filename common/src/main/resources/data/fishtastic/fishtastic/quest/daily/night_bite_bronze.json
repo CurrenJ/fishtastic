@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch 3 fish after dark.",
+  "display_name": "Night Bite",
+  "objective": {
+    "target_count": 3,
+    "time_condition": "night"
+  },
+  "reward": {
+    "quest_tokens": 5
+  }
+}

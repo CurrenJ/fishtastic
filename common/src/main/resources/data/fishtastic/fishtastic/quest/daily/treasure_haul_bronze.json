@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch 3 treasure items.",
+  "display_name": "Treasure Haul",
+  "objective": {
+    "target_count": 3,
+    "target_species_tag": "fishtastic:treasure"
+  },
+  "reward": {
+    "quest_tokens": 7
+  }
+}

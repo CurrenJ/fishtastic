@@ -1,0 +1,14 @@
+{
+  "category": "daily",
+  "description": "Find 8 fish in the deep ocean.",
+  "difficulty": "silver",
+  "display_name": "Deep Cuts",
+  "objective": {
+    "target_count": 8,
+    "target_species_tag": "fishtastic:zone_deep_ocean",
+    "zone_condition": "deep_ocean"
+  },
+  "reward": {
+    "quest_tokens": 11
+  }
+}

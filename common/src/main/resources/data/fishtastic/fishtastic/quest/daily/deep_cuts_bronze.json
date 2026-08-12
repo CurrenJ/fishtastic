@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Find 5 fish in the deep ocean.",
+  "display_name": "Deep Cuts",
+  "objective": {
+    "target_count": 5,
+    "target_species_tag": "fishtastic:zone_deep_ocean",
+    "zone_condition": "deep_ocean"
+  },
+  "reward": {
+    "quest_tokens": 6
+  }
+}

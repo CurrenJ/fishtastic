@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 5 large fish.",
+  "difficulty": "gold",
+  "display_name": "Heavy Hitter",
+  "objective": {
+    "target_count": 5,
+    "target_species_tag": "fishtastic:big_fish"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:iron_block",
+            "glass": "fishtastic:red_clear_stained_glass",
+            "sand": "minecraft:gravel"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 21
+  }
+}

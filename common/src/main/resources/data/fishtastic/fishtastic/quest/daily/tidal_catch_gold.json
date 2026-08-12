@@ -1,0 +1,27 @@
+{
+  "category": "daily",
+  "description": "Catch 12 fish from ocean waters.",
+  "difficulty": "gold",
+  "display_name": "Tidal Catch",
+  "objective": {
+    "biome_condition": "minecraft:is_ocean",
+    "target_count": 12,
+    "target_species_tag": "fishtastic:fish"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:tube_coral_block",
+            "glass": "fishtastic:blue_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 16
+  }
+}

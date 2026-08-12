@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 8 fish at dusk.",
+  "difficulty": "gold",
+  "display_name": "Golden Hour",
+  "objective": {
+    "target_count": 8,
+    "time_condition": "dusk"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:purpur_block",
+            "glass": "fishtastic:magenta_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 13
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "category": "daily",
+  "description": "Find 8 fish in cave waters.",
+  "difficulty": "silver",
+  "display_name": "Cave Dweller",
+  "objective": {
+    "target_count": 8,
+    "target_species_tag": "fishtastic:zone_cave",
+    "zone_condition": "cave"
+  },
+  "reward": {
+    "quest_tokens": 11
+  }
+}

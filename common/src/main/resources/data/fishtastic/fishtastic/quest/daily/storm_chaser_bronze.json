@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch a fish during a thunderstorm.",
+  "display_name": "Storm Chaser",
+  "objective": {
+    "target_count": 1,
+    "weather_condition": "thunder"
+  },
+  "reward": {
+    "quest_tokens": 5
+  }
+}

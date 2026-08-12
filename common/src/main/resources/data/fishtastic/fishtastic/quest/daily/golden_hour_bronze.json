@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch 3 fish at dusk.",
+  "display_name": "Golden Hour",
+  "objective": {
+    "target_count": 3,
+    "time_condition": "dusk"
+  },
+  "reward": {
+    "quest_tokens": 4
+  }
+}

@@ -163,6 +163,8 @@
   "screen.fishtastic.quest_log.condition_requires": "Requires: %s",
   "screen.fishtastic.quest_log.quest_done": "[Done] %s",
   "screen.fishtastic.quest_log.claim": "Claim",
+  "screen.fishtastic.quest_log.difficulty.silver": "Silver",
+  "screen.fishtastic.quest_log.difficulty.gold": "Gold",
   "screen.fishtastic.quest_log.progress_count": "%s / %s",
   "screen.fishtastic.quest_log.cleanup.title": "Clean Up the Waters",
   "screen.fishtastic.quest_log.cleanup.description": "A shared, server-wide goal — every trash catch counts toward it, by anyone. Tokens are split between every contributor each time a milestone is reached.",

@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/american_paddlefish" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/american_paddlefish"
+  }
+}

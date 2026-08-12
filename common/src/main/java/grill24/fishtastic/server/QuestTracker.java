@@ -5,6 +5,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.data.QuestObjective;
@@ -24,7 +25,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class QuestTracker {
     private static final int ACTIVE_DAILY_COUNT = 4;
@@ -312,13 +312,60 @@ public class QuestTracker {
                 || step == TutorialStep.QUEST_INTRO || step == TutorialStep.QUEST_CLAIM;
     }
 
+    /**
+     * A daily quest "family" is a base id shared by up to three tier variants — e.g.
+     * {@code daily/tidal_catch_bronze}, {@code _silver}, {@code _gold} all belong to family
+     * {@code daily/tidal_catch}. Which families are active today, and which tier each one rolls,
+     * are both seeded purely off {@code currentDay} (plus the family id for the tier roll), so
+     * every player sees the same board on the same server day and it never reshuffles mid-day.
+     */
+    private static final int SILVER_ROLL_THRESHOLD = 60;
+    private static final int GOLD_ROLL_THRESHOLD = 90;
+
     public static Set<ResourceKey<Quest>> getActiveDailies(Registry<Quest> questRegistry, long currentDay) {
-        List<ResourceKey<Quest>> dailyKeys = questRegistry.entrySet().stream()
-                .filter(e -> e.getValue().category() == QuestCategory.DAILY)
-                .map(Map.Entry::getKey)
-                .sorted(Comparator.comparing(k -> k.identifier().toString()))
-                .collect(Collectors.toCollection(ArrayList::new));
-        Collections.shuffle(dailyKeys, new Random(currentDay));
-        return new HashSet<>(dailyKeys.subList(0, Math.min(ACTIVE_DAILY_COUNT, dailyKeys.size())));
+        Map<String, Map<QuestDifficulty, ResourceKey<Quest>>> families = new TreeMap<>();
+        for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
+            if (entry.getValue().category() != QuestCategory.DAILY) continue;
+            ResourceKey<Quest> key = entry.getKey();
+            String path = key.identifier().getPath();
+            QuestDifficulty tier = tierSuffixOf(path).orElseGet(entry.getValue()::difficulty);
+            families.computeIfAbsent(familyOf(path), f -> new EnumMap<>(QuestDifficulty.class)).put(tier, key);
+        }
+
+        List<String> familyIds = new ArrayList<>(families.keySet());
+        Collections.shuffle(familyIds, new Random(currentDay));
+
+        Set<ResourceKey<Quest>> active = new HashSet<>();
+        for (String familyId : familyIds.subList(0, Math.min(ACTIVE_DAILY_COUNT, familyIds.size()))) {
+            Map<QuestDifficulty, ResourceKey<Quest>> tiers = families.get(familyId);
+            QuestDifficulty rolled = rollTier(new Random(currentDay * 31L + familyId.hashCode()));
+            // Falls back to whatever tier the family actually has, for quests with no siblings yet.
+            active.add(tiers.getOrDefault(rolled, tiers.values().iterator().next()));
+        }
+        return active;
+    }
+
+    private static QuestDifficulty rollTier(Random random) {
+        int roll = random.nextInt(100);
+        if (roll < SILVER_ROLL_THRESHOLD) return QuestDifficulty.BRONZE;
+        if (roll < GOLD_ROLL_THRESHOLD) return QuestDifficulty.SILVER;
+        return QuestDifficulty.GOLD;
+    }
+
+    private static String familyOf(String questPath) {
+        return tierSuffixOf(questPath)
+                .map(tier -> questPath.substring(0, questPath.length() - tierSuffix(tier).length()))
+                .orElse(questPath);
+    }
+
+    private static Optional<QuestDifficulty> tierSuffixOf(String questPath) {
+        for (QuestDifficulty tier : QuestDifficulty.values()) {
+            if (questPath.endsWith(tierSuffix(tier))) return Optional.of(tier);
+        }
+        return Optional.empty();
+    }
+
+    private static String tierSuffix(QuestDifficulty tier) {
+        return "_" + tier.getSerializedName();
     }
 }

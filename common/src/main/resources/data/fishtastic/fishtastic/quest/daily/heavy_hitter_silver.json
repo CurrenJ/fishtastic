@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 3 large fish.",
+  "difficulty": "silver",
+  "display_name": "Heavy Hitter",
+  "objective": {
+    "target_count": 3,
+    "target_species_tag": "fishtastic:big_fish"
+  },
+  "reward": {
+    "quest_tokens": 12
+  }
+}

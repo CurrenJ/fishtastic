@@ -1,0 +1,14 @@
+{
+  "category": "daily",
+  "description": "Catch 8 fish from ocean waters.",
+  "difficulty": "silver",
+  "display_name": "Tidal Catch",
+  "objective": {
+    "biome_condition": "minecraft:is_ocean",
+    "target_count": 8,
+    "target_species_tag": "fishtastic:fish"
+  },
+  "reward": {
+    "quest_tokens": 9
+  }
+}

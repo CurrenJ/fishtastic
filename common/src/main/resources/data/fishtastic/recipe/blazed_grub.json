@@ -2,10 +2,10 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "minecraft:book",
-    "minecraft:gold_ingot"
+    "fishtastic:worms",
+    "minecraft:blaze_powder"
   ],
   "result": {
-    "id": "fishtastic:fishopedia"
+    "id": "fishtastic:blazed_grub"
   }
 }

@@ -655,6 +655,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         HBox titleGroup = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
         if (statusPip != null) titleGroup.addChild(statusPip);
         titleGroup.addChild(nameLabel);
+        // Bronze is every other category's implicit default (no badge anywhere else in the log),
+        // so only Daily needs a badge at all — and only once it actually rolls above Bronze.
+        if (quest.category() == QuestCategory.DAILY && quest.difficulty() != QuestDifficulty.BRONZE) {
+            String tierKey = "screen.fishtastic.quest_log.difficulty." + quest.difficulty().getSerializedName();
+            int tierColor = quest.difficulty() == QuestDifficulty.GOLD ? 0xFFFFD700 : 0xFFC0C0C0;
+            titleGroup.addChild(new Label(translated(tierKey), tierColor).init(tempContext));
+        }
 
         HBox nameRow = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
         nameRow.addChild(titleGroup);

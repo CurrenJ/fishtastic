@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 2 fish during a thunderstorm.",
+  "difficulty": "silver",
+  "display_name": "Storm Chaser",
+  "objective": {
+    "target_count": 2,
+    "weather_condition": "thunder"
+  },
+  "reward": {
+    "quest_tokens": 9
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 3 fish at Epic quality or better.",
+  "difficulty": "gold",
+  "display_name": "Quality Control",
+  "objective": {
+    "min_quality": "epic",
+    "target_count": 3
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_block",
+            "glass": "fishtastic:white_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 16
+  }
+}

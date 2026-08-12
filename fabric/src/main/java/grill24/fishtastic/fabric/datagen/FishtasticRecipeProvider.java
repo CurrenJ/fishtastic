@@ -54,6 +54,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 buildHookAndCharmRecipes(items);
                 buildTrashRecipes(items);
                 buildBookRecipes(items);
+                buildFishCookingRecipes(items);
             }
 
             // -----------------------------------------------------------------
@@ -239,6 +240,31 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                                 Items.STRING, 1)
                         .unlockedBy("has_plastic_litter", has(FishtasticItems.PLASTIC_LITTER.value()))
                         .save(this.output);
+            }
+
+            // -----------------------------------------------------------------
+            // Fish cooking
+            // -----------------------------------------------------------------
+
+            private void buildFishCookingRecipes(HolderGetter<Item> items) {
+                // Any Fishtastic fish (fishtastic:fish tag) can be furnaced, smoked, or campfired
+                // into vanilla cooked cod - mirrors vanilla's own raw fish -> cooked fish recipes.
+                Ingredient fish = this.tag(grill24.fishtastic.FishtasticItemTags.FISH);
+
+                SimpleCookingRecipeBuilder.smelting(fish, RecipeCategory.FOOD, CookingBookCategory.FOOD,
+                                Items.COOKED_COD, 0.35F, 200)
+                        .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
+                        .save(this.output, "cooked_cod_from_fishtastic_fish_smelting");
+
+                SimpleCookingRecipeBuilder.smoking(fish, RecipeCategory.FOOD,
+                                Items.COOKED_COD, 0.35F, 100)
+                        .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
+                        .save(this.output, "cooked_cod_from_fishtastic_fish_smoking");
+
+                SimpleCookingRecipeBuilder.campfireCooking(fish, RecipeCategory.FOOD,
+                                Items.COOKED_COD, 0.35F, 600)
+                        .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
+                        .save(this.output, "cooked_cod_from_fishtastic_fish_campfire");
             }
 
             // -----------------------------------------------------------------

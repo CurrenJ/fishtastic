@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Fish 4 pieces of junk out of the water.",
+  "difficulty": "silver",
+  "display_name": "Clean Sweep",
+  "objective": {
+    "target_count": 4,
+    "target_species_tag": "fishtastic:trash"
+  },
+  "reward": {
+    "quest_tokens": 11
+  }
+}

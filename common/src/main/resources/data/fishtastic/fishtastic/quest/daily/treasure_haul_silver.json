@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 5 treasure items.",
+  "difficulty": "silver",
+  "display_name": "Treasure Haul",
+  "objective": {
+    "target_count": 5,
+    "target_species_tag": "fishtastic:treasure"
+  },
+  "reward": {
+    "quest_tokens": 12
+  }
+}

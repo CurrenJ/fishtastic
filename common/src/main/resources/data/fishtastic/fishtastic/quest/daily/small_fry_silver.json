@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 9 small fish.",
+  "difficulty": "silver",
+  "display_name": "Small Fry",
+  "objective": {
+    "target_count": 9,
+    "target_species_tag": "fishtastic:small_fish"
+  },
+  "reward": {
+    "quest_tokens": 9
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch 2 large fish.",
+  "display_name": "Heavy Hitter",
+  "objective": {
+    "target_count": 2,
+    "target_species_tag": "fishtastic:big_fish"
+  },
+  "reward": {
+    "quest_tokens": 7
+  }
+}

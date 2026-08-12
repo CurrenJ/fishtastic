@@ -1,0 +1,28 @@
+{
+  "category": "daily",
+  "description": "Catch 9 freshwater fish at dawn.",
+  "difficulty": "gold",
+  "display_name": "Morning Cast",
+  "objective": {
+    "biome_condition": "minecraft:is_river",
+    "target_count": 9,
+    "target_species_tag": "fishtastic:fish",
+    "time_condition": "dawn"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:birch_planks",
+            "glass": "fishtastic:pink_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 19
+  }
+}

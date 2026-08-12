@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 5 yellow-hued fish.",
+  "difficulty": "silver",
+  "display_name": "Bright Catch",
+  "objective": {
+    "target_count": 5,
+    "target_species_tag": "fishtastic:color_yellow"
+  },
+  "reward": {
+    "quest_tokens": 11
+  }
+}

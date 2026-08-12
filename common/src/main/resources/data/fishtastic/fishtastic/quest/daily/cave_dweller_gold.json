@@ -1,0 +1,27 @@
+{
+  "category": "daily",
+  "description": "Find 12 fish in cave waters.",
+  "difficulty": "gold",
+  "display_name": "Cave Dweller",
+  "objective": {
+    "target_count": 12,
+    "target_species_tag": "fishtastic:zone_cave",
+    "zone_condition": "cave"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:moss_block",
+            "glass": "fishtastic:green_clear_stained_glass",
+            "sand": "minecraft:gravel"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 19
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Fish 6 pieces of junk out of the water.",
+  "difficulty": "gold",
+  "display_name": "Clean Sweep",
+  "objective": {
+    "target_count": 6,
+    "target_species_tag": "fishtastic:trash"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:mud_bricks",
+            "glass": "fishtastic:brown_clear_stained_glass",
+            "sand": "minecraft:clay"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 19
+  }
+}

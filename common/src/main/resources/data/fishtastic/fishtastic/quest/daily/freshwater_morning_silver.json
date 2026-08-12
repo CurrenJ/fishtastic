@@ -1,0 +1,15 @@
+{
+  "category": "daily",
+  "description": "Catch 6 freshwater fish at dawn.",
+  "difficulty": "silver",
+  "display_name": "Morning Cast",
+  "objective": {
+    "biome_condition": "minecraft:is_river",
+    "target_count": 6,
+    "target_species_tag": "fishtastic:fish",
+    "time_condition": "dawn"
+  },
+  "reward": {
+    "quest_tokens": 11
+  }
+}

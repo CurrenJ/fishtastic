@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 3 fish during a thunderstorm.",
+  "difficulty": "gold",
+  "display_name": "Storm Chaser",
+  "objective": {
+    "target_count": 3,
+    "weather_condition": "thunder"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:tuff_bricks",
+            "glass": "fishtastic:gray_clear_stained_glass",
+            "sand": "minecraft:gravel"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 16
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Catch 6 small fish.",
+  "display_name": "Small Fry",
+  "objective": {
+    "target_count": 6,
+    "target_species_tag": "fishtastic:small_fish"
+  },
+  "reward": {
+    "quest_tokens": 5
+  }
+}

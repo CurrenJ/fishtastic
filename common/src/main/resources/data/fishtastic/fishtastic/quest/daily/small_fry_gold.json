@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 14 small fish.",
+  "difficulty": "gold",
+  "display_name": "Small Fry",
+  "objective": {
+    "target_count": 14,
+    "target_species_tag": "fishtastic:small_fish"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:polished_andesite",
+            "glass": "fishtastic:light_gray_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 16
+  }
+}

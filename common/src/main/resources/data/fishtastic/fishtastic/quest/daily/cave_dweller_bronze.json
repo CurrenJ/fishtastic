@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Find 5 fish in cave waters.",
+  "display_name": "Cave Dweller",
+  "objective": {
+    "target_count": 5,
+    "target_species_tag": "fishtastic:zone_cave",
+    "zone_condition": "cave"
+  },
+  "reward": {
+    "quest_tokens": 6
+  }
+}

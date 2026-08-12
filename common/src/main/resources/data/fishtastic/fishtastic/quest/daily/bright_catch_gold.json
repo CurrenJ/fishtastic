@@ -1,0 +1,26 @@
+{
+  "category": "daily",
+  "description": "Catch 8 yellow-hued fish.",
+  "difficulty": "gold",
+  "display_name": "Bright Catch",
+  "objective": {
+    "target_count": 8,
+    "target_species_tag": "fishtastic:color_yellow"
+  },
+  "reward": {
+    "items": [
+      {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:ochre_froglight",
+            "glass": "fishtastic:orange_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 1,
+        "id": "fishtastic:fish_tank"
+      }
+    ],
+    "quest_tokens": 19
+  }
+}

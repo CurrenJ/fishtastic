@@ -1,0 +1,13 @@
+{
+  "category": "daily",
+  "description": "Catch 2 fish at Rare quality or better.",
+  "difficulty": "silver",
+  "display_name": "Quality Control",
+  "objective": {
+    "min_quality": "rare",
+    "target_count": 2
+  },
+  "reward": {
+    "quest_tokens": 9
+  }
+}

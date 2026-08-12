@@ -1,0 +1,12 @@
+{
+  "category": "daily",
+  "description": "Fish 2 pieces of junk out of the water.",
+  "display_name": "Clean Sweep",
+  "objective": {
+    "target_count": 2,
+    "target_species_tag": "fishtastic:trash"
+  },
+  "reward": {
+    "quest_tokens": 6
+  }
+}
