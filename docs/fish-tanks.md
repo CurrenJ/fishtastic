@@ -149,15 +149,15 @@ Three behaviors are baked into the profile rather than into each generator:
 
 | Generator | Used by | What it does |
 |---|---|---|
-| `TaperedFrameGeometryGenerator` | STANDARD, TRIMMED, REINFORCED | Fixed 1px caps + one solid `w×w` box per run at each of the 4 corners. |
-| `ShellFrameGeometryGenerator` | FACETED, BASTION | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. |
+| `TaperedFrameGeometryGenerator` | STANDARD | Fixed 1px caps + one solid `w×w` box per run at each of the 4 corners. |
+| `ShellFrameGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. |
 | `OrnateFrameGeometryGenerator` | ORNATE | Standard 1px frame + hardcoded decorative bracket spans per Y band. |
 | `ShaggyFrameGeometryGenerator` | SHAGGY | Same as the ornate frame, reading its spans from the shared `ShaggyTankSpans` table. |
 | `TaperedGlassGeometryGenerator` | all but ORNATE/SHAGGY | Pane split into one stacked segment per run; only the along-wall trim varies. |
 | `OrnateGlassGeometryGenerator` | ORNATE | Pane split into the *complement* of the bracket spans, so glass doesn't z-fight the inlays. |
 | `ShaggyGlassGeometryGenerator` | SHAGGY | Same complement approach, sharing `ShaggyTankSpans` with the frame so holes and inlays can't drift. |
-| `SandGeometryGenerator` | STANDARD, TRIMMED, REINFORCED, ORNATE, SHAGGY | Square sand inset by the profile's floor-adjacent row width, plus edge/corner fills. |
-| `SteppedSandGeometryGenerator` | FACETED, BASTION | Applies the profile *horizontally* along Z, so the footprint is a stepped octagon. |
+| `SandGeometryGenerator` | STANDARD, ORNATE, SHAGGY | Square sand inset by the profile's floor-adjacent row width, plus edge/corner fills. |
+| `SteppedSandGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION | Applies the profile *horizontally* along Z, so the footprint is a stepped octagon. |
 
 `TankShapeGeometryStrategies` (`tools/tank-shape-gen`, keyed by serialized name) is the single
 mapping from shape → these three generator calls. Fabric datagen's `FishTankShapeGeometryStrategies`

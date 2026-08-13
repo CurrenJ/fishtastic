@@ -21,8 +21,8 @@ public final class TankShapeGeometryStrategies {
 
     public static final List<Strategy> ALL = List.of(
             cornerTaper("standard", CornerTaperProfile.STANDARD),
-            cornerTaper("trimmed", CornerTaperProfile.TRIMMED),
-            cornerTaper("reinforced", CornerTaperProfile.REINFORCED),
+            stepped("trimmed", CornerTaperProfile.TRIMMED),
+            stepped("reinforced", CornerTaperProfile.REINFORCED),
             stepped("faceted", CornerTaperProfile.FACETED),
             stepped("bastion", CornerTaperProfile.BASTION),
             new Strategy("ornate",
