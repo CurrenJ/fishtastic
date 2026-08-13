@@ -8,4 +8,20 @@ dependencies {
 // Use JUnit Platform for unit tests
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+
+    // This module's suite is a handful of @TestFactory methods that each expand into thousands of
+    // dynamic tests (one per shape/permutation), so logging every pass would flood the console —
+    // log failures with full detail, and print one summary line so a run is still visible even
+    // when everything passes.
+    testLogging {
+        events "failed"
+        exceptionFormat = "full"
+    }
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            println "\nTest result: ${result.resultType} — ${result.testCount} tests, " +
+                    "${result.successfulTestCount} passed, ${result.failedTestCount} failed, " +
+                    "${result.skippedTestCount} skipped"
+        }
+    }
 }
