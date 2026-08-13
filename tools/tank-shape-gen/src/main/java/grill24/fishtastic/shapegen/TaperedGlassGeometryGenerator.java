@@ -64,6 +64,7 @@ public final class TaperedGlassGeometryGenerator {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
         for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
             double minX = nwCorner ? run.width() : 0;
             double maxX = neCorner ? 16 - run.width() : 16;
             if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
@@ -75,6 +76,7 @@ public final class TaperedGlassGeometryGenerator {
         boolean swCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST);
         boolean seCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST);
         for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
             double minX = swCorner ? run.width() : 0;
             double maxX = seCorner ? 16 - run.width() : 16;
             if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
@@ -86,6 +88,7 @@ public final class TaperedGlassGeometryGenerator {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean swCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST);
         for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
             double minZ = nwCorner ? run.width() : 0;
             double maxZ = swCorner ? 16 - run.width() : 16;
             if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
@@ -97,6 +100,7 @@ public final class TaperedGlassGeometryGenerator {
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
         boolean seCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST);
         for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
             double minZ = neCorner ? run.width() : 0;
             double maxZ = seCorner ? 16 - run.width() : 16;
             if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane

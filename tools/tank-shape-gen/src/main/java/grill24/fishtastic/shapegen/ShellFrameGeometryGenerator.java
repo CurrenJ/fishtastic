@@ -3,6 +3,7 @@ package grill24.fishtastic.shapegen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -117,24 +118,45 @@ public final class ShellFrameGeometryGenerator {
         int southEdge = 15;
         while (southEdge >= 2 && rowWidths[southEdge - 2] >= 16) southEdge--;
 
-        if (!openFaces.contains(TankFace.NORTH)) {
+        boolean northOpen = openFaces.contains(TankFace.NORTH);
+        boolean southOpen = openFaces.contains(TankFace.SOUTH);
+
+        if (!northOpen) {
             elements.add(createBox("ring_n", 0, y1, 0, 16, y2, northEdge));
         }
-        if (!openFaces.contains(TankFace.SOUTH)) {
+        if (!southOpen) {
             elements.add(createBox("ring_s", 0, y1, southEdge, 16, y2, 16));
         }
 
+        List<int[]> zRuns = new ArrayList<>(); // {zFrom, zTo, inset}
         int runStartZ = northEdge;
         int runInset = rowWidths[northEdge - 1];
         for (int z = northEdge + 1; z <= southEdge; z++) {
             int inset = z < southEdge ? rowWidths[z - 1] : Integer.MIN_VALUE;
             if (inset != runInset) {
-                if (runInset < 16 && runInset > 0) {
-                    if (!openFaces.contains(TankFace.WEST)) elements.add(createBox("ring_w_" + smartLabel(runStartZ), 0, y1, runStartZ, runInset, y2, z));
-                    if (!openFaces.contains(TankFace.EAST)) elements.add(createBox("ring_e_" + smartLabel(runStartZ), 16 - runInset, y1, runStartZ, 16, y2, z));
-                }
+                zRuns.add(new int[]{runStartZ, z, runInset});
                 runStartZ = z;
                 runInset = inset;
+            }
+        }
+
+        // On an open north/south cap the west/east ring has nothing left to taper into either —
+        // extend its boundary run flush to the block edge, mirroring the sand generator's seam
+        // extension, so the still-closed west/east wall's own frame doesn't stop 1px short of the
+        // open face (ring_n/ring_s already yielded to the open cap above, so there's no coincident
+        // box left at Z 0/16 for this to double up with).
+        if (northOpen && !zRuns.isEmpty() && zRuns.get(0)[2] < 16) {
+            zRuns.get(0)[0] = 0;
+        }
+        if (southOpen && !zRuns.isEmpty() && zRuns.get(zRuns.size() - 1)[2] < 16) {
+            zRuns.get(zRuns.size() - 1)[1] = 16;
+        }
+
+        for (int[] zRun : zRuns) {
+            int zFrom = zRun[0], zTo = zRun[1], inset = zRun[2];
+            if (inset < 16 && inset > 0) {
+                if (!openFaces.contains(TankFace.WEST)) elements.add(createBox("ring_w_" + smartLabel(zFrom), 0, y1, zFrom, inset, y2, zTo));
+                if (!openFaces.contains(TankFace.EAST)) elements.add(createBox("ring_e_" + smartLabel(zFrom), 16 - inset, y1, zFrom, 16, y2, zTo));
             }
         }
     }

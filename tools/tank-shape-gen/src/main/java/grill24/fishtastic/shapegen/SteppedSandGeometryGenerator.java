@@ -86,10 +86,10 @@ public final class SteppedSandGeometryGenerator {
             // West/east still need a separate bridge: the taper there varies per Z row rather than
             // collapsing to one flattened run, so there's no single run to extend to the boundary.
             if (westOpen) {
-                addWestBridge(elements, taper, floor);
+                addWestBridge(elements, taper, floor, northOpen, southOpen);
             }
             if (eastOpen) {
-                addEastBridge(elements, taper, floor);
+                addEastBridge(elements, taper, floor, northOpen, southOpen);
             }
         }
 
@@ -118,47 +118,49 @@ public final class SteppedSandGeometryGenerator {
         return runs;
     }
 
-    private static void addWestBridge(JsonArray elements, int[] taper, int floor) {
+    private static void addWestBridge(JsonArray elements, int[] taper, int floor, boolean northOpen, boolean southOpen) {
         // The west edge of the stepped footprint: for each Z row the sand starts at x = taper[Z-1].
         // Bridging to x=0 means adding the triangular-ish notch; simplest correct bridge is a thin
         // column that fills the widest remaining gap on the west side. To keep the footprint
         // exact, emit one box per Z run between x=1 (glass inner face) and the run's inset.
+        for (int[] zRun : bridgeRuns(taper, northOpen, southOpen)) {
+            int inset = zRun[2];
+            if (inset >= 16) continue; // no sand in that band (a full-width taper row)
+            elements.add(createSandBox("west_bridge_" + zRun[0], 0, floor, zRun[0], inset, floor + 1, zRun[1]));
+        }
+    }
+
+    private static void addEastBridge(JsonArray elements, int[] taper, int floor, boolean northOpen, boolean southOpen) {
+        for (int[] zRun : bridgeRuns(taper, northOpen, southOpen)) {
+            int inset = zRun[2];
+            if (inset >= 16) continue;
+            elements.add(createSandBox("east_bridge_" + zRun[0], 16 - inset, floor, zRun[0], 16, floor + 1, zRun[1]));
+        }
+    }
+
+    /**
+     * Per-Z-row taper runs as {@code {zFrom, zTo, inset}}, with the leading/trailing run extended
+     * to the block boundary when the corresponding north/south cap is also open — otherwise, on a
+     * tank with every horizontal face open at once, the extreme corner tiles (Z 0-1 / 15-16 at the
+     * west/east margin) are covered by neither this bridge nor the main sand run, leaving a bare
+     * gap in the floor.
+     */
+    private static List<int[]> bridgeRuns(int[] taper, boolean northOpen, boolean southOpen) {
+        List<int[]> runs = new ArrayList<>();
         int prevInset = taper[0];
         int runStartZ = 1;
         for (int z = 2; z <= 14; z++) {
             int inset = taper[z - 1];
             if (inset != prevInset) {
-                addWestRunBridge(elements, runStartZ, z, prevInset, floor);
+                runs.add(new int[]{runStartZ, z, prevInset});
                 runStartZ = z;
                 prevInset = inset;
             }
         }
-        addWestRunBridge(elements, runStartZ, 15, prevInset, floor);
-    }
-
-    private static void addWestRunBridge(JsonArray elements, int z1, int z2, int inset, int floor) {
-        // inset >= 16: no sand in that band (a full-width taper row).
-        if (inset >= 16) return;
-        elements.add(createSandBox("west_bridge_" + z1, 0, floor, z1, inset, floor + 1, z2));
-    }
-
-    private static void addEastBridge(JsonArray elements, int[] taper, int floor) {
-        int prevInset = taper[0];
-        int runStartZ = 1;
-        for (int z = 2; z <= 14; z++) {
-            int inset = taper[z - 1];
-            if (inset != prevInset) {
-                addEastRunBridge(elements, runStartZ, z, prevInset, floor);
-                runStartZ = z;
-                prevInset = inset;
-            }
-        }
-        addEastRunBridge(elements, runStartZ, 15, prevInset, floor);
-    }
-
-    private static void addEastRunBridge(JsonArray elements, int z1, int z2, int inset, int floor) {
-        if (inset >= 16) return;
-        elements.add(createSandBox("east_bridge_" + z1, 16 - inset, floor, z1, 16, floor + 1, z2));
+        runs.add(new int[]{runStartZ, 15, prevInset});
+        if (northOpen) runs.get(0)[0] = 0;
+        if (southOpen) runs.get(runs.size() - 1)[1] = 16;
+        return runs;
     }
 
     /** Full 6-faced sand box, UV convention matching {@link SandGeometryGenerator#createSandBox}. */
