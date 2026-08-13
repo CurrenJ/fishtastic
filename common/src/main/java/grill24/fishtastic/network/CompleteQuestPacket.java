@@ -2,10 +2,12 @@ package grill24.fishtastic.network;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.Quest;
+import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
+import grill24.fishtastic.server.QuestTracker;
 import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -63,6 +65,10 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
                 serverPlayer.getInventory().add(item.toStack());
             }
             state.claim(questKey, quest.reward().questTokens());
+            if (quest.category() == QuestCategory.DAILY) {
+                long currentDay = server.overworld().getGameTime() / 24000L;
+                QuestTracker.onDailyQuestClaimed(server.registryAccess(), state, questRegistry, currentDay);
+            }
             data.setDirty();
 
             TutorialManager.onQuestClaimed(serverPlayer, packet.questId());

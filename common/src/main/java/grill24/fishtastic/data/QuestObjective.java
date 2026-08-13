@@ -56,8 +56,29 @@ public record QuestObjective(
          * weather, or zone a fish was caught under, so those conditions cannot be replayed
          * against it.
          */
-        boolean lifetimeCount
+        boolean lifetimeCount,
+        /**
+         * When true, this objective is never matched against a caught fish ({@code QuestTracker}
+         * skips it entirely in {@code onCatch}/{@code onCatchBatch}) — instead it's driven by
+         * {@code QuestTracker#onDailyQuestClaimed}, which marks it complete the moment every one of
+         * that day's active daily quests has been claimed. Lets a quest reward something (e.g. an
+         * otherwise-locked tank shape) for clearing the whole daily board in a single day, without
+         * needing a generic quest-completion predicate framework.
+         */
+        boolean allDailiesClaimedToday
 ) {
+    /** Back-compat with call sites predating {@link #allDailiesClaimedToday}; defaults it to false. */
+    public QuestObjective(Optional<ResourceKey<Item>> targetSpecies, Optional<TagKey<Item>> targetSpeciesTag,
+            Optional<TagKey<Item>> excludeSpeciesTag, boolean distinctSpecies, Optional<Integer> targetCount,
+            Optional<FishQuality.Quality> minQuality, Optional<Float> minSize, Optional<TagKey<Biome>> biomeCondition,
+            Optional<FishProfile.TimeOfDay> timeCondition, Optional<FishProfile.WeatherCondition> weatherCondition,
+            Optional<FishProfile.Zone> zoneCondition, Optional<Integer> minSessionCatches, int notificationInterval,
+            boolean lifetimeCount) {
+        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality, minSize,
+                biomeCondition, timeCondition, weatherCondition, zoneCondition, minSessionCatches, notificationInterval,
+                lifetimeCount, false);
+    }
+
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceKey.codec(Registries.ITEM).optionalFieldOf("target_species").forGetter(QuestObjective::targetSpecies),
             TagKey.codec(Registries.ITEM).optionalFieldOf("target_species_tag").forGetter(QuestObjective::targetSpeciesTag),
@@ -72,7 +93,8 @@ public record QuestObjective(
             FishProfile.Zone.CODEC.optionalFieldOf("zone_condition").forGetter(QuestObjective::zoneCondition),
             Codec.INT.optionalFieldOf("min_session_catches").forGetter(QuestObjective::minSessionCatches),
             Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval),
-            Codec.BOOL.optionalFieldOf("lifetime_count", false).forGetter(QuestObjective::lifetimeCount)
+            Codec.BOOL.optionalFieldOf("lifetime_count", false).forGetter(QuestObjective::lifetimeCount),
+            Codec.BOOL.optionalFieldOf("all_dailies_claimed_today", false).forGetter(QuestObjective::allDailiesClaimedToday)
     ).apply(i, QuestObjective::new));
 
     /**

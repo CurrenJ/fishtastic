@@ -1,6 +1,6 @@
 {
   "display_name": "Ornate Fish Tank",
-  "description": "A tank with decorative inlay brackets adorning each face, framed around a standard sand bed.",
+  "description": "A tank with decorative inlay brackets adorning each face, framed around a standard sand bed. Earned by clearing every daily quest in a single day.",
   "cost": 100,
   "weight": 0.5,
   "reward": [
@@ -8,8 +8,14 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
-        "fishtastic:fish_tank_shape": "ornate"
+        "fishtastic:fish_tank_shape": "ornate",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:gilded_blackstone",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:orange_clear_stained_glass"
+        }
       }
     }
-  ]
+  ],
+  "unlock_quest": "fishtastic:challenge/daily_completionist"
 }

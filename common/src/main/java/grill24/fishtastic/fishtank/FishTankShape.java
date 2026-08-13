@@ -1,12 +1,18 @@
 package grill24.fishtastic.fishtank;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.data.Quest;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+
+import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Identifies the fish tank's body geometry — the shape/silhouette of the frame, sand, and glass
@@ -45,8 +51,10 @@ public enum FishTankShape {
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
      * OrnateGlassGeometryGenerator). Shares STANDARD's connectionCollection like {@link #FACETED}.
+     * Locked behind {@code challenge/daily_completionist} — see {@link #unlockQuest}.
      */
-    ORNATE(Fishtastic.id("ornate"), Fishtastic.id("standard"), "fishtank_ornate"),
+    ORNATE(Fishtastic.id("ornate"), Fishtastic.id("standard"), "fishtank_ornate",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/daily_completionist")))),
     /**
      * Shaggy tank: the ornate tank's construction — standard 1px frame plus 1px decorative inlays
      * inset into the glass layer — with a shaggier, deliberately asymmetric fringe and a full-width
@@ -59,11 +67,23 @@ public enum FishTankShape {
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
+    /**
+     * When present, this shape can't be selected in the assembly GUI or crafted until the named
+     * quest has been claimed — mirrors {@link grill24.fishtastic.data.ShopEntry#unlockQuest}.
+     * Absent (the default) means the shape is available from the start, like the other five
+     * shipped shapes.
+     */
+    private final Optional<ResourceKey<Quest>> unlockQuest;
 
     FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix) {
+        this(id, connectionCollection, modelPathPrefix, Optional.empty());
+    }
+
+    FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix, Optional<ResourceKey<Quest>> unlockQuest) {
         this.id = id;
         this.connectionCollection = connectionCollection;
         this.modelPathPrefix = modelPathPrefix;
+        this.unlockQuest = unlockQuest;
     }
 
     public Identifier id() {
@@ -83,6 +103,18 @@ public enum FishTankShape {
     /** Path segment under {@code models/block/} this shape's 64-permutation frame/sand/glass models live in. */
     public String modelPathPrefix() {
         return modelPathPrefix;
+    }
+
+    public Optional<ResourceKey<Quest>> unlockQuest() {
+        return unlockQuest;
+    }
+
+    /**
+     * Whether this shape is available to a player, given a lookup of whether a quest has been
+     * claimed. Ungated shapes are always available. Mirrors {@link grill24.fishtastic.data.ShopEntry#isUnlockedFor}.
+     */
+    public boolean isUnlockedFor(Predicate<ResourceKey<Quest>> questClaimed) {
+        return unlockQuest.map(questClaimed::test).orElse(true);
     }
 
     public String getSerializedName() {

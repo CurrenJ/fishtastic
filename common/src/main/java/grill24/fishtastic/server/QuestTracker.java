@@ -14,6 +14,7 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -62,6 +63,8 @@ public class QuestTracker {
 
             if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
             if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
+            // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
+            if (quest.objective().allDailiesClaimedToday()) continue;
 
             PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
@@ -138,6 +141,8 @@ public class QuestTracker {
 
             if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
             if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
+            // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
+            if (quest.objective().allDailiesClaimedToday()) continue;
 
             PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
@@ -310,6 +315,32 @@ public class QuestTracker {
         TutorialStep step = TutorialManager.getStep(player);
         return step == TutorialStep.MINIGAME_CATCH || step == TutorialStep.CATCH_RESULT
                 || step == TutorialStep.QUEST_INTRO || step == TutorialStep.QUEST_CLAIM;
+    }
+
+    /**
+     * Called after a {@link QuestCategory#DAILY} quest is claimed. If every one of today's active
+     * dailies has now been claimed, completes any quest whose objective is
+     * {@link QuestObjective#allDailiesClaimedToday()} so it's ready to claim through the normal
+     * quest-log flow — same "claim it yourself" flow as every other quest, just with completion
+     * triggered by another claim instead of a catch.
+     */
+    public static void onDailyQuestClaimed(RegistryAccess registryAccess, PlayerQuestState state,
+            Registry<Quest> questRegistry, long currentDay) {
+        Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
+        boolean allClaimed = activeDailies.stream().allMatch(key -> state.getProgress(key).claimed());
+        if (!allClaimed) return;
+
+        for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
+            Quest quest = entry.getValue();
+            if (!quest.objective().allDailiesClaimedToday()) continue;
+
+            ResourceKey<Quest> questKey = entry.getKey();
+            PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
+            if (progress.completed() || progress.claimed()) continue;
+
+            int targetCount = quest.objective().effectiveTargetCount(registryAccess);
+            state.setProgress(questKey, targetCount, targetCount, currentDay);
+        }
     }
 
     /**

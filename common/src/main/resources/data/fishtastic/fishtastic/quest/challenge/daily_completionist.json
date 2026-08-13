@@ -1,0 +1,28 @@
+{
+  "category": "challenge",
+  "difficulty": "gold",
+  "objective": {
+    "target_count": 1,
+    "all_dailies_claimed_today": true
+  },
+  "reward": {
+    "quest_tokens": 100,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 1,
+        "components": {
+          "fishtastic:fish_tank_shape": "ornate",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:gilded_blackstone",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:orange_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Daily Completionist",
+  "description": "Complete and claim every one of today's daily quests before the board resets."
+}

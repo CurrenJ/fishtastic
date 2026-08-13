@@ -7,6 +7,7 @@ import grill24.fishtastic.item.StormCharmItem;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.gamerules.GameRules;
 
 /**
  * Covers the Storm Charm — a single-use consumable that summons a real thunderstorm rather than a
@@ -72,6 +73,12 @@ public final class StormCharmGameTests {
         int rainTime = level.getWeatherData().getRainTime();
         boolean wasRaining = level.isRaining();
         boolean wasThundering = level.isThundering();
+        // NeoForge's GameTestServer hard-disables ADVANCE_WEATHER for every test run (deterministic
+        // worlds), which trySummonStorm correctly treats as "refuse rather than leave a permanent
+        // storm" — force it on for this test only, restoring it after, or the guard rejects the
+        // storm and the assertions below fail for reasons unrelated to the charm itself.
+        boolean wasAdvancingWeather = level.getGameRules().get(GameRules.ADVANCE_WEATHER);
+        level.getGameRules().set(GameRules.ADVANCE_WEATHER, true, server);
         try {
             StormCharmItem.trySummonStorm(level, helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
 
@@ -86,6 +93,7 @@ public final class StormCharmGameTests {
             server.setWeatherParameters(clearTime, rainTime, wasRaining, wasThundering);
             level.setRainLevel(wasRaining ? 1.0f : 0.0f);
             level.setThunderLevel(wasThundering ? 1.0f : 0.0f);
+            level.getGameRules().set(GameRules.ADVANCE_WEATHER, wasAdvancingWeather, server);
         }
         helper.succeed();
     }

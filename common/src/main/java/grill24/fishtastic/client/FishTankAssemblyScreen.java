@@ -1,11 +1,14 @@
 package grill24.fishtastic.client;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import grill24.fishtastic.network.SetAssemblyShapePacket;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.UI;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -16,6 +19,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.util.function.Consumer;
@@ -42,6 +46,14 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
     private Button shapeButton;
     private FishTankShape lastKnownShape = FishTankShape.STANDARD;
+    /**
+     * The shape currently displayed on the cycle button, which may be a locked shape the player
+     * is just browsing. Distinct from {@link #lastKnownShape}/{@code menu.getShape()} — a locked
+     * shape is shown here (name + "(Locked)" + unlock tooltip) but never applied to the menu or
+     * sent to the server, so cycling past one to look at it can never desync from the
+     * server-authoritative committed shape.
+     */
+    private FishTankShape previewedShape = FishTankShape.STANDARD;
 
     public FishTankAssemblyScreen(FishTankAssemblyMenu menu, Inventory inventory, Component title) {
         // GelatinUIScreen only exposes the 3-arg ctor, which fixes imageWidth/imageHeight at
@@ -56,9 +68,10 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         // is vanilla-driven (gelatin only supplies the empty UI root), so the button is added the
         // vanilla way and draws/click-handles on top of the panel.
         lastKnownShape = menu.getShape();
+        previewedShape = lastKnownShape;
         shapeButton = new ShapeCycleButton(leftPos + SHAPE_BTN_X, topPos + SHAPE_BTN_Y, SHAPE_BTN_WIDTH, SHAPE_BTN_HEIGHT,
                 shapeLabel(lastKnownShape), this::cycleShape);
-        shapeButton.setTooltip(Tooltip.create(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")));
+        refreshButtonAppearance(lastKnownShape);
         addRenderableWidget(shapeButton);
     }
 
@@ -70,20 +83,62 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         FishTankShape current = menu.getShape();
         if (current != lastKnownShape) {
             lastKnownShape = current;
-            shapeButton.setMessage(shapeLabel(current));
+            previewedShape = current;
+            refreshButtonAppearance(current);
         }
     }
 
-    /** Cycle the shape; {@code forward} (left-click) goes to {@link FishTankShape#next()}, else backwards. */
+    /**
+     * Cycle the shape button's preview; {@code forward} (left-click) advances to
+     * {@link FishTankShape#next()}, else backwards. A locked shape is shown (name, "(Locked)" and
+     * an unlock-quest tooltip) but never committed as the assembly's actual crafting target —
+     * cycling past it leaves the last unlocked selection in effect, so there's nothing for the
+     * server to reject and nothing that can desync.
+     */
     private void cycleShape(boolean forward) {
-        FishTankShape next = forward ? menu.getShape().next() : menu.getShape().previous();
+        FishTankShape next = forward ? previewedShape.next() : previewedShape.previous();
+        previewedShape = next;
+
+        if (!next.isUnlockedFor(FishTankAssemblyScreen::isQuestClaimed)) {
+            refreshButtonAppearance(next);
+            return;
+        }
+
         // Optimistic client-side preview; the server confirms and syncs the same value back.
         menu.setShapeLocal(next);
-        shapeButton.setMessage(shapeLabel(next));
+        lastKnownShape = next;
+        refreshButtonAppearance(next);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetAssemblyShapePacket(next)));
         }
+    }
+
+    /** Sets the button's label and tooltip to match {@code shape}, locked or not. */
+    private void refreshButtonAppearance(FishTankShape shape) {
+        boolean unlocked = shape.isUnlockedFor(FishTankAssemblyScreen::isQuestClaimed);
+        shapeButton.setMessage(unlocked ? shapeLabel(shape) : lockedShapeLabel(shape));
+        shapeButton.setTooltip(Tooltip.create(unlocked
+                ? Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")
+                : Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip", questDisplayName(shape))));
+    }
+
+    private static boolean isQuestClaimed(ResourceKey<Quest> quest) {
+        return QuestClientCache.getProgress(quest.identifier()).claimed();
+    }
+
+    /** The unlock quest's authored display name, read from the synced quest registry. */
+    private static Component questDisplayName(FishTankShape shape) {
+        return shape.unlockQuest()
+                .flatMap(key -> Minecraft.getInstance().level.registryAccess()
+                        .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY).getOptional(key))
+                .map(quest -> Component.literal(quest.displayName()))
+                .orElse(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest"));
+    }
+
+    private static Component lockedShapeLabel(FishTankShape shape) {
+        return Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked", shape.getDisplayName())
+                .withStyle(ChatFormatting.GRAY);
     }
 
     /**
