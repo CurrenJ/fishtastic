@@ -18,7 +18,7 @@ include 'fabric'
 include 'neoforge'
 
 // Standalone dev tooling for the fish tank shape-variants design (see
-// docs/tank-shape-variants-plan.md) — plain Java, deliberately independent of
+// docs/fish-tanks.md) — plain Java, deliberately independent of
 // Minecraft/Loom/Architectury so it builds and iterates fast.
 include 'tools:tank-shape-gen'
 include 'tools:tank-shape-previewer'

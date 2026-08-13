@@ -42,7 +42,7 @@ dependencies {
     implementation("io.github.currenj.gelatinui:gelatinui-fabric:${gelatinui_version}")
 
     // Shared fish tank shape geometry generators (plain Java, no Minecraft dep) — also consumed
-    // by tools/tank-shape-previewer. See docs/tank-shape-variants-plan.md, Phase 1.
+    // by tools/tank-shape-previewer. See docs/fish-tanks.md, Phase 1.
     implementation project(':tools:tank-shape-gen')
 
     // namedElements no longer exists in loom-no-remap; reference common directly.

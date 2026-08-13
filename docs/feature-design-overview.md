@@ -28,7 +28,7 @@ Nothing in this loop routes the player away from fishing. No crafting chains tha
 |---|---|
 | [quest-system.md](quest-system.md) | Structured goals that reward fishing skill; the source of all meaningful progression |
 | [rod-and-bait-upgrades.md](rod-and-bait-upgrades.md) | Quest-exclusive unlocks that change how the minigame feels |
-| [tank-customization-expansion.md](tank-customization-expansion.md) | New visual layers, fish-reactive effects, and prestige cosmetics for tanks |
+| [fish-tanks.md](fish-tanks.md) | The tank's customization axes (shape, material, cosmetics), how its geometry is generated, and how to add more |
 
 ---
 

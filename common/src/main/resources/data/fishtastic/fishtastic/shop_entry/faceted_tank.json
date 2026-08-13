@@ -1,0 +1,15 @@
+{
+  "display_name": "Faceted Fish Tank",
+  "description": "A tank with a deep corner taper and a faceted, stepped sand bed that narrows at the ends.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "faceted"
+      }
+    }
+  ]
+}

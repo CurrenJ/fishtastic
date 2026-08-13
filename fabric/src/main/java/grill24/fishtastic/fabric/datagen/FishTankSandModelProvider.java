@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
  * <p>Thin wrapper: the actual element-generation logic lives in {@code tools/tank-shape-gen}
  * (a plain-Java library shared with the live shape previewer), reached per shape via
  * {@link FishTankShapeGeometryStrategies} so both produce byte-identical geometry from the exact
- * same code — see docs/tank-shape-variants-plan.md, Phase 1/2.
+ * same code — see docs/fish-tanks.md, Phase 1/2.
  *
  * Each permutation is identified by an index (0-63) where each bit represents whether a face is open:
  * - Bit 0: DOWN

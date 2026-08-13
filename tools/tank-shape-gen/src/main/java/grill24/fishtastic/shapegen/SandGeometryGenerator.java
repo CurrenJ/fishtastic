@@ -22,7 +22,7 @@ import static grill24.fishtastic.shapegen.TankShapeGeometry.vec3;
  *
  * <p>With {@link CornerTaperProfile#STANDARD} this reproduces the original hand-written
  * {@code FishTankSandModelProvider} datagen byte-for-byte — see
- * docs/tank-shape-variants-plan.md, Phase 1 and Phase 2.
+ * docs/fish-tanks.md, Phase 1 and Phase 2.
  *
  * <p>Sand behavior:
  * <ul>

@@ -22,7 +22,7 @@ allprojects {
 }
 
 subprojects {
-    // tools/* are standalone dev tooling (see docs/tank-shape-variants-plan.md) — plain Java,
+    // tools/* are standalone dev tooling (see docs/fish-tanks.md) — plain Java,
     // deliberately independent of Minecraft/Loom/Architectury. Configured separately below.
     if (project.path.startsWith(':tools:')) {
         return

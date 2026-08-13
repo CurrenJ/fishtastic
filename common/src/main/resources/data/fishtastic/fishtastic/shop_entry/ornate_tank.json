@@ -1,0 +1,15 @@
+{
+  "display_name": "Ornate Fish Tank",
+  "description": "A tank with decorative inlay brackets adorning each face, framed around a standard sand bed.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "ornate"
+      }
+    }
+  ]
+}

@@ -10,11 +10,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+
+import java.util.function.Consumer;
 
 /**
  * GUI for the Fish Tank Assembly block: 3 real material slots (frame/sand/glass) and
@@ -52,11 +56,9 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         // is vanilla-driven (gelatin only supplies the empty UI root), so the button is added the
         // vanilla way and draws/click-handles on top of the panel.
         lastKnownShape = menu.getShape();
-        shapeButton = Button.builder(shapeLabel(lastKnownShape), button -> cycleShape())
-                .pos(leftPos + SHAPE_BTN_X, topPos + SHAPE_BTN_Y)
-                .size(SHAPE_BTN_WIDTH, SHAPE_BTN_HEIGHT)
-                .tooltip(Tooltip.create(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")))
-                .build();
+        shapeButton = new ShapeCycleButton(leftPos + SHAPE_BTN_X, topPos + SHAPE_BTN_Y, SHAPE_BTN_WIDTH, SHAPE_BTN_HEIGHT,
+                shapeLabel(lastKnownShape), this::cycleShape);
+        shapeButton.setTooltip(Tooltip.create(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")));
         addRenderableWidget(shapeButton);
     }
 
@@ -72,14 +74,41 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         }
     }
 
-    private void cycleShape() {
-        FishTankShape next = menu.getShape().next();
+    /** Cycle the shape; {@code forward} (left-click) goes to {@link FishTankShape#next()}, else backwards. */
+    private void cycleShape(boolean forward) {
+        FishTankShape next = forward ? menu.getShape().next() : menu.getShape().previous();
         // Optimistic client-side preview; the server confirms and syncs the same value back.
         menu.setShapeLocal(next);
         shapeButton.setMessage(shapeLabel(next));
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetAssemblyShapePacket(next)));
+        }
+    }
+
+    /**
+     * A shape-cycle button that also reacts to right-click: left cycles forward, right cycles
+     * backward. Vanilla's {@link Button} only routes left-clicks through {@code onPress}, so this
+     * widens the accepted buttons and dispatches on the actual mouse button.
+     */
+    private static final class ShapeCycleButton extends Button.Plain {
+        private final Consumer<Boolean> onCycle;
+
+        ShapeCycleButton(int x, int y, int width, int height, Component message, Consumer<Boolean> onCycle) {
+            super(x, y, width, height, message, button -> {}, Button.DEFAULT_NARRATION);
+            this.onCycle = onCycle;
+        }
+
+        @Override
+        protected boolean isValidClickButton(MouseButtonInfo buttonInfo) {
+            return buttonInfo.button() == 0 || buttonInfo.button() == 1; // left or right
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            // Mouse left-click (button 0) and keyboard activation (Enter/Space) cycle forward;
+            // mouse right-click (button 1) cycles backward.
+            this.onCycle.accept(input.input() != 1);
         }
     }
 

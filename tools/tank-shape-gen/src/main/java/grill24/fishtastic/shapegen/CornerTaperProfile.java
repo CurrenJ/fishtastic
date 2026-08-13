@@ -24,18 +24,37 @@ public record CornerTaperProfile(int[] rowWidths) {
     public static final CornerTaperProfile STANDARD = uniform(1);
 
     /**
-     * Read from {@code new_tank_shapes.png} tank slot 1 (0-indexed): image rows 1-14 top-to-bottom.
+     * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 1 (0-indexed): image rows 1-14 top-to-bottom.
      * A modest 3→1 taper — a light corner brace rather than heavy reinforcement.
      */
     public static final CornerTaperProfile TRIMMED =
             new CornerTaperProfile(new int[]{3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3});
 
     /**
-     * Read from {@code new_tank_shapes.png} tank slot 2 (0-indexed): image rows 1-14 top-to-bottom.
+     * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 2 (0-indexed): image rows 1-14 top-to-bottom.
      * A deeper 5→1 taper — chunkier corner brackets than {@link #TRIMMED}.
      */
     public static final CornerTaperProfile REINFORCED =
             new CornerTaperProfile(new int[]{5, 3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 3, 5});
+
+    /**
+     * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 3 (0-indexed): image rows 1-14 top-to-bottom.
+     * A 6→1 taper whose floor-adjacent row (image row 14) is also 6, so its sand is a stepped
+     * octagon reaching the 1px glass wall in the middle.
+     */
+    public static final CornerTaperProfile FACETED =
+            new CornerTaperProfile(new int[]{6, 4, 3, 2, 2, 1, 1, 1, 1, 2, 2, 3, 4, 6});
+
+    /**
+     * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 4 (0-indexed): image rows 1-14 top-to-bottom.
+     * A 16→2 taper with {@code 16} (= full-width) end rows — i.e. 2px-thick ceiling/floor caps —
+     * whose sand is a stepped octagon inset by the taper's 2px minimum in the middle.
+     * The {@code 16} rows are *not* plain full slabs at the sand level: the base is a
+     * chamfered octagonal ring (see the tank-shape-image-to-datagen skill) so the stepped-octagon
+     * sand stays visible.
+     */
+    public static final CornerTaperProfile BASTION =
+            new CornerTaperProfile(new int[]{16, 6, 4, 3, 3, 2, 2, 2, 2, 3, 3, 4, 6, 16});
 
     public static final int ROW_COUNT = 14;
 

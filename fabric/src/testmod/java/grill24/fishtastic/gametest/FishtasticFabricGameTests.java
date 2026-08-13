@@ -485,6 +485,16 @@ public class FishtasticFabricGameTests {
         FishTankGameTests.standardAndReinforcedNeighborsConnect(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void newShapesConnectToStandard(GameTestHelper helper) {
+        FishTankGameTests.newShapesConnectToStandard(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void newShapesConnectToEachOther(GameTestHelper helper) {
+        FishTankGameTests.newShapesConnectToEachOther(helper);
+    }
+
     // -------------------------------------------------------------------------
     // TutorialManager tests
     // -------------------------------------------------------------------------

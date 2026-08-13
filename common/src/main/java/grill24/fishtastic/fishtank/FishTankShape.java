@@ -28,7 +28,33 @@ public enum FishTankShape {
      * Chunkier corner brackets — deeper 5px→1px taper. See CornerTaperProfile.REINFORCED.
      * Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s note.
      */
-    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced");
+    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced"),
+    /**
+     * Deep 6px→1px corner taper with a stepped-octagon sand (see CornerTaperProfile.FACETED and
+     * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all six shipped
+     * shapes are meant to freely interconnect (see {@link #TRIMMED}'s note).
+     */
+    FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted"),
+    /**
+     * 16px→2px taper with 2px-thick caps, whose {@code 16} rows are chamfered octagonal base rings
+     * and whose sand is a stepped octagon (see CornerTaperProfile.BASTION). Shares STANDARD's
+     * connectionCollection like {@link #FACETED}.
+     */
+    BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion"),
+    /**
+     * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
+     * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
+     * OrnateGlassGeometryGenerator). Shares STANDARD's connectionCollection like {@link #FACETED}.
+     */
+    ORNATE(Fishtastic.id("ornate"), Fishtastic.id("standard"), "fishtank_ornate"),
+    /**
+     * Shaggy tank: the ornate tank's construction — standard 1px frame plus 1px decorative inlays
+     * inset into the glass layer — with a shaggier, deliberately asymmetric fringe and a full-width
+     * band at Y [1,2] that hides the sand from the side (see ShaggyFrameGeometryGenerator /
+     * ShaggyGlassGeometryGenerator, spans in ShaggyTankSpans). Shares STANDARD's
+     * connectionCollection like {@link #FACETED}.
+     */
+    SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy");
 
     private final Identifier id;
     private final Identifier connectionCollection;
@@ -70,6 +96,12 @@ public enum FishTankShape {
     public FishTankShape next() {
         FishTankShape[] values = values();
         return values[(ordinal() + 1) % values.length];
+    }
+
+    /** The previous shape in declaration order (wrapping), the inverse of {@link #next()}. */
+    public FishTankShape previous() {
+        FishTankShape[] values = values();
+        return values[(ordinal() - 1 + values.length) % values.length];
     }
 
     /** Localized display name, e.g. "Standard" / "Trimmed" / "Reinforced". */

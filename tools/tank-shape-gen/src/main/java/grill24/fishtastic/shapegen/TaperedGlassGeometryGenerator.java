@@ -66,6 +66,7 @@ public final class TaperedGlassGeometryGenerator {
         for (CornerTaperProfile.Run run : runs) {
             double minX = nwCorner ? run.width() : 0;
             double maxX = neCorner ? 16 - run.width() : 16;
+            if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
             elements.add(pane(minX, run.yFrom(), 0, maxX, run.yTo(), 1, "north", "south"));
         }
     }
@@ -76,6 +77,7 @@ public final class TaperedGlassGeometryGenerator {
         for (CornerTaperProfile.Run run : runs) {
             double minX = swCorner ? run.width() : 0;
             double maxX = seCorner ? 16 - run.width() : 16;
+            if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
             elements.add(pane(minX, run.yFrom(), 15, maxX, run.yTo(), 16, "north", "south"));
         }
     }
@@ -86,6 +88,7 @@ public final class TaperedGlassGeometryGenerator {
         for (CornerTaperProfile.Run run : runs) {
             double minZ = nwCorner ? run.width() : 0;
             double maxZ = swCorner ? 16 - run.width() : 16;
+            if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
             elements.add(paneZAxis(0, run.yFrom(), minZ, 1, run.yTo(), maxZ, "west", "east"));
         }
     }
@@ -96,6 +99,7 @@ public final class TaperedGlassGeometryGenerator {
         for (CornerTaperProfile.Run run : runs) {
             double minZ = neCorner ? run.width() : 0;
             double maxZ = seCorner ? 16 - run.width() : 16;
+            if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
             elements.add(paneZAxis(15, run.yFrom(), minZ, 16, run.yTo(), maxZ, "west", "east"));
         }
     }

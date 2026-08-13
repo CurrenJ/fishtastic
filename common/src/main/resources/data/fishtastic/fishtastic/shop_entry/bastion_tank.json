@@ -1,0 +1,15 @@
+{
+  "display_name": "Bastion Fish Tank",
+  "description": "A tank with thick top and bottom caps, a chamfered base ring, and a stepped sand bed.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "bastion"
+      }
+    }
+  ]
+}

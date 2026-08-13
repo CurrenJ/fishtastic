@@ -268,4 +268,44 @@ public final class FishTankGameTests {
             "REINFORCED tank must open its WEST face toward a same-family STANDARD neighbor");
         helper.succeed();
     }
+
+    /**
+     * All shipped shapes share one connectionCollection, so every new shape connects to a
+     * STANDARD tank (and, by the same mechanism, to every other shape). Confirms the
+     * "all shapes freely interconnect" decision from the shape-variants plan.
+     */
+    public static void newShapesConnectToStandard(GameTestHelper helper) {
+        for (FishTankShape shape : new FishTankShape[]{FishTankShape.FACETED, FishTankShape.BASTION,
+                FishTankShape.ORNATE, FishTankShape.SHAGGY}) {
+            FishTankBlockEntity west = placeFishTank(helper);
+            FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+            west.setShape(shape);
+            // east stays STANDARD
+            west.updateConnections(helper.getLevel(), west.getBlockPos());
+            east.updateConnections(helper.getLevel(), east.getBlockPos());
+            helper.assertTrue(west.getOpenFaces().contains(Direction.EAST),
+                shape + " must open its EAST face toward a STANDARD neighbor (shared collection)");
+            helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
+                "STANDARD must open its WEST face toward a " + shape + " neighbor (shared collection)");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The new shapes connect to each other too — two different non-STANDARD shapes are in the same
+     * shared collection, the cross-shape case the connectionCollection mechanism exists to support.
+     */
+    public static void newShapesConnectToEachOther(GameTestHelper helper) {
+        FishTankBlockEntity west = placeFishTank(helper);
+        FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+        west.setShape(FishTankShape.FACETED);
+        east.setShape(FishTankShape.BASTION);
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        east.updateConnections(helper.getLevel(), east.getBlockPos());
+        helper.assertTrue(west.getOpenFaces().contains(Direction.EAST),
+            "FACETED must open its EAST face toward a BASTION neighbor (shared collection)");
+        helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
+            "BASTION must open its WEST face toward a FACETED neighbor (shared collection)");
+        helper.succeed();
+    }
 }

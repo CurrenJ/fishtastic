@@ -1,0 +1,15 @@
+{
+  "display_name": "Shaggy Fish Tank",
+  "description": "A tank fringed with ragged inlay trim, its sand bed tucked behind a solid band at the base.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "shaggy"
+      }
+    }
+  ]
+}

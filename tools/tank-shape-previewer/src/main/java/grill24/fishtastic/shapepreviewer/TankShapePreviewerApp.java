@@ -1,7 +1,14 @@
 package grill24.fishtastic.shapepreviewer;
 
+import com.google.gson.JsonObject;
 import grill24.fishtastic.shapegen.CornerTaperProfile;
+import grill24.fishtastic.shapegen.OrnateFrameGeometryGenerator;
+import grill24.fishtastic.shapegen.OrnateGlassGeometryGenerator;
 import grill24.fishtastic.shapegen.SandGeometryGenerator;
+import grill24.fishtastic.shapegen.ShaggyFrameGeometryGenerator;
+import grill24.fishtastic.shapegen.ShaggyGlassGeometryGenerator;
+import grill24.fishtastic.shapegen.ShellFrameGeometryGenerator;
+import grill24.fishtastic.shapegen.SteppedSandGeometryGenerator;
 import grill24.fishtastic.shapegen.TankFace;
 import grill24.fishtastic.shapegen.TaperedFrameGeometryGenerator;
 import grill24.fishtastic.shapegen.TaperedGlassGeometryGenerator;
@@ -28,7 +35,7 @@ import java.util.Map;
 
 /**
  * Live parametric previewer for fish tank shape geometry — Phase 1/2 of
- * docs/tank-shape-variants-plan.md. Renders the exact same geometry the real datagen produces,
+ * docs/fish-tanks.md. Renders the exact same geometry the real datagen produces,
  * via the shared {@code tools/tank-shape-gen} library (not a port), so a new shape can be
  * designed and checked here before ever touching the mod's build.
  *
@@ -113,14 +120,38 @@ public class TankShapePreviewerApp extends Application {
 
         box.getChildren().add(sectionTitle("Shape"));
         shapeChoice = new ChoiceBox<>();
-        shapeChoice.getItems().addAll("STANDARD", "TRIMMED (image tank 1)", "REINFORCED (image tank 2)");
-        shapeChoice.getSelectionModel().selectFirst();
+        shapeChoice.getItems().addAll(
+                "STANDARD",
+                "TRIMMED (image tank 1)",
+                "REINFORCED (image tank 2)",
+                "FACETED (image tank 3)",
+                "BASTION (image tank 4)",
+                "ORNATE (references)",
+                "SHAGGY (references)");
+        // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
+        // used by the screenshot workflow to render a specific shape without UI interaction.
+        int initialIndex = 0;
+        for (String arg : getParameters().getRaw()) {
+            if (arg.startsWith("shape:")) {
+                String name = arg.substring("shape:".length()).toLowerCase();
+                initialIndex = switch (name) {
+                    case "trimmed" -> 1;
+                    case "reinforced" -> 2;
+                    case "faceted" -> 3;
+                    case "bastion" -> 4;
+                    case "ornate" -> 5;
+                    case "shaggy" -> 6;
+                    default -> 0;
+                };
+            }
+        }
+        shapeChoice.getSelectionModel().select(initialIndex);
         // Listener added after the initial selection so it doesn't fire regenerate() before the
         // rest of buildControls() (checkboxes) has finished constructing.
         shapeChoice.getSelectionModel().selectedIndexProperty().addListener((obs, was, is) -> regenerate());
         box.getChildren().add(shapeChoice);
         box.getChildren().add(hintLabel("Each shape is a CornerTaperProfile — the per-row corner-post "
-                + "width read off new_tank_shapes.png."));
+                + "width read off docs/tank-shapes/new_tank_shapes.png."));
         box.getChildren().add(new Separator());
 
         Label openFacesTitle = sectionTitle("Open faces");
@@ -175,16 +206,39 @@ public class TankShapePreviewerApp extends Application {
 
     private void regenerate() {
         int perm = permutationIndex();
-        CornerTaperProfile profile = switch (shapeChoice.getSelectionModel().getSelectedIndex()) {
+        int idx = shapeChoice.getSelectionModel().getSelectedIndex();
+        CornerTaperProfile profile = switch (idx) {
             case 1 -> CornerTaperProfile.TRIMMED;
             case 2 -> CornerTaperProfile.REINFORCED;
+            case 3 -> CornerTaperProfile.FACETED;
+            case 4 -> CornerTaperProfile.BASTION;
             default -> CornerTaperProfile.STANDARD;
+        };
+        // FACETED/BASTION use the chamfered-ring frame + stepped sand; ORNATE/SHAGGY are inlay
+        // shapes with no taper at all, on the standard square sand.
+        boolean shell = idx == 3 || idx == 4;
+
+        JsonObject frame = switch (idx) {
+            case 5 -> OrnateFrameGeometryGenerator.generate(perm);
+            case 6 -> ShaggyFrameGeometryGenerator.generate(perm);
+            default -> shell ? ShellFrameGeometryGenerator.generate(perm, profile)
+                             : TaperedFrameGeometryGenerator.generate(perm, profile);
+        };
+        JsonObject sand = switch (idx) {
+            case 5, 6 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
+            default -> shell ? SteppedSandGeometryGenerator.generate(perm, profile)
+                             : SandGeometryGenerator.generate(perm, profile);
+        };
+        JsonObject glass = switch (idx) {
+            case 5 -> OrnateGlassGeometryGenerator.generate(perm);
+            case 6 -> ShaggyGlassGeometryGenerator.generate(perm);
+            default -> TaperedGlassGeometryGenerator.generate(perm, profile);
         };
 
         tankGroup.getChildren().setAll(
-                TankGeometryMeshBuilder.build(TaperedFrameGeometryGenerator.generate(perm, profile), Color.rgb(158, 118, 74), false),
-                TankGeometryMeshBuilder.build(SandGeometryGenerator.generate(perm, profile), Color.rgb(219, 201, 145), false),
-                TankGeometryMeshBuilder.build(TaperedGlassGeometryGenerator.generate(perm, profile), Color.rgb(120, 190, 220, 0.55), true)
+                TankGeometryMeshBuilder.build(frame, Color.rgb(158, 118, 74), false),
+                TankGeometryMeshBuilder.build(sand, Color.rgb(219, 201, 145), false),
+                TankGeometryMeshBuilder.build(glass, Color.rgb(120, 190, 220, 0.55), true)
         );
     }
 
