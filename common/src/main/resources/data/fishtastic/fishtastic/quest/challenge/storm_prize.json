@@ -5,7 +5,23 @@
     "min_quality": "epic",
     "weather_condition": "thunder"
   },
-  "reward": { "quest_tokens": 18, "items": [] },
+  "reward": {
+    "quest_tokens": 18,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "shaggy",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:mossy_cobblestone",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:green_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Storm's Prize",
   "description": "Catch a fish at Epic quality or better during a thunderstorm."

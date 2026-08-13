@@ -13,6 +13,7 @@
         "id": "fishtastic:fish_tank",
         "count": 4,
         "components": {
+          "fishtastic:fish_tank_shape": "bastion",
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:polished_blackstone",
             "sand": "minecraft:soul_sand",

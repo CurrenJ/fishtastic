@@ -8,7 +8,20 @@
   },
   "reward": {
     "quest_tokens": 15,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "trimmed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_block",
+            "sand": "minecraft:shroomlight",
+            "glass": "fishtastic:white_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": false,
   "display_name": "Angler Apprentice",

@@ -1,6 +1,6 @@
 {
   "display_name": "Bastion Fish Tank",
-  "description": "A tank with thick top and bottom caps, a chamfered base ring, and a stepped sand bed.",
+  "description": "A tank with thick top and bottom caps, a chamfered base ring, and a stepped sand bed. Earned by surveying every fish of the Nether's molten waters.",
   "cost": 100,
   "weight": 0.5,
   "reward": [
@@ -8,8 +8,14 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
-        "fishtastic:fish_tank_shape": "bastion"
+        "fishtastic:fish_tank_shape": "bastion",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:polished_blackstone",
+          "sand": "minecraft:soul_sand",
+          "glass": "fishtastic:red_clear_stained_glass"
+        }
       }
     }
-  ]
+  ],
+  "unlock_quest": "fishtastic:explorer/nether_collector"
 }

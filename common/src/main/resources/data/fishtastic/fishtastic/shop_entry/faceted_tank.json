@@ -1,6 +1,6 @@
 {
   "display_name": "Faceted Fish Tank",
-  "description": "A tank with a deep corner taper and a faceted, stepped sand bed that narrows at the ends.",
+  "description": "A tank with a deep corner taper and a faceted, stepped sand bed that narrows at the ends. Earned by ambushing frenzied fish at dawn.",
   "cost": 100,
   "weight": 0.5,
   "reward": [
@@ -8,8 +8,14 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
-        "fishtastic:fish_tank_shape": "faceted"
+        "fishtastic:fish_tank_shape": "faceted",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:amethyst_block",
+          "sand": "minecraft:purple_concrete_powder",
+          "glass": "fishtastic:purple_clear_stained_glass"
+        }
       }
     }
-  ]
+  ],
+  "unlock_quest": "fishtastic:challenge/sunrise_ambush"
 }

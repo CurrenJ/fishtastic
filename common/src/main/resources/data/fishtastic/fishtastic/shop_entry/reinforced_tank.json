@@ -1,6 +1,6 @@
 {
   "display_name": "Reinforced Fish Tank",
-  "description": "A tank with chunky bracketed corners, a heavier taper than the Trimmed Tank's for a sturdier look.",
+  "description": "A tank with chunky bracketed corners, a heavier taper than the Trimmed Tank's for a sturdier look. Earned by reaching Angler Journeyman (catch 100 fish).",
   "cost": 100,
   "weight": 0.5,
   "reward": [
@@ -8,8 +8,14 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
-        "fishtastic:fish_tank_shape": "reinforced"
+        "fishtastic:fish_tank_shape": "reinforced",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:iron_block",
+          "sand": "minecraft:white_concrete_powder",
+          "glass": "fishtastic:light_gray_clear_stained_glass"
+        }
       }
     }
-  ]
+  ],
+  "unlock_quest": "fishtastic:mastery/angler_journeyman"
 }

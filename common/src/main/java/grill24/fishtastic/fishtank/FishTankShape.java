@@ -34,25 +34,33 @@ public enum FishTankShape implements TooltipProvider {
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
      * Shares STANDARD's connectionCollection by deliberate curation (not the default-to-self
      * behavior) — all three shipped shapes are meant to interconnect with each other.
+     * Locked behind {@code mastery/angler_apprentice} — see {@link #unlockQuest}.
      */
-    TRIMMED(Fishtastic.id("trimmed"), Fishtastic.id("standard"), "fishtank_trimmed"),
+    TRIMMED(Fishtastic.id("trimmed"), Fishtastic.id("standard"), "fishtank_trimmed",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_apprentice")))),
     /**
      * Chunkier corner brackets — deeper 5px→1px taper. See CornerTaperProfile.REINFORCED.
      * Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s note.
+     * Locked behind {@code mastery/angler_journeyman} — see {@link #unlockQuest}.
      */
-    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced"),
+    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_journeyman")))),
     /**
      * Deep 6px→1px corner taper with a stepped-octagon sand (see CornerTaperProfile.FACETED and
      * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all six shipped
      * shapes are meant to freely interconnect (see {@link #TRIMMED}'s note).
+     * Locked behind {@code challenge/sunrise_ambush} — see {@link #unlockQuest}.
      */
-    FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted"),
+    FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/sunrise_ambush")))),
     /**
      * 16px→2px taper with 2px-thick caps, whose {@code 16} rows are chamfered octagonal base rings
      * and whose sand is a stepped octagon (see CornerTaperProfile.BASTION). Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
+     * Locked behind {@code explorer/nether_collector} — see {@link #unlockQuest}.
      */
-    BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion"),
+    BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/nether_collector")))),
     /**
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
@@ -67,8 +75,10 @@ public enum FishTankShape implements TooltipProvider {
      * band at Y [1,2] that hides the sand from the side (see ShaggyFrameGeometryGenerator /
      * ShaggyGlassGeometryGenerator, spans in ShaggyTankSpans). Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
+     * Locked behind {@code challenge/storm_prize} — see {@link #unlockQuest}.
      */
-    SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy");
+    SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize"))));
 
     private final Identifier id;
     private final Identifier connectionCollection;

@@ -64,6 +64,18 @@ to every other:
 | `ORNATE` | `fishtank_ornate` | Standard 1px frame plus decorative inlay brackets, with glass holes behind them. |
 | `SHAGGY` | `fishtank_shaggy` | ORNATE's construction with a shaggier, deliberately asymmetric fringe; a full-width band at Y `[1,2]` hides the sand from the side. |
 
+`STANDARD` is always available. Every non-standard shape is quest-gated (`unlockQuest` on the enum
+entry, mirrored by `unlock_quest` on its shop entry) and granted once by that quest:
+
+| Shape | Unlocks / granted by |
+|---|---|
+| `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) |
+| `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) |
+| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) |
+| `BASTION` | `explorer/nether_collector` (every Nether species) |
+| `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) |
+| `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) |
+
 ### Connection gating
 
 `FishTankBlockEntity.updateConnections` opens a face only when the neighbor is a
@@ -267,9 +279,12 @@ by setting the components directly on the reward stack:
 ```
 
 Material tanks are typically quest-gated (`unlock_quest` + `daily_max_purchases`), while the six
-shape tanks are plain cost-100 purchases with no cap — every existing collector quest was already
-claimed by a material tank, and a shape variant has no natural survey tie-in. Revisit if that
-undersells them.
+non-standard shape tanks are gated by `unlock_quest` alone (no purchase cap) — each is granted once
+by its host quest and then stays purchasable, so the shape reads as earned rather than bought. The
+two inlay shapes (`ORNATE`, `SHAGGY`) sit on feat-based challenge quests; the four tapered shapes
+split between the early `angler_*` mastery tiers (`TRIMMED`, `REINFORCED`) and feat-based quests
+(`FACETED` on `sunrise_ambush`, `BASTION` on `nether_collector`, whose reward replaced the old
+blackstone material tank). See the table in §2.
 
 ## 6. Cosmetics
 

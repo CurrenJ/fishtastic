@@ -11,7 +11,7 @@
         "fishtastic:fish_tank_shape": "ornate",
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:gilded_blackstone",
-          "sand": "minecraft:sand",
+          "sand": "minecraft:black_concrete_powder",
           "glass": "fishtastic:orange_clear_stained_glass"
         }
       }

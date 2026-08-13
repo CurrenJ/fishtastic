@@ -7,7 +7,23 @@
     "min_quality": "rare",
     "time_condition": "dawn"
   },
-  "reward": { "quest_tokens": 35, "items": [] },
+  "reward": {
+    "quest_tokens": 35,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "faceted",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:amethyst_block",
+            "sand": "minecraft:purple_concrete_powder",
+            "glass": "fishtastic:purple_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Sunrise Ambush",
   "description": "Catch 5 frenzied fish at Rare quality or better at dawn."

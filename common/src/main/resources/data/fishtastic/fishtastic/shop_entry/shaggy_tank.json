@@ -1,6 +1,6 @@
 {
   "display_name": "Shaggy Fish Tank",
-  "description": "A tank fringed with ragged inlay trim, its sand bed tucked behind a solid band at the base.",
+  "description": "A tank fringed with ragged inlay trim, its sand bed tucked behind a solid band at the base. Earned by landing a prized catch in a thunderstorm.",
   "cost": 100,
   "weight": 0.5,
   "reward": [
@@ -8,8 +8,14 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
-        "fishtastic:fish_tank_shape": "shaggy"
+        "fishtastic:fish_tank_shape": "shaggy",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:mossy_cobblestone",
+          "sand": "minecraft:gravel",
+          "glass": "fishtastic:green_clear_stained_glass"
+        }
       }
     }
-  ]
+  ],
+  "unlock_quest": "fishtastic:challenge/storm_prize"
 }

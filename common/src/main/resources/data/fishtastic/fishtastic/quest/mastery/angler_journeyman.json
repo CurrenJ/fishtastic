@@ -12,6 +12,18 @@
       {
         "id": "fishtastic:amethyst_charm",
         "count": 1
+      },
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "reinforced",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:iron_block",
+            "sand": "minecraft:white_concrete_powder",
+            "glass": "fishtastic:light_gray_clear_stained_glass"
+          }
+        }
       }
     ]
   },
