@@ -83,23 +83,29 @@ public record CornerTaperProfile(int[] rowWidths) {
     public record Run(double yFrom, double yTo, int width) {}
 
     /**
-     * Effective per-row widths after accounting for open ceiling/floor: when a cap is open there's
-     * nothing for that end's taper to flare into, so the leading/trailing run that differs from
-     * {@link #baseWidth()} is replaced with the base width instead (the post just runs straight at
-     * base width up to the open boundary). Assumes a monotonic taper converging to the base width
-     * in the middle, which is true of every profile this skill produces — see its "Limitations" note.
+     * Effective per-row widths after accounting for an open leading/trailing cap: when a cap is
+     * open there's nothing for that end's taper to flare into, so the leading/trailing run that
+     * differs from {@link #baseWidth()} is replaced with the base width instead (the post just
+     * runs straight at base width up to the open boundary). Assumes a monotonic taper converging
+     * to the base width in the middle, which is true of every profile this skill produces — see
+     * its "Limitations" note.
+     *
+     * <p>Axis-agnostic: {@link #runs} applies this to the vertical ceiling/floor taper, and
+     * {@link SteppedSandGeometryGenerator}/{@link ShellFrameGeometryGenerator} reuse it for the
+     * horizontal north/south taper on the stepped-octagon shapes (FACETED/BASTION), since both are
+     * the same "cap opens, taper has nothing to flare into" situation on a different axis.
      */
-    private int[] effectiveRowWidths(boolean ceilingClosed, boolean floorClosed) {
+    public int[] effectiveRowWidths(boolean leadingCapClosed, boolean trailingCapClosed) {
         int[] result = rowWidths.clone();
         int base = baseWidth();
-        if (!ceilingClosed) {
+        if (!leadingCapClosed) {
             int i = 0;
             while (i < result.length && result[i] != base) {
                 result[i] = base;
                 i++;
             }
         }
-        if (!floorClosed) {
+        if (!trailingCapClosed) {
             int i = result.length - 1;
             while (i >= 0 && result[i] != base) {
                 result[i] = base;

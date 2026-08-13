@@ -39,7 +39,6 @@ public final class SteppedSandGeometryGenerator {
 
     public static JsonObject generate(int permutationIndex, String textureId, CornerTaperProfile profile) {
         Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
-        int[] taper = profile.rowWidths(); // 14 entries, image rows 1-14 (top-to-bottom)
         int floor = 1;
 
         JsonObject model = baseModel(textureId);
@@ -52,9 +51,27 @@ public final class SteppedSandGeometryGenerator {
             boolean westOpen = openFaces.contains(TankFace.WEST);
             boolean eastOpen = openFaces.contains(TankFace.EAST);
 
+            // An open north/south cap has nothing for that end's taper to flare into — same
+            // "open-cap fallback" CornerTaperProfile already applies to the vertical ceiling/floor
+            // taper, reused here for the horizontal one so the stepped octagon doesn't leave a
+            // stray taper step (and the matching frame chamfer) stranded past the open boundary.
+            int[] taper = profile.effectiveRowWidths(!northOpen, !southOpen);
+
             // The sand's footprint: for Z in 1..14 the west/east inset is taper[Z-1]. Merge
             // consecutive equal-inset rows into a single box (Z from run start to run end).
-            for (SandRun run : sandRuns(taper)) {
+            List<SandRun> runs = sandRuns(taper);
+            // Extend the boundary run flush to the block edge on an open north/south cap — mirrors
+            // CornerTaperProfile.runs()'s seam extension for the vertical case — so a connected
+            // neighbor's sand meets this tank's with zero gap.
+            if (northOpen && !runs.isEmpty() && runs.get(0).inset < 16) {
+                SandRun first = runs.get(0);
+                runs.set(0, new SandRun(0, first.zTo, first.inset));
+            }
+            if (southOpen && !runs.isEmpty() && runs.get(runs.size() - 1).inset < 16) {
+                SandRun last = runs.get(runs.size() - 1);
+                runs.set(runs.size() - 1, new SandRun(last.zFrom, 16, last.inset));
+            }
+            for (SandRun run : runs) {
                 int inset = run.inset;
                 if (inset >= 16) {
                     continue; // full-width row — no sand in that band
@@ -66,22 +83,8 @@ public final class SteppedSandGeometryGenerator {
                 elements.add(createSandBox("step_" + inset + "_" + z1, x1, floor, z1, x2, floor + 1, z2));
             }
 
-            // Extend toward each open cardinal face: bridge the sand's footprint to the glass inner
-            // face (1 / 15) on the open side, because the frame/glass on that side is gone.
-            int northEdge = 15;
-            int southEdge = 1;
-            for (SandRun run : sandRuns(taper)) {
-                if (run.inset < 16) {
-                    northEdge = Math.min(northEdge, run.zFrom);
-                    southEdge = Math.max(southEdge, run.zTo);
-                }
-            }
-            if (northOpen) {
-                addNorthBridge(elements, floor, northEdge);
-            }
-            if (southOpen) {
-                addSouthBridge(elements, floor, southEdge);
-            }
+            // West/east still need a separate bridge: the taper there varies per Z row rather than
+            // collapsing to one flattened run, so there's no single run to extend to the boundary.
             if (westOpen) {
                 addWestBridge(elements, taper, floor);
             }
@@ -113,19 +116,6 @@ public final class SteppedSandGeometryGenerator {
         }
         runs.add(new SandRun(runStartZ, 15, runInset));
         return runs;
-    }
-
-    /**
-     * When NORTH is open, the frame's north wall is gone and the west/east glass (if closed) is the
-     * only remaining boundary, so the sand reaches X=1..15 (the glass inner face) from z=0 to the
-     * sand's north edge.
-     */
-    private static void addNorthBridge(JsonArray elements, int floor, int northEdge) {
-        elements.add(createSandBox("north_bridge", 1, floor, 0, 15, floor + 1, northEdge));
-    }
-
-    private static void addSouthBridge(JsonArray elements, int floor, int southEdge) {
-        elements.add(createSandBox("south_bridge", 1, floor, southEdge, 15, floor + 1, 16));
     }
 
     private static void addWestBridge(JsonArray elements, int[] taper, int floor) {

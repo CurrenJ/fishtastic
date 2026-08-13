@@ -45,6 +45,13 @@ public final class ShellFrameGeometryGenerator {
             elements.add(createFloor(openFaces));
         }
 
+        // An open north/south cap has nothing for the horizontal (Z) taper to flare into, same as
+        // an open ceiling/floor cap for the vertical one — reuse the same open-cap fallback so the
+        // ring/chamfer pieces near an open north or south face collapse to base width instead of
+        // being left stranded past the boundary (the sand generator applies the identical
+        // flattening, so the two stay complementary with no gap or floating frame).
+        int[] horizontalRowWidths = profile.effectiveRowWidths(!openFaces.contains(TankFace.NORTH), !openFaces.contains(TankFace.SOUTH));
+
         List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
         for (CornerTaperProfile.Run run : runs) {
             // A full-width run gets a full chamfered ring (no sand/glass there). The floor-adjacent
@@ -52,13 +59,13 @@ public final class ShellFrameGeometryGenerator {
             // disjoint space between the 1px glass and the sand circle. All other runs are just
             // 1px-thick flat plates.
             if (run.width() >= 16) {
-                addChamferedRing(elements, run, profile.rowWidths(), openFaces);
+                addChamferedRing(elements, run, horizontalRowWidths, openFaces);
             } else {
                 addFlatPlates(elements, run, openFaces);
                 // The floor chamfer only makes sense when there is sand to carve around (floor
                 // closed); with DOWN open the sand is gone and the taper falls back to the base.
                 if (run.yFrom() <= 1 && !openFaces.contains(TankFace.DOWN)) {
-                    addFloorChamfers(elements, run, profile.rowWidths(), openFaces);
+                    addFloorChamfers(elements, run, horizontalRowWidths, openFaces);
                 }
             }
         }
