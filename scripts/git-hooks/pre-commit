@@ -4,9 +4,9 @@
 echo ""
 echo "=== Pre-commit: running unit tests ==="
 
-if ! ./gradlew :common:test; then
+if ! ./gradlew :common:test :tools:tank-shape-gen:test; then
     echo ""
-    echo "COMMIT BLOCKED: common unit tests failed."
+    echo "COMMIT BLOCKED: unit tests failed."
     exit 1
 fi
 
