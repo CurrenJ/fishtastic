@@ -72,8 +72,12 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+        // Materials + shape are copied on every pick-block (ctrl or not) — only contents
+        // (fish/cosmetics, via includeData's vanilla block-entity-data path) are gated behind
+        // ctrl. Connectivity (open faces/waxed) is never copied; see
+        // FishTankBlockEntity#saveCustomOnly.
         ItemStack stack = super.getCloneItemStack(level, pos, state, includeData);
-        if (includeData && level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
+        if (level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
             stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS.value(), fishTank.getMaterials());
             stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE.value(), fishTank.getShape());
         }

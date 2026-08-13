@@ -336,6 +336,21 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
+        saveTankData(output, true);
+    }
+
+    /**
+     * Serializes this tank's custom data for a pick-blocked item copy (ctrl+pick), which must
+     * NOT carry connectivity (open faces / waxed state) — that's per-placement state recomputed
+     * from neighbors on place, and copying it produces stale connection permutations on the
+     * newly placed tank. See {@link #saveAdditional} for the full world-save version.
+     */
+    @Override
+    public void saveCustomOnly(ValueOutput output) {
+        saveTankData(output, false);
+    }
+
+    private void saveTankData(ValueOutput output, boolean includeConnectivity) {
         String frameId = BuiltInRegistries.BLOCK.getKey(frameBlock).toString();
         String sandId = BuiltInRegistries.BLOCK.getKey(sandBlock).toString();
         String glassId = BuiltInRegistries.BLOCK.getKey(glassBlock).toString();
@@ -344,14 +359,16 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         output.putString("GlassBlock", glassId);
         output.putString("Shape", shape.getSerializedName());
 
-        // Save open faces as a bit field
-        int openFacesBits = 0;
-        for (Direction dir : openFaces) {
-            openFacesBits |= (1 << dir.ordinal());
-        }
-        output.putInt("OpenFaces", openFacesBits);
-        if (waxed) {
-            output.putBoolean("Waxed", true);
+        if (includeConnectivity) {
+            // Save open faces as a bit field
+            int openFacesBits = 0;
+            for (Direction dir : openFaces) {
+                openFacesBits |= (1 << dir.ordinal());
+            }
+            output.putInt("OpenFaces", openFacesBits);
+            if (waxed) {
+                output.putBoolean("Waxed", true);
+            }
         }
 
         // Save items as a list of {Slot, Stack} entries
@@ -460,8 +477,16 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         // Load shape (body geometry)
         shape = FishTankShape.bySerializedName(input.getStringOr("Shape", FishTankShape.STANDARD.getSerializedName()));
 
-        // Load open faces
-        int openFacesBits = input.getIntOr("OpenFaces", 0);
+        // Load open faces. Default is the CURRENT in-memory state, not 0 — a fresh block entity's
+        // openFaces starts empty anyway, so this is a no-op for normal world load, but it matters
+        // for the ctrl+pick-block item-data merge path: that path's item tag never contains
+        // "OpenFaces" (see #saveCustomOnly), and the merge must not stomp the connections
+        // updateConnections() just computed during placement with a reset to closed.
+        int currentOpenFacesBits = 0;
+        for (Direction dir : openFaces) {
+            currentOpenFacesBits |= (1 << dir.ordinal());
+        }
+        int openFacesBits = input.getIntOr("OpenFaces", currentOpenFacesBits);
         openFaces.clear();
         for (Direction dir : Direction.values()) {
             if ((openFacesBits & (1 << dir.ordinal())) != 0) {
@@ -469,8 +494,8 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             }
         }
 
-        // Load waxed state
-        waxed = input.getBooleanOr("Waxed", false);
+        // Load waxed state (same preserve-current-if-absent reasoning as open faces above)
+        waxed = input.getBooleanOr("Waxed", waxed);
 
         // Load items
         for (int i = 0; i < CONTAINER_SIZE; i++) {
