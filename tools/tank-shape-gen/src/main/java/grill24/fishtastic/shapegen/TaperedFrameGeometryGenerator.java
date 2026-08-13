@@ -86,10 +86,13 @@ public final class TaperedFrameGeometryGenerator {
         element.add("to", vec3(16, 1, 16));
 
         JsonObject faces = new JsonObject();
-        if (!openFaces.contains(TankFace.NORTH)) faces.add("north", face(0, 0, 16, 1, "#all"));
-        if (!openFaces.contains(TankFace.EAST)) faces.add("east", face(0, 0, 16, 1, "#all"));
-        if (!openFaces.contains(TankFace.SOUTH)) faces.add("south", face(0, 0, 16, 1, "#all"));
-        if (!openFaces.contains(TankFace.WEST)) faces.add("west", face(0, 0, 16, 1, "#all"));
+        // Floor sits at the very bottom of the block (y=0..1), so its side faces show the
+        // texture's bottom 1px band (v=15..16), not the top band — the frame must read as a
+        // full placed block with the glass punched out (FaceBakery.defaultFaceUV).
+        if (!openFaces.contains(TankFace.NORTH)) faces.add("north", face(0, 15, 16, 16, "#all"));
+        if (!openFaces.contains(TankFace.EAST)) faces.add("east", face(0, 15, 16, 16, "#all"));
+        if (!openFaces.contains(TankFace.SOUTH)) faces.add("south", face(0, 15, 16, 16, "#all"));
+        if (!openFaces.contains(TankFace.WEST)) faces.add("west", face(0, 15, 16, 16, "#all"));
         faces.add("up", face(0, 0, 16, 16, "#all"));
         faces.add("down", face(0, 0, 16, 16, "#all"));
         element.add("faces", faces);
@@ -120,17 +123,21 @@ public final class TaperedFrameGeometryGenerator {
         element.add("to", vec3(x2, maxY, z2));
 
         JsonObject faces = new JsonObject();
-        double heightUV = maxY - minY;
 
-        // Render all faces — these supports only exist when both adjacent faces are closed, so
-        // they won't conflict with glass, and a narrower band's "up"/"down" face doubles as the
-        // shelf where a wider neighboring band doesn't cover it.
-        faces.add("north", face(0, 0, width, heightUV, "#all"));
-        faces.add("south", face(0, 0, width, heightUV, "#all"));
-        faces.add("west", face(0, 0, width, heightUV, "#all"));
-        faces.add("east", face(0, 0, width, heightUV, "#all"));
-        faces.add("up", face(0, 0, width, width, "#all"));
-        faces.add("down", face(0, 0, width, width, "#all"));
+        // UVs are FaceBakery.defaultFaceUV for this sub-box — the exact texture region a full
+        // block of the same material shows at these world coordinates. This is what makes the
+        // corner post read as a placed block with the glass punched out: a post at world height
+        // [minY, maxY] must sample the texture's corresponding vertical band, not its top, and a
+        // post on the west edge must sample the west pixels of each face, not the top-left corner
+        // of the texture for every face. (These supports only exist when both adjacent faces are
+        // closed, so they never conflict with glass; a narrower band's "up"/"down" face still
+        // doubles as the shelf where a wider neighboring band doesn't cover it.)
+        faces.add("north", face(16 - x2, 16 - maxY, 16 - x1, 16 - minY, "#all"));
+        faces.add("south", face(x1, 16 - maxY, x2, 16 - minY, "#all"));
+        faces.add("west", face(z1, 16 - maxY, z2, 16 - minY, "#all"));
+        faces.add("east", face(16 - z2, 16 - maxY, 16 - z1, 16 - minY, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
 
         element.add("faces", faces);
         return element;
