@@ -24,7 +24,7 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
     @Override
     @NotNull
     public ModelData getModelData() {
-        FishTankCompositeModelData data = new FishTankCompositeModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
+        FishTankCompositeModelData data = new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
         return ModelData.builder()
                 .with(FishTankModelData.DATA_PROPERTY, data)
                 .build();

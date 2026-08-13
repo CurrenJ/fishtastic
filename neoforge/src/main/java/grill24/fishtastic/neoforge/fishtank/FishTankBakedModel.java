@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.fishtank;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
+import grill24.fishtastic.fishtank.FishTankShape;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
@@ -24,6 +25,7 @@ import net.neoforged.neoforge.model.data.ModelData;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -40,9 +42,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
     // ── Resolved sub-models (pre-loaded at bake time) ─────────────────────
 
     private final ModelBaker baker;
-    private final ResolvedModel[] frameModels;   // [0..63]
-    private final ResolvedModel[] sandModels;    // [0..63]
-    private final ResolvedModel[] glassModels;   // [0..63]
+    private final Map<FishTankShape, ResolvedModel[]> frameModels;   // shape -> [0..63]
+    private final Map<FishTankShape, ResolvedModel[]> sandModels;    // shape -> [0..63]
+    private final Map<FishTankShape, ResolvedModel[]> glassModels;   // shape -> [0..63]
 
     // ── Default (fallback) model ──────────────────────────────────────────
 
@@ -60,7 +62,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
     // ── Cache key record ──────────────────────────────────────────────────
 
-    private record CacheKey(Block frame, Block sand, Block glass, int permutation) {}
+    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation) {}
 
     private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial,
                                 @BakedQuad.MaterialFlags int materialFlags) {}
@@ -68,9 +70,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
     // ── Constructor ───────────────────────────────────────────────────────
 
     public FishTankBakedModel(ModelBaker baker,
-                              ResolvedModel[] frameModels,
-                              ResolvedModel[] sandModels,
-                              ResolvedModel[] glassModels) {
+                              Map<FishTankShape, ResolvedModel[]> frameModels,
+                              Map<FishTankShape, ResolvedModel[]> sandModels,
+                              Map<FishTankShape, ResolvedModel[]> glassModels) {
         this.baker = baker;
         this.frameModels = frameModels;
         this.sandModels = sandModels;
@@ -82,7 +84,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
         if (defaultModel != null) {
             CacheKey defaultKey = new CacheKey(
-                    defaultData.frameBlock(), defaultData.sandBlock(),
+                    defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
                     defaultData.glassBlock(), defaultData.getPermutationIndex());
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
@@ -92,8 +94,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             // Should never happen with DEFAULT (vanilla oak_planks / sand / blue glass),
             // but guard against a broken baking environment at startup.
             Fishtastic.LOGGER.error("Fish Tank: failed to pre-generate default model — rendering will fall back to missing.");
-            TextureSlots fallbackSlots = frameModels[0].getTopTextureSlots();
-            this.defaultParticleMaterial = frameModels[0].resolveParticleMaterial(fallbackSlots, baker);
+            ResolvedModel fallbackModel = frameModels.get(FishTankShape.STANDARD)[0];
+            TextureSlots fallbackSlots = fallbackModel.getTopTextureSlots();
+            this.defaultParticleMaterial = fallbackModel.resolveParticleMaterial(fallbackSlots, baker);
             this.defaultMaterialFlags = 0;
             this.defaultParts = List.of(baker.missingBlockModelPart());
         }
@@ -114,7 +117,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         }
 
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
 
         // Fast path: check cache without locking.
@@ -133,8 +136,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                         cached = generated;
                     } else {
                         Fishtastic.LOGGER.warn(
-                                "[FishTankBakedModel] Could not generate model for key {}/{}/{} perm={}; "
+                                "[FishTankBakedModel] Could not generate model for key shape={} {}/{}/{} perm={}; "
                                         + "using default fallback this frame.",
+                                key.shape(),
                                 BuiltInRegistries.BLOCK.getKey(key.frame()),
                                 BuiltInRegistries.BLOCK.getKey(key.sand()),
                                 BuiltInRegistries.BLOCK.getKey(key.glass()),
@@ -168,7 +172,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         if (data == null) return defaultParticleMaterial;
 
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
@@ -188,7 +192,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         if (data == null) return defaultMaterialFlags;
 
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.materialFlags() : defaultMaterialFlags;
@@ -202,7 +206,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
         if (data == null) data = FishTankCompositeModelData.DEFAULT;
         return new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
     }
 
@@ -226,6 +230,14 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         int perm = data.getPermutationIndex();
 
         try {
+            ResolvedModel[] frameModelsForShape = frameModels.get(data.shape());
+            ResolvedModel[] sandModelsForShape  = sandModels.get(data.shape());
+            ResolvedModel[] glassModelsForShape = glassModels.get(data.shape());
+            if (frameModelsForShape == null || sandModelsForShape == null || glassModelsForShape == null) {
+                Fishtastic.LOGGER.warn("Fish Tank: no models loaded for shape={} — skipping cache.", data.shape());
+                return null;
+            }
+
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
             Material glassTex = getBlockTexture(data.glassBlock());
@@ -239,13 +251,13 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 return null;
             }
 
-            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModels[perm]);
-            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModels[perm]);
-            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModels[perm]);
+            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModelsForShape[perm]);
+            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModelsForShape[perm]);
+            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModelsForShape[perm]);
 
-            QuadCollection frameQuads = bakeGeometry(frameModels[perm], frameSlots);
-            QuadCollection sandQuads  = bakeGeometry(sandModels[perm],  sandSlots);
-            QuadCollection glassQuads = bakeGeometry(glassModels[perm], glassSlots);
+            QuadCollection frameQuads = bakeGeometry(frameModelsForShape[perm], frameSlots);
+            QuadCollection sandQuads  = bakeGeometry(sandModelsForShape[perm],  sandSlots);
+            QuadCollection glassQuads = bakeGeometry(glassModelsForShape[perm], glassSlots);
 
             if (frameQuads == null || sandQuads == null || glassQuads == null) {
                 return null;
@@ -257,7 +269,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             compositeBuilder.addAll(glassQuads);
             QuadCollection composite = compositeBuilder.build();
 
-            Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModels[perm]);
+            Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModelsForShape[perm]);
 
             // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
             // ambient occlusion compounds at internal seams and darkens the interior of large tanks.

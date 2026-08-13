@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.fishtank.FishTankShape;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
 import net.minecraft.client.renderer.item.ItemModel;
@@ -31,8 +32,10 @@ import org.joml.Vector3fc;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,37 +47,38 @@ import static grill24.fishtastic.util.Utility.ft;
  * block uses via {@link FishTankBakedModel}, retextured per combo and cached.
  */
 public class FishTankItemModel implements ItemModel {
-    private static final String FRAME_ID = "block/fishtankbase/fish_tank_frame_0";
-    private static final String SAND_ID = "block/fishtankbase/fish_tank_sand_0";
-    private static final String GLASS_ID = "block/fishtankbase/fish_tank_glass_0";
-
     private final ModelBaker baker;
-    private final ResolvedModel frameModel;
-    private final ResolvedModel sandModel;
-    private final ResolvedModel glassModel;
+    private final Map<FishTankShape, ResolvedModel> frameModels;
+    private final Map<FishTankShape, ResolvedModel> sandModels;
+    private final Map<FishTankShape, ResolvedModel> glassModels;
     private final Matrix4fc transformation;
 
-    private final ConcurrentHashMap<FishTankMaterials, CachedRender> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<CacheKey, CachedRender> cache = new ConcurrentHashMap<>();
+
+    private record CacheKey(FishTankMaterials materials, FishTankShape shape) {}
 
     private record CachedRender(QuadCollection quads, Vector3fc[] extents, ModelRenderProperties properties) {}
 
-    public FishTankItemModel(ModelBaker baker, ResolvedModel frameModel, ResolvedModel sandModel,
-                              ResolvedModel glassModel, Matrix4fc transformation) {
+    public FishTankItemModel(ModelBaker baker, Map<FishTankShape, ResolvedModel> frameModels,
+                              Map<FishTankShape, ResolvedModel> sandModels,
+                              Map<FishTankShape, ResolvedModel> glassModels, Matrix4fc transformation) {
         this.baker = baker;
-        this.frameModel = frameModel;
-        this.sandModel = sandModel;
-        this.glassModel = glassModel;
+        this.frameModels = frameModels;
+        this.sandModels = sandModels;
+        this.glassModels = glassModels;
         this.transformation = transformation;
     }
 
     @Override
     public void update(ItemStackRenderState output, ItemStack item, ItemModelResolver resolver,
                         ItemDisplayContext displayContext, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
+        FishTankShape shape = item.getOrDefault(FishtasticDataComponents.FISH_TANK_SHAPE.value(), FishTankShape.STANDARD);
         FishTankMaterials materials = item.getOrDefault(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), FishTankMaterials.defaultMaterials());
         output.appendModelIdentityElement(this);
         output.appendModelIdentityElement(materials);
+        output.appendModelIdentityElement(shape);
 
-        CachedRender render = cache.computeIfAbsent(materials, this::generate);
+        CachedRender render = cache.computeIfAbsent(new CacheKey(materials, shape), this::generate);
         if (render == null) return;
 
         ItemStackRenderState.LayerRenderState layer = output.newLayer();
@@ -85,8 +89,17 @@ public class FishTankItemModel implements ItemModel {
     }
 
     @Nullable
-    private CachedRender generate(FishTankMaterials materials) {
+    private CachedRender generate(CacheKey key) {
+        FishTankMaterials materials = key.materials();
         try {
+            ResolvedModel frameModel = frameModels.get(key.shape());
+            ResolvedModel sandModel = sandModels.get(key.shape());
+            ResolvedModel glassModel = glassModels.get(key.shape());
+            if (frameModel == null || sandModel == null || glassModel == null) {
+                Fishtastic.LOGGER.warn("[FishTankItemModel] no sub-models loaded for shape={} — skipping render.", key.shape());
+                return null;
+            }
+
             Material frameTex = CompositeTextureHelper.resolveBlockTexture(materials.frame(), baker, BlockModelPathResolver.getModelLocations(materials.frame()));
             Material sandTex = CompositeTextureHelper.resolveBlockTexture(materials.sand(), baker, BlockModelPathResolver.getModelLocations(materials.sand()));
             Material glassTex = CompositeTextureHelper.resolveBlockTexture(materials.glass(), baker, BlockModelPathResolver.getModelLocations(materials.glass()));
@@ -167,18 +180,30 @@ public class FishTankItemModel implements ItemModel {
 
         @Override
         public void resolveDependencies(ResolvableModel.Resolver resolver) {
-            resolver.markDependency(ft(FRAME_ID));
-            resolver.markDependency(ft(SAND_ID));
-            resolver.markDependency(ft(GLASS_ID));
+            for (FishTankShape shape : FishTankShape.values()) {
+                resolver.markDependency(modelLocation(shape, "frame"));
+                resolver.markDependency(modelLocation(shape, "sand"));
+                resolver.markDependency(modelLocation(shape, "glass"));
+            }
         }
 
         @Override
         public ItemModel bake(ItemModel.BakingContext context, Matrix4fc transformation) {
             ModelBaker baker = context.blockModelBaker();
-            ResolvedModel frameModel = baker.getModel(ft(FRAME_ID));
-            ResolvedModel sandModel = baker.getModel(ft(SAND_ID));
-            ResolvedModel glassModel = baker.getModel(ft(GLASS_ID));
-            return new FishTankItemModel(baker, frameModel, sandModel, glassModel, transformation);
+            Map<FishTankShape, ResolvedModel> frameModels = new EnumMap<>(FishTankShape.class);
+            Map<FishTankShape, ResolvedModel> sandModels = new EnumMap<>(FishTankShape.class);
+            Map<FishTankShape, ResolvedModel> glassModels = new EnumMap<>(FishTankShape.class);
+            for (FishTankShape shape : FishTankShape.values()) {
+                frameModels.put(shape, baker.getModel(modelLocation(shape, "frame")));
+                sandModels.put(shape, baker.getModel(modelLocation(shape, "sand")));
+                glassModels.put(shape, baker.getModel(modelLocation(shape, "glass")));
+            }
+            return new FishTankItemModel(baker, frameModels, sandModels, glassModels, transformation);
         }
+    }
+
+    /** Permutation-0 sub-model id for a shape's part (the "fully closed" tank the item renders). */
+    private static Identifier modelLocation(FishTankShape shape, String part) {
+        return ft("block/" + shape.modelPathPrefix() + "/fish_tank_" + part + "_0");
     }
 }

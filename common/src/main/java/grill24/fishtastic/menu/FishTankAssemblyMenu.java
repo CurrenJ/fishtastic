@@ -6,11 +6,13 @@ import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.fishtank.FishTankShape;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -41,19 +43,32 @@ public class FishTankAssemblyMenu extends GelatinMenu {
     private final Container inputContainer;
     private final Container resultContainer = new SimpleContainer(1);
 
+    /** Server→client sync of the selected shape's ordinal (index into {@link FishTankShape#values()}). */
+    private DataSlot shapeSlot;
+    /**
+     * {@link #shapeSlot}'s id in {@code dataSlots}. It's the first (and currently only) data slot
+     * added, so this stays 0; update it if another data slot is ever added before it.
+     */
+    private static final int SHAPE_DATA_SLOT_ID = 0;
+
     /** Client-side constructor, used by the registered {@code MenuType} factory. */
     public FishTankAssemblyMenu(int containerId, Inventory playerInventory) {
-        this(containerId, playerInventory, new SimpleContainer(FishTankAssemblyBlockEntity.CONTAINER_SIZE));
+        this(containerId, playerInventory, new SimpleContainer(FishTankAssemblyBlockEntity.CONTAINER_SIZE), FishTankShape.STANDARD);
     }
 
     /** Server-side constructor, used by {@link FishTankAssemblyBlockEntity#createMenu}. */
     public FishTankAssemblyMenu(int containerId, Inventory playerInventory, FishTankAssemblyBlockEntity blockEntity) {
-        this(containerId, playerInventory, (Container) blockEntity);
+        this(containerId, playerInventory, (Container) blockEntity, blockEntity.getShape());
     }
 
-    private FishTankAssemblyMenu(int containerId, Inventory playerInventory, Container inputContainer) {
+    private FishTankAssemblyMenu(int containerId, Inventory playerInventory, Container inputContainer, FishTankShape initialShape) {
         super(FishtasticMenuTypes.FISH_TANK_ASSEMBLY.value(), containerId);
         this.inputContainer = inputContainer;
+
+        // The client's mirror starts at STANDARD and is corrected by the server's first
+        // broadcastChanges (the data slot value is server→client only).
+        this.shapeSlot = addDataSlot(DataSlot.standalone());
+        this.shapeSlot.set(initialShape.ordinal());
 
         addSlot(new MaterialSlot(inputContainer, FRAME_SLOT, FRAME_X, FRAME_Y, "frame"));
         addSlot(new MaterialSlot(inputContainer, GLASS_SLOT, GLASS_X, GLASS_Y, "glass"));
@@ -75,6 +90,45 @@ public class FishTankAssemblyMenu extends GelatinMenu {
     @Override
     public boolean stillValid(Player player) {
         return inputContainer.stillValid(player);
+    }
+
+    /** The currently selected fish tank shape (client and server both read their mirrored data slot). */
+    public FishTankShape getShape() {
+        FishTankShape[] shapes = FishTankShape.values();
+        int ord = shapeSlot.get();
+        return ord >= 0 && ord < shapes.length ? shapes[ord] : FishTankShape.STANDARD;
+    }
+
+    /**
+     * Server-side shape change (from {@link grill24.fishtastic.network.SetAssemblyShapePacket}):
+     * persist it on the block entity, update the sync slot, and recompute the crafted result.
+     */
+    public void setShape(FishTankShape shape) {
+        if (inputContainer instanceof FishTankAssemblyBlockEntity be) {
+            be.setShape(shape);
+        }
+        shapeSlot.set(shape.ordinal());
+        updateResult();
+        broadcastChanges();
+    }
+
+    /**
+     * Client-side optimistic update so the result preview reacts instantly on click, before the
+     * server confirms via {@link #setData}. The server remains authoritative.
+     */
+    public void setShapeLocal(FishTankShape shape) {
+        shapeSlot.set(shape.ordinal());
+        updateResult();
+    }
+
+    @Override
+    public void setData(int id, int value) {
+        super.setData(id, value);
+        // When the server syncs the shape (on open, or after a shape change), recompute the
+        // result preview so it reflects the authoritative selection.
+        if (id == SHAPE_DATA_SLOT_ID) {
+            updateResult();
+        }
     }
 
     @Override
@@ -147,6 +201,7 @@ public class FishTankAssemblyMenu extends GelatinMenu {
             FishTankMaterials materials = new FishTankMaterials(frameItem.getBlock(), sandItem.getBlock(), glassItem.getBlock());
             result = new ItemStack(FishtasticBlocks.FISH_TANK.value());
             result.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), materials);
+            result.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), getShape());
         }
         resultContainer.setItem(0, result);
         broadcastChanges();

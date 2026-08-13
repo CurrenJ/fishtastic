@@ -1,12 +1,18 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
+import grill24.fishtastic.network.SetAssemblyShapePacket;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.UI;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -23,10 +29,62 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     // the actual panel only occupies the top-left corner.
     private static final int ATLAS_SIZE = 256;
 
+    // Shape-cycle button: top-right of the panel, clear of the "Fish Tank Assembly" title
+    // (drawn at x=8 by extractLabels) and of the input/result slots below.
+    private static final int SHAPE_BTN_X = 104;
+    private static final int SHAPE_BTN_Y = 6;
+    private static final int SHAPE_BTN_WIDTH = 64;
+    private static final int SHAPE_BTN_HEIGHT = 16;
+
+    private Button shapeButton;
+    private FishTankShape lastKnownShape = FishTankShape.STANDARD;
+
     public FishTankAssemblyScreen(FishTankAssemblyMenu menu, Inventory inventory, Component title) {
         // GelatinUIScreen only exposes the 3-arg ctor, which fixes imageWidth/imageHeight at
         // vanilla's default 176x166 — close enough to the panel's actual ~175x165 drawn size.
         super(menu, inventory, title);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        // The vanilla Button is a plain renderable widget, not a gelatin-ui element — this screen
+        // is vanilla-driven (gelatin only supplies the empty UI root), so the button is added the
+        // vanilla way and draws/click-handles on top of the panel.
+        lastKnownShape = menu.getShape();
+        shapeButton = Button.builder(shapeLabel(lastKnownShape), button -> cycleShape())
+                .pos(leftPos + SHAPE_BTN_X, topPos + SHAPE_BTN_Y)
+                .size(SHAPE_BTN_WIDTH, SHAPE_BTN_HEIGHT)
+                .tooltip(Tooltip.create(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")))
+                .build();
+        addRenderableWidget(shapeButton);
+    }
+
+    @Override
+    public void containerTick() {
+        super.containerTick();
+        // The shape data slot syncs server→client on open and after each change; refresh the
+        // button label to the authoritative value once it arrives.
+        FishTankShape current = menu.getShape();
+        if (current != lastKnownShape) {
+            lastKnownShape = current;
+            shapeButton.setMessage(shapeLabel(current));
+        }
+    }
+
+    private void cycleShape() {
+        FishTankShape next = menu.getShape().next();
+        // Optimistic client-side preview; the server confirms and syncs the same value back.
+        menu.setShapeLocal(next);
+        shapeButton.setMessage(shapeLabel(next));
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetAssemblyShapePacket(next)));
+        }
+    }
+
+    private static Component shapeLabel(FishTankShape shape) {
+        return shape.getDisplayName();
     }
 
     @Override

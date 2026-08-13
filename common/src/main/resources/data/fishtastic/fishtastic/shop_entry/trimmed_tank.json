@@ -1,0 +1,15 @@
+{
+  "display_name": "Trimmed Fish Tank",
+  "description": "A tank with lightly braced corners, tapering to a slender post between a wider rim and base.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "trimmed"
+      }
+    }
+  ]
+}

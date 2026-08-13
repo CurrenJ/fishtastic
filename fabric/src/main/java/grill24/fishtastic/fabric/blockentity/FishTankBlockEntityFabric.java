@@ -23,6 +23,6 @@ public class FishTankBlockEntityFabric extends FishTankBlockEntity {
     // Overrides the default RenderDataBlockEntity.getRenderData() (interface-injected by Fabric API).
     // Returns an immutable snapshot safe for background-thread chunk meshing.
     public Object getRenderData() {
-        return new FishTankCompositeModelData(getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
+        return new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces());
     }
 }

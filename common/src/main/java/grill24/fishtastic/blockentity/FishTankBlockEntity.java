@@ -11,6 +11,7 @@ import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -68,6 +69,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
 
     // Store the glass block for edges
     private Block glassBlock = FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(); // Default glass block
+
+    // Body geometry (independent of frame/sand/glass texture) — which set of pre-generated
+    // permutation models to composite. See FishTankShape for the connection-collection concept.
+    private FishTankShape shape = FishTankShape.STANDARD;
 
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
@@ -133,6 +138,25 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     }
 
     /**
+     * Get the body geometry (shape) for this fish tank.
+     */
+    public FishTankShape getShape() {
+        return shape;
+    }
+
+    /**
+     * Set the body geometry (shape) for this fish tank.
+     */
+    public void setShape(FishTankShape shape) {
+        this.shape = shape;
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+        RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    /**
      * Get the frame/sand/glass materials as a single component-shaped record.
      */
     public FishTankMaterials getMaterials() {
@@ -158,6 +182,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     protected void collectImplicitComponents(DataComponentMap.Builder components) {
         super.collectImplicitComponents(components);
         components.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), getMaterials());
+        components.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
     }
 
     @Override
@@ -167,6 +192,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         this.frameBlock = materials.frame();
         this.sandBlock = materials.sand();
         this.glassBlock = materials.glass();
+        this.shape = components.getOrDefault(FishtasticDataComponents.FISH_TANK_SHAPE.value(), FishTankShape.STANDARD);
     }
 
     /**
@@ -216,8 +242,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             BlockPos adjacentPos = pos.relative(direction);
             BlockEntity adjacentBE = level.getBlockEntity(adjacentPos);
 
-            // If there's a fish tank adjacent, open this face
-            if (adjacentBE instanceof FishTankBlockEntity) {
+            // Only open this face if the neighbor is a fish tank AND its shape is in the same
+            // connection collection as this tank's — decoupled from exact shape identity so a
+            // curated family of shapes can be grouped to connect without being the same shape.
+            // Defaults to each shape's own id, so a new shape only connects to itself.
+            if (adjacentBE instanceof FishTankBlockEntity other
+                    && other.getShape().connectionCollection().equals(this.shape.connectionCollection())) {
                 newOpenFaces.add(direction);
             }
         }
@@ -278,6 +308,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         output.putString("FrameBlock", frameId);
         output.putString("SandBlock", sandId);
         output.putString("GlassBlock", glassId);
+        output.putString("Shape", shape.getSerializedName());
 
         // Save open faces as a bit field
         int openFacesBits = 0;
@@ -388,6 +419,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                 Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
             }
         }
+
+        // Load shape (body geometry)
+        shape = FishTankShape.bySerializedName(input.getStringOr("Shape", FishTankShape.STANDARD.getSerializedName()));
 
         // Load open faces
         int openFacesBits = input.getIntOr("OpenFaces", 0);

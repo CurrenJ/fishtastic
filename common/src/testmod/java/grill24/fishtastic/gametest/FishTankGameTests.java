@@ -4,6 +4,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -15,15 +16,17 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.Set;
 
 /**
- * Server-side game tests for FishTankBlockEntity's Container implementation and cosmetic
- * placement bookkeeping. Mirrors WormBinGameTests's setBlock + getBlockEntity pattern.
- * Rendering/composite-model code and the world-adjacency part of updateConnections are
- * out of scope — only inventory and face/cosmetic state bookkeeping are covered here.
+ * Server-side game tests for FishTankBlockEntity's Container implementation, cosmetic
+ * placement bookkeeping, and shape-based connection gating. Mirrors WormBinGameTests's
+ * setBlock + getBlockEntity pattern. Rendering/composite-model code is out of scope — only
+ * block-entity state (inventory, face/cosmetic bookkeeping, real world-adjacency
+ * updateConnections) is covered here.
  */
 public final class FishTankGameTests {
 
     private static final BlockPos FLOOR = new BlockPos(1, 0, 1);
     private static final BlockPos TANK_POS = new BlockPos(1, 1, 1);
+    private static final BlockPos TANK_POS_EAST = new BlockPos(2, 1, 1);
 
     private FishTankGameTests() {}
 
@@ -31,6 +34,12 @@ public final class FishTankGameTests {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK.value());
         return helper.getBlockEntity(TANK_POS, FishTankBlockEntity.class);
+    }
+
+    /** Places a second tank immediately east of {@link #TANK_POS}, for connection-gating tests. */
+    private static FishTankBlockEntity placeEastNeighborFishTank(GameTestHelper helper) {
+        helper.setBlock(TANK_POS_EAST, FishtasticBlocks.FISH_TANK.value());
+        return helper.getBlockEntity(TANK_POS_EAST, FishTankBlockEntity.class);
     }
 
     // -------------------------------------------------------------------------
@@ -188,6 +197,75 @@ public final class FishTankGameTests {
         Set<Direction> faces = tank.getOpenFaces();
         helper.assertTrue(faces.size() == 2 && faces.contains(Direction.UP) && faces.contains(Direction.DOWN),
             "setOpenFaces must replace the entire face set, got " + faces);
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Shape-based connection gating (real world-adjacency updateConnections)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Two adjacent tanks sharing a shape (and therefore a connectionCollection) open the
+     * faces between them — the actual world-adjacency path in updateConnections, not just the
+     * face-state bookkeeping covered by {@link #openFacesRoundTrip}.
+     */
+    public static void sameShapeNeighborsConnect(GameTestHelper helper) {
+        FishTankBlockEntity west = placeFishTank(helper);
+        FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+        west.setShape(FishTankShape.TRIMMED);
+        east.setShape(FishTankShape.TRIMMED);
+
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        east.updateConnections(helper.getLevel(), east.getBlockPos());
+
+        helper.assertTrue(west.getOpenFaces().contains(Direction.EAST),
+            "TRIMMED tank must open its EAST face toward a same-shape TRIMMED neighbor");
+        helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
+            "TRIMMED tank must open its WEST face toward a same-shape TRIMMED neighbor");
+        helper.succeed();
+    }
+
+    /**
+     * TRIMMED and REINFORCED are different shapes but deliberately curated into the same
+     * connectionCollection (both share STANDARD's) — by design, per-request, all three shipped
+     * shapes are meant to freely interconnect. This is the "curated family" case the
+     * connectionCollection mechanism exists to support, as opposed to the every-shape-isolated
+     * default.
+     */
+    public static void crossShapeNeighborsInSameFamilyConnect(GameTestHelper helper) {
+        FishTankBlockEntity west = placeFishTank(helper);
+        FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+        west.setShape(FishTankShape.TRIMMED);
+        east.setShape(FishTankShape.REINFORCED);
+
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        east.updateConnections(helper.getLevel(), east.getBlockPos());
+
+        helper.assertTrue(west.getOpenFaces().contains(Direction.EAST),
+            "TRIMMED tank must open its EAST face toward a same-family REINFORCED neighbor");
+        helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
+            "REINFORCED tank must open its WEST face toward a same-family TRIMMED neighbor");
+        helper.succeed();
+    }
+
+    /**
+     * A STANDARD tank (today's default shape) and a REINFORCED tank connect too — same curated
+     * family as {@link #crossShapeNeighborsInSameFamilyConnect}, confirming STANDARD wasn't left
+     * out of the shared collection.
+     */
+    public static void standardAndReinforcedNeighborsConnect(GameTestHelper helper) {
+        FishTankBlockEntity west = placeFishTank(helper);
+        FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+        // west stays at its default shape: STANDARD
+        east.setShape(FishTankShape.REINFORCED);
+
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        east.updateConnections(helper.getLevel(), east.getBlockPos());
+
+        helper.assertTrue(west.getOpenFaces().contains(Direction.EAST),
+            "STANDARD tank must open its EAST face toward a same-family REINFORCED neighbor");
+        helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
+            "REINFORCED tank must open its WEST face toward a same-family STANDARD neighbor");
         helper.succeed();
     }
 }

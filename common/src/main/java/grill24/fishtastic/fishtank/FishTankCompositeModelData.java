@@ -11,21 +11,21 @@ import java.util.Set;
 
 /**
  * Immutable snapshot of the block-entity data that drives the fish tank's composite model:
- * which blocks to use for the frame, fill (sand), and glass layers, and which faces are open
- * (connected to an adjacent tank).
+ * which body geometry ({@code shape}) to use, which blocks to use for the frame, fill (sand),
+ * and glass layers, and which faces are open (connected to an adjacent tank).
  *
  * <p>Platform adapters pass this around as Fabric render data or a NeoForge {@code ModelProperty} value.
  */
-public record FishTankCompositeModelData(Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces) {
+public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces) {
 
     public static final FishTankCompositeModelData DEFAULT = new FishTankCompositeModelData(
-            Blocks.OAK_PLANKS, Blocks.SAND,
+            FishTankShape.STANDARD, Blocks.OAK_PLANKS, Blocks.SAND,
             FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(),
             EnumSet.noneOf(Direction.class)
     );
 
-    public FishTankCompositeModelData(Block frameBlock, Block sandBlock, Block glassBlock) {
-        this(frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class));
+    public FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock) {
+        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class));
     }
 
     /**

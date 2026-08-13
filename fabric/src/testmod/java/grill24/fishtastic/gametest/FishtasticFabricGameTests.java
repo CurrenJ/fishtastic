@@ -470,6 +470,21 @@ public class FishtasticFabricGameTests {
         FishTankGameTests.openFacesRoundTrip(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void sameShapeNeighborsConnect(GameTestHelper helper) {
+        FishTankGameTests.sameShapeNeighborsConnect(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void crossShapeNeighborsInSameFamilyConnect(GameTestHelper helper) {
+        FishTankGameTests.crossShapeNeighborsInSameFamilyConnect(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void standardAndReinforcedNeighborsConnect(GameTestHelper helper) {
+        FishTankGameTests.standardAndReinforcedNeighborsConnect(helper);
+    }
+
     // -------------------------------------------------------------------------
     // TutorialManager tests
     // -------------------------------------------------------------------------

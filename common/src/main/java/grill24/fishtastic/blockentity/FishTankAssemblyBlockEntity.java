@@ -1,6 +1,7 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
@@ -31,8 +32,24 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
 
+    /**
+     * The fish tank body shape the assembly block currently crafts. Selected via the GUI's
+     * shape-cycle button and stamped onto every crafted result item; persisted here so the
+     * selection survives the block being unloaded/reloaded.
+     */
+    private FishTankShape shape = FishTankShape.STANDARD;
+
     public FishTankAssemblyBlockEntity(BlockPos pos, BlockState state) {
         super(FishtasticBlockEntityTypes.FISH_TANK_ASSEMBLY.value(), pos, state);
+    }
+
+    public FishTankShape getShape() {
+        return shape;
+    }
+
+    public void setShape(FishTankShape shape) {
+        this.shape = shape;
+        setChanged();
     }
 
     @Override
@@ -90,6 +107,7 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
+        output.putString("Shape", shape.getSerializedName());
         ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
@@ -104,6 +122,7 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
+        shape = FishTankShape.bySerializedName(input.getStringOr("Shape", FishTankShape.STANDARD.getSerializedName()));
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
         }

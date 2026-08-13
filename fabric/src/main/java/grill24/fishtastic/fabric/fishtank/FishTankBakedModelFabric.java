@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
+import grill24.fishtastic.fishtank.FishTankShape;
 import net.fabricmc.fabric.api.blockgetter.v2.FabricBlockGetter;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart;
@@ -27,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
@@ -41,9 +43,9 @@ import java.util.function.Predicate;
 public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockStateModel {
 
     private final ModelBaker baker;
-    private final ResolvedModel[] frameModels;
-    private final ResolvedModel[] sandModels;
-    private final ResolvedModel[] glassModels;
+    private final Map<FishTankShape, ResolvedModel[]> frameModels;
+    private final Map<FishTankShape, ResolvedModel[]> sandModels;
+    private final Map<FishTankShape, ResolvedModel[]> glassModels;
 
     private final List<BlockStateModelPart> defaultParts;
     private final Material.Baked defaultParticleMaterial;
@@ -52,14 +54,14 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     private final ConcurrentHashMap<CacheKey, CachedModel> modelCache = new ConcurrentHashMap<>();
     private final Object bakeLock = new Object();
 
-    private record CacheKey(Block frame, Block sand, Block glass, int permutation) {}
+    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation) {}
 
     private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial, int materialFlags) {}
 
     public FishTankBakedModelFabric(ModelBaker baker,
-                                    ResolvedModel[] frameModels,
-                                    ResolvedModel[] sandModels,
-                                    ResolvedModel[] glassModels) {
+                                    Map<FishTankShape, ResolvedModel[]> frameModels,
+                                    Map<FishTankShape, ResolvedModel[]> sandModels,
+                                    Map<FishTankShape, ResolvedModel[]> glassModels) {
         this.baker = baker;
         this.frameModels = frameModels;
         this.sandModels = sandModels;
@@ -70,7 +72,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
         if (defaultModel != null) {
             CacheKey defaultKey = new CacheKey(
-                    defaultData.frameBlock(), defaultData.sandBlock(),
+                    defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
                     defaultData.glassBlock(), defaultData.getPermutationIndex());
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
@@ -78,8 +80,9 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
             this.defaultMaterialFlags = defaultModel.materialFlags();
         } else {
             Fishtastic.LOGGER.error("Fish Tank (Fabric): failed to pre-generate default model — rendering will fall back to missing.");
-            TextureSlots fallbackSlots = frameModels[0].getTopTextureSlots();
-            this.defaultParticleMaterial = frameModels[0].resolveParticleMaterial(fallbackSlots, baker);
+            ResolvedModel fallbackModel = frameModels.get(FishTankShape.STANDARD)[0];
+            TextureSlots fallbackSlots = fallbackModel.getTopTextureSlots();
+            this.defaultParticleMaterial = fallbackModel.resolveParticleMaterial(fallbackSlots, baker);
             this.defaultMaterialFlags = 0;
             this.defaultParts = List.of(baker.missingBlockModelPart());
         }
@@ -92,7 +95,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                           RandomSource random, Predicate<Direction> cullTest) {
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
 
         CachedModel cached = modelCache.get(key);
@@ -106,7 +109,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                         cached = generated;
                     } else {
                         Fishtastic.LOGGER.warn(
-                                "[FishTankBakedModelFabric] Could not generate model for {}/{}/{} perm={}; using default fallback.",
+                                "[FishTankBakedModelFabric] Could not generate model for shape={} {}/{}/{} perm={}; using default fallback.",
+                                key.shape(),
                                 BuiltInRegistries.BLOCK.getKey(key.frame()),
                                 BuiltInRegistries.BLOCK.getKey(key.sand()),
                                 BuiltInRegistries.BLOCK.getKey(key.glass()),
@@ -127,7 +131,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         return new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
     }
 
@@ -135,7 +139,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
@@ -145,7 +149,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
-                data.frameBlock(), data.sandBlock(),
+                data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.materialFlags() : defaultMaterialFlags;
@@ -189,6 +193,14 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     private CachedModel generateCompositeModel(FishTankCompositeModelData data) {
         int perm = data.getPermutationIndex();
         try {
+            ResolvedModel[] frameModelsForShape = frameModels.get(data.shape());
+            ResolvedModel[] sandModelsForShape  = sandModels.get(data.shape());
+            ResolvedModel[] glassModelsForShape = glassModels.get(data.shape());
+            if (frameModelsForShape == null || sandModelsForShape == null || glassModelsForShape == null) {
+                Fishtastic.LOGGER.warn("Fish Tank (Fabric): no models loaded for shape={} — skipping cache.", data.shape());
+                return null;
+            }
+
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
             Material glassTex = getBlockTexture(data.glassBlock());
@@ -202,13 +214,13 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                 return null;
             }
 
-            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModels[perm]);
-            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModels[perm]);
-            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModels[perm]);
+            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModelsForShape[perm]);
+            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModelsForShape[perm]);
+            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModelsForShape[perm]);
 
-            QuadCollection frameQuads = bakeGeometry(frameModels[perm], frameSlots);
-            QuadCollection sandQuads  = bakeGeometry(sandModels[perm],  sandSlots);
-            QuadCollection glassQuads = bakeGeometry(glassModels[perm], glassSlots);
+            QuadCollection frameQuads = bakeGeometry(frameModelsForShape[perm], frameSlots);
+            QuadCollection sandQuads  = bakeGeometry(sandModelsForShape[perm],  sandSlots);
+            QuadCollection glassQuads = bakeGeometry(glassModelsForShape[perm], glassSlots);
 
             if (frameQuads == null || sandQuads == null || glassQuads == null) {
                 return null;
@@ -220,7 +232,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
             compositeBuilder.addAll(glassQuads);
             QuadCollection composite = compositeBuilder.build();
 
-            Material.Baked particleMat = frameModels[perm].resolveParticleMaterial(frameSlots, baker);
+            Material.Baked particleMat = frameModelsForShape[perm].resolveParticleMaterial(frameSlots, baker);
             // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
             // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
             BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);

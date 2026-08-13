@@ -5,6 +5,7 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.component.RodBaitContents;
@@ -25,6 +26,7 @@ public class FishtasticDataComponents {
     public static Holder<DataComponentType<HookEffect>> HOOK_EFFECT;
     public static Holder<DataComponentType<CharmEffect>> CHARM_EFFECT;
     public static Holder<DataComponentType<FishTankMaterials>> FISH_TANK_MATERIALS;
+    public static Holder<DataComponentType<FishTankShape>> FISH_TANK_SHAPE;
     /** Marker-only presence component driving the fishopedia/quest_book alert-texture swap; needs {@code .persistent(...)} or the client can't hash it for container click packets. */
     public static Holder<DataComponentType<Unit>> HAS_ALERT;
 
@@ -90,6 +92,13 @@ public class FishtasticDataComponents {
                 builder -> builder
                         .persistent(FishTankMaterials.CODEC)
                         .networkSynchronized(FishTankMaterials.STREAM_CODEC)
+        );
+
+        FISH_TANK_SHAPE = RegistrationApiSided.getInstance().registerDataComponent(
+                "fish_tank_shape",
+                builder -> builder
+                        .persistent(FishTankShape.CODEC)
+                        .networkSynchronized(FishTankShape.STREAM_CODEC)
         );
 
         HAS_ALERT = RegistrationApiSided.getInstance().registerDataComponent(

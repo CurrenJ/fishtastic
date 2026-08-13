@@ -1,0 +1,15 @@
+{
+  "display_name": "Reinforced Fish Tank",
+  "description": "A tank with chunky bracketed corners, a heavier taper than the Trimmed Tank's for a sturdier look.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "reinforced"
+      }
+    }
+  ]
+}

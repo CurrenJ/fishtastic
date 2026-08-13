@@ -71,6 +71,7 @@ public class FishTankBlock extends Block implements EntityBlock {
         ItemStack stack = super.getCloneItemStack(level, pos, state, includeData);
         if (includeData && level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
             stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS.value(), fishTank.getMaterials());
+            stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE.value(), fishTank.getShape());
         }
         return stack;
     }
