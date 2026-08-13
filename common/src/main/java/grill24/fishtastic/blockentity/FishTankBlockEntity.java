@@ -77,6 +77,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
 
+    // Waxed tanks refuse to open NEW connections on any face (honeycomb/axe, mirroring vanilla
+    // copper). Purely behavioral — no visual change — so it isn't part of getMaterials()/the
+    // data components; it lives here like openFaces itself.
+    private boolean waxed = false;
+
     // Item storage
     private NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
 
@@ -231,6 +236,25 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
     }
 
     /**
+     * Whether this tank is waxed. A waxed tank keeps its existing connections but refuses to
+     * open any new ones — honeycomb sets this, an axe clears it.
+     */
+    public boolean isWaxed() {
+        return waxed;
+    }
+
+    /**
+     * Set the waxed state for this tank.
+     */
+    public void setWaxed(boolean waxed) {
+        this.waxed = waxed;
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    /**
      * Update connections by detecting adjacent fish tanks.
      * Called when the block is placed or when neighboring blocks change.
      */
@@ -248,7 +272,17 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             // Defaults to each shape's own id, so a new shape only connects to itself.
             if (adjacentBE instanceof FishTankBlockEntity other
                     && other.getShape().connectionCollection().equals(this.shape.connectionCollection())) {
-                newOpenFaces.add(direction);
+                // This method recomputes every open face from scratch on every neighbor update,
+                // not just when a connection first forms — so an already-open face must stay open
+                // regardless of wax state (waxing never retroactively closes a connection; only
+                // the adjacent tank disappearing does, via the instanceof check above failing).
+                // A face that isn't open yet only opens if NEITHER side is waxed, since faces are
+                // computed independently per tank and a one-sided open would leave the two tanks'
+                // models disagreeing about whether the wall between them is there.
+                boolean alreadyOpen = this.openFaces.contains(direction);
+                if (alreadyOpen || (!this.waxed && !other.waxed)) {
+                    newOpenFaces.add(direction);
+                }
             }
         }
 
@@ -316,6 +350,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             openFacesBits |= (1 << dir.ordinal());
         }
         output.putInt("OpenFaces", openFacesBits);
+        if (waxed) {
+            output.putBoolean("Waxed", true);
+        }
 
         // Save items as a list of {Slot, Stack} entries
         ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
@@ -431,6 +468,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
                 openFaces.add(dir);
             }
         }
+
+        // Load waxed state
+        waxed = input.getBooleanOr("Waxed", false);
 
         // Load items
         for (int i = 0; i < CONTAINER_SIZE; i++) {

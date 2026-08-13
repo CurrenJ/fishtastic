@@ -19,11 +19,15 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.HoneycombItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -163,6 +167,41 @@ public class FishTankBlock extends Block implements EntityBlock {
         // behavior the default for a held tank, not just a shift-click side effect.
         if (itemStack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof FishTankBlock) {
             return InteractionResult.PASS;
+        }
+
+        // Wax / unwax: honeycomb stops the tank opening NEW connections on any face (existing
+        // connections are untouched — see FishTankBlockEntity#updateConnections); an axe clears
+        // it. Mirrors vanilla's copper wax/scrape interaction, but as block-entity state rather
+        // than a swap to a separate registered block, since the tank already carries a BE for its
+        // materials/shape/contents. Must run before the generic "add held item as display
+        // content" fallback below, which would otherwise swallow the honeycomb/axe as decor —
+        // but only when there's an actual wax/unwax action to take, so a honeycomb on an
+        // already-waxed tank (or an axe on an unwaxed one) still falls through to that fallback
+        // like any other held item would.
+        //
+        // levelEvent/playSound take `null` rather than `player`: vanilla's HoneycombItem/AxeItem
+        // pass the acting player because Block#useItemOn runs on both sides (the client predicts
+        // its own local sound/particle, so the server's broadcast deliberately excludes that
+        // player to avoid doubling it up). This block only runs server-side, so there's no client
+        // prediction to avoid doubling — passing the player would just make the actor unable to
+        // hear or see their own action.
+        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND) {
+            BlockEntity waxBe = level.getBlockEntity(blockPos);
+            if (waxBe instanceof FishTankBlockEntity fishTank) {
+                if (itemStack.getItem() instanceof HoneycombItem && !fishTank.isWaxed()) {
+                    fishTank.setWaxed(true);
+                    itemStack.shrink(1);
+                    level.levelEvent(null, 3003, blockPos, 0);
+                    return InteractionResult.SUCCESS;
+                }
+                if (itemStack.getItem() instanceof AxeItem && fishTank.isWaxed()) {
+                    fishTank.setWaxed(false);
+                    level.playSound(null, blockPos, SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    level.levelEvent(null, 3004, blockPos, 0);
+                    itemStack.hurtAndBreak(1, player, hand);
+                    return InteractionResult.SUCCESS;
+                }
+            }
         }
 
         // Cosmetic placement: custom FishTankCosmeticItem or any vanilla item in the #tank_cosmetics tag.
