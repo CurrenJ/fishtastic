@@ -127,7 +127,8 @@ public class TankShapePreviewerApp extends Application {
                 "FACETED (image tank 3)",
                 "BASTION (image tank 4)",
                 "ORNATE (references)",
-                "SHAGGY (references)");
+                "SHAGGY (references)",
+                "SKYLIGHT (standard + skylight)");
         // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
         // used by the screenshot workflow to render a specific shape without UI interaction.
         int initialIndex = 0;
@@ -141,6 +142,7 @@ public class TankShapePreviewerApp extends Application {
                     case "bastion" -> 4;
                     case "ornate" -> 5;
                     case "shaggy" -> 6;
+                    case "skylight" -> 7;
                     default -> 0;
                 };
             }
@@ -221,6 +223,7 @@ public class TankShapePreviewerApp extends Application {
         JsonObject frame = switch (idx) {
             case 5 -> OrnateFrameGeometryGenerator.generate(perm);
             case 6 -> ShaggyFrameGeometryGenerator.generate(perm);
+            case 7 -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
             default -> shell ? ShellFrameGeometryGenerator.generate(perm, profile)
                              : TaperedFrameGeometryGenerator.generate(perm, profile);
         };
@@ -232,6 +235,7 @@ public class TankShapePreviewerApp extends Application {
         JsonObject glass = switch (idx) {
             case 5 -> OrnateGlassGeometryGenerator.generate(perm);
             case 6 -> ShaggyGlassGeometryGenerator.generate(perm);
+            case 7 -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
             default -> TaperedGlassGeometryGenerator.generate(perm, profile);
         };
 

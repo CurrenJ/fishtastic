@@ -78,7 +78,14 @@ public enum FishTankShape implements TooltipProvider {
      * Locked behind {@code challenge/storm_prize} — see {@link #unlockQuest}.
      */
     SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy",
-            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize"))));
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize")))),
+    /**
+     * Standard body with a skylight: the solid ceiling is replaced by a frame ring and a horizontal
+     * glass pane mirroring the square sand footprint (see TaperedFrameGeometryGenerator#generateSkylight /
+     * TaperedGlassGeometryGenerator#generateSkylight). Shares STANDARD's connectionCollection and is
+     * ungated, like STANDARD.
+     */
+    SKYLIGHT(Fishtastic.id("skylight"), Fishtastic.id("standard"), "fishtank_skylight");
 
     private final Identifier id;
     private final Identifier connectionCollection;

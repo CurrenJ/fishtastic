@@ -62,6 +62,52 @@ public final class TaperedFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * Skylight frame: identical to {@link #generate(int, String, CornerTaperProfile)} except the
+     * solid ceiling slab is replaced by a {@link #createSkylightCeiling frame ring} that leaves a
+     * square opening for the skylight glass pane (see
+     * {@code TaperedGlassGeometryGenerator#generateSkylight}). The floor and corner posts are
+     * unchanged, so this is the STANDARD body with a see-through top rather than a solid cap.
+     */
+    public static JsonObject generateSkylight(int permutationIndex, CornerTaperProfile profile) {
+        return generateSkylight(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateSkylight(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        if (!openFaces.contains(TankFace.UP)) {
+            createSkylightCeiling(elements, openFaces, profile);
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            elements.add(createFloor(openFaces));
+        }
+
+        boolean ceilingClosed = !openFaces.contains(TankFace.UP);
+        boolean floorClosed = !openFaces.contains(TankFace.DOWN);
+        List<CornerTaperProfile.Run> runs = profile.runs(ceilingClosed, floorClosed);
+
+        if (!openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST)) {
+            addTaperedSupport(elements, 0, 0, runs);      // NW corner
+        }
+        if (!openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST)) {
+            addTaperedSupport(elements, 1, 0, runs);      // NE corner
+        }
+        if (!openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST)) {
+            addTaperedSupport(elements, 0, 1, runs);      // SW corner
+        }
+        if (!openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST)) {
+            addTaperedSupport(elements, 1, 1, runs);      // SE corner
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_" + permutationIndex);
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");
@@ -95,6 +141,82 @@ public final class TaperedFrameGeometryGenerator {
         if (!openFaces.contains(TankFace.WEST)) faces.add("west", face(0, 15, 16, 16, "#all"));
         faces.add("up", face(0, 0, 16, 16, "#all"));
         faces.add("down", face(0, 0, 16, 16, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
+    /**
+     * The skylight ceiling: a frame ring whose strips each sit on a closed side, leaving the glass
+     * generator's horizontal pane to fill the rest. A strip is present only when its side is closed
+     * — when that side is open the strip is omitted and the glass pane extends flush to the block
+     * edge instead (see {@code TaperedGlassGeometryGenerator#createSkylightPane}), so two connected
+     * tanks' roofs meet with no frame border between them. The strips are sized off the pane's
+     * footprint, so a perpendicular strip extends into a neighbor strip's side when that side opens
+     * and keeps the corner cells covered.
+     *
+     * <p>Outer faces are boundary-conditioned exactly like the solid cap's ({@link #createCeiling}):
+     * a face lying on an open block boundary is omitted so a closed side still shows the frame's top
+     * band while an open side exposes the seam to its neighbor. Inner faces (facing the glass) and
+     * up/down are always drawn — the glass pane defines no side faces, so nothing here can z-fight it.
+     */
+    private static void createSkylightCeiling(JsonArray elements, Set<TankFace> openFaces, CornerTaperProfile profile) {
+        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]; // mirror the sand's floor-adjacent inset
+        boolean northOpen = openFaces.contains(TankFace.NORTH);
+        boolean southOpen = openFaces.contains(TankFace.SOUTH);
+        boolean westOpen = openFaces.contains(TankFace.WEST);
+        boolean eastOpen = openFaces.contains(TankFace.EAST);
+
+        int xLo = westOpen ? 0 : t;
+        int xHi = eastOpen ? 16 : 16 - t;
+        int zLo = northOpen ? 0 : t;
+        int zHi = southOpen ? 16 : 16 - t;
+
+        if (zLo > 0) {
+            elements.add(createRingBox("skylight_north", 0, 15, 0, 16, 16, zLo, openFaces));
+        }
+        if (zHi < 16) {
+            elements.add(createRingBox("skylight_south", 0, 15, zHi, 16, 16, 16, openFaces));
+        }
+        if (xLo > 0) {
+            elements.add(createRingBox("skylight_west", 0, 15, zLo, xLo, 16, zHi, openFaces));
+        }
+        if (xHi < 16) {
+            elements.add(createRingBox("skylight_east", xHi, 15, zLo, 16, 16, zHi, openFaces));
+        }
+    }
+
+    /**
+     * One strip of the skylight's frame ring: a full 6-faced box using {@code FaceBakery.defaultFaceUV}
+     * (the same UV convention as {@link #createSupportBox}, so the ring reads as a placed block with
+     * the window punched out of it), with any face lying on an open block boundary omitted. Faces on
+     * the ring's inner edge and its up/down are interior and always kept.
+     */
+    private static JsonObject createRingBox(String name, double x1, double y1, double z1, double x2, double y2, double z2,
+                                            Set<TankFace> openFaces) {
+        JsonObject element = new JsonObject();
+        element.addProperty("name", name);
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
+
+        JsonObject faces = new JsonObject();
+        if (!(z1 == 0 && openFaces.contains(TankFace.NORTH))) {
+            faces.add("north", face(16 - x2, 16 - y2, 16 - x1, 16 - y1, "#all"));
+        }
+        if (!(z2 == 16 && openFaces.contains(TankFace.SOUTH))) {
+            faces.add("south", face(x1, 16 - y2, x2, 16 - y1, "#all"));
+        }
+        if (!(x1 == 0 && openFaces.contains(TankFace.WEST))) {
+            faces.add("west", face(z1, 16 - y2, z2, 16 - y1, "#all"));
+        }
+        if (!(x2 == 16 && openFaces.contains(TankFace.EAST))) {
+            faces.add("east", face(16 - z2, 16 - y2, 16 - z1, 16 - y1, "#all"));
+        }
+        if (!(y2 == 16 && openFaces.contains(TankFace.UP))) {
+            faces.add("up", face(x1, z1, x2, z2, "#all"));
+        }
+        if (!(y1 == 0 && openFaces.contains(TankFace.DOWN))) {
+            faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
+        }
         element.add("faces", faces);
         return element;
     }

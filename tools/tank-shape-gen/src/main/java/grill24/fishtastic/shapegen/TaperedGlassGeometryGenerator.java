@@ -60,6 +60,46 @@ public final class TaperedGlassGeometryGenerator {
         return model;
     }
 
+    /**
+     * Skylight glass: identical to {@link #generate(int, String, CornerTaperProfile)} plus a single
+     * horizontal pane on the UP face when it's closed, filling the opening left by the skylight
+     * frame ring (see {@code TaperedFrameGeometryGenerator#generateSkylight}). When UP is open the
+     * side panes already extend to the block boundary and no top pane is added, exactly like the
+     * solid ceiling.
+     */
+    public static JsonObject generateSkylight(int permutationIndex, CornerTaperProfile profile) {
+        return generateSkylight(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateSkylight(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+
+        if (!openFaces.contains(TankFace.NORTH)) {
+            addNorthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.SOUTH)) {
+            addSouthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.WEST)) {
+            addWestGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.EAST)) {
+            addEastGlassPane(elements, openFaces, runs);
+        }
+
+        if (!openFaces.contains(TankFace.UP)) {
+            elements.add(createSkylightPane(profile, openFaces));
+        }
+
+        model.add("elements", elements);
+        return model;
+    }
+
     private static void addNorthGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
@@ -130,6 +170,34 @@ public final class TaperedGlassGeometryGenerator {
         JsonObject faces = new JsonObject();
         faces.add(faceA, face(z1, y1, z2, y2, "#all"));
         faces.add(faceB, face(z1, y1, z2, y2, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
+    /**
+     * The skylight pane: a horizontal pane at the ceiling band (Y 15..16) mirroring the sand's
+     * footprint — inset by the floor-adjacent row width on each closed side, extending flush to the
+     * block edge on each open side so a connected neighbor's roof meets it with no frame border
+     * between them (the frame ring omits its strip on an open side). A horizontal pane's two faces
+     * perpendicular to its thickness are {@code up}/{@code down}, so only those are defined (same UV
+     * on both, matching {@link SandGeometryGenerator} and the side panes); the 1px side edges are
+     * omitted, so nothing coincident renders against the ring's inner faces or the side panes.
+     */
+    private static JsonObject createSkylightPane(CornerTaperProfile profile, Set<TankFace> openFaces) {
+        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1];
+        int xLo = openFaces.contains(TankFace.WEST) ? 0 : t;
+        int xHi = openFaces.contains(TankFace.EAST) ? 16 : 16 - t;
+        int zLo = openFaces.contains(TankFace.NORTH) ? 0 : t;
+        int zHi = openFaces.contains(TankFace.SOUTH) ? 16 : 16 - t;
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "skylight");
+        element.add("from", vec3(xLo, 15, zLo));
+        element.add("to", vec3(xHi, 16, zHi));
+
+        JsonObject faces = new JsonObject();
+        faces.add("up", face(xLo, zLo, xHi, zHi, "#all"));
+        faces.add("down", face(xLo, zLo, xHi, zHi, "#all"));
         element.add("faces", faces);
         return element;
     }

@@ -32,6 +32,10 @@ public final class TankShapeGeometryStrategies {
             new Strategy("shaggy",
                     ShaggyFrameGeometryGenerator::generate,
                     ShaggyGlassGeometryGenerator::generate,
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+            new Strategy("skylight",
+                    perm -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
+                    perm -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
                     perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD))
     );
 
