@@ -4,14 +4,20 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.Quest;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -22,7 +28,7 @@ import java.util.function.Predicate;
  * <p>A code-defined enum (matching {@link FishTankFrameType}'s minimalism) rather than a dynamic
  * registry: shapes are curated content shipped with the mod, not something datapacks need to add.
  */
-public enum FishTankShape {
+public enum FishTankShape implements TooltipProvider {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
     /**
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
@@ -139,6 +145,18 @@ public enum FishTankShape {
     /** Localized display name, e.g. "Standard" / "Trimmed" / "Reinforced". */
     public Component getDisplayName() {
         return Component.translatable("shape.fishtastic." + getSerializedName());
+    }
+
+    /**
+     * Tooltip line naming this shape on the fish tank item stack. Mirrors
+     * {@link grill24.fishtastic.component.FishTankMaterials#addToTooltip} — a gray label with the
+     * localized shape name in white — and is wired up by {@code ItemStackMixin#modifyTooltipLines}
+     * (vanilla only auto-renders a hardcoded list of components, so ours are appended manually).
+     */
+    @Override
+    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
+        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_shape",
+                getDisplayName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
     }
 
     public static FishTankShape bySerializedName(String name) {

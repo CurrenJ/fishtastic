@@ -3,6 +3,7 @@ package grill24.fishtastic.mixin;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -39,6 +40,12 @@ public abstract class ItemStackMixin {
             FishQuality qualityProvider = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
             if (qualityProvider != null) {
                 qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
+            }
+
+            // Append the fish tank's shape name to the tooltip.
+            FishTankShape shape = itemStack.get(FishtasticDataComponents.FISH_TANK_SHAPE.value());
+            if (shape != null) {
+                shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
         }
     }

@@ -4,10 +4,12 @@ import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.block.FishTankAssemblyBlock;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.block.MarineCompostBlock;
+import grill24.fishtastic.item.FishTankBlockItem;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
@@ -60,7 +62,7 @@ public class FishtasticBlocks {
             loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .noOcclusion()  // Allow transparent rendering
-        ));
+        ), (block, loc) -> new FishTankBlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
 
         FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerBlock("fish_tank_assembly",
             loc -> new FishTankAssemblyBlock(Block.Properties.of()

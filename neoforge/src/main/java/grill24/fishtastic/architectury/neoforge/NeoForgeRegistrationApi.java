@@ -45,8 +45,13 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
 
     @Override
     public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func) {
-        Holder<Block> blockHolder = FishtasticRegistriesNeoForge.BLOCKS.register(name, func);
-        FishtasticRegistriesNeoForge.ITEMS.register(name, loc -> new BlockItem(blockHolder.value(), new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+    }
+
+    @Override
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc) {
+        Holder<Block> blockHolder = FishtasticRegistriesNeoForge.BLOCKS.register(name, blockFunc);
+        FishtasticRegistriesNeoForge.ITEMS.register(name, loc -> itemFunc.apply(blockHolder.value(), loc));
         return blockHolder;
     }
 

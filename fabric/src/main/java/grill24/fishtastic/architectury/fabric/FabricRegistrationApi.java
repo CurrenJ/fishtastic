@@ -52,11 +52,16 @@ public class FabricRegistrationApi implements IRegistrationApi {
 
     @Override
     public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func) {
+        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+    }
+
+    @Override
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc) {
         // Create the block
         Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
-        Block block = func.apply(id);
+        Block block = blockFunc.apply(id);
         // Register the BlockItem for the block (must set item ID on properties)
-        registerItem(name, loc -> new BlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+        registerItem(name, loc -> itemFunc.apply(block, loc));
         // Register the block and return holder
         return register(BuiltInRegistries.BLOCK, name, loc -> block);
     }

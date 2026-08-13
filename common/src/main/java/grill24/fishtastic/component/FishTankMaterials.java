@@ -4,20 +4,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.FishtasticBlocks;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipProvider;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-
-import java.util.function.Consumer;
 
 /**
  * The frame, sand (floor), and glass blocks a fish tank was assembled from.
@@ -25,7 +17,7 @@ import java.util.function.Consumer;
  * items) and the placed block entity, which is seeded from this component on
  * placement (see {@code BlockItem#place} -> {@code BlockEntity#applyComponentsFromItemStack}).
  */
-public record FishTankMaterials(Block frame, Block sand, Block glass) implements TooltipProvider {
+public record FishTankMaterials(Block frame, Block sand, Block glass) {
 
     /**
      * Not a static field: {@code FishtasticBlocks.CLEAR_STAINED_GLASS} isn't populated until
@@ -55,14 +47,4 @@ public record FishTankMaterials(Block frame, Block sand, Block glass) implements
             BLOCK_STREAM_CODEC, FishTankMaterials::glass,
             FishTankMaterials::new
     );
-
-    @Override
-    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
-        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.frame",
-                frame.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
-        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.sand",
-                sand.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
-        tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_materials.glass",
-                glass.getName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
-    }
 }
