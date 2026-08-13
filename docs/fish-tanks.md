@@ -159,9 +159,13 @@ Three behaviors are baked into the profile rather than into each generator:
 | `SandGeometryGenerator` | STANDARD, TRIMMED, REINFORCED, ORNATE, SHAGGY | Square sand inset by the profile's floor-adjacent row width, plus edge/corner fills. |
 | `SteppedSandGeometryGenerator` | FACETED, BASTION | Applies the profile *horizontally* along Z, so the footprint is a stepped octagon. |
 
-`FishTankShapeGeometryStrategies` (Fabric datagen) is the single mapping from shape → these three
-generator calls. It is the only file the three model providers consult, so adding a shape touches
-one switch rather than three loops.
+`TankShapeGeometryStrategies` (`tools/tank-shape-gen`, keyed by serialized name) is the single
+mapping from shape → these three generator calls. Fabric datagen's `FishTankShapeGeometryStrategies`
+is a thin adapter over it (keyed by the `FishTankShape` enum instead), and it's the only file the
+three model providers consult — so adding a shape still only touches one switch rather than three
+loops. Keeping the mapping in `tools/tank-shape-gen` rather than Fabric-only means the geometry
+safety test (`TankShapeConnectivitySafetyTest`, see §4) sweeps every shape automatically too, with no
+separate list to keep in sync.
 
 ### Invariants worth not rediscovering
 
@@ -215,6 +219,20 @@ diff -rq fabric/src/main/generated/assets/fishtastic/models/block/fishtankbase \
 Zero differences means the change was additive. This has caught real regressions — including a
 purely cosmetic element-`name` change that would otherwise have silently rewritten 16 of the 64 sand
 models.
+
+**Automated connectivity safety sweep:**
+
+```bash
+./gradlew :tools:tank-shape-gen:test
+```
+
+`TankShapeConnectivitySafetyTest` sweeps every shape in `TankShapeGeometryStrategies.ALL` across all
+64 connection permutations and asserts zero frame/glass/sand volume overlap plus no bare gaps in the
+floor or outer wall skin wherever the owning face is closed — the exact defect class the
+2026-08-13/14 FACETED/BASTION connection bugs were (a piece that correctly vanished on an open face
+without another piece extending to cover its territory). Runs on every commit via
+`scripts/git-hooks/pre-commit`. A new shape gets this coverage automatically the moment it's added to
+`TankShapeGeometryStrategies.ALL` — no separate wiring.
 
 ### The previewer
 
@@ -306,11 +324,17 @@ runtime geometry generation or shipped per-datapack models.
    cardinal face open and one cap open to check both seam directions.
 3. **Add the enum entry** in `FishTankShape` with an id, a `modelPathPrefix`, and a deliberate
    `connectionCollection` (its own id to isolate it, `standard` to join the shipped family).
-4. **Map it** in `FishTankShapeGeometryStrategies`.
-5. **Run datagen**, confirm `STANDARD` still diffs clean, and confirm the new prefix directory got
+4. **Map it** in `TankShapeGeometryStrategies.ALL` (`tools/tank-shape-gen`) — Fabric's
+   `FishTankShapeGeometryStrategies` picks it up automatically by serialized name, no separate edit
+   needed there.
+5. **Run the automated safety sweep** (`./gradlew :tools:tank-shape-gen:test`) — this is also what
+   the previous step enables. Sweeps all 64 connection permutations for frame/glass/sand volume
+   overlap and floor/wall-skin gaps, broader and cheaper than the previewer's three hand-picked
+   states, so it's worth running before spending more time there.
+6. **Run datagen**, confirm `STANDARD` still diffs clean, and confirm the new prefix directory got
    all 192 files.
-6. **Add lang** (`shape.fishtastic.<id>`) and a shop entry if it should be purchasable.
-7. **Add a gametest** to `FishTankGameTests` covering its connection behavior against the shapes it
+7. **Add lang** (`shape.fishtastic.<id>`) and a shop entry if it should be purchasable.
+8. **Add a gametest** to `FishTankGameTests` covering its connection behavior against the shapes it
    is and isn't supposed to connect to.
-8. **Look at it in-game.** Datagen and the previewer verify geometry; neither verifies texturing,
+9. **Look at it in-game.** Datagen and the previewer verify geometry; neither verifies texturing,
    lighting, or how it reads next to a neighbor.
