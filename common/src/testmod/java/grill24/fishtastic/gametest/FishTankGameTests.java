@@ -276,7 +276,7 @@ public final class FishTankGameTests {
      */
     public static void newShapesConnectToStandard(GameTestHelper helper) {
         for (FishTankShape shape : new FishTankShape[]{FishTankShape.STURDY, FishTankShape.FACETED, FishTankShape.BASTION,
-                FishTankShape.ORNATE, FishTankShape.SHAGGY}) {
+                FishTankShape.HONED, FishTankShape.RAMPART, FishTankShape.ORNATE, FishTankShape.SHAGGY}) {
             FishTankBlockEntity west = placeFishTank(helper);
             FishTankBlockEntity east = placeEastNeighborFishTank(helper);
             west.setShape(shape);

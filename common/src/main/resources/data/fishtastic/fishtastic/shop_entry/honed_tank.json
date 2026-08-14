@@ -1,0 +1,21 @@
+{
+  "display_name": "Honed Fish Tank",
+  "description": "A tank with a deep, precisely-tapered corner brace, tighter than the Reinforced Tank's. Earned by reaching Angler Master (catch 250 fish).",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "honed",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:netherite_block",
+          "sand": "minecraft:gray_concrete_powder",
+          "glass": "fishtastic:light_gray_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quest": "fishtastic:mastery/angler_master"
+}

@@ -49,7 +49,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     /**
      * The shape currently displayed on the cycle button, which may be a locked shape the player
      * is just browsing. Distinct from {@link #lastKnownShape}/{@code menu.getShape()} — a locked
-     * shape is shown here (name + "(Locked)" + unlock tooltip) but never applied to the menu or
+     * shape is shown here (greyed-out name + unlock tooltip) but never applied to the menu or
      * sent to the server, so cycling past one to look at it can never desync from the
      * server-authoritative committed shape.
      */
@@ -90,7 +90,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
     /**
      * Cycle the shape button's preview; {@code forward} (left-click) advances to
-     * {@link FishTankShape#next()}, else backwards. A locked shape is shown (name, "(Locked)" and
+     * {@link FishTankShape#next()}, else backwards. A locked shape is shown (greyed-out name and
      * an unlock-quest tooltip) but never committed as the assembly's actual crafting target —
      * cycling past it leaves the last unlocked selection in effect, so there's nothing for the
      * server to reject and nothing that can desync.
@@ -114,13 +114,16 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         }
     }
 
-    /** Sets the button's label and tooltip to match {@code shape}, locked or not. */
+    /**
+     * Sets the button's label and tooltip to match {@code shape}. Unlocked shapes get no tooltip
+     * at all; a locked shape keeps its plain name but greyed out, with the lock status and unlock
+     * condition moved into the tooltip instead of the label.
+     */
     private void refreshButtonAppearance(FishTankShape shape) {
         boolean unlocked = shape.isUnlockedFor(FishTankAssemblyScreen::isQuestClaimed);
         shapeButton.setMessage(unlocked ? shapeLabel(shape) : lockedShapeLabel(shape));
-        shapeButton.setTooltip(Tooltip.create(unlocked
-                ? Component.translatable("gui.fishtastic.fish_tank_assembly.shape_cycle_tooltip")
-                : Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip", questDisplayName(shape))));
+        shapeButton.setTooltip(unlocked ? null : Tooltip.create(
+                Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip", questDisplayName(shape))));
     }
 
     private static boolean isQuestClaimed(ResourceKey<Quest> quest) {
@@ -137,8 +140,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     }
 
     private static Component lockedShapeLabel(FishTankShape shape) {
-        return Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked", shape.getDisplayName())
-                .withStyle(ChatFormatting.GRAY);
+        return shape.getDisplayName().copy().withStyle(ChatFormatting.GRAY);
     }
 
     /**

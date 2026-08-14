@@ -53,6 +53,13 @@ public enum FishTankShape implements TooltipProvider {
     REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced",
             Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_journeyman")))),
     /**
+     * REINFORCED's deeper sibling — a 6px→1px taper with no full-width rows (see
+     * CornerTaperProfile.HONED). Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s
+     * note. Locked behind {@code mastery/angler_master} — see {@link #unlockQuest}.
+     */
+    HONED(Fishtastic.id("honed"), Fishtastic.id("standard"), "fishtank_honed",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_master")))),
+    /**
      * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
      * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
      * {@link #TRIMMED}'s note. Locked behind {@code tutorial/first_catch} — see {@link #unlockQuest}.
@@ -76,6 +83,14 @@ public enum FishTankShape implements TooltipProvider {
      */
     BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion",
             Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/nether_collector")))),
+    /**
+     * BASTION's deeper sibling — a 16px→2px taper whose full-width cap rows taper one pixel
+     * further out (7 vs BASTION's 6) for a tighter frame circle (see CornerTaperProfile.RAMPART).
+     * Shares STANDARD's connectionCollection like {@link #FACETED}.
+     * Locked behind {@code mastery/angler_legend} — see {@link #unlockQuest}.
+     */
+    RAMPART(Fishtastic.id("rampart"), Fishtastic.id("standard"), "fishtank_rampart",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_legend")))),
     /**
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /

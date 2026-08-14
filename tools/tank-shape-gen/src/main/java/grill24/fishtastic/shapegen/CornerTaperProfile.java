@@ -65,6 +65,23 @@ public record CornerTaperProfile(int[] rowWidths) {
     public static final CornerTaperProfile BASTION =
             new CornerTaperProfile(new int[]{16, 6, 4, 3, 3, 2, 2, 2, 2, 3, 3, 4, 6, 16});
 
+    /**
+     * Read from {@code thicker_chamfer_shape_set.png} tank slot 0 (0-indexed): image rows 1-14
+     * top-to-bottom. REINFORCED's deeper sibling — a 6→1 taper with no full-width rows, same
+     * hard-edged square sand family (no chamfered cap rings).
+     */
+    public static final CornerTaperProfile HONED =
+            new CornerTaperProfile(new int[]{6, 4, 3, 2, 2, 1, 1, 1, 1, 2, 2, 3, 4, 6});
+
+    /**
+     * Read from {@code thicker_chamfer_shape_set.png} tank slot 1 (0-indexed): image rows 1-14
+     * top-to-bottom. BASTION's deeper sibling — a 16→2 taper with full-width {@code 16} end rows
+     * (chamfered octagonal cap rings), tapering one pixel further out (7 vs BASTION's 6) for a
+     * tighter frame circle.
+     */
+    public static final CornerTaperProfile RAMPART =
+            new CornerTaperProfile(new int[]{16, 7, 5, 4, 3, 3, 2, 2, 3, 3, 4, 5, 7, 16});
+
     public static final int ROW_COUNT = 14;
 
     public CornerTaperProfile {

@@ -1,0 +1,21 @@
+{
+  "display_name": "Rampart Fish Tank",
+  "description": "A tank with thick chamfered caps and the tightest corner taper yet, Bastion's fortified successor. Earned by reaching Angler Legend (catch 500 fish).",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "rampart",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:deepslate_bricks",
+          "sand": "minecraft:gravel",
+          "glass": "fishtastic:cyan_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quest": "fishtastic:mastery/angler_legend"
+}

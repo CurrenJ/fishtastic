@@ -26,6 +26,8 @@ public final class TankShapeGeometryStrategies {
             stepped("reinforced", CornerTaperProfile.REINFORCED),
             stepped("faceted", CornerTaperProfile.FACETED),
             stepped("bastion", CornerTaperProfile.BASTION),
+            stepped("honed", CornerTaperProfile.HONED),
+            stepped("rampart", CornerTaperProfile.RAMPART),
             new Strategy("ornate",
                     OrnateFrameGeometryGenerator::generate,
                     OrnateGlassGeometryGenerator::generate,

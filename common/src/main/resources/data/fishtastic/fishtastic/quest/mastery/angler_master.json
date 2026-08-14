@@ -9,7 +9,20 @@
   },
   "reward": {
     "quest_tokens": 93,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "honed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:netherite_block",
+            "sand": "minecraft:gray_concrete_powder",
+            "glass": "fishtastic:light_gray_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/angler_journeyman",
