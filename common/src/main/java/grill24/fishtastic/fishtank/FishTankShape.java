@@ -31,12 +31,12 @@ import java.util.function.Predicate;
 public enum FishTankShape implements TooltipProvider {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
     /**
-     * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
-     * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
-     * {@link #TRIMMED}'s note. Locked behind {@code tutorial/first_catch} — see {@link #unlockQuest}.
+     * Standard body with a skylight: the solid ceiling is replaced by a frame ring and a horizontal
+     * glass pane mirroring the square sand footprint (see TaperedFrameGeometryGenerator#generateSkylight /
+     * TaperedGlassGeometryGenerator#generateSkylight). Shares STANDARD's connectionCollection and is
+     * ungated, like STANDARD.
      */
-    STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy",
-            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("tutorial/first_catch")))),
+    SKYLIGHT(Fishtastic.id("skylight"), Fishtastic.id("standard"), "fishtank_skylight"),
     /**
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
      * Shares STANDARD's connectionCollection by deliberate curation (not the default-to-self
@@ -52,6 +52,13 @@ public enum FishTankShape implements TooltipProvider {
      */
     REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced",
             Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_journeyman")))),
+    /**
+     * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
+     * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
+     * {@link #TRIMMED}'s note. Locked behind {@code tutorial/first_catch} — see {@link #unlockQuest}.
+     */
+    STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("tutorial/first_catch")))),
     /**
      * A 16px→2px corner taper with 2px-thick chamfered octagonal cap rings and a stepped-octagon
      * sand — BASTION's thinner-stepped sibling (see CornerTaperProfile.FACETED and
@@ -86,14 +93,7 @@ public enum FishTankShape implements TooltipProvider {
      * Locked behind {@code challenge/storm_prize} — see {@link #unlockQuest}.
      */
     SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy",
-            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize")))),
-    /**
-     * Standard body with a skylight: the solid ceiling is replaced by a frame ring and a horizontal
-     * glass pane mirroring the square sand footprint (see TaperedFrameGeometryGenerator#generateSkylight /
-     * TaperedGlassGeometryGenerator#generateSkylight). Shares STANDARD's connectionCollection and is
-     * ungated, like STANDARD.
-     */
-    SKYLIGHT(Fishtastic.id("skylight"), Fishtastic.id("standard"), "fishtank_skylight");
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize"))));
 
     private final Identifier id;
     private final Identifier connectionCollection;
