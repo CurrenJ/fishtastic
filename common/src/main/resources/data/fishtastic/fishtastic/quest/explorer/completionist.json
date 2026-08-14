@@ -4,7 +4,8 @@
   "objective": {
     "target_species_tag": "fishtastic:fish",
     "exclude_species_tag": "fishtastic:unlisted_fish",
-    "distinct_species": true
+    "distinct_species": true,
+    "notification_interval": 9999
   },
   "reward": {
     "quest_tokens": 100,

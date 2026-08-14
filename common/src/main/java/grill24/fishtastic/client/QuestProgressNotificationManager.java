@@ -38,7 +38,7 @@ import java.util.Map;
 public class QuestProgressNotificationManager {
 
     private static final QuestProgressNotificationManager INSTANCE = new QuestProgressNotificationManager();
-    private static final int MAX_QUEUE_SIZE = 5;
+    private static final int MAX_QUEUE_SIZE = 10;
     private static final int MAX_ACTIVE = 3;
     private static final int STAGGER_DELAY_TICKS = 6;
 
