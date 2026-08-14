@@ -17,6 +17,18 @@
         }
       }
     },
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 4,
+      "components": {
+        "fishtastic:fish_tank_shape": "sturdy",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:oak_log",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:blue_clear_stained_glass"
+        }
+      }
+    },
     { "id": "fishtastic:fishopedia", "count": 1 },
     { "id": "fishtastic:quest_book", "count": 1 }
   ] },

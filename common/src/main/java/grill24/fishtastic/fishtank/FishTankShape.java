@@ -31,6 +31,13 @@ import java.util.function.Predicate;
 public enum FishTankShape implements TooltipProvider {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
     /**
+     * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
+     * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
+     * {@link #TRIMMED}'s note. Locked behind {@code tutorial/first_catch} — see {@link #unlockQuest}.
+     */
+    STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy",
+            Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("tutorial/first_catch")))),
+    /**
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
      * Shares STANDARD's connectionCollection by deliberate curation (not the default-to-self
      * behavior) — all three shipped shapes are meant to interconnect with each other.
@@ -46,8 +53,9 @@ public enum FishTankShape implements TooltipProvider {
     REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced",
             Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_journeyman")))),
     /**
-     * Deep 6px→1px corner taper with a stepped-octagon sand (see CornerTaperProfile.FACETED and
-     * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all six shipped
+     * A 16px→2px corner taper with 2px-thick chamfered octagonal cap rings and a stepped-octagon
+     * sand — BASTION's thinner-stepped sibling (see CornerTaperProfile.FACETED and
+     * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all shipped
      * shapes are meant to freely interconnect (see {@link #TRIMMED}'s note).
      * Locked behind {@code challenge/sunrise_ambush} — see {@link #unlockQuest}.
      */

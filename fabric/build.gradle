@@ -140,7 +140,10 @@ tasks.register("copyGeneratedAssetsToCommon", Exec) {
     group = "fishtastic"
     description = "Merges fabric's datagen output into the common module's resources."
     workingDir rootProject.projectDir
-    commandLine "python3", "scripts/copy_assets_to_common.py"
+    // `python3` is canonical on POSIX, but on Windows it usually only resolves to a
+    // broken Microsoft Store alias — use `python` there instead (same 3.x interpreter).
+    def python = System.getProperty("os.name").toLowerCase().contains("win") ? "python" : "python3"
+    commandLine python, "scripts/copy_assets_to_common.py"
 }
 
 tasks.named("runDatagen") {

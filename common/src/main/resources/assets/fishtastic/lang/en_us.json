@@ -223,6 +223,7 @@
   "gui.fishtastic.fish_tank_assembly.shape_locked_tooltip": "Unlocked by completing the quest \"%s\"",
   "gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest": "Unlocked by completing a special quest",
   "shape.fishtastic.standard": "Standard",
+  "shape.fishtastic.sturdy": "Sturdy",
   "shape.fishtastic.trimmed": "Trimmed",
   "shape.fishtastic.reinforced": "Reinforced",
   "shape.fishtastic.faceted": "Faceted",

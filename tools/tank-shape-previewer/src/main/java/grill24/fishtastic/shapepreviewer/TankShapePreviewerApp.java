@@ -128,7 +128,8 @@ public class TankShapePreviewerApp extends Application {
                 "BASTION (image tank 4)",
                 "ORNATE (references)",
                 "SHAGGY (references)",
-                "SKYLIGHT (standard + skylight)");
+                "SKYLIGHT (standard + skylight)",
+                "STURDY");
         // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
         // used by the screenshot workflow to render a specific shape without UI interaction.
         int initialIndex = 0;
@@ -143,6 +144,7 @@ public class TankShapePreviewerApp extends Application {
                     case "ornate" -> 5;
                     case "shaggy" -> 6;
                     case "skylight" -> 7;
+                    case "sturdy" -> 8;
                     default -> 0;
                 };
             }
@@ -214,11 +216,12 @@ public class TankShapePreviewerApp extends Application {
             case 2 -> CornerTaperProfile.REINFORCED;
             case 3 -> CornerTaperProfile.FACETED;
             case 4 -> CornerTaperProfile.BASTION;
+            case 8 -> CornerTaperProfile.STURDY;
             default -> CornerTaperProfile.STANDARD;
         };
         // FACETED/BASTION use the chamfered-ring frame + stepped sand; ORNATE/SHAGGY are inlay
         // shapes with no taper at all, on the standard square sand.
-        boolean shell = idx == 3 || idx == 4;
+        boolean shell = idx == 3 || idx == 4 || idx == 8;
 
         JsonObject frame = switch (idx) {
             case 5 -> OrnateFrameGeometryGenerator.generate(perm);

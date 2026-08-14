@@ -24,6 +24,13 @@ public record CornerTaperProfile(int[] rowWidths) {
     public static final CornerTaperProfile STANDARD = uniform(1);
 
     /**
+     * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body (no taper) capped by the same
+     * full-width {@code 16} rows — chamfered octagonal cap rings — as {@link #FACETED}/{@link #BASTION}.
+     */
+    public static final CornerTaperProfile STURDY =
+            new CornerTaperProfile(new int[]{16, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 16});
+
+    /**
      * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 1 (0-indexed): image rows 1-14 top-to-bottom.
      * A modest 3→1 taper — a light corner brace rather than heavy reinforcement.
      */
@@ -39,11 +46,13 @@ public record CornerTaperProfile(int[] rowWidths) {
 
     /**
      * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 3 (0-indexed): image rows 1-14 top-to-bottom.
-     * A 6→1 taper whose floor-adjacent row (image row 14) is also 6, so its sand is a stepped
-     * octagon reaching the 1px glass wall in the middle.
+     * BASTION's finer-stepped sibling: the same {@code 16} (= full-width) end rows — 2px-thick
+     * ceiling/floor caps rendered as chamfered octagonal rings — and the same 2px minimum mid-body
+     * width (a continuous 2-wide frame border), but with a smaller 4→3→2 step sequence. Its sand is
+     * a stepped octagon inset by the taper's 2px minimum in the middle.
      */
     public static final CornerTaperProfile FACETED =
-            new CornerTaperProfile(new int[]{6, 4, 3, 2, 2, 1, 1, 1, 1, 2, 2, 3, 4, 6});
+            new CornerTaperProfile(new int[]{16, 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 16});
 
     /**
      * Read from {@code docs/tank-shapes/new_tank_shapes.png} tank slot 4 (0-indexed): image rows 1-14 top-to-bottom.

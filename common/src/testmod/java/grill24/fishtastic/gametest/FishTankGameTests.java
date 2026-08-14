@@ -275,7 +275,7 @@ public final class FishTankGameTests {
      * "all shapes freely interconnect" decision from the shape-variants plan.
      */
     public static void newShapesConnectToStandard(GameTestHelper helper) {
-        for (FishTankShape shape : new FishTankShape[]{FishTankShape.FACETED, FishTankShape.BASTION,
+        for (FishTankShape shape : new FishTankShape[]{FishTankShape.STURDY, FishTankShape.FACETED, FishTankShape.BASTION,
                 FishTankShape.ORNATE, FishTankShape.SHAGGY}) {
             FishTankBlockEntity west = placeFishTank(helper);
             FishTankBlockEntity east = placeEastNeighborFishTank(helper);

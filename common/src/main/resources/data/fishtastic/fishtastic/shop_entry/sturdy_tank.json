@@ -1,0 +1,21 @@
+{
+  "display_name": "Sturdy Fish Tank",
+  "description": "A hard-edged tank with thick 2px corner posts, the Standard tank's sturdier sibling. Earned by catching your first fish.",
+  "cost": 100,
+  "weight": 0.5,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "sturdy",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:oak_log",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:blue_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quest": "fishtastic:tutorial/first_catch"
+}

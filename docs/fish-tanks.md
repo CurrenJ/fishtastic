@@ -51,15 +51,16 @@ STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase")
 //       ^ id                       ^ connectionCollection     ^ modelPathPrefix
 ```
 
-**Seven shapes ship today**, all sharing the `standard` connection collection so every shape connects
+**Eight shapes ship today**, all sharing the `standard` connection collection so every shape connects
 to every other:
 
 | Shape | Model prefix | Geometry summary |
 |---|---|---|
 | `STANDARD` | `fishtankbase` | Uniform 1px corner posts. The original tank; `CornerTaperProfile.uniform(1)`. |
+| `STURDY` | `fishtank_sturdy` | Uniform 2px frame (no taper) with chamfered octagonal cap rings; square sand inset 2. |
 | `TRIMMED` | `fishtank_trimmed` | Light 3→1 corner brace. |
 | `REINFORCED` | `fishtank_reinforced` | Chunkier 5→1 corner brackets. |
-| `FACETED` | `fishtank_faceted` | 6→1 taper, flat-plate frame, stepped-octagon sand. |
+| `FACETED` | `fishtank_faceted` | 16→2 taper with 2px-thick chamfered octagonal cap rings and flat-plate frame; stepped-octagon sand. |
 | `BASTION` | `fishtank_bastion` | 16→2 taper with full-width caps rendered as chamfered octagonal base rings. |
 | `ORNATE` | `fishtank_ornate` | Standard 1px frame plus decorative inlay brackets, with glass holes behind them. |
 | `SHAGGY` | `fishtank_shaggy` | ORNATE's construction with a shaggier, deliberately asymmetric fringe; a full-width band at Y `[1,2]` hides the sand from the side. |
@@ -69,6 +70,7 @@ entry, mirrored by `unlock_quest` on its shop entry) and granted once by that qu
 
 | Shape | Unlocks / granted by |
 |---|---|
+| `STURDY` | `tutorial/first_catch` (catch any fish) |
 | `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) |
 | `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) |
 | `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) |
@@ -84,7 +86,7 @@ deliberately decoupled from shape identity so a curated family of shapes can int
 being the same shape.
 
 The mechanism *defaults* a new shape to its own singleton collection (its own id), meaning a newly
-added shape connects only to itself until someone opts it into a family. All seven shipped shapes were
+added shape connects only to itself until someone opts it into a family. All eight shipped shapes were
 deliberately grouped into `standard`.
 
 ### Persistence and sync
@@ -138,11 +140,24 @@ ceiling, index 13 the row just above the floor. Image rows 0 and 15 are always t
 ceiling/floor caps and are not part of the profile.
 
 ```java
+STURDY     = {16, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 16}
 TRIMMED    = {3, 2, 1,1,1,1,1,1,1,1,1,1, 2, 3}
 REINFORCED = {5, 3, 2, 2, 1,1,1,1,1,1, 2, 2, 3, 5}
-FACETED    = {6, 4, 3, 2, 2, 1,1,1,1, 2, 2, 3, 4, 6}
+FACETED    = {16, 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 16}
 BASTION    = {16, 6, 4, 3, 3, 2,2,2,2, 3, 3, 4, 6, 16}
 ```
+
+The four tapered shapes are two **light/chunky pairs** that share one curvature pattern.
+`TRIMMED`→`REINFORCED` and `FACETED`→`BASTION` deepen the corner taper by the *same* per-row delta —
+`+2` on the outermost tapered row, `+1` on the three rows inside it, `0` at the waist — so the
+chunky member reads as a heavier brace on the light member's silhouette, never a different shape.
+The pairs differ only in scale: `TRIMMED`/`REINFORCED` hold a 1px waist with no full-width rows,
+while `FACETED`/`BASTION` inset the same profile one pixel deeper (a 2px waist) and frame it with
+full-width `16` cap rows — the chamfered octagonal rings — which just shift that `+2/+1` delta one
+row inward.
+
+`STANDARD` and `STURDY` are the hard-edged column (uniform, no taper); `STURDY` is `STANDARD`'s
+2px sibling, carrying the same full-width `16` cap rings as `FACETED`/`BASTION`.
 
 Three behaviors are baked into the profile rather than into each generator:
 
