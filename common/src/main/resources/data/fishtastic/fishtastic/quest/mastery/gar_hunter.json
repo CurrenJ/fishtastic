@@ -8,7 +8,20 @@
   },
   "reward": {
     "quest_tokens": 20,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "trimmed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:mangrove_planks",
+            "sand": "minecraft:coarse_dirt",
+            "glass": "fishtastic:brown_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": false,
   "display_name": "Gar Hunter",

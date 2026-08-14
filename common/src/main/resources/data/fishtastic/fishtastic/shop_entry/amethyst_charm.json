@@ -11,5 +11,5 @@
   ],
   "daily_max_purchases": 1,
   "is_charm": true,
-  "unlock_quest": "fishtastic:mastery/angler_journeyman"
+  "unlock_quests": ["fishtastic:mastery/angler_journeyman"]
 }

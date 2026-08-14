@@ -3,6 +3,7 @@
   "description": "A tank with chunky bracketed corners, a heavier taper than the Trimmed Tank's for a sturdier look. Earned by reaching Angler Journeyman (catch 100 fish).",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:mastery/angler_journeyman"
+  "unlock_quests": ["fishtastic:mastery/angler_journeyman", "fishtastic:mastery/tetra_scholar"]
 }

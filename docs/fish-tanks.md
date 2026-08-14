@@ -65,18 +65,27 @@ to every other:
 | `ORNATE` | `fishtank_ornate` | Standard 1px frame plus decorative inlay brackets, with glass holes behind them. |
 | `SHAGGY` | `fishtank_shaggy` | ORNATE's construction with a shaggier, deliberately asymmetric fringe; a full-width band at Y `[1,2]` hides the sand from the side. |
 
-`STANDARD` is always available. Every non-standard shape is quest-gated (`unlockQuest` on the enum
-entry, mirrored by `unlock_quest` on its shop entry) and granted once by that quest:
+`STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated: `unlockQuests` on
+the enum entry (mirrored by `unlock_quests` on its shop entry) lists a small set of quests, and
+claiming *any one* of them unlocks the shape. Every quest in that list grants a matching tank of that
+shape as its own reward, so a player pursuing a different chain from the shape's "primary" quest
+still walks away with a tank in hand, not just the unlock flag — but each path's tank is themed with
+its own frame/sand/glass materials rather than cloning the primary's, so a different grind feels like
+a distinct reward rather than a recolor-free duplicate. Keep all three in sync by hand when adding a
+path: the enum's `unlockQuests`, the shop entry's `unlock_quests`, and that quest's own `fish_tank`
+reward item (shape must match; materials are free to differ) — nothing enforces this structurally.
 
-| Shape | Unlocks / granted by |
+| Shape | Unlocked by (any one) |
 |---|---|
-| `STURDY` | `tutorial/first_catch` (catch any fish) |
-| `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) |
-| `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) |
-| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) |
-| `BASTION` | `explorer/nether_collector` (every Nether species) |
-| `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) |
-| `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) |
+| `STURDY` | `tutorial/first_catch` (catch any fish) *or* `mastery/bluegill_novice` |
+| `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) *or* `mastery/gar_hunter` |
+| `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) *or* `mastery/tetra_scholar` |
+| `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` |
+| `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` |
+| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` |
+| `BASTION` | `explorer/nether_collector` (every Nether species) *or* `challenge/predator_run` |
+| `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) *or* `mastery/tetra_legend` |
+| `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) *or* `mastery/tetra_tracker` |
 
 ### Connection gating
 
@@ -293,13 +302,18 @@ by setting the components directly on the reward stack:
   "components": { "fishtastic:fish_tank_shape": "bastion" } }
 ```
 
-Material tanks are typically quest-gated (`unlock_quest` + `daily_max_purchases`), while the six
-non-standard shape tanks are gated by `unlock_quest` alone (no purchase cap) — each is granted once
-by its host quest and then stays purchasable, so the shape reads as earned rather than bought. The
-two inlay shapes (`ORNATE`, `SHAGGY`) sit on feat-based challenge quests; the four tapered shapes
-split between the early `angler_*` mastery tiers (`TRIMMED`, `REINFORCED`) and feat-based quests
-(`FACETED` on `sunrise_ambush`, `BASTION` on `nether_collector`, whose reward replaced the old
-blackstone material tank). See the table in §2.
+Material tanks are typically quest-gated (`unlock_quests` + `daily_max_purchases`), while the nine
+non-standard shape tanks are gated by `unlock_quests` alone (no purchase cap) — each is granted once
+by its first-claimed unlock quest and then stays purchasable, so the shape reads as earned rather
+than bought. See the table in §2 for the full any-one-of-these quest lists.
+
+Each shape's `ShopEntry` also sets `"is_tank_shape": true`, pulling it out of the shop's main
+weighted draw entirely (the same isolation `"is_charm": true` gets — see `ShopEntry.CODEC`). Shapes
+only surface via a separate `ANY_TANK_REPLACE_CHANCE` roll (`ShopEntry.getActiveDailyShop`) that
+swaps one already-drawn slot for a weighted pick among *unlocked* shapes. That keeps a shape tank's
+odds of showing up in a given day's shop constant regardless of how many shapes a player has
+unlocked so far — without it, each newly-unlocked shape would join the main pool and crowd out a
+slightly larger share of every other item's chances as the catalog grows.
 
 ## 6. Cosmetics
 

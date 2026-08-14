@@ -218,7 +218,7 @@
   "item.fishtastic.fish_tank": "Fish Tank",
   "block.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
   "item.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
-  "gui.fishtastic.fish_tank_assembly.shape_locked_tooltip": "Locked - unlocked by completing the quest \"%s\"",
+  "gui.fishtastic.fish_tank_assembly.shape_locked_tooltip": "Locked - unlocked by completing \"%s\"",
   "gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest": "Unlocked by completing a special quest",
   "shape.fishtastic.standard": "Standard",
   "shape.fishtastic.sturdy": "Sturdy",

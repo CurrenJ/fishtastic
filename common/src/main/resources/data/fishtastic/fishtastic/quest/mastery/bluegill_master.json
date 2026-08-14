@@ -9,7 +9,20 @@
   },
   "reward": {
     "quest_tokens": 85,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "honed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:sea_lantern",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:white_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/bluegill_adept",

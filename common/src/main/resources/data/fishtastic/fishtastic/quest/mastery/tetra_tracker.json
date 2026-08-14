@@ -8,7 +8,20 @@
   },
   "reward": {
     "quest_tokens": 15,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "shaggy",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:dark_oak_planks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:yellow_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": false,
   "display_name": "Tetra Tracker",

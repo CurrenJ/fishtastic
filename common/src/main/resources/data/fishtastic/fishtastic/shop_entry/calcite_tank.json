@@ -17,5 +17,5 @@
     }
   ],
   "daily_max_purchases": 1,
-  "unlock_quest": "fishtastic:explorer/high_altitude_collector"
+  "unlock_quests": ["fishtastic:explorer/high_altitude_collector"]
 }

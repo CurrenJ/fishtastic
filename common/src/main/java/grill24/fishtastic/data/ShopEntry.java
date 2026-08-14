@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 public record ShopEntry(
         String displayName,
@@ -22,14 +23,23 @@ public record ShopEntry(
         int dailyMaxPurchases,
         boolean isCharm,
         /**
-         * When present, this entry is invisible and unbuyable until the named quest has been
-         * *claimed*. Backs the capstone exclusives: a capstone grants its reward item once on
-         * claim, and the matching gated entry then appears in the rotation so the player can buy
-         * further copies at a premium. That keeps the item genuinely exclusive (it can't be bought
-         * by anyone who hasn't finished the quest) while giving the economy a high-value sink that
-         * only opens up once a player has something worth spending on.
+         * True for the nine shape-shifting tank entries (trimmed, reinforced, ... shaggy). Excluded
+         * from the main weighted draw and only appears via {@link #ANY_TANK_REPLACE_CHANCE} —
+         * mirrors {@link #isCharm}'s isolation, so unlocking more shapes over time never dilutes
+         * (or gets diluted by) the rest of the shop. See {@link #getActiveDailyShop(Registry, long, int)}.
          */
-        Optional<ResourceKey<Quest>> unlockQuest
+        boolean isTankShape,
+        /**
+         * When non-empty, this entry is invisible and unbuyable until *any* of the named quests has
+         * been claimed. Backs two different uses: capstone exclusives (a single quest — the capstone
+         * grants its reward item once on claim, and the matching gated entry then appears in the
+         * rotation so the player can buy further copies at a premium, keeping the item genuinely
+         * exclusive while giving the economy a high-value sink); and shape entries (several quests —
+         * a shape can be earned from any one of a handful of quests, mirroring
+         * {@link grill24.fishtastic.fishtank.FishTankShape#unlockQuests}, so a cool shape isn't
+         * hard-gated behind one specific grind).
+         */
+        List<ResourceKey<Quest>> unlockQuests
 ) {
     public static final int DAILY_SHOP_COUNT = 4;
     /** Cost of the first reroll in a rotation — see {@link #refreshCost(int)}. */
@@ -69,6 +79,21 @@ public record ShopEntry(
      * purchase — especially since a charm only lasts 64 casts. 0.55 brings it to ~13 rotations.
      */
     public static final float CHARM_REPLACE_CHANCE = 0.55f;
+    /**
+     * Chance, per shop draw, of a single coin-flip that decides whether *any one* shape tank appears
+     * today at all — not a per-shape chance. On a hit, exactly one randomly-chosen slot is swapped
+     * for a weighted draw from the whole tank-shape-only pool ({@link #isTankShape} entries, already
+     * filtered to unlocked shapes), so unlocking a 10th shape doesn't raise the odds a shape shows up
+     * — it only changes which shape wins that single roll. Same isolation mechanism as
+     * {@link #CHARM_REPLACE_CHANCE}, applied to the shape-tank category instead of charms. Shapes are
+     * excluded from the main draw entirely (see {@link #getActiveDailyShop(Registry, long, int, Predicate)}),
+     * so this is the only way a shape tank appears in the shop — without it, unlocking more shapes
+     * over a playthrough would mean shapes collectively eat a growing share of the main pool's slots,
+     * the exact "floods the shop as you unlock more" problem this constant exists to avoid. Set below
+     * {@link #CHARM_REPLACE_CHANCE} since shapes are a rarer, higher-value unlock than a consumable
+     * charm.
+     */
+    public static final float ANY_TANK_REPLACE_CHANCE = 0.35f;
     /** Floor applied to {@link #weight} so a zero/negative weight can't blow up the 1/weight exponent below. */
     private static final float MIN_WEIGHT = 0.0001f;
 
@@ -116,16 +141,20 @@ public record ShopEntry(
             // Charm entries are excluded from the main weighted draw and only appear via the
             // CHARM_REPLACE_CHANCE roll — see getActiveDailyShop.
             Codec.BOOL.optionalFieldOf("is_charm", false).forGetter(ShopEntry::isCharm),
-            ResourceKey.codec(FishtasticRegistries.QUEST_REGISTRY_KEY)
-                    .optionalFieldOf("unlock_quest").forGetter(ShopEntry::unlockQuest)
+            // Shape entries are excluded from the main weighted draw and only appear via the
+            // ANY_TANK_REPLACE_CHANCE roll — see getActiveDailyShop.
+            Codec.BOOL.optionalFieldOf("is_tank_shape", false).forGetter(ShopEntry::isTankShape),
+            ResourceKey.codec(FishtasticRegistries.QUEST_REGISTRY_KEY).listOf()
+                    .optionalFieldOf("unlock_quests", List.of()).forGetter(ShopEntry::unlockQuests)
     ).apply(i, ShopEntry::new));
 
     /**
      * Whether this entry is available to a player, given a lookup of whether a quest has been
-     * claimed. Ungated entries are always available.
+     * claimed. Ungated entries (no listed quests) are always available; gated entries need only
+     * one of their listed quests claimed.
      */
     public boolean isUnlockedFor(Predicate<ResourceKey<Quest>> questClaimed) {
-        return unlockQuest.map(questClaimed::test).orElse(true);
+        return unlockQuests.isEmpty() || unlockQuests.stream().anyMatch(questClaimed);
     }
 
     /**
@@ -138,9 +167,12 @@ public record ShopEntry(
      * weight and not crowd out the rest of the shop.
      * <p>
      * Separately, with probability {@link #CHARM_REPLACE_CHANCE}, one randomly-chosen slot from
-     * that draw is swapped for a weighted pick from the charm-only pool ({@link #isCharm} entries).
-     * This keeps charms from diluting/being diluted by the much larger cosmetic/bait pool while
-     * giving them a fixed, predictable appearance rate.
+     * that draw is swapped for a weighted pick from the charm-only pool ({@link #isCharm} entries),
+     * and — independently, in a different slot — with probability {@link #ANY_TANK_REPLACE_CHANCE}
+     * another slot is swapped for a weighted pick from the tank-shape-only pool ({@link #isTankShape}
+     * entries, filtered to unlocked shapes first). Both keep their pool from diluting/being diluted
+     * by the much larger cosmetic/bait pool while giving each a fixed, predictable appearance rate
+     * that doesn't grow as the player unlocks more charms or shapes.
      */
     public static Set<ResourceKey<ShopEntry>> getActiveDailyShop(Registry<ShopEntry> registry, long currentDay) {
         return getActiveDailyShop(registry, currentDay, 0);
@@ -156,7 +188,7 @@ public record ShopEntry(
     }
 
     /**
-     * Same again, but with the player's claimed-quest lookup so {@link #unlockQuest} entries can
+     * Same again, but with the player's claimed-quest lookup so {@link #unlockQuests} entries can
      * join the draw. Locked entries are filtered out <em>before</em> the weighted pick rather than
      * after, so they never silently consume one of the {@link #DAILY_SHOP_COUNT} slots and leave a
      * player who hasn't unlocked anything staring at a short shop.
@@ -171,8 +203,16 @@ public record ShopEntry(
 
         List<ResourceKey<ShopEntry>> mainKeys = new ArrayList<>();
         List<ResourceKey<ShopEntry>> charmKeys = new ArrayList<>();
+        List<ResourceKey<ShopEntry>> tankShapeKeys = new ArrayList<>();
         for (ResourceKey<ShopEntry> key : sortedKeys) {
-            (registry.getValue(key).isCharm() ? charmKeys : mainKeys).add(key);
+            ShopEntry entry = registry.getValue(key);
+            if (entry.isCharm()) {
+                charmKeys.add(key);
+            } else if (entry.isTankShape()) {
+                tankShapeKeys.add(key);
+            } else {
+                mainKeys.add(key);
+            }
         }
 
         long seed = currentDay ^ (refreshNonce * 0x9E3779B97F4A7C15L);
@@ -181,9 +221,28 @@ public record ShopEntry(
         List<ResourceKey<ShopEntry>> slots = new ArrayList<>(
                 weightedDrawWithoutReplacement(registry, mainKeys, random, DAILY_SHOP_COUNT));
 
+        // Reserved-slot indices already spent by a replacement this draw, so the charm and shape
+        // rolls below can't clobber each other's pick — each pool keeps its own independent,
+        // undiluted appearance rate.
+        Set<Integer> spentSlotIndices = new HashSet<>();
+
         if (!slots.isEmpty() && !charmKeys.isEmpty() && random.nextFloat() < CHARM_REPLACE_CHANCE) {
             ResourceKey<ShopEntry> charm = weightedDrawWithoutReplacement(registry, charmKeys, random, 1).getFirst();
-            slots.set(random.nextInt(slots.size()), charm);
+            int index = random.nextInt(slots.size());
+            slots.set(index, charm);
+            spentSlotIndices.add(index);
+        }
+
+        if (!slots.isEmpty() && !tankShapeKeys.isEmpty() && random.nextFloat() < ANY_TANK_REPLACE_CHANCE) {
+            List<Integer> availableIndices = IntStream.range(0, slots.size())
+                    .filter(index -> !spentSlotIndices.contains(index))
+                    .boxed()
+                    .toList();
+            if (!availableIndices.isEmpty()) {
+                ResourceKey<ShopEntry> tankShape =
+                        weightedDrawWithoutReplacement(registry, tankShapeKeys, random, 1).getFirst();
+                slots.set(availableIndices.get(random.nextInt(availableIndices.size())), tankShape);
+            }
         }
 
         return new LinkedHashSet<>(slots);

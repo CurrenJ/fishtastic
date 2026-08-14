@@ -8,7 +8,20 @@
   },
   "reward": {
     "quest_tokens": 15,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "sturdy",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:birch_planks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:light_blue_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": false,
   "display_name": "Bluegill Beginner",

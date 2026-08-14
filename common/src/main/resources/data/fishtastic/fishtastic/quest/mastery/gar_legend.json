@@ -9,7 +9,20 @@
   },
   "reward": {
     "quest_tokens": 113,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "rampart",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:blackstone",
+            "sand": "minecraft:soul_soil",
+            "glass": "fishtastic:gray_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/gar_veteran",

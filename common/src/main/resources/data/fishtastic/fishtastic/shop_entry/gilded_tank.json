@@ -17,5 +17,5 @@
     }
   ],
   "daily_max_purchases": 1,
-  "unlock_quest": "fishtastic:challenge/the_grand_haul"
+  "unlock_quests": ["fishtastic:challenge/the_grand_haul"]
 }

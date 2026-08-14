@@ -17,6 +17,7 @@ import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -130,13 +131,20 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
         return QuestClientCache.getProgress(quest.identifier()).claimed();
     }
 
-    /** The unlock quest's authored display name, read from the synced quest registry. */
+    /**
+     * The unlock quests' authored display names, joined with " or " since claiming any one of them
+     * unlocks the shape — read from the synced quest registry.
+     */
     private static Component questDisplayName(FishTankShape shape) {
-        return shape.unlockQuest()
-                .flatMap(key -> Minecraft.getInstance().level.registryAccess()
-                        .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY).getOptional(key))
-                .map(quest -> Component.literal(quest.displayName()))
-                .orElse(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest"));
+        var quests = Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        MutableComponent joined = null;
+        for (ResourceKey<Quest> key : shape.unlockQuests()) {
+            Component name = quests.getOptional(key)
+                    .<Component>map(quest -> Component.literal(quest.displayName()))
+                    .orElse(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest"));
+            joined = joined == null ? name.copy() : joined.append(" / ").append(name);
+        }
+        return joined != null ? joined : Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest");
     }
 
     private static Component lockedShapeLabel(FishTankShape shape) {

@@ -14,7 +14,6 @@ import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -32,11 +31,15 @@ public final class ShopEntryGameTests {
     }
 
     private static ShopEntry entry(float weight) {
-        return new ShopEntry("", "", 10, weight, List.of(), 0, false, Optional.empty());
+        return new ShopEntry("", "", 10, weight, List.of(), 0, false, false, List.of());
     }
 
     private static ShopEntry charmEntry(float weight) {
-        return new ShopEntry("", "", 10, weight, List.of(), 0, true, Optional.empty());
+        return new ShopEntry("", "", 10, weight, List.of(), 0, true, false, List.of());
+    }
+
+    private static ShopEntry tankShapeEntry(float weight) {
+        return new ShopEntry("", "", 10, weight, List.of(), 0, false, true, List.of());
     }
 
     private static Registry<ShopEntry> buildRegistry(int count) {
@@ -69,8 +72,26 @@ public final class ShopEntryGameTests {
         return registry;
     }
 
+    /** Builds a fixture registry with {@code mainCount} non-shape entries plus {@code shapeCount} tank-shape entries, all weight 1.0. */
+    private static Registry<ShopEntry> buildRegistryWithTankShapes(int mainCount, int shapeCount) {
+        MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
+        for (int i = 0; i < mainCount; i++) {
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "main_" + i));
+            registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        for (int i = 0; i < shapeCount; i++) {
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "shape_" + i));
+            registry.register(key, tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        return registry;
+    }
+
     private static boolean containsAnyCharm(Set<ResourceKey<ShopEntry>> active) {
         return active.stream().anyMatch(k -> k.identifier().getPath().startsWith("charm_"));
+    }
+
+    private static boolean containsAnyTankShape(Set<ResourceKey<ShopEntry>> active) {
+        return active.stream().anyMatch(k -> k.identifier().getPath().startsWith("shape_"));
     }
 
     public static void getActiveDailyShopIsStablePerDay(GameTestHelper helper) {
@@ -185,6 +206,90 @@ public final class ShopEntryGameTests {
         Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, 5L);
 
         helper.assertTrue(active.isEmpty(), "With no main-pool entries, no slots can be drawn or replaced, got " + active.size());
+        helper.succeed();
+    }
+
+    /**
+     * With a tank-shape pool present, the fraction of days containing at least one shape should
+     * track {@link ShopEntry#ANY_TANK_REPLACE_CHANCE} — mirrors the charm-rate test above, since
+     * this is the same isolation mechanism applied to a second pool. This is what guarantees a
+     * shape's appearance rate stays flat no matter how many shapes a player has unlocked, rather
+     * than growing as more shape entries join the pool.
+     */
+    public static void getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistryWithTankShapes(10, 3);
+
+        int trials = 3000;
+        int withShape = 0;
+        for (long day = 0; day < trials; day++) {
+            Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, day);
+            helper.assertTrue(active.size() == ShopEntry.DAILY_SHOP_COUNT,
+                "Tank-shape replacement must not change the slot count, got " + active.size());
+            if (containsAnyTankShape(active)) withShape++;
+        }
+
+        double rate = withShape / (double) trials;
+        double expected = ShopEntry.ANY_TANK_REPLACE_CHANCE;
+        helper.assertTrue(Math.abs(rate - expected) < 0.05,
+            "Tank-shape appearance rate should be close to " + expected + ", got " + rate);
+        helper.succeed();
+    }
+
+    /** No tank-shape pool at all — the replacement branch must never fire and never crash. */
+    public static void getActiveDailyShopNeverReplacesWithoutATankShapePool(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistry(10);
+
+        for (long day = 0; day < 200; day++) {
+            Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, day);
+            helper.assertTrue(active.size() == ShopEntry.DAILY_SHOP_COUNT,
+                "Without a tank-shape pool, the main draw size must be unaffected, got " + active.size());
+        }
+        helper.succeed();
+    }
+
+    /** An empty main pool must not crash the shape replacement roll either. */
+    public static void getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistryWithTankShapes(0, 3);
+
+        Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, 5L);
+
+        helper.assertTrue(active.isEmpty(), "With no main-pool entries, no slots can be drawn or replaced, got " + active.size());
+        helper.succeed();
+    }
+
+    /**
+     * Charms and shapes are reserved into different slots the same day — a shape roll must never
+     * silently overwrite the slot a charm roll just filled (or vice versa), which is exactly what
+     * the spent-slot-index bookkeeping in getActiveDailyShop exists to prevent.
+     */
+    public static void getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(GameTestHelper helper) {
+        MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
+        for (int i = 0; i < 10; i++) {
+            registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
+                    Identifier.fromNamespaceAndPath("fishtastic", "main_" + i)), entry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        for (int i = 0; i < 3; i++) {
+            registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
+                    Identifier.fromNamespaceAndPath("fishtastic", "charm_" + i)), charmEntry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+        for (int i = 0; i < 3; i++) {
+            registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
+                    Identifier.fromNamespaceAndPath("fishtastic", "shape_" + i)), tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
+        }
+
+        int trials = 3000;
+        int withBoth = 0;
+        for (long day = 0; day < trials; day++) {
+            Set<ResourceKey<ShopEntry>> active = ShopEntry.getActiveDailyShop(registry, day);
+            helper.assertTrue(active.size() == ShopEntry.DAILY_SHOP_COUNT,
+                "Combined charm+shape replacement must not change the slot count, got " + active.size());
+            if (containsAnyCharm(active) && containsAnyTankShape(active)) withBoth++;
+        }
+
+        double rate = withBoth / (double) trials;
+        double expected = ShopEntry.CHARM_REPLACE_CHANCE * ShopEntry.ANY_TANK_REPLACE_CHANCE;
+        helper.assertTrue(Math.abs(rate - expected) < 0.05,
+            "Both-present rate should be close to the independent product " + expected + ", got " + rate);
         helper.succeed();
     }
 

@@ -9,7 +9,20 @@
   },
   "reward": {
     "quest_tokens": 40,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "reinforced",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_pillar",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:magenta_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/tetra_tracker",

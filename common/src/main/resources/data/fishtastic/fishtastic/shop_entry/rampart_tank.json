@@ -3,6 +3,7 @@
   "description": "A tank with thick chamfered caps and the tightest corner taper yet, Bastion's fortified successor. Earned by reaching Angler Legend (catch 500 fish).",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:mastery/angler_legend"
+  "unlock_quests": ["fishtastic:mastery/angler_legend", "fishtastic:mastery/gar_legend"]
 }

@@ -6,6 +6,7 @@ import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
+import grill24.fishtastic.fishtank.FishTankShape;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceKey;
@@ -36,7 +37,7 @@ public final class CapstoneRewardGameTests {
 
         Set<ResourceKey<ShopEntry>> gated = new HashSet<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
-            if (e.getValue().unlockQuest().isPresent()) gated.add(e.getKey());
+            if (!e.getValue().unlockQuests().isEmpty()) gated.add(e.getKey());
         }
         helper.assertTrue(!gated.isEmpty(), "Expected at least one unlock-gated shop entry to exist");
 
@@ -61,7 +62,7 @@ public final class CapstoneRewardGameTests {
 
         Set<ResourceKey<ShopEntry>> gated = new HashSet<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
-            if (e.getValue().unlockQuest().isPresent()) gated.add(e.getKey());
+            if (!e.getValue().unlockQuests().isEmpty()) gated.add(e.getKey());
         }
 
         Set<ResourceKey<ShopEntry>> seen = new HashSet<>();
@@ -93,10 +94,20 @@ public final class CapstoneRewardGameTests {
     }
 
     /**
-     * Every gated entry must sell exactly what its unlocking quest granted. A mismatch would mean
-     * paying a premium for a differently-configured — usually plain — item.
+     * Every gated entry must be earnable, for real, via <em>each</em> of its unlocking quests — not
+     * just at least one of them — so a path that only flips the unlock flag without granting
+     * anything can't ship silently (see the 2026-08-14 fix where the alternate-path quests were
+     * originally added with empty rewards and had to be backfilled).
+     *
+     * <p>What "earnable" requires differs by entry kind. Single-quest capstone entries (material
+     * tanks, charms) are a genuine one-of-a-kind exclusive re-sold at a premium, so their one quest
+     * must grant the <em>exact</em> item the shop sells — component-for-component. Multi-quest shape
+     * entries ({@link ShopEntry#isTankShape}) intentionally vary materials per unlock path (each
+     * quest's tank is themed to that quest — see e.g. TRIMMED's {@code angler_apprentice} vs.
+     * {@code gar_hunter} rewards), so only the <em>shape</em> has to match; requiring identical
+     * materials there would be enforcing sameness the design deliberately avoids.
      */
-    public static void gatedEntrySellsTheSameItemItsQuestGranted(GameTestHelper helper) {
+    public static void gatedEntryIsEarnableViaEveryUnlockQuest(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
         Registry<Quest> quests = helper.getLevel().registryAccess()
@@ -105,31 +116,44 @@ public final class CapstoneRewardGameTests {
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
             ShopEntry entry = e.getValue();
-            if (entry.unlockQuest().isEmpty()) continue;
+            if (entry.unlockQuests().isEmpty()) continue;
 
-            Quest quest = quests.getOptional(entry.unlockQuest().get()).orElse(null);
-            if (quest == null) {
-                failures.add(e.getKey().identifier() + ": unlock_quest does not resolve");
-                continue;
-            }
-            List<QuestReward.RewardItem> granted = quest.reward().items();
-            if (granted.isEmpty()) {
-                failures.add(e.getKey().identifier() + ": unlocking quest grants no item, so there is "
-                        + "nothing exclusive for this entry to re-sell");
-                continue;
-            }
-
-            // "Among", not "the first": a quest may hand out several things, and a gated entry
-            // only has to correspond to one of them.
+            // "Among", not "the first": a quest may hand out several things, and only has to
+            // correspond to one of them.
             ItemStack fromShop = entry.reward().getFirst().toItemStack();
-            boolean matched = granted.stream()
-                    .map(QuestReward.RewardItem::toStack)
-                    .anyMatch(fromQuest -> ItemStack.isSameItemSameComponents(fromQuest, fromShop));
+            FishTankShape expectedShape = entry.isTankShape()
+                    ? fromShop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value())
+                    : null;
 
-            if (!matched) {
-                failures.add(e.getKey().identifier() + ": sells " + fromShop
-                        + " but its quest grants none of " + granted.stream()
-                        .map(r -> r.toStack().toString()).toList());
+            for (ResourceKey<Quest> questKey : entry.unlockQuests()) {
+                Quest quest = quests.getOptional(questKey).orElse(null);
+                if (quest == null) {
+                    failures.add(e.getKey().identifier() + ": unlock_quests entry " + questKey.identifier() + " does not resolve");
+                    continue;
+                }
+
+                List<QuestReward.RewardItem> granted = quest.reward().items();
+                if (granted.isEmpty()) {
+                    failures.add(e.getKey().identifier() + ": unlock quest " + questKey.identifier()
+                            + " grants no item, so claiming it leaves the player with the unlock but no tank");
+                    continue;
+                }
+
+                boolean matched = entry.isTankShape()
+                        ? granted.stream()
+                                .map(QuestReward.RewardItem::toStack)
+                                .filter(stack -> stack.is(fromShop.getItem()))
+                                .map(stack -> stack.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()))
+                                .anyMatch(shape -> shape == expectedShape)
+                        : granted.stream()
+                                .map(QuestReward.RewardItem::toStack)
+                                .anyMatch(fromQuest -> ItemStack.isSameItemSameComponents(fromQuest, fromShop));
+                if (!matched) {
+                    failures.add(e.getKey().identifier() + ": sells " + fromShop + " but unlock quest "
+                            + questKey.identifier() + " grants none of " + granted.stream()
+                            .map(r -> r.toStack().toString()).toList()
+                            + (entry.isTankShape() ? " matching shape " + expectedShape : ""));
+                }
             }
         }
 
@@ -151,12 +175,12 @@ public final class CapstoneRewardGameTests {
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
-            ResourceKey<Quest> gate = e.getValue().unlockQuest().orElse(null);
-            if (gate == null) continue;
-            Quest quest = quests.getOptional(gate).orElse(null);
-            if (quest != null && quest.category() == grill24.fishtastic.data.QuestCategory.DAILY) {
-                failures.add(e.getKey().identifier() + ": gated behind daily quest " + gate.identifier()
-                        + ", which clears its claimed flag every rotation");
+            for (ResourceKey<Quest> gate : e.getValue().unlockQuests()) {
+                Quest quest = quests.getOptional(gate).orElse(null);
+                if (quest != null && quest.category() == grill24.fishtastic.data.QuestCategory.DAILY) {
+                    failures.add(e.getKey().identifier() + ": gated behind daily quest " + gate.identifier()
+                            + ", which clears its claimed flag every rotation");
+                }
             }
         }
 

@@ -3,6 +3,7 @@
   "description": "A tank with decorative inlay brackets adorning each face, framed around a standard sand bed. Earned by clearing every daily quest in a single day.",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:challenge/daily_completionist"
+  "unlock_quests": ["fishtastic:challenge/daily_completionist", "fishtastic:mastery/tetra_legend"]
 }

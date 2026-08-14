@@ -9,7 +9,20 @@
   },
   "reward": {
     "quest_tokens": 53,
-    "items": []
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "faceted",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:spruce_log",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:lime_clear_stained_glass"
+          }
+        }
+      }
+    ]
   },
   "hidden": true,
   "prerequisite": "fishtastic:mastery/gar_hunter",

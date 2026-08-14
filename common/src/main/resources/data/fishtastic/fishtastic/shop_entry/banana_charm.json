@@ -11,5 +11,5 @@
   ],
   "daily_max_purchases": 1,
   "is_charm": true,
-  "unlock_quest": "fishtastic:mastery/bluegill_adept"
+  "unlock_quests": ["fishtastic:mastery/bluegill_adept"]
 }

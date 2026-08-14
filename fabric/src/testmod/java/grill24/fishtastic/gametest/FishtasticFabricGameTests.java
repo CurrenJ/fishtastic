@@ -708,8 +708,8 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void gatedEntrySellsTheSameItemItsQuestGranted(GameTestHelper helper) {
-        CapstoneRewardGameTests.gatedEntrySellsTheSameItemItsQuestGranted(helper);
+    public void gatedEntryIsEarnableViaEveryUnlockQuest(GameTestHelper helper) {
+        CapstoneRewardGameTests.gatedEntryIsEarnableViaEveryUnlockQuest(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -986,6 +986,26 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopNeverReplacesWithoutATankShapePool(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopNeverReplacesWithoutATankShapePool(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(GameTestHelper helper) {
+        ShopEntryGameTests.getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(helper);
     }
 
     // -------------------------------------------------------------------------

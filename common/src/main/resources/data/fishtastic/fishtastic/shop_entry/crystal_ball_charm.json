@@ -11,5 +11,5 @@
   ],
   "daily_max_purchases": 1,
   "is_charm": true,
-  "unlock_quest": "fishtastic:challenge/quality_run"
+  "unlock_quests": ["fishtastic:challenge/quality_run"]
 }

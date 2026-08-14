@@ -3,6 +3,7 @@
   "description": "A tank fringed with ragged inlay trim, its sand bed tucked behind a solid band at the base. Earned by landing a prized catch in a thunderstorm.",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:challenge/storm_prize"
+  "unlock_quests": ["fishtastic:challenge/storm_prize", "fishtastic:mastery/tetra_tracker"]
 }

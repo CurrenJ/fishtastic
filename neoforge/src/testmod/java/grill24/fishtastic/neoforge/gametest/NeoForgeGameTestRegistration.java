@@ -463,6 +463,14 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopNeverReplacesWithoutACharmPool);
         register(event, env, "get_active_daily_shop_handles_empty_main_pool_with_charms_only", 200,
             ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly);
+        register(event, env, "get_active_daily_shop_tank_shape_replacement_rate_matches_configured_chance", 200,
+            ShopEntryGameTests::getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance);
+        register(event, env, "get_active_daily_shop_never_replaces_without_a_tank_shape_pool", 200,
+            ShopEntryGameTests::getActiveDailyShopNeverReplacesWithoutATankShapePool);
+        register(event, env, "get_active_daily_shop_handles_empty_main_pool_with_tank_shapes_only", 200,
+            ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly);
+        register(event, env, "get_active_daily_shop_charm_and_tank_shape_replacements_can_coexist", 200,
+            ShopEntryGameTests::getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist);
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);
@@ -522,8 +530,8 @@ public class NeoForgeGameTestRegistration {
             CapstoneRewardGameTests::gatedEntriesCanAppearOnceTheirQuestIsClaimed);
         register(event, env, "locked_entries_do_not_consume_shop_slots", 200,
             CapstoneRewardGameTests::lockedEntriesDoNotConsumeShopSlots);
-        register(event, env, "gated_entry_sells_the_same_item_its_quest_granted", 200,
-            CapstoneRewardGameTests::gatedEntrySellsTheSameItemItsQuestGranted);
+        register(event, env, "gated_entry_is_earnable_via_every_unlock_quest", 200,
+            CapstoneRewardGameTests::gatedEntryIsEarnableViaEveryUnlockQuest);
         register(event, env, "unlock_gates_never_point_at_daily_quests", 200,
             CapstoneRewardGameTests::unlockGatesNeverPointAtDailyQuests);
         register(event, env, "capstone_tanks_carry_their_materials_component", 200,

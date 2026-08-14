@@ -3,6 +3,7 @@
   "description": "A tank with thick top and bottom caps, a chamfered base ring, and a stepped sand bed. Earned by surveying every fish of the Nether's molten waters.",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:explorer/nether_collector"
+  "unlock_quests": ["fishtastic:explorer/nether_collector", "fishtastic:challenge/predator_run"]
 }

@@ -3,6 +3,7 @@
   "description": "A tank with lightly braced corners, tapering to a slender post between a wider rim and base. Earned by reaching Angler Apprentice (catch 50 fish).",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:mastery/angler_apprentice"
+  "unlock_quests": ["fishtastic:mastery/angler_apprentice", "fishtastic:mastery/gar_hunter"]
 }

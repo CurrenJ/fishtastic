@@ -3,6 +3,7 @@
   "description": "A tank with a deep corner taper and a faceted, stepped sand bed that narrows at the ends. Earned by ambushing frenzied fish at dawn.",
   "cost": 100,
   "weight": 0.5,
+  "is_tank_shape": true,
   "reward": [
     {
       "id": "fishtastic:fish_tank",
@@ -17,5 +18,5 @@
       }
     }
   ],
-  "unlock_quest": "fishtastic:challenge/sunrise_ambush"
+  "unlock_quests": ["fishtastic:challenge/sunrise_ambush", "fishtastic:mastery/gar_veteran"]
 }

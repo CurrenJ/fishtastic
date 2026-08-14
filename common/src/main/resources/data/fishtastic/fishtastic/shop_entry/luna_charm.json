@@ -11,5 +11,5 @@
   ],
   "daily_max_purchases": 1,
   "is_charm": true,
-  "unlock_quest": "fishtastic:challenge/ghost_ships_sting"
+  "unlock_quests": ["fishtastic:challenge/ghost_ships_sting"]
 }
