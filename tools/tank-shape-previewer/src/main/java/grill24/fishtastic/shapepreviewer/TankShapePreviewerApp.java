@@ -1,6 +1,8 @@
 package grill24.fishtastic.shapepreviewer;
 
 import com.google.gson.JsonObject;
+import grill24.fishtastic.shapegen.BrambleFrameGeometryGenerator;
+import grill24.fishtastic.shapegen.BrambleGlassGeometryGenerator;
 import grill24.fishtastic.shapegen.CornerTaperProfile;
 import grill24.fishtastic.shapegen.OrnateFrameGeometryGenerator;
 import grill24.fishtastic.shapegen.OrnateGlassGeometryGenerator;
@@ -131,7 +133,8 @@ public class TankShapePreviewerApp extends Application {
                 "SKYLIGHT (standard + skylight)",
                 "STURDY",
                 "HONED (thicker_chamfer_shape_set tank 0)",
-                "RAMPART (thicker_chamfer_shape_set tank 1)");
+                "RAMPART (thicker_chamfer_shape_set tank 1)",
+                "BRAMBLE (references)");
         // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
         // used by the screenshot workflow to render a specific shape without UI interaction.
         int initialIndex = 0;
@@ -149,6 +152,7 @@ public class TankShapePreviewerApp extends Application {
                     case "sturdy" -> 8;
                     case "honed" -> 9;
                     case "rampart" -> 10;
+                    case "bramble" -> 11;
                     default -> 0;
                 };
             }
@@ -226,19 +230,20 @@ public class TankShapePreviewerApp extends Application {
             default -> CornerTaperProfile.STANDARD;
         };
         // Every tapered/stepped shape except STANDARD routes through the shell frame + stepped
-        // sand generators (matches TankShapeGeometryStrategies.ALL); ORNATE/SHAGGY are inlay
-        // shapes with no taper at all, on the standard square sand.
+        // sand generators (matches TankShapeGeometryStrategies.ALL); ORNATE/SHAGGY/BRAMBLE are
+        // inlay shapes with no taper at all, on the standard square sand.
         boolean shell = idx == 1 || idx == 2 || idx == 3 || idx == 4 || idx == 8 || idx == 9 || idx == 10;
 
         JsonObject frame = switch (idx) {
             case 5 -> OrnateFrameGeometryGenerator.generate(perm);
             case 6 -> ShaggyFrameGeometryGenerator.generate(perm);
             case 7 -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
+            case 11 -> BrambleFrameGeometryGenerator.generate(perm);
             default -> shell ? ShellFrameGeometryGenerator.generate(perm, profile)
                              : TaperedFrameGeometryGenerator.generate(perm, profile);
         };
         JsonObject sand = switch (idx) {
-            case 5, 6 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
+            case 5, 6, 11 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
             default -> shell ? SteppedSandGeometryGenerator.generate(perm, profile)
                              : SandGeometryGenerator.generate(perm, profile);
         };
@@ -246,6 +251,7 @@ public class TankShapePreviewerApp extends Application {
             case 5 -> OrnateGlassGeometryGenerator.generate(perm);
             case 6 -> ShaggyGlassGeometryGenerator.generate(perm);
             case 7 -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
+            case 11 -> BrambleGlassGeometryGenerator.generate(perm);
             default -> TaperedGlassGeometryGenerator.generate(perm, profile);
         };
 

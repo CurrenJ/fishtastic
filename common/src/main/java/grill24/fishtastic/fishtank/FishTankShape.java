@@ -126,7 +126,18 @@ public enum FishTankShape implements TooltipProvider {
      */
     SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/tetra_tracker"))));
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/tetra_tracker")))),
+    /**
+     * Bramble tank: no plain corner post at all — every interior Y band carries its own thorny,
+     * asymmetric inlay pattern read off {@code docs/tank-shapes/bramble_shape_*.png} (see
+     * BrambleFrameGeometryGenerator / BrambleGlassGeometryGenerator, spans in BrambleTankSpans).
+     * Shares STANDARD's connectionCollection like {@link #FACETED}.
+     * Locked until {@code explorer/jungle_downpour} is claimed — unlike every other shape's
+     * any-one-of-two gating, bramble is deliberately tied to this single quest — see
+     * {@link #unlockQuests}.
+     */
+    BRAMBLE(Fishtastic.id("bramble"), Fishtastic.id("standard"), "fishtank_bramble",
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/jungle_downpour"))));
 
     private final Identifier id;
     private final Identifier connectionCollection;

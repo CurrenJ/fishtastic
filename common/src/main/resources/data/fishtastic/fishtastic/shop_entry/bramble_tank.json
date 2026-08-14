@@ -1,0 +1,22 @@
+{
+  "display_name": "Bramble Fish Tank",
+  "description": "A tank overgrown with thorny, asymmetric frame brambles from ceiling to floor. Earned by catching Rainfordia in the jungle during a downpour.",
+  "cost": 100,
+  "weight": 0.5,
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "bramble",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:jungle_planks",
+          "sand": "minecraft:mud",
+          "glass": "fishtastic:lime_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quests": ["fishtastic:explorer/jungle_downpour"]
+}

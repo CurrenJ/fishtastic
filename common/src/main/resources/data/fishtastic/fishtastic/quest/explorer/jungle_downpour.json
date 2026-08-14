@@ -6,7 +6,23 @@
     "biome_condition": "minecraft:is_jungle",
     "weather_condition": "rain"
   },
-  "reward": { "quest_tokens": 14, "items": [] },
+  "reward": {
+    "quest_tokens": 14,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "bramble",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:jungle_planks",
+            "sand": "minecraft:mud",
+            "glass": "fishtastic:lime_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Jungle Downpour",
   "description": "Catch 3 Rainfordia in the jungle during rain."

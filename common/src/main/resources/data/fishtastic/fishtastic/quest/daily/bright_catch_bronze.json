@@ -4,8 +4,7 @@
   "display_name": "Bright Catch",
   "objective": {
     "target_count": 3,
-    "target_species_tag": "fishtastic:color_yellow",
-    "notification_interval": 3
+    "target_species_tag": "fishtastic:color_yellow"
   },
   "reward": {
     "quest_tokens": 6
