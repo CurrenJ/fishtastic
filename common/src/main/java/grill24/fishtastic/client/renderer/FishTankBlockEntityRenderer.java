@@ -1,10 +1,12 @@
 package grill24.fishtastic.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.SwarmConfig;
@@ -12,6 +14,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.world.level.block.Rotation;
@@ -31,13 +34,18 @@ import net.minecraft.client.renderer.blockentity.state.ChestRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -81,6 +89,41 @@ public class FishTankBlockEntityRenderer
     public static final float COSMETIC_FLOOR_Y = CosmeticGridCell.FLOOR_Y;
     // Underside of the tank's glass ceiling, in local block-space Y — where rising bubbles pop.
     private static final float TANK_CEILING_Y = 15f / 16f;
+
+    // ── Water fill behind the glass ──────────────────────────────────────────────
+    // Flat quads on the STANDARD shape's four side faces (not up/down), textured with vanilla's
+    // animated still-water sprite, sitting just inside each interior wall. Not wired through the
+    // per-shape geometry generators (tools/tank-shape-gen) yet — every other shape still renders
+    // glass-only. See docs/fish-tanks.md for the real geometry axis.
+    private static final SpriteId WATER_STILL_SPRITE =
+            new SpriteId(TextureAtlas.LOCATION_BLOCKS, Identifier.fromNamespaceAndPath("minecraft", "block/water_still"));
+    // Built from FishtasticRenderPipelines.TANK_WATER_FILL (depth write disabled) rather than
+    // RenderTypes.entityTranslucent — see that pipeline's doc for why depth write breaks this.
+    private static final RenderType WATER_FILL_RENDER_TYPE = RenderType.create(
+            "fishtastic_tank_water_fill",
+            RenderSetup.builder(FishtasticRenderPipelines.TANK_WATER_FILL)
+                    .withTexture("Sampler0", TextureAtlas.LOCATION_BLOCKS)
+                    .useLightmap()
+                    .useOverlay()
+                    .createRenderSetup());
+    // Exact interior bounds of the glass panes in fish_tank_glass_0.json (elements span 1-15 on
+    // every axis but depth): matching these precisely, rather than the floor grid's WALL_THICKNESS
+    // convention (which starts 1px higher), is what was leaving a sliver of bare frame visible.
+    private static final float WATER_FILL_MIN = 1f / 16f;
+    private static final float WATER_FILL_MAX = 15f / 16f;
+    // How far inside each wall's interior glass surface the quad sits. Kept tight: recessing it
+    // further reads fine head-on but lets the corner posts' own depth eclipse the quad's edges
+    // from any off-angle view, which is what looked like the fill "falling short" at the sides.
+    private static final float WATER_FILL_RECESS = 0.05f / 16f;
+    // water_still.png is a near-grayscale ripple pattern on its own — vanilla only reads as "blue
+    // water" because LiquidBlockRenderer multiplies in the biome water tint. We have no biome here,
+    // so bake in a fixed tint (Minecraft's default/plains water color, 0x3F76E4) instead of white.
+    private static final int WATER_FILL_TINT_R = 0x3F;
+    private static final int WATER_FILL_TINT_G = 0x76;
+    private static final int WATER_FILL_TINT_B = 0xE4;
+    private static final int WATER_FILL_ALPHA = 210;
+    private static final Direction[] WATER_FILL_FACES =
+            {Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST};
 
     // ── Chest cosmetic hinge-open cycle (ticks) ─────────────────────────────────
     private static final int CHEST_OPEN_RAMP_TICKS = 10;
@@ -127,6 +170,8 @@ public class FishTankBlockEntityRenderer
         if (level == null) return;
 
         state.hasOpenDownFace = blockEntity.getOpenFaces().contains(Direction.DOWN);
+        state.openFaces = blockEntity.getOpenFaces();
+        state.shape = blockEntity.getShape();
         state.gameTimeTicks = level.getGameTime() + partialTick;
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
         state.structureCosmetics = resolveStructureCosmetics(blockEntity, level);
@@ -173,6 +218,7 @@ public class FishTankBlockEntityRenderer
             CameraRenderState camera) {
 
         renderCosmetics(state, poseStack, nodes);
+        renderTankWaterFill(state, poseStack, nodes);
 
         if (state.fishInstances.isEmpty()) return;
 
@@ -399,6 +445,81 @@ public class FishTankBlockEntityRenderer
             if (!blockEntity.getItem(slot).isEmpty()) count++;
         }
         return count;
+    }
+
+    /**
+     * Draws one flat quad per closed side wall (north/south/east/west — never up/down), textured
+     * with vanilla's animated still-water sprite, set just inside that wall's interior glass
+     * surface. Gated to STANDARD; a face is skipped entirely when open to a connected neighbor
+     * tank, since there's no glass there to sit behind. Every *other* closed wall's quad has its
+     * in-plane extent pushed out to the full block boundary on whichever edge borders an open
+     * connection (instead of stopping at this tank's own interior corner), so two connected tanks'
+     * water reads as one continuous surface rather than leaving a gap at the seam.
+     */
+    private void renderTankWaterFill(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+        if (state.shape != FishTankShape.STANDARD || !FishtasticClientConfig.isTankWaterFillEnabled()) return;
+
+        TextureAtlasSprite sprite = chestSprites.get(WATER_STILL_SPRITE);
+        RenderType renderType = WATER_FILL_RENDER_TYPE;
+        float u0 = sprite.getU0();
+        float u1 = sprite.getU1();
+        float v0 = sprite.getV0();
+        float v1 = sprite.getV1();
+        int light = state.lightCoords;
+
+        float xLo = state.openFaces.contains(Direction.WEST) ? 0f : WATER_FILL_MIN;
+        float xHi = state.openFaces.contains(Direction.EAST) ? 1f : WATER_FILL_MAX;
+        float zLo = state.openFaces.contains(Direction.NORTH) ? 0f : WATER_FILL_MIN;
+        float zHi = state.openFaces.contains(Direction.SOUTH) ? 1f : WATER_FILL_MAX;
+        float yLo = state.openFaces.contains(Direction.DOWN) ? 0f : WATER_FILL_MIN;
+        float yHi = state.openFaces.contains(Direction.UP) ? 1f : WATER_FILL_MAX;
+
+        for (Direction face : WATER_FILL_FACES) {
+            if (state.openFaces.contains(face)) continue;
+
+            // NORTH/SOUTH walls run along the X axis (their normal is on Z); EAST/WEST run along Z.
+            boolean horizontalIsX = face.getAxis() == Direction.Axis.Z;
+            float horizontalLo = horizontalIsX ? xLo : zLo;
+            float horizontalHi = horizontalIsX ? xHi : zHi;
+            submitWaterFillQuad(nodes, poseStack, renderType, face, horizontalLo, horizontalHi, yLo, yHi,
+                    u0, u1, v0, v1, light);
+        }
+    }
+
+    /** Emits the interior-facing water quad for a single closed side wall. */
+    private static void submitWaterFillQuad(SubmitNodeCollector nodes, PoseStack poseStack, RenderType renderType,
+            Direction face, float horizontalLo, float horizontalHi, float verticalLo, float verticalHi,
+            float u0, float u1, float v0, float v1, int light) {
+        boolean positive = face.getStepX() > 0 || face.getStepZ() > 0;
+        float depth = positive ? WATER_FILL_MAX - WATER_FILL_RECESS : WATER_FILL_MIN + WATER_FILL_RECESS;
+        boolean horizontalIsX = face.getAxis() == Direction.Axis.Z;
+        float nx = face.getStepX();
+        float ny = face.getStepY();
+        float nz = face.getStepZ();
+
+        nodes.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
+            if (horizontalIsX) {
+                addWaterFillVertex(buffer, pose, horizontalLo, verticalHi, depth, u0, v0, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, horizontalLo, verticalLo, depth, u0, v1, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, horizontalHi, verticalLo, depth, u1, v1, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, horizontalHi, verticalHi, depth, u1, v0, nx, ny, nz, light);
+            } else {
+                addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalLo, u0, v0, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalLo, u0, v1, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalHi, u1, v1, nx, ny, nz, light);
+                addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalHi, u1, v0, nx, ny, nz, light);
+            }
+        });
+    }
+
+    private static void addWaterFillVertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z,
+            float u, float v, float nx, float ny, float nz, int light) {
+        buffer.addVertex(pose, x, y, z)
+                .setColor(WATER_FILL_TINT_R, WATER_FILL_TINT_G, WATER_FILL_TINT_B, WATER_FILL_ALPHA)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light)
+                .setNormal(pose, nx, ny, nz);
     }
 
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {

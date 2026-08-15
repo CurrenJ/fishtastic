@@ -7,11 +7,52 @@ import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.shaders.UniformType;
+import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 
+import java.util.Optional;
+
 public final class FishtasticRenderPipelines {
+
+    /**
+     * Same shading as vanilla's {@code entity_translucent} (core/entity shader, per-face lighting,
+     * overlay + lightmap samplers) but with depth WRITE disabled. Vanilla's version inherits
+     * {@code DepthStencilState.DEFAULT} (write=true) from its base snippet, which is fine for a
+     * single translucent surface but wrong for the fish tank's water fill: since the water quad
+     * sits nearer the camera than fish deeper in the tank, writing its depth caused every fish (and
+     * their quality-outline glow) drawn afterward to fail the depth test and vanish outright. Depth
+     * TEST stays on, so opaque geometry (frame, sand) still correctly occludes the water quad.
+     * <p>
+     * Built by cloning {@code RenderPipelines.ENTITY_TRANSLUCENT} into a {@link Snippet} rather than
+     * starting from its base {@code ENTITY_SNIPPET}, which is package-private in vanilla — cloning
+     * the finished pipeline gets the identical shader/uniform/sampler layout without needing that access.
+     */
+    public static final RenderPipeline TANK_WATER_FILL = buildTankWaterFillPipeline();
+
+    private static RenderPipeline buildTankWaterFillPipeline() {
+        RenderPipeline base = RenderPipelines.ENTITY_TRANSLUCENT;
+        Snippet snippet = new Snippet(
+                Optional.of(base.getVertexShader()),
+                Optional.of(base.getFragmentShader()),
+                Optional.of(base.getShaderDefines()),
+                Optional.of(base.getSamplers()),
+                Optional.of(base.getUniforms()),
+                Optional.of(base.getColorTargetState()),
+                Optional.empty(), // depth-stencil state: overridden below with write disabled
+                Optional.of(base.getPolygonMode()),
+                Optional.of(base.isCull()),
+                Optional.of(base.getVertexFormat()),
+                Optional.of(base.getVertexFormatMode())
+        );
+
+        return RenderPipeline.builder(snippet)
+                .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/tank_water_fill"))
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .build();
+    }
 
     /**
      * std140 size of the {@code ItemOutlineParams} UBO shared by all outline shaders.
