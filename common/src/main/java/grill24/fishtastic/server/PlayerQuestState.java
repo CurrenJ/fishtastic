@@ -33,6 +33,11 @@ public class PlayerQuestState {
     // Composite keys from EncyclopediaRewardSection#key — one entry per fish/section reward
     // slot the player has claimed, ever. See claimEncyclopediaReward.
     private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
+    // Ever-incrementing count of fish inserted into any tank, across the player's whole lifetime —
+    // never decremented, even if the fish is later removed. Backs
+    // QuestObjective.TankSnapshotCondition#lifetime objectives the same way FishCatchSavedData's
+    // per-species totals back QuestObjective#lifetimeCount for catches.
+    private int lifetimeTankPlacements = 0;
 
     /**
      * {@code caughtSpecies} is only populated for "distinct species" objectives (e.g. the
@@ -95,8 +100,9 @@ public class PlayerQuestState {
             Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay),
             Codec.STRING.listOf().optionalFieldOf("claimed_encyclopedia_rewards", List.of())
                     .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards)),
-            Codec.INT.optionalFieldOf("shop_refresh_count", 0).forGetter(state -> state.shopRefreshCount)
-    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount) -> {
+            Codec.INT.optionalFieldOf("shop_refresh_count", 0).forGetter(state -> state.shopRefreshCount),
+            Codec.INT.optionalFieldOf("lifetime_tank_placements", 0).forGetter(state -> state.lifetimeTankPlacements)
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount, lifetimeTankPlacements) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
@@ -106,6 +112,7 @@ public class PlayerQuestState {
         s.lastPurchaseResetDay = lastPurchaseResetDay;
         s.claimedEncyclopediaRewards.addAll(claimedRewards);
         s.shopRefreshCount = shopRefreshCount;
+        s.lifetimeTankPlacements = lifetimeTankPlacements;
         return s;
     }));
 
@@ -259,5 +266,18 @@ public class PlayerQuestState {
 
     public Set<String> getClaimedEncyclopediaRewardsSnapshot() {
         return new HashSet<>(claimedEncyclopediaRewards);
+    }
+
+    // -------------------------------------------------------------------------
+    // Lifetime tank placement API
+    // -------------------------------------------------------------------------
+
+    public int getLifetimeTankPlacements() {
+        return lifetimeTankPlacements;
+    }
+
+    /** Called once per fish successfully inserted into any tank — see {@code QuestTracker#onTankChanged}. */
+    public void incrementLifetimeTankPlacements() {
+        lifetimeTankPlacements++;
     }
 }

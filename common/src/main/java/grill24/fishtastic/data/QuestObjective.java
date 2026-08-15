@@ -90,11 +90,22 @@ public record QuestObjective(
      * Material conditions for a {@link #tankSnapshot} objective, checked against the tank's
      * {@code FishTankMaterials#frame()}. Both fields optional and independently checkable, same as
      * {@link #targetSpecies}/{@link #targetSpeciesTag} for fish.
+     * <p>
+     * When {@link #lifetime} is true, this objective abandons the live per-tank snapshot entirely
+     * and instead reads a persistent, ever-incrementing "fish placed into any tank" counter (see
+     * {@code PlayerQuestState#getLifetimeTankPlacements}) — the tank-insertion analogue of
+     * {@link QuestObjective#lifetimeCount} for catches. {@link #material}/{@link #materialTag} are
+     * ignored in this mode since the counter isn't scoped to one tank's frame; kept bundled here
+     * rather than as a new top-level {@code QuestObjective} field only because
+     * {@code RecordCodecBuilder}'s {@code group()} tops out at 16 fields and that record is already
+     * there.
      */
-    public record TankSnapshotCondition(Optional<ResourceKey<Block>> material, Optional<TagKey<Block>> materialTag) {
+    public record TankSnapshotCondition(Optional<ResourceKey<Block>> material, Optional<TagKey<Block>> materialTag,
+            boolean lifetime) {
         public static final Codec<TankSnapshotCondition> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ResourceKey.codec(Registries.BLOCK).optionalFieldOf("material").forGetter(TankSnapshotCondition::material),
-                TagKey.codec(Registries.BLOCK).optionalFieldOf("material_tag").forGetter(TankSnapshotCondition::materialTag)
+                TagKey.codec(Registries.BLOCK).optionalFieldOf("material_tag").forGetter(TankSnapshotCondition::materialTag),
+                Codec.BOOL.optionalFieldOf("lifetime", false).forGetter(TankSnapshotCondition::lifetime)
         ).apply(i, TankSnapshotCondition::new));
     }
 

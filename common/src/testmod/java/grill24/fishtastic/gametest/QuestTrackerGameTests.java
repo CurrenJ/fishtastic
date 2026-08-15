@@ -1,17 +1,28 @@
 package grill24.fishtastic.gametest;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
+import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.server.FishCatchSavedData;
+import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
+import grill24.fishtastic.util.Utility;
+import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistrationInfo;
@@ -20,6 +31,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -28,10 +41,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Server-side game tests for QuestTracker's matching rules and daily-shop-style rotation.
@@ -387,6 +402,284 @@ public final class QuestTrackerGameTests {
         Set<ResourceKey<Quest>> active = QuestTracker.getActiveDailies(registry, 1L);
 
         helper.assertTrue(active.size() == 2, "With fewer daily quests than the cap, all of them must be active, got " + active.size());
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // QuestObjective.TankSnapshotCondition#lifetime — codec wiring
+    // -------------------------------------------------------------------------
+
+    /** Existing quests like explorer/tank_starter author "tank_snapshot": {} with no lifetime key — must still decode. */
+    public static void tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent(GameTestHelper helper) {
+        JsonObject json = new JsonObject();
+        QuestObjective.TankSnapshotCondition decoded = QuestObjective.TankSnapshotCondition.CODEC
+            .parse(JsonOps.INSTANCE, json).result()
+            .orElseThrow(() -> new IllegalStateException("Failed to decode an empty tank_snapshot object"));
+
+        helper.assertTrue(!decoded.lifetime(), "lifetime must default to false when omitted from JSON");
+        helper.succeed();
+    }
+
+    public static void tankSnapshotConditionLifetimeRoundTripsThroughCodec(GameTestHelper helper) {
+        QuestObjective.TankSnapshotCondition condition =
+            new QuestObjective.TankSnapshotCondition(Optional.empty(), Optional.empty(), true);
+
+        var encoded = QuestObjective.TankSnapshotCondition.CODEC.encodeStart(JsonOps.INSTANCE, condition)
+            .result().orElseThrow(() -> new IllegalStateException("Failed to encode a lifetime tank_snapshot condition"));
+        QuestObjective.TankSnapshotCondition decoded = QuestObjective.TankSnapshotCondition.CODEC
+            .parse(JsonOps.INSTANCE, encoded).result()
+            .orElseThrow(() -> new IllegalStateException("Failed to decode a lifetime tank_snapshot condition"));
+
+        helper.assertTrue(decoded.lifetime(), "\"lifetime\": true must round-trip through the codec");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // onTankChanged — lifetime tank-placement counter
+    //
+    // onTankChanged reads the quest registry straight off the live server
+    // (server.registryAccess().lookupOrThrow), unlike getActiveDailies which takes a Registry<Quest>
+    // parameter — so there's no throwaway-MappedRegistry fixture available here the way the tests
+    // above use one. These drive the real registered explorer/tank_keeper_silver and
+    // explorer/tank_keeper_gold quest content directly instead.
+    // -------------------------------------------------------------------------
+
+    private static final BlockPos LIFETIME_TANK_POS_A = new BlockPos(1, 1, 1);
+    private static final BlockPos LIFETIME_TANK_POS_B = new BlockPos(1, 1, 3);
+
+    private static FishTankBlockEntity placeFishTank(GameTestHelper helper, BlockPos pos) {
+        helper.setBlock(pos.below(), Blocks.STONE);
+        helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
+        return helper.getBlockEntity(pos, FishTankBlockEntity.class);
+    }
+
+    private static ItemStack fishStack() {
+        return new ItemStack(Items.COD);
+    }
+
+    /** Removes a single unit of the first tank slot holding {@code item}, wherever addItem's merge logic put it. */
+    private static void removeOneMatchingItem(FishTankBlockEntity tank, Item item) {
+        for (int slot = 0; slot < tank.getContainerSize(); slot++) {
+            if (tank.getItem(slot).is(item)) {
+                tank.removeItem(slot, 1);
+                return;
+            }
+        }
+    }
+
+    private static ResourceKey<Quest> ftQuest(String path) {
+        return ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Utility.ft(path));
+    }
+
+    /**
+     * Places exactly {@code target} fish (one short of, then the target-th) and asserts the quest
+     * only completes on the last one — then claims it and confirms {@code shape} flips from locked
+     * to unlocked, exactly like a player claiming explorer/tank_keeper_silver or _gold in-game.
+     */
+    private static void assertLifetimeTankKeeperQuestCompletesAndUnlocksShape(
+            GameTestHelper helper, ServerPlayer player, String questPath, FishTankShape shape) {
+        MinecraftServer server = helper.getLevel().getServer();
+        ResourceKey<Quest> questKey = ftQuest(questPath);
+        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Quest quest = quests.getValue(questKey);
+        helper.assertTrue(quest != null, "Quest " + questPath + " must be registered");
+        int target = quest.objective().effectiveTargetCount(server.registryAccess());
+
+        FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+
+        helper.assertTrue(!shape.isUnlockedFor(k -> state.getProgress(k).claimed()),
+            shape + " must start locked before " + questPath + " is claimed");
+
+        for (int i = 0; i < target - 1; i++) {
+            QuestTracker.onTankChanged(server, player, tank, fishStack());
+        }
+        helper.assertTrue(!state.getProgress(questKey).completed(),
+            questPath + " must not be complete one fish short of the target (" + (target - 1) + "/" + target + ")");
+
+        QuestTracker.onTankChanged(server, player, tank, fishStack());
+        PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
+        helper.assertTrue(progress.completed(),
+            questPath + " must complete at exactly " + target + " lifetime tank placements");
+        helper.assertTrue(state.canClaim(questKey, target), questPath + " must be claimable once completed");
+
+        state.claim(questKey, quest.reward().questTokens());
+        helper.assertTrue(shape.isUnlockedFor(k -> state.getProgress(k).claimed()),
+            shape + " must unlock once " + questPath + " is claimed");
+    }
+
+    public static void tankKeeperSilverCompletesAndUnlocksToothShape(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        assertLifetimeTankKeeperQuestCompletesAndUnlocksShape(
+            helper, mockPlayer.get(), "explorer/tank_keeper_silver", FishTankShape.TOOTH);
+        helper.succeed();
+    }
+
+    public static void tankKeeperGoldCompletesAndUnlocksFilmShape(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        assertLifetimeTankKeeperQuestCompletesAndUnlocksShape(
+            helper, mockPlayer.get(), "explorer/tank_keeper_gold", FishTankShape.FILM);
+        helper.succeed();
+    }
+
+    /**
+     * The whole point of the "put 100 fish in tanks" design is that it's a lifetime total, not a
+     * per-tank one — placing into two different tanks must still add up on the same counter.
+     */
+    public static void lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(
+            GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        MinecraftServer server = helper.getLevel().getServer();
+        FishTankBlockEntity tankA = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        FishTankBlockEntity tankB = placeFishTank(helper, LIFETIME_TANK_POS_B);
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+
+        QuestTracker.onTankChanged(server, player, tankA, fishStack());
+        QuestTracker.onTankChanged(server, player, tankB, fishStack());
+
+        helper.assertTrue(state.getLifetimeTankPlacements() == 2,
+            "Lifetime placements must accumulate across different tanks, not reset per tank, got "
+                + state.getLifetimeTankPlacements());
+        helper.succeed();
+    }
+
+    /** Only fish (ItemTags.FISHES) advance the lifetime placement counter — a plain block/item must not. */
+    public static void lifetimeTankPlacementCounterIgnoresNonFishItems(
+            GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        MinecraftServer server = helper.getLevel().getServer();
+        FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+
+        QuestTracker.onTankChanged(server, player, tank, new ItemStack(Items.DIAMOND));
+        helper.assertTrue(state.getLifetimeTankPlacements() == 0,
+            "Placing a non-fish item must not advance the lifetime placement counter");
+
+        QuestTracker.onTankChanged(server, player, tank, fishStack());
+        helper.assertTrue(state.getLifetimeTankPlacements() == 1,
+            "Placing a fish must advance the counter by exactly 1, got " + state.getLifetimeTankPlacements());
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // onTankChanged — live per-tank tank_snapshot condition (not lifetime)
+    //
+    // Covers the other real tank_snapshot quests: explorer/tank_starter (no conditions at all),
+    // challenge/golden_showcase (min_quality AND a material condition), and
+    // explorer/blue_to_the_gills (target_species + target_count, live-recounted per insertion).
+    // Same "real registered content, no throwaway registry" constraint as the lifetime tests above.
+    // -------------------------------------------------------------------------
+
+    /** explorer/tank_starter has no species/quality/material conditions — any fish at all satisfies it. */
+    public static void tankStarterCompletesWhenAnyFishIsDisplayedInATank(
+            GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        MinecraftServer server = helper.getLevel().getServer();
+        ResourceKey<Quest> questKey = ftQuest("explorer/tank_starter");
+        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Quest quest = quests.getValue(questKey);
+        helper.assertTrue(quest != null, "Quest explorer/tank_starter must be registered");
+
+        FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+        helper.assertTrue(!state.getProgress(questKey).completed(), "Must start incomplete before any fish is displayed");
+
+        tank.addItem(fishStack());
+        QuestTracker.onTankChanged(server, player, tank, fishStack());
+
+        helper.assertTrue(state.getProgress(questKey).completed(),
+            "Displaying any fish in a tank must complete a condition-free tank_snapshot objective");
+        helper.succeed();
+    }
+
+    /**
+     * challenge/golden_showcase requires BOTH a Legendary-quality fish AND a gold-block frame —
+     * a live snapshot recomputed on every insertion, so satisfying only one condition must never
+     * complete it and no incremental counter can be "topped up" across separate tanks.
+     */
+    public static void goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(
+            GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        MinecraftServer server = helper.getLevel().getServer();
+        ResourceKey<Quest> questKey = ftQuest("challenge/golden_showcase");
+        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Quest quest = quests.getValue(questKey);
+        helper.assertTrue(quest != null, "Quest challenge/golden_showcase must be registered");
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+
+        // Legendary fish, but the tank frame is the default (not gold) — must not complete.
+        FishTankBlockEntity plainTank = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        ItemStack legendaryCod = fishStack();
+        FishQualityHelper.setQuality(legendaryCod, FishQuality.Quality.LEGENDARY);
+        plainTank.addItem(legendaryCod.copy());
+        QuestTracker.onTankChanged(server, player, plainTank, legendaryCod);
+        helper.assertTrue(!state.getProgress(questKey).completed(),
+            "A Legendary fish in a non-gold-framed tank must not complete golden_showcase");
+
+        // Gold-framed tank, but the fish carries no quality component — must not complete.
+        FishTankBlockEntity goldTank = placeFishTank(helper, LIFETIME_TANK_POS_B);
+        goldTank.setMaterials(new FishTankMaterials(Blocks.GOLD_BLOCK, Blocks.SAND, goldTank.getMaterials().glass()));
+        ItemStack plainCod = fishStack();
+        goldTank.addItem(plainCod.copy());
+        QuestTracker.onTankChanged(server, player, goldTank, plainCod);
+        helper.assertTrue(!state.getProgress(questKey).completed(),
+            "A fish with no quality in a gold-framed tank must not complete golden_showcase");
+
+        // Both conditions on the same tank at once — must complete.
+        ItemStack legendaryCod2 = fishStack();
+        FishQualityHelper.setQuality(legendaryCod2, FishQuality.Quality.LEGENDARY);
+        goldTank.addItem(legendaryCod2.copy());
+        QuestTracker.onTankChanged(server, player, goldTank, legendaryCod2);
+        helper.assertTrue(state.getProgress(questKey).completed(),
+            "A Legendary fish in a gold-framed tank must complete golden_showcase");
+        helper.succeed();
+    }
+
+    /**
+     * explorer/blue_to_the_gills (target_species Bluegill, target_count 5) is a live recount, not
+     * an incrementing counter: a different species contributes nothing, partial counts don't
+     * complete it, and — once complete — dismantling the display can never un-complete it (the
+     * same regression guard {@link QuestTracker#onTankChanged} documents for every tank_snapshot
+     * quest).
+     */
+    public static void blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(
+            GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        MinecraftServer server = helper.getLevel().getServer();
+        ResourceKey<Quest> questKey = ftQuest("explorer/blue_to_the_gills");
+        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Quest quest = quests.getValue(questKey);
+        helper.assertTrue(quest != null, "Quest explorer/blue_to_the_gills must be registered");
+        int target = quest.objective().effectiveTargetCount(server.registryAccess());
+
+        FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
+        PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
+
+        // A different species must not count toward a target_species tank_snapshot objective.
+        ItemStack cod = fishStack();
+        tank.addItem(cod.copy());
+        QuestTracker.onTankChanged(server, player, tank, cod);
+        helper.assertTrue(state.getProgress(questKey).currentCount() == 0,
+            "A non-Bluegill fish must not progress a Bluegill-only tank_snapshot objective");
+
+        for (int i = 0; i < target - 1; i++) {
+            ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
+            tank.addItem(bluegill.copy());
+            QuestTracker.onTankChanged(server, player, tank, bluegill);
+        }
+        helper.assertTrue(!state.getProgress(questKey).completed(),
+            "Must not be complete one Bluegill short of the target (" + (target - 1) + "/" + target + ")");
+
+        ItemStack lastBluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
+        tank.addItem(lastBluegill.copy());
+        QuestTracker.onTankChanged(server, player, tank, lastBluegill);
+        helper.assertTrue(state.getProgress(questKey).completed(),
+            "Must complete at exactly " + target + " Bluegill simultaneously displayed in one tank");
+
+        // Dismantling the display afterward must never un-complete it — onTankChanged skips any
+        // quest already completed/claimed before it ever recomputes the live snapshot.
+        removeOneMatchingItem(tank, FishtasticItems.BLUEGILL.value());
+        QuestTracker.onTankChanged(server, player, tank, ItemStack.EMPTY);
+        helper.assertTrue(state.getProgress(questKey).completed(),
+            "Removing a fish from the tank after completion must not un-complete the quest");
         helper.succeed();
     }
 }

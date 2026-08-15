@@ -50,6 +50,8 @@ Reuses the existing species filters (`target_species`, `target_species_tag`, `ex
 
 Once a tank-snapshot quest completes it's skipped on all future re-checks like any other completed quest — dismantling the tank afterward can't un-complete it. The deliberate act is assembling the display, not maintaining it forever.
 
+Setting `"lifetime": true` inside `tank_snapshot` switches the objective away from a live per-tank check entirely: instead it reads a persistent "fish placed into any tank, ever" counter (`PlayerQuestState#getLifetimeTankPlacements`), incremented once per successful insertion regardless of species or which tank. `material`/`material_tag` are ignored in this mode. This is the "put N fish in tanks total" objective — trivially farmable by re-placing the same fish repeatedly, which is accepted as intended.
+
 **"5 tetras in one tank":**
 ```json
 {

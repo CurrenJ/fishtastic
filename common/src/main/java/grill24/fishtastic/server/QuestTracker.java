@@ -311,15 +311,22 @@ public class QuestTracker {
     }
 
     /**
-     * Re-evaluates every {@link QuestObjective#tankSnapshot()} quest against one tank's current
-     * contents, called after a fish is inserted into it (see {@code FishTankBlock#useItemOn} /
-     * {@code #popPileTopIntoTank}). Unlike {@link #onCatch}, there's no counter to increment —
-     * {@link #tankSnapshotCount} recomputes how many qualifying fish are in the tank right now and
-     * that becomes the progress value directly, exactly like {@link #lifetimeProgress} does for
-     * lifetime-count catch quests. A quest already {@code completed}/{@code claimed} is skipped
-     * entirely, so a snapshot that later regresses (fish removed) can never un-complete it.
+     * Re-evaluates every {@link QuestObjective#tankSnapshot()} quest after a fish is inserted into
+     * {@code tank} (see {@code FishTankBlock#useItemOn} / {@code #popPileTopIntoTank}). Most
+     * objectives are a live snapshot of that one tank's current contents — unlike {@link #onCatch},
+     * there's no counter to increment, {@link #tankSnapshotCount} recomputes how many qualifying
+     * fish are in the tank right now and that becomes the progress value directly, exactly like
+     * {@link #lifetimeProgress} does for lifetime-count catch quests. A quest already
+     * {@code completed}/{@code claimed} is skipped entirely, so a snapshot that later regresses
+     * (fish removed) can never un-complete it.
+     * <p>
+     * {@code placedStack} is only used to advance {@link QuestObjective.TankSnapshotCondition#lifetime}
+     * objectives: every fish insertion (any tank, any species) bumps
+     * {@link PlayerQuestState#incrementLifetimeTankPlacements}, and those objectives read that
+     * running total directly instead of inspecting {@code tank}.
      */
-    public static void onTankChanged(MinecraftServer server, ServerPlayer player, FishTankBlockEntity tank) {
+    public static void onTankChanged(MinecraftServer server, ServerPlayer player, FishTankBlockEntity tank,
+            ItemStack placedStack) {
         Registry<Quest> questRegistry;
         try {
             questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
@@ -329,6 +336,10 @@ public class QuestTracker {
 
         FishCatchSavedData catchData = FishCatchSavedData.getOrCreate(server);
         PlayerQuestState state = catchData.getOrCreateQuestState(player);
+
+        if (!placedStack.isEmpty() && placedStack.is(ItemTags.FISHES)) {
+            state.incrementLifetimeTankPlacements();
+        }
 
         long currentDay = server.overworld().getGameTime() / 24000L;
         Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
@@ -353,7 +364,10 @@ public class QuestTracker {
             }
 
             int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
-            int matched = Math.min(tankSnapshotCount(quest.objective(), tank), targetCount);
+            boolean isLifetime = quest.objective().tankSnapshot().map(QuestObjective.TankSnapshotCondition::lifetime).orElse(false);
+            int matched = isLifetime
+                    ? Math.min(state.getLifetimeTankPlacements(), targetCount)
+                    : Math.min(tankSnapshotCount(quest.objective(), tank), targetCount);
             int oldCount = progress.currentCount();
             if (matched == oldCount) continue;
 

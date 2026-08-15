@@ -1,0 +1,29 @@
+{
+  "category": "explorer",
+  "difficulty": "silver",
+  "objective": {
+    "target_count": 100,
+    "notification_interval": 10,
+    "tank_snapshot": { "lifetime": true }
+  },
+  "reward": {
+    "quest_tokens": 25,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "tooth",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:bone_block",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:cyan_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Tank Keeper",
+  "description": "Place 100 fish into tanks over your lifetime."
+}

@@ -9,6 +9,7 @@ import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.util.Utility;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -293,6 +294,47 @@ public final class PlayerQuestStateGameTests {
         Map<Identifier, Integer> purchaseSnapshot = state.getPurchaseCountSnapshot();
         helper.assertTrue(purchaseSnapshot.getOrDefault(sId.identifier(), 0) == 1,
             "Purchase count snapshot must reflect the successful purchase");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Lifetime tank placements — backs QuestObjective.TankSnapshotCondition#lifetime
+    // -------------------------------------------------------------------------
+
+    public static void getLifetimeTankPlacementsDefaultsToZero(GameTestHelper helper) {
+        PlayerQuestState state = new PlayerQuestState();
+        helper.assertTrue(state.getLifetimeTankPlacements() == 0,
+            "A fresh state must report 0 lifetime tank placements, got " + state.getLifetimeTankPlacements());
+        helper.succeed();
+    }
+
+    public static void incrementLifetimeTankPlacementsIncrementsByOnePerCall(GameTestHelper helper) {
+        PlayerQuestState state = new PlayerQuestState();
+
+        state.incrementLifetimeTankPlacements();
+        helper.assertTrue(state.getLifetimeTankPlacements() == 1, "Count must be 1 after the first increment");
+
+        state.incrementLifetimeTankPlacements();
+        state.incrementLifetimeTankPlacements();
+        helper.assertTrue(state.getLifetimeTankPlacements() == 3,
+            "Count must be 3 after three increments, got " + state.getLifetimeTankPlacements());
+        helper.succeed();
+    }
+
+    /** The counter must persist through save/load, the same as token balance or progress. */
+    public static void lifetimeTankPlacementsPersistThroughCodecRoundTrip(GameTestHelper helper) {
+        PlayerQuestState state = new PlayerQuestState();
+        state.incrementLifetimeTankPlacements();
+        state.incrementLifetimeTankPlacements();
+        state.incrementLifetimeTankPlacements();
+
+        var encoded = PlayerQuestState.CODEC.encodeStart(JsonOps.INSTANCE, state).result()
+            .orElseThrow(() -> new IllegalStateException("Failed to encode PlayerQuestState"));
+        PlayerQuestState decoded = PlayerQuestState.CODEC.parse(JsonOps.INSTANCE, encoded).result()
+            .orElseThrow(() -> new IllegalStateException("Failed to decode PlayerQuestState"));
+
+        helper.assertTrue(decoded.getLifetimeTankPlacements() == 3,
+            "Lifetime tank placements must survive a codec round trip, got " + decoded.getLifetimeTankPlacements());
         helper.succeed();
     }
 }

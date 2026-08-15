@@ -402,6 +402,21 @@ public class FishtasticFabricGameTests {
         PlayerQuestStateGameTests.snapshotsReflectMutations(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void getLifetimeTankPlacementsDefaultsToZero(GameTestHelper helper) {
+        PlayerQuestStateGameTests.getLifetimeTankPlacementsDefaultsToZero(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void incrementLifetimeTankPlacementsIncrementsByOnePerCall(GameTestHelper helper) {
+        PlayerQuestStateGameTests.incrementLifetimeTankPlacementsIncrementsByOnePerCall(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeTankPlacementsPersistThroughCodecRoundTrip(GameTestHelper helper) {
+        PlayerQuestStateGameTests.lifetimeTankPlacementsPersistThroughCodecRoundTrip(helper);
+    }
+
     // -------------------------------------------------------------------------
     // ItemEffect condition tests  (pure ItemStack + registry logic, no datapack needed)
     // -------------------------------------------------------------------------
@@ -650,6 +665,51 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
         QuestTrackerGameTests.getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent(GameTestHelper helper) {
+        QuestTrackerGameTests.tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankSnapshotConditionLifetimeRoundTripsThroughCodec(GameTestHelper helper) {
+        QuestTrackerGameTests.tankSnapshotConditionLifetimeRoundTripsThroughCodec(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankKeeperSilverCompletesAndUnlocksToothShape(GameTestHelper helper) {
+        QuestTrackerGameTests.tankKeeperSilverCompletesAndUnlocksToothShape(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankKeeperGoldCompletesAndUnlocksFilmShape(GameTestHelper helper) {
+        QuestTrackerGameTests.tankKeeperGoldCompletesAndUnlocksFilmShape(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(GameTestHelper helper) {
+        QuestTrackerGameTests.lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void lifetimeTankPlacementCounterIgnoresNonFishItems(GameTestHelper helper) {
+        QuestTrackerGameTests.lifetimeTankPlacementCounterIgnoresNonFishItems(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankStarterCompletesWhenAnyFishIsDisplayedInATank(GameTestHelper helper) {
+        QuestTrackerGameTests.tankStarterCompletesWhenAnyFishIsDisplayedInATank(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(GameTestHelper helper) {
+        QuestTrackerGameTests.goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(GameTestHelper helper) {
+        QuestTrackerGameTests.blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

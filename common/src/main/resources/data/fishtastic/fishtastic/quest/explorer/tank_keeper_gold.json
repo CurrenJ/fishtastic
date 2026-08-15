@@ -1,0 +1,29 @@
+{
+  "category": "explorer",
+  "difficulty": "gold",
+  "objective": {
+    "target_count": 300,
+    "notification_interval": 25,
+    "tank_snapshot": { "lifetime": true }
+  },
+  "reward": {
+    "quest_tokens": 60,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "film",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:polished_blackstone",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:light_gray_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Master Tank Keeper",
+  "description": "Place 300 fish into tanks over your lifetime."
+}

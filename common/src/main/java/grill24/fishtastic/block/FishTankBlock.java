@@ -360,12 +360,13 @@ public class FishTankBlock extends Block implements EntityBlock {
                     // Calculate the rotation based on player's position relative to the block
                     float rotation = calculateRotationTowardPlayer(player, blockPos);
 
+                    ItemStack placedStack = toAdd.copy();
                     if (fishTank.addItem(toAdd, rotation)) {
                         itemStack.shrink(1);
                         player.sendSystemMessage(
                             Component.literal("Added item to fish tank")
                         );
-                        checkTankQuests(player, fishTank);
+                        checkTankQuests(player, fishTank, placedStack);
                         return InteractionResult.SUCCESS;
                     } else {
                         // addItem only fails when there's no room left (no mergeable stack, no empty slot)
@@ -403,6 +404,7 @@ public class FishTankBlock extends Block implements EntityBlock {
             return InteractionResult.FAIL;
         }
         float rotation = calculateRotationTowardPlayer(player, blockPos);
+        ItemStack placedStack = popped.copy();
         if (!fishTank.addItem(popped, rotation)) {
             // Tank has no room — leave the pile untouched.
             player.sendSystemMessage(Component.literal("Fish tank is full"));
@@ -410,14 +412,14 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
         itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
         player.sendSystemMessage(Component.literal("Added item to fish tank"));
-        checkTankQuests(player, fishTank);
+        checkTankQuests(player, fishTank, placedStack);
         return InteractionResult.SUCCESS;
     }
 
     /** Re-checks tank-composition quests after a fish is inserted; no-op off the server thread. */
-    private static void checkTankQuests(Player player, FishTankBlockEntity fishTank) {
+    private static void checkTankQuests(Player player, FishTankBlockEntity fishTank, ItemStack placedStack) {
         if (player instanceof ServerPlayer serverPlayer) {
-            QuestTracker.onTankChanged(serverPlayer.level().getServer(), serverPlayer, fishTank);
+            QuestTracker.onTankChanged(serverPlayer.level().getServer(), serverPlayer, fishTank, placedStack);
         }
     }
 

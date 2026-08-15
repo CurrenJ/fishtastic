@@ -291,6 +291,12 @@ public class NeoForgeGameTestRegistration {
             PlayerQuestStateGameTests::resetDailyPurchasesIfNeededOnlyOnNewDay);
         register(event, env, "snapshots_reflect_mutations", 200,
             PlayerQuestStateGameTests::snapshotsReflectMutations);
+        register(event, env, "get_lifetime_tank_placements_defaults_to_zero", 200,
+            PlayerQuestStateGameTests::getLifetimeTankPlacementsDefaultsToZero);
+        register(event, env, "increment_lifetime_tank_placements_increments_by_one_per_call", 200,
+            PlayerQuestStateGameTests::incrementLifetimeTankPlacementsIncrementsByOnePerCall);
+        register(event, env, "lifetime_tank_placements_persist_through_codec_round_trip", 200,
+            PlayerQuestStateGameTests::lifetimeTankPlacementsPersistThroughCodecRoundTrip);
 
         // ----- ItemEffect condition tests -----
         register(event, env, "item_tag_condition_matches_real_tag", 200,
@@ -383,6 +389,24 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::getActiveDailiesNeverExceedsCapAndExcludesNonDaily);
         register(event, env, "get_active_dailies_caps_at_registry_size_when_smaller_than_count", 200,
             QuestTrackerGameTests::getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount);
+        register(event, env, "tank_snapshot_condition_lifetime_defaults_to_false_when_absent", 200,
+            QuestTrackerGameTests::tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent);
+        register(event, env, "tank_snapshot_condition_lifetime_round_trips_through_codec", 200,
+            QuestTrackerGameTests::tankSnapshotConditionLifetimeRoundTripsThroughCodec);
+        register(event, env, "tank_keeper_silver_completes_and_unlocks_tooth_shape", 200,
+            helper -> QuestTrackerGameTests.tankKeeperSilverCompletesAndUnlocksToothShape(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "tank_keeper_gold_completes_and_unlocks_film_shape", 200,
+            helper -> QuestTrackerGameTests.tankKeeperGoldCompletesAndUnlocksFilmShape(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "lifetime_tank_placement_counter_is_cumulative_across_different_tanks", 200,
+            helper -> QuestTrackerGameTests.lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "lifetime_tank_placement_counter_ignores_non_fish_items", 200,
+            helper -> QuestTrackerGameTests.lifetimeTankPlacementCounterIgnoresNonFishItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "tank_starter_completes_when_any_fish_is_displayed_in_a_tank", 200,
+            helper -> QuestTrackerGameTests.tankStarterCompletesWhenAnyFishIsDisplayedInATank(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "golden_showcase_requires_legendary_quality_and_gold_frame_together", 200,
+            helper -> QuestTrackerGameTests.goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "blue_to_the_gills_counts_matching_species_live_and_cannot_regress_once_complete", 200,
+            helper -> QuestTrackerGameTests.blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- Packet round-trip tests -----
         register(event, env, "start_fishing_minigame_packet_round_trips", 200,
