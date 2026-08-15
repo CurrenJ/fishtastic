@@ -1,8 +1,11 @@
 #version 330
 
-// Shared vertex shader for both world outline pipelines (basic + legendary).
-// Unlike gui_item_outline.vsh there is no modelViewPos varying: the world shaders get
-// the atlas slot geometry from compile-time defines instead of screen-space derivatives.
+// Vertex shader for the outline bake pass (see FishtasticItemOutlineAtlas).
+//
+// The bake draws one full-slot quad in the atlas's orthographic pixel space, sampling the
+// mask atlas (item sprite) and writing the synthesized outline ring into the outline atlas.
+// Nothing here is view-dependent: the transform is the ortho projection set up by the atlas.
+
 layout(std140) uniform DynamicTransforms {
     mat4 ModelViewMat;
     vec4 ColorModulator;

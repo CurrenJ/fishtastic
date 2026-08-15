@@ -1,10 +1,15 @@
 package grill24.fishtastic.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.rendertype.OutputTarget;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 
@@ -30,6 +35,33 @@ public final class FishtasticWorldOutlineRenderer {
     /** Matches {@code ItemEntityRenderer.FLAT_ITEM_DEPTH_THRESHOLD}. */
     private static final double FLAT_ITEM_DEPTH_THRESHOLD = 0.0625;
 
+    /** Full-bright lightmap coords, so the outline glows instead of picking up ambient light. */
+    private static final int FULL_BRIGHT = 15728880;
+
+    /**
+     * One render type for every quality tier: the outline is fully baked into the atlas, so the
+     * draw carries no per-effect state. Targets the item-entity output like vanilla item entity
+     * render types.
+     */
+    private static final RenderType OUTLINE_RENDER_TYPE = RenderType.create(
+            "fishtastic_world_item_outline",
+            RenderSetup.builder(FishtasticRenderPipelines.WORLD_OUTLINE)
+                    .withTexture("Sampler0", FishtasticItemOutlineAtlas.TEXTURE_ID)
+                    .useLightmap()
+                    .useOverlay()
+                    .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
+                    .createRenderSetup());
+
+    private static void outlineVertex(VertexConsumer buffer, PoseStack.Pose pose,
+                                      float x, float y, float z, float u, float v) {
+        buffer.addVertex(pose, x, y, z)
+                .setColor(-1)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(FULL_BRIGHT)
+                .setNormal(pose, 0.0F, 0.0F, 1.0F);
+    }
+
     /**
      * Called from extraction mixins while the {@link ItemStack} is still in scope.
      * Resolves the item's effect, requests (or queues) its atlas slot, and records both
@@ -45,7 +77,7 @@ public final class FishtasticWorldOutlineRenderer {
             FishtasticGlintState.WORLD_OUTLINE_MAP.remove(renderState);
             return;
         }
-        FishtasticItemOutlineAtlas.SlotView slot = FishtasticItemOutlineAtlas.getInstance().requestSlot(stack);
+        FishtasticItemOutlineAtlas.SlotView slot = FishtasticItemOutlineAtlas.getInstance().requestSlot(stack, effect);
         if (slot == null) {
             // Not baked yet (queued for next frame) or atlas full — no outline this frame.
             FishtasticGlintState.WORLD_OUTLINE_MAP.remove(renderState);
@@ -93,15 +125,20 @@ public final class FishtasticWorldOutlineRenderer {
         FishtasticItemOutlineAtlas.SlotView slot = entry.slot();
         float uLeft = mirrorU ? slot.u1() : slot.u0();
         float uRight = mirrorU ? slot.u0() : slot.u1();
-        // The shader takes all colour data from the UBO; the vertex colour is for GPU
-        // debugger identification only (same convention as the GUI blit path).
-        int color = entry.effect().outlineColor();
 
-        collector.submitCustomGeometry(poseStack, entry.effect().worldOutlineRenderType(), (pose, buffer) -> {
-            buffer.addVertex(pose, cx - halfW, cy + halfH, cz).setUv(uLeft, slot.v0()).setColor(color);
-            buffer.addVertex(pose, cx - halfW, cy - halfH, cz).setUv(uLeft, slot.v1()).setColor(color);
-            buffer.addVertex(pose, cx + halfW, cy - halfH, cz).setUv(uRight, slot.v1()).setColor(color);
-            buffer.addVertex(pose, cx + halfW, cy + halfH, cz).setUv(uRight, slot.v0()).setColor(color);
+        // The atlas already holds the finished, tinted outline (colour, falloff and opacity were
+        // applied at bake time), so the vertex colour must be plain white — anything else would
+        // modulate the baked ring.
+        //
+        // Vertices are in NEW_ENTITY format because the pipeline is registered with Iris, and a
+        // shaderpack's gbuffers_entities program reads all of these attributes; omitting any of
+        // them leaves the pack's shader sampling unbound data. Light is full-bright so the outline
+        // reads as a glow rather than picking up ambient darkness, and the normal faces the viewer.
+        collector.submitCustomGeometry(poseStack, OUTLINE_RENDER_TYPE, (pose, buffer) -> {
+            outlineVertex(buffer, pose, cx - halfW, cy + halfH, cz, uLeft, slot.v0());
+            outlineVertex(buffer, pose, cx - halfW, cy - halfH, cz, uLeft, slot.v1());
+            outlineVertex(buffer, pose, cx + halfW, cy - halfH, cz, uRight, slot.v1());
+            outlineVertex(buffer, pose, cx + halfW, cy + halfH, cz, uRight, slot.v0());
         });
     }
 

@@ -167,22 +167,54 @@ The GUI path computes outlines live by sampling the vanilla `GuiItemAtlas`. That
 
 ### Frame flow
 
-1. **Bake** — `GameRendererMixin` calls `processBakeQueue()` at HEAD of `GameRenderer.render`, before any level/GUI submission. The bake borrows the shared `SubmitNodeStorage` / `FeatureRenderDispatcher` / `BufferSource` (same trio `GuiItemAtlas` uses) — safe only at this point because they are idle. `drawToSlot` is a near-clone of `GuiItemAtlas.drawToSlot` with the item scaled to `ITEM_RENDER_PX` but centered in the larger `SLOT_PX` slot.
-2. **Capture** — `ItemEntityRendererMixin` / `ItemFrameRendererMixin` inject at TAIL of `extractRenderState` (the only point where the `ItemStack` is in scope), look up the effect, call `requestSlot(stack)`, and record `(effect, slotUVs)` in `WORLD_OUTLINE_MAP` keyed by the `ItemStackRenderState` identity. An unbaked item is queued and gets no outline for one frame (invisible in practice). Slot keys are `(item, components)` via `ItemStack.hashItemAndComponents` — count-insensitive, defensively copied.
+1. **Bake** — `GameRendererMixin` calls `processBakeQueue()` at HEAD of `GameRenderer.render`, before any level/GUI submission. The bake borrows the shared `SubmitNodeStorage` / `FeatureRenderDispatcher` / `BufferSource` (same trio `GuiItemAtlas` uses) — safe only at this point because they are idle. This is two steps per slot: `drawToSlot` (a near-clone of `GuiItemAtlas.drawToSlot`, item scaled to `ITEM_RENDER_PX` but centered in the larger `SLOT_PX` slot) renders the item into the **mask** atlas, then `composeSlot` writes the finished outline ring into the **outline** atlas. `processBakeQueue` then calls `recomposeAnimatedSlots` for on-screen legendary items.
+2. **Capture** — `ItemEntityRendererMixin` / `ItemFrameRendererMixin` inject at TAIL of `extractRenderState` (the only point where the `ItemStack` is in scope), look up the effect, call `requestSlot(stack, effect)`, and record `(effect, slotUVs)` in `WORLD_OUTLINE_MAP` keyed by the `ItemStackRenderState` identity. An unbaked item is queued and gets no outline for one frame (invisible in practice). Slot keys are `(item, components)` via `ItemStack.hashItemAndComponents` — count-insensitive, defensively copied.
 3. **Submit** — the same mixins inject in `submit` at the exact `INVOKE` where the item model is submitted (`submitMultipleFromCount` for entities — pose carries bob + spin; `ItemStackRenderState.submit` for frames — pose carries frame rotation + 0.5 scale). One double-sided quad is added via `SubmitNodeCollector.submitCustomGeometry`, co-planar with the item, expanded by `SLOT_PX / ITEM_RENDER_PX` about the model-bounding-box centre so item texels stay aligned, UV'd to the full atlas slot.
 
    **The `mirrorU` flag:** display-context rotations applied *inside* `state.item.submit(...)` (per-layer `ItemTransform`) happen after our injection point and therefore never reach the outline quad. `item/generated`'s FIXED transform rotates the item 180° about Y so framed items face outward — without compensation the outline renders horizontally mirrored against the item. The frame mixin passes `mirrorU = true`, which swaps the quad's U coordinates; GROUND (item entities) has no such rotation and passes `false`.
-4. **Draw** — the quad flows through `BufferSource.endBatch` → `RenderType.draw`. `RenderTypeMixin` wraps the `RenderSystem.bindDefaultUniforms(renderPass)` call (via `@Redirect`) to bind the effect's params UBO — the world counterpart of `GuiRendererExecuteDrawMixin`. Identity-map miss for vanilla pipelines, so per-draw cost is negligible.
+4. **Draw** — the quad flows through `BufferSource.endBatch` → `RenderType.draw`, sampling the already-composed outline atlas. It needs no params UBO. `RenderTypeMixin` still wraps `RenderSystem.bindDefaultUniforms(renderPass)` (via `@Redirect`) to bind the effect's params UBO for the **bake** draws, which take the same path — the world counterpart of `GuiRendererExecuteDrawMixin`. Identity-map miss for vanilla pipelines, so per-draw cost is negligible.
 
-### Pipelines and shaders
+### Pipelines and shaders — the outline is baked, not drawn
 
-`ItemEffect.getOrCreateWorldOutlinePipeline()` mirrors the GUI lazy-creation pattern and **shares the params `GpuBuffer`** with the GUI pipeline (identical std140 layout). `worldOutlineRenderType()` wraps the pipeline with the atlas texture (registered in `TextureManager` under `fishtastic:item_outline_atlas` via a thin `AbstractTexture` wrapper, fully-NEAREST sampler) and `OutputTarget.ITEM_ENTITY_TARGET`.
+The outline ring used to be synthesized per-fragment at draw time. **It is now pre-baked into the atlas** so that a shaderpack cannot destroy it. This is the single most important thing to understand about this path; see the "Shaderpack (Iris) compatibility" section below for why.
 
-World pipelines differ from GUI ones: `POSITION_TEX_COLOR` quads pose-transformed CPU-side, depth test `LESS_THAN_OR_EQUAL` with **no depth write**, **no cull** (visible from behind), and the slot geometry passed as compile-time defines (`FISHTASTIC_ATLAS_SLOT_PX`, `FISHTASTIC_ATLAS_RES`) instead of the GUI's `dFdx` guiScale derivation — the atlas slot size is a constant we own. `world_item_outline.fsh` / `world_item_outline_legendary.fsh` are otherwise direct ports of the GUI fragment shaders (same slot-clamp math; the atlas mirrors `GuiItemAtlas` UV conventions, grid anchored at V=1). The legendary pinwheel animates in-world because `RenderType.draw` → `RenderSystem.bindDefaultUniforms` provides `Globals` (`GameTime`).
+Two textures, identical 1024² slot layouts:
 
-**Minification-adaptive radius.** World quads, unlike GUI blits, are minified with distance, and the atlas has no mipmaps (NEAREST sampling). A thin outline ring (e.g., uncommon's `outline_width: 0.25` = 1 atlas texel) falls between fragment samples and disappears entirely once the quad covers fewer screen pixels than atlas texels. The world shaders therefore compute the minification factor from `dFdx/dFdy(texCoord0)` and floor the sample radius at it (capped at 8 texels), keeping the ring ≥ ~1 screen pixel at any distance. Close up, the configured width is faithful; far away, the outline widens (in texel terms) instead of vanishing.
+| Texture | `TextureManager` id | Contents | Read by |
+|---|---|---|---|
+| Mask atlas | `fishtastic:item_outline_mask_atlas` | the item sprite, transparent padding | the bake shaders |
+| Outline atlas | `fishtastic:item_outline_atlas` | the finished outline ring only, transparent elsewhere | the world draw |
 
-The outline is **fullbright** (no lightmap modulation) — intentional: it reads as a glow in dark environments, consistent with the "quality glow" concept.
+Two textures rather than one because a single pass cannot both read and write the same texture — and keeping the mask resident is what makes per-frame re-baking of animated outlines cheap.
+
+**Bake pass.** `ItemEffect.outlineBakeRenderType()` draws one full-slot quad into the outline atlas, sampling the mask atlas, using `outline_bake.fsh` / `outline_bake_legendary.fsh` (ports of the old draw-time shaders). Blending is off and the slot is cleared first, so the ring's alpha lands verbatim. These pipelines keep their custom shaders and are deliberately **not** registered with Iris: the bake runs offscreen against our own render target, outside the world pass, where no shaderpack can reach it.
+
+Because the bake is always 1:1 atlas texels, the old `dFdx/dFdy` minification widening is gone — the derivative-derived factor is 1 by definition at bake time.
+
+**Draw pass.** A single shared `RenderType` (`FishtasticWorldOutlineRenderer.OUTLINE_RENDER_TYPE`) covers every quality tier, because the finished outline carries no per-effect state. It uses `FishtasticRenderPipelines.WORLD_OUTLINE`, a clone of vanilla `ENTITY_TRANSLUCENT` with depth write disabled and culling off, bound to the outline atlas with `OutputTarget.ITEM_ENTITY_TARGET`.
+
+Vertices are `NEW_ENTITY` format — position, **white** colour, UV, overlay, full-bright light, viewer-facing normal. White is mandatory: the tint was applied at bake time and any other vertex colour would modulate the baked ring. The full attribute set is mandatory too, because a shaderpack's `gbuffers_entities` program reads all of them.
+
+The outline is **fullbright** — intentional: it reads as a glow in dark environments, consistent with the "quality glow" concept.
+
+**Animated (legendary) outlines** re-run *only* the compose pass each frame via `recomposeAnimatedSlots()`; the item model is not re-rendered, since the mask atlas already holds its sprite. Cost is one full-slot quad per animated item on screen. Slots not touched within the last frame are skipped — an off-screen item's outline need not keep spinning. `GameTime` may be one frame stale (the bake runs at HEAD of `GameRenderer.render`, before the `Globals` UBO refresh), which is imperceptible at this rotation speed.
+
+### Shaderpack (Iris) compatibility
+
+When a shaderpack is loaded, Iris mixes into `GlDevice.getOrCompilePipeline` and swaps every pipeline for the pack's equivalent gbuffers program. Pipelines it does not recognise are **left alone** — it logs `Missing program <id> in override list` and lets ours run. That is not harmless: our shaders write a single `out vec4 fragColor` at location 0, while Iris has rebound world rendering to its own multi-attachment gbuffer using the pack's DRAWBUFFERS layout. The fragments land in a buffer the pack's deferred/composite passes never resolve as scene colour, so **the draw is silently discarded and the geometry is completely invisible under every shaderpack.**
+
+`IrisCompat` fixes this by registering our world pipelines through Iris's versioned `api/v0` surface (via reflection — Iris is an optional, client-only, loader-specific dependency, and every method no-ops when it is absent):
+
+| Pipeline | Iris program | Shadow |
+|---|---|---|
+| `WORLD_OUTLINE` | `ENTITIES_TRANSLUCENT` | none — a cosmetic overlay must not write the shadow map |
+| `TANK_WATER_FILL` | `ENTITIES_TRANSLUCENT` | `SHADOW_TRANSLUCENT` |
+
+**Do not "fix" the water fill to `BLOCK_TRANSLUCENT`.** It is the intuitive choice — the fill *is* a block entity's translucent surface — and it was tried first. It routes the quad into the pack's water/block program, which computes its own water colour, normals and waves and largely discards the incoming albedo: the fill rendered as a flat dark grey sheet with no texture detail and no tint, visibly darkening the tank. `ENTITIES_TRANSLUCENT` applies ordinary translucent shading and preserves both. The choice of Iris program is about *what shading treatment the pack applies*, not about what kind of object the geometry belongs to.
+
+**The catch that drove the bake redesign:** assigning a pipeline makes the pack's fragment shader *replace* ours. For the water fill that is a straight win (it is a plain textured translucent quad, and it now picks up the pack's own water shading). For the outline it was fatal — the outline only existed inside our fragment shader, so under a pack we would have drawn the padded atlas slot verbatim: a blurry duplicate item sprite over every item. Pre-baking the ring into the atlas is what makes the assignment safe, because the outline then exists as ordinary pixels that any shader can sample.
+
+GUI outline pipelines are **not** registered and must keep their own fragment shaders: GUI rendering happens after Iris releases the framebuffer, so those draws were never affected.
 
 ### Invalidation
 
@@ -192,11 +224,11 @@ The outline is **fullbright** (no lightmap modulation) — intentional: it reads
 
 ### Resource cost
 
-- **GPU memory (fixed):** 8 MiB — 1024² RGBA8 color (4 MiB) + DEPTH32 depth (4 MiB), allocated once on first bake, never resized. 100 slots.
+- **GPU memory (fixed):** 12 MiB — 1024² RGBA8 outline atlas (4 MiB) + 1024² RGBA8 mask atlas (4 MiB) + a shared DEPTH32 depth texture (4 MiB), allocated once on first bake, never resized. 100 slots.
 - **Bake cost (amortized to ~zero):** one small ortho item render per unique (item + components) combo — the same cost as vanilla rendering one GUI inventory slot, paid once per combo and then reused indefinitely. Worst case is a burst frame when many distinct quality items first become visible, comparable to opening a full chest in the GUI (which vanilla re-bakes every invalidation anyway).
 - **Per-frame CPU (negligible):** per visible quality item, two hash-map lookups and a 4-vertex quad submission. Effect lookup is cached (`ItemEffectManager.CACHE`). One extra draw batch per *effect tier* on screen, not per item — quads sharing a render type batch together.
 - **One global hook:** `RenderTypeMixin` adds an `IdentityHashMap` miss to **every** immediate render-type draw game-wide (~nanoseconds each). Same unavoidable pattern as `GuiRendererExecuteDrawMixin` on the GUI side — there is no UBO unbind API, so the bind must be checked per draw.
-- **Fragment cost:** `(2·radius+1)²` alpha samples per outline-quad fragment — the same shader family the GUI path runs over every inventory slot, and world quads are usually smaller on screen than GUI slots. The minification clamp (radius cap 8 for the adaptive component, 16 overall) bounds the far-away case; total work scales with on-screen quad area, which shrinks exactly when radius grows.
+- **Fragment cost:** the `(2·radius+1)²` alpha-sample loop now runs at **bake** time over one 96² slot, not per screen fragment — a fixed, distance-independent cost paid once per item combo. The world draw itself is a plain textured quad. Animated (legendary) slots pay that 96² bake every frame while on screen, which is the deliberate trade for keeping the pinwheel spinning.
 - **CPU memory:** atlas slot keys hold up to 100 defensive `ItemStack` copies; `WORLD_OUTLINE_MAP` holds one small record per live item render state with an active outline.
 
 ### Limitations
@@ -246,16 +278,18 @@ Five factory methods, one per shader variant:
 | `createOutlinePipeline(id)` | `gui_item_outline` | `BasicOutlineParams` | GUI |
 | `createLegendaryOutlinePipeline(id)` | `gui_item_outline_legendary` | `LegendaryOutlineParams` | GUI |
 | `createDebugUvPipeline(id)` | `gui_item_outline_debug_uv` | `DebugUvOutlineParams` | GUI |
-| `createWorldOutlinePipeline(id)` | `world_item_outline` | `BasicOutlineParams` | World |
-| `createWorldLegendaryOutlinePipeline(id)` | `world_item_outline_legendary` | `LegendaryOutlineParams` | World |
+| `createOutlineBakePipeline(id)` | `outline_bake` | `BasicOutlineParams` | Bake |
+| `createOutlineBakeLegendaryPipeline(id)` | `outline_bake_legendary` | `LegendaryOutlineParams` | Bake |
 
 The `Identifier` location passed to each factory is derived from the effect's texture path to guarantee uniqueness across all loaded effects:
 ```
 fishtastic:pipeline/gui_item_outline_{namespace}_{path_slashes_as_underscores}
-fishtastic:pipeline/world_item_outline_{namespace}_{path_slashes_as_underscores}
+fishtastic:pipeline/outline_bake_{namespace}_{path_slashes_as_underscores}
 ```
 
-All pipelines declare `DynamicTransforms` and `Projection` (standard blit UBOs), their effect-specific params UBO, `Sampler0`, `TRANSLUCENT` blend, and `POSITION_TEX_COLOR / QUADS` vertex format. The legendary pipelines additionally declare `Globals` because their shaders read `GameTime` for animation. The world pipelines additionally set depth test `LESS_THAN_OR_EQUAL` without depth write, disable culling, and inject the atlas slot geometry as shader defines (`FISHTASTIC_ATLAS_SLOT_PX`, `FISHTASTIC_ATLAS_RES`) — see the World Outline Path section. The debug-UV variant has no world equivalent; world rendering falls back to the basic shader for effects with `outline_debug_uv: true`.
+The per-effect rule does **not** apply to the world draw: `WORLD_OUTLINE` is a single shared pipeline with no params UBO, because the outline is fully baked by the time it is drawn.
+
+All pipelines declare `DynamicTransforms` and `Projection` (standard blit UBOs), their effect-specific params UBO, `Sampler0`, and `POSITION_TEX_COLOR / QUADS` vertex format. The legendary variants additionally declare `Globals` because their shaders read `GameTime` for animation. GUI pipelines use `TRANSLUCENT` blend; the bake pipelines disable blending (`ColorTargetState.DEFAULT`) and depth (`ALWAYS_PASS`, no write) so the ring's alpha is written verbatim into a freshly cleared slot, and inject the atlas slot geometry as shader defines (`FISHTASTIC_ATLAS_SLOT_PX`, `FISHTASTIC_ATLAS_RES`). The debug-UV variant has no world equivalent; world rendering falls back to the basic shader for effects with `outline_debug_uv: true`.
 
 ---
 
@@ -375,7 +409,7 @@ When upgrading MC, check each of these in order:
 
 6. **`GuiItemAtlas` slot size** — if the slot size changes from `16 * guiScale` texels, update the `slotW` computation in all three fragment shaders.
 
-7. **`Globals` UBO layout** — if MC adds, removes, or reorders fields in the `Globals` uniform block, update the `layout(std140) uniform Globals { ... }` block in `gui_item_outline_legendary.fsh`, `gui_item_outline_debug_uv.fsh`, and `world_item_outline_legendary.fsh` to match.
+7. **`Globals` UBO layout** — if MC adds, removes, or reorders fields in the `Globals` uniform block, update the `layout(std140) uniform Globals { ... }` block in `gui_item_outline_legendary.fsh`, `gui_item_outline_debug_uv.fsh`, and `outline_bake_legendary.fsh` to match.
 
 8. **`RenderPass.setUniform` API** — if the UBO-binding API changes (e.g., binding-index based rather than name-based), update `FishtasticOutlineUboRegistry.bind`.
 

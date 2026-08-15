@@ -66,8 +66,8 @@ public class ItemEffect {
 
     // Lazily created on the render thread — null until first use.
     private RenderPipeline outlinePipeline;
-    private RenderPipeline worldOutlinePipeline;
-    private RenderType worldOutlineRenderType;
+    private RenderPipeline outlineBakePipeline;
+    private RenderType outlineBakeRenderType;
     private GpuBuffer outlineParamsBuffer;
 
     // Lazily created render types for entity/world rendering.
@@ -159,50 +159,55 @@ public class ItemEffect {
         return outlinePipeline;
     }
 
-    /**
-     * Returns the outline {@link RenderPipeline} for in-world item entity / item frame
-     * rendering, creating it on first call.  Must be called on the render thread.
-     *
-     * <p>Shares the params {@link GpuBuffer} with the GUI pipeline — both UBO layouts are
-     * identical; only the pipeline (vertex format, depth state, slot-geometry defines) differs.
-     * The debug-UV variant has no world equivalent and falls back to the basic shader.
-     */
-    public RenderPipeline getOrCreateWorldOutlinePipeline() {
-        if (worldOutlinePipeline == null) {
-            String texPath = texture.getNamespace() + "_" + texture.getPath().replace('/', '_');
-            Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/world_item_outline_" + texPath);
-
-            String uboName;
-            if (outlinePinwheel) {
-                worldOutlinePipeline = FishtasticRenderPipelines.createWorldLegendaryOutlinePipeline(pipelineId);
-                uboName = FishtasticRenderPipelines.LEGENDARY_OUTLINE_UBO_NAME;
-            } else {
-                worldOutlinePipeline = FishtasticRenderPipelines.createWorldOutlinePipeline(pipelineId);
-                uboName = FishtasticRenderPipelines.BASIC_OUTLINE_UBO_NAME;
-            }
-
-            FishtasticOutlineUboRegistry.register(worldOutlinePipeline, uboName, getOrCreateOutlineParamsBuffer());
-        }
-        return worldOutlinePipeline;
+    /** True when this effect's outline animates and its atlas slot must be re-composed each frame. */
+    public boolean isOutlineAnimated() {
+        return outlinePinwheel;
     }
 
     /**
-     * Returns the {@link RenderType} used to draw the in-world outline quad, creating it on
-     * first call.  Must be called on the render thread (creates the pipeline + params buffer).
-     * Binds the {@link FishtasticItemOutlineAtlas} texture and targets the item-entity output
-     * like vanilla item entity render types.
+     * Returns the {@link RenderPipeline} for the offscreen outline bake, creating it on first call.
+     * Must be called on the render thread.
+     *
+     * <p>Shares the params {@link GpuBuffer} with the GUI pipeline — both UBO layouts are
+     * identical; only the pipeline (vertex format, blend state, slot-geometry defines) differs.
+     * The debug-UV variant has no world equivalent and falls back to the basic shader.
      */
-    public RenderType worldOutlineRenderType() {
-        if (worldOutlineRenderType == null) {
-            worldOutlineRenderType = RenderType.create(
-                    RenderTypeFactory.makeName("world_item_outline_", texture),
-                    RenderSetup.builder(getOrCreateWorldOutlinePipeline())
-                            .withTexture("Sampler0", FishtasticItemOutlineAtlas.TEXTURE_ID)
-                            .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
+    public RenderPipeline getOrCreateOutlineBakePipeline() {
+        if (outlineBakePipeline == null) {
+            String texPath = texture.getNamespace() + "_" + texture.getPath().replace('/', '_');
+            Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/outline_bake_" + texPath);
+
+            String uboName;
+            if (outlinePinwheel) {
+                outlineBakePipeline = FishtasticRenderPipelines.createOutlineBakeLegendaryPipeline(pipelineId);
+                uboName = FishtasticRenderPipelines.LEGENDARY_OUTLINE_UBO_NAME;
+            } else {
+                outlineBakePipeline = FishtasticRenderPipelines.createOutlineBakePipeline(pipelineId);
+                uboName = FishtasticRenderPipelines.BASIC_OUTLINE_UBO_NAME;
+            }
+
+            FishtasticOutlineUboRegistry.register(outlineBakePipeline, uboName, getOrCreateOutlineParamsBuffer());
+        }
+        return outlineBakePipeline;
+    }
+
+    /**
+     * Returns the {@link RenderType} used by the outline bake pass, creating it on first call.
+     * Must be called on the render thread (creates the pipeline + params buffer).
+     *
+     * <p>Samples the <em>mask</em> atlas (item sprites) and is drawn into the composed outline
+     * atlas — see {@link FishtasticItemOutlineAtlas#composeSlot}.
+     */
+    public RenderType outlineBakeRenderType() {
+        if (outlineBakeRenderType == null) {
+            outlineBakeRenderType = RenderType.create(
+                    RenderTypeFactory.makeName("outline_bake_", texture),
+                    RenderSetup.builder(getOrCreateOutlineBakePipeline())
+                            .withTexture("Sampler0", FishtasticItemOutlineAtlas.MASK_TEXTURE_ID)
                             .createRenderSetup()
             );
         }
-        return worldOutlineRenderType;
+        return outlineBakeRenderType;
     }
 
     private GpuBuffer getOrCreateOutlineParamsBuffer() {

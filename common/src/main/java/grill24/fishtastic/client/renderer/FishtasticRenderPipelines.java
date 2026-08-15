@@ -48,10 +48,19 @@ public final class FishtasticRenderPipelines {
                 Optional.of(base.getVertexFormatMode())
         );
 
-        return RenderPipeline.builder(snippet)
+        RenderPipeline pipeline = RenderPipeline.builder(snippet)
                 .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/tank_water_fill"))
                 .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                 .build();
+        // Without this the quad is invisible under every shaderpack — see IrisCompat.
+        //
+        // ENTITIES_TRANSLUCENT, not BLOCK_TRANSLUCENT. The latter is the intuitive choice (this is
+        // a block entity's translucent surface) but it routes the quad into the pack's water/block
+        // program, which computes its own water colour, normals and waves and largely discards the
+        // incoming albedo — the fill rendered as a flat dark grey sheet with no texture detail and
+        // no tint. The entity program applies ordinary translucent shading and preserves both.
+        IrisCompat.assignPipeline(pipeline, "ENTITIES_TRANSLUCENT", "SHADOW_TRANSLUCENT");
+        return pipeline;
     }
 
     /**
@@ -148,33 +157,86 @@ public final class FishtasticRenderPipelines {
     }
 
     /**
-     * Creates a per-effect basic outline pipeline for in-world item entities / item frames.
+     * The single pipeline used to draw in-world quality outlines for item entities / item frames.
      *
-     * <p>Differs from the GUI variant: vertices are pose-transformed world-space quads (depth
-     * tested against the level, no depth write, double-sided), and the atlas slot geometry is
-     * passed as compile-time defines instead of being derived from screen-space derivatives —
-     * {@link FishtasticItemOutlineAtlas} has a fixed slot size, unlike the guiScale-dependent
-     * vanilla GUI atlas.
+     * <p><b>Why there is only one.</b>  The outline used to be synthesized per-fragment by
+     * {@code world_item_outline.fsh}, which needed a distinct pipeline per effect to carry that
+     * effect's params UBO.  The ring is now pre-baked into {@link FishtasticItemOutlineAtlas}
+     * (see {@link #createOutlineBakePipeline}), so drawing it is just a textured translucent quad
+     * with no per-effect state — one shared pipeline covers every quality tier, basic and legendary
+     * alike.
+     *
+     * <p><b>Why it clones {@code ENTITY_TRANSLUCENT}.</b>  This pipeline is registered with Iris so
+     * it survives shaderpack rendering, which means the pack's {@code gbuffers_entities} program
+     * replaces our shader.  That program expects the entity vertex format, so the pipeline must use
+     * {@code NEW_ENTITY} and the quad must supply light/overlay/normal — see
+     * {@link FishtasticWorldOutlineRenderer#submitOutline}.  Cloning the vanilla pipeline into a
+     * {@link Snippet} is how we inherit that exact layout without touching the package-private
+     * {@code ENTITY_SNIPPET}, the same trick {@link #TANK_WATER_FILL} uses.
+     *
+     * <p>Depth write is disabled (the outline is a translucent overlay that must not occlude the
+     * item or anything behind it) and culling is off (it must be visible from behind the item too).
      */
-    public static RenderPipeline createWorldOutlinePipeline(Identifier location) {
-        return worldOutlineBuilderBase(location)
+    public static final RenderPipeline WORLD_OUTLINE = buildWorldOutlinePipeline();
+
+    private static RenderPipeline buildWorldOutlinePipeline() {
+        RenderPipeline base = RenderPipelines.ENTITY_TRANSLUCENT;
+        Snippet snippet = new Snippet(
+                Optional.of(base.getVertexShader()),
+                Optional.of(base.getFragmentShader()),
+                Optional.of(base.getShaderDefines()),
+                Optional.of(base.getSamplers()),
+                Optional.of(base.getUniforms()),
+                Optional.of(base.getColorTargetState()),
+                Optional.empty(), // depth-stencil state: overridden below with write disabled
+                Optional.of(base.getPolygonMode()),
+                Optional.empty(), // cull: overridden below
+                Optional.of(base.getVertexFormat()),
+                Optional.of(base.getVertexFormatMode())
+        );
+
+        RenderPipeline pipeline = RenderPipeline.builder(snippet)
+                .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/world_item_outline"))
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .withCull(false)
+                .build();
+        // Without this the outline is invisible under every shaderpack — see IrisCompat.
+        // No shadow program: a translucent cosmetic overlay must not write to the shadow map.
+        IrisCompat.assignPipeline(pipeline, "ENTITIES_TRANSLUCENT", null);
+        return pipeline;
+    }
+
+    /**
+     * Creates a per-effect pipeline for the offscreen outline <em>bake</em> pass, which draws one
+     * full-slot quad into {@link FishtasticItemOutlineAtlas}, reading the mask atlas and writing the
+     * synthesized ring into the outline atlas.
+     *
+     * <p>These pipelines keep their custom fragment shaders and are deliberately <em>not</em>
+     * registered with Iris: the bake runs offscreen against our own render target, outside the world
+     * pass, so Iris never intercepts it.  That is exactly what makes this approach shader-proof —
+     * all the procedural work happens where no shaderpack can reach it.
+     *
+     * <p>Blending is off: the target slot is cleared before the bake, so the ring's alpha must land
+     * in the atlas verbatim rather than being composited against it.  Draw-time blending is the
+     * render type's job.
+     */
+    public static RenderPipeline createOutlineBakePipeline(Identifier location) {
+        return outlineBakeBuilderBase(location)
                 .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/world_item_outline"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/world_item_outline"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake"))
                 .build();
     }
 
-    /** Creates a per-effect legendary (animated pinwheel) world outline pipeline. */
-    public static RenderPipeline createWorldLegendaryOutlinePipeline(Identifier location) {
-        return worldOutlineBuilderBase(location)
+    /** Creates a per-effect legendary (animated pinwheel) outline bake pipeline. */
+    public static RenderPipeline createOutlineBakeLegendaryPipeline(Identifier location) {
+        return outlineBakeBuilderBase(location)
                 .withUniform("Globals", UniformType.UNIFORM_BUFFER)
                 .withUniform(LEGENDARY_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/world_item_outline"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/world_item_outline_legendary"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake_legendary"))
                 .build();
     }
 
-    private static RenderPipeline.Builder worldOutlineBuilderBase(Identifier location) {
+    private static RenderPipeline.Builder outlineBakeBuilderBase(Identifier location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -182,11 +244,9 @@ public final class FishtasticRenderPipelines {
                 .withShaderDefine("FISHTASTIC_ATLAS_SLOT_PX", FishtasticItemOutlineAtlas.SLOT_PX)
                 .withShaderDefine("FISHTASTIC_ATLAS_RES", FishtasticItemOutlineAtlas.ITEM_RENDER_PX / 16)
                 .withSampler("Sampler0")
-                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-                // Depth-test against the world but never write: the outline is a translucent
-                // overlay that must not occlude the item or anything behind it.
-                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
-                // Double-sided: the outline quad must be visible from behind the item too.
+                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake"))
+                .withColorTargetState(ColorTargetState.DEFAULT)
+                .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
                 .withCull(false)
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS);
     }
