@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/storm_charm"
+    "layer0": "fishtastic:item/charm/storm_charm"
   }
 }

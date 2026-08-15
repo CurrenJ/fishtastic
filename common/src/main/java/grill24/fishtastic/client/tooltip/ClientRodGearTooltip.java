@@ -19,7 +19,7 @@ public class ClientRodGearTooltip implements ClientTooltipComponent {
     private static final Identifier[] GHOST_TEXTURES = new Identifier[] {
             Fishtastic.id("textures/item/fish/worms_ghost.png"),
             Fishtastic.id("textures/item/fish/hook_ghost.png"),
-            Fishtastic.id("textures/item/fish/charm_ghost.png")
+            Fishtastic.id("textures/item/charm/charm_ghost.png")
     };
 
     private final ItemStack[] gear;
