@@ -1,15 +1,13 @@
 #version 330
 
-// In-world port of gui_item_outline_legendary.fsh (animated pinwheel), sampling the
-// Fishtastic item outline atlas. See world_item_outline.fsh for the differences from
-// the GUI variant; the pinwheel logic is identical.
-
-layout(std140) uniform DynamicTransforms {
-    mat4 ModelViewMat;
-    vec4 ColorModulator;
-    vec3 ModelOffset;
-    mat4 TextureMat;
-};
+// Bakes the animated legendary (pinwheel) outline ring into an atlas slot's padding.
+// Ported from world_item_outline_legendary.fsh — see outline_bake.fsh for why the outline
+// generation moved from draw time to bake time.
+//
+// Because the pinwheel animates, slots using this shader are re-baked every frame while the
+// item is on screen (FishtasticItemOutlineAtlas.recomposeAnimatedSlots). GameTime may be one
+// frame stale — the bake runs at the head of GameRenderer.render, before the Globals UBO is
+// refreshed — which is imperceptible at this rotation speed.
 
 layout(std140) uniform Globals {
     ivec3 CameraPosition;
@@ -21,7 +19,6 @@ layout(std140) uniform Globals {
     int   UseRgss;
 };
 
-// Same std140 layout as the GUI shaders — the GpuBuffer is shared per effect.
 layout(std140) uniform LegendaryOutlineParams {
     vec4  color;        // outline tint (RGB; W unused)
     float falloff;      // 0 = solid, 1 = full gradient fade at outer edge
@@ -34,7 +31,7 @@ layout(std140) uniform LegendaryOutlineParams {
     float _reserved1;
 };
 
-uniform sampler2D Sampler0;
+uniform sampler2D Sampler0;   // mask atlas: item sprite, transparent padding
 
 in vec2 texCoord0;
 in vec4 vertexColor;
@@ -50,29 +47,17 @@ vec3 hsvToRgb(vec3 c) {
 }
 
 void main() {
-    vec4 center = texture(Sampler0, texCoord0);
-
-    // Opaque pixels belong to the item itself — discard them.
-    if (center.a > 0.01) {
+    if (texture(Sampler0, texCoord0).a > 0.01) {
         discard;
     }
 
     vec2 texSize = vec2(textureSize(Sampler0, 0));
     vec2 step = 1.0 / texSize;
 
-    float solidness       = 1.0 - falloff;
-    float falloffStrength = 1.0 - solidness;
+    float falloffStrength = falloff;
 
-    // Widen the ring under minification so it stays >= ~1 screen pixel — see the
-    // explanation in world_item_outline.fsh.
-    vec2 ddx = dFdx(texCoord0) * texSize;
-    vec2 ddy = dFdy(texCoord0) * texSize;
-    float minification = clamp(max(length(ddx), length(ddy)), 1.0, 8.0);
+    int radius = clamp(int(ceil(width * float(FISHTASTIC_ATLAS_RES))), 1, 16);
 
-    // radius in atlas texels: width is fractional item pixels, RES converts to texels.
-    int radius = clamp(int(ceil(max(width * float(FISHTASTIC_ATLAS_RES), minification))), 1, 16);
-
-    // Atlas slot bounds — prevents bleed across adjacent items. Grid anchored at V=1.
     float slotW    = float(FISHTASTIC_ATLAS_SLOT_PX) * step.x;
     float uSlotMin = floor(texCoord0.x / slotW) * slotW;
     float uSlotMax = uSlotMin + slotW;
@@ -101,10 +86,9 @@ void main() {
 
     // ---- Pinwheel effect ----
 
-    // GameTime: 0→1 per in-game day (24 000 ticks ≈ 1200 real seconds).
+    // GameTime: 0->1 per in-game day (24 000 ticks ~ 1200 real seconds).
     float rotation = mod(GameTime * animSpeed, 1.0) * 2.0 * PI;
 
-    // Angle from the slot centre to this outline fragment.
     float uCenter = (uSlotMin + uSlotMax) * 0.5;
     float vCenter = (vSlotMin + vSlotMax) * 0.5;
     vec2 dir = texCoord0 - vec2(uCenter, vCenter);
@@ -126,13 +110,10 @@ void main() {
 
     // Subtle iridescent shimmer: mostly preserves the item-defined colour,
     // with a small rainbow tint that drifts slowly over time.
-    float hue      = fract(angle / (2.0 * PI) + mod(GameTime * 15.0, 1.0));
-    vec3 rainbow   = hsvToRgb(vec3(hue, 0.7, 1.0));
-    vec3 blendedColor = mix(color.rgb, rainbow, 0.2) * brightness;
+    float hue         = fract(angle / (2.0 * PI) + mod(GameTime * 15.0, 1.0));
+    vec3  rainbow     = hsvToRgb(vec3(hue, 0.7, 1.0));
+    vec3  blendedColor = mix(color.rgb, rainbow, 0.2) * brightness;
 
-    // Outline alpha with falloff.
-    float t     = (minDist - 1.0) / float(max(radius - 1, 1));
-    float alpha = opacity * (1.0 - falloffStrength * t);
-
-    fragColor = vec4(blendedColor, alpha) * ColorModulator;
+    float t = (minDist - 1.0) / float(max(radius - 1, 1));
+    fragColor = vec4(blendedColor, opacity * (1.0 - falloffStrength * t));
 }

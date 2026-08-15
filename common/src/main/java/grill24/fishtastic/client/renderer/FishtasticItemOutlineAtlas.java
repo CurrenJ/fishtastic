@@ -9,6 +9,8 @@ import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import grill24.fishtastic.itemeffect.ItemEffect;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 import net.minecraft.client.Minecraft;
@@ -58,8 +60,10 @@ import java.util.Map;
  */
 public final class FishtasticItemOutlineAtlas {
 
-    /** Identifier the atlas texture is registered under in the {@code TextureManager}. */
+    /** Identifier the composed outline atlas is registered under in the {@code TextureManager}. */
     public static final Identifier TEXTURE_ID = Identifier.fromNamespaceAndPath("fishtastic", "item_outline_atlas");
+    /** Identifier the item mask atlas is registered under (sampled by the bake shaders). */
+    public static final Identifier MASK_TEXTURE_ID = Identifier.fromNamespaceAndPath("fishtastic", "item_outline_mask_atlas");
 
     /** The 16-px item tile is rendered at this many texels (4x resolution). */
     public static final int ITEM_RENDER_PX = 64;
@@ -108,6 +112,11 @@ public final class FishtasticItemOutlineAtlas {
         boolean baked;
         /** True when the slot previously held a different item and must be cleared before redraw. */
         boolean needsClear;
+        /**
+         * The effect whose outline is composed into this slot. Held so animated slots can be
+         * re-composed each frame without the caller re-supplying it.
+         */
+        ItemEffect effect;
 
         Slot(int x, int y) {
             this.x = x;
@@ -126,11 +135,26 @@ public final class FishtasticItemOutlineAtlas {
 
     // ----- GPU resources (lazily created on first bake) -----
 
+    /** Composed atlas: the outline ring only, transparent everywhere else. This is what is drawn. */
     private GpuTexture texture;
     private GpuTextureView textureView;
+    /**
+     * Item sprite atlas, same slot layout as {@link #texture}. Only ever sampled by the bake
+     * shaders, which need the item's alpha to find its silhouette edge. Kept as a separate texture
+     * rather than composing in place because a single pass cannot both read and write one texture —
+     * and keeping it resident lets animated slots re-compose without re-rendering the item model.
+     */
+    private GpuTexture maskTexture;
+    private GpuTextureView maskTextureView;
     private GpuTexture depthTexture;
     private GpuTextureView depthTextureView;
     private final PoseStack poseStack = new PoseStack();
+    /**
+     * Identity pose for the compose quad, whose vertices are already in atlas-pixel space.
+     * Held as a field rather than allocated per call: {@link #recomposeAnimatedSlots} runs this
+     * every frame for every animated item on screen. Never mutated.
+     */
+    private final PoseStack composePoseStack = new PoseStack();
     private final Projection projection = new Projection();
     private ProjectionMatrixBuffer projectionMatrixBuffer;
     /** Scratch render state, resolved and cleared per bake. */
@@ -173,10 +197,13 @@ public final class FishtasticItemOutlineAtlas {
      * not yet baked (in which case it has been queued and will be available next frame)
      * or the atlas is full of recently-used slots.
      */
-    public @Nullable SlotView requestSlot(ItemStack stack) {
+    public @Nullable SlotView requestSlot(ItemStack stack, ItemEffect effect) {
         Slot slot = slotsByStack.get(stack);
         if (slot != null) {
             slot.lastUsedFrame = frameCounter;
+            // The effect for a given stack is resolved fresh each frame and can change when the
+            // effect registry reloads; keep the slot in step so re-composes use current params.
+            slot.effect = effect;
             return slot.baked ? viewOf(slot) : null;
         }
 
@@ -186,6 +213,7 @@ public final class FishtasticItemOutlineAtlas {
         }
         slot.lastUsedFrame = frameCounter;
         slot.baked = false;
+        slot.effect = effect;
         // Defensive copy: the caller's stack belongs to a live entity and may mutate.
         ItemStack key = stack.copyWithCount(1);
         slotsByStack.put(key, slot);
@@ -238,24 +266,87 @@ public final class FishtasticItemOutlineAtlas {
             // or it would wipe bakes performed later this frame on the next frame.
             if (texture != null) {
                 RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(texture, 0, depthTexture, 1.0);
+                RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(maskTexture, 0, depthTexture, 1.0);
             }
             pendingGpuClear = false;
         }
 
-        if (bakeQueue.isEmpty()) {
+        if (!bakeQueue.isEmpty()) {
+            ensureInitialized();
+            PendingBake pending;
+            while ((pending = bakeQueue.poll()) != null) {
+                minecraft.getItemModelResolver()
+                        .updateForTopItem(bakeRenderState, pending.stack(), ItemDisplayContext.GUI, minecraft.level, null, 0);
+                drawToSlot(minecraft, pending.slot(), bakeRenderState);
+                bakeRenderState.clear();
+                composeSlot(minecraft, pending.slot());
+                pending.slot().baked = true;
+                pending.slot().needsClear = false;
+            }
+        }
+
+        recomposeAnimatedSlots(minecraft);
+    }
+
+    /**
+     * Re-runs the compose pass for on-screen slots whose effect animates (the legendary pinwheel),
+     * so their rotation advances every frame.
+     *
+     * <p>Only the compose pass is repeated — the item model is <em>not</em> re-rendered, because the
+     * mask atlas already holds its sprite. That keeps the per-frame cost to one full-slot quad per
+     * animated item on screen, which is why re-baking every frame is affordable at all.
+     *
+     * <p>Slots not touched within the last frame are skipped: an off-screen item's outline does not
+     * need to keep spinning, and it will be re-composed on the frame it reappears.
+     */
+    private void recomposeAnimatedSlots(Minecraft minecraft) {
+        if (texture == null) {
             return;
         }
-        ensureInitialized();
-
-        PendingBake pending;
-        while ((pending = bakeQueue.poll()) != null) {
-            minecraft.getItemModelResolver()
-                    .updateForTopItem(bakeRenderState, pending.stack(), ItemDisplayContext.GUI, minecraft.level, null, 0);
-            drawToSlot(minecraft, pending.slot(), bakeRenderState);
-            bakeRenderState.clear();
-            pending.slot().baked = true;
-            pending.slot().needsClear = false;
+        for (Slot slot : slotsByStack.values()) {
+            if (!slot.baked || slot.effect == null || !slot.effect.isOutlineAnimated()) continue;
+            if (slot.lastUsedFrame < frameCounter - 1) continue;
+            composeSlot(minecraft, slot);
         }
+    }
+
+    /**
+     * Draws the outline ring for {@code slot} into the composed atlas, sampling the item silhouette
+     * from the mask atlas. The slot region is cleared first so the ring's alpha is written verbatim
+     * (the bake pipeline has blending disabled).
+     */
+    private void composeSlot(Minecraft minecraft, Slot slot) {
+        ItemEffect effect = slot.effect;
+        if (effect == null) {
+            return;
+        }
+        int left = slot.x * SLOT_PX;
+        int top = slot.y * SLOT_PX;
+        int bottom = top + SLOT_PX;
+
+        RenderSystem.getDevice().createCommandEncoder()
+                .clearColorAndDepthTextures(this.texture, 0, this.depthTexture, 1.0, left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
+
+        SlotView uv = viewOf(slot);
+        RenderSystem.outputColorTextureOverride = this.textureView;
+        RenderSystem.outputDepthTextureOverride = this.depthTextureView;
+        this.projection.setupOrtho(-1000.0F, 1000.0F, TEXTURE_SIZE, TEXTURE_SIZE, true);
+        RenderSystem.setProjectionMatrix(this.projectionMatrixBuffer.getBuffer(this.projection), ProjectionType.ORTHOGRAPHIC);
+        RenderSystem.enableScissorForRenderTypeDraws(left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
+
+        // Vertices are absolute atlas-pixel coordinates in the ortho space set up above (Y down),
+        // so the quad covers exactly the slot and its UVs map 1:1 onto the mask atlas slot.
+        var pose = this.composePoseStack.last();
+        VertexConsumer buffer = minecraft.renderBuffers().bufferSource().getBuffer(effect.outlineBakeRenderType());
+        buffer.addVertex(pose, left, top, 0.0F).setUv(uv.u0(), uv.v0()).setColor(-1);
+        buffer.addVertex(pose, left, bottom, 0.0F).setUv(uv.u0(), uv.v1()).setColor(-1);
+        buffer.addVertex(pose, left + SLOT_PX, bottom, 0.0F).setUv(uv.u1(), uv.v1()).setColor(-1);
+        buffer.addVertex(pose, left + SLOT_PX, top, 0.0F).setUv(uv.u1(), uv.v0()).setColor(-1);
+        minecraft.renderBuffers().bufferSource().endBatch();
+
+        RenderSystem.disableScissorForRenderTypeDraws();
+        RenderSystem.outputColorTextureOverride = null;
+        RenderSystem.outputDepthTextureOverride = null;
     }
 
     private void ensureInitialized() {
@@ -266,14 +357,24 @@ public final class FishtasticItemOutlineAtlas {
         // Usage flags 13 (color) / 9 (depth) mirror GuiItemAtlas's texture creation.
         this.texture = device.createTexture("Fishtastic outline atlas", 13, TextureFormat.RGBA8, TEXTURE_SIZE, TEXTURE_SIZE, 1, 1);
         this.textureView = device.createTextureView(this.texture);
+        this.maskTexture = device.createTexture("Fishtastic outline mask atlas", 13, TextureFormat.RGBA8, TEXTURE_SIZE, TEXTURE_SIZE, 1, 1);
+        this.maskTextureView = device.createTextureView(this.maskTexture);
+        // Shared by both passes: the item bake needs real depth testing for 3D models, and the
+        // compose pass ignores depth entirely (CompareOp.ALWAYS, no write).
         this.depthTexture = device.createTexture("Fishtastic outline atlas depth", 9, TextureFormat.DEPTH32, TEXTURE_SIZE, TEXTURE_SIZE, 1, 1);
         this.depthTextureView = device.createTextureView(this.depthTexture);
         this.projectionMatrixBuffer = new ProjectionMatrixBuffer("fishtastic_outline_atlas");
         device.createCommandEncoder().clearColorAndDepthTextures(this.texture, 0, this.depthTexture, 1.0);
+        device.createCommandEncoder().clearColorAndDepthTextures(this.maskTexture, 0, this.depthTexture, 1.0);
         Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, new AtlasTexture(this.texture, this.textureView));
+        Minecraft.getInstance().getTextureManager().register(MASK_TEXTURE_ID, new AtlasTexture(this.maskTexture, this.maskTextureView));
     }
 
-    /** Mirrors {@code GuiItemAtlas.drawToSlot}, with the item centered inside the padded slot. */
+    /**
+     * Renders the item model into the <em>mask</em> atlas slot, centered inside the padding.
+     * Mirrors {@code GuiItemAtlas.drawToSlot}. The visible outline is produced from this by
+     * {@link #composeSlot}.
+     */
     private void drawToSlot(Minecraft minecraft, Slot slot, ItemStackRenderState item) {
         int left = slot.x * SLOT_PX;
         int top = slot.y * SLOT_PX;
@@ -281,14 +382,14 @@ public final class FishtasticItemOutlineAtlas {
         GpuDevice device = RenderSystem.getDevice();
         if (slot.needsClear) {
             device.createCommandEncoder()
-                    .clearColorAndDepthTextures(this.texture, 0, this.depthTexture, 1.0, left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
+                    .clearColorAndDepthTextures(this.maskTexture, 0, this.depthTexture, 1.0, left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
         }
 
         this.poseStack.pushPose();
         this.poseStack.translate(left + SLOT_PX / 2.0F, top + SLOT_PX / 2.0F, 0.0F);
         // Scale by the item render size, not the slot size — this is what creates the padding.
         this.poseStack.scale(ITEM_RENDER_PX, -ITEM_RENDER_PX, ITEM_RENDER_PX);
-        RenderSystem.outputColorTextureOverride = this.textureView;
+        RenderSystem.outputColorTextureOverride = this.maskTextureView;
         RenderSystem.outputDepthTextureOverride = this.depthTextureView;
         this.projection.setupOrtho(-1000.0F, 1000.0F, TEXTURE_SIZE, TEXTURE_SIZE, true);
         RenderSystem.setProjectionMatrix(this.projectionMatrixBuffer.getBuffer(this.projection), ProjectionType.ORTHOGRAPHIC);
