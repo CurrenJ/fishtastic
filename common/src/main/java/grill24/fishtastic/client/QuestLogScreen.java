@@ -332,7 +332,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             byCategory.get(entry.getValue().category()).add(entry);
         }
         for (var list : byCategory.values()) {
-            list.sort(Comparator.comparing(e -> e.getValue().displayName()));
+            list.sort(Comparator
+                    .<Map.Entry<ResourceKey<Quest>, Quest>, QuestDifficulty>comparing(e -> e.getValue().difficulty())
+                    .thenComparingInt(e -> e.getValue().reward().questTokens())
+                    .thenComparing(e -> e.getValue().displayName()));
         }
 
         // Only today's rotated-in dailies are worth showing — the rest of the daily pool
