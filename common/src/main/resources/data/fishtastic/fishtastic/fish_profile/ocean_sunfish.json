@@ -1,4 +1,5 @@
 {
+  "render_calibration": 0.84,
   "base_weight": 3,
   "size": { "mean": 90.0, "std_dev": 20.0 },
   "zones": ["ocean", "deep_ocean"],

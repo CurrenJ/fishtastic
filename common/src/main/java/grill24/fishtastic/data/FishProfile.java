@@ -37,11 +37,20 @@ public record FishProfile(
         List<Zone> zones,
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
-        SwarmConfig swarm
+        SwarmConfig swarm,
+        float renderCalibration
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
     public static final float DEFAULT_STDDEV_SIZE = 15.0f;
+
+    /**
+     * Fallback used when a species hasn't been measured yet (see {@link #renderCalibration}):
+     * reproduces the old flat {@code 0.01 + size/100 * 0.8} scale formula's slope, so an
+     * uncalibrated fish looks the same as it did before per-species calibration existed rather
+     * than snapping to a value tuned for a different texture's padding.
+     */
+    public static final float DEFAULT_RENDER_CALIBRATION = 0.8f;
 
     public static final Codec<FishProfile> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.INT.optionalFieldOf("base_weight", DEFAULT_BASE_WEIGHT).forGetter(FishProfile::baseWeight),
@@ -53,7 +62,16 @@ public record FishProfile(
             Zone.CODEC.listOf().fieldOf("zones").forGetter(FishProfile::zones),
             ResourceKey.codec(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY).optionalFieldOf("temperament").forGetter(FishProfile::temperament),
             FishAnimationConfig.CODEC.optionalFieldOf("animation").forGetter(FishProfile::animation),
-            SwarmConfig.CODEC.optionalFieldOf("swarm", SwarmConfig.DEFAULT).forGetter(FishProfile::swarm)
+            SwarmConfig.CODEC.optionalFieldOf("swarm", SwarmConfig.DEFAULT).forGetter(FishProfile::swarm),
+            // Per-species multiplier so a fish's rendered length in the tank matches its cm size
+            // regardless of animation mode or how much of its texture canvas the art actually
+            // fills. Computed from a measured alpha-channel bounding box (diagonal extent for
+            // horizontal_swim/upright_float/upright_sit with diagonal_texture, canvas-edge extent
+            // otherwise): render_calibration = 1 / (correction * fill_fraction), where correction
+            // is sqrt(2) for the diagonal-rotated modes (the 45° roll that lays a diagonally-painted
+            // fish flat also widens its square texture quad's on-screen span by sqrt(2)) or 1.0
+            // otherwise. See tools/fish-render-calibration.
+            Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration)
     ).apply(i, FishProfile::new));
 
     public record SizeParams(float mean, float stdDev) {

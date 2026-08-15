@@ -1,0 +1,16 @@
+{
+  "render_calibration": 0.88,
+  "base_weight": 3,
+  "size": { "mean": 30.0, "std_dev": 8.0 },
+  "zones": [
+    "deep_ocean"
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 2.0 },
+    { "time": "dusk", "multiplier": 1.4 }
+  ],
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 1.3, "tier": "secondary" }
+  ],
+  "temperament": "fishtastic:ghost"
+}

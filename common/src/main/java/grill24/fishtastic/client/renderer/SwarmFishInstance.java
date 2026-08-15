@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 public record SwarmFishInstance(
         ItemStack stack,
         FishAnimationConfig animationConfig,
+        float renderCalibration,
         float baseRotation,
         float xOffset,
         float yOffset,

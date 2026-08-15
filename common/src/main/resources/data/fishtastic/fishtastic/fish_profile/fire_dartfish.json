@@ -1,0 +1,12 @@
+{
+  "render_calibration": 1.22,
+  "base_weight": 7,
+  "size": { "mean": 20.0, "std_dev": 5.0 },
+  "zones": [
+    "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:basalt_deltas"], "multiplier": 1.7 }
+  ],
+  "temperament": "fishtastic:sprinter"
+}

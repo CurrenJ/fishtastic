@@ -31,12 +31,14 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.BLUEGILL.value());
                     output.accept(FishtasticItems.BRIDLE_SHINER.value());
                     output.accept(FishtasticItems.BULL_TROUT.value());
+                    output.accept(FishtasticItems.CHAUNACOPS.value());
                     output.accept(FishtasticItems.CLOWN_LOACH.value());
                     output.accept(FishtasticItems.COMMON_OCTOPUS.value());
                     output.accept(FishtasticItems.DEVILS_HOLE_PUPFISH.value());
                     output.accept(FishtasticItems.DISCUS.value());
                     output.accept(FishtasticItems.ELECTRIC_EEL.value());
                     output.accept(FishtasticItems.EUROPEAN_GRAYLING.value());
+                    output.accept(FishtasticItems.FIRE_DARTFISH.value());
                     output.accept(FishtasticItems.FLAPJACK_OCTOPUS.value());
                     output.accept(FishtasticItems.FRIED_SHRIMP.value());
                     output.accept(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value());
@@ -60,6 +62,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.NEON_TETRA.value());
                     output.accept(FishtasticItems.NORTHERN_PIKE.value());
                     output.accept(FishtasticItems.OCEAN_SUNFISH.value());
+                    output.accept(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
                     output.accept(FishtasticItems.ORNATE_BICHIR.value());
                     output.accept(FishtasticItems.OSCAR.value());
                     output.accept(FishtasticItems.PARROTFISH.value());

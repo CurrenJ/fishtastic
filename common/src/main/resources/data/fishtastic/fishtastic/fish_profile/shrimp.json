@@ -1,4 +1,5 @@
 {
+  "render_calibration": 1,
   "base_weight": 100,
   "size": { "mean": 25.0, "std_dev": 5.0 },
   "zones": [

@@ -151,10 +151,10 @@ public class FishTankBlockEntityRenderer
         } else {
             // Solo fish: single instance at tank centre with no offsets.
             if (!firstItem.isEmpty()) {
-                FishAnimationConfig animConfig = resolveAnimationConfig(firstItem, level);
+                ResolvedFishRender render = resolveFishRender(firstItem, level);
                 int firstSlot = blockEntity.getFirstItemSlot();
                 state.fishInstances = List.of(new SwarmFishInstance(
-                        firstItem.copy(), animConfig,
+                        firstItem.copy(), render.animation(), render.renderCalibration(),
                         blockEntity.getFirstItemRotation(),
                         0f, 0f, 0f,
                         (long) blockPosHash,
@@ -185,7 +185,11 @@ public class FishTankBlockEntityRenderer
             float scale = 0.5f;
             if (ItemSizeHelper.hasSize(fish.stack())) {
                 float size = ItemSizeHelper.getSize(fish.stack());
-                scale = 0.01f + (size / 100f) * 0.8f;
+                // renderCalibration is per-species (see FishProfile#renderCalibration): it corrects
+                // for how much of the item's square texture canvas the fish's art actually fills,
+                // and for the extra sqrt(2) width the 45° diagonal-texture roll adds, so a fish's
+                // rendered nose-to-tail length matches its cm size regardless of animation mode.
+                scale = (size / 100f) * fish.renderCalibration();
             }
 
             float baseY = computeBaseY(fish.animationConfig(), state.hasOpenDownFace, scale);
@@ -202,7 +206,7 @@ public class FishTankBlockEntityRenderer
                     ITEM_POSITION_OFFSET.z() + fish.zOffset());
 
             Random fishRandom = new Random(fish.seed());
-            FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation(), fish.mirrored());
+            FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation(), scale, fish.mirrored());
 
             poseStack.scale(scale, scale, scale);
 
@@ -263,7 +267,7 @@ public class FishTankBlockEntityRenderer
 
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
-            FishAnimationConfig animConfig = resolveAnimationConfig(stack, level);
+            ResolvedFishRender render = resolveFishRender(stack, level);
 
             int layer = i % depthLayers;
             float depth = LAYER_Z[layer];  // offset along facing direction (local frame)
@@ -284,7 +288,9 @@ public class FishTankBlockEntityRenderer
             long seed = (long) blockPosHash ^ ((long) (i + 1) * 2654435761L);
             boolean mirrored = blockEntity.isItemMirrored(itemSlots.get(i));
 
-            instances.add(new SwarmFishInstance(stack, animConfig, rotation, worldX, ly[1], worldZ, seed, mirrored));
+            instances.add(new SwarmFishInstance(
+                    stack, render.animation(), render.renderCalibration(),
+                    rotation, worldX, ly[1], worldZ, seed, mirrored));
         }
 
         // Render back-to-front by world Z so foreground fish draw over background fish.
@@ -330,10 +336,11 @@ public class FishTankBlockEntityRenderer
     private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
         return switch (animConfig) {
             case FishAnimationConfig.FloorSit    fs -> COSMETIC_FLOOR_Y + fs.floorOffset();
-            case FishAnimationConfig.Planted     p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y;
-            // Unlike Planted/FloorSit's fixed-size decor, an upright fish's own render scale varies
-            // per catch (see ItemSizeHelper below), so the centre-to-bottom pivot compensation must
-            // scale with it too — a fixed offset overcorrects for anything smaller than max size.
+            // Planted and UprightSit fish each catch its own per-catch render scale (see
+            // ItemSizeHelper below), so the centre-to-bottom pivot compensation must scale with it
+            // too — a fixed offset overcorrects small catches (floats above the sand) and
+            // undercorrects large ones (sinks into it).
+            case FishAnimationConfig.Planted     p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y * scale;
             case FishAnimationConfig.UprightSit  us -> COSMETIC_FLOOR_Y + us.floorOffset() + FishAnimator.PLANTED_PIVOT_Y * scale;
             default -> {
                 float y = ITEM_POSITION_OFFSET.y();
@@ -343,11 +350,17 @@ public class FishTankBlockEntityRenderer
         };
     }
 
-    private static FishAnimationConfig resolveAnimationConfig(ItemStack stack, Level level) {
-        if (stack.isEmpty()) return FishAnimationConfig.HorizontalSwim.DEFAULT;
+    /** Animation config + per-species render calibration, resolved together from one profile lookup. */
+    private record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {
+        private static final ResolvedFishRender DEFAULT = new ResolvedFishRender(
+                FishAnimationConfig.HorizontalSwim.DEFAULT, FishProfile.DEFAULT_RENDER_CALIBRATION);
+    }
+
+    private static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {
+        if (stack.isEmpty()) return ResolvedFishRender.DEFAULT;
 
         var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
-        if (itemKey.isEmpty()) return FishAnimationConfig.HorizontalSwim.DEFAULT;
+        if (itemKey.isEmpty()) return ResolvedFishRender.DEFAULT;
 
         ResourceKey<FishProfile> profileKey = ResourceKey.create(
                 FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
@@ -355,8 +368,10 @@ public class FishTankBlockEntityRenderer
         return level.registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(profileKey)
-                .flatMap(FishProfile::animation)
-                .orElse(FishAnimationConfig.HorizontalSwim.DEFAULT);
+                .map(profile -> new ResolvedFishRender(
+                        profile.animation().orElse(FishAnimationConfig.HorizontalSwim.DEFAULT),
+                        profile.renderCalibration()))
+                .orElse(ResolvedFishRender.DEFAULT);
     }
 
     private static SwarmConfig resolveSwarmConfig(ItemStack stack, Level level) {

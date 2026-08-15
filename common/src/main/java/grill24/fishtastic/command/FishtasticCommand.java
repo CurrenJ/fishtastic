@@ -26,6 +26,7 @@ public class FishtasticCommand {
                 .then(CosmeticCommand.build())
                 .then(SetItemSizeCommand.build())
                 .then(SetFishQualityCommand.build())
+                .then(SetTankShapeCommand.build())
                 .then(ForceQualityCommand.build())
                 .then(DebugFishDataCommand.build())
                 .then(FishProfileCommand.build())

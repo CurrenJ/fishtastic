@@ -1,0 +1,12 @@
+{
+  "render_calibration": 0.93,
+  "base_weight": 15,
+  "size": { "mean": 14.0, "std_dev": 3.0 },
+  "zones": [
+    "nether"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:nether_wastes"], "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:docile"
+}

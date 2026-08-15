@@ -107,6 +107,117 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FRIED_SHRIMP.value())
                 .add(FishtasticItems.ACUTE_IASPIS.value());
 
+        // Small fish: bait-affinity/encyclopedia cluster for small or delicate species.
+        // Curated membership (not derivable from fish_profile), so listed here rather than
+        // hand-edited JSON - same rationale as EXOTIC_FISH/UNLISTED_FISH above.
+        valueLookupBuilder(FishtasticItemTags.SMALL_FISH)
+                .add(FishtasticItems.TRAPANIA_SCURRA.value())
+                .add(FishtasticItems.YELLOWLINE_GOBY.value())
+                .add(FishtasticItems.FRIED_SHRIMP.value())
+                .add(FishtasticItems.GREENSTRIPE_BARB.value())
+                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
+                .add(FishtasticItems.SHRIMP.value())
+                .add(FishtasticItems.WILLANS_CHROMODORIS.value())
+                .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
+                .add(FishtasticItems.BLAZED_GRUB.value())
+                .add(FishtasticItems.BLUEGILL.value())
+                .add(FishtasticItems.NEON_TETRA.value())
+                .add(FishtasticItems.BETTA.value())
+                .add(FishtasticItems.GARDEN_EEL.value())
+                .add(FishtasticItems.BLIND_CAVEFISH.value())
+                .add(FishtasticItems.RAINFORDIA.value())
+                .add(FishtasticItems.DEVILS_HOLE_PUPFISH.value())
+                .add(FishtasticItems.SULPHUR_MOLLY.value())
+                .add(FishtasticItems.WATERFALL_CLIMBING_CAVE_FISH.value())
+                .add(FishtasticItems.BLIND_CAVE_TETRA.value())
+                .add(FishtasticItems.GLASS_CATFISH.value())
+                .add(FishtasticItems.NEON_GOBY.value())
+                .add(FishtasticItems.BRIDLE_SHINER.value())
+                .add(FishtasticItems.INDIAN_GLASSY_FISH.value())
+                .add(FishtasticItems.CLOWN_LOACH.value())
+                .add(FishtasticItems.FIRE_DARTFISH.value())
+                .add(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
+
+        // Calm fish: bait-affinity/encyclopedia cluster for docile, easy catches.
+        // Curated membership (not derivable from fish_profile), same rationale as above.
+        valueLookupBuilder(FishtasticItemTags.CALM_FISH)
+                .add(FishtasticItems.BLUEGILL.value())
+                .add(FishtasticItems.FRIED_SHRIMP.value())
+                .add(FishtasticItems.SHRIMP.value())
+                .add(FishtasticItems.STARFISH.value())
+                .add(FishtasticItems.TRAPANIA_SCURRA.value())
+                .add(FishtasticItems.WILLANS_CHROMODORIS.value())
+                .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
+                .add(FishtasticItems.GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.OCEAN_SUNFISH.value())
+                .add(FishtasticItems.GARDEN_EEL.value())
+                .add(FishtasticItems.DISCUS.value())
+                .add(FishtasticItems.GLASS_CATFISH.value())
+                .add(FishtasticItems.NEON_GOBY.value())
+                .add(FishtasticItems.BRIDLE_SHINER.value())
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
+                .add(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
+
+        // Big fish: bait-affinity/encyclopedia cluster for trophy-scale catches.
+        // Curated membership (not derivable from fish_profile), same rationale as above.
+        valueLookupBuilder(FishtasticItemTags.BIG_FISH)
+                .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
+                .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
+                .add(FishtasticItems.STARFISH.value())
+                .add(FishtasticItems.ACUTE_IASPIS.value())
+                .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
+                .add(FishtasticItems.LIZARDFISH.value())
+                .add(FishtasticItems.PARROTFISH.value())
+                .add(FishtasticItems.RAINFORDIA.value())
+                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
+                .add(FishtasticItems.MOORISH_IDOL.value())
+                .add(FishtasticItems.LONGNOSE_GAR.value())
+                .add(FishtasticItems.NORTHERN_PIKE.value())
+                .add(FishtasticItems.GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
+                .add(FishtasticItems.OCEAN_SUNFISH.value())
+                .add(FishtasticItems.ARCTIC_CHAR.value())
+                .add(FishtasticItems.GIRAFFE_CICHLID.value())
+                .add(FishtasticItems.COMMON_OCTOPUS.value())
+                .add(FishtasticItems.ELECTRIC_EEL.value())
+                .add(FishtasticItems.GOLDEN_MAHSEER.value())
+                .add(FishtasticItems.ORNATE_BICHIR.value())
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value());
+
+        // Steady fish: bait-affinity/encyclopedia cluster for mid-difficulty reef/river fish.
+        // Curated membership (not derivable from fish_profile), same rationale as above.
+        valueLookupBuilder(FishtasticItemTags.STEADY_FISH)
+                .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
+                .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
+                .add(FishtasticItems.LIZARDFISH.value())
+                .add(FishtasticItems.PARROTFISH.value())
+                .add(FishtasticItems.RAINFORDIA.value())
+                .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
+                .add(FishtasticItems.GREENSTRIPE_BARB.value())
+                .add(FishtasticItems.MOORISH_IDOL.value())
+                .add(FishtasticItems.ARCTIC_CHAR.value())
+                .add(FishtasticItems.COMMON_OCTOPUS.value());
+
+        // Frenzy fish: bait-affinity/encyclopedia cluster for aggressive/high-energy species.
+        // Curated membership (not derivable from fish_profile), same rationale as above.
+        valueLookupBuilder(FishtasticItemTags.FRENZY_FISH)
+                .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.ACUTE_IASPIS.value())
+                .add(FishtasticItems.LONGNOSE_GAR.value())
+                .add(FishtasticItems.NORTHERN_PIKE.value())
+                .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
+                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value())
+                .add(FishtasticItems.NEON_TETRA.value())
+                .add(FishtasticItems.YELLOWLINE_GOBY.value())
+                .add(FishtasticItems.BETTA.value())
+                .add(FishtasticItems.BLAZED_GRUB.value())
+                .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
+                .add(FishtasticItems.DEVILS_HOLE_PUPFISH.value())
+                .add(FishtasticItems.INDIAN_GLASSY_FISH.value());
+
         addZoneTags(fishProfiles);
     }
 

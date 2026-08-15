@@ -12,9 +12,12 @@ public final class FishAnimator {
     /**
      * Applies orientation and animation transforms to the PoseStack for the given animation config.
      * The stack is assumed to already be translated to the fish's base XZ+Y position in the tank.
-     * Scale should be applied by the caller after this method returns.
+     * Scale should be applied by the caller after this method returns — {@code scale} is passed in
+     * only so a mode can pivot around a point derived from the item's own size (see
+     * {@link #applyPlanted}); it isn't applied to the stack here.
      *
      * @param random seeded consistently per tank so animations are stable across frames
+     * @param scale the per-fish render scale the caller will apply after this call returns
      * @param mirrored whether to render left/right-flipped, for natural variety. Implemented as an
      *                 extra 180° turn about Y rather than a negative-scale reflection: the generated
      *                 item model's back face already carries a horizontally mirrored UV (so a flat
@@ -22,12 +25,12 @@ public final class FishAnimator {
      *                 that pre-mirrored face to the camera. A true negative-scale flip would corrupt
      *                 the model's face winding/normals instead.
      */
-    public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, boolean mirrored) {
+    public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, float scale, boolean mirrored) {
         switch (config) {
             case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
-            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored);
             case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.UprightSit     cfg -> applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
         }
@@ -71,16 +74,19 @@ public final class FishAnimator {
     }
 
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
-                                      Random random, float t, float baseRotation, boolean mirrored) {
+                                      Random random, float t, float baseRotation, float scale, boolean mirrored) {
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float wiggle = (float) (Math.sin(t * cfg.wiggleHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.wiggleAmplitude());
-        // Pivot the sway around the item's base rather than its centre.
-        // Items in FIXED display context span ~0.5 units; half-height ≈ 0.25 below centre.
-        poseStack.translate(0f, PLANTED_PIVOT_Y, 0f);
+        // Pivot the sway around the item's base rather than its centre. This translate runs before
+        // the caller's poseStack.scale(scale), i.e. in unscaled world-block units, so PLANTED_PIVOT_Y
+        // (the item's own half-height at scale 1) must be scaled here explicitly to land on the same
+        // point regardless of this fish's own render scale.
+        float pivot = PLANTED_PIVOT_Y * scale;
+        poseStack.translate(0f, pivot, 0f);
         poseStack.mulPose(Axis.ZP.rotationDegrees(wiggle));
-        poseStack.translate(0f, -PLANTED_PIVOT_Y, 0f);
+        poseStack.translate(0f, -pivot, 0f);
     }
 
     private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,
@@ -108,8 +114,15 @@ public final class FishAnimator {
         }
     }
 
-    /** Distance from item centre to its bottom in FIXED display-context world units (pre-custom-scale). */
-    public static final float PLANTED_PIVOT_Y = 0.25f;
+    /**
+     * Distance from an item's centre to its bottom in FIXED display-context world units, at this
+     * fish's own render scale of 1.0 — i.e. always needs multiplying by the fish's actual render
+     * scale by the caller. Verified against vanilla: {@code ItemTransform.apply} centres every
+     * item's baked quad with a final {@code translate(-0.5, -0.5, -0.5)}, and the FIXED transform
+     * for {@code item/generated} models applies no additional scale, so the full quad spans
+     * {@code -0.5..+0.5} — half-height 0.5, not 0.25.
+     */
+    public static final float PLANTED_PIVOT_Y = 0.5f;
 
     // ── Shared animation helpers ──────────────────────────────────────────────
 

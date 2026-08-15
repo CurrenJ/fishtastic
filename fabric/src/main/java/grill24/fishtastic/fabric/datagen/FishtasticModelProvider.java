@@ -111,12 +111,14 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLUEGILL.value(), "bluegill");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BRIDLE_SHINER.value(), "bridle_shiner");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BULL_TROUT.value(), "bull_trout");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.CHAUNACOPS.value(), "chaunacops");
         generateFishItemModel(itemModelGenerators, FishtasticItems.CLOWN_LOACH.value(), "clown_loach");
         generateFishItemModel(itemModelGenerators, FishtasticItems.COMMON_OCTOPUS.value(), "common_octopus");
         generateFishItemModel(itemModelGenerators, FishtasticItems.DEVILS_HOLE_PUPFISH.value(), "devils_hole_pupfish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.DISCUS.value(), "discus");
         generateFishItemModel(itemModelGenerators, FishtasticItems.ELECTRIC_EEL.value(), "electric_eel");
         generateFishItemModel(itemModelGenerators, FishtasticItems.EUROPEAN_GRAYLING.value(), "european_grayling");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.FIRE_DARTFISH.value(), "fire_dartfish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FLAPJACK_OCTOPUS.value(), "flapjack_octopus");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FRIED_SHRIMP.value(), "fried_shrimp");
         generateFishItemModel(itemModelGenerators, FishtasticItems.FROZEN_GIANT_MANTA_RAY.value(), "frozen_giant_manta_ray");
@@ -140,6 +142,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.NEON_TETRA.value(), "neon_tetra");
         generateFishItemModel(itemModelGenerators, FishtasticItems.NORTHERN_PIKE.value(), "northern_pike");
         generateFishItemModel(itemModelGenerators, FishtasticItems.OCEAN_SUNFISH.value(), "ocean_sunfish");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value(), "orange_australe_killifish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.ORNATE_BICHIR.value(), "ornate_bichir");
         generateFishItemModel(itemModelGenerators, FishtasticItems.OSCAR.value(), "oscar");
         generateFishItemModel(itemModelGenerators, FishtasticItems.PARROTFISH.value(), "parrotfish");
