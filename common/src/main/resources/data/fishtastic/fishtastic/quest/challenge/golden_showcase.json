@@ -1,0 +1,13 @@
+{
+  "category": "challenge",
+  "difficulty": "gold",
+  "objective": {
+    "target_count": 1,
+    "min_quality": "legendary",
+    "tank_snapshot": { "material": "minecraft:gold_block" }
+  },
+  "reward": { "quest_tokens": 40, "items": [] },
+  "hidden": false,
+  "display_name": "Golden Showcase",
+  "description": "Display a Legendary-quality fish in a gold-framed tank."
+}

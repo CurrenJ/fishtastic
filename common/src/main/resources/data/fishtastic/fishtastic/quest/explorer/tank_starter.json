@@ -1,0 +1,11 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_count": 1,
+    "tank_snapshot": {}
+  },
+  "reward": { "quest_tokens": 5, "items": [] },
+  "hidden": false,
+  "display_name": "Home Sweet Tank",
+  "description": "Display any fish in a tank."
+}
