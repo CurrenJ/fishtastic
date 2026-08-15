@@ -3,10 +3,14 @@ package grill24.fishtastic.shapepreviewer;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.shapegen.BrambleFrameGeometryGenerator;
 import grill24.fishtastic.shapegen.BrambleGlassGeometryGenerator;
+import grill24.fishtastic.shapegen.CombFrameGeometryGenerator;
+import grill24.fishtastic.shapegen.CombGlassGeometryGenerator;
 import grill24.fishtastic.shapegen.CornerTaperProfile;
+import grill24.fishtastic.shapegen.FilmTankSpans;
 import grill24.fishtastic.shapegen.OrnateFrameGeometryGenerator;
 import grill24.fishtastic.shapegen.OrnateGlassGeometryGenerator;
 import grill24.fishtastic.shapegen.SandGeometryGenerator;
+import grill24.fishtastic.shapegen.ToothTankSpans;
 import grill24.fishtastic.shapegen.ShaggyFrameGeometryGenerator;
 import grill24.fishtastic.shapegen.ShaggyGlassGeometryGenerator;
 import grill24.fishtastic.shapegen.ShellFrameGeometryGenerator;
@@ -134,7 +138,9 @@ public class TankShapePreviewerApp extends Application {
                 "STURDY",
                 "HONED (thicker_chamfer_shape_set tank 0)",
                 "RAMPART (thicker_chamfer_shape_set tank 1)",
-                "BRAMBLE (references)");
+                "BRAMBLE (references)",
+                "TOOTH (references)",
+                "FILM (references)");
         // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
         // used by the screenshot workflow to render a specific shape without UI interaction.
         int initialIndex = 0;
@@ -153,6 +159,8 @@ public class TankShapePreviewerApp extends Application {
                     case "honed" -> 9;
                     case "rampart" -> 10;
                     case "bramble" -> 11;
+                    case "tooth" -> 12;
+                    case "film" -> 13;
                     default -> 0;
                 };
             }
@@ -239,11 +247,13 @@ public class TankShapePreviewerApp extends Application {
             case 6 -> ShaggyFrameGeometryGenerator.generate(perm);
             case 7 -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
             case 11 -> BrambleFrameGeometryGenerator.generate(perm);
+            case 12 -> CombFrameGeometryGenerator.generate(perm, ToothTankSpans.SPEC);
+            case 13 -> CombFrameGeometryGenerator.generate(perm, FilmTankSpans.SPEC);
             default -> shell ? ShellFrameGeometryGenerator.generate(perm, profile)
                              : TaperedFrameGeometryGenerator.generate(perm, profile);
         };
         JsonObject sand = switch (idx) {
-            case 5, 6, 11 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
+            case 5, 6, 11, 12, 13 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
             default -> shell ? SteppedSandGeometryGenerator.generate(perm, profile)
                              : SandGeometryGenerator.generate(perm, profile);
         };
@@ -252,6 +262,8 @@ public class TankShapePreviewerApp extends Application {
             case 6 -> ShaggyGlassGeometryGenerator.generate(perm);
             case 7 -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
             case 11 -> BrambleGlassGeometryGenerator.generate(perm);
+            case 12 -> CombGlassGeometryGenerator.generate(perm, ToothTankSpans.SPEC);
+            case 13 -> CombGlassGeometryGenerator.generate(perm, FilmTankSpans.SPEC);
             default -> TaperedGlassGeometryGenerator.generate(perm, profile);
         };
 

@@ -137,7 +137,25 @@ public enum FishTankShape implements TooltipProvider {
      * {@link #unlockQuests}.
      */
     BRAMBLE(Fishtastic.id("bramble"), Fishtastic.id("standard"), "fishtank_bramble",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/jungle_downpour"))));
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/jungle_downpour")))),
+    /**
+     * Tooth tank: a shark-jaw motif — doubled ceiling/floor bands, a comb-tooth fringe hanging down
+     * from the ceiling and rising up from the floor, and a 2px corner post filling the waist between
+     * them, read pixel-exactly off {@code docs/tank-shapes/tooth_shape_3_wide.png} (see
+     * CombFrameGeometryGenerator / CombGlassGeometryGenerator, spans in ToothTankSpans). Shares
+     * STANDARD's connectionCollection like {@link #FACETED}. Currently ungated (no unlockQuests) —
+     * added for in-game testing; quest/shop wiring is still pending.
+     */
+    TOOTH(Fishtastic.id("tooth"), Fishtastic.id("standard"), "fishtank_tooth"),
+    /**
+     * Film tank: a filmstrip-sprocket motif — a period-2 perforated comb band under the ceiling and
+     * above the sand, with a plain 1px corner post filling the waist, read pixel-exactly off
+     * {@code docs/tank-shapes/film_shape_3_wide.png} (see CombFrameGeometryGenerator /
+     * CombGlassGeometryGenerator, spans in FilmTankSpans). Shares STANDARD's connectionCollection
+     * like {@link #FACETED}. Currently ungated (no unlockQuests) — added for in-game testing;
+     * quest/shop wiring is still pending.
+     */
+    FILM(Fishtastic.id("film"), Fishtastic.id("standard"), "fishtank_film");
 
     private final Identifier id;
     private final Identifier connectionCollection;
