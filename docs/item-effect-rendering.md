@@ -187,7 +187,9 @@ Two textures, identical 1024² slot layouts:
 
 Two textures rather than one because a single pass cannot both read and write the same texture — and keeping the mask resident is what makes per-frame re-baking of animated outlines cheap.
 
-**Bake pass.** `ItemEffect.outlineBakeRenderType()` draws one full-slot quad into the outline atlas, sampling the mask atlas, using `outline_bake.fsh` / `outline_bake_legendary.fsh` (ports of the old draw-time shaders). Blending is off and the slot is cleared first, so the ring's alpha lands verbatim. These pipelines keep their custom shaders and are deliberately **not** registered with Iris: the bake runs offscreen against our own render target, outside the world pass, where no shaderpack can reach it.
+**Bake pass.** `ItemEffect.outlineBakeRenderType()` draws one full-slot quad into the outline atlas, sampling the mask atlas, using `outline_bake.fsh` / `outline_bake_legendary.fsh` (ports of the old draw-time shaders). Blending is off, so the ring's alpha lands verbatim. These pipelines keep their custom shaders and are deliberately **not** registered with Iris: the bake runs offscreen against our own render target, outside the world pass, where no shaderpack can reach it.
+
+> ⚠️ **The bake shaders must never `discard`.** Every fragment writes — transparent black where there is no ring. Combined with blending being off and the quad covering the full slot, that means each compose fully overwrites its slot. This is load-bearing: it is what allows `composeSlots` to skip the per-slot clear *and* the per-slot scissor, which in turn is what allows every slot to batch into one draw. Re-introducing a `discard` would leave the previous frame's pinwheel blades painted in the slot forever — and the failure is silent, since the first frame would look correct.
 
 Because the bake is always 1:1 atlas texels, the old `dFdx/dFdy` minification widening is gone — the derivative-derived factor is 1 by definition at bake time.
 
@@ -197,7 +199,16 @@ Vertices are `NEW_ENTITY` format — position, **white** colour, UV, overlay, fu
 
 The outline is **fullbright** — intentional: it reads as a glow in dark environments, consistent with the "quality glow" concept.
 
-**Animated (legendary) outlines** re-run *only* the compose pass each frame via `recomposeAnimatedSlots()`; the item model is not re-rendered, since the mask atlas already holds its sprite. Cost is one full-slot quad per animated item on screen. Slots not touched within the last frame are skipped — an off-screen item's outline need not keep spinning. `GameTime` may be one frame stale (the bake runs at HEAD of `GameRenderer.render`, before the `Globals` UBO refresh), which is imperceptible at this rotation speed.
+**Animated (legendary) outlines** re-run *only* the compose pass each frame via `collectAnimatedSlots()` → `composeSlots()`; the item model is not re-rendered, since the mask atlas already holds its sprite. Slots not touched within the last frame are skipped — an off-screen item's outline need not keep spinning. `GameTime` may be one frame stale (the bake runs at HEAD of `GameRenderer.render`, before the `Globals` UBO refresh), which is imperceptible at this rotation speed.
+
+**All slots compose in a single draw.** The bake shaders take no per-slot uniform state — they derive the slot's UV bounds and the pinwheel centre per-fragment from `texCoord0`:
+
+```glsl
+float uSlotMin = floor(texCoord0.x / slotW) * slotW;
+float uCenter  = (uSlotMin + uSlotMax) * 0.5;
+```
+
+so one buffer holding many slots' quads composes each against its own silhouette correctly. Slots whose effects differ land in different render types and `endBatch` flushes them as separate batches automatically. Render-target and projection state is set once around the whole batch, not per slot — the draw happens at `endBatch`, so the override must still be active then.
 
 ### Shaderpack (Iris) compatibility
 
@@ -226,7 +237,7 @@ GUI outline pipelines are **not** registered and must keep their own fragment sh
 
 - **GPU memory (fixed):** 12 MiB — 1024² RGBA8 outline atlas (4 MiB) + 1024² RGBA8 mask atlas (4 MiB) + a shared DEPTH32 depth texture (4 MiB), allocated once on first bake, never resized. 100 slots.
 - **Bake cost (amortized to ~zero):** one small ortho item render per unique (item + components) combo — the same cost as vanilla rendering one GUI inventory slot, paid once per combo and then reused indefinitely. Worst case is a burst frame when many distinct quality items first become visible, comparable to opening a full chest in the GUI (which vanilla re-bakes every invalidation anyway).
-- **Per-frame CPU (negligible):** per visible quality item, two hash-map lookups and a 4-vertex quad submission. Effect lookup is cached (`ItemEffectManager.CACHE`). One extra draw batch per *effect tier* on screen, not per item — quads sharing a render type batch together.
+- **Per-frame CPU (negligible):** per visible quality item, two hash-map lookups and a 4-vertex quad submission. Effect lookup is cached (`ItemEffectManager.CACHE`). One extra draw batch per *effect tier* on screen, not per item — quads sharing a render type batch together. The animated re-bake adds one scan of the ≤100 slot map plus one draw call total (not per slot), and allocates nothing (`composeScratch` is reused).
 - **One global hook:** `RenderTypeMixin` adds an `IdentityHashMap` miss to **every** immediate render-type draw game-wide (~nanoseconds each). Same unavoidable pattern as `GuiRendererExecuteDrawMixin` on the GUI side — there is no UBO unbind API, so the bind must be checked per draw.
 - **Fragment cost:** the `(2·radius+1)²` alpha-sample loop now runs at **bake** time over one 96² slot, not per screen fragment — a fixed, distance-independent cost paid once per item combo. The world draw itself is a plain textured quad. Animated (legendary) slots pay that 96² bake every frame while on screen, which is the deliberate trade for keeping the pinwheel spinning.
 - **CPU memory:** atlas slot keys hold up to 100 defensive `ItemStack` copies; `WORLD_OUTLINE_MAP` holds one small record per live item render state with an active outline.

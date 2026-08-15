@@ -586,50 +586,56 @@ public class FishTankBlockEntityRenderer
 
         int[] profile = waterFillProfile(state.shape);
         List<WaterFillRun> runs = waterFillRuns(state.shape, ceilingClosed, floorClosed);
+        boolean skylightTop = state.shape == FishTankShape.SKYLIGHT && ceilingClosed;
+        int skylightInset = profile[profile.length - 1]; // floor-adjacent row width, matching the skylight pane's inset
 
-        for (Direction face : WATER_FILL_FACES) {
-            if (state.openFaces.contains(face)) continue;
-
-            // NORTH/SOUTH walls run along the X axis (their normal is on Z); EAST/WEST run along Z.
-            boolean horizontalIsX = face.getAxis() == Direction.Axis.Z;
-            boolean loOpen = horizontalIsX ? westOpen : northOpen;
-            boolean hiOpen = horizontalIsX ? eastOpen : southOpen;
-
-            for (WaterFillRun run : runs) {
-                if (run.width() >= 16) continue; // full-width run is a solid cap ring — never glass
-                float horizontalLo = loOpen ? 0f : run.width() / 16f;
-                float horizontalHi = hiOpen ? 1f : 1f - run.width() / 16f;
-                if (horizontalLo >= horizontalHi) continue; // degenerate — a full-width run leaves no pane
-
-                submitWaterFillQuad(nodes, poseStack, renderType, face, horizontalLo, horizontalHi,
-                        run.yFrom(), run.yTo(), u0, u1, v0, v1, light);
-            }
-        }
-
-        if (state.shape == FishTankShape.SKYLIGHT && ceilingClosed) {
-            int t = profile[profile.length - 1]; // floor-adjacent row width, matching the skylight pane's inset
-            float xLo = westOpen ? 0f : t / 16f;
-            float xHi = eastOpen ? 1f : 1f - t / 16f;
-            float zLo = northOpen ? 0f : t / 16f;
-            float zHi = southOpen ? 1f : 1f - t / 16f;
-            submitSkylightWaterFillQuad(nodes, poseStack, renderType, xLo, xHi, zLo, zHi, u0, u1, v0, v1, light);
-        }
-    }
-
-    /** Horizontal water quad just under SKYLIGHT's roof glass, matching that pane's footprint. */
-    private static void submitSkylightWaterFillQuad(SubmitNodeCollector nodes, PoseStack poseStack, RenderType renderType,
-            float xLo, float xHi, float zLo, float zHi, float u0, float u1, float v0, float v1, int light) {
-        float y = WATER_FILL_MAX - WATER_FILL_RECESS; // just under the y=1 roof pane
+        // ONE submission for the whole tank, not one per quad. submitCustomGeometry takes a
+        // capturing lambda, so a per-quad call allocated one closure per run per face per frame —
+        // up to 37 for a RAMPART tank, which at 20 visible tanks was ~43k allocations/sec of pure
+        // young-gen churn. Emitting every face and run inside a single closure makes it one
+        // allocation per tank per frame instead.
         nodes.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
-            addWaterFillVertex(buffer, pose, xLo, y, zLo, u0, v0, 0f, -1f, 0f, light);
-            addWaterFillVertex(buffer, pose, xLo, y, zHi, u0, v1, 0f, -1f, 0f, light);
-            addWaterFillVertex(buffer, pose, xHi, y, zHi, u1, v1, 0f, -1f, 0f, light);
-            addWaterFillVertex(buffer, pose, xHi, y, zLo, u1, v0, 0f, -1f, 0f, light);
+            for (Direction face : WATER_FILL_FACES) {
+                if (state.openFaces.contains(face)) continue;
+
+                // NORTH/SOUTH walls run along the X axis (their normal is on Z); EAST/WEST run along Z.
+                boolean horizontalIsX = face.getAxis() == Direction.Axis.Z;
+                boolean loOpen = horizontalIsX ? westOpen : northOpen;
+                boolean hiOpen = horizontalIsX ? eastOpen : southOpen;
+
+                for (WaterFillRun run : runs) {
+                    if (run.width() >= 16) continue; // full-width run is a solid cap ring — never glass
+                    float horizontalLo = loOpen ? 0f : run.width() / 16f;
+                    float horizontalHi = hiOpen ? 1f : 1f - run.width() / 16f;
+                    if (horizontalLo >= horizontalHi) continue; // degenerate — a full-width run leaves no pane
+
+                    addWaterFillQuad(buffer, pose, face, horizontalLo, horizontalHi,
+                            run.yFrom(), run.yTo(), u0, u1, v0, v1, light);
+                }
+            }
+
+            if (skylightTop) {
+                float xLo = westOpen ? 0f : skylightInset / 16f;
+                float xHi = eastOpen ? 1f : 1f - skylightInset / 16f;
+                float zLo = northOpen ? 0f : skylightInset / 16f;
+                float zHi = southOpen ? 1f : 1f - skylightInset / 16f;
+                addSkylightWaterFillQuad(buffer, pose, xLo, xHi, zLo, zHi, u0, u1, v0, v1, light);
+            }
         });
     }
 
+    /** Horizontal water quad just under SKYLIGHT's roof glass, matching that pane's footprint. */
+    private static void addSkylightWaterFillQuad(VertexConsumer buffer, PoseStack.Pose pose,
+            float xLo, float xHi, float zLo, float zHi, float u0, float u1, float v0, float v1, int light) {
+        float y = WATER_FILL_MAX - WATER_FILL_RECESS; // just under the y=1 roof pane
+        addWaterFillVertex(buffer, pose, xLo, y, zLo, u0, v0, 0f, -1f, 0f, light);
+        addWaterFillVertex(buffer, pose, xLo, y, zHi, u0, v1, 0f, -1f, 0f, light);
+        addWaterFillVertex(buffer, pose, xHi, y, zHi, u1, v1, 0f, -1f, 0f, light);
+        addWaterFillVertex(buffer, pose, xHi, y, zLo, u1, v0, 0f, -1f, 0f, light);
+    }
+
     /** Emits the interior-facing water quad for a single closed side wall. */
-    private static void submitWaterFillQuad(SubmitNodeCollector nodes, PoseStack poseStack, RenderType renderType,
+    private static void addWaterFillQuad(VertexConsumer buffer, PoseStack.Pose pose,
             Direction face, float horizontalLo, float horizontalHi, float verticalLo, float verticalHi,
             float u0, float u1, float v0, float v1, int light) {
         boolean positive = face.getStepX() > 0 || face.getStepZ() > 0;
@@ -639,19 +645,17 @@ public class FishTankBlockEntityRenderer
         float ny = face.getStepY();
         float nz = face.getStepZ();
 
-        nodes.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
-            if (horizontalIsX) {
-                addWaterFillVertex(buffer, pose, horizontalLo, verticalHi, depth, u0, v0, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, horizontalLo, verticalLo, depth, u0, v1, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, horizontalHi, verticalLo, depth, u1, v1, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, horizontalHi, verticalHi, depth, u1, v0, nx, ny, nz, light);
-            } else {
-                addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalLo, u0, v0, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalLo, u0, v1, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalHi, u1, v1, nx, ny, nz, light);
-                addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalHi, u1, v0, nx, ny, nz, light);
-            }
-        });
+        if (horizontalIsX) {
+            addWaterFillVertex(buffer, pose, horizontalLo, verticalHi, depth, u0, v0, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, horizontalLo, verticalLo, depth, u0, v1, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, horizontalHi, verticalLo, depth, u1, v1, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, horizontalHi, verticalHi, depth, u1, v0, nx, ny, nz, light);
+        } else {
+            addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalLo, u0, v0, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalLo, u0, v1, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, depth, verticalLo, horizontalHi, u1, v1, nx, ny, nz, light);
+            addWaterFillVertex(buffer, pose, depth, verticalHi, horizontalHi, u1, v0, nx, ny, nz, light);
+        }
     }
 
     private static void addWaterFillVertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z,

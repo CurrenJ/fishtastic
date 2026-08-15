@@ -25,7 +25,9 @@ import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -117,6 +119,8 @@ public final class FishtasticItemOutlineAtlas {
          * re-composed each frame without the caller re-supplying it.
          */
         ItemEffect effect;
+        /** Guards against a freshly baked animated slot being queued for composition twice in a frame. */
+        long lastComposedFrame = -1;
 
         Slot(int x, int y) {
             this.x = x;
@@ -130,6 +134,8 @@ public final class FishtasticItemOutlineAtlas {
             new Object2ObjectOpenCustomHashMap<>(STACK_STRATEGY);
     private final ArrayDeque<Slot> freeSlots = new ArrayDeque<>();
     private final ArrayDeque<PendingBake> bakeQueue = new ArrayDeque<>();
+    /** Reused per frame by {@link #processBakeQueue} so collecting slots to compose allocates nothing. */
+    private final List<Slot> composeScratch = new ArrayList<>();
     private long frameCounter;
     private boolean pendingGpuClear;
 
@@ -271,6 +277,8 @@ public final class FishtasticItemOutlineAtlas {
             pendingGpuClear = false;
         }
 
+        composeScratch.clear();
+
         if (!bakeQueue.isEmpty()) {
             ensureInitialized();
             PendingBake pending;
@@ -279,72 +287,87 @@ public final class FishtasticItemOutlineAtlas {
                         .updateForTopItem(bakeRenderState, pending.stack(), ItemDisplayContext.GUI, minecraft.level, null, 0);
                 drawToSlot(minecraft, pending.slot(), bakeRenderState);
                 bakeRenderState.clear();
-                composeSlot(minecraft, pending.slot());
                 pending.slot().baked = true;
                 pending.slot().needsClear = false;
+                pending.slot().lastComposedFrame = frameCounter;
+                composeScratch.add(pending.slot());
             }
         }
 
-        recomposeAnimatedSlots(minecraft);
+        collectAnimatedSlots();
+        composeSlots(minecraft, composeScratch);
     }
 
     /**
-     * Re-runs the compose pass for on-screen slots whose effect animates (the legendary pinwheel),
-     * so their rotation advances every frame.
+     * Queues on-screen slots whose effect animates (the legendary pinwheel) for re-composition, so
+     * their rotation advances every frame.
      *
      * <p>Only the compose pass is repeated — the item model is <em>not</em> re-rendered, because the
      * mask atlas already holds its sprite. That keeps the per-frame cost to one full-slot quad per
      * animated item on screen, which is why re-baking every frame is affordable at all.
      *
      * <p>Slots not touched within the last frame are skipped: an off-screen item's outline does not
-     * need to keep spinning, and it will be re-composed on the frame it reappears.
+     * need to keep spinning, and it will be re-composed on the frame it reappears. Slots already
+     * queued by a fresh bake this frame are skipped too, via {@code lastComposedFrame}.
      */
-    private void recomposeAnimatedSlots(Minecraft minecraft) {
+    private void collectAnimatedSlots() {
         if (texture == null) {
             return;
         }
         for (Slot slot : slotsByStack.values()) {
             if (!slot.baked || slot.effect == null || !slot.effect.isOutlineAnimated()) continue;
             if (slot.lastUsedFrame < frameCounter - 1) continue;
-            composeSlot(minecraft, slot);
+            if (slot.lastComposedFrame == frameCounter) continue;
+            slot.lastComposedFrame = frameCounter;
+            composeScratch.add(slot);
         }
     }
 
     /**
-     * Draws the outline ring for {@code slot} into the composed atlas, sampling the item silhouette
-     * from the mask atlas. The slot region is cleared first so the ring's alpha is written verbatim
-     * (the bake pipeline has blending disabled).
+     * Draws the outline ring for every slot in {@code slots} into the composed atlas, sampling each
+     * item's silhouette from the mask atlas.
+     *
+     * <p><b>All slots batch into a single draw.</b> The bake shaders take no per-slot state — they
+     * derive the slot's UV bounds and pinwheel centre per-fragment from {@code texCoord0} — so one
+     * buffer holding many slots' quads composes each correctly. Slots whose effects differ land in
+     * different render types and are flushed as separate batches by {@code endBatch}, automatically.
+     *
+     * <p>There is deliberately <b>no clear and no scissor</b>. The bake shaders never discard: every
+     * fragment writes, transparent black where there is no ring, and blending is off — so a quad
+     * covering the full slot overwrites it completely. That removes a per-slot clear (which could
+     * not have batched, since animated slots are scattered across the grid) and removes the scissor,
+     * which is what made batching impossible in the first place. Re-introducing a {@code discard} in
+     * the bake shaders would silently break this: last frame's pinwheel blades would never be erased.
      */
-    private void composeSlot(Minecraft minecraft, Slot slot) {
-        ItemEffect effect = slot.effect;
-        if (effect == null) {
+    private void composeSlots(Minecraft minecraft, List<Slot> slots) {
+        if (slots.isEmpty()) {
             return;
         }
-        int left = slot.x * SLOT_PX;
-        int top = slot.y * SLOT_PX;
-        int bottom = top + SLOT_PX;
-
-        RenderSystem.getDevice().createCommandEncoder()
-                .clearColorAndDepthTextures(this.texture, 0, this.depthTexture, 1.0, left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
-
-        SlotView uv = viewOf(slot);
+        // Render-target and projection state is set once around the whole batch, not per slot —
+        // the draw happens at endBatch, so the override must still be active then.
         RenderSystem.outputColorTextureOverride = this.textureView;
         RenderSystem.outputDepthTextureOverride = this.depthTextureView;
         this.projection.setupOrtho(-1000.0F, 1000.0F, TEXTURE_SIZE, TEXTURE_SIZE, true);
         RenderSystem.setProjectionMatrix(this.projectionMatrixBuffer.getBuffer(this.projection), ProjectionType.ORTHOGRAPHIC);
-        RenderSystem.enableScissorForRenderTypeDraws(left, TEXTURE_SIZE - bottom, SLOT_PX, SLOT_PX);
 
         // Vertices are absolute atlas-pixel coordinates in the ortho space set up above (Y down),
-        // so the quad covers exactly the slot and its UVs map 1:1 onto the mask atlas slot.
+        // so each quad covers exactly its slot and its UVs map 1:1 onto the mask atlas slot.
         var pose = this.composePoseStack.last();
-        VertexConsumer buffer = minecraft.renderBuffers().bufferSource().getBuffer(effect.outlineBakeRenderType());
-        buffer.addVertex(pose, left, top, 0.0F).setUv(uv.u0(), uv.v0()).setColor(-1);
-        buffer.addVertex(pose, left, bottom, 0.0F).setUv(uv.u0(), uv.v1()).setColor(-1);
-        buffer.addVertex(pose, left + SLOT_PX, bottom, 0.0F).setUv(uv.u1(), uv.v1()).setColor(-1);
-        buffer.addVertex(pose, left + SLOT_PX, top, 0.0F).setUv(uv.u1(), uv.v0()).setColor(-1);
+        for (Slot slot : slots) {
+            ItemEffect effect = slot.effect;
+            if (effect == null) continue;
+            int left = slot.x * SLOT_PX;
+            int top = slot.y * SLOT_PX;
+            int bottom = top + SLOT_PX;
+            SlotView uv = viewOf(slot);
+            VertexConsumer buffer = minecraft.renderBuffers().bufferSource().getBuffer(effect.outlineBakeRenderType());
+            buffer.addVertex(pose, left, top, 0.0F).setUv(uv.u0(), uv.v0()).setColor(-1);
+            buffer.addVertex(pose, left, bottom, 0.0F).setUv(uv.u0(), uv.v1()).setColor(-1);
+            buffer.addVertex(pose, left + SLOT_PX, bottom, 0.0F).setUv(uv.u1(), uv.v1()).setColor(-1);
+            buffer.addVertex(pose, left + SLOT_PX, top, 0.0F).setUv(uv.u1(), uv.v0()).setColor(-1);
+        }
         minecraft.renderBuffers().bufferSource().endBatch();
 
-        RenderSystem.disableScissorForRenderTypeDraws();
         RenderSystem.outputColorTextureOverride = null;
         RenderSystem.outputDepthTextureOverride = null;
     }

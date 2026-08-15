@@ -5,9 +5,14 @@
 // generation moved from draw time to bake time.
 //
 // Because the pinwheel animates, slots using this shader are re-baked every frame while the
-// item is on screen (FishtasticItemOutlineAtlas.recomposeAnimatedSlots). GameTime may be one
+// item is on screen (FishtasticItemOutlineAtlas.collectAnimatedSlots). GameTime may be one
 // frame stale — the bake runs at the head of GameRenderer.render, before the Globals UBO is
 // refreshed — which is imperceptible at this rotation speed.
+//
+// Never discards: non-ring and between-blade fragments write transparent black. Because the quad
+// covers the whole slot and blending is off, that fully overwrites it, which is what lets the
+// caller skip the per-slot clear and batch every slot into one draw. This matters most here —
+// discarding would leave the previous frame's blades painted in the slot forever.
 
 layout(std140) uniform Globals {
     ivec3 CameraPosition;
@@ -48,7 +53,8 @@ vec3 hsvToRgb(vec3 c) {
 
 void main() {
     if (texture(Sampler0, texCoord0).a > 0.01) {
-        discard;
+        fragColor = vec4(0.0);
+        return;
     }
 
     vec2 texSize = vec2(textureSize(Sampler0, 0));
@@ -81,7 +87,8 @@ void main() {
     }
 
     if (maxNeighbourAlpha <= 0.5) {
-        discard;
+        fragColor = vec4(0.0);
+        return;
     }
 
     // ---- Pinwheel effect ----
@@ -101,7 +108,8 @@ void main() {
     float posInSector = mod(rotatedAngle, sectorSize) / sectorSize;  // 0..1
 
     if (posInSector >= bladeFill) {
-        discard;
+        fragColor = vec4(0.0);
+        return;
     }
 
     // Sweep brightness: full at the leading edge, 50 % at the trailing edge.

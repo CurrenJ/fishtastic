@@ -13,8 +13,12 @@
 //  - No minification widening: the bake is always 1:1 atlas texels, so the dFdx/dFdy-derived
 //    minification factor is by definition 1. Draw-time minification is now handled by the
 //    mipmap-free NEAREST sampler on the composed atlas.
-//  - Writes unblended (the target slot is cleared first), so alpha lands verbatim rather than
-//    being composited. Draw-time blending is the render type's job.
+//  - Writes unblended, so alpha lands verbatim rather than being composited. Draw-time blending
+//    is the render type's job.
+//  - Never discards: non-ring fragments write transparent black instead. Because the quad covers
+//    the whole slot and blending is off, that fully overwrites the slot — which is what lets the
+//    caller skip the per-slot clear entirely and batch every slot into one draw. Discarding would
+//    leave last frame's pinwheel blades behind.
 
 layout(std140) uniform BasicOutlineParams {
     vec4  color;        // outline tint (RGB; W unused)
@@ -38,7 +42,8 @@ out vec4 fragColor;
 void main() {
     // Texels covered by the item itself carry no outline — the item model draws those.
     if (texture(Sampler0, texCoord0).a > 0.01) {
-        discard;
+        fragColor = vec4(0.0);
+        return;
     }
 
     vec2 texSize = vec2(textureSize(Sampler0, 0));
@@ -74,7 +79,8 @@ void main() {
     }
 
     if (maxNeighbourAlpha <= 0.5) {
-        discard;
+        fragColor = vec4(0.0);
+        return;
     }
 
     float t = (minDist - 1.0) / float(max(radius - 1, 1));
