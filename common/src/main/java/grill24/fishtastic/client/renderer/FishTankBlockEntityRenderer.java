@@ -91,10 +91,17 @@ public class FishTankBlockEntityRenderer
     private static final float TANK_CEILING_Y = 15f / 16f;
 
     // ── Water fill behind the glass ──────────────────────────────────────────────
-    // Flat quads on the STANDARD shape's four side faces (not up/down), textured with vanilla's
-    // animated still-water sprite, sitting just inside each interior wall. Not wired through the
-    // per-shape geometry generators (tools/tank-shape-gen) yet — every other shape still renders
-    // glass-only. See docs/fish-tanks.md for the real geometry axis.
+    // Flat quads on every closed side wall, textured with vanilla's animated still-water sprite,
+    // sitting just inside that wall's interior glass surface. The along-wall trim of each quad
+    // mirrors the per-row corner-post widths that tools/tank-shape-gen's CornerTaperProfile /
+    // TaperedGlassGeometryGenerator use to carve that shape's actual glass panes (ported below
+    // rather than depended on, since that module otherwise has no runtime presence in this mod's
+    // build graph), so tapered shapes get one water quad per taper run instead of a single
+    // STANDARD-sized box. Shapes with decorative frame overlays instead of a tapered corner post
+    // (ORNATE/SHAGGY/BRAMBLE/TOOTH/FILM) fall back to STANDARD's uniform 1px profile — their
+    // corner posts stay 1px, the decoration sits on top of the glass rather than reshaping it.
+    // SKYLIGHT additionally gets a horizontal quad under its roof pane. See docs/fish-tanks.md for
+    // the real geometry axis.
     private static final SpriteId WATER_STILL_SPRITE =
             new SpriteId(TextureAtlas.LOCATION_BLOCKS, Identifier.fromNamespaceAndPath("minecraft", "block/water_still"));
     // Built from FishtasticRenderPipelines.TANK_WATER_FILL (depth write disabled) rather than
@@ -124,6 +131,107 @@ public class FishTankBlockEntityRenderer
     private static final int WATER_FILL_ALPHA = 210;
     private static final Direction[] WATER_FILL_FACES =
             {Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST};
+
+    // Per-row corner-post width (image rows 1-14, ceiling→floor) — duplicates the corresponding
+    // CornerTaperProfile constants in tools/tank-shape-gen; see the water-fill header comment above.
+    private static final int[] WATER_FILL_PROFILE_UNIFORM_1 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    private static final int[] WATER_FILL_PROFILE_STURDY = {16, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 16};
+    private static final int[] WATER_FILL_PROFILE_TRIMMED = {3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3};
+    private static final int[] WATER_FILL_PROFILE_REINFORCED = {5, 3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 3, 5};
+    private static final int[] WATER_FILL_PROFILE_HONED = {6, 4, 3, 2, 2, 1, 1, 1, 1, 2, 2, 3, 4, 6};
+    private static final int[] WATER_FILL_PROFILE_FACETED = {16, 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 16};
+    private static final int[] WATER_FILL_PROFILE_BASTION = {16, 6, 4, 3, 3, 2, 2, 2, 2, 3, 3, 4, 6, 16};
+    private static final int[] WATER_FILL_PROFILE_RAMPART = {16, 7, 5, 4, 3, 3, 2, 2, 3, 3, 4, 5, 7, 16};
+
+    /** Selects the corner-taper profile whose glass panes this shape's water fill should track. */
+    private static int[] waterFillProfile(FishTankShape shape) {
+        return switch (shape) {
+            case STURDY -> WATER_FILL_PROFILE_STURDY;
+            case TRIMMED -> WATER_FILL_PROFILE_TRIMMED;
+            case REINFORCED -> WATER_FILL_PROFILE_REINFORCED;
+            case HONED -> WATER_FILL_PROFILE_HONED;
+            case FACETED -> WATER_FILL_PROFILE_FACETED;
+            case BASTION -> WATER_FILL_PROFILE_BASTION;
+            case RAMPART -> WATER_FILL_PROFILE_RAMPART;
+            default -> WATER_FILL_PROFILE_UNIFORM_1; // STANDARD, SKYLIGHT, and the decorative-overlay shapes
+        };
+    }
+
+    /** One contiguous run of equal corner-post width, in local block-space Y (0-1) rather than image rows. */
+    private record WaterFillRun(float yFrom, float yTo, int width) {}
+
+    // Every (shape, ceilingClosed, floorClosed) combination's run list, precomputed once at class
+    // load rather than recomputed by computeWaterFillRuns() on every render call. There are only
+    // FishTankShape.values().length * 4 possible combinations and they never change at runtime —
+    // a tank's shape/connections only change on block update, not per-frame — so paying the
+    // clone/ArrayList/record-boxing cost of computeWaterFillRuns() again for every visible tank on
+    // every frame would be pure waste. Indexed by shape.ordinal() * 4 + (ceilingClosed<<1 | floorClosed).
+    @SuppressWarnings("unchecked")
+    private static final List<WaterFillRun>[] WATER_FILL_RUNS_CACHE = buildWaterFillRunsCache();
+
+    @SuppressWarnings("unchecked")
+    private static List<WaterFillRun>[] buildWaterFillRunsCache() {
+        FishTankShape[] shapes = FishTankShape.values();
+        List<WaterFillRun>[] cache = new List[shapes.length * 4];
+        for (FishTankShape shape : shapes) {
+            int[] profile = waterFillProfile(shape);
+            for (int flags = 0; flags < 4; flags++) {
+                boolean ceilingClosed = (flags & 0b10) != 0;
+                boolean floorClosed = (flags & 0b01) != 0;
+                cache[shape.ordinal() * 4 + flags] = List.copyOf(computeWaterFillRuns(profile, ceilingClosed, floorClosed));
+            }
+        }
+        return cache;
+    }
+
+    /** Cached lookup — see {@link #WATER_FILL_RUNS_CACHE}. */
+    private static List<WaterFillRun> waterFillRuns(FishTankShape shape, boolean ceilingClosed, boolean floorClosed) {
+        int flags = (ceilingClosed ? 0b10 : 0) | (floorClosed ? 0b01 : 0);
+        return WATER_FILL_RUNS_CACHE[shape.ordinal() * 4 + flags];
+    }
+
+    /**
+     * Ports {@code CornerTaperProfile.runs()} (tools/tank-shape-gen) into local block-space Y:
+     * merges consecutive equal-width rows into runs, then — when a cap is open — replaces the
+     * leading/trailing run that differs from the profile's steady-state middle width with that
+     * width and extends it to the block boundary, so a real tank-to-tank connection meets flush
+     * instead of falling 1px short. Only ever called by {@link #buildWaterFillRunsCache()} — render
+     * calls go through the cached {@link #waterFillRuns(FishTankShape, boolean, boolean)} instead.
+     */
+    private static List<WaterFillRun> computeWaterFillRuns(int[] rowWidths, boolean ceilingClosed, boolean floorClosed) {
+        int[] widths = rowWidths.clone();
+        int base = widths[widths.length / 2];
+        if (!ceilingClosed) {
+            for (int i = 0; i < widths.length && widths[i] != base; i++) widths[i] = base;
+        }
+        if (!floorClosed) {
+            for (int i = widths.length - 1; i >= 0 && widths[i] != base; i--) widths[i] = base;
+        }
+
+        List<WaterFillRun> runs = new ArrayList<>();
+        int runStartRow = 1; // image row (1-14) the current run started at
+        int runWidth = widths[0];
+        for (int i = 1; i <= widths.length; i++) {
+            int imageRow = i + 1; // widths[i-1] corresponds to image row i, so the *next* row is i+1
+            int width = i < widths.length ? widths[i] : Integer.MIN_VALUE; // sentinel to flush the last run
+            if (width != runWidth) {
+                int runEndRow = imageRow - 1; // last image row included in the run just ending
+                runs.add(new WaterFillRun((15 - runEndRow) / 16f, (16 - runStartRow) / 16f, runWidth));
+                runStartRow = imageRow;
+                runWidth = width;
+            }
+        }
+
+        if (!ceilingClosed && !runs.isEmpty()) {
+            WaterFillRun top = runs.get(0);
+            runs.set(0, new WaterFillRun(top.yFrom(), 1f, top.width()));
+        }
+        if (!floorClosed && !runs.isEmpty()) {
+            WaterFillRun bottom = runs.get(runs.size() - 1);
+            runs.set(runs.size() - 1, new WaterFillRun(0f, bottom.yTo(), bottom.width()));
+        }
+        return runs;
+    }
 
     // ── Chest cosmetic hinge-open cycle (ticks) ─────────────────────────────────
     private static final int CHEST_OPEN_RAMP_TICKS = 10;
@@ -448,16 +556,18 @@ public class FishTankBlockEntityRenderer
     }
 
     /**
-     * Draws one flat quad per closed side wall (north/south/east/west — never up/down), textured
-     * with vanilla's animated still-water sprite, set just inside that wall's interior glass
-     * surface. Gated to STANDARD; a face is skipped entirely when open to a connected neighbor
-     * tank, since there's no glass there to sit behind. Every *other* closed wall's quad has its
-     * in-plane extent pushed out to the full block boundary on whichever edge borders an open
-     * connection (instead of stopping at this tank's own interior corner), so two connected tanks'
-     * water reads as one continuous surface rather than leaving a gap at the seam.
+     * Draws one flat quad per closed side wall (north/south/east/west — never up/down) per taper
+     * run, textured with vanilla's animated still-water sprite, set just inside that wall's
+     * interior glass surface. A face is skipped entirely when open to a connected neighbor tank,
+     * since there's no glass there to sit behind; a full-width (16px) run is skipped too, since
+     * that band is a solid cap ring rather than glass. Every other run's in-plane extent is pushed
+     * out to the full block boundary on whichever edge borders an open connection (instead of
+     * stopping at this tank's own interior corner), so two connected tanks' water reads as one
+     * continuous surface rather than leaving a gap at the seam. SKYLIGHT additionally gets a
+     * horizontal quad under its roof pane when the ceiling is closed.
      */
     private void renderTankWaterFill(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
-        if (state.shape != FishTankShape.STANDARD || !FishtasticClientConfig.isTankWaterFillEnabled()) return;
+        if (!FishtasticClientConfig.isTankWaterFillEnabled()) return;
 
         TextureAtlasSprite sprite = chestSprites.get(WATER_STILL_SPRITE);
         RenderType renderType = WATER_FILL_RENDER_TYPE;
@@ -467,23 +577,55 @@ public class FishTankBlockEntityRenderer
         float v1 = sprite.getV1();
         int light = state.lightCoords;
 
-        float xLo = state.openFaces.contains(Direction.WEST) ? 0f : WATER_FILL_MIN;
-        float xHi = state.openFaces.contains(Direction.EAST) ? 1f : WATER_FILL_MAX;
-        float zLo = state.openFaces.contains(Direction.NORTH) ? 0f : WATER_FILL_MIN;
-        float zHi = state.openFaces.contains(Direction.SOUTH) ? 1f : WATER_FILL_MAX;
-        float yLo = state.openFaces.contains(Direction.DOWN) ? 0f : WATER_FILL_MIN;
-        float yHi = state.openFaces.contains(Direction.UP) ? 1f : WATER_FILL_MAX;
+        boolean westOpen = state.openFaces.contains(Direction.WEST);
+        boolean eastOpen = state.openFaces.contains(Direction.EAST);
+        boolean northOpen = state.openFaces.contains(Direction.NORTH);
+        boolean southOpen = state.openFaces.contains(Direction.SOUTH);
+        boolean ceilingClosed = !state.openFaces.contains(Direction.UP);
+        boolean floorClosed = !state.openFaces.contains(Direction.DOWN);
+
+        int[] profile = waterFillProfile(state.shape);
+        List<WaterFillRun> runs = waterFillRuns(state.shape, ceilingClosed, floorClosed);
 
         for (Direction face : WATER_FILL_FACES) {
             if (state.openFaces.contains(face)) continue;
 
             // NORTH/SOUTH walls run along the X axis (their normal is on Z); EAST/WEST run along Z.
             boolean horizontalIsX = face.getAxis() == Direction.Axis.Z;
-            float horizontalLo = horizontalIsX ? xLo : zLo;
-            float horizontalHi = horizontalIsX ? xHi : zHi;
-            submitWaterFillQuad(nodes, poseStack, renderType, face, horizontalLo, horizontalHi, yLo, yHi,
-                    u0, u1, v0, v1, light);
+            boolean loOpen = horizontalIsX ? westOpen : northOpen;
+            boolean hiOpen = horizontalIsX ? eastOpen : southOpen;
+
+            for (WaterFillRun run : runs) {
+                if (run.width() >= 16) continue; // full-width run is a solid cap ring — never glass
+                float horizontalLo = loOpen ? 0f : run.width() / 16f;
+                float horizontalHi = hiOpen ? 1f : 1f - run.width() / 16f;
+                if (horizontalLo >= horizontalHi) continue; // degenerate — a full-width run leaves no pane
+
+                submitWaterFillQuad(nodes, poseStack, renderType, face, horizontalLo, horizontalHi,
+                        run.yFrom(), run.yTo(), u0, u1, v0, v1, light);
+            }
         }
+
+        if (state.shape == FishTankShape.SKYLIGHT && ceilingClosed) {
+            int t = profile[profile.length - 1]; // floor-adjacent row width, matching the skylight pane's inset
+            float xLo = westOpen ? 0f : t / 16f;
+            float xHi = eastOpen ? 1f : 1f - t / 16f;
+            float zLo = northOpen ? 0f : t / 16f;
+            float zHi = southOpen ? 1f : 1f - t / 16f;
+            submitSkylightWaterFillQuad(nodes, poseStack, renderType, xLo, xHi, zLo, zHi, u0, u1, v0, v1, light);
+        }
+    }
+
+    /** Horizontal water quad just under SKYLIGHT's roof glass, matching that pane's footprint. */
+    private static void submitSkylightWaterFillQuad(SubmitNodeCollector nodes, PoseStack poseStack, RenderType renderType,
+            float xLo, float xHi, float zLo, float zHi, float u0, float u1, float v0, float v1, int light) {
+        float y = WATER_FILL_MAX - WATER_FILL_RECESS; // just under the y=1 roof pane
+        nodes.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
+            addWaterFillVertex(buffer, pose, xLo, y, zLo, u0, v0, 0f, -1f, 0f, light);
+            addWaterFillVertex(buffer, pose, xLo, y, zHi, u0, v1, 0f, -1f, 0f, light);
+            addWaterFillVertex(buffer, pose, xHi, y, zHi, u1, v1, 0f, -1f, 0f, light);
+            addWaterFillVertex(buffer, pose, xHi, y, zLo, u1, v0, 0f, -1f, 0f, light);
+        });
     }
 
     /** Emits the interior-facing water quad for a single closed side wall. */
