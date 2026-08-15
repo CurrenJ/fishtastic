@@ -128,7 +128,7 @@ public class FishTankBlockEntityRenderer
     private static final int WATER_FILL_TINT_R = 0x3F;
     private static final int WATER_FILL_TINT_G = 0x76;
     private static final int WATER_FILL_TINT_B = 0xE4;
-    private static final int WATER_FILL_ALPHA = 210;
+    private static final int WATER_FILL_ALPHA = 120;
     private static final Direction[] WATER_FILL_FACES =
             {Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST};
 
