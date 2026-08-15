@@ -1,0 +1,12 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:bluegill",
+    "target_count": 5,
+    "tank_snapshot": {}
+  },
+  "reward": { "quest_tokens": 15, "items": [] },
+  "hidden": false,
+  "display_name": "Blue to the Gills",
+  "description": "Display 5 Bluegill in one tank at once."
+}

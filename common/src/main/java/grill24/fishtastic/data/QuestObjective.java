@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Optional;
 
@@ -65,8 +66,38 @@ public record QuestObjective(
          * otherwise-locked tank shape) for clearing the whole daily board in a single day, without
          * needing a generic quest-completion predicate framework.
          */
-        boolean allDailiesClaimedToday
+        boolean allDailiesClaimedToday,
+        /**
+         * Present iff this objective is a live tank-composition check rather than a per-catch
+         * counter. Never matched against a caught fish or a claimed daily — instead it's driven by
+         * {@code QuestTracker#onTankChanged}, which re-evaluates it every time a fish is added to a
+         * tank as a snapshot of that one tank's current contents (species/tag/quality/size filters,
+         * {@link #distinctSpecies} for "one of each simultaneously displayed", and
+         * {@link TankSnapshotCondition#material}/{@link TankSnapshotCondition#materialTag} for the
+         * tank's frame, e.g. a "gold tank" objective). There is no per-catch counter to increment:
+         * completion is "is this true of one tank right now," checked fresh on every insertion. Once
+         * it flips to complete it's skipped on all future re-checks like any other completed quest,
+         * so dismantling the tank afterward can't un-complete it — the deliberate act is assembling
+         * the display, not maintaining it forever.
+         * <p>
+         * Bundled into one nested optional (rather than three top-level fields) because
+         * {@code RecordCodecBuilder}'s {@code group()} tops out at 16 fields, and this record was
+         * already at 15.
+         */
+        Optional<TankSnapshotCondition> tankSnapshot
 ) {
+    /**
+     * Material conditions for a {@link #tankSnapshot} objective, checked against the tank's
+     * {@code FishTankMaterials#frame()}. Both fields optional and independently checkable, same as
+     * {@link #targetSpecies}/{@link #targetSpeciesTag} for fish.
+     */
+    public record TankSnapshotCondition(Optional<ResourceKey<Block>> material, Optional<TagKey<Block>> materialTag) {
+        public static final Codec<TankSnapshotCondition> CODEC = RecordCodecBuilder.create(i -> i.group(
+                ResourceKey.codec(Registries.BLOCK).optionalFieldOf("material").forGetter(TankSnapshotCondition::material),
+                TagKey.codec(Registries.BLOCK).optionalFieldOf("material_tag").forGetter(TankSnapshotCondition::materialTag)
+        ).apply(i, TankSnapshotCondition::new));
+    }
+
     /** Back-compat with call sites predating {@link #allDailiesClaimedToday}; defaults it to false. */
     public QuestObjective(Optional<ResourceKey<Item>> targetSpecies, Optional<TagKey<Item>> targetSpeciesTag,
             Optional<TagKey<Item>> excludeSpeciesTag, boolean distinctSpecies, Optional<Integer> targetCount,
@@ -76,7 +107,19 @@ public record QuestObjective(
             boolean lifetimeCount) {
         this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality, minSize,
                 biomeCondition, timeCondition, weatherCondition, zoneCondition, minSessionCatches, notificationInterval,
-                lifetimeCount, false);
+                lifetimeCount, false, Optional.empty());
+    }
+
+    /** Back-compat with call sites predating {@link #tankSnapshot}. */
+    public QuestObjective(Optional<ResourceKey<Item>> targetSpecies, Optional<TagKey<Item>> targetSpeciesTag,
+            Optional<TagKey<Item>> excludeSpeciesTag, boolean distinctSpecies, Optional<Integer> targetCount,
+            Optional<FishQuality.Quality> minQuality, Optional<Float> minSize, Optional<TagKey<Biome>> biomeCondition,
+            Optional<FishProfile.TimeOfDay> timeCondition, Optional<FishProfile.WeatherCondition> weatherCondition,
+            Optional<FishProfile.Zone> zoneCondition, Optional<Integer> minSessionCatches, int notificationInterval,
+            boolean lifetimeCount, boolean allDailiesClaimedToday) {
+        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality, minSize,
+                biomeCondition, timeCondition, weatherCondition, zoneCondition, minSessionCatches, notificationInterval,
+                lifetimeCount, allDailiesClaimedToday, Optional.empty());
     }
 
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -94,7 +137,8 @@ public record QuestObjective(
             Codec.INT.optionalFieldOf("min_session_catches").forGetter(QuestObjective::minSessionCatches),
             Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval),
             Codec.BOOL.optionalFieldOf("lifetime_count", false).forGetter(QuestObjective::lifetimeCount),
-            Codec.BOOL.optionalFieldOf("all_dailies_claimed_today", false).forGetter(QuestObjective::allDailiesClaimedToday)
+            Codec.BOOL.optionalFieldOf("all_dailies_claimed_today", false).forGetter(QuestObjective::allDailiesClaimedToday),
+            TankSnapshotCondition.CODEC.optionalFieldOf("tank_snapshot").forGetter(QuestObjective::tankSnapshot)
     ).apply(i, QuestObjective::new));
 
     /**

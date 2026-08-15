@@ -14,6 +14,7 @@ import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
+import grill24.fishtastic.server.QuestTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -33,6 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -363,6 +365,7 @@ public class FishTankBlock extends Block implements EntityBlock {
                         player.sendSystemMessage(
                             Component.literal("Added item to fish tank")
                         );
+                        checkTankQuests(player, fishTank);
                         return InteractionResult.SUCCESS;
                     } else {
                         // addItem only fails when there's no room left (no mergeable stack, no empty slot)
@@ -407,7 +410,15 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
         itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
         player.sendSystemMessage(Component.literal("Added item to fish tank"));
+        checkTankQuests(player, fishTank);
         return InteractionResult.SUCCESS;
+    }
+
+    /** Re-checks tank-composition quests after a fish is inserted; no-op off the server thread. */
+    private static void checkTankQuests(Player player, FishTankBlockEntity fishTank) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            QuestTracker.onTankChanged(serverPlayer.level().getServer(), serverPlayer, fishTank);
+        }
     }
 
     /**

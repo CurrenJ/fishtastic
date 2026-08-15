@@ -33,6 +33,54 @@ Quests are defined as JSON files under `data/fishtastic/fishtastic/quest/<quest_
 | `biome_condition` | TagKey? | Biome tag the hook must be in |
 | `time_condition` | enum? | `DAY`, `NIGHT`, or `DAWN_DUSK` |
 | `weather_condition` | enum? | `CLEAR`, `RAIN`, or `THUNDER` |
+| `tank_snapshot` | object? | Turns this into a tank-composition objective — see below |
+
+### Tank composition objectives
+
+`tank_snapshot` (presence, not a bool — an empty object `{}` is enough to opt in) makes an objective a **live check of one tank's current contents**, not a per-catch counter. It's driven by `QuestTracker#onTankChanged`, called whenever a player inserts a fish into a tank. There's nothing to increment: every insertion, the objective is recomputed fresh against that one tank's contents, and the result becomes the progress value directly — the same pattern `lifetime_count` uses for lifetime catch totals.
+
+Reuses the existing species filters (`target_species`, `target_species_tag`, `exclude_species_tag`, `min_quality`, `min_size`, `target_count`, `distinct_species`), evaluated against what's *currently displayed in one tank* instead of catch history. `distinct_species` + `target_species_tag` becomes "one of each simultaneously on display" rather than "one of each ever caught."
+
+`tank_snapshot` also carries two material fields, checked against the tank's frame block (`FishTankMaterials#frame()`):
+
+| Field | Type | Description |
+|---|---|---|
+| `material` | Identifier? | Specific frame block, e.g. `minecraft:gold_block` |
+| `material_tag` | TagKey? | Frame block tag |
+
+Once a tank-snapshot quest completes it's skipped on all future re-checks like any other completed quest — dismantling the tank afterward can't un-complete it. The deliberate act is assembling the display, not maintaining it forever.
+
+**"5 tetras in one tank":**
+```json
+{
+  "category": "explorer",
+  "objective": {
+    "target_species": "fishtastic:neon_tetra",
+    "target_count": 5,
+    "tank_snapshot": {}
+  },
+  "reward": { "quest_tokens": 10, "items": [] },
+  "hidden": false,
+  "display_name": "Tetra School",
+  "description": "Display 5 Neon Tetra in one tank at once."
+}
+```
+
+**"Legendary fish in a gold tank":**
+```json
+{
+  "category": "challenge",
+  "objective": {
+    "target_count": 1,
+    "min_quality": "legendary",
+    "tank_snapshot": { "material": "minecraft:gold_block" }
+  },
+  "reward": { "quest_tokens": 40, "items": [] },
+  "hidden": false,
+  "display_name": "Golden Showcase",
+  "description": "Display a Legendary-quality fish in a gold-framed tank."
+}
+```
 
 ### QuestReward
 

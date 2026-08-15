@@ -9,6 +9,7 @@ import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.data.QuestObjective;
+import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -306,6 +307,125 @@ public class QuestTracker {
             if (!zones.contains(obj.zoneCondition().get())) return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Re-evaluates every {@link QuestObjective#tankSnapshot()} quest against one tank's current
+     * contents, called after a fish is inserted into it (see {@code FishTankBlock#useItemOn} /
+     * {@code #popPileTopIntoTank}). Unlike {@link #onCatch}, there's no counter to increment —
+     * {@link #tankSnapshotCount} recomputes how many qualifying fish are in the tank right now and
+     * that becomes the progress value directly, exactly like {@link #lifetimeProgress} does for
+     * lifetime-count catch quests. A quest already {@code completed}/{@code claimed} is skipped
+     * entirely, so a snapshot that later regresses (fish removed) can never un-complete it.
+     */
+    public static void onTankChanged(MinecraftServer server, ServerPlayer player, FishTankBlockEntity tank) {
+        Registry<Quest> questRegistry;
+        try {
+            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        } catch (Exception e) {
+            return;
+        }
+
+        FishCatchSavedData catchData = FishCatchSavedData.getOrCreate(server);
+        PlayerQuestState state = catchData.getOrCreateQuestState(player);
+
+        long currentDay = server.overworld().getGameTime() / 24000L;
+        Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
+
+        Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        boolean anyChange = false;
+
+        for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
+            ResourceKey<Quest> questKey = entry.getKey();
+            Quest quest = entry.getValue();
+
+            if (quest.objective().tankSnapshot().isEmpty()) continue;
+            if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
+            if (quest.category() == QuestCategory.TUTORIAL) continue;
+
+            PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
+            if (progress.completed() || progress.claimed()) continue;
+
+            if (quest.prerequisiteQuestId().isPresent()) {
+                PlayerQuestState.QuestProgress prereqProgress = state.getProgress(quest.prerequisiteQuestId().get());
+                if (!prereqProgress.claimed()) continue;
+            }
+
+            int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
+            int matched = Math.min(tankSnapshotCount(quest.objective(), tank), targetCount);
+            int oldCount = progress.currentCount();
+            if (matched == oldCount) continue;
+
+            state.setProgress(questKey, matched, targetCount, currentDay);
+            anyChange = true;
+
+            boolean justCompleted = matched >= targetCount && oldCount < targetCount;
+            if (justCompleted && isVisibleForNotification(quest, state, true)) {
+                triggeringItems.put(questKey.identifier(), tank.getFirstItem().copy());
+            }
+        }
+
+        if (anyChange) {
+            catchData.setDirty();
+            QuestSyncPacket.sendToPlayer(player, catchData, triggeringItems);
+        }
+    }
+
+    /**
+     * Counts how many of the tank's currently-displayed fish satisfy {@code obj}'s species/tag/
+     * quality/size filters, gated first by {@link QuestObjective.TankSnapshotCondition} against the
+     * tank's frame material. {@link QuestObjective#distinctSpecies()} counts distinct qualifying
+     * species instead of total fish, mirroring the catch-history "one of each" objective but scoped
+     * to one tank's contents rather than lifetime catches.
+     */
+    private static int tankSnapshotCount(QuestObjective obj, FishTankBlockEntity tank) {
+        QuestObjective.TankSnapshotCondition condition = obj.tankSnapshot().orElse(null);
+        if (condition != null) {
+            Holder<net.minecraft.world.level.block.Block> frame =
+                    tank.getMaterials().frame().builtInRegistryHolder();
+            if (condition.material().isPresent()
+                    && frame.unwrapKey().filter(key -> key.equals(condition.material().get())).isEmpty()) {
+                return 0;
+            }
+            if (condition.materialTag().isPresent() && !frame.is(condition.materialTag().get())) {
+                return 0;
+            }
+        }
+
+        if (obj.distinctSpecies()) {
+            Set<net.minecraft.world.item.Item> seen = new HashSet<>();
+            for (int i = 0; i < tank.getContainerSize(); i++) {
+                ItemStack stack = tank.getItem(i);
+                if (!stack.isEmpty() && matchesTankItem(obj, stack)) seen.add(stack.getItem());
+            }
+            return seen.size();
+        }
+
+        int count = 0;
+        for (int i = 0; i < tank.getContainerSize(); i++) {
+            ItemStack stack = tank.getItem(i);
+            if (!stack.isEmpty() && matchesTankItem(obj, stack)) count += stack.getCount();
+        }
+        return count;
+    }
+
+    /** Species/tag/quality/size portion of {@link #matchesObjective}, without the per-catch conditions. */
+    private static boolean matchesTankItem(QuestObjective obj, ItemStack stack) {
+        if (obj.targetSpecies().isPresent()) {
+            Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
+                    stack.getItem().builtInRegistryHolder().unwrapKey();
+            if (stackKey.isEmpty() || !stackKey.get().equals(obj.targetSpecies().get())) return false;
+        }
+        if (obj.targetSpeciesTag().isPresent() && !stack.is(obj.targetSpeciesTag().get())) return false;
+        if (obj.excludeSpeciesTag().isPresent() && stack.is(obj.excludeSpeciesTag().get())) return false;
+        if (obj.minQuality().isPresent()) {
+            FishQuality.Quality quality = FishQualityHelper.getQuality(stack);
+            if (quality == null || quality.ordinal() < obj.minQuality().get().ordinal()) return false;
+        }
+        if (obj.minSize().isPresent()) {
+            if (!ItemSizeHelper.hasSize(stack) || ItemSizeHelper.getSize(stack) < obj.minSize().get()) return false;
+        }
         return true;
     }
 
