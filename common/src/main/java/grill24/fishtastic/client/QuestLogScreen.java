@@ -18,6 +18,7 @@ import grill24.fishtastic.network.CompleteQuestPacket;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.RefreshShopPacket;
+import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.server.QuestTracker;
 import io.github.currenj.gelatinui.GelatinUIScreen;
@@ -35,11 +36,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.biome.Biome;
@@ -74,6 +80,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private Label shopRefreshCostLabel;
     private Label shopRefreshNotEnoughLabel;
     private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
+    private final Map<Identifier, CyclingIconState> cyclingIconRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
     private final Map<QuestCategory, List<ResourceKey<Quest>>> questKeysByCategory = new EnumMap<>(QuestCategory.class);
@@ -96,6 +103,28 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             QuestDifficulty difficulty,
             SpriteRectangle.SpriteRectangleImpl statusPip
     ) {}
+
+    /**
+     * Live state for a non-{@code distinct_species} tag quest's progress-bar icon: cycles through
+     * the tag's members over time (see {@link #CYCLE_INTERVAL_TICKS}) rather than picking one, since
+     * no single species is "the" target. {@link #lastIndex} avoids re-touching the icon/tooltip
+     * every tick when the cycled-to species hasn't changed since the last one.
+     */
+    private static final class CyclingIconState {
+        final SilhouetteItemButton icon;
+        final SpriteRectangle.SpriteRectangleImpl tooltip;
+        final List<ResourceKey<Item>> species;
+        int lastIndex = -1;
+        // Freezes the cycle on whatever species is currently shown while the cursor is over the
+        // icon, so a player can't click a species other than the one they're actually looking at.
+        boolean hovered = false;
+
+        CyclingIconState(SilhouetteItemButton icon, SpriteRectangle.SpriteRectangleImpl tooltip, List<ResourceKey<Item>> species) {
+            this.icon = icon;
+            this.tooltip = tooltip;
+            this.species = species;
+        }
+    }
 
     // Target scale a quest row settles at once its reward has been claimed.
     private static final float CLAIMED_QUEST_ROW_SCALE = 1f;
@@ -185,6 +214,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float STATUS_PIP_SIZE = 5f;
     private static final float STATUS_PIP_TOOLTIP_SCALE = 0.7f;
 
+    // Scale (relative to ItemRenderer's 16x16 base) for the single-species icon shown to the
+    // left of a quest's progress bar, and for each member icon in a tag-quest's discovered-fish
+    // list. The list icons are smaller since a whole row of them sits together.
+    private static final float QUEST_SPECIES_ICON_SCALE = 0.7f;
+    private static final float QUEST_TAG_LIST_ICON_SCALE = 0.55f;
+    // Number of tag-list fish icons laid out side-by-side before wrapping to a new row.
+    private static final int QUEST_TAG_LIST_ICONS_PER_ROW = 10;
+    // How long (in game ticks) a non-distinct tag quest's progress-bar icon shows one species
+    // before cycling to the next.
+    private static final int CYCLE_INTERVAL_TICKS = 30;
+
     private static final float SHOP_ITEM_FALL_DURATION = 0.65f;
     private static final float SHOP_ITEM_RESPAWN_DELAY = 0.5f;
     private static final float SHOP_ITEM_FALL_DISTANCE = 400f;
@@ -262,6 +302,20 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 updateStatusPip(refs, QuestClientCache.getProgress(e.getKey()).claimed());
             }
         }
+        // All cycling icons advance in lockstep off the world's game time (rather than each
+        // tracking its own elapsed-time timer) so the swap cadence stays exact even across
+        // rebuilds, and every non-distinct tag quest's icon visibly cycles in sync.
+        if (!cyclingIconRefs.isEmpty()) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                long gameTime = mc.level.getGameTime();
+                for (CyclingIconState state : cyclingIconRefs.values()) {
+                    if (state.species.isEmpty() || state.hovered) continue;
+                    int index = (int) ((gameTime / CYCLE_INTERVAL_TICKS) % state.species.size());
+                    updateCyclingIcon(state, index);
+                }
+            }
+        }
     }
 
     /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero, and substitutes it into {@code translationKey} (e.g. "Dailies reset in %s"). */
@@ -285,6 +339,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void buildUI() {
         questRowRefs.clear();
+        cyclingIconRefs.clear();
         shopCardRefs.clear();
         questTabs = null;
         tokenBalanceLabel = null;
@@ -589,6 +644,162 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return sb.toString();
     }
 
+    private static boolean isDiscovered(ResourceKey<Item> speciesKey) {
+        return FishEncyclopediaClientCache.getCatchCount(speciesKey.identifier()) > 0;
+    }
+
+    private static String itemDisplayName(Item item) {
+        return Component.translatable(item.getDescriptionId()).getString();
+    }
+
+    /**
+     * If this quest's objective names a single, not-yet-discovered species, blanks out that
+     * species' display name wherever it appears in the free-text description (e.g. "Catch 3
+     * Moorish Idol in total" becomes "Catch 3 ??? in total"). Best-effort substring match against
+     * hand-authored prose: a description that doesn't literally contain the item's display name
+     * (different phrasing, pluralization, etc.) is left untouched rather than guessed at.
+     */
+    private static String describeWithSpoilerGuard(Quest quest) {
+        String description = quest.description();
+        Optional<ResourceKey<Item>> targetSpecies = quest.objective().targetSpecies();
+        if (targetSpecies.isEmpty() || isDiscovered(targetSpecies.get())) return description;
+
+        Item item = BuiltInRegistries.ITEM.getOptional(targetSpecies.get().identifier()).orElse(null);
+        if (item == null) return description;
+
+        String name = itemDisplayName(item);
+        if (name.isBlank() || !description.contains(name)) return description;
+        return description.replace(name, "???");
+    }
+
+    /** Small icon for a species: its real sprite once discovered, a black silhouette until then. */
+    private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale) {
+        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
+        boolean discovered = isDiscovered(speciesKey);
+
+        SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
+        icon.itemScale(scale);
+        icon.setSilhouette(!discovered);
+
+        String tooltipText = discovered ? itemDisplayName(item) : "???";
+        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
+                .text(tooltipText, 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
+        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
+        icon.tooltip(uiScreen, tooltip);
+
+        return icon;
+    }
+
+    /**
+     * Resolves every species in {@code tag} (minus {@code excludeTag} members, which can never
+     * satisfy the quest), sorted descending by {@link FishProfile#baseWeight()} so
+     * rarer/heavier-weighted fish lead. Shared by the "collect one of each" checklist and the
+     * non-distinct quest's cycling icon.
+     */
+    private static List<ResourceKey<Item>> resolveSortedTagMembers(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess) {
+        Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
+        Registry<FishProfile> profiles = registryAccess.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+
+        List<ResourceKey<Item>> members = new ArrayList<>();
+        for (Holder<Item> holder : items.getTagOrEmpty(tag)) {
+            if (excludeTag.isPresent() && holder.is(excludeTag.get())) continue;
+            holder.unwrapKey().ifPresent(members::add);
+        }
+        members.sort(Comparator.comparingInt((ResourceKey<Item> key) -> {
+            ResourceKey<FishProfile> profileKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier());
+            return profiles.getOptional(profileKey).map(FishProfile::baseWeight).orElse(0);
+        }).reversed());
+        return members;
+    }
+
+    /**
+     * Builds the horizontal, wrapping list of every species in {@code tag} (minus
+     * {@code excludeTag} members). Discovered species show their real sprite; undiscovered ones
+     * render as silhouettes, mirroring the single-species icon's spoiler guard.
+     */
+    private VBox buildTagFishList(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess) {
+        List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
+
+        VBox wrap = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
+        for (int i = 0; i < members.size(); i += QUEST_TAG_LIST_ICONS_PER_ROW) {
+            int rowEnd = Math.min(i + QUEST_TAG_LIST_ICONS_PER_ROW, members.size());
+            HBox iconRow = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
+            for (int j = i; j < rowEnd; j++) {
+                ResourceKey<Item> speciesKey = members.get(j);
+                SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE);
+                wireEncyclopediaNavigation(icon, speciesKey);
+                iconRow.addChild(icon);
+            }
+            wrap.addChild(iconRow);
+        }
+        return wrap;
+    }
+
+    /**
+     * Builds the progress-bar icon for a non-{@code distinct_species} tag quest: since no single
+     * species is "the" target, the icon cycles through every tag member instead (see
+     * {@link #CYCLE_INTERVAL_TICKS}, driven from {@link #containerTick}). Registered into
+     * {@link #cyclingIconRefs} under {@code questId} so the tick loop can find it.
+     */
+    private SilhouetteItemButton buildCyclingSpeciesIcon(Identifier questId, TagKey<Item> tag, Optional<TagKey<Item>> excludeTag,
+            RegistryAccess registryAccess, float scale) {
+        List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
+
+        SilhouetteItemButton icon = new SilhouetteItemButton(ItemStack.EMPTY);
+        icon.itemScale(scale);
+        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
+                .text("", 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
+        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
+        icon.tooltip(uiScreen, tooltip);
+
+        CyclingIconState state = new CyclingIconState(icon, tooltip, members);
+        updateCyclingIcon(state, 0);
+        cyclingIconRefs.put(questId, state);
+
+        // Pausing on hover (rather than always reading the live index) means the fish clicked is
+        // always the one the player was actually looking at, not whatever it cycled to mid-click.
+        icon.onMouseEnter(e -> state.hovered = true);
+        icon.onMouseExit(e -> state.hovered = false);
+        icon.onClick(e -> navigateToEncyclopedia(state.species.get(state.lastIndex)));
+
+        return icon;
+    }
+
+    /**
+     * Wires an icon (single-species progress-bar icon or checklist icon) so clicking it closes
+     * the quest log and jumps straight to {@code speciesKey}'s encyclopedia info page, whether
+     * that species is discovered or still a silhouette.
+     */
+    private static void wireEncyclopediaNavigation(SilhouetteItemButton icon, ResourceKey<Item> speciesKey) {
+        icon.onClick(e -> navigateToEncyclopedia(speciesKey));
+    }
+
+    /**
+     * Opening the encyclopedia is a server round-trip (it's a separate menu), so the target
+     * species is stashed on {@link FishEncyclopediaScreen} for the next screen it builds to pick up.
+     */
+    private static void navigateToEncyclopedia(ResourceKey<Item> speciesKey) {
+        FishEncyclopediaScreen.selectOnNextOpen(speciesKey.identifier());
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket()));
+        }
+    }
+
+    /** Swaps a cycling icon's sprite/silhouette/tooltip to {@code index}'s species, skipping the work if it's unchanged since the last call. */
+    private static void updateCyclingIcon(CyclingIconState state, int index) {
+        if (state.species.isEmpty() || index == state.lastIndex) return;
+        state.lastIndex = index;
+
+        ResourceKey<Item> speciesKey = state.species.get(index);
+        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
+        boolean discovered = isDiscovered(speciesKey);
+
+        state.icon.itemStack(new ItemStack(item));
+        state.icon.setSilhouette(!discovered);
+        state.tooltip.text(discovered ? itemDisplayName(item) : "???", 0xFFFFFFFF);
+    }
+
     /** Swaps the pip's sprite between lit/dim and hides it once the quest is claimed. */
     private void updateStatusPip(QuestRowRefs refs, boolean claimed) {
         SpriteRectangle.SpriteRectangleImpl pip = refs.statusPip();
@@ -673,7 +884,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         row.addChild(nameRow);
 
         if (!quest.description().isEmpty()) {
-            row.addChild(new Label(quest.description(), 0xFF888888).maxWidth(150).centered(true).init(tempContext));
+            row.addChild(new Label(describeWithSpoilerGuard(quest), 0xFF888888).maxWidth(150).centered(true).init(tempContext));
+        }
+
+        // "Collect one of each" tag quests get a discovered-fish checklist between the
+        // description and the progress bar; a plain species-count quest doesn't (see part 2 below
+        // for its own, single-icon treatment instead).
+        Set<IUIElement> tagListIcons = new HashSet<>();
+        if (quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()) {
+            VBox tagList = buildTagFishList(quest.objective().targetSpeciesTag().get(), quest.objective().excludeSpeciesTag(),
+                    Minecraft.getInstance().level.registryAccess());
+            collectLeaves(tagList, tagListIcons);
+            row.addChild(tagList);
         }
 
         Label countLabel = new Label(translated("screen.fishtastic.quest_log.progress_count", currentCount, targetCount), 0xFFAAAAAA).init(tempContext);
@@ -681,6 +903,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         bar.progressImmediate(fraction);
 
         HBox progressRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
+        SilhouetteItemButton speciesIcon = null;
+        if (quest.objective().targetSpecies().isPresent()) {
+            ResourceKey<Item> speciesKey = quest.objective().targetSpecies().get();
+            speciesIcon = buildSpeciesIcon(speciesKey, QUEST_SPECIES_ICON_SCALE);
+            wireEncyclopediaNavigation(speciesIcon, speciesKey);
+            progressRow.addChild(speciesIcon);
+        } else if (!quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()) {
+            // No single species is "the" target here, unlike a plain target_species quest — cycle
+            // through the tag's members instead of picking one arbitrarily.
+            speciesIcon = buildCyclingSpeciesIcon(questId, quest.objective().targetSpeciesTag().get(),
+                    quest.objective().excludeSpeciesTag(), Minecraft.getInstance().level.registryAccess(), QUEST_SPECIES_ICON_SCALE);
+            progressRow.addChild(speciesIcon);
+        }
         progressRow.addChild(bar);
         progressRow.addChild(countLabel);
         row.addChild(progressRow);
@@ -692,8 +927,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // Each leaf gets its own hover scale (rather than the whole row scaling as a unit)
         // because hover events only ever reach the single deepest leaf element under the cursor
         // (see UIScreen#findElementAt) — a container like this VBox row can never itself be the
-        // hit target. claimBtn is excluded since it already drives its own, larger hover scale.
-        attachLeafHoverScale(row, QUEST_ROW_LEAF_HOVER_SCALE, Set.of(claimBtn));
+        // hit target. claimBtn and the species icons are excluded since they're ItemButtons that
+        // already drive their own, larger hover scale.
+        Set<IUIElement> hoverExclusions = new HashSet<>(tagListIcons);
+        hoverExclusions.add(claimBtn);
+        if (speciesIcon != null) hoverExclusions.add(speciesIcon);
+        attachLeafHoverScale(row, QUEST_ROW_LEAF_HOVER_SCALE, hoverExclusions);
 
         questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimBtn, bar, countLabel, targetCount, baseDisplayName, quest.objective(), quest.difficulty(), statusPip));
         return row;
@@ -717,6 +956,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             uiElement.onMouseEnter(e -> uiElement.setTargetScale(hoverScale, true));
             uiElement.onMouseExit(e -> uiElement.setTargetScale(1.0f, true));
         }
+    }
+
+    /** Collects every leaf descendant of {@code element} (see {@link #attachLeafHoverScale}) into {@code out}. */
+    private static void collectLeaves(IUIElement element, Set<IUIElement> out) {
+        if (element instanceof UIContainer<?> container) {
+            for (IUIElement child : container.getChildren()) {
+                collectLeaves(child, out);
+            }
+            return;
+        }
+        out.add(element);
     }
 
     /**

@@ -112,6 +112,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
 
+    // Set by another screen (e.g. QuestLogScreen's tag checklist) right before it requests the
+    // encyclopedia menu reopen; consumed once by the next buildUI() to jump straight to that
+    // fish's info page instead of landing on the disc. Static because the request round-trips
+    // through the server (a fresh menu open), so no live screen instance exists to hand this to
+    // directly at the point the request is made.
+    private static Identifier pendingAutoSelectFishId;
+
+    /** See {@link #pendingAutoSelectFishId}. */
+    public static void selectOnNextOpen(Identifier fishId) {
+        pendingAutoSelectFishId = fishId;
+    }
+
     private MinecraftRenderContext tempContext;
     private boolean handlerInstalled = false;
     private FishEncyclopediaSyncPacket.ClientHandler savedHandler;
@@ -291,6 +303,16 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         root.addChild(sphere);
+
+        Identifier autoSelectFishId = pendingAutoSelectFishId;
+        pendingAutoSelectFishId = null;
+        if (autoSelectFishId != null) {
+            ResourceKey<FishProfile> autoSelectKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId);
+            IUIElement autoSelectIcon = iconRefs.get(autoSelectKey);
+            if (autoSelectIcon != null) {
+                sphere.selectChild(autoSelectIcon);
+            }
+        }
 
         scheduleRewardPipPopIns();
 

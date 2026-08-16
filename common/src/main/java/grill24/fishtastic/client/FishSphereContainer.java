@@ -374,6 +374,17 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         });
     }
 
+    /**
+     * Public entry point for selecting a disc icon programmatically (e.g. auto-opening the
+     * encyclopedia straight to a fish navigated to from elsewhere), without a real click event.
+     * Goes through the same path as an actual click so the rest of the disc still shrinks/hides —
+     * calling {@code onFishSelected} directly instead skips that and leaves the whole disc visible
+     * behind the info page.
+     */
+    public void selectChild(IUIElement child) {
+        triggerSelect(child);
+    }
+
     private void triggerSelect(IUIElement clicked) {
         if (selectedChild != null) return;
         if (introActive) {
@@ -383,6 +394,13 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
         selectedChild = clicked;
         hoveredChild = null;
         shrinking = true;
+
+        // A real click can only ever land on an already-visible icon, but a programmatic
+        // selectChild() (see #selectChild) can fire before the clicked icon's own staggered intro
+        // reveal has happened — it would otherwise travel to the info page still invisible.
+        if (!clicked.isVisible()) {
+            clicked.setVisible(true);
+        }
 
         for (IUIElement child : children) {
             if (child != clicked && child instanceof UIElement uiChild) {
