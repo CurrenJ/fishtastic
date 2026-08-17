@@ -7,7 +7,7 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.FishTankMaterials;
-import grill24.fishtastic.data.SwarmConfig;
+import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -618,15 +619,6 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         return true;
     }
 
-    private int countOccupiedSlots() {
-        int count = 0;
-        for (ItemStack stack : items) {
-            if (!stack.isEmpty()) {
-                count++;
-            }
-        }
-        return count;
-    }
 
     @Override
     public ItemStack getItem(int slot) {
@@ -732,15 +724,19 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
             }
         }
 
-        // Reject filling a new slot once the tank already holds as many fish as its swarm config
-        // will actually render — items beyond that would be stored but permanently invisible.
-        // An empty tank has no established species yet, so the incoming item sets its own cap;
-        // otherwise the cap follows whatever species already occupies the first (lowest) slot,
-        // matching FishTankBlockEntityRenderer's resolveSwarmConfig.
+        // Reject filling a new slot once the tank's occupants would exceed the size-based capacity
+        // budget (see TankCapacity) — a few large fish or a crowd of small ones, rather than a
+        // flat per-slot count. SwarmConfig#count is a separate, render-side draw-count ceiling
+        // (see FishTankBlockEntityRenderer) and no longer gates insertion.
         if (level != null) {
-            ItemStack capReference = isEmpty() ? stack : getFirstItem();
-            SwarmConfig swarm = SwarmConfig.resolve(capReference, level);
-            if (countOccupiedSlots() >= swarm.count()) {
+            List<ItemStack> occupants = new ArrayList<>();
+            for (int i = 0; i < items.size(); i++) {
+                ItemStack existing = items.get(i);
+                if (!existing.isEmpty()) {
+                    occupants.add(existing);
+                }
+            }
+            if (!TankCapacity.canAdd(occupants, stack, level)) {
                 return false;
             }
         }

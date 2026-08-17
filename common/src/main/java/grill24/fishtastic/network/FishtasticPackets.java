@@ -29,6 +29,7 @@ public class FishtasticPackets {
     public static final Identifier ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
     public static final Identifier ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
     public static final Identifier SET_ASSEMBLY_SHAPE_ID = Fishtastic.id("set_assembly_shape");
+    public static final Identifier NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -143,6 +144,11 @@ public class FishtasticPackets {
                 EncyclopediaTutorialSyncPacket.STREAM_CODEC,
                 EncyclopediaTutorialSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                NotificationVolumeSyncPacket.TYPE,
+                NotificationVolumeSyncPacket.STREAM_CODEC,
+                NotificationVolumeSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -161,6 +167,7 @@ public class FishtasticPackets {
         registrar.accept(FishEncyclopediaSyncPacket.TYPE, FishEncyclopediaSyncPacket.STREAM_CODEC);
         registrar.accept(CosmeticCaptureSyncPacket.TYPE, CosmeticCaptureSyncPacket.STREAM_CODEC);
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
+        registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
     }
 
     /**

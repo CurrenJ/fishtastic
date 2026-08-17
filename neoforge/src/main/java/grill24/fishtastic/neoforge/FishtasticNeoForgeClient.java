@@ -95,6 +95,10 @@ public final class FishtasticNeoForgeClient {
         // Register cosmetic capture wand session sync packet client handler
         CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
 
+        // Register notification volume sync packet client handler
+        grill24.fishtastic.network.NotificationVolumeSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.FishtasticClientConfig.setNotificationVolume(packet.volume()));
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 

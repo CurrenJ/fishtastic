@@ -66,6 +66,9 @@ public class QuestTracker {
             if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
             // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
             if (quest.objective().allDailiesClaimedToday()) continue;
+            // Driven by onTankChanged instead — a caught (not yet displayed) fish must never
+            // satisfy a "fish currently in a tank" objective.
+            if (quest.objective().tankSnapshot().isPresent()) continue;
 
             PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 
@@ -144,6 +147,9 @@ public class QuestTracker {
             if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
             // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
             if (quest.objective().allDailiesClaimedToday()) continue;
+            // Driven by onTankChanged instead — a caught (not yet displayed) fish must never
+            // satisfy a "fish currently in a tank" objective.
+            if (quest.objective().tankSnapshot().isPresent()) continue;
 
             PlayerQuestState.QuestProgress progress = state.getProgress(questKey);
 

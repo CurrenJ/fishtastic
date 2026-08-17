@@ -42,6 +42,28 @@ public class QuestProgressNotificationManager {
     private static final int MAX_ACTIVE = 3;
     private static final int STAGGER_DELAY_TICKS = 6;
 
+    // ---- Fast-forward (timescale) ----
+    // When many notifications activate in a short window (e.g. discovering a burst of new
+    // species in a new fishing zone), the whole notification system — slide animations, hold
+    // duration, stagger between banners, sound cooldown — runs at an accelerated rate so long
+    // chains clear faster instead of forcing 30+ seconds of continuous banners. Every duration
+    // constant on QuestProgressNotification stays fixed in "virtual tick" units; only the number
+    // of virtual ticks advanced per real client tick changes. See tick() and
+    // QuestProgressNotification#tick(int).
+    /** Window over which recent activations are counted to decide the current speed. */
+    private static final int RATE_WINDOW_TICKS = 300; // 15s
+    private static final float MAX_MULTIPLIER = 3.0f;
+    /** Fraction of the gap to the target multiplier closed per real tick — avoids a visible speed pop. */
+    private static final float MULTIPLIER_EASE_SPEED = 0.1f;
+
+    private final Deque<Long> activationTimestamps = new ArrayDeque<>();
+    private float currentMultiplier = 1.0f;
+    /** Fractional leftover from converting currentMultiplier into whole virtual-tick steps. */
+    private float subTickAccumulator;
+    /** Monotonic virtual clock, advanced by `steps` (not 1) each real tick — see tick(). Used for
+     *  timing that should compress along with the animations (e.g. the new-species sound cooldown). */
+    private long virtualGameTime;
+
     private final List<QuestProgressNotification> active = new ArrayList<>(MAX_ACTIVE);
     private final Deque<QuestProgressEvent> pending = new ArrayDeque<>();
     /** Ticks until the next newly-activated notification is allowed to start its slide-in. */
@@ -110,6 +132,11 @@ public class QuestProgressNotificationManager {
     private static long gameTime() {
         Minecraft mc = Minecraft.getInstance();
         return mc.level != null ? mc.level.getGameTime() : 0L;
+    }
+
+    /** Current virtual clock (see {@link #virtualGameTime}), for timing that should fast-forward with the notification system. */
+    static long getVirtualGameTime() {
+        return INSTANCE.virtualGameTime;
     }
 
     /** Wire the QuestClientCache listener so progress events feed into this manager. */
@@ -205,6 +232,7 @@ public class QuestProgressNotificationManager {
         notification.setStartDelay(nextStaggerDelay);
         nextStaggerDelay += STAGGER_DELAY_TICKS;
         active.add(notification);
+        activationTimestamps.addLast(gameTime());
         // Assign this one's slot immediately (it snaps on first assignment — see
         // setTargetY) so it's positioned correctly even if render() runs before the
         // next tick().
@@ -225,14 +253,43 @@ public class QuestProgressNotificationManager {
         }
     }
 
+    /**
+     * How many recent activations count as "busy" at each speed tier. Counts are taken over
+     * {@link #RATE_WINDOW_TICKS}; a handful of banners in that window is normal pacing and
+     * stays at 1x, and speed ramps up as the backlog implied by a burst grows.
+     */
+    private float targetMultiplier() {
+        long now = gameTime();
+        while (!activationTimestamps.isEmpty() && now - activationTimestamps.peekFirst() > RATE_WINDOW_TICKS) {
+            activationTimestamps.pollFirst();
+        }
+        int count = activationTimestamps.size();
+        if (count <= 3) return 1.0f;
+        if (count <= 6) return 1.75f;
+        if (count <= 9) return 2.5f;
+        return MAX_MULTIPLIER;
+    }
+
     /** Call once per client tick. Drives the active notifications' lifecycles. */
     public void tick() {
-        if (nextStaggerDelay > 0) {
-            nextStaggerDelay--;
+        float target = targetMultiplier();
+        currentMultiplier += (target - currentMultiplier) * MULTIPLIER_EASE_SPEED;
+        if (Math.abs(target - currentMultiplier) < 0.01f) {
+            currentMultiplier = target;
         }
 
+        // Convert the (possibly fractional) multiplier into a whole number of virtual ticks
+        // to advance this real tick, carrying the remainder forward so the average rate over
+        // time matches currentMultiplier exactly (e.g. 1.75x -> 2,2,1,2,2,1... steps/tick).
+        subTickAccumulator += currentMultiplier;
+        int steps = (int) subTickAccumulator;
+        subTickAccumulator -= steps;
+        virtualGameTime += steps;
+
+        nextStaggerDelay = Math.max(0, nextStaggerDelay - steps);
+
         for (QuestProgressNotification n : active) {
-            n.tick();
+            n.tick(steps);
         }
         active.removeIf(QuestProgressNotification::isDone);
 

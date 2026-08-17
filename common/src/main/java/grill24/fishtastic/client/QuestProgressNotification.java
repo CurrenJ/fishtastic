@@ -221,13 +221,27 @@ public class QuestProgressNotification {
 
     // ---- Lifecycle ----
 
-    public void tick() {
+    /**
+     * Advances this banner by {@code steps} virtual ticks, called once per real client tick.
+     * {@code steps} is normally 1, but the manager batches more when the notification system
+     * is running fast-forwarded to clear a long chain of banners (see
+     * {@link QuestProgressNotificationManager}) — every duration constant below stays fixed in
+     * virtual-tick units, so a caller running several steps per real tick simply compresses the
+     * whole animation/hold/sound timeline proportionally. Position is only saved for partial-tick
+     * interpolation once, before the batch, so motion across several steps still renders smoothly.
+     */
+    public void tick(int steps) {
+        previousDisplayX = displayX;
+        previousDisplayY = displayY;
+        for (int i = 0; i < steps; i++) {
+            stepOnce();
+        }
+    }
+
+    private void stepOnce() {
         Minecraft mc = Minecraft.getInstance();
         float screenWidth = mc.getWindow().getGuiScaledWidth();
 
-        // Save previous position for partial-tick interpolation in render()
-        previousDisplayX = displayX;
-        previousDisplayY = displayY;
         displayY += (targetY - displayY) * Y_EASE_SPEED;
         if (Math.abs(targetY - displayY) < 0.05f) {
             displayY = targetY;
@@ -444,6 +458,10 @@ public class QuestProgressNotification {
      * enough to land NEW_SPECIES_SOUND_COOLDOWN_TICKS after the last one, via pendingSoundDelayTicks.
      * The computed delay is always clamped to that same window, so a stale nextNewSpeciesSoundTick
      * left over from a previous world (game time resets/differs per world) can't cause a long wait.
+     * Timed off the manager's virtual clock rather than real game time, so the cooldown compresses
+     * along with the rest of the animation timeline when the notification system fast-forwards
+     * through a long chain — pendingSoundDelayTicks is itself counted down once per virtual tick
+     * in stepOnce(), so both sides of this math need to live in the same (virtual) tick unit.
      */
     private void scheduleActivationSound(Minecraft mc) {
         if (priority != NotificationPriority.NEW_SPECIES) {
@@ -459,7 +477,7 @@ public class QuestProgressNotification {
             return;
         }
 
-        long now = mc.level != null ? mc.level.getGameTime() : 0L;
+        long now = QuestProgressNotificationManager.getVirtualGameTime();
         int delay = (int) Math.max(0, Math.min(NEW_SPECIES_SOUND_COOLDOWN_TICKS, nextNewSpeciesSoundTick - now));
         nextNewSpeciesSoundTick = now + delay + NEW_SPECIES_SOUND_COOLDOWN_TICKS;
 
@@ -491,7 +509,7 @@ public class QuestProgressNotification {
 
     private void playSound(Minecraft mc, SoundEvent sound) {
         if (mc.getSoundManager() != null) {
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f));
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, FishtasticClientConfig.getNotificationVolumeFraction()));
         }
     }
 }

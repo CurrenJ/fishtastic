@@ -2,7 +2,7 @@ package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.data.SwarmConfig;
+import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
@@ -88,22 +88,23 @@ public final class FishTankGameTests {
     }
 
     /**
-     * addItem returns false and leaves the tank unchanged once the active swarm cap is reached —
-     * items beyond that would be stored but never rendered (FishTankBlockEntityRenderer only
-     * draws up to swarm.count() items). Items.DIAMOND has no fish_profile entry, so it resolves
-     * to SwarmConfig.DEFAULT rather than CONTAINER_SIZE (27); see FishTankBlockEntity#addItem.
+     * addItem returns false and leaves the tank unchanged once TankCapacity's size-based budget
+     * is spent — items beyond that would be stored but never rendered. Items.DIAMOND has no
+     * fish_profile entry, so it falls back to the 50cm reference length, costing exactly 1.0 of
+     * TankCapacity.BASE_BUDGET (5.0) per stack; see FishTankBlockEntity#addItem.
      */
     public static void addItemFailsOnceSwarmCapReached(GameTestHelper helper) {
         FishTankBlockEntity tank = placeFishTank(helper);
-        int cap = SwarmConfig.DEFAULT.count();
+        float costPerDiamond = TankCapacity.costOf(new ItemStack(Items.DIAMOND, 64), helper.getLevel());
+        int cap = (int) (TankCapacity.BASE_BUDGET / costPerDiamond);
         for (int i = 0; i < cap; i++) {
             helper.assertTrue(tank.addItem(new ItemStack(Items.DIAMOND, 64)),
-                "Slot " + i + " insert must succeed while under the swarm cap (" + cap + ")");
+                "Slot " + i + " insert must succeed while under the tank capacity budget (" + cap + ")");
         }
 
         ItemStack overflow = new ItemStack(Items.DIAMOND, 64);
         boolean result = tank.addItem(overflow);
-        helper.assertTrue(!result, "addItem must fail once the swarm cap (" + cap + ") is reached");
+        helper.assertTrue(!result, "addItem must fail once the tank capacity budget (" + cap + ") is spent");
         helper.assertTrue(overflow.getCount() == 64, "Rejected stack must be left unchanged");
         helper.succeed();
     }
