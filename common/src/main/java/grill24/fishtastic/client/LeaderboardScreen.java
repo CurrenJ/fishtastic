@@ -7,11 +7,7 @@ import grill24.fishtastic.network.LeaderboardResponsePacket;
 import grill24.fishtastic.network.LeaderboardType;
 import grill24.fishtastic.network.RequestLeaderboardPacket;
 import io.github.currenj.gelatinui.GelatinUIScreen;
-import io.github.currenj.gelatinui.gui.DirtyFlag;
 import io.github.currenj.gelatinui.gui.UI;
-import io.github.currenj.gelatinui.gui.animation.Easing;
-import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
-import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.HBox;
 import io.github.currenj.gelatinui.gui.components.ItemTabs;
 import io.github.currenj.gelatinui.gui.components.Label;
@@ -208,31 +204,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
                 listWrapper.addChild(buildEntryRow(i + 1, entries.get(i), packet.leaderboardType(), selfUuid));
             }
         }
-
-        animateIn(listWrapper);
-    }
-
-    // -------------------------------------------------------------------------
-    // Animation
-
-    private void animateIn(VBox listWrapper) {
-        listWrapper.setTargetScale(0f, false);
-        listWrapper.markDirty(DirtyFlag.SIZE);
-
-        List<Keyframe> inKeys = List.of(
-                new Keyframe(0f, 0f),
-                new Keyframe(0.15f, 1f, Easing.EASE_OUT_BACK)
-        );
-        FloatKeyframeAnimation animIn = new FloatKeyframeAnimation(
-                "leaderboardListIn",
-                inKeys,
-                v -> {
-                    listWrapper.setTargetScale(v, false);
-                    listWrapper.markDirty(DirtyFlag.SIZE);
-                },
-                () -> listWrapper.setTargetScale(1f, false)
-        );
-        listWrapper.playAnimation(animIn);
     }
 
     // -------------------------------------------------------------------------
