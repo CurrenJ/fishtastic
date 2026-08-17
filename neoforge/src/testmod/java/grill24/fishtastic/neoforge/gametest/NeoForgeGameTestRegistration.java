@@ -119,6 +119,16 @@ public class NeoForgeGameTestRegistration {
             FishCatchDataGameTests::personalBestSizeSortOrder);
         register(event, env, "unknown_player_returns_empty", 200,
             FishCatchDataGameTests::unknownPlayerReturnsEmpty);
+        register(event, env, "global_best_size_tracks_independently_per_fish_type", 200,
+            FishCatchDataGameTests::globalBestSizeTracksIndependentlyPerFishType);
+        register(event, env, "global_best_size_tie_keeps_single_entry", 200,
+            FishCatchDataGameTests::globalBestSizeTieKeepsSingleEntry);
+        register(event, env, "global_catch_count_ranks_multiple_players", 200,
+            FishCatchDataGameTests::globalCatchCountRanksMultiplePlayers);
+        register(event, env, "personal_catch_count_sort_order", 200,
+            FishCatchDataGameTests::personalCatchCountSortOrder);
+        register(event, env, "global_best_size_sort_order", 200,
+            FishCatchDataGameTests::globalBestSizeSortOrder);
         register(event, env, "record_trash_contribution_accumulates_total", 200,
             helper -> FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "record_trash_contribution_can_cross_multiple_thresholds_at_once", 200,

@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import com.mojang.authlib.GameProfile;
+import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.LeaderboardResponsePacket;
 import grill24.fishtastic.network.LeaderboardType;
@@ -12,8 +13,10 @@ import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.HBox;
+import io.github.currenj.gelatinui.gui.components.ItemTabs;
 import io.github.currenj.gelatinui.gui.components.Label;
-import io.github.currenj.gelatinui.gui.components.ManualContainer;
+import io.github.currenj.gelatinui.gui.components.SpriteData;
+import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
@@ -22,6 +25,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -29,36 +33,57 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.joml.Vector2f;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
-    private boolean isPersonal = true;
-    private boolean isCount = true;
-    private boolean isAnimating = false;
+    // Order of tabs left-to-right; index into this array is the ItemTabs selection index.
+    private static final LeaderboardType[] TAB_TYPES = {
+            LeaderboardType.PERSONAL_CATCH_COUNT,
+            LeaderboardType.PERSONAL_BEST_SIZE,
+            LeaderboardType.GLOBAL_CATCH_COUNT,
+            LeaderboardType.GLOBAL_BEST_SIZE
+    };
 
-    // Root container for absolute positioning
-    private ManualContainer rootContainer;
+    private static final Map<LeaderboardType, String> TAB_SUBTITLE_KEYS = Map.of(
+            LeaderboardType.PERSONAL_CATCH_COUNT, "screen.fishtastic.leaderboard.tab.personal_count",
+            LeaderboardType.PERSONAL_BEST_SIZE, "screen.fishtastic.leaderboard.tab.personal_size",
+            LeaderboardType.GLOBAL_CATCH_COUNT, "screen.fishtastic.leaderboard.tab.global_count",
+            LeaderboardType.GLOBAL_BEST_SIZE, "screen.fishtastic.leaderboard.tab.global_size"
+    );
 
-    // Settings panel (pinned to top-right)
-    private VBox settingsVBox;
+    // Row background — reuses the same 9-sliced panel art as quest log rows/shop cards, so
+    // leaderboard rows read as the same kind of "thing" as quests do elsewhere in the mod.
+    private static final Identifier ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final Identifier ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
+    private static final Identifier ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
+    // The viewing player's own row on a global board, regardless of rank/tier — same green tint
+    // quest log uses to mark a claimed quest, so players can spot themselves at a glance.
+    private static final Identifier ROW_BG_TEXTURE_SELF = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final int ROW_BG_SOURCE_WIDTH = 20;
+    private static final int ROW_BG_SOURCE_HEIGHT = 24;
+    private static final int ROW_BG_SLICE_LEFT = 4;
+    private static final int ROW_BG_SLICE_TOP = 4;
+    private static final int ROW_BG_SLICE_RIGHT = ROW_BG_SOURCE_WIDTH - (ROW_BG_SLICE_LEFT + 12);
+    private static final int ROW_BG_SLICE_BOTTOM = ROW_BG_SOURCE_HEIGHT - (ROW_BG_SLICE_TOP + 16);
 
-    // Content panel (centered on screen)
-    private VBox contentVBox;
+    private static final float CONTENT_WIDTH_FRACTION = 0.34f;
 
-    // The animated list wrapper — holds the currently visible list
-    private VBox listWrapper;
+    private static final int RANK_COLOR_GOLD = 0xFFFFD700;
+    private static final int RANK_COLOR_SILVER = 0xFFC0C0C0;
+    private static final int RANK_COLOR_BRONZE = 0xFFCD7F32;
+    private static final int RANK_COLOR_DEFAULT = 0xFFAAAAAA;
 
-    // Settings buttons, kept for highlight updates
-    private SelectableItemButton personalBtn;
-    private SelectableItemButton globalBtn;
-    private SelectableItemButton countBtn;
-    private SelectableItemButton sizeBtn;
+    // Live element refs, one per tab, so a response for a given type can update its list in place
+    // without rebuilding the other three tabs.
+    private final Map<LeaderboardType, VBox> listWrappers = new EnumMap<>(LeaderboardType.class);
 
-    // Title label, updated when personal/global changes
-    private Label titleLabel;
+    private ItemTabs tabs;
+    private int activeTabIndex = 0;
 
     // Temp render context for measuring text during label construction (graphics can be null)
     private MinecraftRenderContext tempContext;
@@ -69,46 +94,68 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     protected void buildUI() {
+        listWrappers.clear();
+        tabs = null;
+
         tempContext = new MinecraftRenderContext(null, this.font);
         LeaderboardResponsePacket.registerClientHandler(this::onLeaderboardResponse);
 
-        // --- Settings panel (two rows of item buttons) ---
-        settingsVBox = buildSettingsPanel();
+        Label titleLabel = new Label(translated("screen.fishtastic.leaderboard.title"), 0xFFFFFFFF).init(tempContext);
+        titleLabel.scale(1.3f);
+        titleLabel.addBreatheEffect();
+        titleLabel.onMouseEnter(e -> titleLabel.setTargetScale(1.5f, true));
+        titleLabel.onMouseExit(e -> titleLabel.setTargetScale(1.3f, true));
 
-        // --- Leaderboard content ---
-        listWrapper = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
+        VBox header = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
+        header.addChild(titleLabel);
 
-        titleLabel = new Label(titleText(), 0xFFFFFFFF).init(tempContext);
-        titleLabel.scale(1.2f);
+        ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            playerHead.set(DataComponents.PROFILE, ResolvableProfile.createResolved(mc.player.getGameProfile()));
+        }
 
-        contentVBox = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
-        contentVBox.addChild(titleLabel);
-        contentVBox.addChild(listWrapper);
+        ItemTabs itemTabs = UI.itemTabs();
+        itemTabs.addTab(new ItemStack(Items.FISHING_ROD), scaleTabPanel(buildLeaderboardTab(LeaderboardType.PERSONAL_CATCH_COUNT)));
+        itemTabs.addTab(new ItemStack(Items.PUFFERFISH), scaleTabPanel(buildLeaderboardTab(LeaderboardType.PERSONAL_BEST_SIZE)));
+        itemTabs.addTab(playerHead, scaleTabPanel(buildLeaderboardTab(LeaderboardType.GLOBAL_CATCH_COUNT)));
+        itemTabs.addTab(new ItemStack(Items.COD), scaleTabPanel(buildLeaderboardTab(LeaderboardType.GLOBAL_BEST_SIZE)));
 
-        // --- Root: ManualContainer covering the full screen ---
-        rootContainer = UI.manualContainer();
-        rootContainer.setSize(this.width, this.height);
-        rootContainer.addChildAt(contentVBox, this.width / 2f, this.height / 2f);
-        // Settings position is approximate here; updateComponentSizes pins it precisely each frame
-        rootContainer.addChildAt(settingsVBox, this.width - 50f, 50f);
+        tabs = itemTabs;
 
-        uiScreen.setRoot(rootContainer);
+        VBox content = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
+        content.addChild(header);
+        content.addChild(tabs);
+
+        tabs.onSelectionChanged(i -> {
+            activeTabIndex = i;
+            requestLeaderboard(TAB_TYPES[i]);
+            recenterContent(content);
+        });
+        tabs.select(activeTabIndex);
+        recenterContent(content);
+
+        uiScreen.setRoot(content);
         uiScreen.setAutoCenterRoot(false);
-        uiScreen.setScrollEnabled(false);
+        uiScreen.setScrollEnabled(true);
 
-        requestLeaderboard();
+        requestLeaderboard(TAB_TYPES[activeTabIndex]);
     }
 
-    // Pins the settings panel to the top-right corner every frame
-    @Override
-    protected void updateComponentSizes(MinecraftRenderContext context) {
-        if (settingsVBox == null || rootContainer == null) return;
-        Vector2f size = settingsVBox.getSize();
-        float margin = 12f;
-        float cx = this.width - margin - size.x / 2f;
-        float cy = margin + size.y / 2f;
-        rootContainer.updateChildPosition(settingsVBox, cx, cy);
+    private VBox scaleTabPanel(VBox panel) {
+        panel.scaleToWidth(this.width * CONTENT_WIDTH_FRACTION);
+        return panel;
+    }
+
+    private void recenterContent(VBox content) {
+        content.forceLayout();
+        Vector2f size = content.getSize();
+        content.setPosition(new Vector2f((this.width - size.x) / 2f, 0f));
+        // UIScreen re-applies its own cached base position over content's every frame (for
+        // scrolling); re-registering the root re-syncs that cache to the position we just set.
+        if (uiScreen != null) {
+            uiScreen.setRoot(content);
+        }
     }
 
     @Override
@@ -118,126 +165,24 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     // -------------------------------------------------------------------------
-    // Settings panel construction
+    // Tab construction
 
-    private VBox buildSettingsPanel() {
-        ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            playerHead.set(DataComponents.PROFILE, ResolvableProfile.createResolved(mc.player.getGameProfile()));
-        }
+    private VBox buildLeaderboardTab(LeaderboardType type) {
+        VBox wrapper = UI.vbox().spacing(6).padding(4).alignment(VBox.Alignment.CENTER);
+        wrapper.addChild(label(translated(TAB_SUBTITLE_KEYS.get(type)), 0xFF88CCFF));
 
-        // Row 1: Personal | Global
-        personalBtn = new SelectableItemButton(playerHead);
-        globalBtn   = new SelectableItemButton(new ItemStack(Items.GRASS_BLOCK));
+        VBox listWrapper = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
+        listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
+        wrapper.addChild(listWrapper);
 
-        personalBtn.onClick(e -> onPersonalGlobalChanged(true));
-        globalBtn.onClick(e -> onPersonalGlobalChanged(false));
-
-        HBox personalGlobalRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-        personalGlobalRow.addChild(personalBtn);
-        personalGlobalRow.addChild(globalBtn);
-
-        // Row 2: Count | Size
-        countBtn = new SelectableItemButton(new ItemStack(Items.FISHING_ROD));
-        sizeBtn  = new SelectableItemButton(new ItemStack(Items.COD));
-
-        countBtn.onClick(e -> onCountSizeChanged(true));
-        sizeBtn.onClick(e -> onCountSizeChanged(false));
-
-        HBox countSizeRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-        countSizeRow.addChild(countBtn);
-        countSizeRow.addChild(sizeBtn);
-
-        VBox settings = UI.vbox().spacing(4).padding(4);
-        settings.addChild(personalGlobalRow);
-        settings.addChild(countSizeRow);
-
-        updateButtonHighlights();
-        return settings;
-    }
-
-    private void onPersonalGlobalChanged(boolean personal) {
-        if (isPersonal == personal || isAnimating) return;
-        isPersonal = personal;
-        updateButtonHighlights();
-        animateSwitch();
-    }
-
-    private void onCountSizeChanged(boolean count) {
-        if (isCount == count || isAnimating) return;
-        isCount = count;
-        updateButtonHighlights();
-        animateSwitch();
-    }
-
-    private void updateButtonHighlights() {
-        if (personalBtn != null) { personalBtn.itemScale(isPersonal ? 1.2f : 0.8f); personalBtn.setSelected(isPersonal); }
-        if (globalBtn   != null) { globalBtn.itemScale(isPersonal   ? 0.8f : 1.2f); globalBtn.setSelected(!isPersonal); }
-        if (countBtn    != null) { countBtn.itemScale(isCount  ? 1.2f : 0.8f); countBtn.setSelected(isCount); }
-        if (sizeBtn     != null) { sizeBtn.itemScale(isCount   ? 0.8f : 1.2f); sizeBtn.setSelected(!isCount); }
-
-        if (titleLabel  != null) titleLabel.text(titleText());
-    }
-
-    private String titleText() {
-        return translated(isPersonal ? "screen.fishtastic.leaderboard.title_personal" : "screen.fishtastic.leaderboard.title_global");
-    }
-
-    // -------------------------------------------------------------------------
-    // Animation
-
-    private void animateSwitch() {
-        if (listWrapper == null) return;
-        isAnimating = true;
-
-        List<Keyframe> outKeys = List.of(
-                new Keyframe(0f, 1f),
-                new Keyframe(0.12f, 0f, Easing.EASE_IN_CUBIC)
-        );
-        FloatKeyframeAnimation animOut = new FloatKeyframeAnimation(
-                "listOut",
-                outKeys,
-                v -> {
-                    listWrapper.setTargetScale(v, false);
-                    listWrapper.markDirty(DirtyFlag.SIZE);
-                },
-                () -> {
-                    listWrapper.clearChildren();
-                    listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
-                    requestLeaderboard();
-                }
-        );
-        listWrapper.playAnimation(animOut);
-    }
-
-    private void animateIn() {
-        if (listWrapper == null) return;
-
-        List<Keyframe> inKeys = List.of(
-                new Keyframe(0f, 0f),
-                new Keyframe(0.15f, 1f, Easing.EASE_OUT_BACK)
-        );
-        FloatKeyframeAnimation animIn = new FloatKeyframeAnimation(
-                "listIn",
-                inKeys,
-                v -> {
-                    listWrapper.setTargetScale(v, false);
-                    listWrapper.markDirty(DirtyFlag.SIZE);
-                },
-                () -> {
-                    listWrapper.setTargetScale(1f, false);
-                    isAnimating = false;
-                }
-        );
-        listWrapper.playAnimation(animIn);
+        listWrappers.put(type, listWrapper);
+        return wrapper;
     }
 
     // -------------------------------------------------------------------------
     // Network
 
-    private void requestLeaderboard() {
-        LeaderboardType type = currentType();
+    private void requestLeaderboard(LeaderboardType type) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         Optional<UUID> target = (type == LeaderboardType.PERSONAL_BEST_SIZE || type == LeaderboardType.PERSONAL_CATCH_COUNT)
@@ -247,14 +192,9 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
                 new RequestLeaderboardPacket(type, false, target)));
     }
 
-    private LeaderboardType currentType() {
-        if (isPersonal) return isCount ? LeaderboardType.PERSONAL_CATCH_COUNT : LeaderboardType.PERSONAL_BEST_SIZE;
-        return isCount ? LeaderboardType.GLOBAL_CATCH_COUNT : LeaderboardType.GLOBAL_BEST_SIZE;
-    }
-
     private void onLeaderboardResponse(LeaderboardResponsePacket packet) {
-        // Ignore responses that don't match the current selection
-        if (packet.leaderboardType() != currentType()) return;
+        VBox listWrapper = listWrappers.get(packet.leaderboardType());
+        if (listWrapper == null) return;
 
         listWrapper.clearChildren();
 
@@ -262,42 +202,99 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         if (entries.isEmpty()) {
             listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.no_entries"), 0xFF888888));
         } else {
+            Minecraft mc = Minecraft.getInstance();
+            UUID selfUuid = mc.player != null ? mc.player.getUUID() : null;
             for (int i = 0; i < entries.size(); i++) {
-                listWrapper.addChild(buildEntryRow(i + 1, entries.get(i), packet.leaderboardType()));
+                listWrapper.addChild(buildEntryRow(i + 1, entries.get(i), packet.leaderboardType(), selfUuid));
             }
         }
 
-        animateIn();
+        animateIn(listWrapper);
+    }
+
+    // -------------------------------------------------------------------------
+    // Animation
+
+    private void animateIn(VBox listWrapper) {
+        listWrapper.setTargetScale(0f, false);
+        listWrapper.markDirty(DirtyFlag.SIZE);
+
+        List<Keyframe> inKeys = List.of(
+                new Keyframe(0f, 0f),
+                new Keyframe(0.15f, 1f, Easing.EASE_OUT_BACK)
+        );
+        FloatKeyframeAnimation animIn = new FloatKeyframeAnimation(
+                "leaderboardListIn",
+                inKeys,
+                v -> {
+                    listWrapper.setTargetScale(v, false);
+                    listWrapper.markDirty(DirtyFlag.SIZE);
+                },
+                () -> listWrapper.setTargetScale(1f, false)
+        );
+        listWrapper.playAnimation(animIn);
     }
 
     // -------------------------------------------------------------------------
     // Row builders
 
-    private HBox buildEntryRow(int rank, LeaderboardEntry entry, LeaderboardType type) {
-        HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
+    private VBox buildEntryRow(int rank, LeaderboardEntry entry, LeaderboardType type, UUID selfUuid) {
+        boolean isSelf = (type == LeaderboardType.GLOBAL_CATCH_COUNT || type == LeaderboardType.GLOBAL_BEST_SIZE)
+                && selfUuid != null && entry.playerUuid().map(selfUuid::equals).orElse(false);
 
-        row.addChild(label(translated("screen.fishtastic.leaderboard.rank", rank), 0xFFAAAAAA));
+        HBox inner = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
+        inner.addChild(label(translated("screen.fishtastic.leaderboard.rank", rank), rankColor(rank)));
 
         if (type == LeaderboardType.GLOBAL_CATCH_COUNT) {
             entry.playerUuid().ifPresent(uuid ->
-                    row.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?"))))
-            );
+                    inner.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?")))));
         } else {
             entry.fishType().ifPresent(loc -> {
                 Item item = BuiltInRegistries.ITEM.getOptional(loc).orElse(Items.COD);
-                row.addChild(UI.itemRenderer(new ItemStack(item)));
+                inner.addChild(UI.itemRenderer(new ItemStack(item)));
             });
         }
 
-        row.addChild(label(entryText(entry, type), 0xFFFFFFFF));
+        inner.addChild(label(entryText(entry, type), isSelf ? 0xFFAAFFAA : 0xFFFFFFFF));
 
         if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
             entry.playerUuid().ifPresent(uuid ->
-                    row.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?"))))
-            );
+                    inner.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?")))));
         }
 
+        VBox row = UI.vbox().padding(3, 3, 6, 6).alignment(VBox.Alignment.CENTER);
+        row.backgroundSprite(rowBackgroundSprite(rank, isSelf));
+        row.onMouseEnter(e -> row.setTargetScale(1.03f, true));
+        row.onMouseExit(e -> row.setTargetScale(1.0f, true));
+        row.addChild(inner);
         return row;
+    }
+
+    private static int rankColor(int rank) {
+        return switch (rank) {
+            case 1 -> RANK_COLOR_GOLD;
+            case 2 -> RANK_COLOR_SILVER;
+            case 3 -> RANK_COLOR_BRONZE;
+            default -> RANK_COLOR_DEFAULT;
+        };
+    }
+
+    private SpriteData rowBackgroundSprite(int rank, boolean isSelf) {
+        Identifier texture;
+        if (isSelf) {
+            texture = ROW_BG_TEXTURE_SELF;
+        } else {
+            texture = switch (rank) {
+                case 1 -> ROW_BG_TEXTURE_GOLD;
+                case 2 -> ROW_BG_TEXTURE_SILVER;
+                default -> ROW_BG_TEXTURE;
+            };
+        }
+        return new SpriteData(texture)
+                .uv(0, 0, ROW_BG_SOURCE_WIDTH, ROW_BG_SOURCE_HEIGHT)
+                .textureSize(ROW_BG_SOURCE_WIDTH, ROW_BG_SOURCE_HEIGHT)
+                .renderMode(SpriteRenderMode.SLICE)
+                .slice(ROW_BG_SLICE_LEFT, ROW_BG_SLICE_RIGHT, ROW_BG_SLICE_TOP, ROW_BG_SLICE_BOTTOM);
     }
 
     private static ItemStack playerHeadStack(UUID uuid, String name) {

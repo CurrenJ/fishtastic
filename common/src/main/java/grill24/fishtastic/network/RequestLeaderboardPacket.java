@@ -16,9 +16,12 @@ import java.util.UUID;
 /**
  * Sent <strong>client → server</strong> to request leaderboard data.
  *
- * <p>For personal leaderboard types ({@link LeaderboardType#PERSONAL_BEST_SIZE},
- * {@link LeaderboardType#PERSONAL_CATCH_COUNT}) {@code targetPlayer} must be present.
- * For global types it is ignored.
+ * <p>{@code targetPlayer} is currently unused by the server: personal leaderboard types
+ * ({@link LeaderboardType#PERSONAL_BEST_SIZE}, {@link LeaderboardType#PERSONAL_CATCH_COUNT})
+ * always resolve to the requester's own key via {@link FishCatchSavedData#resolvePlayerKey},
+ * never a client-supplied UUID — the singleplayer owner's catches are stored under a fixed
+ * synthetic key that differs from their real UUID, so trusting the raw client value would break
+ * personal boards in singleplayer. Global types ignore this field entirely.
  *
  * <p>The server will respond with a {@link LeaderboardResponsePacket}.
  */
@@ -69,7 +72,11 @@ public record RequestLeaderboardPacket(
                                                         FishCatchSavedData db,
                                                         ServerPlayer requester) {
         boolean asc = packet.ascending();
-        UUID targetUuid = packet.targetPlayer().orElse(db.resolvePlayerKey(requester));
+        // Personal boards always resolve to the requester's own key via resolvePlayerKey, never
+        // the client-supplied targetPlayer directly — the singleplayer owner's catches are
+        // recorded under a fixed synthetic UUID (see resolvePlayerKey), which differs from their
+        // real player UUID, so trusting the raw client-sent UUID would always miss in singleplayer.
+        UUID targetUuid = db.resolvePlayerKey(requester);
 
         return switch (packet.leaderboardType()) {
             case PERSONAL_BEST_SIZE -> db.getPersonalBestSizes(targetUuid,

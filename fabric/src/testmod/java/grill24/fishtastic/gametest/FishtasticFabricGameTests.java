@@ -127,6 +127,31 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void globalBestSizeTracksIndependentlyPerFishType(GameTestHelper helper) {
+        FishCatchDataGameTests.globalBestSizeTracksIndependentlyPerFishType(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void globalBestSizeTieKeepsSingleEntry(GameTestHelper helper) {
+        FishCatchDataGameTests.globalBestSizeTieKeepsSingleEntry(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void globalCatchCountRanksMultiplePlayers(GameTestHelper helper) {
+        FishCatchDataGameTests.globalCatchCountRanksMultiplePlayers(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void personalCatchCountSortOrder(GameTestHelper helper) {
+        FishCatchDataGameTests.personalCatchCountSortOrder(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void globalBestSizeSortOrder(GameTestHelper helper) {
+        FishCatchDataGameTests.globalBestSizeSortOrder(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void recordTrashContributionAccumulatesTotal(GameTestHelper helper) {
         FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, helper::makeMockServerPlayerInLevel);
     }

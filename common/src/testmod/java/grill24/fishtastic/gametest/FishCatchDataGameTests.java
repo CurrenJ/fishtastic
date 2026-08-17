@@ -207,9 +207,160 @@ public final class FishCatchDataGameTests {
         helper.succeed();
     }
 
+    /**
+     * The global best-size board tracks each fish species independently — one player leading on
+     * bluegill must not affect who leads on northern pike.
+     */
+    public static void globalBestSizeTracksIndependentlyPerFishType(GameTestHelper helper) {
+        FishCatchSavedData data = freshData();
+        UUID playerA = UUID.randomUUID();
+        UUID playerB = UUID.randomUUID();
+
+        ItemStack pikeA = new ItemStack(FishtasticItems.NORTHERN_PIKE.value());
+        ItemSizeHelper.setSize(pikeA, 40f);
+        FishQualityHelper.setQuality(pikeA, FishQuality.Quality.COMMON);
+        ItemStack pikeB = new ItemStack(FishtasticItems.NORTHERN_PIKE.value());
+        ItemSizeHelper.setSize(pikeB, 95f);
+        FishQualityHelper.setQuality(pikeB, FishQuality.Quality.LEGENDARY);
+
+        // PlayerA leads on bluegill; PlayerB leads on northern pike.
+        data.recordCatch(playerA, "PlayerA", bluegillWithSizeAndQuality(80f, FishQuality.Quality.EPIC));
+        data.recordCatch(playerB, "PlayerB", bluegillWithSizeAndQuality(30f, FishQuality.Quality.COMMON));
+        data.recordCatch(playerA, "PlayerA", pikeA);
+        data.recordCatch(playerB, "PlayerB", pikeB);
+
+        List<FishCatchSavedData.GlobalBestSizeEntry> global =
+            data.getGlobalBestSizes(FishCatchSavedData.GLOBAL_BEST_SIZE_DESC);
+        helper.assertTrue(global.size() == 2, "Must have 2 entries, one per fish type, got " + global.size());
+
+        Identifier bluegillId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value());
+        for (FishCatchSavedData.GlobalBestSizeEntry entry : global) {
+            if (entry.fishType().equals(bluegillId)) {
+                helper.assertTrue(entry.bestSize() == 80f && entry.playerUuid().equals(playerA),
+                    "Bluegill leader must be PlayerA at 80, got " + entry.playerName() + " at " + entry.bestSize());
+            } else {
+                helper.assertTrue(entry.bestSize() == 95f && entry.playerUuid().equals(playerB),
+                    "Northern pike leader must be PlayerB at 95, got " + entry.playerName() + " at " + entry.bestSize());
+            }
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A tie on the global best-size board must not duplicate the entry — whichever of the two
+     * tied players is picked, exactly one entry survives and it reports the tied size. (Which
+     * player wins a true tie is an implementation detail of map iteration order and deliberately
+     * not asserted here — only that the dedup and size reporting stay correct.)
+     */
+    public static void globalBestSizeTieKeepsSingleEntry(GameTestHelper helper) {
+        FishCatchSavedData data = freshData();
+        UUID playerA = UUID.randomUUID();
+        UUID playerB = UUID.randomUUID();
+
+        data.recordCatch(playerA, "PlayerA", bluegillWithSizeAndQuality(60f, FishQuality.Quality.RARE));
+        data.recordCatch(playerB, "PlayerB", bluegillWithSizeAndQuality(60f, FishQuality.Quality.RARE));
+
+        List<FishCatchSavedData.GlobalBestSizeEntry> global =
+            data.getGlobalBestSizes(FishCatchSavedData.GLOBAL_BEST_SIZE_DESC);
+        helper.assertTrue(global.size() == 1, "A tie must still collapse to 1 entry, got " + global.size());
+        helper.assertTrue(global.get(0).bestSize() == 60f,
+            "Tied entry must report the tied size 60, got " + global.get(0).bestSize());
+        helper.assertTrue(global.get(0).playerUuid().equals(playerA) || global.get(0).playerUuid().equals(playerB),
+            "Tied entry must belong to one of the two tied players");
+        helper.succeed();
+    }
+
+    /**
+     * The global catch-count board ranks multiple players against each other, not just one
+     * player's own total.
+     */
+    public static void globalCatchCountRanksMultiplePlayers(GameTestHelper helper) {
+        FishCatchSavedData data = freshData();
+        UUID playerA = UUID.randomUUID();
+        UUID playerB = UUID.randomUUID();
+        UUID playerC = UUID.randomUUID();
+
+        data.recordCatch(playerA, "PlayerA", bluegillWithSizeAndQuality(10f, FishQuality.Quality.COMMON));
+        for (int i = 0; i < 5; i++) {
+            data.recordCatch(playerB, "PlayerB", bluegillWithSizeAndQuality(10f, FishQuality.Quality.COMMON));
+        }
+        for (int i = 0; i < 3; i++) {
+            data.recordCatch(playerC, "PlayerC", bluegillWithSizeAndQuality(10f, FishQuality.Quality.COMMON));
+        }
+
+        List<FishCatchSavedData.GlobalCatchCountEntry> desc =
+            data.getGlobalCatchCounts(FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC);
+        helper.assertTrue(desc.size() == 3, "Must have 3 player entries, got " + desc.size());
+        helper.assertTrue(desc.get(0).playerUuid().equals(playerB) && desc.get(0).totalCatches() == 5,
+            "DESC: PlayerB (5 catches) must rank first, got " + desc.get(0).playerName() + "=" + desc.get(0).totalCatches());
+        helper.assertTrue(desc.get(2).playerUuid().equals(playerA) && desc.get(2).totalCatches() == 1,
+            "DESC: PlayerA (1 catch) must rank last, got " + desc.get(2).playerName() + "=" + desc.get(2).totalCatches());
+
+        List<FishCatchSavedData.GlobalCatchCountEntry> asc =
+            data.getGlobalCatchCounts(FishCatchSavedData.GLOBAL_CATCH_COUNT_ASC);
+        helper.assertTrue(asc.get(0).playerUuid().equals(playerA),
+            "ASC: PlayerA (1 catch) must rank first, got " + asc.get(0).playerName());
+        helper.succeed();
+    }
+
     // -------------------------------------------------------------------------
     // Sorting
     // -------------------------------------------------------------------------
+
+    /**
+     * DESC/ASC ordering on the personal catch-count board, across multiple fish types for the
+     * same player.
+     */
+    public static void personalCatchCountSortOrder(GameTestHelper helper) {
+        FishCatchSavedData data = freshData();
+        UUID player = UUID.randomUUID();
+
+        ItemStack pike = new ItemStack(FishtasticItems.NORTHERN_PIKE.value());
+        ItemSizeHelper.setSize(pike, 50f);
+        FishQualityHelper.setQuality(pike, FishQuality.Quality.COMMON);
+
+        data.recordCatch(player, "TestPlayer", bluegillWithSizeAndQuality(40f, FishQuality.Quality.COMMON));
+        data.recordCatch(player, "TestPlayer", bluegillWithSizeAndQuality(41f, FishQuality.Quality.COMMON));
+        data.recordCatch(player, "TestPlayer", bluegillWithSizeAndQuality(42f, FishQuality.Quality.COMMON));
+        data.recordCatch(player, "TestPlayer", pike);
+
+        List<FishCatchSavedData.PersonalCatchCountEntry> desc =
+            data.getPersonalCatchCounts(player, FishCatchSavedData.PERSONAL_CATCH_COUNT_DESC);
+        helper.assertTrue(desc.get(0).totalCatches() == 3 && desc.get(1).totalCatches() == 1,
+            "DESC: bluegill (3 catches) must lead pike (1 catch), got " + desc.get(0).totalCatches() + ", " + desc.get(1).totalCatches());
+
+        List<FishCatchSavedData.PersonalCatchCountEntry> asc =
+            data.getPersonalCatchCounts(player, FishCatchSavedData.PERSONAL_CATCH_COUNT_ASC);
+        helper.assertTrue(asc.get(0).totalCatches() == 1 && asc.get(1).totalCatches() == 3,
+            "ASC: pike (1 catch) must lead bluegill (3 catches), got " + asc.get(0).totalCatches() + ", " + asc.get(1).totalCatches());
+        helper.succeed();
+    }
+
+    /**
+     * DESC/ASC ordering on the global best-size board, across multiple fish-type entries.
+     */
+    public static void globalBestSizeSortOrder(GameTestHelper helper) {
+        FishCatchSavedData data = freshData();
+        UUID player = UUID.randomUUID();
+
+        ItemStack pike = new ItemStack(FishtasticItems.NORTHERN_PIKE.value());
+        ItemSizeHelper.setSize(pike, 90f);
+        FishQualityHelper.setQuality(pike, FishQuality.Quality.RARE);
+
+        data.recordCatch(player, "TestPlayer", bluegillWithSizeAndQuality(50f, FishQuality.Quality.COMMON));
+        data.recordCatch(player, "TestPlayer", pike);
+
+        List<FishCatchSavedData.GlobalBestSizeEntry> desc =
+            data.getGlobalBestSizes(FishCatchSavedData.GLOBAL_BEST_SIZE_DESC);
+        helper.assertTrue(desc.get(0).bestSize() > desc.get(1).bestSize(),
+            "DESC sort: first global entry must have larger best size");
+
+        List<FishCatchSavedData.GlobalBestSizeEntry> asc =
+            data.getGlobalBestSizes(FishCatchSavedData.GLOBAL_BEST_SIZE_ASC);
+        helper.assertTrue(asc.get(0).bestSize() < asc.get(1).bestSize(),
+            "ASC sort: first global entry must have smaller best size");
+        helper.succeed();
+    }
 
     /**
      * DESC comparator returns largest best size first; ASC returns smallest first.
