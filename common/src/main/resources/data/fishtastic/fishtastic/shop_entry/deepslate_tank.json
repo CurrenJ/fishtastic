@@ -17,5 +17,5 @@
     }
   ],
   "daily_max_purchases": 1,
-  "unlock_quests": ["fishtastic:explorer/cave_collector"]
+  "unlock_quests": ["fishtastic:collector/cave_collector"]
 }

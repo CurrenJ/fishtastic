@@ -14,7 +14,7 @@ Quests are defined as JSON files under `data/fishtastic/fishtastic/quest/<quest_
 
 | Field | Type | Description |
 |---|---|---|
-| `category` | enum | `daily`, `mastery`, `explorer`, `challenge` |
+| `category` | enum | `daily`, `mastery`, `explorer`, `collector`, `challenge`, `tutorial` |
 | `objective` | QuestObjective | What must be done |
 | `reward` | QuestReward | What is awarded on claim |
 | `prerequisite_quest_id` | Identifier? | Registry key of a quest that must be claimed first |
@@ -121,6 +121,23 @@ Single-completion quests that reward fishing in specific conditions and teach pl
 | Deep Wanderer | Catch 3 species in deep ocean biome | 10 tokens |
 | Exotic Expedition | Catch 5 exotic-pool fish (Blazed Grub required) | 15 tokens |
 
+### Collector
+`distinct_species` quests — the overall Completionist (catch every known species) plus one
+per-zone collector (ocean, deep ocean, river, cave, high altitude, nether, and the hidden
+Unlisted collector). Broken out into their own tab since they're a different shape of goal
+(a checklist, not a repeatable counter) from the rest of Explorer.
+
+| Quest | Objective | Reward |
+|---|---|---|
+| Completionist | Catch every known species at least once | 100 tokens + diamond tank |
+| Coastal Cataloguer | Catch every ocean-zone species | 75 tokens |
+| River Chronicler | Catch every river-zone species | 45 tokens |
+| Abyssal Cartographer | Catch every deep-ocean-zone species | 30 tokens |
+| Summit Naturalist | Catch every high-altitude-zone species | 30 tokens |
+| Cavern Surveyor | Catch every cave-zone species | 30 tokens |
+| Infernal Registrar | Catch every Nether-zone species | 30 tokens |
+| The Unlisted (hidden) | Catch every one-off/unlisted species | 50 tokens |
+
 ### Challenge
 High-difficulty, one-time completions. Primary source of rod upgrade scrolls and rarest bait items.
 
@@ -153,7 +170,7 @@ Tokens are spent in a dedicated Quest Shop UI (accessed from the Quest Log, or a
 
 A new GelatinUI Quest Log screen, accessed via keybind or from the leaderboard. Tabbed layout mirrors the existing leaderboard screen:
 
-- **Tabs:** Daily | Mastery | Explorer | Challenge
+- **Tabs:** Daily | Mastery | Explorer | Collector | Challenge
 - Each quest shows a progress bar (current / target), objective description, and reward preview
 - **Claim** button activates on completion; sends `CompleteQuestPacket` to server
 - **Profile** tab shows total tokens, unlocked cosmetics, milestone history

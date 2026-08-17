@@ -1,5 +1,5 @@
 {
-  "category": "explorer",
+  "category": "collector",
   "difficulty": "gold",
   "objective": {
     "target_species_tag": "fishtastic:fish",

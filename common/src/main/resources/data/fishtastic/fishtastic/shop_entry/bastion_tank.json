@@ -18,5 +18,5 @@
       }
     }
   ],
-  "unlock_quests": ["fishtastic:explorer/nether_collector", "fishtastic:challenge/predator_run"]
+  "unlock_quests": ["fishtastic:collector/nether_collector", "fishtastic:challenge/predator_run"]
 }

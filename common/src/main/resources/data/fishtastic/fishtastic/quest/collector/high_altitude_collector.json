@@ -1,8 +1,8 @@
 {
-  "category": "explorer",
+  "category": "collector",
   "difficulty": "silver",
   "objective": {
-    "target_species_tag": "fishtastic:zone_cave",
+    "target_species_tag": "fishtastic:zone_high_altitude",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true
   },
@@ -14,15 +14,15 @@
         "count": 4,
         "components": {
           "fishtastic:fish_tank_materials": {
-            "frame": "minecraft:polished_deepslate",
-            "sand": "minecraft:gravel",
-            "glass": "fishtastic:gray_clear_stained_glass"
+            "frame": "minecraft:calcite",
+            "sand": "minecraft:snow_block",
+            "glass": "fishtastic:white_clear_stained_glass"
           }
         }
       }
     ]
   },
   "hidden": false,
-  "display_name": "Cavern Surveyor",
-  "description": "Catch every species of fish found in cave waters."
+  "display_name": "Summit Naturalist",
+  "description": "Catch every species of fish found in high-altitude waters."
 }

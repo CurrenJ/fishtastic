@@ -1,8 +1,8 @@
 {
-  "category": "explorer",
+  "category": "collector",
   "difficulty": "silver",
   "objective": {
-    "target_species_tag": "fishtastic:zone_deep_ocean",
+    "target_species_tag": "fishtastic:zone_cave",
     "exclude_species_tag": "fishtastic:unlisted_fish",
     "distinct_species": true
   },
@@ -14,15 +14,15 @@
         "count": 4,
         "components": {
           "fishtastic:fish_tank_materials": {
-            "frame": "minecraft:dark_prismarine",
+            "frame": "minecraft:polished_deepslate",
             "sand": "minecraft:gravel",
-            "glass": "fishtastic:blue_clear_stained_glass"
+            "glass": "fishtastic:gray_clear_stained_glass"
           }
         }
       }
     ]
   },
   "hidden": false,
-  "display_name": "Abyssal Cartographer",
-  "description": "Catch every species of fish lurking in the deep ocean."
+  "display_name": "Cavern Surveyor",
+  "description": "Catch every species of fish found in cave waters."
 }

@@ -83,7 +83,7 @@ reward item (shape must match; materials are free to differ) — nothing enforce
 | `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` |
 | `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` |
 | `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` |
-| `BASTION` | `explorer/nether_collector` (every Nether species) *or* `challenge/predator_run` |
+| `BASTION` | `collector/nether_collector` (every Nether species) *or* `challenge/predator_run` |
 | `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) *or* `mastery/tetra_legend` |
 | `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) *or* `mastery/tetra_tracker` |
 

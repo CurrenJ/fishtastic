@@ -56,7 +56,7 @@ Nothing in this loop routes the player away from fishing. No crafting chains tha
 - **Targeted fishing** — `BaitEffect.FishGroupAffinity` field added; `FRESHWATER_BAIT`, `OCEAN_BAIT`, `PREDATOR_BAIT` registered with 2.5× group multiplier; fish group tags (`freshwater_fish`, `ocean_fish`, `deep_sea_fish`, `predator_fish`) populated
 
 ### Remaining
-1. **Quest Log UI** (`QuestLogScreen`) — GelatinUI screen with DAILY/MASTERY/EXPLORER/CHALLENGE/PROFILE tabs, progress bars, Claim button; keybind (default K); register in `GelatinScreens`
+1. **Quest Log UI** (`QuestLogScreen`) — GelatinUI screen with DAILY/MASTERY/EXPLORER/COLLECTOR/CHALLENGE/PROFILE tabs, progress bars, Claim button; keybind (default K); register in `GelatinScreens`
 2. **Quest JSON content** — actual datapack JSON under `data/fishtastic/fishtastic/quest/`; see [quest-system.md](quest-system.md) for the full content spec
 3. **Textures** — new items (freshwater_bait, ocean_bait, predator_bait, quest_token) and worm_bin block currently use worms/dirt placeholder textures
 4. **Crafting recipes** — bait crafting recipes (e.g. worms + lily pad → freshwater bait)

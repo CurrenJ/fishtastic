@@ -89,11 +89,11 @@ public enum FishTankShape implements TooltipProvider {
      * 16px→2px taper with 2px-thick caps, whose {@code 16} rows are chamfered octagonal base rings
      * and whose sand is a stepped octagon (see CornerTaperProfile.BASTION). Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
-     * Locked until {@code explorer/nether_collector} or {@code challenge/predator_run} is claimed —
+     * Locked until {@code collector/nether_collector} or {@code challenge/predator_run} is claimed —
      * see {@link #unlockQuests}.
      */
     BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/nether_collector")),
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/nether_collector")),
                     ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/predator_run")))),
     /**
      * BASTION's deeper sibling — a 16px→2px taper whose full-width cap rows taper one pixel

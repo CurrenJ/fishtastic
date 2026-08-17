@@ -17,5 +17,5 @@
     }
   ],
   "daily_max_purchases": 1,
-  "unlock_quests": ["fishtastic:explorer/ocean_collector"]
+  "unlock_quests": ["fishtastic:collector/ocean_collector"]
 }

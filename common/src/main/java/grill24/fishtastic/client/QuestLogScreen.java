@@ -88,7 +88,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             QuestCategory.DAILY, 0,
             QuestCategory.MASTERY, 1,
             QuestCategory.EXPLORER, 2,
-            QuestCategory.CHALLENGE, 3
+            QuestCategory.COLLECTOR, 3,
+            QuestCategory.CHALLENGE, 4
     );
 
     private record QuestRowRefs(
@@ -455,6 +456,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.MASTERY), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.COMPASS),
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.EXPLORER), false), CONTENT_WIDTH_FRACTION));
+        tabs.addTab(new ItemStack(Items.MAP),
+                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.COLLECTOR), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.NETHER_STAR),
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.EMERALD),
