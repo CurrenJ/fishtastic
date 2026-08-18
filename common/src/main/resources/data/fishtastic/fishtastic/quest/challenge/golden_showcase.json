@@ -6,7 +6,23 @@
     "min_quality": "legendary",
     "tank_snapshot": { "material": "minecraft:gold_block" }
   },
-  "reward": { "quest_tokens": 40, "items": [] },
+  "reward": {
+    "quest_tokens": 40,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "arch",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_block",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:white_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Golden Showcase",
   "description": "Display a Legendary-quality fish in a gold-framed tank."

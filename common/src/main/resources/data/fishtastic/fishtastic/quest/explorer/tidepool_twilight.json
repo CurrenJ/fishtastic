@@ -6,7 +6,23 @@
     "biome_condition": "minecraft:is_ocean",
     "time_condition": "dusk"
   },
-  "reward": { "quest_tokens": 10, "items": [] },
+  "reward": {
+    "quest_tokens": 10,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "dune",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:smooth_sandstone",
+            "sand": "minecraft:red_sand",
+            "glass": "fishtastic:yellow_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Tidepool Twilight",
   "description": "Catch 5 Starfish in the ocean at dusk."

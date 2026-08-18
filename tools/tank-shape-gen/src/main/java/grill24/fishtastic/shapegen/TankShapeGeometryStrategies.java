@@ -51,7 +51,23 @@ public final class TankShapeGeometryStrategies {
             new Strategy("skylight",
                     perm -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD))
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+            new Strategy("arch",
+                    ArchFrameGeometryGenerator::generate,
+                    ArchGlassGeometryGenerator::generate,
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.uniform(2))),
+            new Strategy("mullion",
+                    MullionFrameGeometryGenerator::generate,
+                    MullionGlassGeometryGenerator::generate,
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+            new Strategy("lattice",
+                    LatticeFrameGeometryGenerator::generate,
+                    LatticeGlassGeometryGenerator::generate,
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.uniform(2))),
+            new Strategy("dune",
+                    perm -> TaperedFrameGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    perm -> TaperedGlassGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    DuneSandGeometryGenerator::generate)
     );
 
     private TankShapeGeometryStrategies() {}

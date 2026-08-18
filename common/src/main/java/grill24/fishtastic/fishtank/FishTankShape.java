@@ -157,7 +157,58 @@ public enum FishTankShape implements TooltipProvider {
      * Locked until {@code explorer/tank_keeper_gold} is claimed — see {@link #unlockQuests}.
      */
     FILM(Fishtastic.id("film"), Fishtastic.id("standard"), "fishtank_film",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_gold"))));
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_gold")))),
+    /**
+     * Arch tank: a window-arch motif on every face — an arc curve springing from a crown blob down
+     * to the corners, framed by a jamb that is 1px up high and widens to 2px below the springing
+     * line (matching the sand's 2px inset). See ArchTankSpans for the pixel transcription, plus
+     * ArchFrameGeometryGenerator / ArchGlassGeometryGenerator ({@code tools/tank-shape-gen}).
+     * <p>The two components are gated differently, and that's what produces the arcade: the jamb is
+     * an ordinary corner post that disappears when the perpendicular face at its end of the wall
+     * opens, while the arc renders regardless of the perpendicular faces. Connected tanks therefore
+     * lose the pillar at the seam and their two arcs meet there instead, reading as a continuous
+     * row of open archways. Shares STANDARD's connectionCollection like {@link #FACETED}.
+     * Locked until {@code challenge/golden_showcase} is claimed — a single-quest gate, following the
+     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     */
+    ARCH(Fishtastic.id("arch"), Fishtastic.id("standard"), "fishtank_arch",
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/golden_showcase")))),
+    /**
+     * Mullion tank: a standard 1px frame plus three interior window-mullion bars per face at local
+     * {@code x = 4, 8, 12}, running the full wall height including through the sand row (see
+     * MullionFrameGeometryGenerator / MullionGlassGeometryGenerator). The bar at local {@code x = 0}
+     * is persistent (renders regardless of the adjacent face's open state) while the far edge at
+     * {@code x = 15} is an ordinary gated wall — this asymmetry is what keeps the bars exactly 3px
+     * apart across a horizontal connection. Shares STANDARD's connectionCollection like
+     * {@link #FACETED}.
+     * Locked until {@code explorer/sunlit_garden} is claimed — a single-quest gate, following the
+     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     */
+    MULLION(Fishtastic.id("mullion"), Fishtastic.id("standard"), "fishtank_mullion",
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/sunlit_garden")))),
+    /**
+     * Lattice tank: a 1px edge on every row (2px at the very top/bottom, matching the sand's 2px
+     * inset) plus a pair of diagonal 1px points per row that walk inward from the edge, crossing at
+     * the tank's vertical midpoint (see LatticeFrameGeometryGenerator / LatticeGlassGeometryGenerator).
+     * Every element is face-local, following the shipped ornate-family convention (no special
+     * connection behavior was requested). Shares STANDARD's connectionCollection like
+     * {@link #FACETED}.
+     * Locked until {@code explorer/idol_admirer} is claimed — a single-quest gate, following the
+     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     */
+    LATTICE(Fishtastic.id("lattice"), Fishtastic.id("standard"), "fishtank_lattice",
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/idol_admirer")))),
+    /**
+     * Dune tank: standard 1px frame/glass (identical to STANDARD's own, reused byte-for-byte)
+     * with a two-step raised sand hill in the center (see DuneSandGeometryGenerator). Each connected
+     * horizontal face pushes the hill's footprint out toward that boundary, and connecting all four
+     * gives an entirely flat, raised sand surface at the hill's top height. Shares STANDARD's
+     * connectionCollection like {@link #FACETED}.
+     * Locked until {@code explorer/tidepool_twilight} is claimed — a single-quest gate, following the
+     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     */
+    DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune",
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tidepool_twilight"))));
 
     private final Identifier id;
     private final Identifier connectionCollection;

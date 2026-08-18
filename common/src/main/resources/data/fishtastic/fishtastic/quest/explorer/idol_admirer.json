@@ -6,7 +6,23 @@
     "target_count": 3,
     "lifetime_count": true
   },
-  "reward": { "quest_tokens": 55, "items": [] },
+  "reward": {
+    "quest_tokens": 55,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "lattice",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:stripped_acacia_wood",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:orange_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Idol Admirer",
   "description": "Catch 3 Moorish Idol in total. Dawn is your best window."

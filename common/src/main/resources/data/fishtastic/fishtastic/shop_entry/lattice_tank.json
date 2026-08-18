@@ -1,0 +1,22 @@
+{
+  "display_name": "Lattice Fish Tank",
+  "description": "A crisscrossing diagonal lattice on every face, crossing at the tank's midline. Earned by catching 3 Moorish Idol in total.",
+  "cost": 100,
+  "weight": 0.5,
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "lattice",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:stripped_acacia_wood",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:orange_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quests": ["fishtastic:explorer/idol_admirer"]
+}

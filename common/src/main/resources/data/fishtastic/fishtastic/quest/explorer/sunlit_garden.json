@@ -6,7 +6,23 @@
     "biome_condition": "minecraft:is_ocean",
     "time_condition": "day"
   },
-  "reward": { "quest_tokens": 10, "items": [] },
+  "reward": {
+    "quest_tokens": 10,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_shape": "mullion",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:stripped_oak_wood",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:light_blue_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Sunlit Garden",
   "description": "Catch 5 Garden Eel in the ocean by day."

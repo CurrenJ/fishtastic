@@ -1,0 +1,22 @@
+{
+  "display_name": "Mullion Fish Tank",
+  "description": "A standard frame divided by three interior window bars per face, spaced evenly even where tanks connect. Earned by catching 5 Garden Eel in the ocean by day.",
+  "cost": 100,
+  "weight": 0.5,
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "id": "fishtastic:fish_tank",
+      "count": 8,
+      "components": {
+        "fishtastic:fish_tank_shape": "mullion",
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:stripped_oak_wood",
+          "sand": "minecraft:sand",
+          "glass": "fishtastic:light_blue_clear_stained_glass"
+        }
+      }
+    }
+  ],
+  "unlock_quests": ["fishtastic:explorer/sunlit_garden"]
+}

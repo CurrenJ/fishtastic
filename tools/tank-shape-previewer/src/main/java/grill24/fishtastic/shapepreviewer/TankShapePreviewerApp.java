@@ -1,23 +1,8 @@
 package grill24.fishtastic.shapepreviewer;
 
 import com.google.gson.JsonObject;
-import grill24.fishtastic.shapegen.BrambleFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.BrambleGlassGeometryGenerator;
-import grill24.fishtastic.shapegen.CombFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.CombGlassGeometryGenerator;
-import grill24.fishtastic.shapegen.CornerTaperProfile;
-import grill24.fishtastic.shapegen.FilmTankSpans;
-import grill24.fishtastic.shapegen.OrnateFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.OrnateGlassGeometryGenerator;
-import grill24.fishtastic.shapegen.SandGeometryGenerator;
-import grill24.fishtastic.shapegen.ToothTankSpans;
-import grill24.fishtastic.shapegen.ShaggyFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.ShaggyGlassGeometryGenerator;
-import grill24.fishtastic.shapegen.ShellFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.SteppedSandGeometryGenerator;
 import grill24.fishtastic.shapegen.TankFace;
-import grill24.fishtastic.shapegen.TaperedFrameGeometryGenerator;
-import grill24.fishtastic.shapegen.TaperedGlassGeometryGenerator;
+import grill24.fishtastic.shapegen.TankShapeGeometryStrategies;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.AmbientLight;
@@ -46,9 +31,12 @@ import java.util.Map;
  * designed and checked here before ever touching the mod's build.
  *
  * <p>One parameter group: which of the 6 faces are "open" (connected to a neighboring tank —
- * the permutation every existing tank already depends on). Each shape is a
- * {@link CornerTaperProfile} — a per-row corner-post width read off a reference image, not a set
- * of tunable sliders — see the {@code tank-shape-image-to-datagen} skill.
+ * the permutation every existing tank already depends on). The shape list is read straight off
+ * {@link TankShapeGeometryStrategies#ALL} — the same list datagen and the geometry-safety test
+ * consume — so a shape added there shows up here with no previewer edit at all. (It used to be a
+ * hand-maintained dropdown paired with three parallel index switches, which is exactly why four
+ * shipped shapes were missing from it.) A shape isn't a set of tunable sliders: its geometry comes
+ * from a reference image, see the {@code tank-shape-image-to-datagen} skill.
  *
  * <p><b>Known simplification:</b> textures aren't wired up yet — the default frame/glass/sand
  * textures are vanilla Minecraft assets that don't exist anywhere in this repo (they ship inside
@@ -126,43 +114,18 @@ public class TankShapePreviewerApp extends Application {
 
         box.getChildren().add(sectionTitle("Shape"));
         shapeChoice = new ChoiceBox<>();
-        shapeChoice.getItems().addAll(
-                "STANDARD",
-                "TRIMMED (image tank 1)",
-                "REINFORCED (image tank 2)",
-                "FACETED (image tank 3)",
-                "BASTION (image tank 4)",
-                "ORNATE (references)",
-                "SHAGGY (references)",
-                "SKYLIGHT (standard + skylight)",
-                "STURDY",
-                "HONED (thicker_chamfer_shape_set tank 0)",
-                "RAMPART (thicker_chamfer_shape_set tank 1)",
-                "BRAMBLE (references)",
-                "TOOTH (references)",
-                "FILM (references)");
+        for (TankShapeGeometryStrategies.Strategy strategy : TankShapeGeometryStrategies.ALL) {
+            shapeChoice.getItems().add(strategy.name().toUpperCase());
+        }
         // Optional initial-shape override via a "shape:<name>" raw arg (e.g. `shape:faceted`),
-        // used by the screenshot workflow to render a specific shape without UI interaction.
+        // used by the screenshot workflow to render a specific shape without UI interaction. An
+        // unknown name falls back to the first shape rather than failing the launch.
         int initialIndex = 0;
         for (String arg : getParameters().getRaw()) {
             if (arg.startsWith("shape:")) {
                 String name = arg.substring("shape:".length()).toLowerCase();
-                initialIndex = switch (name) {
-                    case "trimmed" -> 1;
-                    case "reinforced" -> 2;
-                    case "faceted" -> 3;
-                    case "bastion" -> 4;
-                    case "ornate" -> 5;
-                    case "shaggy" -> 6;
-                    case "skylight" -> 7;
-                    case "sturdy" -> 8;
-                    case "honed" -> 9;
-                    case "rampart" -> 10;
-                    case "bramble" -> 11;
-                    case "tooth" -> 12;
-                    case "film" -> 13;
-                    default -> 0;
-                };
+                int found = shapeChoice.getItems().indexOf(name.toUpperCase());
+                initialIndex = Math.max(found, 0);
             }
         }
         shapeChoice.getSelectionModel().select(initialIndex);
@@ -170,8 +133,9 @@ public class TankShapePreviewerApp extends Application {
         // rest of buildControls() (checkboxes) has finished constructing.
         shapeChoice.getSelectionModel().selectedIndexProperty().addListener((obs, was, is) -> regenerate());
         box.getChildren().add(shapeChoice);
-        box.getChildren().add(hintLabel("Each shape is a CornerTaperProfile — the per-row corner-post "
-                + "width read off docs/tank-shapes/new_tank_shapes.png."));
+        box.getChildren().add(hintLabel("Every shape in TankShapeGeometryStrategies.ALL — the same list "
+                + "datagen builds from. Each one's geometry is read off a reference image in "
+                + "docs/tank-shapes/."));
         box.getChildren().add(new Separator());
 
         Label openFacesTitle = sectionTitle("Open faces");
@@ -226,46 +190,12 @@ public class TankShapePreviewerApp extends Application {
 
     private void regenerate() {
         int perm = permutationIndex();
-        int idx = shapeChoice.getSelectionModel().getSelectedIndex();
-        CornerTaperProfile profile = switch (idx) {
-            case 1 -> CornerTaperProfile.TRIMMED;
-            case 2 -> CornerTaperProfile.REINFORCED;
-            case 3 -> CornerTaperProfile.FACETED;
-            case 4 -> CornerTaperProfile.BASTION;
-            case 8 -> CornerTaperProfile.STURDY;
-            case 9 -> CornerTaperProfile.HONED;
-            case 10 -> CornerTaperProfile.RAMPART;
-            default -> CornerTaperProfile.STANDARD;
-        };
-        // Every tapered/stepped shape except STANDARD routes through the shell frame + stepped
-        // sand generators (matches TankShapeGeometryStrategies.ALL); ORNATE/SHAGGY/BRAMBLE are
-        // inlay shapes with no taper at all, on the standard square sand.
-        boolean shell = idx == 1 || idx == 2 || idx == 3 || idx == 4 || idx == 8 || idx == 9 || idx == 10;
+        int idx = Math.max(shapeChoice.getSelectionModel().getSelectedIndex(), 0);
+        TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.ALL.get(idx);
 
-        JsonObject frame = switch (idx) {
-            case 5 -> OrnateFrameGeometryGenerator.generate(perm);
-            case 6 -> ShaggyFrameGeometryGenerator.generate(perm);
-            case 7 -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
-            case 11 -> BrambleFrameGeometryGenerator.generate(perm);
-            case 12 -> CombFrameGeometryGenerator.generate(perm, ToothTankSpans.SPEC);
-            case 13 -> CombFrameGeometryGenerator.generate(perm, FilmTankSpans.SPEC);
-            default -> shell ? ShellFrameGeometryGenerator.generate(perm, profile)
-                             : TaperedFrameGeometryGenerator.generate(perm, profile);
-        };
-        JsonObject sand = switch (idx) {
-            case 5, 6, 11, 12, 13 -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD);
-            default -> shell ? SteppedSandGeometryGenerator.generate(perm, profile)
-                             : SandGeometryGenerator.generate(perm, profile);
-        };
-        JsonObject glass = switch (idx) {
-            case 5 -> OrnateGlassGeometryGenerator.generate(perm);
-            case 6 -> ShaggyGlassGeometryGenerator.generate(perm);
-            case 7 -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD);
-            case 11 -> BrambleGlassGeometryGenerator.generate(perm);
-            case 12 -> CombGlassGeometryGenerator.generate(perm, ToothTankSpans.SPEC);
-            case 13 -> CombGlassGeometryGenerator.generate(perm, FilmTankSpans.SPEC);
-            default -> TaperedGlassGeometryGenerator.generate(perm, profile);
-        };
+        JsonObject frame = strategy.frame().apply(perm);
+        JsonObject sand = strategy.sand().apply(perm);
+        JsonObject glass = strategy.glass().apply(perm);
 
         tankGroup.getChildren().setAll(
                 TankGeometryMeshBuilder.build(frame, Color.rgb(158, 118, 74), false),
