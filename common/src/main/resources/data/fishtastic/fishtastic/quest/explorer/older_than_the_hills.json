@@ -1,0 +1,28 @@
+{
+  "category": "explorer",
+  "difficulty": "silver",
+  "objective": {
+    "target_species_tag": "fishtastic:living_fossils",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true
+  },
+  "reward": {
+    "quest_tokens": 20,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:bone_block",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:brown_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "What Came Before",
+  "description": "Catch every living fossil."
+}

@@ -1,0 +1,28 @@
+{
+  "category": "explorer",
+  "difficulty": "silver",
+  "objective": {
+    "target_species_tag": "fishtastic:cypriniformes",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true
+  },
+  "reward": {
+    "quest_tokens": 25,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:jungle_planks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:green_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Loaches and Carps and Barbs, Oh My!",
+  "description": "Catch every species in the order Cypriniformes."
+}

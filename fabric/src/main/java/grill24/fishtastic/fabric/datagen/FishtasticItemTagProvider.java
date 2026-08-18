@@ -218,6 +218,35 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.DEVILS_HOLE_PUPFISH.value())
                 .add(FishtasticItems.INDIAN_GLASSY_FISH.value());
 
+        // Taxonomic groups: real-world clades backing the "catch every species in this family"
+        // explorer quests. Not derivable from fish_profile (which knows nothing about taxonomy),
+        // so curated here - same rationale as EXOTIC_FISH/SMALL_FISH above.
+        valueLookupBuilder(FishtasticItemTags.CEPHALOPODS)
+                .add(FishtasticItems.COMMON_OCTOPUS.value())
+                .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
+                .add(FishtasticItems.GLASS_SQUID.value());
+
+        valueLookupBuilder(FishtasticItemTags.SALMONIDS)
+                .add(FishtasticItems.ARCTIC_CHAR.value())
+                .add(FishtasticItems.BULL_TROUT.value())
+                .add(FishtasticItems.GOLDEN_TROUT.value())
+                .add(FishtasticItems.RAINBOW_TROUT.value())
+                .add(FishtasticItems.EUROPEAN_GRAYLING.value());
+
+        // Ancient non-teleost ray-finned lineages that have changed little since the Mesozoic.
+        valueLookupBuilder(FishtasticItemTags.LIVING_FOSSILS)
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
+                .add(FishtasticItems.LONGNOSE_GAR.value())
+                .add(FishtasticItems.ORNATE_BICHIR.value());
+
+        // Cypriniformes: carps, barbs, minnows and loaches.
+        valueLookupBuilder(FishtasticItemTags.CYPRINIFORMES)
+                .add(FishtasticItems.GOLDEN_MAHSEER.value())
+                .add(FishtasticItems.GREENSTRIPE_BARB.value())
+                .add(FishtasticItems.BRIDLE_SHINER.value())
+                .add(FishtasticItems.CLOWN_LOACH.value())
+                .add(FishtasticItems.WATERFALL_CLIMBING_CAVE_FISH.value());
+
         addZoneTags(fishProfiles);
     }
 

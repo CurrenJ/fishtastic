@@ -1,0 +1,28 @@
+{
+  "category": "explorer",
+  "difficulty": "silver",
+  "objective": {
+    "target_species_tag": "fishtastic:salmonids",
+    "exclude_species_tag": "fishtastic:unlisted_fish",
+    "distinct_species": true
+  },
+  "reward": {
+    "quest_tokens": 25,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 4,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:spruce_log",
+            "sand": "minecraft:gravel",
+            "glass": "fishtastic:light_gray_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Silver River",
+  "description": "Catch every species in the salmonid family."
+}

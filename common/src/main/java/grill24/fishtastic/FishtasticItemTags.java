@@ -31,6 +31,14 @@ public class FishtasticItemTags {
     public static final TagKey<Item> ZONE_CAVE = create("zone_cave");
     public static final TagKey<Item> ZONE_HIGH_ALTITUDE = create("zone_high_altitude");
 
+    // Taxonomic groups: real-world clades used by the "catch every species in this family"
+    // explorer quests. Curated membership (nothing in fish_profile expresses taxonomy), so
+    // listed by hand in FishtasticItemTagProvider - same rationale as EXOTIC_FISH.
+    public static final TagKey<Item> CEPHALOPODS = create("cephalopods");
+    public static final TagKey<Item> SALMONIDS = create("salmonids");
+    public static final TagKey<Item> LIVING_FOSSILS = create("living_fossils");
+    public static final TagKey<Item> CYPRINIFORMES = create("cypriniformes");
+
     /** The bait-affinity groups a fish can belong to — used by bait tooltips and the encyclopedia's Types section. */
     public static final List<TagKey<Item>> FISH_GROUPS = List.of(
             SMALL_FISH, BIG_FISH, CALM_FISH, STEADY_FISH, FRENZY_FISH, EXOTIC_FISH);
