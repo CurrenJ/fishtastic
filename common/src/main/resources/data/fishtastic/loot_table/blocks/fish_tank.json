@@ -15,7 +15,8 @@
             {
               "function": "minecraft:copy_components",
               "include": [
-                "fishtastic:fish_tank_materials"
+                "fishtastic:fish_tank_materials",
+                "fishtastic:fish_tank_shape"
               ],
               "source": "block_entity"
             }

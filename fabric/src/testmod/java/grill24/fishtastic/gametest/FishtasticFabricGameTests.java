@@ -535,6 +535,16 @@ public class FishtasticFabricGameTests {
         FishTankGameTests.newShapesConnectToEachOther(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenTankDropCarriesShapeAndMaterials(GameTestHelper helper) {
+        FishTankGameTests.brokenTankDropCarriesShapeAndMaterials(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenTankDropRestoresShapeWhenReplaced(GameTestHelper helper) {
+        FishTankGameTests.brokenTankDropRestoresShapeWhenReplaced(helper);
+    }
+
     // -------------------------------------------------------------------------
     // TutorialManager tests
     // -------------------------------------------------------------------------

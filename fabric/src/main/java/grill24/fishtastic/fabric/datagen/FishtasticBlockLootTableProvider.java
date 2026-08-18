@@ -55,7 +55,8 @@ public class FishtasticBlockLootTableProvider extends FabricBlockLootSubProvider
                                         .add(
                                                 LootItem.lootTableItem(block)
                                                         .apply(CopyComponentsFunction.copyComponentsFromBlockEntity(LootContextParams.BLOCK_ENTITY)
-                                                                .include(FishtasticDataComponents.FISH_TANK_MATERIALS.value()))
+                                                                .include(FishtasticDataComponents.FISH_TANK_MATERIALS.value())
+                                                                .include(FishtasticDataComponents.FISH_TANK_SHAPE.value()))
                                         )
                         )
                 );

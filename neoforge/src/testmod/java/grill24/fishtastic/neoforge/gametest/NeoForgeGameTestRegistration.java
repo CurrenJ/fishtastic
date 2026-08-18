@@ -335,6 +335,10 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::cosmeticsRoundTrip);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
+        register(event, env, "broken_tank_drop_carries_shape_and_materials", 200,
+            FishTankGameTests::brokenTankDropCarriesShapeAndMaterials);
+        register(event, env, "broken_tank_drop_restores_shape_when_replaced", 200,
+            FishTankGameTests::brokenTankDropRestoresShapeWhenReplaced);
 
         // ----- TutorialManager tests -----
         register(event, env, "crafting_rod_from_default_step_grants_worms_and_advances", 200,

@@ -1,7 +1,9 @@
 package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -11,8 +13,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -309,6 +313,67 @@ public final class FishTankGameTests {
             "FACETED must open its EAST face toward a BASTION neighbor (shared collection)");
         helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
             "BASTION must open its WEST face toward a FACETED neighbor (shared collection)");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Break drops: shape + materials survive a survival-mode break
+    // -------------------------------------------------------------------------
+
+    /**
+     * Breaking a tank in survival must drop an item that carries the tank's shape, not just its
+     * materials. Runs the real block loot table via {@link net.minecraft.world.level.block.Block#getDrops},
+     * so it fails if {@code fishtastic:fish_tank_shape} is dropped from the loot table's
+     * copy_components include list.
+     */
+    public static void brokenTankDropCarriesShapeAndMaterials(GameTestHelper helper) {
+        FishTankBlockEntity tank = placeFishTank(helper);
+        FishTankMaterials materials = new FishTankMaterials(Blocks.BLACKSTONE, Blocks.RED_SAND, Blocks.GLASS);
+        tank.setShape(FishTankShape.ORNATE);
+        tank.setMaterials(materials);
+
+        List<ItemStack> drops = Block.getDrops(
+            helper.getBlockState(TANK_POS), helper.getLevel(), helper.absolutePos(TANK_POS), tank);
+        helper.assertTrue(drops.size() == 1, "Breaking a tank must drop exactly one item, got " + drops.size());
+
+        ItemStack drop = drops.getFirst();
+        helper.assertTrue(drop.is(FishtasticBlocks.FISH_TANK.value().asItem()),
+            "Drop must be a fish tank item, got " + drop);
+        helper.assertTrue(drop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()) == FishTankShape.ORNATE,
+            "Drop must carry the tank's ORNATE shape, got "
+                + drop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()));
+        helper.assertTrue(materials.equals(drop.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value())),
+            "Drop must carry the tank's materials, got "
+                + drop.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value()));
+        helper.succeed();
+    }
+
+    /**
+     * The full break -> replace round trip: the stack a broken tank drops, applied to a freshly
+     * placed tank the way {@code BlockItem#place} does, restores the original shape and materials.
+     * Covers the {@code collectImplicitComponents}/{@code applyImplicitComponents} pair together
+     * with the loot table.
+     */
+    public static void brokenTankDropRestoresShapeWhenReplaced(GameTestHelper helper) {
+        FishTankBlockEntity original = placeFishTank(helper);
+        FishTankMaterials materials = new FishTankMaterials(Blocks.BLACKSTONE, Blocks.RED_SAND, Blocks.GLASS);
+        original.setShape(FishTankShape.LATTICE);
+        original.setMaterials(materials);
+
+        ItemStack drop = Block.getDrops(
+            helper.getBlockState(TANK_POS), helper.getLevel(), helper.absolutePos(TANK_POS), original).getFirst();
+
+        // Re-place from the dropped stack: a fresh tank starts STANDARD, then takes the stack's
+        // components exactly as BlockItem#place does.
+        FishTankBlockEntity replaced = placeEastNeighborFishTank(helper);
+        helper.assertTrue(replaced.getShape() == FishTankShape.STANDARD,
+            "A fresh tank must start STANDARD before the dropped stack is applied");
+        replaced.applyComponentsFromItemStack(drop);
+
+        helper.assertTrue(replaced.getShape() == FishTankShape.LATTICE,
+            "Re-placed tank must recover the LATTICE shape, got " + replaced.getShape());
+        helper.assertTrue(materials.equals(replaced.getMaterials()),
+            "Re-placed tank must recover its materials, got " + replaced.getMaterials());
         helper.succeed();
     }
 }
