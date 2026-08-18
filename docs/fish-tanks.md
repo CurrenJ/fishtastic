@@ -5,7 +5,7 @@ independent axes, plus a decoration layer:
 
 | Axis | What it controls | Stored as | Where it's chosen |
 |---|---|---|---|
-| **Shape** | The body geometry — silhouette of frame, glass, and sand | `fishtastic:fish_tank_shape` data component → `FishTankShape` enum | Shape-cycle button in the Fish Tank Assembly GUI; also baked into shop-entry rewards |
+| **Shape** | The body geometry — silhouette of frame, glass, and sand | `fishtastic:fish_tank_shape` data component → `FishTankShape` enum | Shape gallery in the Fish Tank Assembly GUI; also baked into shop-entry rewards |
 | **Material** | Which blocks texture the frame / sand / glass | `fishtastic:fish_tank_materials` → `FishTankMaterials` | Fish Tank Assembly GUI (place blocks in slots); shop-entry rewards |
 | **Connections** | Which of the 6 faces are open to a neighbor | Derived at runtime, not stored | Automatic, from world adjacency |
 | **Cosmetics** | Decorations placed on the tank floor | `PlacedCosmetic` list on the block entity | Right-click with a cosmetic item |
@@ -51,19 +51,29 @@ STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase")
 //       ^ id                       ^ connectionCollection     ^ modelPathPrefix
 ```
 
-**Eight shapes ship today**, all sharing the `standard` connection collection so every shape connects
-to every other:
+**Eighteen shapes ship today**, all sharing the `standard` connection collection so every shape
+connects to every other:
 
 | Shape | Model prefix | Geometry summary |
 |---|---|---|
 | `STANDARD` | `fishtankbase` | Uniform 1px corner posts. The original tank; `CornerTaperProfile.uniform(1)`. |
-| `STURDY` | `fishtank_sturdy` | Uniform 2px frame (no taper) with chamfered octagonal cap rings; square sand inset 2. |
+| `SKYLIGHT` | `fishtank_skylight` | STANDARD's body with the solid ceiling replaced by a frame ring and a horizontal glass pane mirroring the sand footprint. |
 | `TRIMMED` | `fishtank_trimmed` | Light 3→1 corner brace. |
 | `REINFORCED` | `fishtank_reinforced` | Chunkier 5→1 corner brackets. |
+| `HONED` | `fishtank_honed` | REINFORCED's deeper sibling — 6→1 taper with no full-width rows. |
+| `STURDY` | `fishtank_sturdy` | Uniform 2px frame (no taper) with chamfered octagonal cap rings; square sand inset 2. |
 | `FACETED` | `fishtank_faceted` | 16→2 taper with 2px-thick chamfered octagonal cap rings and flat-plate frame; stepped-octagon sand. |
 | `BASTION` | `fishtank_bastion` | 16→2 taper with full-width caps rendered as chamfered octagonal base rings. |
+| `RAMPART` | `fishtank_rampart` | BASTION's deeper sibling — full-width cap rows taper one pixel further out (7 vs 6) for a tighter frame circle. |
 | `ORNATE` | `fishtank_ornate` | Standard 1px frame plus decorative inlay brackets, with glass holes behind them. |
 | `SHAGGY` | `fishtank_shaggy` | ORNATE's construction with a shaggier, deliberately asymmetric fringe; a full-width band at Y `[1,2]` hides the sand from the side. |
+| `BRAMBLE` | `fishtank_bramble` | No plain corner post at all — every interior Y band carries its own thorny, asymmetric inlay. |
+| `TOOTH` | `fishtank_tooth` | Shark-jaw motif: doubled ceiling/floor bands with comb-tooth fringes meeting a 2px corner post at the waist. |
+| `FILM` | `fishtank_film` | Filmstrip-sprocket motif: period-2 perforated comb bands under the ceiling and above the sand, plain 1px post at the waist. |
+| `ARCH` | `fishtank_arch` | Window-arch motif per face. The jamb is face-gated but the arc is not, so connected tanks lose the pillar at the seam and read as a continuous arcade. |
+| `MULLION` | `fishtank_mullion` | Standard frame plus three full-height interior mullion bars per face at local `x = 4, 8, 12`; the `x = 0` bar is persistent so bars stay 3px apart across a connection. |
+| `LATTICE` | `fishtank_lattice` | 1px edge per row (2px at top/bottom) plus paired diagonal points walking inward, crossing at the vertical midpoint. |
+| `DUNE` | `fishtank_dune` | STANDARD's frame and glass reused byte-for-byte, with a two-step raised sand hill that spreads toward each connected horizontal face. |
 
 `STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated: `unlockQuests` on
 the enum entry (mirrored by `unlock_quests` on its shop entry) lists a small set of quests, and
@@ -86,6 +96,16 @@ reward item (shape must match; materials are free to differ) — nothing enforce
 | `BASTION` | `collector/nether_collector` (every Nether species) *or* `challenge/predator_run` |
 | `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) *or* `mastery/tetra_legend` |
 | `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) *or* `mastery/tetra_tracker` |
+| `BRAMBLE` | `explorer/jungle_downpour` |
+| `TOOTH` | `explorer/tank_keeper_silver` |
+| `FILM` | `explorer/tank_keeper_gold` |
+| `ARCH` | `challenge/golden_showcase` |
+| `MULLION` | `explorer/sunlit_garden` |
+| `LATTICE` | `explorer/idol_admirer` |
+| `DUNE` | `explorer/tidepool_twilight` |
+
+The seven shapes from `BRAMBLE` down are deliberately single-quest gates rather than the any-one-of-two
+pairing used above them.
 
 ### Connection gating
 
@@ -95,7 +115,7 @@ deliberately decoupled from shape identity so a curated family of shapes can int
 being the same shape.
 
 The mechanism *defaults* a new shape to its own singleton collection (its own id), meaning a newly
-added shape connects only to itself until someone opts it into a family. All eight shipped shapes were
+added shape connects only to itself until someone opts it into a family. Every shipped shape is
 deliberately grouped into `standard`.
 
 ### Persistence and sync
@@ -109,9 +129,10 @@ The shape rides the same rails as materials, so mirror `FISH_TANK_MATERIALS` whe
   `FishTankBlock.getCloneItemStack`.
 - `FishTankCompositeModelData` — carries `shape` alongside the three blocks; produced by
   `FishTankBlockEntityFabric.getRenderData()` and `FishTankBlockEntityNeoForge.getModelData()`.
-- `SetAssemblyShapePacket` + `FishTankAssemblyMenu`'s `shapeSlot` — the GUI's cycle button changes
-  the shape client-side optimistically, then the server authoritatively mirrors it back through the
-  menu data slot.
+- `SetAssemblyShapePacket` + `FishTankAssemblyMenu`'s `shapeSlot` — picking a cell in the GUI's
+  shape gallery changes the shape client-side optimistically, then the server authoritatively
+  mirrors it back through the menu data slot (and re-checks the unlock, so a modified client can't
+  select a gated shape).
 
 ### Model loading
 
