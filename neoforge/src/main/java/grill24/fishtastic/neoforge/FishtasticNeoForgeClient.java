@@ -33,6 +33,7 @@ import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.TankCosmeticTooltip;
@@ -209,6 +210,7 @@ public final class FishtasticNeoForgeClient {
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         ItemEffectManager.clearCache();
+        ClientTankFlocks.clear();
     }
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
@@ -217,6 +219,7 @@ public final class FishtasticNeoForgeClient {
         EncyclopediaTutorialClientHandler.reset();
         FishEncyclopediaClientCache.reset();
         CosmeticCaptureClientState.reset();
+        ClientTankFlocks.clear();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -241,6 +244,7 @@ public final class FishtasticNeoForgeClient {
 
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
+            ClientTankFlocks.tickAll();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);

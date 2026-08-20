@@ -27,7 +27,7 @@ public final class FishAnimator {
      */
     public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, float scale, boolean mirrored) {
         switch (config) {
-            case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
             case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
             case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored);
@@ -38,12 +38,26 @@ public final class FishAnimator {
 
     // ── Mode implementations ──────────────────────────────────────────────────
 
+    /**
+     * Horizontal-swim pose with animation coupling for simulated swimmers: {@code speedFactor}
+     * scales the tail-beat frequency (and amplitude), and {@code bankDeg} banks the fish about its
+     * swim axis in response to turning. Both are 0/1 on the hover path, which keeps the random
+     * consumption order identical to the pre-simulation animation.
+     */
+    public static void applySwimming(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
+                                     Random random, float t, float baseRotation, boolean mirrored,
+                                     float speedFactor, float bankDeg) {
+        applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, speedFactor, bankDeg);
+    }
+
     private static void applyHorizontalSwim(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
-                                             Random random, float t, float baseRotation, boolean mirrored) {
-        float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
-        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
+                                             Random random, float t, float baseRotation, boolean mirrored,
+                                             float speedFactor, float bankDeg) {
+        float hertz = (cfg.bobHertz() + (random.nextFloat() * 0.04f)) * speedFactor;
+        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude() * speedFactor, hertz);
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
+        if (bankDeg != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(bankDeg));
         float surfAngle = getSurfingAngle(random, t, cfg.bobAmplitude(), hertz) * cfg.surfFactor();
         float yWiggle = getOrganicWiggle(random, t) * cfg.wiggleScale();
         poseStack.mulPose(Axis.YP.rotationDegrees(yWiggle));

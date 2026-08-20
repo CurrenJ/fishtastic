@@ -35,6 +35,7 @@ import grill24.fishtastic.client.particle.TankBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
@@ -168,7 +169,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
 
         // Clear caches on world join
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            ItemEffectManager.clearCache();
+            ClientTankFlocks.clear();
+        });
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             QuestClientCache.reset();
@@ -176,6 +180,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             EncyclopediaTutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
             CosmeticCaptureClientState.reset();
+            ClientTankFlocks.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
@@ -192,6 +197,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
+                ClientTankFlocks.tickAll();
                 TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);

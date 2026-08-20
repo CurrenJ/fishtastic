@@ -10,7 +10,6 @@ import net.minecraft.world.level.block.Rotation;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,10 +32,11 @@ public class FishTankRenderState extends BlockEntityRenderState {
     /** Multi-block structure cosmetics, keyed by their anchor cell. */
     public Map<CosmeticGridCell, ResolvedStructureCosmetic> structureCosmetics = Collections.emptyMap();
     /**
-     * Fish to render this frame. Contains one entry for solo fish, N entries for swarm species.
-     * Back-to-front sorted by zOffset so depth ordering is correct.
+     * The per-tank flock simulation driving this frame's fish. Attached in extractRenderState and
+     * read by submit; the simulation state itself lives in {@link ClientTankFlocks} (keyed by block
+     * position) and persists across frames — this field is only a transient per-frame reference.
      */
-    public List<SwarmFishInstance> fishInstances = List.of();
+    public TankFlockSimulation flock;
     /**
      * Per-cell game time at which a chest cosmetic last released one bubble of its stream, used
      * to avoid releasing the same stream tick's bubble more than once when a frame is extracted

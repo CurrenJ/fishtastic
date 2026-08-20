@@ -7,16 +7,15 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
-import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
-import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
@@ -60,7 +59,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +80,12 @@ public class FishTankBlockEntityRenderer
         this.chestModel = new ChestModel(context.bakeLayer(ModelLayers.CHEST));
         this.chestSprites = context.sprites();
     }
+
+    // Reused across frames — the old code allocated a fresh Random per fish per frame (see Task 1
+    // of docs/fish-simulation-handoff.md). The Random is safe to share because FishAnimator consumes
+    // it synchronously; the ItemStackRenderState is NOT (its submit defers to the end of the frame,
+    // so a shared one would render every fish as the last fish), so those live per-fish on the flock.
+    private final Random fishRandom = new Random();
 
     private static final Vector3f SAND_BASE_Y_OFFSET =
         new Vector3f(0f, CosmeticGridCell.SAND_LAYER_HEIGHT * 0.5f, 0f);
@@ -251,13 +255,6 @@ public class FishTankBlockEntityRenderer
     // Tighter than the furnace's 10-tick interval since the smoke is the cosmetic's whole visual hook.
     private static final int CAMPFIRE_SMOKE_INTERVAL_TICKS = 5;
 
-    // Usable half-width inside the tank walls for swarm scatter (block units from centre).
-    private static final float TANK_HALF_EXTENT = 0.35f;
-    // Minimum 3D separation between swarm fish before rejection sampling gives up.
-    private static final float SWARM_MIN_SEP = 0.14f;
-    // Z positions for each depth layer (offset from block centre, back→front).
-    private static final float[] LAYER_Z = {-0.25f, 0f, 0.25f};
-
     // ── BlockEntityRenderer ───────────────────────────────────────────────────
 
     @Override
@@ -293,29 +290,11 @@ public class FishTankBlockEntityRenderer
             spawnDueCampfireSmoke(clientLevel, blockEntity, state);
         }
 
-        // Resolve swarm config from the first non-empty item's fish profile.
-        ItemStack firstItem = blockEntity.getFirstItem();
-        SwarmConfig swarm = resolveSwarmConfig(firstItem, level);
-
-        if (countItems(blockEntity, swarm.count()) > 1) {
-            state.fishInstances = buildSwarmInstances(
-                    blockEntity, swarm, blockPosHash,
-                    blockEntity.getFirstItemRotation(), level);
-        } else {
-            // Solo fish: single instance at tank centre with no offsets.
-            if (!firstItem.isEmpty()) {
-                ResolvedFishRender render = resolveFishRender(firstItem, level);
-                int firstSlot = blockEntity.getFirstItemSlot();
-                state.fishInstances = List.of(new SwarmFishInstance(
-                        firstItem.copy(), render.animation(), render.renderCalibration(),
-                        blockEntity.getFirstItemRotation(),
-                        0f, 0f, 0f,
-                        (long) blockPosHash,
-                        blockEntity.isItemMirrored(firstSlot)));
-            } else {
-                state.fishInstances = List.of();
-            }
-        }
+        // Attach (or create) this tank's flock and interpolate its fish to this frame's partial
+        // tick. The flock persists in ClientTankFlocks across frames; extract only reads and
+        // interpolates — it never advances simulation time (that happens in ClientTankFlocks.tickAll()).
+        state.flock = ClientTankFlocks.getOrCreate(blockEntity, blockPosHash);
+        state.flock.interpolate(partialTick);
     }
 
     @Override
@@ -328,160 +307,61 @@ public class FishTankBlockEntityRenderer
         renderCosmetics(state, poseStack, nodes);
         renderTankWaterFill(state, poseStack, nodes);
 
-        if (state.fishInstances.isEmpty()) return;
+        TankFlockSimulation flock = state.flock;
+        if (flock == null || flock.count() == 0) return;
 
         float t = state.gameTimeTicks;
         ItemModelResolver resolver = Minecraft.getInstance().getItemModelResolver();
+        int n = flock.count();
+        int[] order = flock.order;
 
-        for (SwarmFishInstance fish : state.fishInstances) {
+        for (int k = 0; k < n; k++) {
+            int i = order[k];
             poseStack.pushPose();
 
-            float scale = 0.5f;
-            if (ItemSizeHelper.hasSize(fish.stack())) {
-                float size = ItemSizeHelper.getSize(fish.stack());
-                // renderCalibration is per-species (see FishProfile#renderCalibration): it corrects
-                // for how much of the item's square texture canvas the fish's art actually fills,
-                // and for the extra sqrt(2) width the 45° diagonal-texture roll adds, so a fish's
-                // rendered nose-to-tail length matches its cm size regardless of animation mode.
-                scale = (size / 100f) * fish.renderCalibration();
-            }
-
-            float baseY = computeBaseY(fish.animationConfig(), state.hasOpenDownFace, scale);
+            float scale = flock.scales[i];
+            FishAnimationConfig anim = flock.anims[i];
+            float baseY = computeBaseY(anim, state.hasOpenDownFace, scale);
             // Swarm's yRange jitter is an absolute world-space offset meant to spread swimmers
             // across a water column — it says nothing about a floor-anchored creature's own size,
             // so applying it there sinks/floats them relative to the sand by a fixed amount that's
             // proportionally huge for a small instance and negligible for a large one (visible as
             // small crabs clipping into the sand). Floor-anchored modes are already pinned to
             // COSMETIC_FLOOR_Y by computeBaseY (correctly scaled), so they get none of this jitter.
-            float swarmYOffset = isFloorAnchored(fish.animationConfig()) ? 0f : fish.yOffset();
+            float swarmYOffset = isFloorAnchored(anim) ? 0f : flock.renderY[i];
             poseStack.translate(
-                    ITEM_POSITION_OFFSET.x() + fish.xOffset(),
+                    ITEM_POSITION_OFFSET.x() + flock.renderX[i],
                     baseY + swarmYOffset,
-                    ITEM_POSITION_OFFSET.z() + fish.zOffset());
+                    ITEM_POSITION_OFFSET.z() + flock.renderZ[i]);
 
-            Random fishRandom = new Random(fish.seed());
-            FishAnimator.apply(poseStack, fish.animationConfig(), fishRandom, t, fish.baseRotation(), scale, fish.mirrored());
+            fishRandom.setSeed(flock.seeds[i]);
+            boolean mirrored = flock.swimmers[i] ? flock.heading[i] < 0f : flock.hoverMirrored[i];
+            if (flock.swimmers[i]) {
+                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom, t,
+                        flock.baseRotations[i], mirrored, flock.speedFactor(i), flock.bank[i]);
+            } else {
+                FishAnimator.apply(poseStack, anim, fishRandom, t, flock.baseRotations[i], scale, mirrored);
+            }
 
             poseStack.scale(scale, scale, scale);
 
-            ItemStackRenderState itemRenderState = new ItemStackRenderState();
-            resolver.updateForTopItem(itemRenderState, fish.stack(), ItemDisplayContext.FIXED, null, null, 0);
+            ItemStackRenderState fishRender = flock.itemRenderStates[i];
+            resolver.updateForTopItem(fishRender, flock.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
 
-            FishtasticWorldOutlineRenderer.capture(itemRenderState, fish.stack());
-            FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, itemRenderState, true);
-            FishtasticGlintState.WORLD_OUTLINE_MAP.remove(itemRenderState);
+            FishtasticWorldOutlineRenderer.capture(fishRender, flock.stacks[i]);
+            FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
+            FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
 
-            itemRenderState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+            fishRender.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
 
             poseStack.popPose();
         }
     }
 
-    // ── Swarm instance building ───────────────────────────────────────────────
-
-    /**
-     * Collects up to {@code swarm.count()} non-empty items from the tank and assigns each a
-     * spatial offset. Depth layers cycle front-to-back; within each layer fish scatter in XZ
-     * with simple rejection sampling to avoid clumping.
-     */
-    private static List<SwarmFishInstance> buildSwarmInstances(
-            FishTankBlockEntity blockEntity,
-            SwarmConfig swarm,
-            int blockPosHash,
-            float firstItemRotation,
-            Level level) {
-
-        int count = swarm.count();
-        int depthLayers = Math.max(1, Math.min(swarm.depthLayers(), LAYER_Z.length));
-        float xzSpread = Math.min(swarm.xzSpread(), TANK_HALF_EXTENT);
-        float yRange = swarm.yRange();
-        float rotationJitter = swarm.rotationJitter();
-
-        // Precompute rotation matrix coefficients so that lateral scatter (perpendicular to facing)
-        // and depth layers (along facing) are expressed in world block XZ rather than always axis-aligned.
-        float rotRad = (float) Math.toRadians(firstItemRotation);
-        float cosR = (float) Math.cos(rotRad);
-        float sinR = (float) Math.sin(rotRad);
-
-        // Collect distinct items (up to count), tracking each one's source slot for mirror lookup.
-        List<ItemStack> items = new ArrayList<>(count);
-        List<Integer> itemSlots = new ArrayList<>(count);
-        for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && items.size() < count; slot++) {
-            ItemStack s = blockEntity.getItem(slot);
-            if (!s.isEmpty()) {
-                items.add(s.copy());
-                itemSlots.add(slot);
-            }
-        }
-        if (items.isEmpty()) return List.of();
-
-        Random rng = new Random((long) blockPosHash);
-        List<float[]> placedXYZ = new ArrayList<>(items.size());
-        List<SwarmFishInstance> instances = new ArrayList<>(items.size());
-
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack stack = items.get(i);
-            ResolvedFishRender render = resolveFishRender(stack, level);
-
-            int layer = i % depthLayers;
-            float depth = LAYER_Z[layer];  // offset along facing direction (local frame)
-
-            // sampleXY returns (lateral, y); lateral is perpendicular to facing, in local frame.
-            float[] ly = sampleXY(rng, xzSpread, yRange, depth, placedXYZ);
-            float lateral = ly[0];
-
-            // Rotate local (lateral, depth) into world block XZ offsets.
-            float worldX = lateral * cosR + depth * sinR;
-            float worldZ = -lateral * sinR + depth * cosR;
-
-            // Rejection sampling runs in local space; store pre-rotation coords.
-            placedXYZ.add(new float[]{lateral, ly[1], depth});
-
-            // Clamp rotation within ±jitter of the base facing angle.
-            float rotation = firstItemRotation + (rng.nextFloat() - 0.5f) * 2f * rotationJitter;
-            long seed = (long) blockPosHash ^ ((long) (i + 1) * 2654435761L);
-            boolean mirrored = blockEntity.isItemMirrored(itemSlots.get(i));
-
-            instances.add(new SwarmFishInstance(
-                    stack, render.animation(), render.renderCalibration(),
-                    rotation, worldX, ly[1], worldZ, seed, mirrored));
-        }
-
-        // Render back-to-front by world Z so foreground fish draw over background fish.
-        instances.sort(Comparator.comparingDouble(SwarmFishInstance::zOffset));
-        return instances;
-    }
-
-    /**
-     * Samples an (x, y) position offset for a fish at depth {@code z}, with rejection against
-     * already-placed fish. Falls back to an unchecked sample after {@code maxAttempts}.
-     */
-    private static float[] sampleXY(Random rng, float xzSpread, float yRange, float z, List<float[]> placed) {
-        int maxAttempts = 25;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            float x = (rng.nextFloat() - 0.5f) * 2f * xzSpread;
-            float y = (yRange > 0f) ? (rng.nextFloat() - 0.5f) * yRange : 0f;
-            if (isFarEnough(x, y, z, placed)) return new float[]{x, y};
-        }
-        // Give up on rejection; just place.
-        float x = (rng.nextFloat() - 0.5f) * 2f * xzSpread;
-        float y = (yRange > 0f) ? (rng.nextFloat() - 0.5f) * yRange : 0f;
-        return new float[]{x, y};
-    }
-
-    private static boolean isFarEnough(float x, float y, float z, List<float[]> placed) {
-        float minSep2 = SWARM_MIN_SEP * SWARM_MIN_SEP;
-        for (float[] p : placed) {
-            float dx = x - p[0], dy = y - p[1], dz = z - p[2];
-            if (dx * dx + dy * dy + dz * dz < minSep2) return false;
-        }
-        return true;
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /** Whether this animation mode pins the creature's Y to the tank floor (see {@link #computeBaseY}). */
-    private static boolean isFloorAnchored(FishAnimationConfig animConfig) {
+    static boolean isFloorAnchored(FishAnimationConfig animConfig) {
         return animConfig instanceof FishAnimationConfig.FloorSit
                 || animConfig instanceof FishAnimationConfig.Planted
                 || animConfig instanceof FishAnimationConfig.UprightSit;
@@ -505,12 +385,12 @@ public class FishTankBlockEntityRenderer
     }
 
     /** Animation config + per-species render calibration, resolved together from one profile lookup. */
-    private record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {
+    record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {
         private static final ResolvedFishRender DEFAULT = new ResolvedFishRender(
                 FishAnimationConfig.HorizontalSwim.DEFAULT, FishProfile.DEFAULT_RENDER_CALIBRATION);
     }
 
-    private static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {
+    static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {
         if (stack.isEmpty()) return ResolvedFishRender.DEFAULT;
 
         var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
@@ -528,10 +408,6 @@ public class FishTankBlockEntityRenderer
                 .orElse(ResolvedFishRender.DEFAULT);
     }
 
-    private static SwarmConfig resolveSwarmConfig(ItemStack stack, Level level) {
-        return SwarmConfig.resolve(stack, level);
-    }
-
     /** Resolves each placed structure's definition once here (render thread never does registry lookups). */
     private static Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> resolveStructureCosmetics(
             FishTankBlockEntity blockEntity, Level level) {
@@ -545,14 +421,6 @@ public class FishTankBlockEntityRenderer
                     resolved.put(entry.getKey(), new FishTankRenderState.ResolvedStructureCosmetic(structure, entry.getValue().rotation())));
         }
         return resolved;
-    }
-
-    private static int countItems(FishTankBlockEntity blockEntity, int max) {
-        int count = 0;
-        for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && count < max; slot++) {
-            if (!blockEntity.getItem(slot).isEmpty()) count++;
-        }
-        return count;
     }
 
     /**
