@@ -8,6 +8,7 @@ import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -88,15 +89,24 @@ public class FishtasticFishItem extends Item {
 
     /**
      * Shift-click pulls the topmost fish out of a targeted fish tank and combines it with this
-     * item into a new Pile of Fish. Vanilla suppresses {@code FishTankBlock#useItemOn} while
-     * sneaking with a non-empty hand, so this has to be handled here instead — see
-     * {@link FishTankBlock#tryShiftExtractFromTargetedTank}. No-op for non-fish
-     * {@code FishtasticFishItem}s (e.g. charms), which {@code canInsertInPile} rejects.
+     * item into a new Pile of Fish, or extracts one fish from a targeted Fish Pile block; a plain
+     * click adds this fish to a targeted pile or starts a new one on a valid surface. Vanilla
+     * suppresses {@code FishTankBlock#useItemOn}/{@code FishPileBlock#useItemOn} while sneaking
+     * with a non-empty hand, so both have to be handled here instead — see
+     * {@link FishTankBlock#tryShiftExtractFromTargetedTank} and
+     * {@link FishPileBlock#tryHandleTargetedInteraction}. The "start/add to a pile" half is a no-op
+     * for non-fish {@code FishtasticFishItem}s (e.g. charms), which {@code canInsertInPile} rejects
+     * — but shift-extraction from an already-placed pile applies regardless of what's held, since
+     * it doesn't touch the held stack at all.
      */
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
-        return tankResult != null ? tankResult : super.use(level, player, hand);
+        if (tankResult != null) {
+            return tankResult;
+        }
+        InteractionResult pileResult = FishPileBlock.tryHandleTargetedInteraction(level, player, hand);
+        return pileResult != null ? pileResult : super.use(level, player, hand);
     }
 
     // ----- Loot Sampling -----

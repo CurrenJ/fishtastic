@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/old_copper_hook"
+    "layer0": "fishtastic:item/hook/old_copper_hook"
   }
 }

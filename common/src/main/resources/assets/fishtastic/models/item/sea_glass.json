@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/sea_glass"
+    "layer0": "fishtastic:item/trash/sea_glass"
   }
 }

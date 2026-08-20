@@ -2,6 +2,7 @@ package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
@@ -44,14 +45,63 @@ public class PileOfFishItem extends BundleItem {
     // --- Fish tank interaction ---
 
     /**
-     * Shift-click pulls the topmost fish out of a targeted fish tank into this pile. Vanilla
-     * suppresses {@code FishTankBlock#useItemOn} while sneaking with a non-empty hand, so this
-     * has to be handled here instead — see {@link FishTankBlock#tryShiftExtractFromTargetedTank}.
+     * Shift-click pulls the topmost fish out of a targeted fish tank into this pile, or extracts
+     * one fish from a targeted Fish Pile block; a plain click starts a new pile on a valid surface.
+     * Vanilla suppresses {@code FishTankBlock#useItemOn}/{@code FishPileBlock#useItemOn} while
+     * sneaking with a non-empty hand, so both have to be handled here instead — see
+     * {@link FishTankBlock#tryShiftExtractFromTargetedTank} and
+     * {@link FishPileBlock#tryHandleTargetedInteraction}.
      */
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
-        return tankResult != null ? tankResult : super.use(level, player, hand);
+        if (tankResult != null) {
+            return tankResult;
+        }
+        InteractionResult pileResult = FishPileBlock.tryHandleTargetedInteraction(level, player, hand);
+        return pileResult != null ? pileResult : super.use(level, player, hand);
+    }
+
+    /**
+     * Combines a single fish extracted from a fish tank or Fish Pile block into the player's held
+     * item: absorbed directly into a held Pile of Fish, or merged with a held single eligible fish
+     * into a new pile (replacing the held stack, or split into a new stack alongside the remainder
+     * when more than one was held). Shared by {@code FishTankBlock#extractTopFishIntoHand} and
+     * {@code FishPileBlock#tryExtractOne} — the two extraction sites differ only in what they do
+     * with a fish that couldn't be combined.
+     *
+     * <p>No-ops (leaving {@code extracted} untouched) if the held item isn't pile-eligible, or if a
+     * held pile is already full — callers should check {@code extracted.isEmpty()} afterward: if
+     * still non-empty, the fish wasn't absorbed and the caller is responsible for it (put it back,
+     * drop it, etc).
+     */
+    public static void combineExtractedFish(Player player, InteractionHand hand, ItemStack heldStack, ItemStack extracted) {
+        if (heldStack.getItem() instanceof PileOfFishItem) {
+            BundleContents.Mutable contents = new BundleContents.Mutable(
+                    heldStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+            contents.tryInsert(extracted);
+            if (extracted.isEmpty()) {
+                heldStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            }
+            return;
+        }
+        if (!canInsertInPile(heldStack)) {
+            return;
+        }
+
+        BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
+        contents.tryInsert(extracted);
+        contents.tryInsert(heldStack.copyWithCount(1));
+        ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+        newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        if (heldStack.getCount() == 1) {
+            player.setItemInHand(hand, newPile);
+        } else {
+            heldStack.shrink(1);
+            if (!player.getInventory().add(newPile)) {
+                player.drop(newPile, false);
+            }
+        }
     }
 
     // --- Pile merging helpers ---

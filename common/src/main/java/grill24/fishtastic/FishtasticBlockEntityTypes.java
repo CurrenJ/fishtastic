@@ -1,6 +1,7 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.blockentity.MarineCompostBlockEntity;
@@ -14,6 +15,7 @@ public class FishtasticBlockEntityTypes {
     public static Holder<BlockEntityType<?>> FISH_TANK;
     public static Holder<BlockEntityType<?>> FISH_TANK_ASSEMBLY;
     public static Holder<BlockEntityType<?>> MARINE_COMPOST;
+    public static Holder<BlockEntityType<?>> FISH_PILE;
 
     public static void registerBlockEntityTypes() {
         FISH_TANK = RegistrationApiSided.getInstance().registerBlockEntityType(
@@ -30,6 +32,11 @@ public class FishtasticBlockEntityTypes {
             "marine_compost",
             MarineCompostBlockEntity::new,
             () -> new Block[] { FishtasticBlocks.MARINE_COMPOST.value() }
+        );
+        FISH_PILE = RegistrationApiSided.getInstance().registerBlockEntityType(
+            "fish_pile",
+            FishPileBlockEntity::new,
+            () -> new Block[] { FishtasticBlocks.FISH_PILE.value() }
         );
     }
 

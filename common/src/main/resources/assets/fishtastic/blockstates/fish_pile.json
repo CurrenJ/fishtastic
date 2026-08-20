@@ -1,0 +1,5 @@
+{
+  "multipart": [
+    { "apply": { "model": "fishtastic:block/fish_pile" } }
+  ]
+}

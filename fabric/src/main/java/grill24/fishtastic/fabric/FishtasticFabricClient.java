@@ -19,6 +19,7 @@ import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.FishtasticClientSetup;
@@ -31,6 +32,7 @@ import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
@@ -148,6 +150,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         BlockEntityRendererRegistry.register(
             (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
             FishTankBlockEntityRenderer::new
+        );
+        BlockEntityRendererRegistry.register(
+            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
+            FishPileBlockEntityRenderer::new
         );
 
         // Register tank bubble particle provider

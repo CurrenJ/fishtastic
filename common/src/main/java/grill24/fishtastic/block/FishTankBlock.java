@@ -9,7 +9,6 @@ import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
-import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -473,31 +472,12 @@ public class FishTankBlock extends Block implements EntityBlock {
             player.sendSystemMessage(Component.literal("Fish tank is empty"));
             return InteractionResult.FAIL;
         }
-        if (itemStack.getItem() instanceof PileOfFishItem) {
-            BundleContents.Mutable contents = new BundleContents.Mutable(
-                    itemStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
-            contents.tryInsert(extracted);
-            if (!extracted.isEmpty()) {
-                // Pile is full — put the fish back in the tank rather than losing it.
-                fishTank.addItem(extracted);
-                player.sendSystemMessage(Component.literal("Pile of Fish is full"));
-                return InteractionResult.FAIL;
-            }
-            itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-        } else {
-            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
-            contents.tryInsert(extracted);
-            contents.tryInsert(itemStack.copyWithCount(1));
-            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-            if (itemStack.getCount() == 1) {
-                player.setItemInHand(hand, newPile);
-            } else {
-                itemStack.shrink(1);
-                if (!player.getInventory().add(newPile)) {
-                    player.drop(newPile, false);
-                }
-            }
+        PileOfFishItem.combineExtractedFish(player, hand, itemStack, extracted);
+        if (!extracted.isEmpty()) {
+            // Pile is full — put the fish back in the tank rather than losing it.
+            fishTank.addItem(extracted);
+            player.sendSystemMessage(Component.literal("Pile of Fish is full"));
+            return InteractionResult.FAIL;
         }
         player.sendSystemMessage(Component.literal("Removed item from fish tank"));
         return InteractionResult.SUCCESS;

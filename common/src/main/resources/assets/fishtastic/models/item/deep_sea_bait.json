@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/deep_sea_bait"
+    "layer0": "fishtastic:item/bait/deep_sea_bait"
   }
 }

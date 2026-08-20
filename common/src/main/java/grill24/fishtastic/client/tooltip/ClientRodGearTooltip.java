@@ -17,8 +17,8 @@ public class ClientRodGearTooltip implements ClientTooltipComponent {
 
     // Drawn in place of the item icon when a slot is empty, in bait/hook/charm order.
     private static final Identifier[] GHOST_TEXTURES = new Identifier[] {
-            Fishtastic.id("textures/item/fish/worms_ghost.png"),
-            Fishtastic.id("textures/item/fish/hook_ghost.png"),
+            Fishtastic.id("textures/item/bait/worms_ghost.png"),
+            Fishtastic.id("textures/item/hook/hook_ghost.png"),
             Fishtastic.id("textures/item/charm/charm_ghost.png")
     };
 

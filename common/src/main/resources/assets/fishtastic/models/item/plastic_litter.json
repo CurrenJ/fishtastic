@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/plastic_litter"
+    "layer0": "fishtastic:item/trash/plastic_litter"
   }
 }

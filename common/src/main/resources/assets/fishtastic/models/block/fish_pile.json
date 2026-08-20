@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "fishtastic:item/pile_of_fish"
+  }
+}

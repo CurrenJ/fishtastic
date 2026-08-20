@@ -97,7 +97,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.CLOWN_LOACH.value())
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value())
-                .add(FishtasticItems.AMERICAN_PADDLEFISH.value());
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
@@ -185,7 +186,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.GOLDEN_MAHSEER.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value())
-                .add(FishtasticItems.AMERICAN_PADDLEFISH.value());
+                .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
 
         // Steady fish: bait-affinity/encyclopedia cluster for mid-difficulty reef/river fish.
         // Curated membership (not derivable from fish_profile), same rationale as above.
@@ -216,7 +218,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.BLAZED_GRUB.value())
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.DEVILS_HOLE_PUPFISH.value())
-                .add(FishtasticItems.INDIAN_GLASSY_FISH.value());
+                .add(FishtasticItems.INDIAN_GLASSY_FISH.value())
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
 
         // Taxonomic groups: real-world clades backing the "catch every species in this family"
         // explorer quests. Not derivable from fish_profile (which knows nothing about taxonomy),

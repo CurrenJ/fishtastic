@@ -169,6 +169,7 @@ public class FishtasticItems {
     public static Holder<Item> GREENSTRIPE_BARB;
     public static Holder<Item> INDIAN_GLASSY_FISH;
     public static Holder<Item> JAPANESE_SPIDER_CRAB;
+    public static Holder<Item> LARGETOOTH_SAWFISH;
     public static Holder<Item> LEAFY_SEA_DRAGON;
     public static Holder<Item> LIZARDFISH;
     public static Holder<Item> LONGNOSE_GAR;
@@ -256,6 +257,7 @@ public class FishtasticItems {
         GREENSTRIPE_BARB = RegistrationApiSided.getInstance().registerItem("greenstripe_barb", loc -> new FishtasticFishItem(props(loc)));
         INDIAN_GLASSY_FISH = RegistrationApiSided.getInstance().registerItem("indian_glassy_fish", loc -> new FishtasticFishItem(props(loc)));
         JAPANESE_SPIDER_CRAB = RegistrationApiSided.getInstance().registerItem("japanese_spider_crab", loc -> new FishtasticFishItem(props(loc)));
+        LARGETOOTH_SAWFISH = RegistrationApiSided.getInstance().registerItem("largetooth_sawfish", loc -> new FishtasticFishItem(props(loc)));
         LEAFY_SEA_DRAGON = RegistrationApiSided.getInstance().registerItem("leafy_sea_dragon", loc -> new FishtasticFishItem(props(loc)));
         LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", loc -> new FishtasticFishItem(props(loc)));
         LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> new FishtasticFishItem(props(loc)));

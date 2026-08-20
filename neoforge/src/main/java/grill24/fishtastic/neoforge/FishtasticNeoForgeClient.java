@@ -18,6 +18,7 @@ import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.FishtasticClientSetup;
@@ -29,6 +30,7 @@ import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.compat.GelatinScreensCompat;
@@ -155,6 +157,10 @@ public final class FishtasticNeoForgeClient {
         event.registerBlockEntityRenderer(
             (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
             FishTankBlockEntityRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
+            FishPileBlockEntityRenderer::new
         );
         Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
     }

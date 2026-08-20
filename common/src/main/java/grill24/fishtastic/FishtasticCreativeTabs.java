@@ -53,6 +53,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.INDIAN_GLASSY_FISH.value());
                     output.accept(FishtasticItems.JAPANESE_SPIDER_CRAB.value());
+                    output.accept(FishtasticItems.LARGETOOTH_SAWFISH.value());
                     output.accept(FishtasticItems.LEAFY_SEA_DRAGON.value());
                     output.accept(FishtasticItems.LIZARDFISH.value());
                     output.accept(FishtasticItems.LONGNOSE_GAR.value());

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/old_tire"
+    "layer0": "fishtastic:item/trash/old_tire"
   }
 }

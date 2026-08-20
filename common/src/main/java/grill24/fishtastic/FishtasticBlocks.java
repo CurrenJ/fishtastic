@@ -1,6 +1,7 @@
 package grill24.fishtastic;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankAssemblyBlock;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.block.MarineCompostBlock;
@@ -23,6 +24,7 @@ public class FishtasticBlocks {
     public static Holder<Block> FISH_TANK;
     public static Holder<Block> FISH_TANK_ASSEMBLY;
     public static Holder<Block> MARINE_COMPOST;
+    public static Holder<Block> FISH_PILE;
 
     // Undyed glass variants (no color)
     public static Holder<Block> BORDERLESS_GLASS;
@@ -76,6 +78,15 @@ public class FishtasticBlocks {
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(0.5f)
                 .sound(SoundType.GRAVEL)
+                .noOcclusion()
+                .pushReaction(PushReaction.DESTROY)
+        ));
+
+        FISH_PILE = RegistrationApiSided.getInstance().registerBlock("fish_pile",
+            loc -> new FishPileBlock(Block.Properties.of()
+                .setId(ResourceKey.create(Registries.BLOCK, loc))
+                .strength(0.3f)
+                .sound(SoundType.WET_GRASS)
                 .noOcclusion()
                 .pushReaction(PushReaction.DESTROY)
         ));
