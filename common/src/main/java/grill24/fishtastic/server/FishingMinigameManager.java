@@ -414,6 +414,7 @@ public class FishingMinigameManager {
         List<Holder<Item>> trashPool = getTrashPool(player);
 
         float treasureChance = Math.max(0f, (baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
+                + (hookEffect != null ? hookEffect.treasureChanceDelta() : 0.0f)
                 + (charmEffect != null ? charmEffect.treasureChanceDelta() : 0.0f));
         float trashChance = Math.max(0f, (baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE)
                 + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f)
