@@ -17,6 +17,10 @@ dependencies {
 
     compileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
 
+    // JEI integration is optional at runtime (see grill24.fishtastic.compat.jei) — only
+    // needed on the compile classpath so the plugin class can reference the JEI API.
+    compileOnly("mezz.jei:jei-26.1-common-api:${rootProject.jei_version}")
+
     // The Minecraft-free flocking engine (docs/fish-sim-engine-plan.md). Each platform bundles it
     // into the shipped jar via its own shadowBundle dependency — this line only provides the
     // compile/dev classpath here.

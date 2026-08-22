@@ -45,6 +45,15 @@ dependencies {
 
     implementation("io.github.currenj.gelatinui:gelatinui-neoforge:${gelatinui_version}")
 
+    // JEI integration is optional at runtime — compile-only api, plus the full jar as a
+    // dev-time convenience so `runClient` can exercise the integration locally.
+    // transitive = false: JEI's published neoforge-api/neoforge POMs declare their common-api
+    // dependency under a bogus "build" groupId (a JEI publishing quirk), which fails
+    // resolution — harmless to disable since we depend on common-api explicitly ourselves.
+    compileOnly("mezz.jei:jei-26.1-common-api:${rootProject.jei_version}")
+    compileOnly("mezz.jei:jei-26.1-neoforge-api:${rootProject.jei_version}") { transitive = false }
+    localRuntime("mezz.jei:jei-26.1-neoforge:${rootProject.jei_version}") { transitive = false }
+
     // namedElements no longer exists in loom-no-remap; reference common directly.
     common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')

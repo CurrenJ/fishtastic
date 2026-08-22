@@ -226,6 +226,8 @@
   "tooltip.fishtastic.tank_cosmetic": "Tank Cosmetic",
   "block.fishtastic.fish_tank": "Fish Tank",
   "block.fishtastic.fish_pile": "Fish Pile",
+  "block.fishtastic.marine_compost": "Marine Compost",
+  "item.fishtastic.marine_compost": "Marine Compost",
   "item.fishtastic.fish_tank": "Fish Tank",
   "block.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
   "item.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
@@ -355,5 +357,9 @@
   "tooltip.fishtastic.storm_charm.single_use": "Single-use consumable",
   "message.fishtastic.storm_charm.no_sky": "There is no sky here to answer.",
   "message.fishtastic.storm_charm.weather_frozen": "The weather is held fast — a storm summoned now would never pass.",
-  "message.fishtastic.storm_charm.already_storming": "The storm is already upon you."
+  "message.fishtastic.storm_charm.already_storming": "The storm is already upon you.",
+  "jei.fishtastic.marine_composting": "Marine Composting",
+  "jei.fishtastic.marine_compost_ripening": "Marine Compost Ripening",
+  "jei.fishtastic.marine_compost_ripening.ready_tooltip": "Right-click to aerate (speeds up ripening and raises yield); break once fully ripe (\"Ready\") to collect the worms",
+  "jei.fishtastic.marine_compost_ripening.aeration_tooltip": "Base yield shown - aerating adds +1 worm per turn, up to 5 times"
 }
