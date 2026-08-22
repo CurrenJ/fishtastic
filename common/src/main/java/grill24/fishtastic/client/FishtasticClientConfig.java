@@ -17,7 +17,7 @@ public final class FishtasticClientConfig {
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
-    private static final int DEFAULT_NOTIFICATION_VOLUME = 100;
+    private static final int DEFAULT_NOTIFICATION_VOLUME = 50;
     private static final String DEFAULT_FILE_CONTENTS = """
             # Fishtastic client-side visual toggles.
             # Edit and restart the game to apply changes.
@@ -27,7 +27,7 @@ public final class FishtasticClientConfig {
 
             # Volume (0-100) of quest/notification banner sounds. Set via
             # "/fishtastic notifications volume <0-100>" in-game, which also rewrites this file.
-            notificationVolume=100
+            notificationVolume=50
 
             # Whether the shape gallery beside the Fish Tank Assembly GUI starts revealed.
             # Toggled by the gallery button in that screen, which also rewrites this file.

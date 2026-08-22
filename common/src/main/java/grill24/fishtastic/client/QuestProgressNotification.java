@@ -509,7 +509,7 @@ public class QuestProgressNotification {
 
     private void playSound(Minecraft mc, SoundEvent sound) {
         if (mc.getSoundManager() != null) {
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, FishtasticClientConfig.getNotificationVolumeFraction()));
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, 1.0f, FishtasticClientConfig.getNotificationVolumeFraction()));
         }
     }
 }
