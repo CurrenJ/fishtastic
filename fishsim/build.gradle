@@ -1,0 +1,69 @@
+// The Minecraft-free flocking simulation engine (docs/fish-sim-engine-plan.md).
+//
+// Deliberately plain java-library with zero Minecraft/Loom/Architectury dependencies — the
+// compile classpath *enforces* the engine/adapter abstraction (an accidental net.minecraft
+// import is a compile error), and the test suite runs in seconds without bootstrapping Loom.
+// Unlike tools/*, this subproject's core/domain packages ship inside both platform mod jars
+// (see the shadowBundle wiring in fabric/build.gradle and neoforge/build.gradle).
+plugins {
+    id 'java-library'
+}
+
+java {
+    // Matches the mod's own toolchain (Mojang ships Java 25 in 26.1) — this code ends up on the
+    // game's runtime classpath, unlike the tools/* modules which stay on 21.
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// ── Verification tooling (never ships in the mod jar) ─────────────────────
+
+tasks.register('runHeadless', JavaExec) {
+    group = 'fishsim'
+    description = 'Exports PNG trajectory plots, a frame strip, an animated GIF, and metrics CSV. ' +
+            'Options via -PsimArgs="--domain L --fish 12 --seed 42 --ticks 6000 --out DIR"'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'grill24.fishsim.harness.HeadlessRunner'
+    systemProperty 'java.awt.headless', 'true'
+    if (project.hasProperty('simArgs')) {
+        args project.property('simArgs').toString().split(' ')
+    }
+}
+
+tasks.register('runViewer', JavaExec) {
+    group = 'fishsim'
+    description = 'Opens the interactive desktop sim viewer (pause/step/reseed + live tunables sliders)'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'grill24.fishsim.viewer.SimViewer'
+    if (project.hasProperty('simArgs')) {
+        args project.property('simArgs').toString().split(' ')
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+
+    testLogging {
+        events "failed"
+        exceptionFormat = "full"
+    }
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            println "\nTest result: ${result.resultType} — ${result.testCount} tests, " +
+                    "${result.successfulTestCount} passed, ${result.failedTestCount} failed, " +
+                    "${result.skippedTestCount} skipped"
+        }
+    }
+}

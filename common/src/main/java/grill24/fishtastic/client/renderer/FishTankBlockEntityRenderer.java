@@ -3,6 +3,7 @@ package grill24.fishtastic.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import grill24.fishsim.core.FlockEngine;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -307,19 +308,24 @@ public class FishTankBlockEntityRenderer
         renderCosmetics(state, poseStack, nodes);
         renderTankWaterFill(state, poseStack, nodes);
 
-        TankFlockSimulation flock = state.flock;
-        if (flock == null || flock.count() == 0) return;
+        TankFlockAdapter flock = state.flock;
+        if (flock == null) return;
 
         float t = state.gameTimeTicks;
         ItemModelResolver resolver = Minecraft.getInstance().getItemModelResolver();
+
+        submitGroupSwimmers(state, poseStack, nodes, flock, resolver, t);
+
+        if (flock.count() == 0) return;
+        FlockEngine eng = flock.engine();
         int n = flock.count();
-        int[] order = flock.order;
+        int[] order = eng.order;
 
         for (int k = 0; k < n; k++) {
             int i = order[k];
             poseStack.pushPose();
 
-            float scale = flock.scales[i];
+            float scale = eng.lengths[i];
             FishAnimationConfig anim = flock.anims[i];
             float baseY = computeBaseY(anim, state.hasOpenDownFace, scale);
             // Swarm's yRange jitter is an absolute world-space offset meant to spread swimmers
@@ -328,19 +334,25 @@ public class FishTankBlockEntityRenderer
             // proportionally huge for a small instance and negligible for a large one (visible as
             // small crabs clipping into the sand). Floor-anchored modes are already pinned to
             // COSMETIC_FLOOR_Y by computeBaseY (correctly scaled), so they get none of this jitter.
-            float swarmYOffset = isFloorAnchored(anim) ? 0f : flock.renderY[i];
+            float swarmYOffset = isFloorAnchored(anim) ? 0f : eng.renderY[i];
             poseStack.translate(
-                    ITEM_POSITION_OFFSET.x() + flock.renderX[i],
+                    ITEM_POSITION_OFFSET.x() + eng.renderX[i],
                     baseY + swarmYOffset,
-                    ITEM_POSITION_OFFSET.z() + flock.renderZ[i]);
+                    ITEM_POSITION_OFFSET.z() + eng.renderZ[i]);
 
-            fishRandom.setSeed(flock.seeds[i]);
-            boolean mirrored = flock.swimmers[i] ? flock.heading[i] < 0f : flock.hoverMirrored[i];
-            if (flock.swimmers[i]) {
-                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom, t,
-                        flock.baseRotations[i], mirrored, flock.speedFactor(i), flock.bank[i]);
+            fishRandom.setSeed(eng.seeds[i]);
+            // The item sprite's nose points along −lateral at rotation 0 (verified in-game:
+            // the pre-fix `heading < 0` mapping rendered every swimmer facing backwards), so a
+            // fish travelling +lateral is the one that needs the 180° mirror.
+            boolean mirrored = eng.swimmers[i] ? eng.heading[i] > 0f : eng.hoverMirrored[i];
+            if (eng.swimmers[i]) {
+                // Simulated swimmers animate on the engine's speed-integrated clock, not game
+                // time — that's what couples tail-beat frequency to swim speed without the
+                // phase-teleport jitter of scaling the sine frequency per frame.
+                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
+                        eng.renderPhase[i], eng.baseRotations[i], mirrored, eng.speedFactor(i), eng.bank[i]);
             } else {
-                FishAnimator.apply(poseStack, anim, fishRandom, t, flock.baseRotations[i], scale, mirrored);
+                FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale, mirrored);
             }
 
             poseStack.scale(scale, scale, scale);
@@ -349,6 +361,54 @@ public class FishTankBlockEntityRenderer
             resolver.updateForTopItem(fishRender, flock.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
 
             FishtasticWorldOutlineRenderer.capture(fishRender, flock.stacks[i]);
+            FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
+            FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
+
+            fishRender.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+
+            poseStack.popPose();
+        }
+    }
+
+    /**
+     * Draws the connected group's free swimmers when this tank is the group's elected anchor
+     * (multi-tank preview, docs/fish-sim-engine-handoff.md Task 9). Positions come from the
+     * anchor's voxel-domain engine in group-local coordinates (bounding-box center origin,
+     * lateral = world X, depth = world Z — no facing rotation in the preview); the adapter's
+     * group offset maps them into this block's model space. Known artifacts, accepted for the
+     * preview: fish vanish when the anchor is frustum-culled, and all fish use the anchor
+     * block's light coords.
+     */
+    private void submitGroupSwimmers(FishTankRenderState state, PoseStack poseStack,
+            SubmitNodeCollector nodes, TankFlockAdapter flock, ItemModelResolver resolver, float t) {
+        FlockEngine eng = flock.groupEngine();
+        if (eng == null || eng.count() == 0) return;
+
+        int[] order = eng.order;
+        for (int k = 0; k < eng.count(); k++) {
+            int i = order[k];
+            poseStack.pushPose();
+
+            float scale = eng.lengths[i];
+            FishAnimationConfig anim = flock.groupAnims[i];
+            poseStack.translate(
+                    flock.groupOffsetX + eng.renderX[i],
+                    flock.groupOffsetY + eng.renderY[i],
+                    flock.groupOffsetZ + eng.renderZ[i]);
+
+            fishRandom.setSeed(eng.seeds[i]);
+            // Planar model: continuous yaw, no mirror flag. The +180° maps the engine's
+            // "faces +lateral at 0°" convention onto the item sprite, whose nose points along
+            // −lateral at rotation 0 (same offset the single-tank mirror mapping encodes).
+            FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
+                    eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i]);
+
+            poseStack.scale(scale, scale, scale);
+
+            ItemStackRenderState fishRender = flock.groupRenderStates[i];
+            resolver.updateForTopItem(fishRender, flock.groupStacks[i], ItemDisplayContext.FIXED, null, null, 0);
+
+            FishtasticWorldOutlineRenderer.capture(fishRender, flock.groupStacks[i]);
             FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
             FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
 

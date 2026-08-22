@@ -53,7 +53,13 @@ public final class FishAnimator {
     private static void applyHorizontalSwim(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
                                              Random random, float t, float baseRotation, boolean mirrored,
                                              float speedFactor, float bankDeg) {
-        float hertz = (cfg.bobHertz() + (random.nextFloat() * 0.04f)) * speedFactor;
+        // Speed couples into the FREQUENCY only through the caller's clock: simulated swimmers
+        // pass the engine's speed-integrated tail phase as t (see FlockEngine.renderPhase), never
+        // by scaling hertz here — hertz multiplies t inside the sine, so per-frame hertz changes
+        // teleport the instantaneous phase by t·Δhertz (the empirical "jitters and jumps in place"
+        // bug). Amplitude may scale directly: speed changes are force-capped, so the resulting
+        // per-frame amplitude deltas are sub-pixel.
+        float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
         float yBob = getBobbingHeight(random, t, cfg.bobAmplitude() * speedFactor, hertz);
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));

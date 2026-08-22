@@ -22,9 +22,11 @@ allprojects {
 }
 
 subprojects {
-    // tools/* are standalone dev tooling (see docs/fish-tanks.md) — plain Java,
-    // deliberately independent of Minecraft/Loom/Architectury. Configured separately below.
-    if (project.path.startsWith(':tools:')) {
+    // tools/* are standalone dev tooling (see docs/fish-tanks.md) and :fishsim is the
+    // Minecraft-free simulation engine (see docs/fish-sim-engine-plan.md) — plain Java,
+    // deliberately independent of Minecraft/Loom/Architectury. Configured in their own
+    // build files (tools/* additionally in the configure block below).
+    if (project.path.startsWith(':tools:') || project.path == ':fishsim') {
         return
     }
 

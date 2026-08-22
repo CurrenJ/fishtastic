@@ -1,7 +1,7 @@
 package grill24.fishtastic.client.util;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.client.renderer.TankFlockSimulation;
+import grill24.fishtastic.client.renderer.TankFlockAdapter;
 import net.minecraft.core.BlockPos;
 
 import java.util.HashMap;
@@ -24,7 +24,7 @@ public final class ClientTankFlocks {
     /** How long a tank may go without being extracted before its flock is discarded. */
     private static final long EVICT_AFTER_TICKS = 20L * 30L; // 30 s
 
-    private static final Map<BlockPos, TankFlockSimulation> FLOCKS = new HashMap<>();
+    private static final Map<BlockPos, TankFlockAdapter> FLOCKS = new HashMap<>();
     private static long tickCounter = 0;
 
     private ClientTankFlocks() {}
@@ -33,11 +33,11 @@ public final class ClientTankFlocks {
      * Returns the flock for this tank, creating and syncing it on first call. Called from
      * {@code FishTankBlockEntityRenderer.extractRenderState} every frame.
      */
-    public static TankFlockSimulation getOrCreate(FishTankBlockEntity blockEntity, int blockPosHash) {
+    public static TankFlockAdapter getOrCreate(FishTankBlockEntity blockEntity, int blockPosHash) {
         BlockPos key = blockEntity.getBlockPos();
-        TankFlockSimulation flock = FLOCKS.get(key);
+        TankFlockAdapter flock = FLOCKS.get(key);
         if (flock == null) {
-            flock = new TankFlockSimulation();
+            flock = new TankFlockAdapter();
             FLOCKS.put(key, flock);
         }
         flock.touch(tickCounter);
@@ -52,7 +52,7 @@ public final class ClientTankFlocks {
     public static void tickAll() {
         tickCounter++;
         FLOCKS.entrySet().removeIf(e -> tickCounter - e.getValue().lastExtractTick() > EVICT_AFTER_TICKS);
-        for (TankFlockSimulation flock : FLOCKS.values()) {
+        for (TankFlockAdapter flock : FLOCKS.values()) {
             flock.step();
         }
     }

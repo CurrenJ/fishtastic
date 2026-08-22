@@ -17,6 +17,11 @@ dependencies {
 
     compileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
 
+    // The Minecraft-free flocking engine (docs/fish-sim-engine-plan.md). Each platform bundles it
+    // into the shipped jar via its own shadowBundle dependency — this line only provides the
+    // compile/dev classpath here.
+    implementation project(':fishsim')
+
     // Unit testing — gelatinui is compileOnly above (provided by the platform jar at
     // runtime), but JUnit tests run outside any platform, so the test source set needs
     // its own real dependency on it to construct UIElement/UIContainer instances.

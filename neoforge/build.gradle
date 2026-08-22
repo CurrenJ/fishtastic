@@ -49,6 +49,12 @@ dependencies {
     common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 
+    // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev
+    // classpath dep and a shadowBundle entry — dev runs resolve the former, the shipped jar only
+    // contains the latter (skipping it = NoClassDefFoundError in production).
+    implementation project(':fishsim')
+    shadowBundle project(':fishsim')
+
     // Testmod: access the compiled main classes.
     testmodImplementation sourceSets.main.output
 }
@@ -92,6 +98,12 @@ shadowJar {
     // grill24.fishtastic.env.DevEnvironmentCheck, which stays in the jar, so a missing class here is safe.
     exclude 'grill24/fishtastic/mcp/**'
     exclude 'grill24/fishtastic/neoforge/mcp/**'
+
+    // fishsim's render/harness/viewer packages are dev-only verification tooling (headless PNG/GIF
+    // export, the desktop viewer) — only core/ and domain/ are reachable from the mod at runtime.
+    exclude 'grill24/fishsim/render/**'
+    exclude 'grill24/fishsim/harness/**'
+    exclude 'grill24/fishsim/viewer/**'
 }
 
 // Redirect components.java to publish the shadow jar instead of the plain jar.

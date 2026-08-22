@@ -36,7 +36,7 @@ public class FishTankRenderState extends BlockEntityRenderState {
      * read by submit; the simulation state itself lives in {@link ClientTankFlocks} (keyed by block
      * position) and persists across frames — this field is only a transient per-frame reference.
      */
-    public TankFlockSimulation flock;
+    public TankFlockAdapter flock;
     /**
      * Per-cell game time at which a chest cosmetic last released one bubble of its stream, used
      * to avoid releasing the same stream tick's bubble more than once when a frame is extracted
