@@ -258,11 +258,11 @@ public final class PacketRoundTripGameTests {
     }
 
     // -------------------------------------------------------------------------
-    // RequestFishEncyclopediaPacket — empty record, StreamCodec.unit()
+    // RequestFishEncyclopediaPacket — single boolean field
     // -------------------------------------------------------------------------
 
     public static void requestFishEncyclopediaPacketRoundTrips(GameTestHelper helper) {
-        RequestFishEncyclopediaPacket original = new RequestFishEncyclopediaPacket();
+        RequestFishEncyclopediaPacket original = new RequestFishEncyclopediaPacket(true);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         RequestFishEncyclopediaPacket.STREAM_CODEC.encode(buf, original);

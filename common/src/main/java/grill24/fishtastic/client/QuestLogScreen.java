@@ -15,6 +15,7 @@ import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.network.CompleteQuestPacket;
+import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.RefreshShopPacket;
@@ -63,6 +64,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private MinecraftRenderContext tempContext;
     private boolean handlerInstalled = false;
     private QuestSyncPacket.ClientHandler savedHandler;
+    private boolean encyclopediaHandlerInstalled = false;
+    private FishEncyclopediaSyncPacket.ClientHandler savedEncyclopediaHandler;
     private int activeTabIndex = 0;
 
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
@@ -277,6 +280,27 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                     }
                 }
             });
+        }
+        if (!encyclopediaHandlerInstalled) {
+            savedEncyclopediaHandler = FishEncyclopediaSyncPacket.clientHandler;
+            encyclopediaHandlerInstalled = true;
+            FishEncyclopediaSyncPacket.registerClientHandler(packet -> {
+                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(),
+                        packet.globalBestSizes(), packet.claimedRewardKeys());
+                Minecraft mc = Minecraft.getInstance();
+                // Discovered/silhouette state and spoiler-guarded text are baked into the icons and
+                // quest descriptions at build time, so a plain in-place update isn't enough here.
+                if (mc.screen == this) {
+                    buildUI();
+                }
+            });
+        }
+        // Species silhouettes/discovered state depend on FishEncyclopediaClientCache, which is
+        // otherwise only refreshed by opening the encyclopedia itself - request a fresh sync (without
+        // opening that menu) so a species caught since the last encyclopedia visit shows correctly here.
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(false)));
         }
         super.init();
     }
@@ -785,7 +809,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaScreen.selectOnNextOpen(speciesKey.identifier());
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket()));
+            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
         }
     }
 
@@ -1462,6 +1486,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         super.removed();
         if (handlerInstalled) {
             QuestSyncPacket.registerClientHandler(savedHandler);
+        }
+        if (encyclopediaHandlerInstalled) {
+            FishEncyclopediaSyncPacket.registerClientHandler(savedEncyclopediaHandler);
         }
     }
 
