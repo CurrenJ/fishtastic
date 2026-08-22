@@ -10,10 +10,7 @@
   ],
   "temperament": "fishtastic:wily",
   "animation": {
-    "mode": "upright_float",
-    "bob_amplitude": 0.06,
-    "bob_hertz": 0.03,
-    "spin_rate": 0.15,
+    "mode": "horizontal_swim",
     "diagonal_texture": false
   }
 }

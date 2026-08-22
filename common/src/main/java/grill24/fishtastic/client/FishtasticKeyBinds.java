@@ -90,7 +90,7 @@ public class FishtasticKeyBinds {
         }
         if (openFishEncyclopedia != null && openFishEncyclopedia.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket()));
+                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
             }
         }
     }
