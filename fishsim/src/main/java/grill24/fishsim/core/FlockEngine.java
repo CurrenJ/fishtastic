@@ -377,17 +377,18 @@ public final class FlockEngine {
      * the emergent follow-the-wall loops around a domain's perimeter.
      */
     private void stepFishPlanar(int i) {
-        // Current travel direction (unit, horizontal); falls back to the sprite yaw when still.
-        float dirL, dirD;
-        float hsp = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
-        if (hsp > 1e-4f) {
-            dirL = velL[i] / hsp;
-            dirD = velD[i] / hsp;
-        } else {
-            float yr = (float) Math.toRadians(yawDeg[i]);
-            dirL = (float) Math.cos(yr);
-            dirD = -(float) Math.sin(yr);
-        }
+        // Patrol/wander steer relative to the fish's own committed heading (yawDeg), not the raw
+        // instantaneous velocity direction. yawDeg only turns at PLANAR_TURN_RATE per tick, so
+        // this is the persistent "intention" a school needs — using velocity directly here made
+        // the direction basis chase whatever wander/avoidance/flocking did to velocity THIS tick,
+        // which then fed straight back into next tick's desired velocity: a memoryless loop that
+        // read as fish reversing course seconds after any turn (empirical: heading autocorrelation
+        // decorrelated by ~4s and went negative by 8s — see WallTurnAnalysis). yawDeg still chases
+        // the actual velocity direction every tick (below), just rate-limited — so this is a lag,
+        // not a disconnect.
+        float yr = (float) Math.toRadians(yawDeg[i]);
+        float dirL = (float) Math.cos(yr);
+        float dirD = -(float) Math.sin(yr);
 
         float wander = wanderL(i);
         float dL = dirL * t.patrolSpeed() + (-dirD) * wander * t.cruiseSpeed();

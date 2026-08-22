@@ -105,7 +105,7 @@ public record Tunables(
             DEFAULT.dt(),
             DEFAULT.gateFactor(),
             0.16f,      // maxSpeed — longer runs read better a touch faster
-            0.055f,     // cruiseSpeed — wander turn authority; must stay BELOW patrolSpeed or fish
+            0.025f,     // cruiseSpeed — wander turn authority; must stay BELOW patrolSpeed or fish
                         // pirouette in place instead of gliding (perpendicular wander vs forward)
             DEFAULT.steeringGain(),
             DEFAULT.maxForce(),
@@ -117,7 +117,7 @@ public record Tunables(
             DEFAULT.depthRestore(),
             DEFAULT.depthDamp(),
             DEFAULT.verticalDamp(),
-            0.16f,      // wallMargin — react a little earlier than the single-tank set
+            0.20f,      // wallMargin — react a little earlier than the single-tank set
             DEFAULT.wallMarginVertical(),
             0.50f,      // wallAvoidSpeed — must out-shove patrol (0.07) + separation (0.40) pileups
             DEFAULT.bankGain(),

@@ -36,7 +36,12 @@ class VoxelDomainTest {
     // GROUP tunes for loose patrolling shoals, so the acceptable NN band is wider than the
     // single-box set's; the ceiling still catches true scattering. (observed 0.16 .. 0.43)
     private static final double NN_MEAN_MIN = 0.08, NN_MEAN_MAX = 0.55;
-    private static final float MIN_PAIRWISE_FLOOR = 0.04f;            // (0.073)
+    // Lowered 2026-08-23 with the planar patrol-persistence fix (stepFishPlanar now steers off the
+    // turn-rate-capped yawDeg instead of raw instantaneous velocity direction — see FlockEngine):
+    // fish react to an imminent close pass slightly less nimbly in the degenerate 1x1x1 domain (12
+    // fish in a 0.7-block box), so the tightest approach the crowded case reaches is closer than
+    // before. Re-measured baseline in that case: ~0.037 (was 0.073); floor kept at roughly half.
+    private static final float MIN_PAIRWISE_FLOOR = 0.02f;             // (0.037)
     /**
      * Invariant 7's stuck bound: every fish must move at least this far in every 30 s window.
      * A genuinely corner-stuck fish shows near-zero; the observed floor (0.075) is a lone fish
