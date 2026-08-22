@@ -8,7 +8,6 @@
     "fishtastic:leafy_sea_dragon",
     "fishtastic:lizardfish",
     "fishtastic:parrotfish",
-    "fishtastic:rainfordia",
     "fishtastic:molten_moorish_idol",
     "fishtastic:moorish_idol",
     "fishtastic:longnose_gar",
@@ -18,12 +17,14 @@
     "fishtastic:japanese_spider_crab",
     "fishtastic:ocean_sunfish",
     "fishtastic:arctic_char",
-    "fishtastic:giraffe_cichlid",
     "fishtastic:common_octopus",
     "fishtastic:electric_eel",
     "fishtastic:golden_mahseer",
     "fishtastic:ornate_bichir",
     "fishtastic:american_paddlefish",
-    "fishtastic:largetooth_sawfish"
+    "fishtastic:largetooth_sawfish",
+    "fishtastic:rainbow_trout",
+    "fishtastic:bull_trout",
+    "fishtastic:european_grayling"
   ]
 }

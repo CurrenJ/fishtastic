@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "fishtastic:item/fish/largetooth_sawfish"
+    "layer0": "fishtastic:item/fish/lined_seahorse"
   }
 }

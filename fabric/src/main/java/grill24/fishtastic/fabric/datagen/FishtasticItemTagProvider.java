@@ -137,7 +137,11 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.INDIAN_GLASSY_FISH.value())
                 .add(FishtasticItems.CLOWN_LOACH.value())
                 .add(FishtasticItems.FIRE_DARTFISH.value())
-                .add(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
+                .add(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value())
+                .add(FishtasticItems.LINED_SEAHORSE.value())
+                .add(FishtasticItems.YELLOWSTRIPE_GRUNT.value())
+                .add(FishtasticItems.DISCUS.value())
+                .add(FishtasticItems.CHAUNACOPS.value());
 
         // Calm fish: bait-affinity/encyclopedia cluster for docile, easy catches.
         // Curated membership (not derivable from fish_profile), same rationale as above.
@@ -171,7 +175,6 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
                 .add(FishtasticItems.LIZARDFISH.value())
                 .add(FishtasticItems.PARROTFISH.value())
-                .add(FishtasticItems.RAINFORDIA.value())
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.MOORISH_IDOL.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
@@ -181,13 +184,15 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
                 .add(FishtasticItems.OCEAN_SUNFISH.value())
                 .add(FishtasticItems.ARCTIC_CHAR.value())
-                .add(FishtasticItems.GIRAFFE_CICHLID.value())
                 .add(FishtasticItems.COMMON_OCTOPUS.value())
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.GOLDEN_MAHSEER.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value())
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
-                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
+                .add(FishtasticItems.RAINBOW_TROUT.value())
+                .add(FishtasticItems.BULL_TROUT.value())
+                .add(FishtasticItems.EUROPEAN_GRAYLING.value());
 
         // Steady fish: bait-affinity/encyclopedia cluster for mid-difficulty reef/river fish.
         // Curated membership (not derivable from fish_profile), same rationale as above.
