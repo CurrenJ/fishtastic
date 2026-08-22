@@ -2,6 +2,7 @@ package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.effects.DropOffEffect;
@@ -671,8 +672,31 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return sb.toString();
     }
 
+    private static boolean isFishSpecies(ResourceKey<Item> speciesKey) {
+        return BuiltInRegistries.ITEM.getOptional(speciesKey.identifier())
+                .map(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                .orElse(false);
+    }
+
+    /**
+     * Non-fish quest targets (trash, treasure) are never tracked in the encyclopedia, so there's
+     * no spoiler to guard - they're always treated as "discovered" and shown with their real
+     * sprite/name instead of a silhouette.
+     */
     private static boolean isDiscovered(ResourceKey<Item> speciesKey) {
-        return FishEncyclopediaClientCache.getCatchCount(speciesKey.identifier()) > 0;
+        return !isFishSpecies(speciesKey) || FishEncyclopediaClientCache.getCatchCount(speciesKey.identifier()) > 0;
+    }
+
+    /**
+     * Unlisted fish (secret one-off variants) don't get a silhouette placeholder anywhere in the
+     * quest log - they're left out entirely until actually discovered, mirroring the
+     * encyclopedia's own home-screen filtering.
+     */
+    private static boolean isHiddenUnlistedSpecies(ResourceKey<Item> speciesKey) {
+        if (isDiscovered(speciesKey)) return false;
+        return BuiltInRegistries.ITEM.getOptional(speciesKey.identifier())
+                .map(item -> item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH))
+                .orElse(false);
     }
 
     private static String itemDisplayName(Item item) {
@@ -699,8 +723,15 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return description.replace(name, "???");
     }
 
-    /** Small icon for a species: its real sprite once discovered, a black silhouette until then. */
+    /**
+     * Small icon for a species: its real sprite once discovered, a black silhouette until then -
+     * or {@code null} if this is an undiscovered unlisted fish, which gets no slot at all (see
+     * {@link #isHiddenUnlistedSpecies}).
+     */
+    @Nullable
     private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale) {
+        if (isHiddenUnlistedSpecies(speciesKey)) return null;
+
         Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
         boolean discovered = isDiscovered(speciesKey);
 
@@ -730,7 +761,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         List<ResourceKey<Item>> members = new ArrayList<>();
         for (Holder<Item> holder : items.getTagOrEmpty(tag)) {
             if (excludeTag.isPresent() && holder.is(excludeTag.get())) continue;
-            holder.unwrapKey().ifPresent(members::add);
+            holder.unwrapKey().filter(key -> !isHiddenUnlistedSpecies(key)).ifPresent(members::add);
         }
         members.sort(Comparator.comparingInt((ResourceKey<Item> key) -> {
             ResourceKey<FishProfile> profileKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier());
@@ -768,9 +799,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * {@link #CYCLE_INTERVAL_TICKS}, driven from {@link #containerTick}). Registered into
      * {@link #cyclingIconRefs} under {@code questId} so the tick loop can find it.
      */
+    @Nullable
     private SilhouetteItemButton buildCyclingSpeciesIcon(Identifier questId, TagKey<Item> tag, Optional<TagKey<Item>> excludeTag,
             RegistryAccess registryAccess, float scale) {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
+        if (members.isEmpty()) return null;
 
         SilhouetteItemButton icon = new SilhouetteItemButton(ItemStack.EMPTY);
         icon.itemScale(scale);
@@ -934,14 +967,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (quest.objective().targetSpecies().isPresent()) {
             ResourceKey<Item> speciesKey = quest.objective().targetSpecies().get();
             speciesIcon = buildSpeciesIcon(speciesKey, QUEST_SPECIES_ICON_SCALE);
-            wireEncyclopediaNavigation(speciesIcon, speciesKey);
-            progressRow.addChild(speciesIcon);
-        } else if (!quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()) {
+            if (speciesIcon != null) {
+                wireEncyclopediaNavigation(speciesIcon, speciesKey);
+                progressRow.addChild(speciesIcon);
+            }
+        } else if (!quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()
+                && !quest.objective().targetSpeciesTag().get().equals(FishtasticItemTags.TREASURE)) {
             // No single species is "the" target here, unlike a plain target_species quest — cycle
-            // through the tag's members instead of picking one arbitrarily.
+            // through the tag's members instead of picking one arbitrarily. Treasure isn't fish
+            // species to identify, so its catch-count quests skip the cycling icon entirely.
             speciesIcon = buildCyclingSpeciesIcon(questId, quest.objective().targetSpeciesTag().get(),
                     quest.objective().excludeSpeciesTag(), Minecraft.getInstance().level.registryAccess(), QUEST_SPECIES_ICON_SCALE);
-            progressRow.addChild(speciesIcon);
+            if (speciesIcon != null) progressRow.addChild(speciesIcon);
         }
         progressRow.addChild(bar);
         progressRow.addChild(countLabel);

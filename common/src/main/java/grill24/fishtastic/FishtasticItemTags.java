@@ -13,6 +13,7 @@ public class FishtasticItemTags {
     public static final TagKey<Item> FISHING_RODS = create("fishing_rods");
     public static final TagKey<Item> FISH = create("fish");
     public static final TagKey<Item> TRASH = create("trash");
+    public static final TagKey<Item> TREASURE = create("treasure");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");
     public static final TagKey<Item> FISHING_HOOKS = create("fishing_hooks");
     public static final TagKey<Item> FISHING_CHARMS = create("fishing_charms");
