@@ -64,6 +64,11 @@ public class FishtasticBlocks {
             loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
                 .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .noOcclusion()  // Allow transparent rendering
+                // Reads as a lit aquarium rather than a plain glass box at the mercy of nearby
+                // torches/skylight — without this, capping the tank with one solid block cuts its
+                // vertical skylight column and the whole interior (glass, sand, fish) goes dark,
+                // since a block's rendered brightness is real Minecraft light, not just its model.
+                .lightLevel(state -> 8)
         ), (block, loc) -> new FishTankBlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
 
         FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerBlock("fish_tank_assembly",

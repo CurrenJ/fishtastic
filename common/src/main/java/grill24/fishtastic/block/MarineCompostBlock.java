@@ -6,6 +6,7 @@ import grill24.fishtastic.blockentity.MarineCompostBlockEntity;
 import grill24.fishtastic.util.FishQualityHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -20,6 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public class MarineCompostBlock extends Block implements EntityBlock {
@@ -102,6 +104,15 @@ public class MarineCompostBlock extends Block implements EntityBlock {
         int worms = bin.getPendingWorms();
         if (worms > 0) {
             Block.popResource(level, pos, new ItemStack(FishtasticItems.WORMS.value(), worms));
+
+            int xp = wormsToExperience(worms);
+            if (xp > 0 && level instanceof ServerLevel serverLevel) {
+                ExperienceOrb.award(serverLevel, Vec3.atCenterOf(pos), xp);
+            }
         }
+    }
+
+    private static int wormsToExperience(int worms) {
+        return Math.max(1, worms / 3);
     }
 }
