@@ -47,6 +47,13 @@ public final class TankFlockAdapter {
     // ── MC-side descriptor arrays for this tank's own fish — fixed between syncs ─
     ItemStack[] stacks = new ItemStack[0];
     FishAnimationConfig[] anims = new FishAnimationConfig[0];
+    /**
+     * Container slot each entry of {@link #stacks} came from — the fish's identity across rebuilds.
+     * Slots are stable under the tank's own add (first empty slot) and take (last occupied slot)
+     * paths, so keying on them lets {@code FlockEngine.rebuildPreserving} recognise the fish that
+     * didn't move and leave their positions alone.
+     */
+    private int[] slots = new int[0];
     // One render state per fish (persistent, reused across frames) — see the class javadoc.
     ItemStackRenderState[] itemRenderStates = new ItemStackRenderState[0];
 
@@ -62,6 +69,9 @@ public final class TankFlockAdapter {
     private FlockEngine groupEngine;
     ItemStack[] groupStacks = new ItemStack[0];
     FishAnimationConfig[] groupAnims = new FishAnimationConfig[0];
+    /** Group-engine fish identity: the owning tank's packed position plus its container slot. */
+    private long[] groupKeyPos = new long[0];
+    private int[] groupKeySlot = new int[0];
     ItemStackRenderState[] groupRenderStates = new ItemStackRenderState[0];
     float groupOffsetX, groupOffsetY, groupOffsetZ;
 
@@ -161,9 +171,11 @@ public final class TankFlockAdapter {
             if (!be.getItem(slot).isEmpty()) n++;
         }
 
-        count = n;
-        allocate(n);
-
+        // Collected before touching stacks[]/slots[]: allocate() reuses those arrays whenever the
+        // count is unchanged, so the previous layout has to be read out first to map identities.
+        int[] newSlots = new int[n];
+        ItemStack[] newStacks = new ItemStack[n];
+        FishAnimationConfig[] newAnims = new FishAnimationConfig[n];
         FishSpec[] specs = new FishSpec[n];
         int idx = 0;
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && idx < n; slot++) {
@@ -173,21 +185,48 @@ public final class TankFlockAdapter {
             ItemStack stack = s.copy();
             FishTankBlockEntityRenderer.ResolvedFishRender render =
                     FishTankBlockEntityRenderer.resolveFishRender(stack, level);
-            FishAnimationConfig anim = render.animation();
 
-            stacks[idx] = stack;
-            anims[idx] = anim;
+            newSlots[idx] = slot;
+            newStacks[idx] = stack;
+            newAnims[idx] = render.animation();
 
             specs[idx] = new FishSpec(
                     renderedLength(stack, render.renderCalibration()),
-                    canSwim(anim),
+                    canSwim(newAnims[idx]),
                     be.isItemMirrored(slot),
                     speciesId(stack));
             idx++;
         }
 
-        engine.rebuild(specs, blockPosHash, be.getFirstItemRotation(),
+        int[] carryFrom = new int[n];
+        for (int i = 0; i < n; i++) {
+            carryFrom[i] = findCarry(newSlots[i], newStacks[i], slots, stacks, count);
+        }
+
+        count = n;
+        allocate(n);
+        System.arraycopy(newStacks, 0, stacks, 0, n);
+        System.arraycopy(newAnims, 0, anims, 0, n);
+        slots = newSlots;
+
+        engine.rebuildPreserving(specs, carryFrom, blockPosHash, be.getFirstItemRotation(),
                 swarm.depthLayers(), swarm.xzSpread(), swarm.yRange(), swarm.rotationJitter());
+    }
+
+    /**
+     * Index this fish held in the previous rebuild, or {@code -1} if it wasn't there. The stack
+     * has to match as well as the slot: a player swapping one species into a freed slot must get
+     * a fresh fish, not the departed one's momentum and animation phase.
+     */
+    private static int findCarry(int slot, ItemStack stack, int[] prevSlots, ItemStack[] prevStacks, int prevCount) {
+        int limit = Math.min(prevCount, Math.min(prevSlots.length, prevStacks.length));
+        for (int i = 0; i < limit; i++) {
+            if (prevSlots[i] == slot && prevStacks[i] != null
+                    && ItemStack.isSameItemSameComponents(prevStacks[i], stack)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     // ── Group path ──────────────────────────────────────────────────────────
@@ -206,6 +245,7 @@ public final class TankFlockAdapter {
         List<ItemStack> hoverStacks = new ArrayList<>();
         List<FishAnimationConfig> hoverAnims = new ArrayList<>();
         List<FishSpec> hoverSpecs = new ArrayList<>();
+        List<Integer> hoverSlots = new ArrayList<>();
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
@@ -216,15 +256,25 @@ public final class TankFlockAdapter {
             if (canSwim(render.animation()) && gateRun >= gateFactor * length) continue; // swims with the group
             hoverStacks.add(stack);
             hoverAnims.add(render.animation());
+            hoverSlots.add(slot);
             hoverSpecs.add(new FishSpec(length, false, be.isItemMirrored(slot), speciesId(stack)));
         }
-        count = hoverStacks.size();
+        int hoverCount = hoverStacks.size();
+        int[] hoverCarry = new int[hoverCount];
+        int[] newHoverSlots = new int[hoverCount];
+        for (int i = 0; i < hoverCount; i++) {
+            newHoverSlots[i] = hoverSlots.get(i);
+            hoverCarry[i] = findCarry(newHoverSlots[i], hoverStacks.get(i), slots, stacks, count);
+        }
+        count = hoverCount;
         allocate(count);
         for (int i = 0; i < count; i++) {
             stacks[i] = hoverStacks.get(i);
             anims[i] = hoverAnims.get(i);
         }
-        engine.rebuild(hoverSpecs.toArray(new FishSpec[0]), blockPosHash, be.getFirstItemRotation(),
+        slots = newHoverSlots;
+        engine.rebuildPreserving(hoverSpecs.toArray(new FishSpec[0]), hoverCarry,
+                blockPosHash, be.getFirstItemRotation(),
                 swarm.depthLayers(), swarm.xzSpread(), swarm.yRange(), swarm.rotationJitter());
 
         if (!groupAnchor) {
@@ -237,6 +287,8 @@ public final class TankFlockAdapter {
         List<FishAnimationConfig> swimAnims = new ArrayList<>();
         List<FishSpec> swimSpecs = new ArrayList<>();
         List<ItemStack> allContents = new ArrayList<>();
+        List<Long> swimKeyPos = new ArrayList<>();
+        List<Integer> swimKeySlot = new ArrayList<>();
         for (BlockPos memberPos : group.members()) {
             if (!(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity member)) continue;
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
@@ -250,23 +302,50 @@ public final class TankFlockAdapter {
                 if (!canSwim(render.animation()) || gateRun < gateFactor * length) continue;
                 swimStacks.add(stack);
                 swimAnims.add(render.animation());
+                swimKeyPos.add(memberPos.asLong());
+                swimKeySlot.add(slot);
                 swimSpecs.add(new FishSpec(length, true, member.isItemMirrored(slot), speciesId(stack)));
             }
         }
         groupSnapshot = allContents.toArray(new ItemStack[0]);
 
         int n = swimStacks.size();
+        int[] swimCarry = new int[n];
+        long[] newKeyPos = new long[n];
+        int[] newKeySlot = new int[n];
+        for (int i = 0; i < n; i++) {
+            newKeyPos[i] = swimKeyPos.get(i);
+            newKeySlot[i] = swimKeySlot.get(i);
+            swimCarry[i] = findGroupCarry(newKeyPos[i], newKeySlot[i], swimStacks.get(i));
+        }
         groupStacks = swimStacks.toArray(new ItemStack[0]);
         groupAnims = swimAnims.toArray(new FishAnimationConfig[0]);
+        groupKeyPos = newKeyPos;
+        groupKeySlot = newKeySlot;
         groupRenderStates = new ItemStackRenderState[n];
         for (int i = 0; i < n; i++) groupRenderStates[i] = new ItemStackRenderState();
         groupOffsetX = group.offsetX();
         groupOffsetY = group.offsetY();
         groupOffsetZ = group.offsetZ();
 
-        if (groupEngine == null) groupEngine = new FlockEngine(Tunables.GROUP);
-        groupEngine.rebuild(swimSpecs.toArray(new FishSpec[0]),
+        boolean freshEngine = groupEngine == null;
+        if (freshEngine) groupEngine = new FlockEngine(Tunables.GROUP);
+        // A brand-new engine has nothing to carry. Membership changes re-shape the domain itself,
+        // but the carry still holds every fish that stayed put, which is the point.
+        groupEngine.rebuildPreserving(swimSpecs.toArray(new FishSpec[0]), swimCarry,
                 group.anchor().hashCode(), 0f, swarm.rotationJitter(), domain);
+    }
+
+    /** {@link #findCarry} for the group engine, where a fish's identity is owning tank + slot. */
+    private int findGroupCarry(long posKey, int slot, ItemStack stack) {
+        int limit = Math.min(groupStacks.length, Math.min(groupKeyPos.length, groupKeySlot.length));
+        for (int i = 0; i < limit; i++) {
+            if (groupKeyPos[i] == posKey && groupKeySlot[i] == slot
+                    && ItemStack.isSameItemSameComponents(groupStacks[i], stack)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     // ── Change detection helpers ────────────────────────────────────────────

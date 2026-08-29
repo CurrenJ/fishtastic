@@ -14,7 +14,7 @@
         "components": {
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:sea_lantern",
-            "glass": "fishtastic:light_blue_clear_stained_glass",
+            "glass": "fishtastic:borderless_glass",
             "sand": "minecraft:gravel"
           }
         },

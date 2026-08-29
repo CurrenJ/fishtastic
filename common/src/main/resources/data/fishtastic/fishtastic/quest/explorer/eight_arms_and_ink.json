@@ -16,7 +16,7 @@
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:polished_blackstone",
             "sand": "minecraft:gravel",
-            "glass": "fishtastic:purple_clear_stained_glass"
+            "glass": "fishtastic:borderless_glass"
           }
         }
       }

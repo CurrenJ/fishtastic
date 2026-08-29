@@ -46,9 +46,9 @@ dependencies {
     // transitive = false: JEI's published fabric-api/fabric POMs declare their common-api
     // dependency under a bogus "build" groupId (a JEI publishing quirk), which fails
     // resolution — harmless to disable since we depend on common-api explicitly ourselves.
-    compileOnly("mezz.jei:jei-26.1-common-api:${rootProject.jei_version}")
-    compileOnly("mezz.jei:jei-26.1-fabric-api:${rootProject.jei_version}") { transitive = false }
-    localRuntime("mezz.jei:jei-26.1-fabric:${rootProject.jei_version}") { transitive = false }
+    compileOnly("mezz.jei:jei-26.1.2-common-api:${rootProject.jei_version}")
+    compileOnly("mezz.jei:jei-26.1.2-fabric-api:${rootProject.jei_version}") { transitive = false }
+    localRuntime("mezz.jei:jei-26.1.2-fabric:${rootProject.jei_version}") { transitive = false }
 
     // Shared fish tank shape geometry generators (plain Java, no Minecraft dep) — also consumed
     // by tools/tank-shape-previewer. See docs/fish-tanks.md, Phase 1.

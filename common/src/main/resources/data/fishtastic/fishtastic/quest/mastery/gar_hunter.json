@@ -17,7 +17,7 @@
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:mangrove_planks",
             "sand": "minecraft:coarse_dirt",
-            "glass": "fishtastic:brown_clear_stained_glass"
+            "glass": "fishtastic:borderless_glass"
           }
         }
       }

@@ -170,7 +170,33 @@ public final class FlockEngine {
      */
     public void rebuild(FishSpec[] specs, long baseSeed, float baseRotationDeg,
                         int depthLayers, float xzSpread, float yRange, float rotationJitter) {
+        rebuildBox(specs, null, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange, rotationJitter);
+    }
+
+    /**
+     * As {@link #rebuild(FishSpec[], long, float, int, float, float, float)}, but fish the caller
+     * recognises as the same individual keep their live sim state instead of being re-scattered.
+     *
+     * <p>Tank contents change one fish at a time (a player adding or taking one), and every
+     * previous rebuild re-seeded the <i>whole</i> flock from index — so removing one fish
+     * teleported every other fish in the tank. {@code carryFrom[i]} is the index this fish held in
+     * the previous rebuild, or {@code -1} for a fish that wasn't there before; carried fish keep
+     * position, velocity, heading, animation phase, seed and rotation jitter, and only genuinely
+     * new fish draw a scatter position. Nothing else about the rebuild changes, so a fish that
+     * crossed the tank's size gate (or fell out of it) still re-evaluates it here.
+     *
+     * @param carryFrom one entry per new fish, in the same order as {@code specs}
+     */
+    public void rebuildPreserving(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
+                                  int depthLayers, float xzSpread, float yRange, float rotationJitter) {
+        rebuildBox(specs, carryFrom, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange, rotationJitter);
+    }
+
+    private void rebuildBox(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
+                            int depthLayers, float xzSpread, float yRange, float rotationJitter) {
         int n = specs.length;
+        // Must run before count/allocate/initFish overwrite the arrays it reads.
+        captureCarry(carryFrom, n);
         count = n;
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
@@ -188,7 +214,12 @@ public final class FlockEngine {
         rng.setSeed(baseSeed);
         int placed = 0;
 
+        // Carried fish are seeded first so the scatter below rejection-samples against where the
+        // residents actually are, not against the throwaway positions they'd have been given.
+        placed = seedCarried(specs, n, placed);
+
         for (int i = 0; i < n; i++) {
+            if (isCarried(i)) continue;
             FishSpec spec = specs[i];
 
             float lateral, y, depth;
@@ -230,7 +261,23 @@ public final class FlockEngine {
      */
     public void rebuild(FishSpec[] specs, long baseSeed, float baseRotationDeg,
                         float rotationJitter, FlockDomain newDomain) {
+        rebuildPlanar(specs, null, baseSeed, baseRotationDeg, rotationJitter, newDomain);
+    }
+
+    /**
+     * Carry-over counterpart of {@link #rebuild(FishSpec[], long, float, float, FlockDomain)} —
+     * see {@link #rebuildPreserving(FishSpec[], int[], long, float, int, float, float, float)} for
+     * what {@code carryFrom} means and why it exists.
+     */
+    public void rebuildPreserving(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
+                                  float rotationJitter, FlockDomain newDomain) {
+        rebuildPlanar(specs, carryFrom, baseSeed, baseRotationDeg, rotationJitter, newDomain);
+    }
+
+    private void rebuildPlanar(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
+                               float rotationJitter, FlockDomain newDomain) {
         int n = specs.length;
+        captureCarry(carryFrom, n);
         count = n;
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
@@ -245,7 +292,10 @@ public final class FlockEngine {
         rng.setSeed(baseSeed);
         int placed = 0;
 
+        placed = seedCarried(specs, n, placed);
+
         for (int i = 0; i < n; i++) {
+            if (isCarried(i)) continue;
             sampleInDomain(placed, posScratch);
             float lateral = posScratch[0];
             float y = posScratch[1];
@@ -261,6 +311,93 @@ public final class FlockEngine {
             placedD[placed] = depth;
             placed++;
         }
+    }
+
+    // ── Carry-over across rebuilds ──────────────────────────────────────────
+    // Snapshot of the previous rebuild's per-fish state for the fish that survived it, indexed by
+    // NEW index. Captured before allocate()/initFish() clobber the live arrays, replayed once the
+    // fish has been re-initialised from its (unchanged) spec.
+
+    /** New index -> whether this fish carried state over; null/-1 entries scatter as usual. */
+    private int[] carrySlot = new int[0];
+    private boolean carrying;
+    private float[] cPosL = new float[0], cPosY = new float[0], cPosD = new float[0];
+    private float[] cPrevL = new float[0], cPrevY = new float[0], cPrevD = new float[0];
+    private float[] cVelL = new float[0], cVelY = new float[0], cVelD = new float[0];
+    private float[] cHeading = new float[0], cSpeed = new float[0], cBank = new float[0];
+    private float[] cTailPhase = new float[0], cPrevTailPhase = new float[0];
+    private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
+    private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
+    private long[] cSeeds = new long[0];
+
+    private void captureCarry(int[] carryFrom, int n) {
+        carrying = carryFrom != null;
+        if (!carrying) return;
+        allocateCarry(n);
+        for (int i = 0; i < n; i++) {
+            int from = i < carryFrom.length ? carryFrom[i] : -1;
+            // Guard a stale or out-of-range map rather than trusting the caller — a bad index here
+            // would silently read another fish's state.
+            if (from < 0 || from >= count) {
+                carrySlot[i] = -1;
+                continue;
+            }
+            carrySlot[i] = from;
+            cPosL[i] = posL[from]; cPosY[i] = posY[from]; cPosD[i] = posD[from];
+            cPrevL[i] = prevL[from]; cPrevY[i] = prevY[from]; cPrevD[i] = prevD[from];
+            cVelL[i] = velL[from]; cVelY[i] = velY[from]; cVelD[i] = velD[from];
+            cHeading[i] = heading[from]; cSpeed[i] = speed[from]; cBank[i] = bank[from];
+            cTailPhase[i] = tailPhase[from]; cPrevTailPhase[i] = prevTailPhase[from];
+            cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
+            cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
+            cSeeds[i] = seeds[from];
+        }
+    }
+
+    private boolean isCarried(int i) {
+        return carrying && carrySlot[i] >= 0;
+    }
+
+    /**
+     * Re-initialises every carried fish from its snapshot and registers its position with the
+     * placement scratch, so the scatter pass that follows treats residents as occupied space.
+     *
+     * @return the new {@code placed} count
+     */
+    private int seedCarried(FishSpec[] specs, int n, int placed) {
+        if (!carrying) return placed;
+        for (int i = 0; i < n; i++) {
+            if (carrySlot[i] < 0) continue;
+            // Seed and base rotation come from the snapshot too: seeds[] drives the animation RNG
+            // (bob phase, wiggle), so re-deriving it from the new index would make a surviving
+            // fish visibly jump mid-stroke even with its position held.
+            initFish(i, specs[i], cPosL[i], cPosY[i], cPosD[i], cBaseRotation[i], cSeeds[i]);
+            homeDepth[i] = cHomeDepth[i];
+            prevL[i] = cPrevL[i]; prevY[i] = cPrevY[i]; prevD[i] = cPrevD[i];
+            velL[i] = cVelL[i]; velY[i] = cVelY[i]; velD[i] = cVelD[i];
+            heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
+            tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
+            yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
+
+            placedL[placed] = cPosL[i];
+            placedY[placed] = cPosY[i];
+            placedD[placed] = cPosD[i];
+            placed++;
+        }
+        return placed;
+    }
+
+    private void allocateCarry(int n) {
+        if (carrySlot.length == n) return;
+        carrySlot = new int[n];
+        cPosL = new float[n]; cPosY = new float[n]; cPosD = new float[n];
+        cPrevL = new float[n]; cPrevY = new float[n]; cPrevD = new float[n];
+        cVelL = new float[n]; cVelY = new float[n]; cVelD = new float[n];
+        cHeading = new float[n]; cSpeed = new float[n]; cBank = new float[n];
+        cTailPhase = new float[n]; cPrevTailPhase = new float[n];
+        cHomeDepth = new float[n]; cBaseRotation = new float[n];
+        cYawDeg = new float[n]; cPrevYawDeg = new float[n];
+        cSeeds = new long[n];
     }
 
     private void initFish(int i, FishSpec spec, float lateral, float y, float depth,

@@ -39,6 +39,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
@@ -282,7 +283,9 @@ public class FishingMinigameManager {
         List<ItemStack> questStacks = new ArrayList<>();
         List<ItemStack> firstCatchItems = new ArrayList<>();
         int trashCaught = 0;
+        int xpAwarded = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
+        Registry<FishProfile> xpFishProfiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
@@ -303,6 +306,8 @@ public class FishingMinigameManager {
                         // (usually 0) — reading these after the call under-counts trash almost every time.
                         boolean isTrash = reward.is(FishtasticItemTags.TRASH);
                         int caughtCount = reward.getCount();
+                        // Scored before inventory.add() mutates the stack's count down to its leftover.
+                        xpAwarded += FishingXpAward.forRewardStack(reward, xpFishProfiles);
                         if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
                             addToFishPiles(player, reward);
                         } else {
@@ -322,6 +327,13 @@ public class FishingMinigameManager {
                 Fishtastic.LOGGER.warn("Player {} reported invalid target index {}",
                         player.getName().getString(), index);
             }
+        }
+
+        // Fishtastic rods bypass vanilla's retrieve loot branch entirely (FishingHookMixin), so
+        // this is the only xp a minigame catch ever grants. Orbs spawn at the player rather than
+        // the bobber — the hook is already gone by the time the client reports results.
+        if (xpAwarded > 0) {
+            ExperienceOrb.award(level, player.position(), xpAwarded);
         }
 
         // Record trash contributions first so the quest sync packet below (which snapshots

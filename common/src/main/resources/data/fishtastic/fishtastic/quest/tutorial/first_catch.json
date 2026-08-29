@@ -13,7 +13,7 @@
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:oak_planks",
           "sand": "minecraft:sand",
-          "glass": "fishtastic:blue_clear_stained_glass"
+          "glass": "fishtastic:borderless_glass"
         }
       }
     },
@@ -25,7 +25,7 @@
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:oak_log",
           "sand": "minecraft:sand",
-          "glass": "fishtastic:blue_clear_stained_glass"
+          "glass": "fishtastic:borderless_glass"
         }
       }
     },

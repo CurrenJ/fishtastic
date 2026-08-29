@@ -16,7 +16,7 @@
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:bone_block",
             "sand": "minecraft:sand",
-            "glass": "fishtastic:brown_clear_stained_glass"
+            "glass": "fishtastic:borderless_glass"
           }
         }
       }
