@@ -13,7 +13,7 @@
         "components": {
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:mud_bricks",
-            "glass": "fishtastic:borderless_glass",
+            "glass": "fishtastic:brown_clear_stained_glass",
             "sand": "minecraft:clay"
           }
         },
