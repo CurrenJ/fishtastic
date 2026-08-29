@@ -206,6 +206,7 @@ public final class FishtasticNeoForgeClient {
 
     public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
         event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
+        event.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
     }
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {

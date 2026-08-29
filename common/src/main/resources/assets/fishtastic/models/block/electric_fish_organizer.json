@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "fishtastic:block/electric_fish_organizer_top_bottom",
+    "bottom": "fishtastic:block/electric_fish_organizer_top_bottom",
+    "side": "fishtastic:block/electric_fish_organizer_side",
+    "particle": "fishtastic:block/electric_fish_organizer_top_bottom"
+  }
+}

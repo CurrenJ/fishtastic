@@ -110,6 +110,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.MARINE_COMPOST.value());
+                    output.accept(FishtasticBlocks.ELECTRIC_FISH_ORGANIZER.value());
 
                     // Undyed glass
                     output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());

@@ -92,6 +92,17 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
 
+                // Electric Fish Organizer: copper-cornered wooden cabinet, an electric eel wired in the middle.
+                ShapedRecipeBuilder.shaped(items, RecipeCategory.DECORATIONS, FishtasticBlocks.ELECTRIC_FISH_ORGANIZER.value())
+                        .pattern("CPC")
+                        .pattern("PEP")
+                        .pattern("CPC")
+                        .define('C', Items.COPPER_INGOT)
+                        .define('P', ItemTags.PLANKS)
+                        .define('E', FishtasticItems.ELECTRIC_EEL.value())
+                        .unlockedBy("has_electric_eel", has(FishtasticItems.ELECTRIC_EEL.value()))
+                        .save(this.output);
+
                 // Marine Compost: 1 dirt + 1 sized fish, shapeless. A custom recipe type since the
                 // fish's quality must be copied onto the result (see MarineCompostRecipe). No datagen
                 // advancement is emitted here - it's hand-authored alongside the recipe JSON.

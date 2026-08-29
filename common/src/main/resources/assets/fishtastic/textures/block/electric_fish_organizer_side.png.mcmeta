@@ -1,0 +1,35 @@
+{
+  "animation": {
+    "interpolate": false,
+    "frames": [
+      { "index": 0, "time": 14 },
+      { "index": 1, "time": 8 },
+      { "index": 0, "time": 6 },
+      { "index": 2, "time": 10 },
+      { "index": 5, "time": 7 },
+      { "index": 0, "time": 5 },
+      { "index": 3, "time": 9 },
+      { "index": 6, "time": 6 },
+      { "index": 0, "time": 12 },
+      { "index": 4, "time": 8 },
+      { "index": 1, "time": 5 },
+      { "index": 0, "time": 6 },
+      { "index": 7, "time": 11 },
+      { "index": 3, "time": 7 },
+      { "index": 0, "time": 9 },
+      { "index": 5, "time": 6 },
+      { "index": 2, "time": 8 },
+      { "index": 0, "time": 5 },
+      { "index": 6, "time": 10 },
+      { "index": 1, "time": 6 },
+      { "index": 4, "time": 9 },
+      { "index": 0, "time": 13 },
+      { "index": 7, "time": 7 },
+      { "index": 2, "time": 6 },
+      { "index": 0, "time": 8 },
+      { "index": 3, "time": 5 },
+      { "index": 6, "time": 9 },
+      { "index": 0, "time": 7 }
+    ]
+  }
+}

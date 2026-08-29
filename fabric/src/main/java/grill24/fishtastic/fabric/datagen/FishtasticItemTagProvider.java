@@ -106,7 +106,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
-                .add(FishtasticItems.ACUTE_IASPIS.value());
+                .add(FishtasticItems.ACUTE_IASPIS.value())
+                .add(FishtasticItems.ELECTRIC_EEL.value());
 
         // Small fish: bait-affinity/encyclopedia cluster for small or delicate species.
         // Curated membership (not derivable from fish_profile), so listed here rather than

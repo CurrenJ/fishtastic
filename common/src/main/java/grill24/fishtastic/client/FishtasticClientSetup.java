@@ -5,6 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.client.renderer.CosmeticStructureItemModel;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
+import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModels;
@@ -25,6 +26,11 @@ public final class FishtasticClientSetup {
     @SuppressWarnings("unchecked")
     public static MenuType<FishTankAssemblyMenu> fishTankAssemblyMenuType() {
         return (MenuType<FishTankAssemblyMenu>) (MenuType<?>) FishtasticMenuTypes.FISH_TANK_ASSEMBLY.value();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static MenuType<ElectricFishOrganizerMenu> electricFishOrganizerMenuType() {
+        return (MenuType<ElectricFishOrganizerMenu>) (MenuType<?>) FishtasticMenuTypes.ELECTRIC_FISH_ORGANIZER.value();
     }
 
     @SuppressWarnings("unchecked")

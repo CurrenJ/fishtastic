@@ -231,6 +231,8 @@
   "item.fishtastic.fish_tank": "Fish Tank",
   "block.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
   "item.fishtastic.fish_tank_assembly": "Fish Tank Assembly",
+  "block.fishtastic.electric_fish_organizer": "Electric Fish Organizer",
+  "item.fishtastic.electric_fish_organizer": "Electric Fish Organizer",
   "gui.fishtastic.fish_tank_assembly.shape_gallery": "Shapes",
   "gui.fishtastic.fish_tank_assembly.shape_gallery.show": "Show the tank shape gallery",
   "gui.fishtastic.fish_tank_assembly.shape_gallery.hide": "Hide the tank shape gallery",
