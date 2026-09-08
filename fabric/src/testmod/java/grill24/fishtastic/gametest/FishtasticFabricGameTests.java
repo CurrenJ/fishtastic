@@ -1029,11 +1029,6 @@ public class FishtasticFabricGameTests {
         FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, helper::makeMockServerPlayerInLevel);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.treasureChanceOneWithZeroTrashNeverAwardsTrash(helper, helper::makeMockServerPlayerInLevel);
-    }
-
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------

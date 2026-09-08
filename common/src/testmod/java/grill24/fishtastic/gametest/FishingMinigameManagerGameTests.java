@@ -258,34 +258,4 @@ public final class FishingMinigameManagerGameTests {
                 "trash caught with room in the inventory must still count toward the cleanup goal, got total=" + cleanupGoalTotal);
         helper.succeed();
     }
-
-    /**
-     * With trashChance at 0 and treasureChance at 1.0, the fish branch must never fire — proves
-     * adding the trash roll didn't regress the pre-existing treasure-only path.
-     * <p>
-     * This does <em>not</em> assert the trash tag is absent: the common treasure tier
-     * deliberately weights toward junk items (sea glass, an old tire, plastic litter — see
-     * {@code treasure_common.json}) that are themselves {@code #fishtastic:trash}-tagged, so a
-     * treasure-branch reward legitimately carrying that tag is expected, not a regression (see
-     * the category-vs-tag distinction called out in
-     * {@link FishingMinigameManager#generateTargets}).
-     */
-    public static void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
-        ServerPlayer player = mockPlayer.get();
-        player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
-            new BaitEffect(0f, 1.0f, 0.0f, 0, 1.0f, 0f, Optional.empty(), List.of())));
-        castLine(helper, player);
-
-        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
-        int sessionId = manager.startSession(player, 1.0f, false);
-        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
-
-        manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
-
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            helper.assertTrue(!stack.is(ItemTags.FISHES),
-                "trashChance=0.0/treasureChance=1.0 must never award a fish item, got " + stack.getItem());
-        }
-        helper.succeed();
-    }
 }

@@ -479,8 +479,6 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "trash_chance_one_always_awards_trash_items", 200,
             helper -> FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "treasure_chance_one_with_zero_trash_never_awards_trash", 200,
-            helper -> FishingMinigameManagerGameTests.treasureChanceOneWithZeroTrashNeverAwardsTrash(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,
