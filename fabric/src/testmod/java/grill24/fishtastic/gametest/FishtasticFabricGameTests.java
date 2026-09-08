@@ -172,8 +172,8 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void resetCleanupGoalIfNeededWipesContributionsOnNewWeek(GameTestHelper helper) {
-        FishCatchDataGameTests.resetCleanupGoalIfNeededWipesContributionsOnNewWeek(helper, helper::makeMockServerPlayerInLevel);
+    public void cleanupGoalOnlyResetsOnCompletionNotOverTime(GameTestHelper helper) {
+        FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

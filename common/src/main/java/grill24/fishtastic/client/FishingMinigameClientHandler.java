@@ -70,6 +70,7 @@ public class FishingMinigameClientHandler {
         if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
             animation.setEquippedGearStacks(bait, hook, charm);
         }
+        animation.setBaitWillBeSaved(packet.baitWillBeSaved());
 
         // Clear existing targets and add server-provided ones
         animation.getMinigameState().getTargets().clear();

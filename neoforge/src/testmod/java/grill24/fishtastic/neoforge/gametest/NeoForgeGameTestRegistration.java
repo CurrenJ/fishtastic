@@ -137,8 +137,8 @@ public class NeoForgeGameTestRegistration {
             helper -> FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "crossing_threshold_pays_out_tokens_proportionally", 200,
             helper -> FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "reset_cleanup_goal_if_needed_wipes_contributions_on_new_week", 200,
-            helper -> FishCatchDataGameTests.resetCleanupGoalIfNeededWipesContributionsOnNewWeek(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "cleanup_goal_only_resets_on_completion_not_over_time", 200,
+            helper -> FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "get_cleanup_goal_contributors_lists_all_contributors", 200,
             helper -> FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 

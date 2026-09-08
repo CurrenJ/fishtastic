@@ -51,6 +51,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.biome.Biome;
+import grill24.fishtastic.client.util.PlayerHeadItems;
+import grill24.fishtastic.network.CleanupGoalProgress;
 
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
@@ -78,7 +80,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private Label cleanupGoalCountLabel;
     private SpriteProgressBar cleanupGoalBar;
     private Label dailyResetLabel;
-    private Label cleanupGoalResetLabel;
+    private HBox cleanupGoalContributorsRow;
     private Label shopResetLabel;
     private SpriteButton shopRefreshBtn;
     private Label shopRefreshCostLabel;
@@ -314,9 +316,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (dailyResetLabel != null) {
             dailyResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.dailies_reset", QuestClientCache.getTicksUntilDailyReset()));
         }
-        if (cleanupGoalResetLabel != null) {
-            cleanupGoalResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()));
-        }
         if (shopResetLabel != null) {
             shopResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.shop.resets", QuestClientCache.getTicksUntilDailyReset()));
         }
@@ -375,7 +374,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalCountLabel = null;
         cleanupGoalBar = null;
         dailyResetLabel = null;
-        cleanupGoalResetLabel = null;
+        cleanupGoalContributorsRow = null;
         shopResetLabel = null;
         shopRefreshBtn = null;
         shopRefreshCostLabel = null;
@@ -1254,11 +1253,31 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalTotalLabel = new Label(translated("screen.fishtastic.quest_log.cleanup.total", total), 0xFFFFAA00).init(tempContext);
         panel.addChild(cleanupGoalTotalLabel);
 
-        cleanupGoalResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
-                .init(tempContext);
-        panel.addChild(cleanupGoalResetLabel);
+        cleanupGoalContributorsRow = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
+        rebuildCleanupGoalContributorsRow();
+        panel.addChild(cleanupGoalContributorsRow);
 
         return panel;
+    }
+
+    /** Rebuilds the contributor breakdown row from scratch — the set of contributors and their
+     *  shares can change entirely between syncs, so in-place updates aren't worth the bookkeeping. */
+    private void rebuildCleanupGoalContributorsRow() {
+        if (cleanupGoalContributorsRow == null) return;
+        cleanupGoalContributorsRow.clearChildren();
+
+        List<CleanupGoalProgress.Contributor> contributors = QuestClientCache.getCleanupGoalContributors();
+        int total = contributors.stream().mapToInt(CleanupGoalProgress.Contributor::amount).sum();
+        if (total <= 0) return;
+
+        for (CleanupGoalProgress.Contributor contributor : contributors) {
+            int pct = Math.round(contributor.amount() * 100f / total);
+
+            VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+            column.addChild(UI.itemRenderer(PlayerHeadItems.headStack(contributor.playerUuid(), contributor.playerName())));
+            column.addChild(new Label(pct + "%", 0xFFAAAAAA).init(tempContext));
+            cleanupGoalContributorsRow.addChild(column);
+        }
     }
 
     private VBox buildShopPanel(Registry<ShopEntry> shopRegistry, long currentDay) {
@@ -1551,6 +1570,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             cleanupGoalTotalLabel.text(translated("screen.fishtastic.quest_log.cleanup.total", total));
             cleanupGoalCountLabel.text(translated("screen.fishtastic.quest_log.progress_count", intoCurrentTier, threshold));
             cleanupGoalBar.progressImmediate(fraction);
+            rebuildCleanupGoalContributorsRow();
         }
 
         for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {

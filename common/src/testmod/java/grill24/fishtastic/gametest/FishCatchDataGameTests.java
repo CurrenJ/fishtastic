@@ -403,7 +403,8 @@ public final class FishCatchDataGameTests {
     }
 
     // -------------------------------------------------------------------------
-    // Global cleanup goal — shared weekly counter, contribution tracking, payouts
+    // Global cleanup goal — shared counter with no time-based reset, contribution tracking,
+    // payouts, and a fresh cycle starting immediately on completion
     // -------------------------------------------------------------------------
 
     /** The threshold is fixed at 200 — verified here so tests below can rely on it without re-deriving it. */
@@ -411,7 +412,8 @@ public final class FishCatchDataGameTests {
 
     /**
      * A contribution under the threshold accumulates but reports no crossed threshold;
-     * a follow-up contribution that reaches exactly 200 reports that threshold.
+     * a follow-up contribution that reaches exactly 200 reports that threshold and immediately
+     * rolls the cycle over back to 0 (there is no time-based reset — only completion resets it).
      */
     public static void recordTrashContributionAccumulatesTotal(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         FishCatchSavedData data = freshData();
@@ -424,21 +426,24 @@ public final class FishCatchDataGameTests {
         List<Integer> secondCrossed = data.recordTrashContribution(player, 150);
         helper.assertTrue(secondCrossed.equals(List.of(CLEANUP_GOAL_THRESHOLD)),
             "Reaching exactly 200 must report threshold 200, got " + secondCrossed);
-        helper.assertTrue(data.getCleanupGoalTotal() == 200, "Total must be 200 after second contribution, got " + data.getCleanupGoalTotal());
+        helper.assertTrue(data.getCleanupGoalTotal() == 0, "Completing the goal must reset the total back to 0, got " + data.getCleanupGoalTotal());
         helper.succeed();
     }
 
     /**
-     * A single large contribution that spans multiple thresholds must report every threshold crossed,
-     * not just the latest one — each represents a separate payout.
+     * A single large contribution that completes multiple cycles in a row must report the
+     * threshold once per cycle completed, and any leftover must carry into the next cycle
+     * rather than being discarded.
      */
     public static void recordTrashContributionCanCrossMultipleThresholdsAtOnce(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         FishCatchSavedData data = freshData();
         ServerPlayer player = mockPlayer.get();
 
         List<Integer> crossed = data.recordTrashContribution(player, 450);
-        helper.assertTrue(crossed.equals(List.of(200, 400)),
-            "A 450-trash contribution from 0 must cross both 200 and 400, got " + crossed);
+        helper.assertTrue(crossed.equals(List.of(CLEANUP_GOAL_THRESHOLD, CLEANUP_GOAL_THRESHOLD)),
+            "A 450-trash contribution from 0 must complete two full cycles, got " + crossed);
+        helper.assertTrue(data.getCleanupGoalTotal() == 50,
+            "The 50 leftover after two 200-cycles must carry into the new cycle, got " + data.getCleanupGoalTotal());
         helper.succeed();
     }
 
@@ -477,22 +482,21 @@ public final class FishCatchDataGameTests {
     }
 
     /**
-     * resetCleanupGoalIfNeeded must be idempotent within the same week, and must wipe
-     * contributions back to zero once a new week starts.
+     * There is no time-based reset any more — progress must persist indefinitely below the
+     * threshold, and contributions/tokens from a completed cycle must not affect the next one.
      */
-    public static void resetCleanupGoalIfNeededWipesContributionsOnNewWeek(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+    public static void cleanupGoalOnlyResetsOnCompletionNotOverTime(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         FishCatchSavedData data = freshData();
         ServerPlayer player = mockPlayer.get();
 
-        data.resetCleanupGoalIfNeeded(0);
         data.recordTrashContribution(player, 80);
-        helper.assertTrue(data.getCleanupGoalTotal() == 80, "Sanity check: total must be 80 before any rollover");
+        helper.assertTrue(data.getCleanupGoalTotal() == 80, "Sanity check: total must be 80 before completion");
 
-        data.resetCleanupGoalIfNeeded(0);
-        helper.assertTrue(data.getCleanupGoalTotal() == 80, "Calling reset again within the same week must not wipe progress");
-
-        data.resetCleanupGoalIfNeeded(1);
-        helper.assertTrue(data.getCleanupGoalTotal() == 0, "Rolling into a new week must wipe the total back to 0, got " + data.getCleanupGoalTotal());
+        // No amount of elapsed time should wipe this on its own — only completing the goal does.
+        data.recordTrashContribution(player, 120);
+        helper.assertTrue(data.getCleanupGoalTotal() == 0, "Completing the goal must reset the total back to 0, got " + data.getCleanupGoalTotal());
+        helper.assertTrue(data.getCleanupGoalContributors(FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC).isEmpty(),
+            "Completing the goal must also clear the prior cycle's contributions");
         helper.succeed();
     }
 

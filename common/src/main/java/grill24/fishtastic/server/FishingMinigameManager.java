@@ -257,6 +257,9 @@ public class FishingMinigameManager {
 
         CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
 
+        // Decided now, once, rather than at completion — see ActiveSession#baitWillBeSaved.
+        boolean baitWillBeSaved = rollBaitWillBeSaved(player, charmEffect);
+
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
         boolean revealTopWeightedFish = (charmEffect != null && charmEffect.showTopWeightedFish())
@@ -278,7 +281,7 @@ public class FishingMinigameManager {
         Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones);
+                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -295,7 +298,7 @@ public class FishingMinigameManager {
         Set<Identifier> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
 
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered));
+                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -331,14 +334,19 @@ public class FishingMinigameManager {
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
         Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
 
+        ItemStack tutorialRod = findFishtasticRod(player);
+        ItemStack tutorialCharmStack = tutorialRod.isEmpty() ? ItemStack.EMPTY : CopperFishingRod.getCharm(tutorialRod);
+        CharmEffect tutorialCharmEffect = tutorialCharmStack.isEmpty() ? null : tutorialCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        boolean baitWillBeSaved = rollBaitWillBeSaved(player, tutorialCharmEffect);
+
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
-                level.getGameTime(), biome, timeOfDay, weather, tutorialZones);
+                level.getGameTime(), biome, timeOfDay, weather, tutorialZones, baitWillBeSaved);
         activeSessions.put(playerId, session);
 
         // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
         // the undiscovered set is deliberately empty regardless of the player's catch history.
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of()));
+                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of(), baitWillBeSaved));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
@@ -435,10 +443,12 @@ public class FishingMinigameManager {
 
         ItemStack baitDepletedItem = ItemStack.EMPTY;
         if (!rewards.isEmpty()) {
-            float baitSaveChance = Math.max(
-                    deliveryCharmEffect != null ? deliveryCharmEffect.baitSaveChance() : 0.0f,
-                    inventoryBaitSaveChance(player));
-            if (baitSaveChance <= 0.0f || player.getRandom().nextFloat() >= baitSaveChance) {
+            // The save/consume decision was already rolled once at cast time (see
+            // ActiveSession#baitWillBeSaved) and told to the client in StartFishingMinigamePacket,
+            // so it's applied here verbatim rather than re-rolled — otherwise the client's minigame
+            // animation (which has to guess at completion time, before this fires) could show a
+            // bait pop-off or charm-save effect that doesn't match what actually happens here.
+            if (!session.baitWillBeSaved) {
                 baitDepletedItem = consumeBait(player);
             }
             damageUpgrades(player);
@@ -982,6 +992,20 @@ public class FishingMinigameManager {
     }
 
     /**
+     * Rolls, once, whether a bait-save-chance charm (equipped in the rod's charm slot or
+     * carried passively in the inventory — see {@link #inventoryBaitSaveChance}) saves the bait
+     * this session. Called at cast time so the outcome can be told to the client up front (see
+     * {@link ActiveSession#baitWillBeSaved}) instead of being decided too late for its minigame
+     * animation to react to correctly.
+     */
+    private static boolean rollBaitWillBeSaved(ServerPlayer player, @Nullable CharmEffect deliveryCharmEffect) {
+        float baitSaveChance = Math.max(
+                deliveryCharmEffect != null ? deliveryCharmEffect.baitSaveChance() : 0.0f,
+                inventoryBaitSaveChance(player));
+        return baitSaveChance > 0.0f && player.getRandom().nextFloat() < baitSaveChance;
+    }
+
+    /**
      * Bait Buddy's save-chance is passive, like {@link CharmEffect#autoPileFish()}: it works
      * from anywhere in the inventory, not just the rod's charm slot.
      */
@@ -1041,7 +1065,7 @@ public class FishingMinigameManager {
         Holder<Biome> biome = level.getBiome(player.blockPosition());
         Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, player.blockPosition().getY(), level.getSeaLevel());
         activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones));
+                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones, false));
         return sessionId;
     }
 
@@ -1054,10 +1078,15 @@ public class FishingMinigameManager {
         final FishProfile.TimeOfDay hookTimeOfDay;
         final FishProfile.WeatherCondition hookWeather;
         final Set<FishProfile.Zone> hookZones;
+        // Decided once at cast time (see FishingMinigameManager#rollBaitWillBeSaved) rather than
+        // re-rolled at completion, so the client's minigame animation — told the same value in
+        // StartFishingMinigamePacket — can show the correct bait pop-off/charm-save effect instead
+        // of predicting blind and guessing wrong whenever the charm actually saves the bait.
+        final boolean baitWillBeSaved;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
-                Set<FishProfile.Zone> hookZones) {
+                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
@@ -1066,6 +1095,7 @@ public class FishingMinigameManager {
             this.hookTimeOfDay = hookTimeOfDay;
             this.hookWeather = hookWeather;
             this.hookZones = hookZones;
+            this.baitWillBeSaved = baitWillBeSaved;
         }
     }
 

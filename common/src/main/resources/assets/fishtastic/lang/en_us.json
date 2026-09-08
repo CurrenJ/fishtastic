@@ -186,7 +186,6 @@
   "screen.fishtastic.quest_log.cleanup.title": "Clean Up the Waters",
   "screen.fishtastic.quest_log.cleanup.description": "A shared, server-wide goal — every trash catch counts toward it, by anyone. Tokens are split between every contributor each time a milestone is reached.",
   "screen.fishtastic.quest_log.cleanup.total": "Total cleaned so far: %s",
-  "screen.fishtastic.quest_log.cleanup.resets": "Goal resets in %s",
   "screen.fishtastic.quest_log.shop.no_entries": "No shop entries available.",
   "screen.fishtastic.quest_log.shop.title": "Today's Stock",
   "screen.fishtastic.quest_log.shop.resets": "Shop resets in %s",

@@ -24,6 +24,14 @@ import java.util.Set;
  *                            {@code FishEncyclopediaClientCache} is only populated while the
  *                            encyclopedia screen is open, so outside that screen it reports every
  *                            species as never-caught.
+ * @param baitWillBeSaved whether a bait-save-chance charm (e.g. Bait Buddy) has already won its
+ *                         roll for this session, decided once here at cast time rather than at
+ *                         completion — so the client's minigame animation can show the correct
+ *                         bait pop-off/charm-save effect the moment a catch would otherwise
+ *                         deplete the last bait, instead of guessing and being wrong whenever the
+ *                         charm actually saves it. The server applies this same decision in
+ *                         {@code FishingMinigameManager#handleMinigameComplete} so client and
+ *                         server never disagree about whether the bait was consumed.
  */
 public record StartFishingMinigamePacket(
         int sessionId,
@@ -31,7 +39,8 @@ public record StartFishingMinigamePacket(
         boolean isTutorial,
         List<ItemStack> topWeightedFishPreviews,
         Set<FishProfile.Zone> zones,
-        Set<Identifier> undiscoveredSpecies
+        Set<Identifier> undiscoveredSpecies,
+        boolean baitWillBeSaved
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
@@ -53,6 +62,8 @@ public record StartFishingMinigamePacket(
             StartFishingMinigamePacket::zones,
             Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::undiscoveredSpecies,
+            ByteBufCodecs.BOOL,
+            StartFishingMinigamePacket::baitWillBeSaved,
             StartFishingMinigamePacket::new
     );
 

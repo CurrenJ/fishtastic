@@ -260,8 +260,15 @@ public final class FishingMinigameManagerGameTests {
     }
 
     /**
-     * With trashChance at 0 and treasureChance at 1.0, the trash branch must never fire —
-     * proves adding the trash roll didn't regress the pre-existing treasure-only path.
+     * With trashChance at 0 and treasureChance at 1.0, the fish branch must never fire — proves
+     * adding the trash roll didn't regress the pre-existing treasure-only path.
+     * <p>
+     * This does <em>not</em> assert the trash tag is absent: the common treasure tier
+     * deliberately weights toward junk items (sea glass, an old tire, plastic litter — see
+     * {@code treasure_common.json}) that are themselves {@code #fishtastic:trash}-tagged, so a
+     * treasure-branch reward legitimately carrying that tag is expected, not a regression (see
+     * the category-vs-tag distinction called out in
+     * {@link FishingMinigameManager#generateTargets}).
      */
     public static void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
@@ -276,8 +283,8 @@ public final class FishingMinigameManagerGameTests {
         manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
 
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            helper.assertTrue(!stack.is(FishtasticItemTags.TRASH),
-                "trashChance=0.0 must never award a trash item, got " + stack.getItem());
+            helper.assertTrue(!stack.is(ItemTags.FISHES),
+                "trashChance=0.0/treasureChance=1.0 must never award a fish item, got " + stack.getItem());
         }
         helper.succeed();
     }
