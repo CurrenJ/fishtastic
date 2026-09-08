@@ -1,10 +1,26 @@
 {
   "values": [
-    "minecraft:name_tag",
-    "minecraft:saddle",
-    "minecraft:bow",
-    "minecraft:fishing_rod",
     "minecraft:enchanted_book",
-    "minecraft:nautilus_shell"
+    "fishtastic:worms",
+    "fishtastic:freshwater_bait",
+    "fishtastic:ocean_bait",
+    "fishtastic:predator_bait",
+    "fishtastic:deep_sea_bait",
+    "fishtastic:gummy_worms",
+    "fishtastic:blazed_grub",
+    "fishtastic:sea_glass",
+    "fishtastic:old_tire",
+    "fishtastic:plastic_litter",
+    "fishtastic:copper_fishing_rod",
+    "fishtastic:old_copper_hook",
+    "fishtastic:little_fish_box",
+    "fishtastic:anglers_almanac",
+    "fishtastic:hook",
+    "fishtastic:luna_charm",
+    "fishtastic:banana_charm",
+    "fishtastic:four_leaf_charm",
+    "fishtastic:crystal_ball_charm",
+    "fishtastic:amethyst_charm",
+    "fishtastic:fish_tank"
   ]
 }

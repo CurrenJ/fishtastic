@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:book",
+          "weight": 25,
+          "functions": [
+            { "function": "minecraft:enchant_randomly" }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:hook",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:gummy_worms",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:blazed_grub",
+          "weight": 25
+        }
+      ]
+    }
+  ]
+}

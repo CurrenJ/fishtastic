@@ -1,0 +1,35 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:luna_charm",
+          "weight": 20
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:banana_charm",
+          "weight": 20
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:four_leaf_charm",
+          "weight": 20
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:crystal_ball_charm",
+          "weight": 20
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:amethyst_charm",
+          "weight": 20
+        }
+      ]
+    }
+  ]
+}

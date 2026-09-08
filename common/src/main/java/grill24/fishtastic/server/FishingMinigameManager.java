@@ -2,14 +2,17 @@ package grill24.fishtastic.server;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.server.QuestTracker;
@@ -47,7 +50,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -130,6 +133,86 @@ public class FishingMinigameManager {
     // drive difficulty all the way to 1.0 regardless of species.
     private static final float QUALITY_DIFFICULTY_BOOST_STRENGTH = 0.6f;
     private static final int DEFAULT_TARGET_COUNT_MEAN = 1;
+
+    /**
+     * Data-driven treasure loot table (under {@code data/fishtastic/loot_table/gameplay/fishing/})
+     * per rolled {@link FishQuality.Quality} tier. Legendary has no entry here — it's a dedicated
+     * code path, see {@link #generateLegendaryTreasureTank}, since it composes three independently
+     * rolled blocks plus a shape into one {@code FishTankMaterials} component rather than picking
+     * a single loot-table item.
+     */
+    private static final Map<FishQuality.Quality, String> TREASURE_LOOT_TABLE_NAMES = Map.of(
+            FishQuality.Quality.COMMON, "gameplay/fishing/treasure_common",
+            FishQuality.Quality.UNCOMMON, "gameplay/fishing/treasure_uncommon",
+            FishQuality.Quality.RARE, "gameplay/fishing/treasure_rare",
+            FishQuality.Quality.EPIC, "gameplay/fishing/treasure_epic"
+    );
+
+    /** Reward count for a Legendary treasure hit's fish tank — matches the shop-tank bulk convention. */
+    private static final int LEGENDARY_TANK_COUNT = 8;
+
+    // Legendary treasure: frame/sand/glass/shape are each rolled independently from these preset
+    // lists (see the tiered treasure pool design doc) rather than a fixed preset combo, so a
+    // legendary pull is always a surprise. Frame is deliberately stocked with materials little/no
+    // existing shop/quest tank uses.
+    private static final List<Identifier> LEGENDARY_TANK_FRAMES = List.of(
+            Identifier.withDefaultNamespace("emerald_block"),
+            Identifier.withDefaultNamespace("netherite_block"),
+            Identifier.withDefaultNamespace("copper_block"),
+            Identifier.withDefaultNamespace("crying_obsidian"),
+            Identifier.withDefaultNamespace("sculk"),
+            Identifier.withDefaultNamespace("end_stone_bricks"),
+            Identifier.withDefaultNamespace("warped_planks"),
+            Identifier.withDefaultNamespace("crimson_planks"),
+            Identifier.withDefaultNamespace("lodestone"),
+            Identifier.withDefaultNamespace("sea_lantern"),
+            Identifier.withDefaultNamespace("obsidian"),
+            Identifier.withDefaultNamespace("ancient_debris"),
+            Identifier.withDefaultNamespace("respawn_anchor"),
+            Identifier.withDefaultNamespace("reinforced_deepslate"),
+            Identifier.withDefaultNamespace("chiseled_nether_bricks"),
+            Identifier.withDefaultNamespace("purpur_pillar"),
+            Identifier.withDefaultNamespace("exposed_copper"),
+            Identifier.withDefaultNamespace("chiseled_polished_blackstone"),
+            Identifier.withDefaultNamespace("budding_amethyst"),
+            Identifier.withDefaultNamespace("dripstone_block"),
+            Identifier.withDefaultNamespace("glowstone"),
+            Identifier.withDefaultNamespace("shroomlight"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass")
+    );
+    private static final List<Identifier> LEGENDARY_TANK_SANDS = List.of(
+            Identifier.withDefaultNamespace("sand"),
+            Identifier.withDefaultNamespace("red_sand"),
+            Identifier.withDefaultNamespace("gravel"),
+            Identifier.withDefaultNamespace("soul_sand"),
+            Identifier.withDefaultNamespace("soul_soil"),
+            Identifier.withDefaultNamespace("snow_block"),
+            Identifier.withDefaultNamespace("glowstone"),
+            Identifier.withDefaultNamespace("shroomlight"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass")
+    );
+    private static final List<Identifier> LEGENDARY_TANK_GLASS = List.of(
+            Fishtastic.id("white_clear_stained_glass"),
+            Fishtastic.id("light_gray_clear_stained_glass"),
+            Fishtastic.id("gray_clear_stained_glass"),
+            Fishtastic.id("black_clear_stained_glass"),
+            Fishtastic.id("brown_clear_stained_glass"),
+            Fishtastic.id("red_clear_stained_glass"),
+            Fishtastic.id("orange_clear_stained_glass"),
+            Fishtastic.id("yellow_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass"),
+            Fishtastic.id("green_clear_stained_glass"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("light_blue_clear_stained_glass"),
+            Fishtastic.id("blue_clear_stained_glass"),
+            Fishtastic.id("purple_clear_stained_glass"),
+            Fishtastic.id("magenta_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass")
+    );
 
     private final ServerLevel level;
 
@@ -417,7 +500,6 @@ public class FishingMinigameManager {
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
                 + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
-        List<ItemStack> treasureRewards = getTreasureRewards(lootparams);
         boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
                 .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
@@ -471,7 +553,7 @@ public class FishingMinigameManager {
                     }
                 }
             } else if (isTreasure) {
-                rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
+                rewardStacks = generateTreasureRewards(randomSource, lootparams, qualityBias, numRewards, forcedQuality);
             } else {
                 rewardStacks = generateTrashRewards(randomSource, trashPool, numRewards);
             }
@@ -479,11 +561,14 @@ public class FishingMinigameManager {
             if (rewardStacks.isEmpty()) continue;
 
             ItemStack reward = rewardStacks.getFirst();
-            FishingTarget.TargetCategory category = reward.is(ItemTags.FISHES)
-                    ? FishingTarget.TargetCategory.FISH
-                    : reward.is(FishtasticItemTags.TRASH)
+            // Driven by which roll produced this target, not the reward's own tags — Common-tier
+            // treasure can itself roll bulk trash items (#fishtastic:trash), which would otherwise
+            // misclassify as a TRASH target (generic-fish icon) instead of TREASURE (chest icon).
+            FishingTarget.TargetCategory category = isTreasure
+                    ? FishingTarget.TargetCategory.TREASURE
+                    : isTrash
                             ? FishingTarget.TargetCategory.TRASH
-                            : FishingTarget.TargetCategory.TREASURE;
+                            : FishingTarget.TargetCategory.FISH;
 
             float difficulty;
             List<PhaseRule> phases = null;
@@ -616,22 +701,64 @@ public class FishingMinigameManager {
         return temperamentRegistry.getOptional(profile.temperament().get()).orElse(null);
     }
 
-    private @NotNull List<ItemStack> getTreasureRewards(LootParams lootparams) {
-        List<ItemStack> treasureRewards = new ArrayList<>();
-        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING_TREASURE);
-        for (int i = 0; i < 8; i++) {
-            treasureRewards.addAll(lootTable.getRandomItems(lootparams));
-        }
-        return treasureRewards;
-    }
+    /**
+     * Rolls a {@link FishQuality.Quality} tier for this treasure target (same call/bias as fish
+     * quality — see {@link FishtasticFishItem#sampleRandomQuality}) and generates {@code numRewards}
+     * reward stacks from that tier, each stamped with the rolled quality so Crystal Ball Charm's
+     * rarity outline works on treasure the same way it does on fish.
+     *
+     * <p>The tier is rolled once for the whole target rather than once per reward — a treasure hit
+     * is one themed pull that may surface 1-3 items of that same rarity, not a grab-bag of mixed
+     * tiers. Legendary short-circuits entirely: it isn't a loot table, it's a dedicated fish-tank
+     * builder (see {@link #generateLegendaryTreasureTank}) that always returns exactly one stack
+     * regardless of {@code numRewards}, since "8 tanks" is the whole jackpot, not a per-roll unit.
+     *
+     * @param forcedQuality when non-null (the {@code /fishtastic forcequality} debug override),
+     *                      skips the roll entirely and uses this tier instead — mirrors how the
+     *                      fish path restamps quality after a forced override, but here it's simpler
+     *                      to just skip the roll since treasure quality has no species to preserve.
+     */
+    private List<ItemStack> generateTreasureRewards(RandomSource randomSource, LootParams lootParams, float qualityBias, int numRewards, @Nullable FishQuality.Quality forcedQuality) {
+        FishQuality.Quality quality = forcedQuality != null ? forcedQuality : FishtasticFishItem.sampleRandomQuality(randomSource, qualityBias);
 
-    private static List<ItemStack> generateTreasureRewards(RandomSource randomSource, List<ItemStack> possibleTreasures, int numRewards) {
+        if (quality == FishQuality.Quality.LEGENDARY) {
+            return List.of(generateLegendaryTreasureTank(randomSource));
+        }
+
+        String tableName = TREASURE_LOOT_TABLE_NAMES.get(quality);
+        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(
+                net.minecraft.resources.ResourceKey.create(Registries.LOOT_TABLE, Fishtastic.id(tableName)));
+
         List<ItemStack> rewardStacks = new ArrayList<>();
         for (int n = 0; n < numRewards; n++) {
-            if (possibleTreasures.isEmpty()) break;
-            rewardStacks.add(possibleTreasures.get(randomSource.nextInt(possibleTreasures.size())).copy());
+            for (ItemStack stack : lootTable.getRandomItems(lootParams)) {
+                ItemStack reward = stack.copy();
+                reward.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
+                rewardStacks.add(reward);
+            }
         }
         return rewardStacks;
+    }
+
+    /**
+     * Legendary treasure: a {@code fishtastic:fish_tank} whose frame/sand/glass and shape are each
+     * rolled independently from the preset lists above, rather than a fixed preset combo like the
+     * shop/quest tanks — every legendary pull is a fresh combination. Shape rolls uniformly across
+     * every {@link FishTankShape}, including ones normally locked behind quest unlocks — same
+     * precedent as Epic/Legendary-tier charms bypassing their shop/quest gates as a rare RNG bonus.
+     */
+    private static ItemStack generateLegendaryTreasureTank(RandomSource randomSource) {
+        Block frame = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_FRAMES.get(randomSource.nextInt(LEGENDARY_TANK_FRAMES.size())));
+        Block sand = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_SANDS.get(randomSource.nextInt(LEGENDARY_TANK_SANDS.size())));
+        Block glass = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_GLASS.get(randomSource.nextInt(LEGENDARY_TANK_GLASS.size())));
+        FishTankShape[] shapes = FishTankShape.values();
+        FishTankShape shape = shapes[randomSource.nextInt(shapes.length)];
+
+        ItemStack tank = new ItemStack(FishtasticBlocks.FISH_TANK.value(), LEGENDARY_TANK_COUNT);
+        tank.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), new FishTankMaterials(frame, sand, glass));
+        tank.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
+        tank.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.LEGENDARY));
+        return tank;
     }
 
     private static @NotNull List<Holder<Item>> getTrashPool(ServerPlayer player) {
