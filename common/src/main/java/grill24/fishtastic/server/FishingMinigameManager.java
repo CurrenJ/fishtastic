@@ -435,7 +435,12 @@ public class FishingMinigameManager {
 
         ItemStack baitDepletedItem = ItemStack.EMPTY;
         if (!rewards.isEmpty()) {
-            baitDepletedItem = consumeBait(player);
+            float baitSaveChance = Math.max(
+                    deliveryCharmEffect != null ? deliveryCharmEffect.baitSaveChance() : 0.0f,
+                    inventoryBaitSaveChance(player));
+            if (baitSaveChance <= 0.0f || player.getRandom().nextFloat() >= baitSaveChance) {
+                baitDepletedItem = consumeBait(player);
+            }
             damageUpgrades(player);
         }
 
@@ -973,6 +978,18 @@ public class FishingMinigameManager {
         // damage/break sound/shrink-on-break itself.
         damagePassiveCharmInInventory(player, CharmEffect::autoPileFish);
         damagePassiveCharmInInventory(player, CharmEffect::showTopWeightedFish);
+        damagePassiveCharmInInventory(player, effect -> effect.baitSaveChance() > 0.0f);
+    }
+
+    /**
+     * Bait Buddy's save-chance is passive, like {@link CharmEffect#autoPileFish()}: it works
+     * from anywhere in the inventory, not just the rod's charm slot.
+     */
+    private static float inventoryBaitSaveChance(ServerPlayer player) {
+        int slot = findCharmSlotInInventory(player, effect -> effect.baitSaveChance() > 0.0f);
+        if (slot < 0) return 0.0f;
+        CharmEffect effect = player.getInventory().getItem(slot).get(FishtasticDataComponents.CHARM_EFFECT.value());
+        return effect == null ? 0.0f : effect.baitSaveChance();
     }
 
     private static void damagePassiveCharmInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
