@@ -46,7 +46,13 @@ public record BaitEffect(
         float qualityBias,
         Optional<TagKey<Item>> exclusiveFishPool,
         List<FishGroupAffinity> fishGroupAffinities,
-        float rarityFlattening
+        float rarityFlattening,
+        // Session-wide, not per-species like FishGroupAffinity's fields — only one bobber
+        // renders per cast, so this can't vary per caught fish the way targetSpeedMultiplier/
+        // catchProgressMultiplier do. Small Fish Bait's downside: a shorter bobber (see
+        // FishingMinigameAnimation.LAYOUT_SMALL) narrows the effective catch window for the
+        // whole session, punishing sloppy centering on its already-boosted small-fish pool.
+        boolean smallBobber
 ) {
     /**
      * Backward-compatible constructor for baits with no pool-wide rarity flattening (the
@@ -59,6 +65,17 @@ public record BaitEffect(
         this(luckBonus, treasureChance, trashChance, targetCountBonus, modFishMultiplier, qualityBias,
                 exclusiveFishPool, fishGroupAffinities, 1.0f);
     }
+
+    /**
+     * Backward-compatible constructor for baits with pool-wide rarity flattening but no small
+     * bobber (every existing bait but Small Fish Bait).
+     */
+    public BaitEffect(float luckBonus, float treasureChance, float trashChance, int targetCountBonus,
+                       float modFishMultiplier, float qualityBias, Optional<TagKey<Item>> exclusiveFishPool,
+                       List<FishGroupAffinity> fishGroupAffinities, float rarityFlattening) {
+        this(luckBonus, treasureChance, trashChance, targetCountBonus, modFishMultiplier, qualityBias,
+                exclusiveFishPool, fishGroupAffinities, rarityFlattening, false);
+    }
     /**
      * {@code multiplier} applies to fish carrying {@code group}; {@code nonMemberMultiplier}
      * (defaults to 1.0, i.e. no effect) applies to everything else — lets a bait boost a
@@ -70,17 +87,43 @@ public record BaitEffect(
      * that group (temperature-style flattening), so {@code multiplier} keeps controlling the
      * group's overall share of the pool while {@code rarityExponent} controls how evenly that
      * share is spread across the group's members.
+     * <p>
+     * {@code targetSpeedMultiplier} (defaults to 1.0, i.e. no effect) scales how fast a caught
+     * member of {@code group} moves during the fishing minigame itself (drift/dart/oscillate/
+     * flee/lunge speed — see {@code FishingTarget}'s speedMultiplier) — a bait's own "challenge"
+     * counterweight for boosting that group's catch odds via {@code multiplier}: harder to reel
+     * in, not just more common. Purely a minigame-time effect; has no bearing on the caught fish
+     * once it's an item (tank behavior, stats, etc. are untouched).
+     * <p>
+     * {@code catchProgressMultiplier} (defaults to 1.0, i.e. no effect) scales how fast the catch
+     * bar fills while a member of {@code group} is centred on the bobber (see {@code FishingTarget}
+     * .catchProgressMultiplier) — a slower-filling bar (e.g. 0.5) means a bigger, "chonkier" fish
+     * that just takes longer to reel in, independent of how it moves. Trophy Bait's counterweight
+     * for its big-fish catch-odds boost. Purely a minigame-time effect, same scope as
+     * {@code targetSpeedMultiplier}.
      */
-    public record FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier, float rarityExponent) {
+    public record FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier,
+                                     float rarityExponent, float targetSpeedMultiplier, float catchProgressMultiplier) {
         public FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier) {
-            this(group, multiplier, nonMemberMultiplier, 1.0f);
+            this(group, multiplier, nonMemberMultiplier, 1.0f, 1.0f, 1.0f);
+        }
+
+        public FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier, float rarityExponent) {
+            this(group, multiplier, nonMemberMultiplier, rarityExponent, 1.0f, 1.0f);
+        }
+
+        public FishGroupAffinity(TagKey<Item> group, float multiplier, float nonMemberMultiplier,
+                                  float rarityExponent, float targetSpeedMultiplier) {
+            this(group, multiplier, nonMemberMultiplier, rarityExponent, targetSpeedMultiplier, 1.0f);
         }
 
         public static final Codec<FishGroupAffinity> CODEC = RecordCodecBuilder.create(i -> i.group(
                 TagKey.codec(Registries.ITEM).fieldOf("group").forGetter(FishGroupAffinity::group),
                 Codec.FLOAT.fieldOf("multiplier").forGetter(FishGroupAffinity::multiplier),
                 Codec.FLOAT.optionalFieldOf("non_member_multiplier", 1.0f).forGetter(FishGroupAffinity::nonMemberMultiplier),
-                Codec.FLOAT.optionalFieldOf("rarity_exponent", 1.0f).forGetter(FishGroupAffinity::rarityExponent)
+                Codec.FLOAT.optionalFieldOf("rarity_exponent", 1.0f).forGetter(FishGroupAffinity::rarityExponent),
+                Codec.FLOAT.optionalFieldOf("target_speed_multiplier", 1.0f).forGetter(FishGroupAffinity::targetSpeedMultiplier),
+                Codec.FLOAT.optionalFieldOf("catch_progress_multiplier", 1.0f).forGetter(FishGroupAffinity::catchProgressMultiplier)
         ).apply(i, FishGroupAffinity::new));
 
         public static final StreamCodec<ByteBuf, FishGroupAffinity> STREAM_CODEC =
@@ -141,7 +184,8 @@ public record BaitEffect(
             Codec.FLOAT.optionalFieldOf("quality_bias", 0.0f).forGetter(BaitEffect::qualityBias),
             TagKey.codec(Registries.ITEM).optionalFieldOf("exclusive_fish_pool").forGetter(BaitEffect::exclusiveFishPool),
             FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(BaitEffect::fishGroupAffinities),
-            Codec.FLOAT.optionalFieldOf("rarity_flattening", 1.0f).forGetter(BaitEffect::rarityFlattening)
+            Codec.FLOAT.optionalFieldOf("rarity_flattening", 1.0f).forGetter(BaitEffect::rarityFlattening),
+            Codec.BOOL.optionalFieldOf("small_bobber", false).forGetter(BaitEffect::smallBobber)
     ).apply(i, BaitEffect::new));
 
     public static final StreamCodec<ByteBuf, BaitEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
@@ -179,7 +223,8 @@ public record BaitEffect(
                 qualityBias * scale,
                 exclusiveFishPool,
                 fishGroupAffinities,
-                rarityFlattening
+                rarityFlattening,
+                smallBobber
         );
     }
 
@@ -208,6 +253,10 @@ public record BaitEffect(
         if (modFishMultiplier != 1.0f) {
             lines.add(Component.translatable("tooltip.fishtastic.bait_effect.mod_fish_multiplier", modFishMultiplier)
                     .withStyle(ChatFormatting.GREEN));
+        }
+        if (smallBobber) {
+            lines.add(Component.translatable("tooltip.fishtastic.bait_effect.small_bobber")
+                    .withStyle(ChatFormatting.RED));
         }
         // Qualitative for the same reason as group affinity below — the actual size/quality
         // distribution shift isn't something a player can reconstruct from a raw bias number.
@@ -239,6 +288,24 @@ public record BaitEffect(
                     : "tooltip.fishtastic.bait_effect.group_affinity";
             lines.add(Component.translatable(key, Utility.prettyName(affinity.group().location().getPath()))
                     .withStyle(ChatFormatting.AQUA));
+            // Qualitative, same reasoning as group affinity above. 1.5 splits Frenzy Bait's
+            // current 1.6 (strong — "wildly") from a hypothetically milder future bait below
+            // that (just "erratically"); see FishGroupAffinity.targetSpeedMultiplier's field doc.
+            if (affinity.targetSpeedMultiplier() != 1.0f) {
+                String speedKey = affinity.targetSpeedMultiplier() >= 1.5f
+                        ? "tooltip.fishtastic.bait_effect.frenzied_catch_strong"
+                        : "tooltip.fishtastic.bait_effect.frenzied_catch";
+                lines.add(Component.translatable(speedKey).withStyle(ChatFormatting.RED));
+            }
+            // Qualitative, same reasoning. 0.6 splits Trophy Bait's 0.5 (strong — "much longer",
+            // its big-catch downside) from Calm Bait's milder 0.7 ("longer"); see
+            // FishGroupAffinity.catchProgressMultiplier's field doc.
+            if (affinity.catchProgressMultiplier() != 1.0f) {
+                String catchKey = affinity.catchProgressMultiplier() <= 0.6f
+                        ? "tooltip.fishtastic.bait_effect.chonky_catch_strong"
+                        : "tooltip.fishtastic.bait_effect.chonky_catch";
+                lines.add(Component.translatable(catchKey).withStyle(ChatFormatting.RED));
+            }
         }
         return lines;
     }

@@ -26,7 +26,7 @@ public record CharmEffect(
 ) {
 
     public static final CharmEffect AMETHYST_CHARM = new CharmEffect(
-            1.5f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false, false);
+            1.2f, false, 0.0f, 0.0f, false, 1.0f, List.of(), false, false);
 
     public static final CharmEffect CRYSTAL_BALL_CHARM = new CharmEffect(
             1.0f, true, 0.0f, 0.0f, false, 1.0f, List.of(), false, false);

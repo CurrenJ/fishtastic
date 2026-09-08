@@ -34,6 +34,10 @@ import java.util.Set;
 
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
+    // Which bar/bobber geometry this session renders — LAYOUT unless the equipped bait requests
+    // LAYOUT_SMALL (see BaitEffect.smallBobber). Chosen once at construction, since a session's
+    // bobber can't change size mid-cast.
+    private final FishingBarLayout layout;
     private final FishingMinigameState minigameState;
     private boolean isTutorial = false;
     private final Random sparkleRandom = new Random();
@@ -160,7 +164,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int lastAnticipationTick = -ANTICIPATION_INTERVAL_TICKS;
 
     public FishingMinigameAnimation() {
-        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize(), (1.0f - LAYOUT.bobberSize()) / 2f);
+        this(LAYOUT);
+    }
+
+    /** @param layout Bar/bobber geometry for this session — see {@link #LAYOUT}/{@link #LAYOUT_SMALL}. */
+    public FishingMinigameAnimation(FishingBarLayout layout) {
+        this.layout = layout;
+        this.minigameState = new FishingMinigameState(layout.bobberSize(), (1.0f - layout.bobberSize()) / 2f);
 
         // Add some example targets
         Random random = new Random();
@@ -309,7 +319,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 target.updateCatchProgress(overlapQuality);
 
                 if (target.isCaught()) {
-                    float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
+                    float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
                     caughtTargetIndices.add(targetIndex);
 
                     CatchCelebration.Tier tier = resolveCelebrationTier(target);
@@ -991,19 +1001,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale);
 
-        renderItem(LAYOUT.bar(), guiGraphics, minecraft, angle, 0);
+        renderItem(layout.bar(), guiGraphics, minecraft, angle, 0);
 
         guiGraphics.pose().pushMatrix();
         float normalizedBobberPosition = minigameState.getBobberPosition();
-        float yOffset = normalizedBobberPosition * LAYOUT.bobberMaxYOffset();
+        float yOffset = normalizedBobberPosition * layout.bobberMaxYOffset();
         guiGraphics.pose().translate(0, -yOffset);
-        renderItem(LAYOUT.bobber(), guiGraphics, minecraft, angle, 1);
+        renderItem(layout.bobber(), guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popMatrix();
     }
 
     private void renderTargets(GuiGraphicsExtractor guiGraphics, float partialTick) {
         // Render all targets from the minigame state
-        final float itemMaxYOffset = LAYOUT.itemMaxYOffset();
+        final float itemMaxYOffset = layout.itemMaxYOffset();
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
         // Calculate bobber bounds for shake effect
@@ -1204,6 +1214,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             28,  // travel zone: 32px texture minus ~2px margin at each end
             9,   // bobber height in pixels
             26   // target zone: slightly tighter margins than the bobber travel zone
+    );
+
+    // Small Fish Bait's downside (see BaitEffect.smallBobber's field doc): a shorter bobber
+    // narrows the effective catch window (bobberSize = bobberHeightPx / travelZonePx) for the
+    // whole session. Bar/target-zone geometry is unchanged — only the bobber sprite and its
+    // height shrink, 2px shorter than LAYOUT's.
+    public static final FishingBarLayout LAYOUT_SMALL = new FishingBarLayout(
+            LAYOUT.bar(),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, Fishtastic.id("textures/item/fishing_bobber_small.png")),
+            28,
+            7,   // 2px shorter than LAYOUT's 9
+            26
     );
 
     /**

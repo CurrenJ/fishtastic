@@ -3,8 +3,8 @@
   "category": "misc",
   "key": {
     "C": "minecraft:copper_ingot",
-    "P": "#minecraft:planks",
-    "E": "fishtastic:electric_eel"
+    "E": "fishtastic:electric_eel",
+    "P": "#minecraft:planks"
   },
   "pattern": [
     "CPC",

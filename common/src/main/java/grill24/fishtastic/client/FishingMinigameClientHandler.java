@@ -2,6 +2,7 @@ package grill24.fishtastic.client;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.network.FinishFishingMinigamePacket;
@@ -11,6 +12,7 @@ import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,25 +36,38 @@ public class FishingMinigameClientHandler {
 
         currentSessionId = packet.sessionId();
 
-        // Create animation with server-provided targets
-        FishingMinigameAnimation animation = new FishingMinigameAnimation();
-
-        // Apply charm input-force bonus if the player has one equipped
+        // Resolve equipped gear before constructing the animation — the bait can request a
+        // smaller bobber (see BaitEffect.smallBobber), which is baked into the animation's
+        // FishingMinigameState at construction time and can't change afterward.
         ItemStack rod = minecraft.player.getMainHandItem();
         if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
             rod = minecraft.player.getOffhandItem();
         }
+        ItemStack bait = ItemStack.EMPTY;
+        ItemStack hook = ItemStack.EMPTY;
+        ItemStack charm = ItemStack.EMPTY;
         if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
-            ItemStack bait = CopperFishingRod.getBait(rod);
-            ItemStack hook = CopperFishingRod.getHook(rod);
-            ItemStack charm = CopperFishingRod.getCharm(rod);
-            if (!charm.isEmpty()) {
-                CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
-                if (charmEffect != null) {
-                    animation.setInputForceMultiplier(charmEffect.inputForceMultiplier());
-                }
-                animation.setEquippedCharmEffect(charmEffect);
+            bait = CopperFishingRod.getBait(rod);
+            hook = CopperFishingRod.getHook(rod);
+            charm = CopperFishingRod.getCharm(rod);
+        }
+        BaitEffect baitEffect = BaitEffect.fromStack(bait);
+
+        // Create animation with server-provided targets
+        FishingMinigameAnimation animation = new FishingMinigameAnimation(
+                baitEffect != null && baitEffect.smallBobber()
+                        ? FishingMinigameAnimation.LAYOUT_SMALL
+                        : FishingMinigameAnimation.LAYOUT);
+
+        // Apply charm input-force bonus if the player has one equipped
+        if (!charm.isEmpty()) {
+            CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
+            if (charmEffect != null) {
+                animation.setInputForceMultiplier(charmEffect.inputForceMultiplier());
             }
+            animation.setEquippedCharmEffect(charmEffect);
+        }
+        if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
             animation.setEquippedGearStacks(bait, hook, charm);
         }
 
@@ -67,7 +82,9 @@ public class FishingMinigameClientHandler {
                     random,
                     targetData.initialPosition(),
                     targetData.difficulty(),
-                    targetData.phases()
+                    targetData.phases(),
+                    resolveAffinityMultiplier(targetData, baitEffect, BaitEffect.FishGroupAffinity::targetSpeedMultiplier),
+                    resolveAffinityMultiplier(targetData, baitEffect, BaitEffect.FishGroupAffinity::catchProgressMultiplier)
             );
             animation.getMinigameState().addTarget(target);
         }
@@ -85,6 +102,30 @@ public class FishingMinigameClientHandler {
         gameRendererExt.fishtastic$displayItemActivation(() -> animation);
 
         currentAnimation = animation;
+    }
+
+    /**
+     * A type-preferenced bait's "challenge" counterweight for boosting a group's catch odds: a fish
+     * reward belonging to one of the equipped bait's {@link BaitEffect.FishGroupAffinity} groups can
+     * move faster ({@code targetSpeedMultiplier} — Frenzy Bait) and/or fill its catch bar slower
+     * ({@code catchProgressMultiplier} — Trophy Bait) in the minigame. Reward stacks are already
+     * visible to the client at session start (see {@code StartFishingMinigamePacket}), so both resolve
+     * entirely client-side without any extra data from the server.
+     */
+    private static float resolveAffinityMultiplier(StartFishingMinigamePacket.TargetData targetData, @Nullable BaitEffect baitEffect,
+                                                    java.util.function.ToDoubleFunction<BaitEffect.FishGroupAffinity> extractor) {
+        if (baitEffect == null || targetData.category() != FishingTarget.TargetCategory.FISH
+                || targetData.rewardStacks().isEmpty()) {
+            return 1.0f;
+        }
+        ItemStack reward = targetData.rewardStacks().getFirst();
+        float multiplier = 1.0f;
+        for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {
+            if (reward.is(affinity.group())) {
+                multiplier *= (float) extractor.applyAsDouble(affinity);
+            }
+        }
+        return multiplier;
     }
 
     /**

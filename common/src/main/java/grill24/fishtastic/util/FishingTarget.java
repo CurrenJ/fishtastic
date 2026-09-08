@@ -58,6 +58,8 @@ public class FishingTarget {
     // -------------------------------------------------------------------------
 
     private final float difficulty;
+    private final float speedMultiplier;
+    private final float catchProgressMultiplier;
 
     // -------------------------------------------------------------------------
     // Movement parameters (re-applied on phase transition)
@@ -232,7 +234,51 @@ public class FishingTarget {
      */
     public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random,
                          float initialPosition, float difficulty, List<PhaseRule> phases) {
+        this(rewardItems, category, random, initialPosition, difficulty, phases, 1.0f, 1.0f);
+    }
+
+    /**
+     * @param difficulty      0.0 = easiest, 1.0 = hardest.
+     * @param phases          Phase rules defining movement patterns and optional param overrides.
+     *                        Empty list falls back to difficulty-weighted random pattern selection.
+     * @param speedMultiplier Scales every movement-pattern's speed/frequency (drift, dart, oscillate,
+     *                        flee, lunge, stutter, interval-burst) uniformly for this one target —
+     *                        applied at the point each pattern computes its per-tick movement, on top
+     *                        of whatever difficulty/phase params already resolved. 1.0 = no effect.
+     *                        Currently driven only by {@code BaitEffect.FishGroupAffinity
+     *                        .targetSpeedMultiplier} (Frenzy Bait) — see
+     *                        {@code FishingMinigameClientHandler}.
+     */
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random,
+                         float initialPosition, float difficulty, List<PhaseRule> phases, float speedMultiplier) {
+        this(rewardItems, category, random, initialPosition, difficulty, phases, speedMultiplier, 1.0f);
+    }
+
+    /**
+     * @param difficulty              0.0 = easiest, 1.0 = hardest.
+     * @param phases                  Phase rules defining movement patterns and optional param overrides.
+     *                                Empty list falls back to difficulty-weighted random pattern selection.
+     * @param speedMultiplier         Scales every movement-pattern's speed/frequency (drift, dart,
+     *                                oscillate, flee, lunge, stutter, interval-burst) uniformly for this
+     *                                one target — applied at the point each pattern computes its per-tick
+     *                                movement, on top of whatever difficulty/phase params already
+     *                                resolved. 1.0 = no effect. Currently driven only by
+     *                                {@code BaitEffect.FishGroupAffinity.targetSpeedMultiplier} (Frenzy
+     *                                Bait) — see {@code FishingMinigameClientHandler}.
+     * @param catchProgressMultiplier Scales how fast the catch bar fills while centred on the bobber
+     *                                (see {@link #updateCatchProgress}) — independent of movement, so a
+     *                                "chonky" fish can be slow-filling without also being slow-moving.
+     *                                1.0 = no effect; below 1.0 takes proportionally longer to reel in.
+     *                                Currently driven only by {@code BaitEffect.FishGroupAffinity
+     *                                .catchProgressMultiplier} (Trophy Bait) — see
+     *                                {@code FishingMinigameClientHandler}.
+     */
+    public FishingTarget(List<ItemStack> rewardItems, TargetCategory category, Random random,
+                         float initialPosition, float difficulty, List<PhaseRule> phases,
+                         float speedMultiplier, float catchProgressMultiplier) {
         this.rewardItems = new ArrayList<>(rewardItems);
+        this.speedMultiplier = Math.max(0.01f, speedMultiplier);
+        this.catchProgressMultiplier = Math.max(0.01f, catchProgressMultiplier);
         this.category = category;
         this.random = random;
         this.ibBurstTargets = new float[5]; // max 5 bursts per INTERVAL_BURST sequence
@@ -565,7 +611,7 @@ public class FishingTarget {
                 dartPauseTicks    = 0;
             }
         } else {
-            dartBurstProgress = Math.min(1f, dartBurstProgress + dartBurstProgressPerTick);
+            dartBurstProgress = Math.min(1f, dartBurstProgress + dartBurstProgressPerTick * speedMultiplier);
             currentPosition = lerp(dartBurstStart, dartBurstEnd, MathUtil.easeInOutQuad(dartBurstProgress));
             if (dartBurstProgress >= 1f) {
                 currentPosition = dartBurstEnd;
@@ -583,7 +629,7 @@ public class FishingTarget {
             oscTicksSinceAnchor = 0;
             oscNextRePeriod     = getRandomOscPeriod();
         }
-        float frequency = oscBaseFrequency + catchProgress * difficulty * 0.04f;
+        float frequency = (oscBaseFrequency + catchProgress * difficulty * 0.04f) * speedMultiplier;
         oscPhase += frequency;
         currentPosition = clampPos(oscCenter + oscAmplitude * (float) Math.sin(oscPhase));
     }
@@ -664,7 +710,7 @@ public class FishingTarget {
             }
         } else {
             // Instant linear burst toward the pre-chosen target
-            lungeBurstProgress = Math.min(1f, lungeBurstProgress + lungeBurstProgressPerTick);
+            lungeBurstProgress = Math.min(1f, lungeBurstProgress + lungeBurstProgressPerTick * speedMultiplier);
             currentPosition = lerp(lungeBurstStart, lungeBurstEnd, lungeBurstProgress);
             if (lungeBurstProgress >= 1f) {
                 currentPosition = lungeBurstEnd;
@@ -684,10 +730,10 @@ public class FishingTarget {
             oscNextRePeriod     = getRandomOscPeriod();
         }
         // Advance the amplitude envelope (0 → 1 → 0 breathing)
-        pulsePhase += pulseFrequency;
+        pulsePhase += pulseFrequency * speedMultiplier;
         float envelope = 0.5f + 0.5f * (float) Math.sin(pulsePhase);
         // Advance the inner oscillation
-        float frequency = oscBaseFrequency + catchProgress * difficulty * 0.04f;
+        float frequency = (oscBaseFrequency + catchProgress * difficulty * 0.04f) * speedMultiplier;
         oscPhase += frequency;
         currentPosition = clampPos(oscCenter + oscAmplitude * envelope * (float) Math.sin(oscPhase));
     }
@@ -709,7 +755,7 @@ public class FishingTarget {
         } else {
             float dist = stutterTarget - currentPosition;
             if (Math.abs(dist) > stutterStepSize * 0.5f) {
-                currentPosition += Math.signum(dist) * stutterStepSize;
+                currentPosition += Math.signum(dist) * stutterStepSize * speedMultiplier;
                 currentPosition  = clampPos(currentPosition);
                 stutterIsPausing     = true;
                 stutterStepPauseTick = 0;
@@ -736,7 +782,7 @@ public class FishingTarget {
                 }
             }
             case 1 -> { // burst toward ibBurstTargets[ibCurrentBurst]
-                ibBurstProgress = Math.min(1f, ibBurstProgress + ibBurstProgressPerTick);
+                ibBurstProgress = Math.min(1f, ibBurstProgress + ibBurstProgressPerTick * speedMultiplier);
                 currentPosition = lerp(ibBurstStart, ibBurstTargets[ibCurrentBurst],
                         MathUtil.easeInOutQuad(ibBurstProgress));
                 if (ibBurstProgress >= 1f) {
@@ -774,7 +820,7 @@ public class FishingTarget {
     private void moveToward(float target, float moveSpeed) {
         if (currentPosition == target) return;
         float distance = target - currentPosition;
-        float movement = Math.signum(distance) * Math.min(Math.abs(distance), moveSpeed);
+        float movement = Math.signum(distance) * Math.min(Math.abs(distance), moveSpeed * speedMultiplier);
         currentPosition = clampPos(currentPosition + movement);
         if (Math.abs(currentPosition - target) < 0.001f) currentPosition = target;
     }
@@ -827,7 +873,7 @@ public class FishingTarget {
             float slowFactor = catchProgress > 0.85f
                     ? lerp(1f, 0.2f, (catchProgress - 0.85f) / 0.15f)
                     : 1f;
-            catchProgress = Math.min(1.0f, catchProgress + catchProgressGain * centreMultiplier * slowFactor);
+            catchProgress = Math.min(1.0f, catchProgress + catchProgressGain * centreMultiplier * slowFactor * catchProgressMultiplier);
             shakeTick++;
         } else if (!noCatchDrain) {
             catchProgress = Math.max(activeMinCatchProgress, catchProgress - catchProgressLoss);
@@ -898,7 +944,10 @@ public class FishingTarget {
     }
 
     public float getShakeAngle(float partialTick, float baseFrequency, float frequencyMultiplier, float amplitude) {
-        float frequency = baseFrequency + catchProgress * frequencyMultiplier;
+        // catchProgressMultiplier ties the wobble's own rate to how fast the catch bar actually
+        // fills — a chonky, slow-to-reel-in catch (Trophy Bait, 0.5x) wobbles sluggishly to match,
+        // instead of thrashing at the normal rate while still taking twice as long to land.
+        float frequency = (baseFrequency + catchProgress * frequencyMultiplier) * catchProgressMultiplier;
         return (float) (Math.sin((shakeTick + partialTick) * frequency * (Math.PI * 2)) * amplitude);
     }
 
