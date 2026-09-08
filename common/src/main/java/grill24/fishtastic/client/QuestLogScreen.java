@@ -1139,10 +1139,73 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 () -> coinFlyOverlay.removeChild(coin)));
     }
 
+    // Reward-row coin icon scales with the token amount so bigger quests visibly promise a
+    // bigger payout at a glance, before the player even reads the number. Boundaries are tuned
+    // from the actual quest_tokens distribution across every quest (daily/explorer/collector/
+    // challenge/mastery), which falls into six natural clusters with clean gaps between them:
+    //   4-7 (daily bronze), 9-13 (daily silver), 14-21 (daily gold + small explorer/mastery),
+    //   25-45, 50-60 (mid explorer/collector/challenge/mastery), 75-206 (top mastery/challenge,
+    //   with nothing between 61 and 74).
+    private static final int REWARD_ICON_TWO_COINS_THRESHOLD = 9;
+    private static final int REWARD_ICON_THREE_COINS_THRESHOLD = 14;
+    private static final int REWARD_ICON_SMALL_PILE_THRESHOLD = 25;
+    private static final int REWARD_ICON_MEDIUM_PILE_THRESHOLD = 50;
+    private static final int REWARD_ICON_LARGE_PILE_THRESHOLD = 75;
+
+    // Shop price-tag coin icon — a separate six-tier ladder from the reward-row one above, tuned
+    // to shop_entry "cost" instead of quest "quest_tokens". The two economies have very different
+    // shapes (shop costs cluster hard at 18 (fence arches) and 100 (every tank shape), rather than
+    // the reward side's smooth daily->explorer->mastery climb), so they need their own boundaries
+    // even though they share the same six textures. Clusters from the actual shop_entry data:
+    //   5-8 (worms/starter baits), 10-16 (common baits/cosmetics), 18 (fence arches, exactly),
+    //   20-25, 35-50 (charms/cosmetics), 55-100 (top charms + every tank shape, with nothing
+    //   between 70 and 85).
+    private static final int SHOP_ICON_TWO_COINS_THRESHOLD = 10;
+    private static final int SHOP_ICON_THREE_COINS_THRESHOLD = 18;
+    private static final int SHOP_ICON_SMALL_PILE_THRESHOLD = 20;
+    private static final int SHOP_ICON_MEDIUM_PILE_THRESHOLD = 35;
+    private static final int SHOP_ICON_LARGE_PILE_THRESHOLD = 55;
+
+    private static final Identifier COIN_ICON_ONE_TEXTURE = Fishtastic.id("textures/gui/one_coin.png");
+    private static final Identifier COIN_ICON_TWO_TEXTURE = Fishtastic.id("textures/gui/two_coins.png");
+    private static final Identifier COIN_ICON_THREE_TEXTURE = Fishtastic.id("textures/gui/three_coins.png");
+
+    /** Builds the reward-row icon for a quest's token payout: a loose-coins sprite for small amounts, scaling up through coin-pile item icons for larger ones. */
+    private static UIElement<?> rewardCoinIconFor(int questTokens) {
+        return coinLadderIcon(questTokens, REWARD_ICON_TWO_COINS_THRESHOLD, REWARD_ICON_THREE_COINS_THRESHOLD,
+                REWARD_ICON_SMALL_PILE_THRESHOLD, REWARD_ICON_MEDIUM_PILE_THRESHOLD, REWARD_ICON_LARGE_PILE_THRESHOLD);
+    }
+
+    /** Builds the shop price-tag icon for a token cost, on its own threshold ladder — see {@link #SHOP_ICON_TWO_COINS_THRESHOLD}. */
+    private static UIElement<?> shopCoinIconFor(int cost) {
+        return coinLadderIcon(cost, SHOP_ICON_TWO_COINS_THRESHOLD, SHOP_ICON_THREE_COINS_THRESHOLD,
+                SHOP_ICON_SMALL_PILE_THRESHOLD, SHOP_ICON_MEDIUM_PILE_THRESHOLD, SHOP_ICON_LARGE_PILE_THRESHOLD);
+    }
+
+    private static UIElement<?> coinLadderIcon(int amount, int twoCoinsThreshold, int threeCoinsThreshold,
+            int smallPileThreshold, int mediumPileThreshold, int largePileThreshold) {
+        if (amount >= largePileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value()));
+        }
+        if (amount >= mediumPileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.MEDIUM_PILE_OF_COINS.value()));
+        }
+        if (amount >= smallPileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.SMALL_PILE_OF_COINS.value()));
+        }
+        if (amount >= threeCoinsThreshold) {
+            return UI.spriteRectangle(8f, 11f, COIN_ICON_THREE_TEXTURE).texture(new SpriteData(COIN_ICON_THREE_TEXTURE));
+        }
+        if (amount >= twoCoinsThreshold) {
+            return UI.spriteRectangle(12f, 8f, COIN_ICON_TWO_TEXTURE).texture(new SpriteData(COIN_ICON_TWO_TEXTURE));
+        }
+        return UI.spriteRectangle(8f, 7f, COIN_ICON_ONE_TEXTURE).texture(new SpriteData(COIN_ICON_ONE_TEXTURE));
+    }
+
     private HBox buildRewardRow(Quest quest) {
         HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
         if (quest.reward().questTokens() > 0) {
-            row.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+            row.addChild(rewardCoinIconFor(quest.reward().questTokens()));
             row.addChild(new Label(translated("screen.fishtastic.quest_log.tokens", quest.reward().questTokens()), 0xFFFFAA00).init(tempContext));
         }
         if (!quest.reward().items().isEmpty()) {
@@ -1266,7 +1329,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         shopRefreshNotEnoughLabel = notEnoughLabel;
 
         refreshRow.addChild(refreshBtn);
-        refreshRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        refreshRow.addChild(shopCoinIconFor(refreshCost));
         refreshRow.addChild(costLabel);
         refreshRow.addChild(notEnoughLabel);
 
@@ -1337,7 +1400,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         int costColor = soldOut ? 0xFF555555 : (canAfford ? 0xFFFFAA00 : 0xFFFF4444);
         Label costLabel = new Label(String.valueOf(entry.cost()), costColor).init(tempContext);
         HBox costRow = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        costRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        costRow.addChild(shopCoinIconFor(entry.cost()));
         costRow.addChild(costLabel);
         costRow.setVisible(!soldOut);
 

@@ -47,6 +47,38 @@
           "type": "minecraft:item",
           "name": "fishtastic:anglers_almanac",
           "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:freshwater_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:ocean_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:predator_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:deep_sea_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
         }
       ]
     }

@@ -524,7 +524,7 @@ const CHARM_PRESETS = {
   none:        { label: "None",              trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
   amethyst:    { label: "Amethyst Charm",    trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
   crystal:     { label: "Crystal Ball",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
-  four_leaf:   { label: "Four-Leaf Charm",   trashDelta: -0.03, treasureDelta: 0.03, forceNight: false, nightBonus: 1.0, affinities: [] },
+  four_leaf:   { label: "Four-Leaf Charm",   trashDelta: 0.0, treasureMult: 1.5, forceNight: false, nightBonus: 1.0, affinities: [] },
   luna:        { label: "Luna Charm",        trashDelta: 0, treasureDelta: 0, forceNight: true,  nightBonus: 1.25, affinities: [] },
   banana:      { label: "Banana Charm",      trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [{ group: "fishtastic:color_yellow", mult: 1.5, nonMult: 1.0 }] },
   almanac:     { label: "Angler's Almanac",  trashDelta: 0, treasureDelta: 0, forceNight: false, nightBonus: 1.0, affinities: [] },
@@ -1102,7 +1102,7 @@ function runSimulation() {
   const bait = effectiveBait(), charm = CHARM_PRESETS[S.gear.charm], hook = HOOK_PRESETS[S.gear.hook];
   const qualityBias = bait.qualityBias + hook.qualityBias;
   const trashChance = Math.max(0, bait.trash + hook.trashDelta + charm.trashDelta);
-  const treasureChance = Math.max(0, bait.treasure + charm.treasureDelta);
+  const treasureChance = Math.max(0, (bait.treasure + (charm.treasureDelta || 0)) * (charm.treasureMult ?? 1));
   const targetMean = 1 + bait.targets; // DEFAULT_TARGET_COUNT_MEAN = 1
 
   // cumulative weights for O(log n) species sampling
