@@ -1,0 +1,15 @@
+{
+  "display_name": "Sunset Postcard Charm",
+  "description": "A keepsake of golden hour — extends dusk by up to 60 seconds while it's in your inventory.",
+  "cost": 50,
+  "weight": 0.15,
+  "reward": [
+    {
+      "id": "fishtastic:sunset_postcard_charm",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1,
+  "is_charm": true,
+  "unlock_quests": ["fishtastic:explorer/postcard_perfect"]
+}

@@ -25,6 +25,13 @@ public class ServerTickHandler {
         // The shared cleanup goal has no time-based reset — it only rolls over to a fresh
         // cycle when a threshold is actually completed (see FishCatchSavedData#recordTrashContribution).
 
+        // Sunset Postcard Charm-driven sunset elongation
+        try {
+            SunsetExtensionHandler.tick(server);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Error ticking sunset extension handler", e);
+        }
+
         // Tick fishing minigame managers for all levels
         for (ServerLevel level : server.getAllLevels()) {
             FishingMinigameManager manager = FishingMinigameManager.get(level);

@@ -96,6 +96,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ANGLERS_ALMANAC.value());
                     output.accept(FishtasticItems.LITTLE_FISH_BOX.value());
                     output.accept(FishtasticItems.BAIT_BUDDY_CHARM.value());
+                    output.accept(FishtasticItems.SUNSET_POSTCARD_CHARM.value());
                     output.accept(FishtasticItems.STORM_CHARM.value());
                     output.accept(FishtasticItems.PILE_OF_COINS.value());
                     output.accept(FishtasticItems.SMALL_PILE_OF_COINS.value());

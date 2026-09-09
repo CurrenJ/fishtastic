@@ -280,8 +280,9 @@ public class FishingMinigameManager {
         FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
         Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
+        Identifier sessionBaitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved);
+                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved, sessionBaitId);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -389,6 +390,7 @@ public class FishingMinigameManager {
                 for (ItemStack rewardStack : target.rewardStacks()) {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
+                        stripQualityIfNotEligible(reward, xpFishProfiles);
                         if (catchDb.recordCatch(catchDb.resolvePlayerKey(player), player.getName().getString(), reward)) {
                             firstCatchItems.add(reward.copy());
                         }
@@ -436,7 +438,8 @@ public class FishingMinigameManager {
         // Batch quest tracking — only one sync packet for all catches in this session
         if (!questStacks.isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
-                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones);
+                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones,
+                    session.hookBaitId);
         }
 
         TutorialManager.onMinigameComplete(player);
@@ -733,6 +736,29 @@ public class FishingMinigameManager {
      *                      fish path restamps quality after a forced override, but here it's simpler
      *                      to just skip the roll since treasure quality has no species to preserve.
      */
+    /**
+     * Strips {@code FISH_QUALITY} from stacks where it isn't mechanically meaningful, right before
+     * the reward is handed to the player. Treasure stamps quality onto every rolled item (see
+     * {@link #generateTreasureRewards}) so the in-flight celebration/difficulty/glow systems can
+     * read it off the stack during the catch, but a plain bait or material carrying that component
+     * can never stack with the same item bought from the shop or composted from marine compost.
+     * Only fish (anything with a {@link FishProfile}, which includes the fish-tank-worthy Blazed
+     * Grub — see {@link BaitEffect#scaledByQuality}) and fish tanks keep the component past this
+     * point.
+     */
+    private static void stripQualityIfNotEligible(ItemStack reward, Registry<FishProfile> fishProfiles) {
+        if (!FishQualityHelper.hasQuality(reward)) return;
+        if (reward.is(FishtasticBlocks.FISH_TANK.value().asItem())) return;
+
+        boolean isFish = BuiltInRegistries.ITEM.getResourceKey(reward.getItem())
+                .map(key -> net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .map(fishProfiles::containsKey)
+                .orElse(false);
+        if (!isFish) {
+            FishQualityHelper.removeQuality(reward);
+        }
+    }
+
     private List<ItemStack> generateTreasureRewards(RandomSource randomSource, LootParams lootParams, float qualityBias, int numRewards, @Nullable FishQuality.Quality forcedQuality) {
         FishQuality.Quality quality = forcedQuality != null ? forcedQuality : FishtasticFishItem.sampleRandomQuality(randomSource, qualityBias);
 
@@ -897,6 +923,24 @@ public class FishingMinigameManager {
             }
         }
         return -1;
+    }
+
+    /**
+     * Sums {@code extractor} across every charm in the player's inventory (not just the rod's
+     * charm slot — same passive-from-anywhere reach as {@link #findCharmSlotInInventory}), then
+     * clamps the total to {@code cap}. Used by {@link SunsetExtensionHandler} so a player carrying
+     * several Sunset Postcard Charms doesn't contribute more than one player's fair share.
+     */
+    static float sumCharmEffectInInventory(ServerPlayer player, java.util.function.ToDoubleFunction<CharmEffect> extractor, float cap) {
+        Inventory inventory = player.getInventory();
+        float total = 0.0f;
+        for (int i = 0; i < inventory.getContainerSize() && total < cap; i++) {
+            CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
+            if (effect != null) {
+                total += (float) extractor.applyAsDouble(effect);
+            }
+        }
+        return Math.min(total, cap);
     }
 
     /**
@@ -1083,10 +1127,24 @@ public class FishingMinigameManager {
         // StartFishingMinigamePacket — can show the correct bait pop-off/charm-save effect instead
         // of predicting blind and guessing wrong whenever the charm actually saves the bait.
         final boolean baitWillBeSaved;
+        // The bait item loaded on the rod when this session was cast, or null if none — resolved
+        // once here rather than re-read at completion since the rod's bait slot may have changed
+        // (or been consumed) by the time results come back. Feeds QuestObjective#distinctBaitTag
+        // matching in QuestTracker; unrelated to baitWillBeSaved, which only governs whether this
+        // bait is consumed.
+        @Nullable
+        final Identifier hookBaitId;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
                 Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved) {
+            this(sessionId, playerId, targets, startTime, hookBiome, hookTimeOfDay, hookWeather, hookZones,
+                    baitWillBeSaved, null);
+        }
+
+        ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
+                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
+                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved, @Nullable Identifier hookBaitId) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
@@ -1096,6 +1154,7 @@ public class FishingMinigameManager {
             this.hookWeather = hookWeather;
             this.hookZones = hookZones;
             this.baitWillBeSaved = baitWillBeSaved;
+            this.hookBaitId = hookBaitId;
         }
     }
 

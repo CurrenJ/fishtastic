@@ -92,6 +92,7 @@ public class FishtasticItems {
     public static Holder<Item> LITTLE_FISH_BOX;
     public static Holder<Item> ANGLERS_ALMANAC;
     public static Holder<Item> BAIT_BUDDY_CHARM;
+    public static Holder<Item> SUNSET_POSTCARD_CHARM;
 
     // ----- Quest Items -----
     // Currency display icon (pile-of-coins texture) — used wherever a token balance/cost/reward is shown.
@@ -404,6 +405,11 @@ public class FishtasticItems {
         BAIT_BUDDY_CHARM = RegistrationApiSided.getInstance().registerItem("bait_buddy_charm",
                 loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BAIT_BUDDY_CHARM)));
+        // Passive like Little Fish Box/Angler's Almanac — works from anywhere in inventory, no
+        // rod-slotting required. See SunsetExtensionHandler for the tick-driven dusk slowdown.
+        SUNSET_POSTCARD_CHARM = RegistrationApiSided.getInstance().registerItem("sunset_postcard_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(64)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.SUNSET_POSTCARD_CHARM)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));

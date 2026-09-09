@@ -10,5 +10,6 @@
     }
   ],
   "daily_max_purchases": 1,
-  "is_charm": true
+  "is_charm": true,
+  "unlock_quests": ["fishtastic:collector/bait_master"]
 }

@@ -2,7 +2,7 @@
   "category": "explorer",
   "objective": {
     "target_count": 1,
-    "min_session_catches": 2
+    "catch_stat": { "min_session_catches": 2 }
   },
   "reward": { "quest_tokens": 10, "items": [] },
   "hidden": false,

@@ -40,6 +40,13 @@ public class QuestTracker {
             ItemStack caughtStack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
             Set<FishProfile.Zone> zones) {
+        onCatch(server, player, caughtStack, biome, timeOfDay, weather, zones, null);
+    }
+
+    public static void onCatch(MinecraftServer server, ServerPlayer player,
+            ItemStack caughtStack, Holder<Biome> biome,
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
 
         if (caughtStack.isEmpty()) return;
 
@@ -83,12 +90,14 @@ public class QuestTracker {
                 if (!prereqProgress.claimed()) continue;
             }
 
-            if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather, zones)) {
+            if (matchesObjective(quest.objective(), caughtStack, biome, timeOfDay, weather, zones, usedBaitId)) {
                 int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
                 int oldCount = state.getProgress(questKey).currentCount();
                 if (quest.objective().lifetimeCount()) {
                     state.setProgress(questKey, lifetimeProgress(server, catchData,
                             catchData.resolvePlayerKey(player), quest.objective()), targetCount, currentDay);
+                } else if (quest.objective().distinctBaitTag().isPresent()) {
+                    state.incrementDistinctSpecies(questKey, targetCount, currentDay, usedBaitId);
                 } else if (quest.objective().distinctSpecies()) {
                     Identifier caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
                     state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
@@ -122,6 +131,13 @@ public class QuestTracker {
             List<ItemStack> caughtStacks, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
             Set<FishProfile.Zone> zones) {
+        onCatchBatch(server, player, caughtStacks, biome, timeOfDay, weather, zones, null);
+    }
+
+    public static void onCatchBatch(MinecraftServer server, ServerPlayer player,
+            List<ItemStack> caughtStacks, Holder<Biome> biome,
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
 
         Registry<Quest> questRegistry;
         try {
@@ -164,7 +180,7 @@ public class QuestTracker {
             }
 
             List<ItemStack> matchingStacks = nonEmptyStacks.stream()
-                    .filter(stack -> matchesObjective(quest.objective(), stack, biome, timeOfDay, weather, zones))
+                    .filter(stack -> matchesObjective(quest.objective(), stack, biome, timeOfDay, weather, zones, usedBaitId))
                     .toList();
             if (matchingStacks.isEmpty()) continue;
 
@@ -176,6 +192,10 @@ public class QuestTracker {
                 // this session's fish are already reflected here.
                 state.setProgress(questKey, lifetimeProgress(server, catchData,
                         catchData.resolvePlayerKey(player), quest.objective()), targetCount, currentDay);
+            } else if (quest.objective().distinctBaitTag().isPresent()) {
+                // The whole batch shares one bait (loaded once at cast time), so every matching
+                // stack credits the same bait id — incrementDistinctSpecies no-ops after the first.
+                state.incrementDistinctSpecies(questKey, targetCount, currentDay, usedBaitId);
             } else if (quest.objective().distinctSpecies()) {
                 // Completionist-style objectives credit each newly-seen species once, ignoring
                 // minSessionCatches — a batch just offers however many distinct species it contains.
@@ -274,6 +294,26 @@ public class QuestTracker {
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
             Set<FishProfile.Zone> zones) {
+        return matchesObjective(obj, stack, biome, timeOfDay, weather, zones, null);
+    }
+
+    /**
+     * @param usedBaitId the bait item loaded on the rod for this catch (see
+     *                    {@code FishingMinigameManager.ActiveSession#hookBaitId}), or {@code null} if
+     *                    no bait was used. Only consulted by {@link QuestObjective#distinctBaitTag()} —
+     *                    every other condition still matches against {@code stack}, the caught fish.
+     */
+    public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
+            FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
+            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
+        if (obj.distinctBaitTag().isPresent()) {
+            if (usedBaitId == null) return false;
+            boolean baitMatches = BuiltInRegistries.ITEM.getOptional(usedBaitId)
+                    .map(item -> item.builtInRegistryHolder().is(obj.distinctBaitTag().get()))
+                    .orElse(false);
+            if (!baitMatches) return false;
+        }
+
         if (obj.targetSpecies().isPresent()) {
             Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
                     stack.getItem().builtInRegistryHolder().unwrapKey();
@@ -301,8 +341,8 @@ public class QuestTracker {
             if (!biome.is(obj.biomeCondition().get())) return false;
         }
 
-        if (obj.timeCondition().isPresent()) {
-            if (timeOfDay != obj.timeCondition().get()) return false;
+        if (!obj.timeConditions().isEmpty()) {
+            if (!obj.timeConditions().contains(timeOfDay)) return false;
         }
 
         if (obj.weatherCondition().isPresent()) {

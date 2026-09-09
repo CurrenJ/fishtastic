@@ -88,6 +88,16 @@ public record FishProfile(
 
         public static final Codec<TimeOfDay> CODEC = StringRepresentable.fromEnum(TimeOfDay::values);
 
+        // Single source of truth for the DAWN/DAY/DUSK/NIGHT tick boundaries — anything else that
+        // needs to know exactly when dawn or dusk starts/ends (e.g. SunsetExtensionHandler) should
+        // reference these constants rather than duplicating the boundary values, so they can't drift.
+        // Dawn sits at the tail of the 24000-tick cycle (the pre-sunrise sky lightening just before
+        // tick 0/6:00 AM), not the head — DAWN_START_TICK > DUSK_END_TICK is intentional.
+        public static final long DAWN_START_TICK = 22000L;
+        public static final long DAWN_END_TICK = 24000L;
+        public static final long DUSK_START_TICK = 12000L;
+        public static final long DUSK_END_TICK = 14000L;
+
         @Override
         public String getSerializedName() {
             return name().toLowerCase(Locale.ROOT);
@@ -95,9 +105,9 @@ public record FishProfile(
 
         public static TimeOfDay fromGameTime(long dayTime) {
             long t = dayTime % 24000;
-            if (t < 2400) return DAWN;
-            if (t < 12000) return DAY;
-            if (t < 14000) return DUSK;
+            if (t >= DAWN_START_TICK) return DAWN;
+            if (t < DUSK_START_TICK) return DAY;
+            if (t < DUSK_END_TICK) return DUSK;
             return NIGHT;
         }
     }

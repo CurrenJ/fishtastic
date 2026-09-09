@@ -23,14 +23,15 @@ public record CharmEffect(
         List<BaitEffect.FishGroupAffinity> fishGroupAffinities,
         boolean showTopWeightedFish,
         boolean autoPileFish,
-        float baitSaveChance
+        float baitSaveChance,
+        float sunsetExtensionSeconds
 ) {
 
     public static final CharmEffect AMETHYST_CHARM = new CharmEffect(
-            1.2f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.0f);
+            1.2f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.0f, 0.0f);
 
     public static final CharmEffect CRYSTAL_BALL_CHARM = new CharmEffect(
-            1.0f, true, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.0f);
+            1.0f, true, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.0f, 0.0f);
 
     // Four Leaf Charm: pure treasure hunter, no trash-dodging (that's Amethyst/hook territory).
     // x1.5 is a proportional boost, not a flat delta, so it scales with the bait: default 0.10
@@ -39,23 +40,31 @@ public record CharmEffect(
     // Four Leaf just amplifies whatever treasure rate is already in play instead of stacking an
     // independent flat bonus on top.
     public static final CharmEffect FOUR_LEAF_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 1.5f, false, 1.0f, List.of(), false, false, 0.0f);
+            1.0f, false, 0.0f, 1.5f, false, 1.0f, List.of(), false, false, 0.0f, 0.0f);
 
     public static final CharmEffect LUNA_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 1.0f, true, 1.25f, List.of(), false, false, 0.0f);
+            1.0f, false, 0.0f, 1.0f, true, 1.25f, List.of(), false, false, 0.0f, 0.0f);
 
     public static final CharmEffect BANANA_CHARM = new CharmEffect(
             1.0f, false, 0.0f, 1.0f, false, 1.0f,
-            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f, 1.0f)), false, false, 0.0f);
+            List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.COLOR_YELLOW, 1.5f, 1.0f)), false, false, 0.0f, 0.0f);
 
     public static final CharmEffect ANGLERS_ALMANAC = new CharmEffect(
-            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), true, false, 0.0f);
+            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), true, false, 0.0f, 0.0f);
 
     public static final CharmEffect LITTLE_FISH_BOX = new CharmEffect(
-            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, true, 0.0f);
+            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, true, 0.0f, 0.0f);
 
     public static final CharmEffect BAIT_BUDDY_CHARM = new CharmEffect(
-            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.5f);
+            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.5f, 0.0f);
+
+    // Passive, inventory-scanned like Little Fish Box/Angler's Almanac (see
+    // FishingMinigameManager#sumCharmEffectInInventory) — each player's contribution to the
+    // shared dusk-slowdown is capped (see SunsetExtensionHandler#PLAYER_CAP_SECONDS) before being
+    // summed across all online players, so stacking several in one inventory doesn't multiply
+    // that player's effect past the cap.
+    public static final CharmEffect SUNSET_POSTCARD_CHARM = new CharmEffect(
+            1.0f, false, 0.0f, 1.0f, false, 1.0f, List.of(), false, false, 0.0f, 60.0f);
 
     public static final Codec<CharmEffect> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.FLOAT.optionalFieldOf("input_force_multiplier", 1.0f).forGetter(CharmEffect::inputForceMultiplier),
@@ -67,7 +76,8 @@ public record CharmEffect(
             BaitEffect.FishGroupAffinity.CODEC.listOf().optionalFieldOf("fish_group_affinities", List.of()).forGetter(CharmEffect::fishGroupAffinities),
             Codec.BOOL.optionalFieldOf("show_top_weighted_fish", false).forGetter(CharmEffect::showTopWeightedFish),
             Codec.BOOL.optionalFieldOf("auto_pile_fish", false).forGetter(CharmEffect::autoPileFish),
-            Codec.FLOAT.optionalFieldOf("bait_save_chance", 0.0f).forGetter(CharmEffect::baitSaveChance)
+            Codec.FLOAT.optionalFieldOf("bait_save_chance", 0.0f).forGetter(CharmEffect::baitSaveChance),
+            Codec.FLOAT.optionalFieldOf("sunset_extension_seconds", 0.0f).forGetter(CharmEffect::sunsetExtensionSeconds)
     ).apply(i, CharmEffect::new));
 
     public static final StreamCodec<ByteBuf, CharmEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
@@ -118,6 +128,12 @@ public record CharmEffect(
         if (baitSaveChance != 0.0f) {
             lines.add(Component.translatable("tooltip.fishtastic.charm_effect.bait_save_chance", (int) (baitSaveChance * 100))
                     .withStyle(ChatFormatting.BLUE));
+        }
+        if (sunsetExtensionSeconds != 0.0f) {
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.sunset_extension_seconds", (int) sunsetExtensionSeconds)
+                    .withStyle(ChatFormatting.GOLD));
+            lines.add(Component.translatable("tooltip.fishtastic.charm_effect.passive_inventory")
+                    .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }
         return lines;
     }

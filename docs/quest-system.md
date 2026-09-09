@@ -34,6 +34,8 @@ Quests are defined as JSON files under `data/fishtastic/fishtastic/quest/<quest_
 | `time_condition` | enum? | `DAY`, `NIGHT`, or `DAWN_DUSK` |
 | `weather_condition` | enum? | `CLEAR`, `RAIN`, or `THUNDER` |
 | `tank_snapshot` | object? | Turns this into a tank-composition objective — see below |
+| `catch_stat` | object? | Nests the rarely-used `min_size` (float?) and `min_session_catches` (int?) per-catch filters |
+| `distinct_bait_tag` | TagKey? | Turns this into "use every bait in this tag at least once" — matched against the bait loaded on the rod, not the caught fish. Target count defaults to the tag's member count, same as `distinct_species` + `target_species_tag`. |
 
 ### Tank composition objectives
 

@@ -614,7 +614,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private static boolean hasEnvironmentCondition(QuestObjective obj) {
-        return obj.biomeCondition().isPresent() || obj.timeCondition().isPresent() || obj.weatherCondition().isPresent()
+        return obj.biomeCondition().isPresent() || !obj.timeConditions().isEmpty() || obj.weatherCondition().isPresent()
                 || obj.zoneCondition().isPresent();
     }
 
@@ -632,9 +632,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (!biome.is(obj.biomeCondition().get())) return false;
         }
 
-        if (obj.timeCondition().isPresent()) {
+        if (!obj.timeConditions().isEmpty()) {
             FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
-            if (timeOfDay != obj.timeCondition().get()) return false;
+            if (!obj.timeConditions().contains(timeOfDay)) return false;
         }
 
         if (obj.weatherCondition().isPresent()) {
@@ -655,7 +655,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static String buildConditionTooltipText(QuestObjective obj) {
         List<String> parts = new ArrayList<>();
         obj.biomeCondition().ifPresent(tag -> parts.add(formatConditionWord(tag.location().getPath())));
-        obj.timeCondition().ifPresent(t -> parts.add(formatConditionWord(t.getSerializedName())));
+        if (!obj.timeConditions().isEmpty()) {
+            StringBuilder times = new StringBuilder();
+            for (FishProfile.TimeOfDay t : obj.timeConditions()) {
+                if (!times.isEmpty()) times.append("/");
+                times.append(formatConditionWord(t.getSerializedName()));
+            }
+            parts.add(times.toString());
+        }
         obj.weatherCondition().ifPresent(w -> parts.add(formatConditionWord(w.getSerializedName())));
         obj.zoneCondition().ifPresent(z -> parts.add(formatConditionWord(z.getSerializedName())));
         return translated("screen.fishtastic.quest_log.condition_requires", String.join(", ", parts));
@@ -729,10 +736,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      */
     @Nullable
     private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale) {
+        return buildSpeciesIcon(speciesKey, scale, isDiscovered(speciesKey));
+    }
+
+    /**
+     * Same as {@link #buildSpeciesIcon(ResourceKey, float)}, but with the discovered/silhouette
+     * state passed in explicitly rather than derived from the fish encyclopedia — used by a bait
+     * checklist, where "discovered" means "used on this quest already" instead.
+     */
+    @Nullable
+    private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale, boolean discovered) {
         if (isHiddenUnlistedSpecies(speciesKey)) return null;
 
         Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
-        boolean discovered = isDiscovered(speciesKey);
 
         SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
         icon.itemScale(scale);
@@ -775,6 +791,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * render as silhouettes, mirroring the single-species icon's spoiler guard.
      */
     private VBox buildTagFishList(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess) {
+        return buildTagFishList(tag, excludeTag, registryAccess, QuestLogScreen::isDiscovered);
+    }
+
+    /**
+     * Same as {@link #buildTagFishList(TagKey, Optional, RegistryAccess)}, but with the
+     * discovered/silhouette state for each icon supplied by {@code discoveredFn} instead of the
+     * fish-encyclopedia default — used by a bait checklist, where "discovered" means "used on this
+     * quest already" rather than "ever caught". Encyclopedia click-navigation is skipped for
+     * non-fish members either way, since they have no encyclopedia entry to jump to.
+     */
+    private VBox buildTagFishList(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess,
+            java.util.function.Predicate<ResourceKey<Item>> discoveredFn) {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
 
         VBox wrap = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
@@ -783,8 +811,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             HBox iconRow = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
             for (int j = i; j < rowEnd; j++) {
                 ResourceKey<Item> speciesKey = members.get(j);
-                SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE);
-                wireEncyclopediaNavigation(icon, speciesKey);
+                SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE, discoveredFn.test(speciesKey));
+                // Non-fish tag members (e.g. a bait checklist) have no encyclopedia entry to jump to.
+                if (isFishSpecies(speciesKey)) wireEncyclopediaNavigation(icon, speciesKey);
                 iconRow.addChild(icon);
             }
             wrap.addChild(iconRow);
@@ -953,6 +982,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()) {
             VBox tagList = buildTagFishList(quest.objective().targetSpeciesTag().get(), quest.objective().excludeSpeciesTag(),
                     Minecraft.getInstance().level.registryAccess());
+            collectLeaves(tagList, tagListIcons);
+            row.addChild(tagList);
+        } else if (quest.objective().distinctBaitTag().isPresent()) {
+            // "Discovered" here means "already used on this quest" (progress.caughtSpecies() is
+            // fed bait ids for a distinctBaitTag objective — see QuestTracker#onCatch), not the
+            // fish-encyclopedia default buildTagFishList otherwise falls back to.
+            List<Identifier> usedBaitIds = progress.caughtSpecies();
+            VBox tagList = buildTagFishList(quest.objective().distinctBaitTag().get(), Optional.empty(),
+                    Minecraft.getInstance().level.registryAccess(),
+                    speciesKey -> usedBaitIds.contains(speciesKey.identifier()));
             collectLeaves(tagList, tagListIcons);
             row.addChild(tagList);
         }
