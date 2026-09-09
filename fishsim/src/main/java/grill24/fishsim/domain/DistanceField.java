@@ -40,19 +40,25 @@ public final class DistanceField {
         // Enumerate the union's boundary faces: any cell face whose neighbour is missing. Each is
         // a unit rectangle on an axis-aligned plane, in local coordinates.
         // face = {axis(0/1/2), planeCoord, u0, u1, v0, v1} with (u, v) the other two axes in
-        // (L,Y,D) order skipping the face axis.
-        java.util.List<float[]> faces = new java.util.ArrayList<>();
+        // (L,Y,D) order skipping the face axis. Bucketed by the occupied cell each face belongs
+        // to, so the distance pass below can search outward from a sample's own cell instead of
+        // scanning every face in the domain (that brute force is quadratic in group size once
+        // several tanks join — see the fix for the placement-freeze bug).
+        @SuppressWarnings("unchecked")
+        java.util.List<float[]>[] faceBuckets = new java.util.List[sx * sy * sz];
         for (int ix = 0; ix < sx; ix++) {
             for (int iy = 0; iy < sy; iy++) {
                 for (int iz = 0; iz < sz; iz++) {
                     if (!occupancy[ix][iy][iz]) continue;
                     float x0 = minL + ix, y0 = minY + iy, z0 = minD + iz;
-                    if (!occupied(occupancy, ix - 1, iy, iz)) faces.add(new float[]{0, x0, y0, y0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix + 1, iy, iz)) faces.add(new float[]{0, x0 + 1, y0, y0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy - 1, iz)) faces.add(new float[]{1, y0, x0, x0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy + 1, iz)) faces.add(new float[]{1, y0 + 1, x0, x0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy, iz - 1)) faces.add(new float[]{2, z0, x0, x0 + 1, y0, y0 + 1});
-                    if (!occupied(occupancy, ix, iy, iz + 1)) faces.add(new float[]{2, z0 + 1, x0, x0 + 1, y0, y0 + 1});
+                    java.util.List<float[]> bucket = new java.util.ArrayList<>(6);
+                    if (!occupied(occupancy, ix - 1, iy, iz)) bucket.add(new float[]{0, x0, y0, y0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix + 1, iy, iz)) bucket.add(new float[]{0, x0 + 1, y0, y0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy - 1, iz)) bucket.add(new float[]{1, y0, x0, x0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy + 1, iz)) bucket.add(new float[]{1, y0 + 1, x0, x0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy, iz - 1)) bucket.add(new float[]{2, z0, x0, x0 + 1, y0, y0 + 1});
+                    if (!occupied(occupancy, ix, iy, iz + 1)) bucket.add(new float[]{2, z0 + 1, x0, x0 + 1, y0, y0 + 1});
+                    if (!bucket.isEmpty()) faceBuckets[(ix * sy + iy) * sz + iz] = bucket;
                 }
             }
         }
@@ -63,19 +69,21 @@ public final class DistanceField {
         gy = new float[total];
         gz = new float[total];
 
-        // Distance pass: exact point-to-rectangle distance over all boundary faces (domains are a
-        // handful of blocks — brute force is microseconds at build time), signed by occupancy.
+        // Distance pass: exact point-to-rectangle distance, signed by occupancy. Searches faces in
+        // expanding shells of cells around the sample's own cell instead of the whole face list —
+        // same faceDistance() values as brute force (every face closer than the current best is
+        // still visited; only faces provably farther than the best-so-far are skipped), just found
+        // without rescanning faces from tanks the sample is nowhere near.
         for (int i = 0; i < nx; i++) {
             float px = minL + i * h;
+            int cx = clampIndex((int) Math.floor(px - minL), sx - 1);
             for (int j = 0; j < ny; j++) {
                 float py = minY + j * h;
+                int cy = clampIndex((int) Math.floor(py - minY), sy - 1);
                 for (int k = 0; k < nz; k++) {
                     float pz = minD + k * h;
-                    float best = Float.MAX_VALUE;
-                    for (float[] face : faces) {
-                        float d = faceDistance(face, px, py, pz);
-                        if (d < best) best = d;
-                    }
+                    int cz = clampIndex((int) Math.floor(pz - minD), sz - 1);
+                    float best = nearestFaceDistance(faceBuckets, sx, sy, sz, cx, cy, cz, px, py, pz);
                     boolean inside = sampleInside(occupancy, px - minL, py - minY, pz - minD, sx, sy, sz);
                     dist[idx(i, j, k)] = (inside ? best : -best) - inset;
                 }
@@ -102,6 +110,41 @@ public final class DistanceField {
                 }
             }
         }
+    }
+
+    /**
+     * Nearest face distance to (px,py,pz), searching outward in cube shells from cell
+     * (cx,cy,cz). A shell at radius r can hold no face closer than (r-1) blocks — cells are
+     * contiguous unit cubes, so anything r cells away is separated by at least r-1 full cells —
+     * so once that bound exceeds the best found so far, no farther shell can improve it.
+     */
+    private static float nearestFaceDistance(java.util.List<float[]>[] buckets, int sx, int sy, int sz,
+                                              int cx, int cy, int cz, float px, float py, float pz) {
+        float best = Float.MAX_VALUE;
+        int maxRadius = Math.max(sx, Math.max(sy, sz));
+        for (int r = 0; r <= maxRadius; r++) {
+            if (r >= 1 && (float) (r - 1) > best) break;
+            int loX = Math.max(0, cx - r), hiX = Math.min(sx - 1, cx + r);
+            int loY = Math.max(0, cy - r), hiY = Math.min(sy - 1, cy + r);
+            int loZ = Math.max(0, cz - r), hiZ = Math.min(sz - 1, cz + r);
+            for (int ix = loX; ix <= hiX; ix++) {
+                boolean xShell = ix == cx - r || ix == cx + r;
+                for (int iy = loY; iy <= hiY; iy++) {
+                    boolean yShell = iy == cy - r || iy == cy + r;
+                    for (int iz = loZ; iz <= hiZ; iz++) {
+                        boolean zShell = iz == cz - r || iz == cz + r;
+                        if (r > 0 && !xShell && !yShell && !zShell) continue; // visited at a smaller r
+                        java.util.List<float[]> bucket = buckets[(ix * sy + iy) * sz + iz];
+                        if (bucket == null) continue;
+                        for (float[] face : bucket) {
+                            float d = faceDistance(face, px, py, pz);
+                            if (d < best) best = d;
+                        }
+                    }
+                }
+            }
+        }
+        return best;
     }
 
     private static boolean occupied(boolean[][][] occ, int ix, int iy, int iz) {
