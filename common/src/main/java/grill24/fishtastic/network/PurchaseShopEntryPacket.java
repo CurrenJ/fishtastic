@@ -68,13 +68,27 @@ public record PurchaseShopEntryPacket(Identifier entryId) implements CustomPacke
 
             if (!state.purchase(entryKey, entry)) return;
 
-            for (ShopEntry.ShopReward reward : entry.reward()) {
-                ItemStack stack = reward.toItemStack();
-                if (!stack.isEmpty()) serverPlayer.getInventory().add(stack);
-            }
+            grantRewards(serverPlayer, entry);
             data.setDirty();
 
             QuestSyncPacket.sendToPlayer(serverPlayer, data);
         });
+    }
+
+    /**
+     * Delivers a purchased entry's rewards to the player, dropping at their feet whatever
+     * doesn't fit rather than silently discarding a paid-for reward. Public so gametests can
+     * exercise the full-inventory path directly without going through the registry/daily-draw
+     * plumbing above — mirrors {@link grill24.fishtastic.server.FishingMinigameManager#seedSessionForTest}.
+     */
+    public static void grantRewards(ServerPlayer serverPlayer, ShopEntry entry) {
+        for (ShopEntry.ShopReward reward : entry.reward()) {
+            ItemStack stack = reward.toItemStack();
+            if (stack.isEmpty()) continue;
+            serverPlayer.getInventory().add(stack);
+            // Inventory.add() only consumes what fits, leaving the remainder in `stack` -
+            // drop it at the player's feet instead of silently discarding a paid-for reward.
+            if (!stack.isEmpty()) serverPlayer.drop(stack, false);
+        }
     }
 }

@@ -1029,6 +1029,16 @@ public class FishtasticFabricGameTests {
         FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, helper::makeMockServerPlayerInLevel);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------
@@ -1096,6 +1106,16 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void grantRewardsDropsLeftoverWhenInventoryIsFull(GameTestHelper helper) {
+        ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void grantRewardsDeliversNormallyWhenInventoryHasSpace(GameTestHelper helper) {
+        ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

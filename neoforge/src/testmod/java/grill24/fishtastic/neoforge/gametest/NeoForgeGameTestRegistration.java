@@ -479,6 +479,10 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "trash_chance_one_always_awards_trash_items", 200,
             helper -> FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_drops_reward_at_player_feet_when_inventory_is_full", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_drops_reward_when_inventory_is_full_and_auto_pile_fish_is_active", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,
@@ -507,6 +511,10 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly);
         register(event, env, "get_active_daily_shop_charm_and_tank_shape_replacements_can_coexist", 200,
             ShopEntryGameTests::getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist);
+        register(event, env, "grant_rewards_drops_leftover_when_inventory_is_full", 200,
+            helper -> ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "grant_rewards_delivers_normally_when_inventory_has_space", 200,
+            helper -> ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);
