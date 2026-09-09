@@ -1,0 +1,13 @@
+{
+    "texture": "fishtastic:textures/misc/charm_glow/bait_buddy_charm.png",
+    "conditions": [
+        {
+            "type": "item",
+            "item": "fishtastic:bait_buddy_charm"
+        }
+    ],
+    "priority": 30,
+    "outline_color": -37177,
+    "outline_falloff": 0.55,
+    "outline_width": 0.75
+}

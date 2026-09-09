@@ -134,12 +134,22 @@ public class ItemEffect {
     }
 
     /**
+     * Unique key for this effect's pipelines/render types. Includes {@link #outlineColor} (not
+     * just {@link #texture}) because multiple effects — e.g. per-charm outlines — commonly share
+     * one glint texture while differing only in outline colour; texture alone would collide.
+     */
+    private String effectIdentityKey() {
+        return texture.getNamespace() + "_" + texture.getPath().replace('/', '_')
+                + "_" + Integer.toHexString(outlineColor);
+    }
+
+    /**
      * Returns the outline {@link RenderPipeline} for this effect, creating it (and its
      * {@link GpuBuffer} params) on the first call.  Must be called on the render thread.
      */
     public RenderPipeline getOrCreateOutlinePipeline() {
         if (outlinePipeline == null) {
-            String texPath = texture.getNamespace() + "_" + texture.getPath().replace('/', '_');
+            String texPath = effectIdentityKey();
             Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_" + texPath);
 
             String uboName;
@@ -174,7 +184,7 @@ public class ItemEffect {
      */
     public RenderPipeline getOrCreateOutlineBakePipeline() {
         if (outlineBakePipeline == null) {
-            String texPath = texture.getNamespace() + "_" + texture.getPath().replace('/', '_');
+            String texPath = effectIdentityKey();
             Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/outline_bake_" + texPath);
 
             String uboName;
