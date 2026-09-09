@@ -63,7 +63,40 @@ public record Tunables(
         // repel from this far out (empirically ~0.6 keeps a mixed tank from congealing into one
         // ball), while same-species fish use the tighter separationRadius and so still swarm.
         // The binary single-tank model never reads it.
-        float separationRadiusOther) {
+        float separationRadiusOther,
+
+        // ── Tier 1 realism terms (docs/fish-swarm-realism.md §2) ───────────────────────────────
+        // All PLANAR-ONLY, and all neutral-valued in DEFAULT where the engine skips the term
+        // entirely — exactly the guard pattern patrolSpeed already uses, so the binary single-tank
+        // model stays bitwise-locked.
+
+        // Ornstein–Uhlenbeck wander: band-limited per-fish noise on the TURN RATE, replacing the
+        // two global sine frequencies whose shared clock made every fish in a tank ride the same
+        // rhythm. sigma is the drive strength (dimensionless wander units per √second); theta is
+        // the mean-reversion rate (1/s) and so sets the correlation time (~1/theta). Zero sigma
+        // keeps the legacy sine wander.
+        float wanderTurnSigma,
+        float wanderTurnTheta,
+        // Alignment on UNIT heading rather than raw velocity (blocks/s). Averaging velocities
+        // conflates "swim the way my neighbours swim" with "swim as fast as my neighbours do";
+        // those are different behaviours wanting different gains, and fusing them forced
+        // alignmentWeight down to a level where the school could not polarize at all. Zero keeps
+        // the legacy velocity-averaged alignment.
+        float alignHeadingWeight,
+        // The speed half of that split, as a fraction of the neighbour mean-speed error matched.
+        // Deliberately weak — schools match direction far more tightly than they match speed.
+        float speedMatchWeight,
+        // Per-fish trait spread: ± this fraction on top speed, patrol speed and turn rate, drawn
+        // deterministically from the fish's own seed. Zero makes every fish identical (the legacy
+        // behaviour) and is the last thing holding a shoal in lockstep.
+        float traitJitter,
+        // Burst-and-coast: real fish beat hard for a moment then glide rather than holding a
+        // constant cruise. The cycle scales patrolSpeed, so it also drives speedFactor and hence
+        // the tail-beat animation for free. Zero period disables it.
+        float burstPeriodSeconds,
+        float burstDuty,          // fraction of the cycle spent thrusting
+        float burstThrustScale,   // patrol multiplier at the peak of a burst
+        float burstCoastScale) {  // patrol multiplier during the glide
 
     /** The canonical parameter set the mod ships — every default identical to the pre-extraction constants. */
     public static final Tunables DEFAULT = new Tunables(
@@ -92,7 +125,17 @@ public record Tunables(
             new float[]{-0.25f, 0f, 0.25f},
             Float.MAX_VALUE, // neighborRange — unlimited: single-tank parity set
             0f,              // patrolSpeed — off: single-tank parity set
-            0.18f);          // separationRadiusOther — unread by the binary model
+            0.18f,           // separationRadiusOther — unread by the binary model
+            // Tier 1 terms all neutral — the binary model must stay bitwise-identical.
+            0f,              // wanderTurnSigma — legacy sine wander
+            0f,              // wanderTurnTheta
+            0f,              // alignHeadingWeight — legacy velocity-averaged alignment
+            0f,              // speedMatchWeight
+            0f,              // traitJitter — every fish identical
+            0f,              // burstPeriodSeconds — constant cruise
+            0f,              // burstDuty
+            1f,              // burstThrustScale
+            1f);             // burstCoastScale
 
     /**
      * The canonical parameter set for multi-tank (voxel-domain) groups. Tuned via the headless
@@ -104,7 +147,9 @@ public record Tunables(
     public static final Tunables GROUP = new Tunables(
             DEFAULT.dt(),
             DEFAULT.gateFactor(),
-            0.16f,      // maxSpeed — longer runs read better a touch faster
+            0.20f,      // maxSpeed — raised from 0.16 to leave headroom above the burst peak; at
+                        // 0.16 the ceiling clipped every burst flat and erased exactly the speed
+                        // variance burst-and-coast exists to create
             0.025f,     // cruiseSpeed — wander turn authority; must stay BELOW patrolSpeed or fish
                         // pirouette in place instead of gliding (perpendicular wander vs forward)
             DEFAULT.steeringGain(),
@@ -128,7 +173,38 @@ public record Tunables(
             DEFAULT.layerZ(),
             0.9f,       // neighborRange — flocking is local, clusters can drift apart
             0.10f,      // patrolSpeed — forward cruise dominates the wander turn (gentle arcs)
-            0.60f);     // separationRadiusOther — strangers keep their distance (user-tuned)
+            0.60f,      // separationRadiusOther — strangers keep their distance (user-tuned)
+            0.8f,       // wanderTurnSigma — with theta below, steady-state σ = 0.8/√1.8 ≈ 0.60,
+                        // matching the legacy sine pair's RMS (≈0.61) so the wander's authority
+                        // against patrol/flocking is unchanged; only its *character* is
+            0.9f,       // wanderTurnTheta — ~1.1 s correlation time: long enough to read as an
+                        // intention, short enough that a fish never commits to a straight line
+            0.05f,      // alignHeadingWeight — swept (3×1×3, n=12, 3 seeds): this term trades
+                        // polarization against speed variance, because a school that matches
+                        // headings hard also flattens onto one speed. 0.09 gave Φ≈0.97, which is
+                        // a rigid block, not a school; 0.05 lands Φ≈0.94 — inside the range real
+                        // schools occupy — while leaving the burst its variance
+            0.15f,      // speedMatchWeight — weak on purpose (see the field comment)
+            0.12f,      // traitJitter — ±12%: visible desynchronisation, no odd-fish-out
+            4.0f,       // burstPeriodSeconds — a long, slow swell rather than a beat. The first
+                        // shipped value (2.2s) was reported in game as fish "hopping" every few
+                        // seconds; at this scale a tank is under a block wide, so a cycle short
+                        // enough to read as a tail-beat reads as a twitch instead
+            0.45f,      // burstDuty — the glide is the longer half, as in real burst-and-coast
+            1.4f,       // burstThrustScale — gentle. The original 2.2 commanded a peak above the
+                        // speed ceiling and a trough near zero, so the fish spent the cycle
+                        // clipped at one end or the other: measured, that config had *less*
+                        // within-fish speed variation than no burst at all (0.125 vs 0.138
+                        // pre-Tier-1) while nearly doubling the peak rate of speed change
+                        // (0.31 vs 0.17 blocks/s²). All the lurch, none of the variation
+            0.3f);      // burstCoastScale — a real glide. Counter-intuitively a DEEPER glide is
+                        // both smoother and more varied than a shallow one (0.6 measured worse on
+                        // every axis): the fish spends longer in the slow part of the cycle, so
+                        // the peak is never clipped and the transitions never need to be sharp.
+                        // Final: withinCv 0.171 at maxRate 0.169 — i.e. noticeably more speed
+                        // variation than the pre-Tier-1 baseline (0.138) while being marginally
+                        // *smoother* than it (0.173). Also keeps a crowded 1×1×1 tank apart
+                        // (min pairwise 0.033 vs the 0.02 floor); 0.6 dropped that to 0.014
 
     /** Squared separation radius, matching the derived {@code SEPARATION_RADIUS2} constant. */
     public float separationRadius2() {
@@ -143,5 +219,106 @@ public record Tunables(
     /** Squared cross-species separation radius. */
     public float separationRadiusOther2() {
         return separationRadiusOther * separationRadiusOther;
+    }
+
+    // ── Single-field copies, for the viewer's live sliders ─────────────────────────────────────
+    // A record has no wither syntax, and spelling out all 35 components at every call site (as the
+    // viewer's knob table used to) makes adding one field a 24-line edit with 24 chances to
+    // transpose two floats. These are the only sanctioned way to vary a single parameter.
+
+    public Tunables withMaxSpeed(float v) {
+        return new Tunables(dt, gateFactor, v, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withCruiseSpeed(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, v, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withSteeringGain(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, v, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withMaxForce(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, v, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withSeparationRadius(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, v, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withSeparationSpeed(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, v, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withAlignmentWeight(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, v, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withCohesionSpeed(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, v, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withDepthRestore(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, v, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withWallMargin(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, v, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withWallAvoidSpeed(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, v, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withHeadingDeadzone(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, v, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withNeighborRange(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, v, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withPatrolSpeed(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, v, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withSeparationRadiusOther(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, v, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withWanderTurnSigma(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, v, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withWanderTurnTheta(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, v, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withAlignHeadingWeight(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, v, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withSpeedMatchWeight(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, v, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withTraitJitter(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, v, burstPeriodSeconds, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withBurstPeriodSeconds(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, v, burstDuty, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withBurstDuty(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, v, burstThrustScale, burstCoastScale);
+    }
+
+    public Tunables withBurstThrustScale(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, v, burstCoastScale);
+    }
+
+    public Tunables withBurstCoastScale(float v) {
+        return new Tunables(dt, gateFactor, maxSpeed, cruiseSpeed, steeringGain, maxForce, neighborCount, separationRadius, separationSpeed, alignmentWeight, cohesionSpeed, depthRestore, depthDamp, verticalDamp, wallMargin, wallMarginVertical, wallAvoidSpeed, bankGain, bankMax, headingDeadzone, tankHalfExtent, swarmMinSep, layerZ, neighborRange, patrolSpeed, separationRadiusOther, wanderTurnSigma, wanderTurnTheta, alignHeadingWeight, speedMatchWeight, traitJitter, burstPeriodSeconds, burstDuty, burstThrustScale, v);
     }
 }

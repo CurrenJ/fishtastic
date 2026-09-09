@@ -28,6 +28,7 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -44,43 +45,34 @@ public final class SimViewer {
 
     /** One adjustable tunable: label, slider range, and how to write it back into the record. */
     private record Knob(String label, float min, float max,
-                        Function<Tunables, Float> get, KnobApply apply) {}
-
-    private interface KnobApply {
-        Tunables with(Tunables t, float v);
-    }
+                        Function<Tunables, Float> get, BiFunction<Tunables, Float, Tunables> apply) {}
 
     private static final List<Knob> KNOBS = List.of(
-            new Knob("maxSpeed", 0.02f, 0.4f, Tunables::maxSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), v, t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("cruiseSpeed", 0.01f, 0.3f, Tunables::cruiseSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), v, t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("steeringGain", 0.2f, 8f, Tunables::steeringGain,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), v, t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("maxForce", 0.05f, 2f, Tunables::maxForce,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), v, t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("separationRadius", 0.05f, 0.6f, Tunables::separationRadius,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), v, t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("separationSpeed", 0.02f, 0.8f, Tunables::separationSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), v, t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("alignmentWeight", 0f, 1.5f, Tunables::alignmentWeight,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), v, t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("cohesionSpeed", 0f, 0.5f, Tunables::cohesionSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), v, t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("depthRestore", 0.1f, 5f, Tunables::depthRestore,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), v, t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("wallMargin", 0.04f, 0.5f, Tunables::wallMargin,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), v, t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("wallAvoidSpeed", 0.05f, 1f, Tunables::wallAvoidSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), v, t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("headingDeadzone", 0f, 0.08f, Tunables::headingDeadzone,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), v, t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("neighborRange", 0.2f, 4f, t -> Math.min(t.neighborRange(), 4f),
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), v, t.patrolSpeed(), t.separationRadiusOther())),
-            new Knob("patrolSpeed", 0f, 0.2f, Tunables::patrolSpeed,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), v, t.separationRadiusOther())),
-            new Knob("sepRadiusOther", 0.05f, 1.2f, Tunables::separationRadiusOther,
-                    (t, v) -> new Tunables(t.dt(), t.gateFactor(), t.maxSpeed(), t.cruiseSpeed(), t.steeringGain(), t.maxForce(), t.neighborCount(), t.separationRadius(), t.separationSpeed(), t.alignmentWeight(), t.cohesionSpeed(), t.depthRestore(), t.depthDamp(), t.verticalDamp(), t.wallMargin(), t.wallMarginVertical(), t.wallAvoidSpeed(), t.bankGain(), t.bankMax(), t.headingDeadzone(), t.tankHalfExtent(), t.swarmMinSep(), t.layerZ(), t.neighborRange(), t.patrolSpeed(), v))
+            new Knob("maxSpeed", 0.02f, 0.4f, Tunables::maxSpeed, Tunables::withMaxSpeed),
+            new Knob("cruiseSpeed", 0.01f, 0.3f, Tunables::cruiseSpeed, Tunables::withCruiseSpeed),
+            new Knob("steeringGain", 0.2f, 8f, Tunables::steeringGain, Tunables::withSteeringGain),
+            new Knob("maxForce", 0.05f, 2f, Tunables::maxForce, Tunables::withMaxForce),
+            new Knob("separationRadius", 0.05f, 0.6f, Tunables::separationRadius, Tunables::withSeparationRadius),
+            new Knob("separationSpeed", 0.02f, 0.8f, Tunables::separationSpeed, Tunables::withSeparationSpeed),
+            new Knob("alignmentWeight", 0f, 1.5f, Tunables::alignmentWeight, Tunables::withAlignmentWeight),
+            new Knob("cohesionSpeed", 0f, 0.5f, Tunables::cohesionSpeed, Tunables::withCohesionSpeed),
+            new Knob("depthRestore", 0.1f, 5f, Tunables::depthRestore, Tunables::withDepthRestore),
+            new Knob("wallMargin", 0.04f, 0.5f, Tunables::wallMargin, Tunables::withWallMargin),
+            new Knob("wallAvoidSpeed", 0.05f, 1f, Tunables::wallAvoidSpeed, Tunables::withWallAvoidSpeed),
+            new Knob("headingDeadzone", 0f, 0.08f, Tunables::headingDeadzone, Tunables::withHeadingDeadzone),
+            new Knob("neighborRange", 0.2f, 4f, t -> Math.min(t.neighborRange(), 4f), Tunables::withNeighborRange),
+            new Knob("patrolSpeed", 0f, 0.2f, Tunables::patrolSpeed, Tunables::withPatrolSpeed),
+            new Knob("sepRadiusOther", 0.05f, 1.2f, Tunables::separationRadiusOther, Tunables::withSeparationRadiusOther),
+            // ── Tier 1 (docs/fish-swarm-realism.md §2) ──────────────────────────────────────
+            new Knob("wanderSigma", 0f, 2f, Tunables::wanderTurnSigma, Tunables::withWanderTurnSigma),
+            new Knob("wanderTheta", 0.1f, 4f, Tunables::wanderTurnTheta, Tunables::withWanderTurnTheta),
+            new Knob("alignHeading", 0f, 0.3f, Tunables::alignHeadingWeight, Tunables::withAlignHeadingWeight),
+            new Knob("speedMatch", 0f, 1f, Tunables::speedMatchWeight, Tunables::withSpeedMatchWeight),
+            new Knob("traitJitter", 0f, 0.4f, Tunables::traitJitter, Tunables::withTraitJitter),
+            new Knob("burstPeriod", 0f, 6f, Tunables::burstPeriodSeconds, Tunables::withBurstPeriodSeconds),
+            new Knob("burstDuty", 0.05f, 0.95f, Tunables::burstDuty, Tunables::withBurstDuty),
+            new Knob("burstThrust", 0.5f, 3f, Tunables::burstThrustScale, Tunables::withBurstThrustScale),
+            new Knob("burstCoast", 0f, 1f, Tunables::burstCoastScale, Tunables::withBurstCoastScale)
     );
 
     private FlockEngine engine;
@@ -245,7 +237,7 @@ public final class SimViewer {
             resetters.add(sync);
             slider.addChangeListener(e -> {
                 float v = knob.min() + slider.getValue() / 1000f * (knob.max() - knob.min());
-                tunables = knob.apply().with(tunables, v);
+                tunables = knob.apply().apply(tunables, v);
                 engine.setTunables(tunables);
                 label.setText(knob.label() + " = " + String.format("%.3f", v));
             });

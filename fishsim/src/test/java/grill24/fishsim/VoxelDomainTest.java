@@ -264,8 +264,12 @@ class VoxelDomainTest {
                 assertEquals(0, m.wallPenetrations(), "wall penetrations");
                 assertEquals(0, m.hardClampContacts(), "hard backstop engagements");
 
-                // 2 — bounded dynamics.
-                assertTrue(m.maxObservedSpeed() <= t.maxSpeed() * SPEED_TOLERANCE, "speed " + m.maxObservedSpeed());
+                // 2 — bounded dynamics. The speed ceiling is per-fish in the planar model (Tier 1
+                // trait jitter), so the bound is the fastest individual the tunables can produce,
+                // not the nominal maxSpeed — this still catches a runaway, it just no longer
+                // asserts that every fish in a school tops out at exactly the same speed.
+                float speedCeiling = t.maxSpeed() * (1f + t.traitJitter());
+                assertTrue(m.maxObservedSpeed() <= speedCeiling * SPEED_TOLERANCE, "speed " + m.maxObservedSpeed());
                 assertTrue(m.maxObservedAccel() <= t.maxForce() * ACCEL_TOLERANCE, "accel " + m.maxObservedAccel());
                 assertTrue(m.maxObservedJerk() <= MAX_JERK, "jerk " + m.maxObservedJerk());
 

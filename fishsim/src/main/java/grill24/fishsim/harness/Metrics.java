@@ -48,6 +48,27 @@ public final class Metrics {
     private double nnDistSum;
     private float minPairwiseDist = Float.MAX_VALUE;
 
+    // ── Realism measures (docs/fish-swarm-realism.md §3, after warmup) ──────
+    // These are what turn "does the swarm look more realistic" into a number. Unlike the
+    // invariants above they have no pass/fail bound — they are read as a table while tuning, and
+    // compared against the ranges real schools occupy.
+    /** Per-tick polarization Φ = |mean unit velocity|, accumulated over ticks. */
+    private long polSamples;
+    private double polSum;
+    /** Per-tick milling index M = |mean of (r̂ × v̂)_y| about the shoal centroid. */
+    private double millSum;
+    /** Per-fish speed moments, for the coefficient of variation. */
+    private long speedSamples;
+    private double speedSum, speedSumSq;
+    /**
+     * Nearest-neighbour bearing in the observing fish's own frame, in 8 sectors of 45° starting
+     * dead ahead (sector 0 = ±22.5° of the heading, sectors increasing counter-clockwise). A real
+     * school shows a pronounced front/side preference; an isotropic model gives a flat ring, which
+     * is what this histogram is here to expose.
+     */
+    private final long[] nnBearingSectors = new long[8];
+    private long nnBearingSamples;
+
     public Metrics(FlockEngine engine, Tunables tunables, int warmupTicks) {
         this.engine = engine;
         this.tunables = tunables;
@@ -119,11 +140,12 @@ public final class Metrics {
             // Invariant 6 — shoal shape, after warmup.
             if (ticks > warmupTicks) {
                 float nn2 = Float.MAX_VALUE;
+                int nnJ = -1;
                 for (int j = 0; j < n; j++) {
                     if (j == i || !engine.swimmers[j]) continue;
                     float dx = posL[i] - posL[j], dy = posY[i] - posY[j], dz = posD[i] - posD[j];
                     float d2 = dx * dx + dy * dy + dz * dz;
-                    if (d2 < nn2) nn2 = d2;
+                    if (d2 < nn2) { nn2 = d2; nnJ = j; }
                 }
                 if (nn2 != Float.MAX_VALUE) {
                     float d = (float) Math.sqrt(nn2);
@@ -131,12 +153,72 @@ public final class Metrics {
                     nnDistSum += d;
                     if (d < minPairwiseDist) minPairwiseDist = d;
                 }
+
+                speedSamples++;
+                speedSum += sp;
+                speedSumSq += (double) sp * sp;
+
+                // Nearest-neighbour bearing, measured in the observer's own horizontal frame —
+                // which is why it needs the observer to actually be moving.
+                float hsp = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
+                if (nnJ >= 0 && hsp > 1e-4f) {
+                    float fwdL = velL[i] / hsp, fwdD = velD[i] / hsp;
+                    float relL = posL[nnJ] - posL[i], relD = posD[nnJ] - posD[i];
+                    // Rotate the neighbour offset into the observer's frame, then bin by angle.
+                    float ahead = relL * fwdL + relD * fwdD;
+                    float abeam = relL * (-fwdD) + relD * fwdL;
+                    double angle = Math.atan2(abeam, ahead); // 0 = dead ahead
+                    int sector = (int) Math.floor((angle + Math.PI / 8 + 2 * Math.PI) / (Math.PI / 4)) % 8;
+                    nnBearingSectors[sector]++;
+                    nnBearingSamples++;
+                }
             }
 
             prevVelL[i] = velL[i]; prevVelY[i] = velY[i]; prevVelD[i] = velD[i];
             prevHeading[i] = engine.heading[i];
         }
+        if (ticks > warmupTicks) sampleGroupShape(n, posL, posD, velL, velY, velD);
         havePrev = true;
+    }
+
+    /**
+     * The two whole-school order parameters, which are per-tick group quantities rather than
+     * per-fish ones and so cannot ride along in the loop above.
+     *
+     * <p>Polarization Φ is the classic flocking order parameter: 1 when every fish points the same
+     * way, ~1/√n for independent headings. Milling M is its rotational counterpart — the mean
+     * signed tangential component about the shoal centroid — which is high exactly in the torus
+     * formation a polarization-only reading would score as disordered.
+     */
+    private void sampleGroupShape(int n, float[] posL, float[] posD,
+                                  float[] velL, float[] velY, float[] velD) {
+        float sumL = 0f, sumY = 0f, sumD = 0f;   // mean unit velocity
+        float cenL = 0f, cenD = 0f;              // shoal centroid (horizontal)
+        int swimmers = 0;
+        for (int i = 0; i < n; i++) {
+            if (!engine.swimmers[i]) continue;
+            swimmers++;
+            cenL += posL[i]; cenD += posD[i];
+            float s = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
+            if (s > 1e-5f) { sumL += velL[i] / s; sumY += velY[i] / s; sumD += velD[i] / s; }
+        }
+        if (swimmers < 2) return;
+        cenL /= swimmers; cenD /= swimmers;
+        polSum += Math.sqrt((double) sumL * sumL + (double) sumY * sumY + (double) sumD * sumD) / swimmers;
+
+        double mill = 0;
+        int milled = 0;
+        for (int i = 0; i < n; i++) {
+            if (!engine.swimmers[i]) continue;
+            float rL = posL[i] - cenL, rD = posD[i] - cenD;
+            float r = (float) Math.sqrt(rL * rL + rD * rD);
+            float hsp = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
+            if (r < 1e-4f || hsp < 1e-5f) continue;
+            mill += ((rL / r) * (velD[i] / hsp) - (rD / r) * (velL[i] / hsp));
+            milled++;
+        }
+        if (milled > 0) millSum += Math.abs(mill / milled);
+        polSamples++;
     }
 
     public int ticks() { return ticks; }
@@ -180,18 +262,59 @@ public final class Metrics {
     /** Smallest pairwise distance ever observed post-warmup ({@code MAX_VALUE} if <2 swimmers). */
     public float minPairwiseDist() { return minPairwiseDist; }
 
+    /** Mean polarization Φ over the post-warmup run: 1 = every fish points the same way. */
+    public double polarization() {
+        return polSamples == 0 ? 0 : polSum / polSamples;
+    }
+
+    /** Mean milling index over the post-warmup run: high in a torus, near 0 when polarized. */
+    public double millingIndex() {
+        return polSamples == 0 ? 0 : millSum / polSamples;
+    }
+
+    /** Coefficient of variation of swimmer speed — burst-and-coast shows up here and nowhere else. */
+    public double speedCv() {
+        if (speedSamples < 2) return 0;
+        double mean = speedSum / speedSamples;
+        if (mean <= 0) return 0;
+        double var = speedSumSq / speedSamples - mean * mean;
+        return var <= 0 ? 0 : Math.sqrt(var) / mean;
+    }
+
+    /** Nearest-neighbour bearing histogram as fractions, 8 sectors of 45° from dead ahead. */
+    public double[] nnBearingDistribution() {
+        double[] out = new double[nnBearingSectors.length];
+        if (nnBearingSamples == 0) return out;
+        for (int i = 0; i < out.length; i++) out[i] = nnBearingSectors[i] / (double) nnBearingSamples;
+        return out;
+    }
+
+    /**
+     * Fraction of nearest neighbours sitting in the forward three sectors (±67.5° of the
+     * heading) — the single headline number from the bearing histogram, and the one that
+     * separates a school with real structure from an isotropic cloud.
+     */
+    public double nnBearingFrontFraction() {
+        if (nnBearingSamples == 0) return 0;
+        return (nnBearingSectors[0] + nnBearingSectors[1] + nnBearingSectors[7])
+                / (double) nnBearingSamples;
+    }
+
     /** One CSV row of every headline number (see {@link #csvHeader()}), for the sweep harness. */
     public String csvRow() {
         return ticks + "," + wallPenetrations + "," + hardClampContacts() + ","
                 + maxObservedSpeed + "," + maxObservedAccel + "," + maxObservedJerk + ","
                 + maxFlipRatePer10s() + "," + deadzoneViolations + ","
                 + nearWallVelYVariance() + "," + nearWallSamples + ","
-                + meanNearestNeighborDist() + "," + (nnSamples == 0 ? "" : minPairwiseDist);
+                + meanNearestNeighborDist() + "," + (nnSamples == 0 ? "" : minPairwiseDist) + ","
+                + polarization() + "," + millingIndex() + "," + speedCv() + ","
+                + nnBearingFrontFraction();
     }
 
     public static String csvHeader() {
         return "ticks,wallPenetrations,hardClampContacts,maxSpeed,maxAccel,maxJerk,"
                 + "maxFlipRatePer10s,deadzoneViolations,nearWallVelYVariance,nearWallSamples,"
-                + "meanNNDist,minPairwiseDist";
+                + "meanNNDist,minPairwiseDist,"
+                + "polarization,millingIndex,speedCv,nnFrontFraction";
     }
 }

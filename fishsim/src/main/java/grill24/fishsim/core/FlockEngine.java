@@ -45,6 +45,24 @@ public final class FlockEngine {
     float[] homeDepth = new float[0];             // the layer plane this fish drifts toward
     public int[] species = new int[0];            // opaque species id (planar model only)
 
+    // ── Tier 1 per-fish state (planar model only — docs/fish-swarm-realism.md §2) ──────────
+    // Ornstein–Uhlenbeck wander state and its private noise stream, replacing the two global
+    // sine frequencies every fish used to share. One float of state per axis per fish.
+    float[] wanderState = new float[0];
+    float[] wanderStateY = new float[0];
+    long[] noiseState = new long[0];
+    // Per-fish trait multipliers, derived deterministically from the fish's own seed — no two
+    // fish in a tank have quite the same top speed, cruise, or turn rate.
+    float[] speedScale = new float[0];
+    float[] patrolScale = new float[0];
+    float[] turnScale = new float[0];
+    // Burst-and-coast cycle: phase in [0,1), advanced by a per-fish rate (period jitter) so a
+    // shoal never beats in unison even though each individual's own cycle is regular.
+    float[] burstPhase = new float[0];
+    float[] burstStep = new float[0];
+    /** Integrated burst envelope — the actual multiplier, see {@link #advanceBurst}. */
+    float[] burstDrive = new float[0];
+
     // ── Sim state (local lateral / vertical / depth) ───────────────────────
     float[] posL = new float[0], posY = new float[0], posD = new float[0];
     float[] prevL = new float[0], prevY = new float[0], prevD = new float[0];
@@ -73,6 +91,24 @@ public final class FlockEngine {
     private static final float PLANAR_TURN_RATE = 7f;
     /** Horizontal speed below which the yaw holds instead of chasing a noisy direction. */
     private static final float PLANAR_YAW_MIN_SPEED = 0.005f;
+
+    /** √3 — scales a uniform(−1,1) draw to unit variance for the OU wander's drive term. */
+    private static final float SQRT3 = 1.7320508f;
+    /**
+     * Hard bound on the OU wander signal. The process is unbounded in principle, and one
+     * multi-sigma excursion would command a turn far outside anything the rest of the model can
+     * absorb; ~4σ at the shipped tunables, so it clips essentially never.
+     */
+    private static final float WANDER_CLAMP = 2.5f;
+    /** ± spread on each fish's burst-and-coast period, as a fraction of the tunable. */
+    private static final float BURST_PERIOD_JITTER = 0.25f;
+    /**
+     * Envelope rates for the burst-and-coast drive, per second. Deliberately asymmetric: the
+     * attack is brisk (a fish reaches speed in a few beats) while the glide bleeds off slowly.
+     * A symmetric envelope reads as a hop rather than as swimming.
+     */
+    private static final float BURST_ATTACK_RATE = 3.0f;
+    private static final float BURST_DECAY_RATE = 0.8f;
 
     // Speed-integrated animation clock, in speed-scaled ticks: advances by speedFactor(i) per
     // step, so tail-beat frequency tracks swim speed CONTINUOUSLY. The animator must consume this
@@ -152,6 +188,10 @@ public final class FlockEngine {
             neighborIdx = new int[tunables.neighborCount()];
             neighborDist = new float[tunables.neighborCount()];
         }
+        // Trait multipliers and burst cadence are pure functions of (seed, tunables) — re-derive
+        // them so the new parameter set takes effect without a reseed. Everything continuous
+        // (positions, velocities, wander state, burst phase) is deliberately left alone.
+        for (int i = 0; i < count; i++) deriveTraits(i, seeds[i]);
     }
 
     /**
@@ -329,6 +369,14 @@ public final class FlockEngine {
     private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
     private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
     private long[] cSeeds = new long[0];
+    // Tier 1 state that is *continuous in time* rather than derived from the seed: the OU wander
+    // and its noise stream, and the burst-and-coast phase. The seed-derived traits do not need
+    // carrying (initFish re-derives them from the carried seed), but these do — resetting the
+    // burst phase would visibly jolt a surviving fish's speed mid-glide, which is exactly the
+    // class of rebuild teleport rebuildPreserving exists to prevent.
+    private float[] cWanderState = new float[0], cWanderStateY = new float[0];
+    private float[] cBurstPhase = new float[0], cBurstDrive = new float[0];
+    private long[] cNoiseState = new long[0];
 
     private void captureCarry(int[] carryFrom, int n) {
         carrying = carryFrom != null;
@@ -351,6 +399,9 @@ public final class FlockEngine {
             cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
             cSeeds[i] = seeds[from];
+            cWanderState[i] = wanderState[from]; cWanderStateY[i] = wanderStateY[from];
+            cNoiseState[i] = noiseState[from]; cBurstPhase[i] = burstPhase[from];
+            cBurstDrive[i] = burstDrive[from];
         }
     }
 
@@ -378,6 +429,9 @@ public final class FlockEngine {
             heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
+            wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
+            noiseState[i] = cNoiseState[i]; burstPhase[i] = cBurstPhase[i];
+            burstDrive[i] = cBurstDrive[i];
 
             placedL[placed] = cPosL[i];
             placedY[placed] = cPosY[i];
@@ -398,6 +452,8 @@ public final class FlockEngine {
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
         cSeeds = new long[n];
+        cWanderState = new float[n]; cWanderStateY = new float[n];
+        cNoiseState = new long[n]; cBurstPhase = new float[n]; cBurstDrive = new float[n];
     }
 
     private void initFish(int i, FishSpec spec, float lateral, float y, float depth,
@@ -419,6 +475,45 @@ public final class FlockEngine {
         bank[i] = 0f;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
+
+        // Tier 1 state. All of it hangs off `seed`, which carry-over preserves (see seedCarried),
+        // so a fish that survives a rebuild keeps its individuality as well as its position — and
+        // a fish re-seeded from the same tank always draws the same traits.
+        deriveTraits(i, seed);
+        burstPhase[i] = (unitFromHash(seed, 4) + 1f) * 0.5f;
+        burstDrive[i] = 1f;
+        wanderState[i] = 0f;
+        wanderStateY[i] = 0f;
+        // xorshift64 is dead at zero, so force an odd non-zero stream state.
+        noiseState[i] = (seed * 0x2545F4914F6CDD1DL) | 1L;
+    }
+
+    /**
+     * (Re)derives the seed-and-tunables-only part of a fish's Tier 1 state: its trait multipliers
+     * and its burst cadence. Split out of {@link #initFish} so {@link #setTunables} can call it
+     * without disturbing anything continuous in time — otherwise the viewer's traitJitter and
+     * burst sliders would read as dead until the next reseed.
+     */
+    private void deriveTraits(int i, long seed) {
+        float jitter = t.traitJitter();
+        speedScale[i] = 1f + jitter * unitFromHash(seed, 1);
+        patrolScale[i] = 1f + jitter * unitFromHash(seed, 2);
+        turnScale[i] = 1f + jitter * unitFromHash(seed, 3);
+        float period = t.burstPeriodSeconds() * (1f + BURST_PERIOD_JITTER * unitFromHash(seed, 5));
+        burstStep[i] = period > 0f ? t.dt() / period : 0f;
+    }
+
+    /**
+     * Deterministic uniform draw in [−1, 1) from a fish seed and a salt — a SplitMix64 finalizer,
+     * which decorrelates the low-entropy seeds the adapter hands us (a blockPos hash XOR a small
+     * index multiple) far better than masking off bits the way the legacy wander phases do.
+     */
+    private static float unitFromHash(long seed, long salt) {
+        long z = seed + salt * 0x9E3779B97F4A7C15L;
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z ^= z >>> 31;
+        return ((z >>> 40) * (1f / 8388608f)) - 1f;
     }
 
     /**
@@ -468,6 +563,9 @@ public final class FlockEngine {
         wanderPhaseB = new float[n];
         homeDepth = new float[n];
         species = new int[n];
+        wanderState = new float[n]; wanderStateY = new float[n]; noiseState = new long[n];
+        speedScale = new float[n]; patrolScale = new float[n]; turnScale = new float[n];
+        burstPhase = new float[n]; burstStep = new float[n]; burstDrive = new float[n];
         posL = new float[n]; posY = new float[n]; posD = new float[n];
         prevL = new float[n]; prevY = new float[n]; prevD = new float[n];
         velL = new float[n]; velY = new float[n]; velD = new float[n];
@@ -523,14 +621,42 @@ public final class FlockEngine {
         // decorrelated by ~4s and went negative by 8s — see WallTurnAnalysis). yawDeg still chases
         // the actual velocity direction every tick (below), just rate-limited — so this is a lag,
         // not a disconnect.
+        advanceWander(i);
+        advanceBurst(i);
+
         float yr = (float) Math.toRadians(yawDeg[i]);
         float dirL = (float) Math.cos(yr);
         float dirD = -(float) Math.sin(yr);
 
-        float wander = wanderL(i);
-        float dL = dirL * t.patrolSpeed() + (-dirD) * wander * t.cruiseSpeed();
-        float dD = dirD * t.patrolSpeed() + dirL * wander * t.cruiseSpeed();
-        float dY = wanderY(i) * t.cruiseSpeed();
+        // OU wander when it's configured, the legacy sine pair otherwise (which is what the
+        // single-tank parity set leaves in place).
+        boolean ouWander = t.wanderTurnSigma() > 0f;
+        float wander = ouWander ? wanderState[i] : wanderL(i);
+        float wanderVert = ouWander ? wanderStateY[i] : wanderY(i);
+
+        // Wall avoidance is sampled up front (it depends only on position, which does not change
+        // until integration below) because the burst needs to know how close the glass is.
+        domain.avoidance(posL[i], posY[i], posD[i], t.wallMargin(), t.wallMarginVertical(), avoidScratch);
+        float avoidMag = (float) Math.sqrt(avoidScratch[0] * avoidScratch[0]
+                + avoidScratch[1] * avoidScratch[1] + avoidScratch[2] * avoidScratch[2]);
+        if (avoidMag > 1f) avoidMag = 1f;
+
+        // Patrol is this individual's cruise, modulated by where it sits in its own
+        // beat-and-glide cycle — the term that turns a constant-speed drift into swimming.
+        //
+        // The burst is faded out toward plain cruise as the fish nears a wall. That is how real
+        // fish behave (nothing sprints at glass), and it is also load-bearing: soft containment
+        // only works while wallAvoidSpeed out-shoves everything pushing the other way, and an
+        // ungated burst peak plus a separation shove beat it in a 1-block domain — the hard
+        // backstop started engaging, which the invariant tests treat as a containment failure
+        // rather than a tuning nit.
+        float burst = burstFactor(i);
+        burst += (1f - burst) * avoidMag;
+        float patrol = t.patrolSpeed() * patrolScale[i] * burst;
+
+        float dL = dirL * patrol + (-dirD) * wander * t.cruiseSpeed();
+        float dD = dirD * patrol + dirL * wander * t.cruiseSpeed();
+        float dY = wanderVert * t.cruiseSpeed();
 
         // Species-aware separation: shoal-mates use the tight radius (they may swarm), strangers
         // the wide one — this is what keeps a mixed tank from congealing into one ball while
@@ -560,24 +686,72 @@ public final class FlockEngine {
         float sepMagnitude = (float) Math.sqrt(sepL * sepL + sepY * sepY + sepD * sepD) * t.separationSpeed();
         float sepScale = sepMagnitude > sepCap ? sepCap / sepMagnitude : 1f;
 
+        // Alignment: on unit heading when alignHeadingWeight is set, on raw velocity otherwise.
+        // Splitting direction-matching from speed-matching is what lets the direction gain be
+        // raised to a level that actually polarizes the school — averaging velocities made the
+        // two inseparable, so the gain had to stay low enough not to also flatten every fish's
+        // speed onto the neighbourhood mean.
+        boolean headingAlign = t.alignHeadingWeight() > 0f;
         int neigh = findNearestSwimmers(i);
         float aliL = 0f, aliY = 0f, aliD = 0f, cohL = 0f, cohY = 0f, cohD = 0f;
+        float neighSpeed = 0f;
         for (int b = 0; b < neighborIdx.length; b++) {
             int j = neighborIdx[b];
             if (j < 0) break;
-            aliL += velL[j]; aliY += velY[j]; aliD += velD[j];
+            if (headingAlign) {
+                float s = (float) Math.sqrt(velL[j] * velL[j] + velY[j] * velY[j] + velD[j] * velD[j]);
+                if (s > 1e-5f) {
+                    aliL += velL[j] / s; aliY += velY[j] / s; aliD += velD[j] / s;
+                }
+                neighSpeed += s;
+            } else {
+                aliL += velL[j]; aliY += velY[j]; aliD += velD[j];
+            }
             cohL += posL[j] - posL[i]; cohY += posY[j] - posY[i]; cohD += posD[j] - posD[i];
         }
         if (neigh > 0) {
             aliL /= neigh; aliY /= neigh; aliD /= neigh;
             cohL /= neigh; cohY /= neigh; cohD /= neigh;
+            neighSpeed /= neigh;
         }
 
-        dL += sepL * t.separationSpeed() * sepScale + aliL * t.alignmentWeight() + cohL * t.cohesionSpeed();
-        dD += sepD * t.separationSpeed() * sepScale + aliD * t.alignmentWeight() + cohD * t.cohesionSpeed();
-        dY += sepY * t.separationSpeed() * sepScale + aliY * t.alignmentWeight() + cohY * t.cohesionSpeed();
+        float alignWeight;
+        if (headingAlign) {
+            alignWeight = t.alignHeadingWeight();
+            // Formation-keeping yields to containment near the glass.
+            //
+            // The unit-heading formulation silently dropped a negative feedback that the
+            // velocity-averaged one had for free: fish decelerating into a wall contributed a
+            // shrinking average, so alignment faded exactly when containment needed the
+            // authority. A unit heading has magnitude 1 however nearly stopped its owner is, so a
+            // school pressed against glass kept commanding a full-strength push into it. Ablation
+            // over the 1x1x1 matrix (n=6..12) identified this term as the *sole* cause of
+            // hard-backstop engagements — zeroing it alone returned every case to zero.
+            //
+            // Gating on neighbour speed was the obvious repair and measurably did not work (it
+            // left, and in places worsened, the engagements). Gating on wall proximity does:
+            // zero engagements across the whole matrix. avoidMag is only non-zero inside
+            // wallMargin, so a school still holds formation everywhere but the last few
+            // centimetres before the glass — where real fish break formation too.
+            alignWeight *= (1f - avoidMag);
+        } else {
+            alignWeight = t.alignmentWeight();
+        }
+        dL += sepL * t.separationSpeed() * sepScale + aliL * alignWeight + cohL * t.cohesionSpeed();
+        dD += sepD * t.separationSpeed() * sepScale + aliD * alignWeight + cohD * t.cohesionSpeed();
+        dY += sepY * t.separationSpeed() * sepScale + aliY * alignWeight + cohY * t.cohesionSpeed();
 
-        domain.avoidance(posL[i], posY[i], posD[i], t.wallMargin(), t.wallMarginVertical(), avoidScratch);
+        // Speed matching, the other half of the split: nudge own forward speed toward the
+        // neighbourhood mean along the fish's OWN heading, never sideways — a fish keeping pace
+        // with the shoal speeds up, it does not get dragged across the tank.
+        if (headingAlign && neigh > 0 && t.speedMatchWeight() > 0f) {
+            float own = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
+            float match = (neighSpeed - own) * t.speedMatchWeight();
+            dL += dirL * match;
+            dD += dirD * match;
+        }
+
+        // (avoidScratch was filled at the top of this method.)
         dL += avoidScratch[0] * t.wallAvoidSpeed();
         dY += avoidScratch[1] * t.wallAvoidSpeed();
         dD += avoidScratch[2] * t.wallAvoidSpeed();
@@ -596,11 +770,14 @@ public final class FlockEngine {
         velY[i] *= (1f - t.verticalDamp() * t.dt());
         velD[i] += aD * t.dt();
 
+        // The ceiling is this fish's own, not the shoal's: a school where every member tops out
+        // at exactly the same speed can never string out into the ragged line real ones form.
+        float cap = t.maxSpeed() * speedScale[i];
         float sp = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
-        if (sp > t.maxSpeed()) {
-            float k = t.maxSpeed() / sp;
+        if (sp > cap) {
+            float k = cap / sp;
             velL[i] *= k; velY[i] *= k; velD[i] *= k;
-            sp = t.maxSpeed();
+            sp = cap;
         }
         speed[i] = sp;
 
@@ -625,7 +802,8 @@ public final class FlockEngine {
         if (hsp2 > PLANAR_YAW_MIN_SPEED) {
             float target = (float) Math.toDegrees(Math.atan2(-velD[i], velL[i]));
             float diff = wrapDeg(target - yawDeg[i]);
-            float turn = SimMath.clamp(diff, -PLANAR_TURN_RATE, PLANAR_TURN_RATE);
+            float turnRate = PLANAR_TURN_RATE * turnScale[i];
+            float turn = SimMath.clamp(diff, -turnRate, turnRate);
             yawDeg[i] = wrapDeg(yawDeg[i] + turn);
             bank[i] = SimMath.clamp(turn * 1.5f, -t.bankMax(), t.bankMax());
         } else {
@@ -788,6 +966,74 @@ public final class FlockEngine {
     private float wanderY(int i) {
         float t = simTick;
         return (float) (Math.sin(wanderPhaseA[i] * 1.7 + t * 0.023) * 0.6);
+    }
+
+    /**
+     * Advances this fish's Ornstein–Uhlenbeck wander one tick — the replacement for the sine pair
+     * above, whose two frequencies were global constants, so every fish in a tank shared one
+     * rhythm no matter how their phases were scattered.
+     *
+     * <p>OU is the right process here rather than plain white noise: it is mean-reverting (the
+     * fish always drifts back toward straight, so a wander excursion is a curve and not a
+     * permanent course change) and correlated over ~1/theta seconds (so the signal reads as an
+     * intention rather than as jitter). Steady-state standard deviation is sigma/√(2·theta).
+     *
+     * <p>The drive is a uniform draw, not a Gaussian: the integrator is itself a low-pass, so the
+     * driving distribution's shape does not survive into the output, and √3 rescales the uniform
+     * to unit variance so sigma keeps its meaning.
+     */
+    private void advanceWander(int i) {
+        if (t.wanderTurnSigma() <= 0f) return;
+        float dt = t.dt();
+        float k = t.wanderTurnSigma() * (float) Math.sqrt(dt) * SQRT3;
+        float decay = t.wanderTurnTheta() * dt;
+        wanderState[i] += -wanderState[i] * decay + k * nextSignedUnit(i);
+        wanderStateY[i] += -wanderStateY[i] * decay + k * nextSignedUnit(i);
+        wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
+        wanderStateY[i] = SimMath.clamp(wanderStateY[i], -WANDER_CLAMP, WANDER_CLAMP);
+    }
+
+    /**
+     * Advances this fish's burst-and-coast cycle one tick: the phase wraps, and the drive
+     * envelope chases the phase's current target.
+     *
+     * <p>The envelope is <i>integrated</i> rather than being a direct function of phase, and its
+     * two rates are deliberately asymmetric — a fast attack and a much slower decay. That is the
+     * shape real burst-and-coast has: a fish beats hard, then <i>glides</i>, losing speed only to
+     * drag.
+     *
+     * <p>The first implementation used a symmetric sin² pulse over the duty fraction and then
+     * dropped straight to the coast level. In game that read as a hop: a lurch forward every
+     * couple of seconds followed by a conspicuously fast slowdown, because holding a near-zero
+     * target while the steering gain drives velocity toward it is an active brake, not a glide.
+     * Integrating the envelope makes the commanded speed continuous and the decay gradual.
+     */
+    private void advanceBurst(int i) {
+        if (burstStep[i] <= 0f) {
+            burstDrive[i] = 1f;
+            return;
+        }
+        burstPhase[i] += burstStep[i];
+        if (burstPhase[i] >= 1f) burstPhase[i] -= 1f;
+        boolean thrusting = burstPhase[i] < t.burstDuty();
+        float target = thrusting ? t.burstThrustScale() : t.burstCoastScale();
+        float rate = thrusting ? BURST_ATTACK_RATE : BURST_DECAY_RATE;
+        burstDrive[i] += (target - burstDrive[i]) * rate * t.dt();
+    }
+
+    /** This fish's current burst-and-coast multiplier on patrol speed. */
+    private float burstFactor(int i) {
+        return burstStep[i] <= 0f ? 1f : burstDrive[i];
+    }
+
+    /** One xorshift64 draw from this fish's private noise stream, mapped to [−1, 1). */
+    private float nextSignedUnit(int i) {
+        long x = noiseState[i];
+        x ^= x << 13;
+        x ^= x >>> 7;
+        x ^= x << 17;
+        noiseState[i] = x;
+        return ((x >>> 40) * (1f / 8388608f)) - 1f;
     }
 
     /** Tail-beat frequency factor from forward speed; the hover path always uses 1.0. */

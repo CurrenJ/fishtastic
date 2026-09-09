@@ -57,10 +57,18 @@ public final class FishAnimator {
         // pass the engine's speed-integrated tail phase as t (see FlockEngine.renderPhase), never
         // by scaling hertz here — hertz multiplies t inside the sine, so per-frame hertz changes
         // teleport the instantaneous phase by t·Δhertz (the empirical "jitters and jumps in place"
-        // bug). Amplitude may scale directly: speed changes are force-capped, so the resulting
-        // per-frame amplitude deltas are sub-pixel.
+        // bug).
+        //
+        // Amplitude is coupled to speed only very weakly. It used to be a straight
+        // `bobAmplitude * speedFactor`, justified by per-frame deltas being sub-pixel — which is
+        // true, and beside the point: what matters is the ENVELOPE, not the per-frame step. Once
+        // burst-and-coast gave speed a real swing (docs/fish-swarm-realism.md §2), speedFactor
+        // began sweeping ~1.0→1.45 over about half a second, so the whole body rose and fell in
+        // time with every burst — reported in game as fish "hopping" up and forward every few
+        // seconds. Frequency coupling already conveys effort; amplitude coupling on top of it
+        // double-counts speed and is what turns a burst into a hop.
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
-        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude() * speedFactor, hertz);
+        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         if (bankDeg != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(bankDeg));
