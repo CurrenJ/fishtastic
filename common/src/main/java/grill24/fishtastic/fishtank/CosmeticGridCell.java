@@ -44,6 +44,16 @@ public record CosmeticGridCell(int gridX, int gridZ) {
         return gridX >= 0 && gridX < GRID_SIZE && gridZ >= 0 && gridZ < GRID_SIZE;
     }
 
+    /** Packs this cell into a single int (0-8) — used to key a cosmetic entry over the network. */
+    public int packed() {
+        return gridX * GRID_SIZE + gridZ;
+    }
+
+    /** Inverse of {@link #packed()}. */
+    public static CosmeticGridCell unpack(int packed) {
+        return new CosmeticGridCell(packed / GRID_SIZE, packed % GRID_SIZE);
+    }
+
     /** Local X center of this cell within the tank block, inset from frame walls. */
     public double localX() {
         return WALL_THICKNESS + (gridX + 0.5) * CELL_WIDTH;

@@ -1,11 +1,19 @@
 package grill24.fishtastic.data;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.util.ItemSizeHelper;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Governs how many fish a tank can hold based on their individual size, rather than a flat slot
@@ -51,6 +59,30 @@ public final class TankCapacity {
             used += costOf(occupant, level);
         }
         return used + costOf(incoming, level) <= BASE_BUDGET;
+    }
+
+    /**
+     * Finds a member of {@code group} with room for {@code incoming}, checked in group order
+     * (the clicked segment should be first in that order, so it's preferred when it has room).
+     * Returns null if every member's own budget is already spent — storage stays strictly
+     * per-segment (see docs/fish-tank-interaction-redesign.md §3a), this just spreads a rejected
+     * insert across the connected group instead of failing outright.
+     */
+    @Nullable
+    public static FishTankBlockEntity findSegmentWithRoom(TankGroups.Group group, ItemStack incoming, Level level) {
+        for (BlockPos pos : group.members()) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (!(be instanceof FishTankBlockEntity fishTank)) continue;
+            List<ItemStack> occupants = new ArrayList<>();
+            for (int i = 0; i < FishTankBlockEntity.CONTAINER_SIZE; i++) {
+                ItemStack existing = fishTank.getItem(i);
+                if (!existing.isEmpty()) occupants.add(existing);
+            }
+            if (canAdd(occupants, incoming, level)) {
+                return fishTank;
+            }
+        }
+        return null;
     }
 
     private static float resolveMeanSize(ItemStack stack, Level level) {

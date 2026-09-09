@@ -18,8 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * picked so far. Started by {@code capture start}, driven by right-clicks with the capture wand
  * item, and consumed by {@code capture finish}.
  * <p>
- * Not cleaned up on player disconnect — same tradeoff as {@link grill24.fishtastic.block.FishTankEditModeManager},
- * a handful of leaked UUIDs for a debug-only tool is a non-issue.
+ * Not cleaned up on player disconnect — a handful of leaked UUIDs for a debug-only tool is a
+ * non-issue.
  */
 public final class CosmeticCaptureSession {
 

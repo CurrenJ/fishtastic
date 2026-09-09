@@ -13,6 +13,9 @@ import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.item.FishTankCosmeticItem;
+import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.menu.FishTankBrowserMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -26,11 +29,17 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.Container;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -49,7 +58,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class FishTankBlockEntity extends BlockEntity implements Container {
+public class FishTankBlockEntity extends BlockEntity implements Container, MenuProvider {
     /** A placed multi-block structure cosmetic, anchored at one grid cell. */
     public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
 
@@ -890,6 +899,60 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
+    }
+
+    /**
+     * Removes one unit of the single-cell cosmetic at {@code cell} — one sea pickle, one kelp
+     * segment, or the whole cosmetic for anything else — and returns the item that should be
+     * given back to the player, or {@link ItemStack#EMPTY} if the cell held nothing. Mirrors the
+     * old edit-mode removal branch's per-unit behavior (see docs/fish-tank-interaction-redesign.md).
+     */
+    public ItemStack removeCosmeticEntry(CosmeticGridCell cell) {
+        PlacedCosmetic existing = cosmetics.get(cell);
+        if (existing == null) {
+            return ItemStack.EMPTY;
+        }
+        Item returnItem = FishTankCosmeticItem.forBlock(existing.block());
+        if (returnItem == null) {
+            returnItem = existing.block().asItem();
+        }
+        if (existing.block() instanceof SeaPickleBlock) {
+            int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
+            if (current > 1) {
+                setCosmetic(cell, new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current - 1)));
+            } else {
+                removeCosmetic(cell);
+            }
+        } else if (existing.block() == Blocks.KELP && existing.height() > 1) {
+            setCosmetic(cell, new PlacedCosmetic(existing.blockState(), existing.height() - 1));
+        } else {
+            removeCosmetic(cell);
+        }
+        return returnItem == Items.AIR ? ItemStack.EMPTY : new ItemStack(returnItem);
+    }
+
+    /**
+     * Removes the whole structure cosmetic anchored at {@code anchor} and returns the item that
+     * should be given back to the player, or {@link ItemStack#EMPTY} if there was nothing there.
+     */
+    public ItemStack removeStructureCosmeticEntry(CosmeticGridCell anchor) {
+        PlacedStructureCosmetic placed = structureCosmetics.get(anchor);
+        if (placed == null) {
+            return ItemStack.EMPTY;
+        }
+        removeStructureCosmetic(anchor);
+        FishTankStructureCosmeticItem returnItem = FishTankStructureCosmeticItem.forStructure(placed.structureId());
+        return returnItem != null ? new ItemStack(returnItem) : ItemStack.EMPTY;
+    }
+
+    @Override
+    public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+        return new FishTankBrowserMenu(containerId, inventory, this);
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("block.fishtastic.fish_tank");
     }
 
 }

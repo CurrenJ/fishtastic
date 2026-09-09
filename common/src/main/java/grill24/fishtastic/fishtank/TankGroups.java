@@ -1,4 +1,4 @@
-package grill24.fishtastic.client.util;
+package grill24.fishtastic.fishtank;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -13,15 +13,29 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Client-side discovery of connected fish tank groups from the existing {@code openFaces}
- * adjacency (docs/fish-sim-engine-handoff.md Task 9). Preview-only: the server-side lock model is
- * a separate workstream — this just asks "which tanks does this one currently share water with",
- * flood-filling through faces both sides agree are open.
+ * Discovery of connected fish tank groups from the existing {@code openFaces} adjacency
+ * (docs/fish-sim-engine-handoff.md Task 9). Works against any {@link Level} (client or server) —
+ * flood-fills through faces both sides agree are open.
  */
 public final class TankGroups {
 
-    /** Safety cap on flood-fill size — matches the bubble-column walk's paranoia bound. */
-    private static final int MAX_GROUP_SIZE = 64;
+    /**
+     * Safety cap for the swarm renderer's live simulation — matches the bubble-column walk's
+     * paranoia bound and bounds per-frame engine cost. Never use this for a gameplay query (GUI
+     * listing, capacity fallback, removal validation): those must see the *same* full group
+     * regardless of which member the query started from, and a small cap makes the visited-64
+     * subset anchor-dependent — clicking two different segments of a >64-tank structure would
+     * silently compute two different, non-overlapping-enough member sets (see
+     * docs/fish-tank-interaction-redesign.md).
+     */
+    public static final int RENDER_MAX_GROUP_SIZE = 64;
+
+    /**
+     * Safety cap for gameplay queries that must be anchor-independent. Large enough that no
+     * realistically buildable structure ever hits it — it exists only to bound a pathological
+     * flood-fill, not to trim normal results the way {@link #RENDER_MAX_GROUP_SIZE} does.
+     */
+    public static final int GAMEPLAY_MAX_GROUP_SIZE = 8192;
 
     private TankGroups() {}
 
@@ -48,15 +62,21 @@ public final class TankGroups {
         public float offsetZ() { return min.getZ() - anchor.getZ() + occupancy[0][0].length / 2f; }
     }
 
-    /** Flood-fills the connected group containing this tank. A lone tank yields a 1-member group. */
-    public static Group of(FishTankBlockEntity start, Level level) {
+    /**
+     * Flood-fills the connected group containing this tank. A lone tank yields a 1-member group.
+     *
+     * @param maxGroupSize safety cap on visited members — pass {@link #RENDER_MAX_GROUP_SIZE} for
+     *                      the live swarm renderer, {@link #GAMEPLAY_MAX_GROUP_SIZE} for anything
+     *                      that needs the same result no matter which member it started from.
+     */
+    public static Group of(FishTankBlockEntity start, Level level, int maxGroupSize) {
         BlockPos startPos = start.getBlockPos();
         Set<BlockPos> visited = new HashSet<>();
         ArrayDeque<FishTankBlockEntity> frontier = new ArrayDeque<>();
         visited.add(startPos);
         frontier.add(start);
 
-        while (!frontier.isEmpty() && visited.size() < MAX_GROUP_SIZE) {
+        while (!frontier.isEmpty() && visited.size() < maxGroupSize) {
             FishTankBlockEntity tank = frontier.poll();
             Set<Direction> open = tank.getOpenFaces();
             for (Direction dir : open) {

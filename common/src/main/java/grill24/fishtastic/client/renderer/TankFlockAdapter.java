@@ -5,7 +5,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.client.util.TankGroups;
+import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -126,7 +126,7 @@ public final class TankFlockAdapter {
      * checks are allocation-light scans; the rebuilds only run on a real change.
      */
     public void sync(FishTankBlockEntity be, int blockPosHash, Level level) {
-        TankGroups.Group group = TankGroups.of(be, level);
+        TankGroups.Group group = TankGroups.of(be, level, TankGroups.RENDER_MAX_GROUP_SIZE);
         boolean membershipChanged = !group.members().equals(cachedMembers);
         cachedMembers = group.members();
 

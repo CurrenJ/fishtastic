@@ -4,11 +4,13 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockTags;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -28,9 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.HoneycombItem;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -143,21 +143,10 @@ public class FishTankBlock extends Block implements EntityBlock {
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof FishTankBlockEntity fishTank) {
-                ItemStack extracted = fishTank.extractItem();
-                if (!extracted.isEmpty()) {
-                    // Give the item to the player or drop it
-                    if (!player.getInventory().add(extracted)) {
-                        player.drop(extracted, false);
-                    }
-                    player.sendSystemMessage(
-                        Component.literal("Removed item from fish tank")
-                    );
-                    return InteractionResult.SUCCESS;
-                } else {
-                    player.sendSystemMessage(
-                        Component.literal("Fish tank is empty")
-                    );
-                }
+                // Empty-hand click opens the browser GUI (lists every fish/cosmetic across the
+                // whole connected tank group and lets the player remove any of them) instead of
+                // blindly popping the last-placed fish — see docs/fish-tank-interaction-redesign.md.
+                player.openMenu(fishTank);
             }
         }
         return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
@@ -269,48 +258,6 @@ public class FishTankBlock extends Block implements EntityBlock {
             }
         }
 
-        // Edit mode: cosmetic removal with empty hand.
-        if (!level.isClientSide() && FishTankEditModeManager.isInEditMode(player.getUUID())
-                && hand == InteractionHand.MAIN_HAND && itemStack.isEmpty()) {
-            BlockEntity be = level.getBlockEntity(blockPos);
-            if (be instanceof FishTankBlockEntity fishTank) {
-                CosmeticGridCell cell = findTargetedCell(player, blockPos, fishTank);
-                CosmeticGridCell structureAnchor = cell != null ? fishTank.getStructureAnchor(cell) : null;
-                if (structureAnchor != null) {
-                    return removeStructureCosmetic(player, fishTank, structureAnchor);
-                }
-                if (cell != null && fishTank.getCosmetics().containsKey(cell)) {
-                    PlacedCosmetic existing = fishTank.getCosmetics().get(cell);
-                    // Custom cosmetic item takes priority; fall back to the vanilla block item.
-                    Item returnItem = FishTankCosmeticItem.forBlock(existing.block());
-                    if (returnItem == null) returnItem = existing.block().asItem();
-                    // Sea pickle: decrement one pickle at a time; remove when the last pickle is taken.
-                    // Kelp: remove one segment at a time from the top; remove when the last segment is taken.
-                    if (existing.block() instanceof SeaPickleBlock) {
-                        int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
-                        if (current > 1) {
-                            fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current - 1)));
-                        } else {
-                            fishTank.removeCosmetic(cell);
-                        }
-                    } else if (existing.block() == Blocks.KELP && existing.height() > 1) {
-                        fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState(), existing.height() - 1));
-                    } else {
-                        fishTank.removeCosmetic(cell);
-                    }
-                    if (returnItem != Items.AIR) {
-                        ItemStack returnStack = new ItemStack(returnItem);
-                        if (!player.getInventory().add(returnStack)) {
-                            player.drop(returnStack, false);
-                        }
-                    }
-                    return InteractionResult.SUCCESS;
-                }
-                // No cosmetic targeted in edit mode — consume to prevent display-item extraction.
-                return InteractionResult.SUCCESS_SERVER;
-            }
-        }
-
         // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires
         // even with an empty hand. Delegate withdrawal here when the hand is empty.
         if (itemStack.isEmpty()) {
@@ -360,12 +307,13 @@ public class FishTankBlock extends Block implements EntityBlock {
                     float rotation = calculateRotationTowardPlayer(player, blockPos);
 
                     ItemStack placedStack = toAdd.copy();
-                    if (fishTank.addItem(toAdd, rotation)) {
+                    FishTankBlockEntity target = addToGroupWithFallback(level, fishTank, toAdd, rotation);
+                    if (target != null) {
                         itemStack.shrink(1);
                         player.sendSystemMessage(
                             Component.literal("Added item to fish tank")
                         );
-                        checkTankQuests(player, fishTank, placedStack);
+                        checkTankQuests(player, target, placedStack);
                         return InteractionResult.SUCCESS;
                     } else {
                         // addItem only fails when there's no room left (no mergeable stack, no empty slot)
@@ -404,15 +352,41 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
         float rotation = calculateRotationTowardPlayer(player, blockPos);
         ItemStack placedStack = popped.copy();
-        if (!fishTank.addItem(popped, rotation)) {
-            // Tank has no room — leave the pile untouched.
+        Level level = fishTank.getLevel();
+        FishTankBlockEntity target = level != null ? addToGroupWithFallback(level, fishTank, popped, rotation) : null;
+        if (target == null) {
+            // Tank has no room anywhere in its connected group — leave the pile untouched.
             player.sendSystemMessage(Component.literal("Fish tank is full"));
             return InteractionResult.FAIL;
         }
         itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
         player.sendSystemMessage(Component.literal("Added item to fish tank"));
-        checkTankQuests(player, fishTank, placedStack);
+        checkTankQuests(player, target, placedStack);
         return InteractionResult.SUCCESS;
+    }
+
+    /**
+     * Adds {@code toAdd} to {@code clicked} if it has room; otherwise tries the rest of the
+     * clicked tank's connected group in group order, so a full segment doesn't block insertion
+     * into a tank the player can plainly see swims as one continuous space — see
+     * docs/fish-tank-interaction-redesign.md §4.1. Returns the tank the item actually landed in,
+     * or null if every member's budget is spent. Storage stays strictly per-segment; this only
+     * spreads a rejected insert across the group instead of failing outright.
+     */
+    @Nullable
+    private static FishTankBlockEntity addToGroupWithFallback(Level level, FishTankBlockEntity clicked, ItemStack toAdd, float rotation) {
+        if (clicked.addItem(toAdd, rotation)) {
+            return clicked;
+        }
+        TankGroups.Group group = TankGroups.of(clicked, level, TankGroups.GAMEPLAY_MAX_GROUP_SIZE);
+        if (!group.isMultiTank()) {
+            return null;
+        }
+        FishTankBlockEntity fallback = TankCapacity.findSegmentWithRoom(group, toAdd, level);
+        if (fallback == null || !fallback.addItem(toAdd, rotation)) {
+            return null;
+        }
+        return fallback;
     }
 
     /** Re-checks tank-composition quests after a fish is inserted; no-op off the server thread. */
@@ -559,22 +533,6 @@ public class FishTankBlock extends Block implements EntityBlock {
             }
         }
         return Rotation.NONE;
-    }
-
-    /** Removes the whole structure anchored at {@code anchor} and returns its item to the player. */
-    private InteractionResult removeStructureCosmetic(Player player, FishTankBlockEntity fishTank, CosmeticGridCell anchor) {
-        FishTankBlockEntity.PlacedStructureCosmetic placed = fishTank.getStructureCosmetics().get(anchor);
-        fishTank.removeStructureCosmetic(anchor);
-        if (placed != null) {
-            FishTankStructureCosmeticItem returnItem = FishTankStructureCosmeticItem.forStructure(placed.structureId());
-            if (returnItem != null) {
-                ItemStack returnStack = new ItemStack(returnItem);
-                if (!player.getInventory().add(returnStack)) {
-                    player.drop(returnStack, false);
-                }
-            }
-        }
-        return InteractionResult.SUCCESS;
     }
 
     /** Returns the grid cell the player is targeting in the given tank, or null. */

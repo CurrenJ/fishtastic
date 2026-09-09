@@ -14,7 +14,6 @@ public class FishtasticPackets {
     public static final Identifier FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
     public static final Identifier REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
     public static final Identifier LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
-    public static final Identifier TOGGLE_EDIT_MODE_ID = Fishtastic.id("toggle_edit_mode");
     public static final Identifier COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
     public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
     public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
@@ -31,6 +30,7 @@ public class FishtasticPackets {
     public static final Identifier SET_ASSEMBLY_SHAPE_ID = Fishtastic.id("set_assembly_shape");
     public static final Identifier NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
     public static final Identifier SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
+    public static final Identifier REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -53,11 +53,6 @@ public class FishtasticPackets {
                 RequestLeaderboardPacket.TYPE,
                 RequestLeaderboardPacket.STREAM_CODEC,
                 RequestLeaderboardPacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
-                ToggleEditModePacket.TYPE,
-                ToggleEditModePacket.STREAM_CODEC,
-                ToggleEditModePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 CompleteQuestPacket.TYPE,
@@ -108,6 +103,11 @@ public class FishtasticPackets {
                 SetOrganizerSortPacket.TYPE,
                 SetOrganizerSortPacket.STREAM_CODEC,
                 SetOrganizerSortPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                RemoveTankEntryPacket.TYPE,
+                RemoveTankEntryPacket.STREAM_CODEC,
+                RemoveTankEntryPacket::handleClientToServer
         );
     }
 

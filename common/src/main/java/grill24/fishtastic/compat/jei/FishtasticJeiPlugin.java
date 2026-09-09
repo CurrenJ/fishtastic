@@ -3,6 +3,8 @@ package grill24.fishtastic.compat.jei;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.client.FishEncyclopediaScreen;
+import grill24.fishtastic.client.FishTankAssemblyScreen;
+import grill24.fishtastic.client.FishTankBrowserScreen;
 import grill24.fishtastic.client.QuestLogScreen;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.recipe.MarineCompostRecipe;
@@ -92,12 +94,18 @@ public class FishtasticJeiPlugin implements IModPlugin {
      * {@code IngredientListOverlayLayout#createDisplayArea} is
      * {@code rect(0, 0, screenWidth, screenHeight).cropLeft(guiRight())}, so a GUI spanning the
      * whole screen leaves a zero-width area no matter how the surrounding logic is rearranged.
-     * It's also honest — these screens really are full-bleed.
+     * It's also honest for the quest log and encyclopedia — those really are full-bleed.
+     * {@code FishTankBrowserScreen} and {@code FishTankAssemblyScreen} aren't (they're a
+     * conventional centered panel), but the overlay is hidden there too on request — the shape
+     * gallery / grid content sits close enough to the panel edges that JEI's sliver of leftover
+     * space wasn't usable anyway.
      */
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGuiScreenHandler(QuestLogScreen.class, FishtasticJeiPlugin::fullScreenGui);
         registration.addGuiScreenHandler(FishEncyclopediaScreen.class, FishtasticJeiPlugin::fullScreenGui);
+        registration.addGuiScreenHandler(FishTankBrowserScreen.class, FishtasticJeiPlugin::fullScreenGui);
+        registration.addGuiScreenHandler(FishTankAssemblyScreen.class, FishtasticJeiPlugin::fullScreenGui);
     }
 
     /** {@link IGuiProperties} claiming the whole screen, leaving JEI nowhere to draw. */

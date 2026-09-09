@@ -114,6 +114,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         net.minecraft.client.gui.screens.MenuScreens.register(
                 FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
 
+        // Register the Fish Tank Browser menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
+
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
 
@@ -148,7 +152,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         FishtasticKeyBinds.init();
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
-        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.toggleFishTankEditMode);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openFishEncyclopedia);
 
         // Register block entity renderer
