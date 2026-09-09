@@ -74,6 +74,18 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FRENZY_BAIT.value())
                 .add(FishtasticItems.TROPHY_BAIT.value());
 
+        // Super bait: premium all-purpose baits, shown as "Super Bait" in gold on the item name.
+        valueLookupBuilder(FishtasticItemTags.SUPER_BAIT)
+                .add(FishtasticItems.GUMMY_WORMS.value())
+                .add(FishtasticItems.BLAZED_GRUB.value());
+
+        // Specialist bait: single-affinity baits with a downside, shown in light blue on the item name.
+        valueLookupBuilder(FishtasticItemTags.SPECIALIST_BAIT)
+                .add(FishtasticItems.SMALL_FISH_BAIT.value())
+                .add(FishtasticItems.CALM_BAIT.value())
+                .add(FishtasticItems.FRENZY_BAIT.value())
+                .add(FishtasticItems.TROPHY_BAIT.value());
+
         valueLookupBuilder(ItemTags.FISHING_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
 
