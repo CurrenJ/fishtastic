@@ -2,12 +2,14 @@ package grill24.fishtastic.menu;
 
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.blockentity.ElectricFishOrganizerBlockEntity;
+import grill24.fishtastic.blockentity.OrganizerSortMode;
 import grill24.fishtastic.item.PileOfFishItem;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
@@ -28,21 +30,31 @@ public class ElectricFishOrganizerMenu extends AbstractContainerMenu {
 
     private final Container organizerContainer;
 
+    /** Server→client sync of the current sort mode/direction (client and server both read these). */
+    private final DataSlot sortModeSlot;
+    private final DataSlot sortAscendingSlot;
+
     /** Client-side constructor, used by the registered {@code MenuType} factory. */
     public ElectricFishOrganizerMenu(int containerId, Inventory playerInventory) {
-        this(containerId, playerInventory, new SimpleContainer(CONTAINER_SIZE));
+        this(containerId, playerInventory, new SimpleContainer(CONTAINER_SIZE), OrganizerSortMode.SPECIES, true);
     }
 
     /** Server-side constructor, used by {@link ElectricFishOrganizerBlockEntity#createMenu}. */
     public ElectricFishOrganizerMenu(int containerId, Inventory playerInventory, ElectricFishOrganizerBlockEntity blockEntity) {
-        this(containerId, playerInventory, (Container) blockEntity);
+        this(containerId, playerInventory, (Container) blockEntity, blockEntity.getSortMode(), blockEntity.isSortAscending());
     }
 
-    private ElectricFishOrganizerMenu(int containerId, Inventory playerInventory, Container container) {
+    private ElectricFishOrganizerMenu(int containerId, Inventory playerInventory, Container container,
+                                       OrganizerSortMode initialSortMode, boolean initialSortAscending) {
         super(FishtasticMenuTypes.ELECTRIC_FISH_ORGANIZER.value(), containerId);
         checkContainerSize(container, CONTAINER_SIZE);
         this.organizerContainer = container;
         container.startOpen(playerInventory.player);
+
+        this.sortModeSlot = addDataSlot(DataSlot.standalone());
+        this.sortModeSlot.set(initialSortMode.ordinal());
+        this.sortAscendingSlot = addDataSlot(DataSlot.standalone());
+        this.sortAscendingSlot.set(initialSortAscending ? 1 : 0);
 
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
@@ -52,6 +64,40 @@ public class ElectricFishOrganizerMenu extends AbstractContainerMenu {
 
         int inventoryTop = 18 + ROWS * 18 + 13;
         addStandardInventorySlots(playerInventory, 8, inventoryTop);
+    }
+
+    /** The sort mode both sides currently agree on (client mirrors the server via {@link #sortModeSlot}). */
+    public OrganizerSortMode getSortMode() {
+        OrganizerSortMode[] modes = OrganizerSortMode.values();
+        int ordinal = sortModeSlot.get();
+        return ordinal >= 0 && ordinal < modes.length ? modes[ordinal] : OrganizerSortMode.SPECIES;
+    }
+
+    public boolean isSortAscending() {
+        return sortAscendingSlot.get() != 0;
+    }
+
+    /**
+     * Server-side sort change (from {@link grill24.fishtastic.network.SetOrganizerSortPacket}):
+     * persist it on the block entity (which re-sorts its contents) and push the new state to the
+     * client's mirrored data slots.
+     */
+    public void setSortState(OrganizerSortMode mode, boolean ascending) {
+        if (organizerContainer instanceof ElectricFishOrganizerBlockEntity blockEntity) {
+            blockEntity.setSortMode(mode, ascending);
+        }
+        sortModeSlot.set(mode.ordinal());
+        sortAscendingSlot.set(ascending ? 1 : 0);
+        broadcastChanges();
+    }
+
+    /**
+     * Client-side optimistic update so the buttons react instantly on click, before the server
+     * confirms via {@link #setData}. The server remains authoritative.
+     */
+    public void setSortStateLocal(OrganizerSortMode mode, boolean ascending) {
+        sortModeSlot.set(mode.ordinal());
+        sortAscendingSlot.set(ascending ? 1 : 0);
     }
 
     @Override

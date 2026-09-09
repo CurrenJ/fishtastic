@@ -1,14 +1,18 @@
 package grill24.fishtastic.blockentity;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -33,6 +37,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A 54-slot container that only accepts sized fish and {@link PileOfFishItem} stacks, and keeps
@@ -56,6 +61,10 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
 
     /** Guards re-entrancy: {@link #normalize()} itself calls {@link #setItem} in a loop. */
     private boolean normalizing = false;
+
+    /** How piles are grouped, and in which direction the groups are ordered across the slots. */
+    private OrganizerSortMode sortMode = OrganizerSortMode.SPECIES;
+    private boolean sortAscending = true;
 
     public ElectricFishOrganizerBlockEntity(BlockPos pos, BlockState state) {
         super(FishtasticBlockEntityTypes.ELECTRIC_FISH_ORGANIZER.value(), pos, state);
@@ -127,6 +136,22 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
         }
     }
 
+    public OrganizerSortMode getSortMode() {
+        return sortMode;
+    }
+
+    public boolean isSortAscending() {
+        return sortAscending;
+    }
+
+    /** Server-side: from {@link grill24.fishtastic.network.SetOrganizerSortPacket} via the menu. Re-triggers {@link #normalize()}. */
+    public void setSortMode(OrganizerSortMode sortMode, boolean sortAscending) {
+        if (this.sortMode == sortMode && this.sortAscending == sortAscending) return;
+        this.sortMode = sortMode;
+        this.sortAscending = sortAscending;
+        setChanged();
+    }
+
     /**
      * Rebuilds the container from scratch into its canonical sorted form. Splits every raw fish
      * stack and every existing pile (ours or handed in by a player, single-species or mixed) back
@@ -167,17 +192,22 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
             // availableSlots entirely, so the rewrite below can never touch it.
         }
 
-        Map<Item, List<ItemStack>> bySpecies = new LinkedHashMap<>();
+        Registry<FishProfile> fishProfileRegistry = sortMode == OrganizerSortMode.ZONE
+                ? level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                : null;
+
+        Map<Object, List<ItemStack>> byGroup = new LinkedHashMap<>();
         for (ItemStack fish : allFish) {
-            bySpecies.computeIfAbsent(fish.getItem(), key -> new ArrayList<>()).add(fish);
+            byGroup.computeIfAbsent(groupKey(fish, fishProfileRegistry), key -> new ArrayList<>()).add(fish);
         }
 
-        List<Item> speciesSorted = new ArrayList<>(bySpecies.keySet());
-        speciesSorted.sort(Comparator.comparing(item -> BuiltInRegistries.ITEM.getKey(item).toString()));
+        List<Object> groupsSorted = new ArrayList<>(byGroup.keySet());
+        Comparator<Object> groupOrder = groupOrder();
+        groupsSorted.sort(sortAscending ? groupOrder : groupOrder.reversed());
 
         List<ItemStack> newPiles = new ArrayList<>();
-        for (Item species : speciesSorted) {
-            List<ItemStack> fish = bySpecies.get(species);
+        for (Object group : groupsSorted) {
+            List<ItemStack> fish = byGroup.get(group);
             fish.sort(FISH_ORDER);
 
             BundleContents.Mutable pile = new BundleContents.Mutable(BundleContents.EMPTY);
@@ -212,6 +242,49 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
         }
     }
 
+    /** The value fish with equal keys are grouped under a single pile by, per {@link #sortMode}. */
+    private Object groupKey(ItemStack fish, @Nullable Registry<FishProfile> fishProfileRegistry) {
+        return switch (sortMode) {
+            case SPECIES -> fish.getItem();
+            case QUALITY -> {
+                FishQuality.Quality quality = FishQualityHelper.getQuality(fish);
+                yield quality != null ? quality : FishQuality.Quality.COMMON;
+            }
+            case SIZE -> sizeBucket(ItemSizeHelper.getSize(fish));
+            case ZONE -> primaryZone(fish.getItem(), fishProfileRegistry);
+        };
+    }
+
+    /**
+     * The order {@link #groupKey} values sort in (before {@link #sortAscending} is applied).
+     * Cast is safe: every key produced by {@link #groupKey} for the current {@link #sortMode}
+     * is of the one type this compares.
+     */
+    @SuppressWarnings("unchecked")
+    private Comparator<Object> groupOrder() {
+        return switch (sortMode) {
+            case SPECIES -> Comparator.<Object, String>comparing(key -> BuiltInRegistries.ITEM.getKey((Item) key).toString());
+            case QUALITY -> Comparator.<Object>comparingInt(key -> ((FishQuality.Quality) key).ordinal());
+            case SIZE -> Comparator.<Object>comparingInt(key -> (Integer) key);
+            case ZONE -> Comparator.<Object>comparingInt(key -> ((Optional<FishProfile.Zone>) key).map(Enum::ordinal).orElse(Integer.MAX_VALUE));
+        };
+    }
+
+    /**
+     * First declared zone in the species' {@link FishProfile}, or empty for a species with no
+     * profile (or a profile with no zones) — sorts last regardless of {@link #sortAscending}.
+     */
+    private static Optional<FishProfile.Zone> primaryZone(Item item, @Nullable Registry<FishProfile> fishProfileRegistry) {
+        if (fishProfileRegistry == null) return Optional.empty();
+        return FishtasticFishItem.getProfile(item.builtInRegistryHolder(), fishProfileRegistry)
+                .flatMap(profile -> profile.zones().stream().findFirst());
+    }
+
+    /** 10cm-wide length buckets for "stack by size": 0 groups [0,10), 10 groups [10,20), etc. */
+    private static int sizeBucket(float size) {
+        return Math.max(0, (int) size / 10) * 10;
+    }
+
     private static ItemStack pileFrom(BundleContents.Mutable contents) {
         ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
         pile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
@@ -226,6 +299,8 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
+        output.putString("SortMode", sortMode.getSerializedName());
+        output.putBoolean("SortAscending", sortAscending);
         ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
@@ -240,6 +315,8 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
+        sortMode = OrganizerSortMode.bySerializedName(input.getStringOr("SortMode", OrganizerSortMode.SPECIES.getSerializedName()));
+        sortAscending = input.getBooleanOr("SortAscending", true);
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
         }

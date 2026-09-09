@@ -30,6 +30,7 @@ public class FishtasticPackets {
     public static final Identifier ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
     public static final Identifier SET_ASSEMBLY_SHAPE_ID = Fishtastic.id("set_assembly_shape");
     public static final Identifier NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
+    public static final Identifier SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -102,6 +103,11 @@ public class FishtasticPackets {
                 SetAssemblyShapePacket.TYPE,
                 SetAssemblyShapePacket.STREAM_CODEC,
                 SetAssemblyShapePacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                SetOrganizerSortPacket.TYPE,
+                SetOrganizerSortPacket.STREAM_CODEC,
+                SetOrganizerSortPacket::handleClientToServer
         );
     }
 
