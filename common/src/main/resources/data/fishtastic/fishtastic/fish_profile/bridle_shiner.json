@@ -12,5 +12,8 @@
     "xz_spread": 0.2,
     "y_range": 0,
     "rotation_jitter": 0
-  }
+  },
+  "time_weights": [
+    { "time": "day", "multiplier": 1.5 }
+  ]
 }

@@ -8,5 +8,8 @@
   "biome_weights": [
     { "biome": "#minecraft:is_jungle", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:sprinter"
+  "temperament": "fishtastic:sprinter",
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 0.5 }
+  ]
 }

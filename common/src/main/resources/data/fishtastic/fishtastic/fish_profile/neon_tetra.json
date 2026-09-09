@@ -11,8 +11,10 @@
     { "biome": "#fishtastic:is_lush_caves", "multiplier": 1.3 }
   ],
   "time_weights": [
-    { "time": "day", "multiplier": 1.5 },
     { "time": "night", "multiplier": 0.4 }
   ],
-  "temperament": "fishtastic:skittish"
+  "temperament": "fishtastic:skittish",
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 0.5 }
+  ]
 }

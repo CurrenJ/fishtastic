@@ -10,5 +10,8 @@
   "animation": {
     "mode": "horizontal_swim",
     "diagonal_texture": false
-  }
+  },
+  "moon_weights": [
+    { "phase": "full_moon", "multiplier": 2.0 }
+  ]
 }

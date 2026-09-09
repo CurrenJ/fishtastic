@@ -6,7 +6,7 @@
     "ocean"
   ],
   "biome_weights": [
-    { "biome": "#fishtastic:is_mushroom", "multiplier": 1.5 }
+    { "biome": "#fishtastic:is_mushroom", "multiplier": 2.0 }
   ],
   "temperament": "fishtastic:docile",
   "animation": {
@@ -20,5 +20,8 @@
   },
   "weather_weights": [
     { "weather": "clear", "multiplier": 0.25 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.5 }
   ]
 }
