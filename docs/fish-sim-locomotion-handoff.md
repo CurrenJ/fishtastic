@@ -1,9 +1,9 @@
 # Fish Locomotion — Handoff
 
-**Written:** 2026-09-10, at the end of Phase 1; updated at the end of Phase 2b. Read
+**Written:** 2026-09-10, at the end of Phase 1; updated at the end of Phase 3. Read
 [`fish-sim-locomotion.md`](fish-sim-locomotion.md) first — it holds the assessment, the class list,
 the phase order, and the per-phase result log. This document is the cold-start context for picking
-up Phase 3: what is true right now, what will bite you, and how to verify.
+up Phase 4: what is true right now, what will bite you, and how to verify.
 
 Companions that remain binding: [`fish-sim-engine-plan.md`](fish-sim-engine-plan.md) (module
 layout, verification model), [`fish-swarm-realism.md`](fish-swarm-realism.md) (the planar swimmer
@@ -14,18 +14,18 @@ top of).
 
 ## 1. State of the code
 
-Phases 0, 1 and 2 (including 2b, the group split) are implemented and headlessly verified.
-Phases 3–4 are untouched.
+Phases 0 through 3 are implemented and headlessly verified. Phase 4 (`ANCHORED`, the two garden
+eels) is the only class left without a motion model.
 
 | phase | class | status |
 |---|---|---|
 | 0 | the split itself | landed; zero behaviour change |
 | 1 | `BENTHIC` | landed, incl. cosmetics as floor terrain |
 | 2 | `DRIFT` | landed, engine + single tanks + the group split (2b) |
-| 3 | `GLIDE` | not started — 3 ray species still frozen |
+| 3 | `GLIDE` | landed — the planar model under `Tunables.GLIDE`, plus a ride height off the sand |
 | 4 | `ANCHORED` | not started — 2 garden eels still frozen |
 
-`:fishsim` 131 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
+`:fishsim` 138 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
 
 **In-game status.** Crawlers have had a *partial* look: the user confirmed `willans_chromodoris`
 sits correctly after the group-path floor-lift fix, and reported `trapania_scurra` floating, which
@@ -34,15 +34,19 @@ while, or watched one in a real multi-tank group. **A full in-game acceptance pa
 for this, for Tier 2, and for the 512-fish cap, all three of which have landed headlessly only.**
 Doing all three in one session is the sensible move.
 
-### Four models now — do not confuse them
+### Four models, five columns — do not confuse them
 
-| | binary 2.5D | planar | benthic | drift |
-|---|---|---|---|---|
-| entry point | `FlockEngine.stepFish` | `stepFishPlanar` | `stepBenthic` | `stepDrift` |
-| class | `FREE_SWIM` | `FREE_SWIM` | `BENTHIC` | `DRIFT` |
-| domain | `FlockDomain.Box` | `VoxelDomain` | either | either |
-| parameters | `Tunables.DEFAULT` | `Tunables.GROUP` | engine constants (`CRAWL_*`) | engine constants (`DRIFT_*`) |
-| status | **bitwise-locked** | free to change | free to change | free to change |
+| | binary 2.5D | planar | glide | benthic | drift |
+|---|---|---|---|---|---|
+| entry point | `FlockEngine.stepFish` | `stepFishPlanar` | `stepFishPlanar` | `stepBenthic` | `stepDrift` |
+| class | `FREE_SWIM` | `FREE_SWIM` | `GLIDE` | `BENTHIC` | `DRIFT` |
+| domain | `FlockDomain.Box` | `VoxelDomain` | either | either | either |
+| parameters | `Tunables.DEFAULT` | `Tunables.GROUP` | `Tunables.GLIDE` | engine constants (`CRAWL_*`) | engine constants (`DRIFT_*`) |
+| status | **bitwise-locked** | free to change | free to change | free to change | free to change |
+
+`GLIDE` shares the planar model's *code* and differs only in its parameter set, selected per fish
+by `params(i)` at the top of `stepFishPlanar` — which is why the goldens hold: a free swimmer is
+handed the same object it always read.
 
 `FlockEngine.step`'s switch is the only place that decides which runs. `FREE_SWIM` must keep
 reaching byte-identical instructions — that is what keeps `GoldenTrajectoryTest` / `ParityTest`
@@ -62,7 +66,7 @@ move is tested against the floor *before* it is taken and refused if it would la
 
 ## 2. Load-bearing details — do not remove these while refactoring
 
-Seven things that look like nits and are not. Most were found the hard way.
+Twelve things that look like nits and are not. Most were found the hard way.
 
 1. **Floor lookups are rotated into the block frame** (`FlockEngine.floorHeightAt`). A single
    tank's local lateral/depth axes are rotated by the placement yaw it recorded from the player;
@@ -98,9 +102,6 @@ Seven things that look like nits and are not. Most were found the hard way.
    whole domain would re-incur the distance-field cost that `fish-tank-group-scaling.md` §5.3a
    exists to avoid. Whatever you add later, keep expensive precomputes keyed on the membership
    epoch and cheap ones on their own signal.
-
----
-
 8. **A drifter's wall margins are its own, not `Tunables`'** (`DRIFT_WALL_MARGIN`,
    `DRIFT_WALL_MARGIN_VERTICAL`). Point them at `t.wallMargin()` and the avoidance term goes
    active across the whole width of a one-block-deep tank, where it out-accelerates the drift
@@ -113,7 +114,17 @@ Seven things that look like nits and are not. Most were found the hard way.
    `DriftTest.theVerticalCycleStaysCentred` is the guard, and it samples the whole run rather than
    the endpoint — a jellyfish that pins to the lid for a minute and comes back down would pass an
    endpoint check.
-10. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
+10. **A glider reads `p`, never `t`, inside `stepFishPlanar`.** The whole method was renamed off
+    the engine's field for this: a `t.` that creeps back in is a parameter a ray silently takes
+    from the shoal, and every one of them is a number chosen to make it *not* a shoal fish. The
+    two constants that are not in any parameter set — the ride height off the sand, and its swell
+    — are `GLIDE_*` engine constants, on the same footing as `CRAWL_*` and `DRIFT_*`.
+11. **The spatial index must be sized from the widest parameter set present**
+    (`interactionRadius`, keyed on `hasGlide`). The grid's contract is that a fish it skips
+    contributes *exactly* zero to both radius-limited passes; a glider's separation radius is
+    three times the shoal's, so sizing the index from `t` alone would silently drop neighbours a
+    ray is supposed to keep away from. Any future class with its own set inherits this.
+12. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
     the same thing at `DRIFT`: the engine moves a drifter, but a bell pulse is not a tail beat and
     a running `tailPhase` would double-drive a pose that is already on game time.
 
@@ -155,7 +166,7 @@ nothing else.
 
 ---
 
-## 5. Where the seams are for Phases 3–4
+## 5. Where the seams are for Phase 4
 
 Everything the remaining classes need already exists; none of them needs new domain machinery the
 way `BENTHIC` needed the floor.
@@ -167,12 +178,14 @@ way `BENTHIC` needed the floor.
   held swimmers and crawlers. It now branches on `swimmers[]` first. Admitting `GLIDE` (a
   `belly_down`) to the group would have hit the same cast — check that branch before you widen
   `GroupSplit`.
-* **`GLIDE` (Phase 3, rays) — next.** Mostly a parameter set over `stepFishPlanar`, so the work is
-  choosing where those parameters live — this is the case that probably *does* want `Tunables`
-  entries, since it is the same model with different numbers. Also switch `belly_down`'s
-  `bank_amplitude` from an open-loop sine to the engine's `bank[i]`, the way `applySwimming`
-  already does for swimmers.
-* **`ANCHORED` (Phase 4, garden eels).** Cheapest of the three. Fixed footprint from a 2D floor
+* **`GLIDE` (Phase 3, rays) — done.** It did want `Tunables` entries: `Tunables.GLIDE` is a third
+  canonical set, fixed rather than derived from the engine's own (a lone tank runs `DEFAULT`,
+  whose planar terms are neutralised, so deriving would produce a ray that jiggles in place).
+  `belly_down`'s bank now comes from `FlockEngine.bankFraction(i)` — the lean the fish earned by
+  turning — times the pose's own `bank_amplitude`. Where you *see* it is decided by the gate: at
+  0.54 and 0.86 rendered blocks against 2.5 body lengths of straight run, all three ray species
+  stay `STATIC` in a lone tank and glide in a real aquarium.
+* **`ANCHORED` (Phase 4, garden eels) — next, and the last one.** Cheapest of the three. Fixed footprint from a 2D floor
   scatter (reuse `placeOnFloor`), plus a retract/emerge float driven by the neighbour query the
   engine already performs. Note `Planted`'s Y is **still pinned by the renderer**
   (`computeBaseY`), unlike the crawler poses — that pinning is what Phase 4 replaces, and
@@ -215,15 +228,17 @@ step. In-game acceptance is a human pass, not something to automate.
    needs sub-block resolution in `DistanceField`, which is a redesign of the piece the
    group-scaling work rests on — a real decision, deliberately not bundled into Phase 1. This is
    the open half of §4.1 in the main doc.
-2. **No in-game acceptance** for the benthic walk, the drift, Tier 2, or the 512 cap. See §1.
-   The drift constants have the same status as the crawl's: measured with `DriftProbe`, never
-   looked at. The one most likely to want raising after a look is `DRIFT_SPEED` — a drifter
-   covers ~0.8 blocks of net carry in 200 s, so crossing a 3×3 aquarium would take the better part
-   of ten minutes.
+2. **No in-game acceptance** for the benthic walk, the drift, the glide, Tier 2, or the 512 cap.
+   See §1. Every set of tuning numbers here — `CRAWL_*`, `DRIFT_*`, `Tunables.GLIDE` — has the
+   same status: measured with its probe, never looked at. The one most likely to want raising
+   after a look is `DRIFT_SPEED` — a drifter covers ~0.8 blocks of net carry in 200 s, so crossing
+   a 3×3 aquarium would take the better part of ten minutes. A ray covers 1.9 in the same time,
+   which is slow on purpose but is the next candidate.
 3. **The benthic constants have never been looked at by eye.** §3.
-4. **`lined_seahorse`'s `render_calibration` moved 1.1 → 1.07** when the calibration script was
-   re-run. That is pre-existing drift from a texture change, not a locomotion change; it is in the
-   working tree and should be either kept deliberately or split out.
+4. **The harness has no mixed-class scenario.** `Scenarios.specs` still builds free swimmers only,
+   so `SimViewer` and `HeadlessRunner` cannot show a shoal, a crab, a jelly and a ray in one
+   domain — which is the picture the main doc's §6 asks for. Each class has its own probe instead
+   (`BenthicProbe`, `DriftProbe`, `GlideProbe`); what is missing is the four of them interacting.
 5. **Group-mode crawlers inherit the preview's known artifacts** — frustum culling at the anchor,
    anchor-block lighting — exactly like group swimmers. Unchanged by this work, still waiting on
    the server-side lock model.

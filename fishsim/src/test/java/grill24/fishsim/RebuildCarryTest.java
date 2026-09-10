@@ -217,6 +217,30 @@ class RebuildCarryTest {
         assertNotEquals(atRebuild[1], engine.posY()[1], "a carried drifter's pulse stalled");
     }
 
+    /**
+     * A carried glider keeps the heading it was holding. Yaw is the glide model's real state — at
+     * 2.2 deg/tick a ray takes the better part of a minute to come about, so a reset that snapped
+     * it back to its scatter facing would be a visible teleport of the whole animal, and the
+     * position assertions above would not see it.
+     */
+    @Test
+    void aCarriedGliderKeepsItsHeading() {
+        FishSpec[] specs = {
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.09f, Locomotion.GLIDE, false, 1),
+        };
+        FlockEngine engine = settled(specs, 400);
+        float beforeYaw = engine.yawDeg[1];
+        float beforeL = engine.posL()[1];
+        // It must have turned away from its scatter facing, or this proves nothing.
+        assertNotEquals(0f, beforeYaw, "the glider never turned, so a reset would be invisible");
+
+        engine.rebuildPreserving(without(specs, 0), carryAfterRemoval(2, 0), SEED, 30f,
+                3, 0.35f, 0.3f, 20f);
+        assertEquals(beforeL, engine.posL()[0], "a carried glider was re-scattered");
+        assertEquals(beforeYaw, engine.yawDeg[0], "a carried glider lost its heading");
+    }
+
     @Test
     void rebuildPreservingWithNoCarriedFishMatchesAPlainRebuild() {
         FishSpec[] specs = specs(7, SEED);

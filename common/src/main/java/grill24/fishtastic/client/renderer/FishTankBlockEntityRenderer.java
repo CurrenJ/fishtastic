@@ -367,6 +367,9 @@ public class FishTankBlockEntityRenderer
                 // swimmers use: the sprite's nose points along −lateral at rotation 0.
                 FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
                         eng.baseRotations[i], scale, false);
+            } else if (eng.locomotion[i] == Locomotion.GLIDE) {
+                FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                        eng.bankFraction(i), eng.baseRotations[i], scale, false);
             } else {
                 FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale, mirrored);
             }
@@ -426,6 +429,9 @@ public class FishTankBlockEntityRenderer
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
                         eng.baseRotations[i], scale, false);
+            } else if (eng.locomotion[i] == Locomotion.GLIDE) {
+                FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                        eng.bankFraction(i), eng.baseRotations[i], scale, false);
             } else {
                 // Drifters, and anything the group's engine demoted to STATIC: pose on game time
                 // exactly as the single-tank path does. Branching on swimmers[] rather than

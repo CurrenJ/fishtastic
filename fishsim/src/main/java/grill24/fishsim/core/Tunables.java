@@ -247,6 +247,73 @@ public record Tunables(
                         // 1 s the gain continues but the 1-block tanks slide further into a
                         // milling torus (see docs/fish-swarm-realism.md), so this is the knee
 
+    /**
+     * The parameter set a {@link Locomotion#GLIDE} creature is stepped with — rays, and anything
+     * else large and solitary (docs/fish-sim-locomotion.md §3.3). {@code GLIDE} runs the same
+     * planar model as a free swimmer, so unlike the crawl and the drift it is a set of numbers
+     * rather than a step function of its own, and numbers belong here.
+     *
+     * <p>It is a fixed set rather than something derived from whichever set the engine is running,
+     * because the engine a lone tank runs is {@link #DEFAULT} — whose planar terms are all
+     * neutralised to hold the binary model's parity lock. Deriving from that would hand a ray
+     * {@code patrolSpeed} 0 and no wander correlation, i.e. a ray that jiggles in place. A ray
+     * moves the same way in a lone tank as in a group; only the room it has differs.
+     *
+     * <p>Slower and wider than {@link #GROUP} on every axis that matters, and unschooled: rays do
+     * not shoal, so alignment, speed-matching and cohesion are all off, and the separation radii
+     * are up around a body length so two of them never share a corner.
+     */
+    public static final Tunables GLIDE = new Tunables(
+            DEFAULT.dt(),
+            DEFAULT.gateFactor(),   // a glider is size-gated exactly like a swimmer — it needs a run
+            0.10f,      // maxSpeed — half GROUP's. Nothing about a ray reads as quick
+            0.015f,     // cruiseSpeed — wander turn authority; stays below patrolSpeed for the same
+                        // reason as GROUP's (perpendicular wander vs forward drive), and lower in
+                        // proportion because a ray holds its line far longer than a shoal fish
+            DEFAULT.steeringGain(),
+            DEFAULT.maxForce(),
+            DEFAULT.neighborCount(),
+            0.70f,      // separationRadius — same species. GROUP's 0.24 is a shoaling distance;
+                        // rays are not shoaling, they are sharing a tank
+            0.12f,      // separationSpeed — gentle: with radii this wide the term is active most of
+                        // the time, so it has to read as room-keeping rather than as a shove
+            0f,         // alignmentWeight — unread while alignHeadingWeight is 0, and 0 is the honest
+                        // value: a ray matches nobody's heading
+            0f,         // cohesionSpeed — solitary
+            DEFAULT.depthRestore(),
+            DEFAULT.depthDamp(),
+            DEFAULT.verticalDamp(),
+            0.25f,      // wallMargin — starts its turn earlier than a shoal fish, which is what a
+                        // slow turn rate needs to look deliberate rather than late
+            DEFAULT.wallMarginVertical(),
+            GROUP.wallAvoidSpeed(),
+            DEFAULT.bankGain(),
+            DEFAULT.bankMax(),
+            DEFAULT.headingDeadzone(),
+            DEFAULT.tankHalfExtent(),
+            DEFAULT.swarmMinSep(),
+            DEFAULT.layerZ(),
+            1.2f,       // neighborRange — wide enough to cover the separation radii above; the grid
+                        // is sized from the widest set in play (FlockEngine.interactionRadius)
+            0.05f,      // patrolSpeed — half GROUP's: the whole point of the class
+            0.80f,      // separationRadiusOther — strangers get more room still
+            GROUP.wanderTurnSigma(),
+            0.5f,       // wanderTurnTheta — ~2 s of correlation against GROUP's ~1.1 s. A ray commits
+                        // to a direction for much longer than a shoal fish does
+            0f,         // alignHeadingWeight — see alignmentWeight
+            0f,         // speedMatchWeight — nobody to match
+            GROUP.traitJitter(),
+            6.0f,       // burstPeriodSeconds — burst-and-coast is not a compromise here, it is the
+                        // literal gait: a ray flaps its wings and then glides. Slower and deeper
+                        // than the shoal's swell
+            0.30f,      // burstDuty — the glide is most of the cycle
+            1.8f,       // burstThrustScale — a real wingbeat. Safe to push where GROUP's could not,
+                        // because the peak (0.05 × 1.8 = 0.09) still sits under maxSpeed
+            0.35f,      // burstCoastScale
+            2.2f,       // turnRateDegPerTick — a third of the shoal's. This is the class's defining
+                        // number: what makes a ray read as a ray is that it cannot whip around
+            GROUP.separationLookahead());
+
     /** Squared separation radius, matching the derived {@code SEPARATION_RADIUS2} constant. */
     public float separationRadius2() {
         return separationRadius * separationRadius;

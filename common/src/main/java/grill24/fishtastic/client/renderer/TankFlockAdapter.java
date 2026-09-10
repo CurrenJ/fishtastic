@@ -413,17 +413,17 @@ public final class TankFlockAdapter {
         /** Whether this fish joins the group engine, consuming a slot of its class's quota if so. */
         boolean joins(Locomotion locomotion, float length) {
             boolean eligible = switch (locomotion) {
-                // The group's size gate, applied here as well as in the engine: a swimmer the
-                // group is too cramped for must stay home as STATIC rather than join and be
-                // demoted there, where nothing would draw it in its own tank.
-                case FREE_SWIM -> gateRun >= gateFactor * length;
+                // The group's size gate, applied here as well as in the engine, for the two
+                // classes that measure a straight run: a fish the group is too cramped for stays
+                // home and hovers in its own tank, which is the behaviour it has always had, and
+                // it spends none of the group's budget on the way.
+                case FREE_SWIM, GLIDE -> gateRun >= gateFactor * length;
                 // Crawlers and drifters are admitted ungated and let the engine's own per-class
                 // gate demote them if it must: a demoted one still belongs in group space, on the
                 // group's sand or hanging in its water, which is where the player sees it.
                 case BENTHIC, DRIFT -> true;
-                // Classes with no motion model yet. They render out of their own tank exactly as
-                // they always have.
-                case GLIDE, ANCHORED, STATIC -> false;
+                // No motion model yet — renders out of its own tank exactly as it always has.
+                case ANCHORED, STATIC -> false;
             };
             if (!eligible) return false;
             int idx = locomotion.ordinal();
@@ -433,16 +433,18 @@ public final class TankFlockAdapter {
         }
 
         /**
-         * The class a fish that stayed behind runs under on its own tank's engine. A crawler or a
-         * drifter keeps its own — it walks its tank's floor or drifts its own water rather than
-         * freezing. Everything else is pinned {@link Locomotion#STATIC}, because the stay-behind
-         * list also holds free swimmers the <em>group's</em> gate or quota turned away, and those
-         * must not start swimming locally just because this member's own box is individually big
-         * enough.
+         * The class a fish that stayed behind runs under on its own tank's engine. A class that
+         * can move on its own in a lone tank keeps it — a crawler walks its tank's floor, a
+         * drifter drifts its own water, a glider that only lost the quota draw still glides.
+         * Everything else is pinned {@link Locomotion#STATIC}, which includes the swimmers and
+         * gliders the <em>group's</em> size gate turned away: those must not start swimming
+         * locally just because this member's own box is individually big enough. That is the
+         * asymmetry — the gate is applied in {@link #joins}, so anything reaching here having
+         * failed it is already unable to pass its own tank's copy of the same gate.
          */
         static Locomotion stayingHomeAs(Locomotion locomotion) {
             return switch (locomotion) {
-                case BENTHIC, DRIFT -> locomotion;
+                case BENTHIC, DRIFT, GLIDE -> locomotion;
                 default -> Locomotion.STATIC;
             };
         }

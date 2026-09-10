@@ -22,8 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  *
  * <p>These are also the tests that <b>fail loudly</b> when a later phase gives a class its motion
  * model: the "does not move" assertions below are a statement about today, and each class leaves
- * them as it gains a model. {@code BENTHIC} and {@code DRIFT} already have — see
- * {@link BenthicTest} and {@link DriftTest}.
+ * them as it gains a model. {@code BENTHIC}, {@code DRIFT} and {@code GLIDE} already have — see
+ * {@link BenthicTest}, {@link DriftTest} and {@link GlideTest}. Only {@code ANCHORED} is left in
+ * them.
  */
 class LocomotionTest {
 
@@ -107,7 +108,8 @@ class LocomotionTest {
     /**
      * The swim gate demotes to {@link Locomotion#STATIC} — one state, not a "gate-failed swimmer"
      * that the old boolean could not distinguish from a species that never swam. It applies to
-     * {@link Locomotion#GLIDE} too, which shares the swimmer's straight-run gate.
+     * {@link Locomotion#GLIDE} too, which shares the swimmer's straight-run gate: a giant ray in a
+     * one-block tank has nowhere to glide, and freezing it is the honest answer.
      */
     @Test
     void theSwimGateDemotesToStatic() {

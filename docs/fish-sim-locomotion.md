@@ -372,7 +372,7 @@ same path.
 | **0** ✅ | Split locomotion from pose: `FishSpec.locomotion`, the `switch`, the default mapping, per-class gates. **Zero behaviour change** — parity suite green with no golden edits. | low | none visible; unblocks everything |
 | **1** ✅ | `FlockDomain.floor()` + `BENTHIC`, with cosmetics as terrain. 8 species, and it fixes the floor-overlap bug. | medium (new field, group caching) | highest |
 | **2** ✅ | `DRIFT`. 3 species, reuses the burst envelope on a new axis. Group split landed as 2b. | low | high |
-| **3** | `GLIDE` + engine-driven bank on `belly_down`. 3 species, mostly tuning. | low | medium |
+| **3** ✅ | `GLIDE` + engine-driven bank on `belly_down`. 3 species, mostly tuning. | low | medium |
 | **4** | `ANCHORED` retract/emerge. 2 species. | low | medium, and cheap |
 
 Plus one cross-cutting item with no phase of its own: **squash-and-stretch on the locomotion
@@ -570,6 +570,65 @@ aquarium rather than inside their own block.
 gate asymmetry, and a mixed tank walked through both passes asserting they agree slot for slot.
 `:fishsim` unchanged at 132 (131 passing, 1 pre-existing skip) with **no golden or parity
 edits** — nothing in the engine moved. Both loaders compile.
+
+### Phase 3 — landed 2026-09-10
+
+Rays glide. The class is the planar swimmer model under a parameter set of its own, so the work
+was where those parameters live and what the model could not already say.
+
+* **`Tunables.GLIDE`** — a third canonical set beside `DEFAULT` and `GROUP`. Slower and wider than
+  the shoal on every axis, and unschooled: alignment, speed-matching and cohesion are all zero and
+  the separation radii are up around a body length. The defining number is
+  `turnRateDegPerTick` 2.2 against the shoal's 7 — what makes a ray read as a ray is that it
+  cannot whip around.
+* **It is a fixed set, not one derived from the engine's own.** A lone tank runs `DEFAULT`, whose
+  planar terms are all neutralised to hold the binary model's parity lock, so deriving from it
+  would hand a ray `patrolSpeed` 0 and no wander correlation — a ray jiggling in place. A ray moves
+  the same way in a lone tank as in a group; only the room it has differs.
+* **`stepFishPlanar` gained a per-fish parameter view**, `Tunables p = params(i)`, and reads `p`
+  where it read the engine's `t`. A free swimmer gets *the same object*, so the arithmetic is
+  identical and `VoxelGoldenTrajectoryTest` never moved. This is the whole of the dispatch: there
+  is no `stepGlide`.
+* **The one thing a parameter set cannot express: a floor to fly over.** A glider holds a ride
+  height measured from the sand *under it* — `min(0.45 blocks, 30% of the local headroom)`, plus a
+  17 s swell — so it follows a group's varying terrain instead of using the water column. Both
+  quantities are fractions of the actual headroom rather than absolute heights, because the same
+  creature has to work in a lone tank's quarter-block slab and in a stacked group's several
+  blocks, and an absolute ride height would pin it to the lid of the former.
+* **`belly_down`'s bank is the engine's now.** It was an open-loop sine that rocked the wings
+  whether or not the ray was turning; it is now `FlockEngine.bankFraction(i)` — the lean the fish
+  has earned by turning — times the pose's own `bank_amplitude`, so the data file still says how
+  far a species leans and the engine says only when. `bankFraction` is normalised in [−1, 1]
+  precisely so the renderer never has to know which parameter set stepped the fish.
+* **A glider runs in a `Box` domain too**, which no planar-model fish had done before: a lone
+  tank's spatial index is inactive, and `grid.gather` already returns −1 there, which is the
+  brute-force path the binary model always takes. What did need saying is that yaw is now
+  meaningful in a Box (`continuousYaw()`, replacing the narrower `hasBenthic` test) and that the
+  index, when it *is* active, must be sized from the widest parameter set in play — a glider's
+  separation radius is three times the shoal's, and a grid that skipped a fish in range would
+  break its "skipped contributes exactly zero" contract.
+* **Gliders join the group**, gated exactly like swimmers (`GroupSplit`), with their own quota
+  counter — the generalisation Phase 2b left in place cost one line here.
+
+**In practice the gate decides where you see this.** Rendered lengths are 0.54 (`acute_iaspis`)
+and 0.86 (the two mantas), against a gate of 2.5 body lengths of straight run, so all three stay
+`STATIC` in a lone tank — a giant manta in a one-block tank has nowhere to glide, and freezing it
+is the honest answer — and glide in an aquarium big enough to hold them. That is a design
+statement, not an accident: big rays are a reason to build a big tank.
+
+**Verification.** `:fishsim` 139 (138 passing, 1 pre-existing skip), of which 6 are `GlideTest`
+plus one carry case; goldens and parity again with **no expected-value edits**. `:common` 36
+passing, both loaders compile. `GlideProbe` measures the model: in a 4×2×2 group, 10.6 blocks of
+path in 200 s at a mean 0.059 blocks/s, riding 0.48 above the sand (28% of headroom), mean turn
+1.0°/tick against the 2.2 cap, mean bank 0.48 of full lean, zero backstop engagements. In a lone
+tank the turn rate sits pinned at the cap and the bank with it — a small ray in a small box
+circles continuously, which is what a continuous max-rate turn *is*; at `bank_amplitude` 10° that
+is a steady 10° lean, not a roll.
+
+`LocomotionTest` is down to `ANCHORED` alone in its "never moves" and ungated-class rows, which is
+Phase 4's cue.
+
+**In-game acceptance is still pending** — as it is for Phases 1 and 2, Tier 2 and the 512 cap.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.

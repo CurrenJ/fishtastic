@@ -13,10 +13,11 @@ package grill24.fishsim.core;
  * {@link #BENTHIC} locomotion).
  *
  * <p><b>Status.</b> {@link #FREE_SWIM} (the existing, bitwise-locked flocking code),
- * {@link #BENTHIC} (the floor walk) and {@link #DRIFT} (the pulse-and-sink) have motion models today. The rest are declared and plumbed
- * but not yet stepped, so they hold their scatter position exactly as they always have; each
- * gains its model in its own phase (docs/fish-sim-locomotion.md §5). {@link FlockEngine#step}
- * is the single place that decides.
+ * {@link #BENTHIC} (the floor walk), {@link #DRIFT} (the pulse-and-sink) and {@link #GLIDE} (the
+ * planar model under its own parameter set) have motion models today. Only {@link #ANCHORED} is
+ * still declared and plumbed but not stepped, so it holds its scatter position exactly as it
+ * always has; it gains its model in Phase 4 (docs/fish-sim-locomotion.md §5).
+ * {@link FlockEngine#step} is the single place that decides.
  */
 public enum Locomotion {
 
@@ -29,8 +30,11 @@ public enum Locomotion {
 
     /**
      * Large, slow, solitary glider — rays and the like. A parameter set over the free-swim planar
-     * model rather than a distinct integrator: hard turn-rate cap, wide separation, near-zero
-     * alignment and cohesion, a floor-hugging vertical bias, and engine-driven banking.
+     * model ({@link Tunables#GLIDE}) rather than a distinct integrator: hard turn-rate cap, wide
+     * separation, no alignment or cohesion at all, plus the one thing that set cannot express — a
+     * ride height measured from the sand below, so a ray flies over the terrain rather than
+     * through the water column. Its bank comes from its own turn
+     * ({@link FlockEngine#bankFraction}), not from a sine.
      */
     GLIDE,
 
@@ -64,6 +68,6 @@ public enum Locomotion {
 
     /** Whether {@link FlockEngine#step} has a motion model for this class today. */
     public boolean simulated() {
-        return this == FREE_SWIM || this == BENTHIC || this == DRIFT;
+        return this == FREE_SWIM || this == GLIDE || this == BENTHIC || this == DRIFT;
     }
 }

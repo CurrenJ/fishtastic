@@ -91,6 +91,8 @@ public final class FlockEngine {
      * single-tank Box engine, which otherwise has no use for it.
      */
     private boolean hasBenthic;
+    /** Whether any fish here is a glider — the one class stepped with a parameter set not the engine's. */
+    private boolean hasGlide;
     /**
      * Sprite yaw in degrees, same convention as the render rotation (rotating a +lateral-facing
      * object by this makes it face the swim direction). Chases the velocity direction with a
@@ -228,6 +230,23 @@ public final class FlockEngine {
      * drifter's excursion is a fraction of its body length, not a multiple of it.
      */
     private static final float DRIFT_GATE_HEIGHT_FACTOR = 0.6f;
+
+    // ── GLIDE (docs/fish-sim-locomotion.md §3.3) ───────────────────────────────────────────────
+    // The class's *parameters* are Tunables.GLIDE, not constants here, because GLIDE is the planar
+    // swimmer model with different numbers. What lives here is the one thing that is not in that
+    // model at all: a ray's relationship with the floor it flies over.
+
+    /** Ride height above the sand, in blocks — a ceiling on the fraction below, for deep domains. */
+    private static final float GLIDE_RIDE_HEIGHT = 0.45f;
+    /** Ride height as a fraction of the headroom above the sand — what applies in shallow ones. */
+    private static final float GLIDE_RIDE_FRACTION = 0.30f;
+    /** Period of the slow rise and fall over that ride height. Long: this is a swell, not a bob. */
+    private static final float GLIDE_SWELL_SECONDS = 17f;
+    /** Amplitude of that swell, as a fraction of the ride height, so it scales with the domain. */
+    private static final float GLIDE_SWELL_FRACTION = 0.55f;
+    /** Vertical desire per block of height error (1/s), and the cap on it (blocks/s). */
+    private static final float GLIDE_HEIGHT_GAIN = 0.35f;
+    private static final float GLIDE_CLIMB_SPEED = 0.05f;
 
     // Speed-integrated animation clock, in speed-scaled ticks: advances by speedFactor(i) per
     // step, so tail-beat frequency tracks swim speed CONTINUOUSLY. The animator must consume this
@@ -407,11 +426,10 @@ public final class FlockEngine {
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
         hasBenthic = false;
+        hasGlide = false;
         for (FishSpec spec : specs) {
-            if (spec.locomotion() == Locomotion.BENTHIC) {
-                hasBenthic = true;
-                break;
-            }
+            if (spec.locomotion() == Locomotion.BENTHIC) hasBenthic = true;
+            if (spec.locomotion() == Locomotion.GLIDE) hasGlide = true;
         }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
@@ -507,11 +525,10 @@ public final class FlockEngine {
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
         hasBenthic = false;
+        hasGlide = false;
         for (FishSpec spec : specs) {
-            if (spec.locomotion() == Locomotion.BENTHIC) {
-                hasBenthic = true;
-                break;
-            }
+            if (spec.locomotion() == Locomotion.BENTHIC) hasBenthic = true;
+            if (spec.locomotion() == Locomotion.GLIDE) hasGlide = true;
         }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
@@ -699,10 +716,15 @@ public final class FlockEngine {
             // every jellyfish in the tank at full contraction on the rebuild tick.
             burstDrive[i] = 0f;
         }
-        if (locomotion[i] == Locomotion.BENTHIC) {
-            // A crawler starts at rest facing its mirror direction, and keeps a continuous
-            // heading like the planar model's rather than the swimmers' binary ±lateral.
+        if (locomotion[i] == Locomotion.BENTHIC || locomotion[i] == Locomotion.GLIDE) {
+            // Both keep a continuous heading like the planar model's rather than the swimmers'
+            // binary ±lateral, and start facing wherever their mirror flag points. (rebuildPlanar
+            // sets this for every fish; a Box domain's rebuild does not, and a glider swims there
+            // too.)
             yawDeg[i] = prevYawDeg[i] = spec.mirrored() ? 180f : 0f;
+        }
+        if (locomotion[i] == Locomotion.BENTHIC) {
+            // A crawler starts at rest: burstDrive is its scuttle envelope here.
             burstDrive[i] = 0f;
         }
         wanderState[i] = 0f;
@@ -838,7 +860,7 @@ public final class FlockEngine {
         System.arraycopy(posY, 0, prevY, 0, count);
         System.arraycopy(posD, 0, prevD, 0, count);
         System.arraycopy(tailPhase, 0, prevTailPhase, 0, count);
-        if (planar || hasBenthic) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
+        if (planar || continuousYaw()) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
 
         for (int i = 0; i < count; i++) {
@@ -865,7 +887,17 @@ public final class FlockEngine {
                     stepDrift(i);
                     yield false;
                 }
-                case GLIDE, ANCHORED, STATIC -> false;
+                case GLIDE -> {
+                    // The same planar model as a free swimmer, stepped with Tunables.GLIDE — see
+                    // stepFishPlanar's first line. It runs in a lone tank's Box domain too, where
+                    // the spatial index is inactive and the query below falls back to the full
+                    // scan, exactly as the binary model does.
+                    stepFishPlanar(i);
+                    // No tail beat: a ray's pose is a wingbeat and a bank, and the bank is already
+                    // driven by the engine's own turn (FlockEngine.bankFraction).
+                    yield false;
+                }
+                case ANCHORED, STATIC -> false;
             };
             // The speed-integrated animation clock runs only for a fish whose pose is driven by
             // its own swimming; everything else is animated open-loop against game time by the
@@ -884,6 +916,12 @@ public final class FlockEngine {
      * the emergent follow-the-wall loops around a domain's perimeter.
      */
     private void stepFishPlanar(int i) {
+        // Which parameter set this fish is stepped with. A free swimmer gets the engine's own,
+        // which is the SAME OBJECT and therefore the identical arithmetic — the planar goldens
+        // depend on that. A glider gets the class's set (Tunables.GLIDE): same model, different
+        // numbers, which is the whole of what makes a ray a ray (docs/fish-sim-locomotion.md §3.3).
+        final Tunables p = params(i);
+        final boolean glide = locomotion[i] == Locomotion.GLIDE;
         // One grid query feeds both radius-limited passes below (separation and the neighbour
         // search). Positions are still this fish's own start-of-step values — stepFishPlanar
         // integrates i at the very end — so the query point matches what the index was built on.
@@ -906,13 +944,13 @@ public final class FlockEngine {
 
         // OU wander when it's configured, the legacy sine pair otherwise (which is what the
         // single-tank parity set leaves in place).
-        boolean ouWander = t.wanderTurnSigma() > 0f;
+        boolean ouWander = p.wanderTurnSigma() > 0f;
         float wander = ouWander ? wanderState[i] : wanderL(i);
         float wanderVert = ouWander ? wanderStateY[i] : wanderY(i);
 
         // Wall avoidance is sampled up front (it depends only on position, which does not change
         // until integration below) because the burst needs to know how close the glass is.
-        domain.avoidance(posL[i], posY[i], posD[i], t.wallMargin(), t.wallMarginVertical(), avoidScratch);
+        domain.avoidance(posL[i], posY[i], posD[i], p.wallMargin(), p.wallMarginVertical(), avoidScratch);
         float avoidMag = (float) Math.sqrt(avoidScratch[0] * avoidScratch[0]
                 + avoidScratch[1] * avoidScratch[1] + avoidScratch[2] * avoidScratch[2]);
         if (avoidMag > 1f) avoidMag = 1f;
@@ -928,24 +966,41 @@ public final class FlockEngine {
         // rather than a tuning nit.
         float burst = burstFactor(i);
         burst += (1f - burst) * avoidMag;
-        float patrol = t.patrolSpeed() * patrolScale[i] * burst;
+        float patrol = p.patrolSpeed() * patrolScale[i] * burst;
 
-        float dL = dirL * patrol + (-dirD) * wander * t.cruiseSpeed();
-        float dD = dirD * patrol + dirL * wander * t.cruiseSpeed();
-        float dY = wanderVert * t.cruiseSpeed();
+        float dL = dirL * patrol + (-dirD) * wander * p.cruiseSpeed();
+        float dD = dirD * patrol + dirL * wander * p.cruiseSpeed();
+        float dY = wanderVert * p.cruiseSpeed();
+
+        // A glider hugs the terrain instead of using the water column freely: a ray cruises a
+        // little way off the sand and rises and falls over a long period, which is most of what
+        // separates it from a fish at this distance. Both quantities are fractions of the actual
+        // headroom above the sand *here*, not absolute heights — the same creature has to work in
+        // a lone tank's quarter-block slab and in a stacked group's several blocks, and an
+        // absolute ride height would pin it to the lid of the former.
+        if (glide) {
+            float ride = glideRideHeight(i);
+            float base = glideFloor(i);
+            float swellPhase = simTick * p.dt() / GLIDE_SWELL_SECONDS
+                    + (unitFromHash(seeds[i], 7) + 1f) * 0.5f; // per-fish, so a pair never rises together
+            float swell = (float) Math.sin(swellPhase * 2.0 * Math.PI) * GLIDE_SWELL_FRACTION * ride;
+            float target = SimMath.clamp(base + ride + swell, domain.minVertical(), domain.maxVertical());
+            dY += SimMath.clamp((target - posY[i]) * GLIDE_HEIGHT_GAIN,
+                    -GLIDE_CLIMB_SPEED, GLIDE_CLIMB_SPEED);
+        }
 
         // Species-aware separation: shoal-mates use the tight radius (they may swarm), strangers
         // the wide one — this is what keeps a mixed tank from congealing into one ball while
         // letting each species keep its own cluster.
         float sepL = 0f, sepY = 0f, sepD = 0f;
-        float horizon = t.separationLookahead();
+        float horizon = p.separationLookahead();
         int scanned = candidateCount >= 0 ? candidateCount : count;
         int[] cand = candidateCount >= 0 ? grid.candidates() : null;
         for (int c = 0; c < scanned; c++) {
             int j = cand != null ? cand[c] : c;
             if (j == i) continue;
-            float radius = species[i] == species[j] ? t.separationRadius() : t.separationRadiusOther();
-            float radius2 = species[i] == species[j] ? t.separationRadius2() : t.separationRadiusOther2();
+            float radius = species[i] == species[j] ? p.separationRadius() : p.separationRadiusOther();
+            float radius2 = species[i] == species[j] ? p.separationRadius2() : p.separationRadiusOther2();
             float dx = posL[i] - posL[j], dy = posY[i] - posY[j], dz = posD[i] - posD[j];
             float d2 = dx * dx + dy * dy + dz * dz;
             if (d2 < radius2 && d2 > 1e-6f) {
@@ -994,8 +1049,8 @@ public final class FlockEngine {
         // shoves must never out-shove containment — crowded fish tolerate closeness instead of
         // pushing each other through the glass. (Empirical: uncapped 0.6-radius shoves in a
         // 1×1×1 with 12 fish engaged the hard backstop.)
-        float sepCap = t.wallAvoidSpeed() * 0.45f;
-        float sepMagnitude = (float) Math.sqrt(sepL * sepL + sepY * sepY + sepD * sepD) * t.separationSpeed();
+        float sepCap = p.wallAvoidSpeed() * 0.45f;
+        float sepMagnitude = (float) Math.sqrt(sepL * sepL + sepY * sepY + sepD * sepD) * p.separationSpeed();
         float sepScale = sepMagnitude > sepCap ? sepCap / sepMagnitude : 1f;
 
         // Alignment: on unit heading when alignHeadingWeight is set, on raw velocity otherwise.
@@ -1003,7 +1058,7 @@ public final class FlockEngine {
         // raised to a level that actually polarizes the school — averaging velocities made the
         // two inseparable, so the gain had to stay low enough not to also flatten every fish's
         // speed onto the neighbourhood mean.
-        boolean headingAlign = t.alignHeadingWeight() > 0f;
+        boolean headingAlign = p.alignHeadingWeight() > 0f;
         int neigh = findNearestSwimmers(i);
         float aliL = 0f, aliY = 0f, aliD = 0f, cohL = 0f, cohY = 0f, cohD = 0f;
         float neighSpeed = 0f;
@@ -1029,7 +1084,7 @@ public final class FlockEngine {
 
         float alignWeight;
         if (headingAlign) {
-            alignWeight = t.alignHeadingWeight();
+            alignWeight = p.alignHeadingWeight();
             // Formation-keeping yields to containment near the glass.
             //
             // The unit-heading formulation silently dropped a negative feedback that the
@@ -1047,33 +1102,33 @@ public final class FlockEngine {
             // centimetres before the glass — where real fish break formation too.
             alignWeight *= (1f - avoidMag);
         } else {
-            alignWeight = t.alignmentWeight();
+            alignWeight = p.alignmentWeight();
         }
-        dL += sepL * t.separationSpeed() * sepScale + aliL * alignWeight + cohL * t.cohesionSpeed();
-        dD += sepD * t.separationSpeed() * sepScale + aliD * alignWeight + cohD * t.cohesionSpeed();
-        dY += sepY * t.separationSpeed() * sepScale + aliY * alignWeight + cohY * t.cohesionSpeed();
+        dL += sepL * p.separationSpeed() * sepScale + aliL * alignWeight + cohL * p.cohesionSpeed();
+        dD += sepD * p.separationSpeed() * sepScale + aliD * alignWeight + cohD * p.cohesionSpeed();
+        dY += sepY * p.separationSpeed() * sepScale + aliY * alignWeight + cohY * p.cohesionSpeed();
 
         // Speed matching, the other half of the split: nudge own forward speed toward the
         // neighbourhood mean along the fish's OWN heading, never sideways — a fish keeping pace
         // with the shoal speeds up, it does not get dragged across the tank.
-        if (headingAlign && neigh > 0 && t.speedMatchWeight() > 0f) {
+        if (headingAlign && neigh > 0 && p.speedMatchWeight() > 0f) {
             float own = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
-            float match = (neighSpeed - own) * t.speedMatchWeight();
+            float match = (neighSpeed - own) * p.speedMatchWeight();
             dL += dirL * match;
             dD += dirD * match;
         }
 
         // (avoidScratch was filled at the top of this method.)
-        dL += avoidScratch[0] * t.wallAvoidSpeed();
-        dY += avoidScratch[1] * t.wallAvoidSpeed();
-        dD += avoidScratch[2] * t.wallAvoidSpeed();
+        dL += avoidScratch[0] * p.wallAvoidSpeed();
+        dY += avoidScratch[1] * p.wallAvoidSpeed();
+        dD += avoidScratch[2] * p.wallAvoidSpeed();
 
-        float aL = (dL - velL[i]) * t.steeringGain();
-        float aY = (dY - velY[i]) * t.steeringGain();
-        float aD = (dD - velD[i]) * t.steeringGain();
+        float aL = (dL - velL[i]) * p.steeringGain();
+        float aY = (dY - velY[i]) * p.steeringGain();
+        float aD = (dD - velD[i]) * p.steeringGain();
         float f = (float) Math.sqrt(aL * aL + aY * aY + aD * aD);
-        if (f > t.maxForce()) {
-            float k = t.maxForce() / f;
+        if (f > p.maxForce()) {
+            float k = p.maxForce() / f;
             aL *= k; aY *= k; aD *= k;
         }
 
@@ -1090,14 +1145,14 @@ public final class FlockEngine {
         // — a fish that can no longer sidestep glass still decelerates into it, and the wall term
         // still commands the turn away. Applied AFTER the maxForce clamp, so it only ever reduces
         // |a| and the acceleration invariant is unaffected.
-        if (t.turnRateDegPerTick() > 0f) {
+        if (p.turnRateDegPerTick() > 0f) {
             float hspNow = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
             if (hspNow > 1e-5f) {
                 // Below a real cruising speed the travel direction is numerically ill-defined and
                 // a fish is effectively pivoting in place, where turning costs nothing; the
                 // reference speed floors the budget rather than letting it collapse to zero.
-                float refSpeed = Math.max(hspNow, TURN_CAP_MIN_SPEED_FRACTION * t.maxSpeed());
-                float omega = (float) Math.toRadians(t.turnRateDegPerTick() * turnScale[i]) / t.dt();
+                float refSpeed = Math.max(hspNow, TURN_CAP_MIN_SPEED_FRACTION * p.maxSpeed());
+                float omega = (float) Math.toRadians(p.turnRateDegPerTick() * turnScale[i]) / p.dt();
                 float maxLateral = refSpeed * omega;
                 float fwdL = velL[i] / hspNow, fwdD = velD[i] / hspNow;
                 float along = aL * fwdL + aD * fwdD;
@@ -1111,14 +1166,14 @@ public final class FlockEngine {
             }
         }
 
-        velL[i] += aL * t.dt();
-        velY[i] += aY * t.dt();
-        velY[i] *= (1f - t.verticalDamp() * t.dt());
-        velD[i] += aD * t.dt();
+        velL[i] += aL * p.dt();
+        velY[i] += aY * p.dt();
+        velY[i] *= (1f - p.verticalDamp() * p.dt());
+        velD[i] += aD * p.dt();
 
         // The ceiling is this fish's own, not the shoal's: a school where every member tops out
         // at exactly the same speed can never string out into the ragged line real ones form.
-        float cap = t.maxSpeed() * speedScale[i];
+        float cap = p.maxSpeed() * speedScale[i];
         float sp = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
         if (sp > cap) {
             float k = cap / sp;
@@ -1127,9 +1182,9 @@ public final class FlockEngine {
         }
         speed[i] = sp;
 
-        posL[i] += velL[i] * t.dt();
-        posY[i] += velY[i] * t.dt();
-        posD[i] += velD[i] * t.dt();
+        posL[i] += velL[i] * p.dt();
+        posY[i] += velY[i] * p.dt();
+        posD[i] += velD[i] * p.dt();
         posScratch[0] = posL[i];
         posScratch[1] = posY[i];
         posScratch[2] = posD[i];
@@ -1150,7 +1205,7 @@ public final class FlockEngine {
             float diff = wrapDeg(target - yawDeg[i]);
             // The same rate that bounds the trajectory above, so sprite and travel agree by
             // construction rather than by the velocity happening to turn slowly enough.
-            float turnRate = (t.turnRateDegPerTick() > 0f ? t.turnRateDegPerTick() : PLANAR_TURN_RATE)
+            float turnRate = (p.turnRateDegPerTick() > 0f ? p.turnRateDegPerTick() : PLANAR_TURN_RATE)
                     * turnScale[i];
             float turn = SimMath.clamp(diff, -turnRate, turnRate);
             yawDeg[i] = wrapDeg(yawDeg[i] + turn);
@@ -1158,13 +1213,47 @@ public final class FlockEngine {
             // it leans proportionally. The old fixed 1.5°-of-bank-per-degree-of-turn saturated at
             // |turn| ≥ 6.7° of a 7° budget, so with an uncapped trajectory — where diff was pinned
             // at the limit through every turn — bank read as binary rather than as a lean.
-            bank[i] = SimMath.clamp(turn * (t.bankMax() / turnRate), -t.bankMax(), t.bankMax());
+            bank[i] = SimMath.clamp(turn * (p.bankMax() / turnRate), -p.bankMax(), p.bankMax());
         } else {
             bank[i] *= 0.9f;
         }
         // Keep the binary heading roughly meaningful for consumers that read it (metrics ignore
         // flips in planar mode).
         heading[i] = dirL >= 0f ? 1f : -1f;
+    }
+
+    /**
+     * This fish's bank as a fraction of its own full lean, in [−1, 1].
+     *
+     * <p>{@link #bank} is in degrees against whichever parameter set stepped the fish, and the
+     * renderer has no business knowing which one that was. A pose that authors its own lean angle
+     * (a ray's {@code bank_amplitude}) multiplies it by this instead, so the data file keeps
+     * saying how far the creature leans and the engine says only when, and how much of it.
+     */
+    public float bankFraction(int i) {
+        float max = params(i).bankMax();
+        return max <= 0f ? 0f : SimMath.clamp(bank[i] / max, -1f, 1f);
+    }
+
+    /**
+     * The parameter set fish {@code i} is stepped with. Every class but {@link Locomotion#GLIDE}
+     * gets the engine's own set — identically, by reference, because the goldens are bitwise.
+     */
+    private Tunables params(int i) {
+        return locomotion[i] == Locomotion.GLIDE ? Tunables.GLIDE : t;
+    }
+
+    /** The surface a glider measures its ride height from: the sand under it, or the domain floor. */
+    private float glideFloor(int i) {
+        float floor = floorHeightAt(posL[i], posD[i]);
+        return Float.isNaN(floor) ? domain.minVertical() : Math.max(floor, domain.minVertical());
+    }
+
+    /** How far above {@link #glideFloor} this fish cruises — a fraction of the headroom, capped. */
+    private float glideRideHeight(int i) {
+        float headroom = domain.maxVertical() - glideFloor(i);
+        if (headroom <= 0f) return 0f;
+        return Math.min(GLIDE_RIDE_HEIGHT, GLIDE_RIDE_FRACTION * headroom);
     }
 
     /** Wraps an angle to (−180, 180]. */
@@ -1297,11 +1386,31 @@ public final class FlockEngine {
      *       sets the radius at the shipped GROUP tunables (≈1.05 against 0.9).</li>
      * </ul>
      */
+    /**
+     * Whether any fish here steers by a continuous yaw rather than the binary model's ±lateral
+     * heading. It decides whether the yaw arrays are worth copying and interpolating in a lone
+     * tank's Box domain, which otherwise has no use for them.
+     */
+    private boolean continuousYaw() {
+        return hasBenthic || hasGlide;
+    }
+
     private float interactionRadius() {
-        float nr = t.neighborRange();
+        float r = interactionRadiusOf(t);
+        // A glider is stepped with its own, wider set (Tunables.GLIDE): its separation radii are
+        // around a body length where the shoal's are a quarter of one. The index must reach the
+        // widest set actually in play, or a ray would silently stop seeing the neighbours it is
+        // supposed to keep away from — the grid's contract is that a skipped fish contributes
+        // exactly zero, and that only holds if nothing in range is ever skipped.
+        if (hasGlide) r = Math.max(r, interactionRadiusOf(Tunables.GLIDE));
+        return r;
+    }
+
+    private float interactionRadiusOf(Tunables p) {
+        float nr = p.neighborRange();
         if (nr == Float.MAX_VALUE || Float.isInfinite(nr)) return Float.MAX_VALUE;
-        float sep = Math.max(t.separationRadius(), t.separationRadiusOther());
-        float anticipatory = sep + 2f * peakSpeed() * Math.max(0f, t.separationLookahead());
+        float sep = Math.max(p.separationRadius(), p.separationRadiusOther());
+        float anticipatory = sep + 2f * peakSpeed() * Math.max(0f, p.separationLookahead());
         return Math.max(nr, anticipatory);
     }
 
@@ -1646,7 +1755,7 @@ public final class FlockEngine {
             renderZ[i] = -l * sinR + d * cosR;
             renderY[i] = y;
             renderPhase[i] = SimMath.lerp(partialTick, prevTailPhase[i], tailPhase[i]);
-            if (planar || hasBenthic) {
+            if (planar || continuousYaw()) {
                 // Wrap-aware angular lerp so a fish crossing the ±180° seam doesn't spin the long way.
                 renderYaw[i] = prevYawDeg[i] + partialTick * wrapDeg(yawDeg[i] - prevYawDeg[i]);
             }
