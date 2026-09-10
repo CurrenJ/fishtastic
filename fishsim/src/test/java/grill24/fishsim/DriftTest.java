@@ -201,6 +201,41 @@ class DriftTest {
         assertTrue(fastest < 0.25f, "vertical speed reached " + fastest + " blocks/s");
     }
 
+    /**
+     * A drifter tumbles: its facing is neither frozen at its scatter rotation nor tracking where
+     * it moves, but changes on its own, slowly. Mirrors {@link #aDrifterNeverSwims}'s shape — a
+     * mean-rate bound rather than a peak one, since the tumble is itself an OU process and a peak
+     * excursion proves nothing about the steady character of the motion.
+     */
+    @Test
+    void aDrifterSlowlyTumbles() {
+        FlockEngine engine = groupTank(jelly(0.30f, 0), jelly(0.36f, 0), jelly(0.28f, 1));
+        int n = engine.count();
+        float[] startRot = engine.baseRotations.clone();
+        double[] totalTurn = new double[n];
+        float peakRate = 0f;
+        for (int tick = 0; tick < TICKS; tick++) {
+            float[] beforeRot = engine.baseRotations.clone();
+            engine.step();
+            for (int i = 0; i < n; i++) {
+                float delta = engine.baseRotations[i] - beforeRot[i];
+                totalTurn[i] += Math.abs(delta);
+                peakRate = Math.max(peakRate, Math.abs(delta) / Tunables.GROUP.dt());
+            }
+        }
+        float seconds = TICKS * Tunables.GROUP.dt();
+        for (int i = 0; i < n; i++) {
+            assertTrue(totalTurn[i] > 5f,
+                    "drifter " + i + " barely turned over " + seconds + "s: " + totalTurn[i]
+                            + " degrees total — it reads as frozen, not carried by a current");
+            assertTrue(Math.abs(engine.baseRotations[i] - startRot[i]) > 0.01f || totalTurn[i] > 5f,
+                    "drifter " + i + " ended exactly where it started despite turning");
+        }
+        // Generous: a lazy tumble, not a spin. Several times the steady-state mean rate, the same
+        // margin aDrifterNeverSwims gives the horizontal drift against cruise speed.
+        assertTrue(peakRate < 45f, "a drifter's facing changed at " + peakRate + " deg/s — that reads as spinning");
+    }
+
     /** The drift gate measures headroom: a creature with no room to pulse is STATIC. */
     @Test
     void theDriftGateMeasuresHeadroom() {

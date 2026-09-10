@@ -58,6 +58,13 @@ public final class FlockEngine {
     // sine frequencies every fish used to share. One float of state per axis per fish.
     float[] wanderState = new float[0];
     float[] wanderStateY = new float[0];
+    /**
+     * OU wander driving a drifter's own slow tumble (§3.2) — unused by every other locomotion
+     * class, unlike {@link #wanderState}, which the crawl's heading and the drift's horizontal
+     * advection both already share. Angular velocity in the wander's usual dimensionless units;
+     * {@link #DRIFT_SPIN_RATE_DEG} converts it to degrees/second.
+     */
+    float[] spinState = new float[0];
     long[] noiseState = new long[0];
     // Per-fish trait multipliers, derived deterministically from the fish's own seed — no two
     // fish in a tank have quite the same top speed, cruise, or turn rate.
@@ -320,6 +327,22 @@ public final class FlockEngine {
      */
     private static final float DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE;
     private static final float DRIFT_SHAPE_DECAY_RATE = 3.0f;
+    /**
+     * OU wander on the drifter's own facing (§3.2) — a jellyfish is not pointing where it is
+     * going, but it is not welded to one heading either: it lazily tumbles as the current turns
+     * it. Theta is below even the horizontal advection's: a tumble reading as "current" rather
+     * than "spinning" needs to be slower than the drift it rides on top of, not the same speed.
+     * Sigma is comparable to the horizontal wander's own, so the two read as the same water.
+     */
+    private static final float DRIFT_SPIN_THETA = 0.15f;
+    private static final float DRIFT_SPIN_SIGMA = 0.30f;
+    /**
+     * Degrees/second at one sigma of {@link #spinState}. Chosen so the steady-state angular
+     * speed (sigma/√(2·theta) ≈ 0.55σ in wander units, here ×6 ≈ 3.3°/s) turns the bell through
+     * roughly an eighth-turn over one correlation period — visible as a slow tumble across many
+     * seconds, never fast enough to read as spinning in place.
+     */
+    private static final float DRIFT_SPIN_RATE_DEG = 6.0f;
 
     // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
     /**
@@ -781,7 +804,7 @@ public final class FlockEngine {
     // carrying (initFish re-derives them from the carried seed), but these do — resetting the
     // burst phase would visibly jolt a surviving fish's speed mid-glide, which is exactly the
     // class of rebuild teleport rebuildPreserving exists to prevent.
-    private float[] cWanderState = new float[0], cWanderStateY = new float[0];
+    private float[] cWanderState = new float[0], cWanderStateY = new float[0], cSpinState = new float[0];
     private float[] cBurstPhase = new float[0], cBurstDrive = new float[0];
     private long[] cNoiseState = new long[0];
 
@@ -810,6 +833,7 @@ public final class FlockEngine {
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
             cSeeds[i] = seeds[from];
             cWanderState[i] = wanderState[from]; cWanderStateY[i] = wanderStateY[from];
+            cSpinState[i] = spinState[from];
             cNoiseState[i] = noiseState[from]; cBurstPhase[i] = burstPhase[from];
             cBurstDrive[i] = burstDrive[from];
         }
@@ -843,6 +867,7 @@ public final class FlockEngine {
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
             wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
+            spinState[i] = cSpinState[i];
             noiseState[i] = cNoiseState[i]; burstPhase[i] = cBurstPhase[i];
             burstDrive[i] = cBurstDrive[i];
 
@@ -880,7 +905,7 @@ public final class FlockEngine {
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
         cSeeds = new long[n];
-        cWanderState = new float[n]; cWanderStateY = new float[n];
+        cWanderState = new float[n]; cWanderStateY = new float[n]; cSpinState = new float[n];
         cNoiseState = new long[n]; cBurstPhase = new float[n]; cBurstDrive = new float[n];
     }
 
@@ -933,6 +958,7 @@ public final class FlockEngine {
         }
         wanderState[i] = 0f;
         wanderStateY[i] = 0f;
+        spinState[i] = 0f;
         // xorshift64 is dead at zero, so force an odd non-zero stream state.
         noiseState[i] = (seed * 0x2545F4914F6CDD1DL) | 1L;
     }
@@ -1044,7 +1070,8 @@ public final class FlockEngine {
         wanderPhaseB = new float[n];
         homeDepth = new float[n];
         species = new int[n];
-        wanderState = new float[n]; wanderStateY = new float[n]; noiseState = new long[n];
+        wanderState = new float[n]; wanderStateY = new float[n]; spinState = new float[n];
+        noiseState = new long[n];
         speedScale = new float[n]; patrolScale = new float[n]; turnScale = new float[n];
         burstPhase = new float[n]; burstStep = new float[n]; burstDrive = new float[n];
         posL = new float[n]; posY = new float[n]; posD = new float[n];
@@ -2093,6 +2120,15 @@ public final class FlockEngine {
         wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
         wanderStateY[i] = SimMath.clamp(wanderStateY[i], -WANDER_CLAMP, WANDER_CLAMP);
 
+        // Facing: a third, independent OU process rather than a reuse of either advection axis —
+        // see DRIFT_SPIN_THETA. It drives baseRotations directly rather than yawDeg, which stays
+        // untouched (see the note on bank below): baseRotations isn't wrap-aware interpolated
+        // between ticks, and a tumble this slow doesn't need to be.
+        float kSpin = DRIFT_SPIN_SIGMA * (float) Math.sqrt(dt) * SQRT3;
+        spinState[i] += -spinState[i] * DRIFT_SPIN_THETA * dt + kSpin * nextSignedUnit(i);
+        spinState[i] = SimMath.clamp(spinState[i], -WANDER_CLAMP, WANDER_CLAMP);
+        baseRotations[i] += spinState[i] * DRIFT_SPIN_RATE_DEG * dt;
+
         float drive = DRIFT_SPEED * speedScale[i];
         float vl = wanderState[i] * drive;
         float vd = wanderStateY[i] * drive;
@@ -2160,9 +2196,9 @@ public final class FlockEngine {
         velY[i] = vy;
         velD[i] = vd;
         speed[i] = (float) Math.sqrt(vl * vl + vy * vy + vd * vd);
-        // Yaw and bank are the pose's business for a drifter: it has no facing to speak of, and
-        // FishAnimationConfig.UprightFloat already owns its spin. Leaving yawDeg alone also keeps
-        // it out of the wrap-aware yaw interpolation, which the box path only runs for crawlers.
+        // yawDeg is still the pose's business, not the engine's, for a drifter: it has no travel
+        // heading to speak of, only the tumble above. bank is likewise left alone — a jellyfish
+        // doesn't lean into a turn it isn't making.
         bank[i] = 0f;
     }
 

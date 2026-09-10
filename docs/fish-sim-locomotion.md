@@ -577,6 +577,43 @@ gate asymmetry, and a mixed tank walked through both passes asserting they agree
 `:fishsim` unchanged at 132 (131 passing, 1 pre-existing skip) with **no golden or parity
 edits** — nothing in the engine moved. Both loaders compile.
 
+### Drifter facing — landed 2026-09-11
+
+Phase 2's `stepDrift` left `baseRotations` exactly as scattered, on the grounds that "a drifter is
+not pointing where it is going" — true, but taken further than it needed to be: a real jellyfish
+still turns, slowly, as the water turns it. A tank of jellyfish all frozen at their spawn facing
+read as static rather than as drifting once the eye had a few seconds to look.
+
+* **A third OU process, `spinState`, independent of the two that drive position.** Not a reuse of
+  `wanderState` — that array is already the crawl's heading *and* the drift's own lateral axis, and
+  borrowing it a third time here would correlate the tumble with the horizontal advection for no
+  reason. `DRIFT_SPIN_THETA` (0.15, below even the horizontal wander's 0.25) is deliberately the
+  slowest correlation time in the model: a tumble has to read as slower than the current carrying
+  the animal, not the same speed as it, or the two fight for which one looks like "the current."
+* **Drives `baseRotations` directly, not `yawDeg`.** `yawDeg` is the crawl/glide heading channel,
+  wrap-aware-interpolated between ticks for `renderYaw` — machinery built for a fast-turning
+  creature that a several-seconds-per-degree tumble doesn't need. `baseRotations` was already the
+  field `FishAnimator.applyDrifting` reads for facing (`FishTankBlockEntityRenderer`'s
+  `eng.baseRotations[i]`), already carried bit-exact across `rebuildPreserving`, and not
+  interpolated at all — fine at this rate, the same reasoning that leaves `bank[i]` at 0 for a
+  drifter one line below.
+* **`FishAnimationConfig.UprightFloat.spinRate`** — the per-species field the doc comment on that
+  record already promised ("slowly drifts/spins on Y") — turned out to be dead: no renderer path
+  ever read it. Left alone rather than wired up or deleted: the tumble now shipped is a property of
+  the *class* (every drifter gets one, at engine constants), not of the species, and removing an
+  unused data-driven field on the back of an unrelated fix is its own change with its own risk.
+
+**Verification.** Two new tests: `DriftTest.aDrifterSlowlyTumbles` bounds the turn (a mean rate
+comfortably above zero so it doesn't read as frozen, a peak rate under 45°/s so it doesn't read as
+spinning), mirroring `aDrifterNeverSwims`'s mean-vs-peak shape for the same reason.
+`RebuildCarryTest.aCarriedDrifterContinuesItsTumble` mirrors `aCarriedGliderKeepsItsHeading`: the
+facing carried across a rebuild is bit-exact, and resumes changing afterward rather than sitting at
+whatever value it was carried at. `:fishsim` 159 (158 passing, 1 pre-existing skip), up from 157 —
+the two tests above are the whole of the delta; no golden or parity edits, since `DRIFT` stays
+unreachable from `DEFAULT`/`GROUP`.
+
+**In-game acceptance: passed** (2026-09-11), with no correction needed.
+
 ### Phase 3 — landed 2026-09-10
 
 Rays glide. The class is the planar swimmer model under a parameter set of its own, so the work

@@ -218,6 +218,33 @@ class RebuildCarryTest {
     }
 
     /**
+     * A carried drifter's tumble picks up where it left off rather than jumping: the rotation
+     * carried across the rebuild is within one tick's worth of turn from where it was, and it is
+     * still turning afterward rather than sitting frozen at whatever value it was carried at.
+     */
+    @Test
+    void aCarriedDrifterContinuesItsTumble() {
+        FishSpec[] specs = {
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.12f, Locomotion.DRIFT, false, 1),
+        };
+        FlockEngine engine = settled(specs, 400);
+        float beforeRot = engine.baseRotations[1];
+
+        engine.rebuildPreserving(without(specs, 0), carryAfterRemoval(2, 0), SEED, 30f,
+                3, 0.35f, 0.3f, 20f);
+        assertEquals(beforeRot, engine.baseRotations[0], 0f, "a carried drifter's facing jumped");
+
+        float atRebuild = engine.baseRotations[0];
+        boolean turned = false;
+        for (int t = 0; t < 200 && !turned; t++) {
+            engine.step();
+            if (engine.baseRotations[0] != atRebuild) turned = true;
+        }
+        assertTrue(turned, "a carried drifter never resumed tumbling after rebuild");
+    }
+
+    /**
      * A carried glider keeps the heading it was holding. Yaw is the glide model's real state — at
      * 2.2 deg/tick a ray takes the better part of a minute to come about, so a reset that snapped
      * it back to its scatter facing would be a visible teleport of the whole animal, and the
