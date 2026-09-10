@@ -842,19 +842,24 @@ the same bug at a different fish count — the number would only have moved whic
 which is the shape of failure this document keeps rediscovering.
 
 The reaction is **edge-triggered and habituating** now. Only an eel that is out and watching can be
-startled; it then hides for a fixed 1.6 s and ignores everything for a further 6 s, whatever is
+startled; it then hides for a fixed 1.6 s and ignores everything for a further 12 s, whatever is
 still swimming past. Both durations carry a ±35% per-fish jitter off the seed so a colony does not
-duck in unison. The refractory is deliberately longer than the emerge takes, so the eel is always
-fully out and visible for a while before it can be startled again — which bounds the fraction of
-time it spends hidden at about a fifth (analytic worst case 36%) **however many fish are in the
-tank**, rather than by choosing a number that happens to work at one stocking density.
+duck in unison. The refractory is deliberately far longer than the emerge takes, so the eel is
+always fully out and visible for a good while before it can be startled again — which bounds the
+fraction of time it spends hidden at about a ninth (analytic worst case 22%) **however many fish
+are in the tank**, rather than by choosing a number that happens to work at one stocking density.
+
+The refractory started at 6 s and was doubled after the same look: at 6 the colony was out most of
+the time on paper and still read as twitchy, because what a viewer registers is the <i>rate</i> of
+the reaction rather than the fraction of time it occupies — two quantities that are only the same
+thing in a quiet tank.
 
 That needed one piece of state: `anchorTimer[i]`, seconds, with the sign carrying the phase
 (positive hiding and counting down, negative habituated and counting up, zero out and watching).
 It is carried across a rebuild like everything else continuous in time.
 
-**Measured**, in a 4×2×3 group with two eels and twenty swimmers over five minutes: hidden 16% and
-29% of the time, both reaching fully out. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground`
+**Measured**, in a 4×2×3 group with two eels and twenty swimmers over five minutes: hidden 10% and
+16% of the time, both reaching fully out. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground`
 is that scenario, and `aThreatThatStaysGetsOneReactionNotAPermanentOne` is the same statement
 reduced to two fish, where it is about the model rather than about a stocking density.
 

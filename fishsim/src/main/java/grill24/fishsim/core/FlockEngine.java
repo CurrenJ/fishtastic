@@ -303,13 +303,18 @@ public final class FlockEngine {
      *
      * <p>These are the numbers that decide what a <i>crowded</i> tank looks like, and they are the
      * reason the reaction is edge-triggered. The hide is a fixed duration rather than "until the
-     * threat leaves", and the refractory that follows is comfortably longer than the emerge takes
-     * (~3 s at {@link #ANCHOR_EMERGE_RATE}), so the eel is always fully out and visible for a
-     * while before it can be startled again. Together they cap the fraction of time an eel spends
-     * hidden at roughly a fifth, however many fish are swimming past it.
+     * threat leaves", and the refractory that follows is far longer than the emerge takes (~3 s at
+     * {@link #ANCHOR_EMERGE_RATE}), so the eel is always fully out and visible for a good while
+     * before it can be startled again. Together they cap the fraction of time an eel spends hidden
+     * at roughly a ninth, however many fish are swimming past it.
+     *
+     * <p>The refractory was doubled from 6 s after the first in-game look: at 6 the colony read as
+     * twitchy in a busy tank — technically out most of the time and ducking too often to settle.
+     * What a viewer reads is the <i>rate</i> of the reaction, not the fraction, and the two are
+     * only the same thing when the tank is quiet.
      */
     private static final float ANCHOR_HIDE_SECONDS = 1.6f;
-    private static final float ANCHOR_REFRACTORY_SECONDS = 6.0f;
+    private static final float ANCHOR_REFRACTORY_SECONDS = 12.0f;
     /** Per-fish spread on both, so a colony does not duck and reappear in unison. */
     private static final float ANCHOR_TIMING_JITTER = 0.35f;
     /** Floor a burrow needs, in body-length² — §2.4's "a free floor footprint exists", measured. */

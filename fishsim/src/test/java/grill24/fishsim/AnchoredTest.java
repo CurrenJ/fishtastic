@@ -252,10 +252,12 @@ class AnchoredTest {
         }
         for (int i = 0; i < 2; i++) {
             float duty = hidden[i] / (float) ticks;
-            // Measured 16% and 29% here. The bound is the analytic worst case the two constants
-            // allow at the unluckiest draw of their per-fish jitter (~36%), not the measurement —
-            // a tighter number would be a test of this seed's timing jitter.
-            assertTrue(duty < 0.40f, "eel " + i + " spent " + Math.round(duty * 100)
+            // Measured 10% and 16% here. The bound is the analytic worst case the two constants
+            // allow at the unluckiest draw of their per-fish jitter (~22%), not the measurement —
+            // a tighter number would be a test of this seed's timing jitter. It is deliberately
+            // slack against the refractory as well: lengthening that only ever lowers the duty,
+            // and this test is here for the failure where it never falls at all.
+            assertTrue(duty < 0.30f, "eel " + i + " spent " + Math.round(duty * 100)
                     + "% of five minutes hidden in a crowded tank");
             assertTrue(duty > 0.02f, "eel " + i + " never reacted to a tank full of fish at all");
             assertTrue(mostOut[i] < 0.05f, "eel " + i + " never came fully out");

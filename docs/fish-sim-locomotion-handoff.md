@@ -42,7 +42,7 @@ with no headless acceptance:
 | `scuttle_squash` 0.05 | `upright_sit`, `floor_sit` | how far a crawler flexes pushing off |
 | `retract_fraction` 0.9 | `planted` | how much of itself an eel pulls into the sand |
 | `ANCHOR_RETRACT_RATE` 10 / `ANCHOR_EMERGE_RATE` 0.8 | engine | 0.3 s down, ~3 s back up |
-| `ANCHOR_HIDE_SECONDS` 1.6 / `ANCHOR_REFRACTORY_SECONDS` 6 | engine | how often an eel may duck at all |
+| `ANCHOR_HIDE_SECONDS` 1.6 / `ANCHOR_REFRACTORY_SECONDS` 12 | engine | how often an eel may duck at all |
 | `ANCHOR_THREAT_RADIUS_FACTOR` 4 / `_SIZE_FACTOR` 0.8 | engine | what counts as something to hide from |
 
 `GLIDE` needed two rounds of looking, and both of its problems were invisible headlessly by
@@ -208,8 +208,11 @@ Eighteen things that look like nits and are not. Most were found the hard way.
     once and put the colony permanently underground in a well-stocked tank, because past some
     density there is always a fish inside the radius and the eel never gets the three clear seconds
     its emerge needs. The fixed hide plus the longer refractory bounds the hidden fraction at about
-    a fifth *however many fish there are*; a radius or a rate would only have moved which tank the
+    a ninth *however many fish there are*; a radius or a rate would only have moved which tank the
     bug happens in. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground` is the regression.
+    Tune the reaction's <b>rate</b> with the refractory, not its depth with the amplitude: what
+    reads as twitchy in a busy tank is how often it fires, which is why that constant was doubled
+    on the second look while everything else stayed put.
 
 ## 3. Current per-model constants
 
@@ -232,7 +235,7 @@ DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE   DRIFT_SHAPE_DECAY_RATE 3.0
 
 ANCHOR_THREAT_RADIUS_FACTOR 4.0   ANCHOR_THREAT_SIZE_FACTOR 0.8
 ANCHOR_RETRACT_RATE 10.0          ANCHOR_EMERGE_RATE 0.8
-ANCHOR_HIDE_SECONDS 1.6           ANCHOR_REFRACTORY_SECONDS 6.0
+ANCHOR_HIDE_SECONDS 1.6           ANCHOR_REFRACTORY_SECONDS 12.0
 ANCHOR_TIMING_JITTER 0.35         (per-fish spread on both, so a colony is not in unison)
 ANCHOR_GATE_AREA_FACTOR 1.0       (floor a burrow needs, in body-length²)
 ```
