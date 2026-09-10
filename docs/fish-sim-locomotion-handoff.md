@@ -43,7 +43,7 @@ with no headless acceptance:
 | `retract_fraction` 0.9 | `planted` | how much of itself an eel pulls into the sand |
 | `ANCHOR_RETRACT_RATE` 10 / `ANCHOR_EMERGE_RATE` 0.8 | engine | 0.3 s down, ~3 s back up |
 | `ANCHOR_HIDE_SECONDS` 1.6 / `ANCHOR_REFRACTORY_SECONDS` 12 | engine | how often an eel may duck at all |
-| `ANCHOR_THREAT_RADIUS_FACTOR` 4 / `_SIZE_FACTOR` 0.8 | engine | what counts as something to hide from |
+| `ANCHOR_WATCHER_RADIUS` 3 blocks | engine | how close the player has to come |
 
 `GLIDE` needed two rounds of looking, and both of its problems were invisible headlessly by
 construction: a signal drawn raw that needed a render mirror and a roll-rate limit, then a speed
@@ -96,7 +96,7 @@ move is tested against the floor *before* it is taken and refused if it would la
 
 ## 2. Load-bearing details — do not remove these while refactoring
 
-Eighteen things that look like nits and are not. Most were found the hard way.
+Twenty-one things that look like nits and are not. Most were found the hard way.
 
 1. **Floor lookups are rotated into the block frame** (`FlockEngine.floorHeightAt`). A single
    tank's local lateral/depth axes are rotated by the placement yaw it recorded from the player;
@@ -194,25 +194,34 @@ Eighteen things that look like nits and are not. Most were found the hard way.
     vertical squash on a face-up sprite deforms it through its own zero thickness and shows
     nothing. Get this wrong and the creature sinks into the floor on every push-off, which is the
     Phase 1 floor-lift bug in a new costume.
-17. **Only something bigger, and only something that moves, startles an eel** (`threatNear`
-    skips `ANCHORED` and `STATIC` neighbours). Without that exclusion a colony holds itself
-    permanently retracted — every eel is a large object parked half a block from its neighbour —
-    and one demoted swimmer frozen nearby pins an eel down forever.
-18. **The anchor's threat size factor is below 1 on purpose** (0.8). An eel's "length" in the
-    engine is its *height*, and it is a thin creature; above 1 the reaction stops firing in an
-    ordinary tank, and a reaction nobody ever sees is the same as not having built it. A *large*
-    eel among ordinary fish still never reacts, which is left as it is — the same statement as a
-    giant manta staying `STATIC` in a one-block tank.
-19. **The startle is edge-triggered and habituates, and it must stay that way** (`anchorTimer`,
-    whose sign carries the phase). A presence test — "hide while something big is nearby" — shipped
-    once and put the colony permanently underground in a well-stocked tank, because past some
-    density there is always a fish inside the radius and the eel never gets the three clear seconds
-    its emerge needs. The fixed hide plus the longer refractory bounds the hidden fraction at about
-    a ninth *however many fish there are*; a radius or a rate would only have moved which tank the
-    bug happens in. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground` is the regression.
-    Tune the reaction's <b>rate</b> with the refractory, not its depth with the amplitude: what
-    reads as twitchy in a busy tank is how often it fires, which is why that constant was doubled
-    on the second look while everything else stayed put.
+17. **Nothing inside the tank startles an eel — only the watcher does** (`watcherNear`). This is a
+    design statement and `AnchoredTest.aTankFullOfFishNeverDisturbsTheEels` is there to keep it
+    one. The version that reacted to passing fish put a well-stocked tank's colony permanently
+    underground, because past some density there is always something in range; and even fixed, a
+    reaction to tankmates is either constant or arbitrary depending only on stocking, and the
+    player cannot cause it, so they never connect it to anything.
+18. **`ANCHOR_WATCHER_RADIUS` is absolute, not a multiple of body length** — the only radius in the
+    engine that is. The watcher is a fixed-size thing standing in the world rather than another
+    inhabitant of the tank; scaling it by the eel would say a colony of small eels lets you get
+    closer.
+19. **The watcher is tested per burrow, never per tank.** An eel at the far end of a long aquarium
+    ignores someone standing at the near end. A "is the player near this block entity" boolean is
+    much easier and throws that away.
+20. **`toLocal` must stay the exact inverse of `interpolate`'s rotation.** It is the only way a
+    caller can hand the engine a world position, and the failure mode — creatures reacting to
+    somewhere nobody is standing — has no other symptom, since every other test works in local
+    coordinates already. `toLocalInvertsTheFrameTheRenderScratchIsWrittenIn` covers six rotations,
+    and `TankFlockAdapter.setWatcher` holds the other half: the two engines originate in different
+    frames (block centre on the item baseline and rotated, versus the anchor's corner plus the
+    group offset and unrotated), and each mapping is the exact inverse of its own draw loop.
+21. **The startle is edge-triggered and habituates, and it must stay that way** (`anchorTimer`,
+    whose sign carries the phase, plus `anchorArmed`). A presence test — "hide while something is
+    in range" — shipped once and put a colony permanently underground, because a stationary state
+    holds the target up forever and an eel needs three clear seconds to re-emerge. `anchorArmed`
+    (cleared on reaction, set again only once the watcher has gone) makes a player who walks up and
+    stays a *single* event; the refractory rate-limits one who paces in and out. Both are needed:
+    arming alone strobes at the radius boundary, the refractory alone repeats every twelve seconds
+    at someone standing still.
 
 ## 3. Current per-model constants
 
@@ -233,7 +242,7 @@ CRAWL_SHAPE_ATTACK_RATE = CRAWL_ATTACK_RATE   CRAWL_SHAPE_DECAY_RATE 6.0
 
 DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE   DRIFT_SHAPE_DECAY_RATE 3.0
 
-ANCHOR_THREAT_RADIUS_FACTOR 4.0   ANCHOR_THREAT_SIZE_FACTOR 0.8
+ANCHOR_WATCHER_RADIUS 3.0         (blocks, absolute — the watcher is not a fish)
 ANCHOR_RETRACT_RATE 10.0          ANCHOR_EMERGE_RATE 0.8
 ANCHOR_HIDE_SECONDS 1.6           ANCHOR_REFRACTORY_SECONDS 12.0
 ANCHOR_TIMING_JITTER 0.35         (per-fish spread on both, so a colony is not in unison)
@@ -308,11 +317,14 @@ step. In-game acceptance is a human pass, not something to automate.
 
 ## 7. Known gaps
 
-1. **§3.6 has not been looked at in game, and Phase 4 has had one look.** The table in §1 is the
-   list of numbers that have no headless acceptance and never will. Phase 4's first look produced
-   exactly the predicted shape of failure — not a wrong number, but a rule that was only wrong at a
-   stocking density nobody had tried — so treat the crowded case as part of the look for §3.6's
-   amplitudes too.
+1. **§3.6 has not been looked at in game, and the eels' new player trigger has not either.** The
+   table in §1 is the list of numbers that have no headless acceptance and never will. Phase 4's
+   first look produced exactly the predicted shape of failure — not a wrong number, but a rule that
+   was only wrong at a stocking density nobody had tried — so treat the crowded case as part of the
+   look for §3.6's amplitudes too. The specific thing to watch on the watcher trigger: the 12 s
+   refractory now suppresses a *re-approach* completely (walk away, come back inside thirteen
+   seconds, nothing happens). It was doubled to 12 while passing fish were the trigger; about 4
+   would suit an approach-driven reaction better if it reads as unresponsive.
 2. **Swimmers still pass through cosmetics.** Only the floor is obstructed. Blocking the water
    needs sub-block resolution in `DistanceField`, which is a redesign of the piece the
    group-scaling work rests on — a real decision, deliberately not bundled into Phase 1. This is

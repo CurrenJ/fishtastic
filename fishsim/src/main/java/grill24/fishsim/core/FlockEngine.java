@@ -127,6 +127,44 @@ public final class FlockEngine {
      * cycle at about a fifth no matter how crowded it gets, so the eels duck and reappear instead.
      */
     float[] anchorTimer = new float[0];
+
+    /**
+     * Whether this creature is ready to be startled at all — the other half of making the reaction
+     * an event. It is cleared when the watcher arrives and set again only once the watcher has
+     * gone, so a player who walks up and then <i>stands there</i> gets one reaction rather than a
+     * fresh one every time the refractory lapses. Standing at a tank watching a colony duck over
+     * and over would read as a nervous tic, not as an animal that has decided you are furniture.
+     */
+    boolean[] anchorArmed = new boolean[0];
+
+    // The watcher: one external point the host may declare worth hiding from, in this engine's own
+    // local coordinates. The engine is deliberately ignorant of what it is — on the Minecraft side
+    // TankFlockAdapter feeds it the local player's eye position, mapped through toLocal().
+    private boolean watcherPresent;
+    private float watcherL, watcherY, watcherD;
+
+    /**
+     * Declares where the watcher is, in sim-local coordinates, or that there is none. Cheap enough
+     * to call every tick, which is how the adapter uses it — a player moves.
+     */
+    public void setWatcher(boolean present, float l, float y, float d) {
+        watcherPresent = present;
+        watcherL = l;
+        watcherY = y;
+        watcherD = d;
+    }
+
+    /**
+     * Maps a model-space offset — the frame the render scratch is written in, see
+     * {@link #interpolate} — back into sim-local coordinates. The inverse of the rotation
+     * {@code interpolate} applies, and the only way a caller can hand this engine a position in
+     * the frame it actually thinks in.
+     */
+    public void toLocal(float x, float y, float z, float[] out) {
+        out[0] = x * cosR - z * sinR;
+        out[1] = y;
+        out[2] = x * sinR + z * cosR;
+    }
     /** {@link #shapeDrive} interpolated to the frame — what a pose may actually scale by. */
     public float[] renderShape = new float[0];
 
@@ -274,20 +312,19 @@ public final class FlockEngine {
 
     // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
     /**
-     * How close a large fish has to come, as a multiple of the eel's own rendered length, before
-     * it withdraws. A multiple rather than an absolute distance so the same number works for a
-     * garden eel in a one-block tank and for whatever anchored species arrives later at four times
-     * the size.
+     * How close the <b>watcher</b> — whatever the host has declared it is worth hiding from, which
+     * on the Minecraft side is the local player — has to come before an eel withdraws.
+     *
+     * <p>An absolute distance in blocks, unlike every other radius in this engine, and
+     * deliberately so: the watcher is a fixed-size thing standing in the world rather than another
+     * inhabitant of the tank, so scaling this by the eel's own body length would say that a colony
+     * of small eels lets you get closer, which is backwards.
+     *
+     * <p>Three blocks is about "someone has walked up to the tank". Much larger and the eels are
+     * already hidden by the time you arrive, so the reaction is never seen happening — which is
+     * the same failure as it not firing.
      */
-    private static final float ANCHOR_THREAT_RADIUS_FACTOR = 4.0f;
-    /**
-     * And how big it has to be, likewise relative. Below 1 on purpose: an eel's "length" here is
-     * its <i>height</i>, since it is drawn standing up, and it is a thin creature — a fish
-     * measuring four fifths of that is comfortably bigger than the eel in every other dimension.
-     * Set it above 1 and the effect stops firing in an ordinary tank, which for a reaction nobody
-     * would ever see is the same as not building it.
-     */
-    private static final float ANCHOR_THREAT_SIZE_FACTOR = 0.8f;
+    private static final float ANCHOR_WATCHER_RADIUS = 3.0f;
     /**
      * Down fast, up slow — the whole character of the animation is in the asymmetry, and it is the
      * same shape as every other envelope here, only far more lopsided. 10/s puts the eel most of
@@ -716,6 +753,7 @@ public final class FlockEngine {
     private float[] cBankSmooth = new float[0], cPrevBankSmooth = new float[0];
     private float[] cShapeDrive = new float[0], cPrevShapeDrive = new float[0];
     private float[] cAnchorTimer = new float[0];
+    private boolean[] cAnchorArmed = new boolean[0];
     private float[] cTailPhase = new float[0], cPrevTailPhase = new float[0];
     private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
     private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
@@ -748,7 +786,7 @@ public final class FlockEngine {
             cHeading[i] = heading[from]; cSpeed[i] = speed[from]; cBank[i] = bank[from];
             cBankSmooth[i] = bankSmooth[from]; cPrevBankSmooth[i] = prevBankSmooth[from];
             cShapeDrive[i] = shapeDrive[from]; cPrevShapeDrive[i] = prevShapeDrive[from];
-            cAnchorTimer[i] = anchorTimer[from];
+            cAnchorTimer[i] = anchorTimer[from]; cAnchorArmed[i] = anchorArmed[from];
             cTailPhase[i] = tailPhase[from]; cPrevTailPhase[i] = prevTailPhase[from];
             cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
@@ -783,7 +821,7 @@ public final class FlockEngine {
             heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
             bankSmooth[i] = cBankSmooth[i]; prevBankSmooth[i] = cPrevBankSmooth[i];
             shapeDrive[i] = cShapeDrive[i]; prevShapeDrive[i] = cPrevShapeDrive[i];
-            anchorTimer[i] = cAnchorTimer[i];
+            anchorTimer[i] = cAnchorTimer[i]; anchorArmed[i] = cAnchorArmed[i];
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
             wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
@@ -819,6 +857,7 @@ public final class FlockEngine {
         cBankSmooth = new float[n]; cPrevBankSmooth = new float[n];
         cShapeDrive = new float[n]; cPrevShapeDrive = new float[n];
         cAnchorTimer = new float[n];
+        cAnchorArmed = new boolean[n];
         cTailPhase = new float[n]; cPrevTailPhase = new float[n];
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
@@ -848,6 +887,7 @@ public final class FlockEngine {
         bankSmooth[i] = prevBankSmooth[i] = renderBank[i] = 0f;
         shapeDrive[i] = prevShapeDrive[i] = renderShape[i] = 0f;
         anchorTimer[i] = 0f;
+        anchorArmed[i] = true;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
 
@@ -998,6 +1038,7 @@ public final class FlockEngine {
         bankSmooth = new float[n]; prevBankSmooth = new float[n]; renderBank = new float[n];
         shapeDrive = new float[n]; prevShapeDrive = new float[n]; renderShape = new float[n];
         anchorTimer = new float[n];
+        anchorArmed = new boolean[n];
         renderX = new float[n]; renderY = new float[n]; renderZ = new float[n];
         renderPhase = new float[n];
         tailPhase = new float[n]; prevTailPhase = new float[n];
@@ -2127,9 +2168,13 @@ public final class FlockEngine {
     private void stepAnchored(int i) {
         float dt = t.dt();
 
-        // The startle is edge-triggered and then habituates. Only a creature that is out and
-        // watching (timer 0) can be startled at all; from there it hides for a fixed spell and
-        // ignores everything for a longer one, whatever is still swimming past.
+        // The startle is edge-triggered, then habituates. Two independent conditions have to be
+        // true for an eel to duck: it must be armed (the watcher has been away since it last
+        // reacted) and out of its refractory. The first is what makes a player who walks up and
+        // stays a single event; the second is what stops one who paces in and out being a strobe.
+        boolean near = watcherNear(i);
+        if (!near) anchorArmed[i] = true;
+
         boolean hiding;
         if (anchorTimer[i] > 0f) {
             anchorTimer[i] -= dt;
@@ -2142,8 +2187,9 @@ public final class FlockEngine {
             anchorTimer[i] = Math.min(0f, anchorTimer[i] + dt);
             hiding = false;
         } else {
-            hiding = threatNear(i);
+            hiding = near && anchorArmed[i];
             if (hiding) {
+                anchorArmed[i] = false;
                 anchorTimer[i] = ANCHOR_HIDE_SECONDS
                         * (1f + ANCHOR_TIMING_JITTER * unitFromHash(seeds[i], 11));
             }
@@ -2159,23 +2205,22 @@ public final class FlockEngine {
     }
 
     /**
-     * Whether something worth hiding from is next to this burrow right now.
+     * Whether the watcher is next to this burrow right now.
      *
-     * <p>Only something that <i>moves</i>: another anchored creature parked half a block away is
-     * scenery, and a colony where each eel startled its neighbour would never come out at all.
+     * <p><b>Only</b> the watcher. Nothing inside the tank startles an eel, which is a design
+     * statement rather than an omission: the fish an eel shares a tank with are its neighbours,
+     * it sees them all day, and a reaction to them is either constant (in a stocked tank) or
+     * arbitrary (in an empty one). What a garden eel visibly reacts to is the large animal that
+     * has just leaned over its burrow — so that is the only thing this asks about, and each eel
+     * asks it about its <i>own</i> burrow, so a colony spread down a long aquarium reacts where
+     * the watcher actually is.
      */
-    private boolean threatNear(int i) {
-        float radius = ANCHOR_THREAT_RADIUS_FACTOR * lengths[i];
-        float threat = ANCHOR_THREAT_SIZE_FACTOR * lengths[i];
-        for (int j = 0; j < count; j++) {
-            if (j == i || lengths[j] < threat) continue;
-            if (locomotion[j] == Locomotion.ANCHORED || locomotion[j] == Locomotion.STATIC) continue;
-            float dl = posL[i] - posL[j];
-            float dy = posY[i] - posY[j];
-            float dd = posD[i] - posD[j];
-            if (dl * dl + dy * dy + dd * dd < radius * radius) return true;
-        }
-        return false;
+    private boolean watcherNear(int i) {
+        if (!watcherPresent) return false;
+        float dl = posL[i] - watcherL;
+        float dy = posY[i] - watcherY;
+        float dd = posD[i] - watcherD;
+        return dl * dl + dy * dy + dd * dd < ANCHOR_WATCHER_RADIUS * ANCHOR_WATCHER_RADIUS;
     }
 
     /** Where this fish sits in its own pulse-and-sink cycle, in [0, 1). */

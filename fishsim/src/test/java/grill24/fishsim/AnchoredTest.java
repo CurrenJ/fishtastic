@@ -21,8 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * position <i>not</i> changing, so the assertion is bitwise and runs alongside a live swimmer —
  * every other model here would have been perfectly happy to nudge it.
  *
- * <p>The threat trigger is driven by placing the threat by hand rather than by waiting for a
- * roaming swimmer to happen past. A test that waits measures the scatter, not the model.
+ * <p>The startle is driven by the <b>watcher</b> — the one external point the host declares worth
+ * hiding from, which on the Minecraft side is the local player's eye. Nothing inside the tank
+ * startles an eel, and {@link #aTankFullOfFishNeverDisturbsTheEels} is there to keep it that way:
+ * an earlier design reacted to passing fish, and in a well-stocked tank that meant a colony
+ * permanently underground, because past some density there is always something in range.
  */
 class AnchoredTest {
 
@@ -49,7 +52,19 @@ class AnchoredTest {
         return engine;
     }
 
-    /** Parks the threat exactly where the test wants it, overriding whatever its own model did. */
+    /** Runs the engine with the watcher held at one place — leaning over the tank, or gone. */
+    private static void watch(FlockEngine engine, int ticks, Float l, Float y, Float d) {
+        for (int tick = 0; tick < ticks; tick++) {
+            if (l == null) {
+                engine.setWatcher(false, 0f, 0f, 0f);
+            } else {
+                engine.setWatcher(true, l, y, d);
+            }
+            engine.step();
+        }
+    }
+
+    /** Parks a fish exactly where the test wants it, overriding whatever its own model did. */
     private static void park(FlockEngine engine, int i, float l, float y, float d) {
         engine.posL()[i] = l;
         engine.posY()[i] = y;
@@ -118,65 +133,63 @@ class AnchoredTest {
      * flicker, and one that never came back out would read as a bug.
      */
     @Test
-    void aPassingFishStartlesAnEelAndItComesBackOut() {
-        // A small threat, deliberately: this box's swim gate demotes anything much larger to
-        // STATIC, and a fish that is not moving is not what startles an eel.
-        FlockEngine engine = colony(tank(null), eel(0.05f, 0),
-                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 1));
+    void aWatcherLeaningOverTheTankStartlesAnEelAndItComesBackOut() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
 
-        // Nothing nearby: fully emerged, and staying that way.
-        for (int tick = 0; tick < 200; tick++) {
-            engine.step();
-            park(engine, 1, eelL + 5f, eelY + 5f, eelD + 5f);
-        }
-        assertEquals(0f, retractOf(engine, 0), 1e-3f, "an undisturbed eel was not fully out");
+        // Nobody there: fully out, and staying that way.
+        watch(engine, 200, null, null, null);
+        assertEquals(0f, retractOf(engine, 0), 1e-3f, "an unwatched eel was not fully out");
 
-        // A big fish arrives, and 0.3 s later the eel is most of the way into the sand.
-        for (int tick = 0; tick < 6; tick++) {
-            park(engine, 1, eelL + 0.05f, eelY + 0.05f, eelD);
-            engine.step();
-        }
+        // Someone walks up, and 0.3 s later the eel is most of the way into the sand.
+        watch(engine, 6, eelL + 0.4f, eelY + 1.5f, eelD + 0.4f);
         float retracted = retractOf(engine, 0);
         assertTrue(retracted > 0.7f, "the eel barely flinched in 0.3 s: " + retracted);
 
-        // It leaves; the eel takes seconds rather than frames to come back out.
-        park(engine, 1, eelL + 5f, eelY + 5f, eelD + 5f);
-        for (int tick = 0; tick < 6; tick++) {
-            engine.step();
-            park(engine, 1, eelL + 5f, eelY + 5f, eelD + 5f);
-        }
+        // They leave; the eel takes seconds rather than frames to come back out.
+        watch(engine, 6, null, null, null);
         assertTrue(retractOf(engine, 0) > 0.5f, "the eel popped straight back out");
-        for (int tick = 0; tick < 100; tick++) {
-            engine.step();
-            park(engine, 1, eelL + 5f, eelY + 5f, eelD + 5f);
-        }
+        watch(engine, 200, null, null, null);
         assertTrue(retractOf(engine, 0) < 0.1f, "the eel never came back out");
     }
 
     /**
-     * Only something bigger than the eel is a threat, and only something that moves. A colony
-     * where each eel startled its neighbour would sit permanently retracted, which is the failure
-     * this rules out structurally rather than by choosing a radius nothing happens to be inside.
+     * Distance decides it, and it is measured from each burrow rather than from the tank — which
+     * is what lets a colony spread down a long aquarium react where the watcher actually is.
      */
     @Test
-    void neitherASmallFishNorAStillOneStartlesAnEel() {
+    void aWatcherAcrossTheRoomStartlesNobody() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
+        float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        watch(engine, 600, eelL + 6f, eelY + 2f, eelD);
+        assertEquals(0f, retractOf(engine, 0), 1e-3f, "an eel hid from someone across the room");
+        watch(engine, 20, eelL + 0.4f, eelY + 1.5f, eelD);
+        assertTrue(retractOf(engine, 0) > 0.7f, "and then failed to react to someone right there");
+    }
+
+    /**
+     * Nothing that lives in the tank startles an eel — not a big fish, not a small one, not the
+     * neighbour in the next burrow. A design statement rather than an omission: an eel sees its
+     * tankmates all day, and a reaction to them is either constant or arbitrary depending only on
+     * how well stocked the tank is. This is the regression for the version that reacted to fish
+     * and left a busy tank's colony permanently underground.
+     */
+    @Test
+    void aTankFullOfFishNeverDisturbsTheEels() {
         FlockEngine engine = colony(tank(null), eel(0.30f, 0),
                 new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 1),
                 eel(0.40f, 0),
                 new FishSpec(0.40f, Locomotion.STATIC, false, 2));
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
         for (int tick = 0; tick < 400; tick++) {
-            // Every one of them right on top of the eel, tick after tick.
+            // Every one of them right on top of the eel, tick after tick, with nobody watching.
             park(engine, 1, eelL, eelY, eelD + 0.05f);
             park(engine, 3, eelL, eelY, eelD - 0.05f);
+            engine.setWatcher(false, 0f, 0f, 0f);
             engine.step();
             assertEquals(0f, retractOf(engine, 0), 1e-3f,
-                    "the eel retracted from something harmless at tick " + tick);
+                    "the eel reacted to its own tankmates at tick " + tick);
         }
-        // The second eel is bigger than the first and just as close: proof the size test is not
-        // what is carrying this, and that anchored neighbours are excluded on their class.
-        assertTrue(engine.lengths[2] > engine.lengths[0] * 1.2f);
     }
 
     /**
@@ -188,15 +201,12 @@ class AnchoredTest {
     @Test
     void aCarriedEelKeepsItsBurrowAndItsWithdrawal() {
         FishSpec[] specs = {
-                eel(0.05f, 0),
+                eel(0.12f, 0),
                 new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 1),
         };
         FlockEngine engine = colony(tank(null), specs);
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
-        for (int tick = 0; tick < 5; tick++) {
-            park(engine, 1, eelL + 0.05f, eelY + 0.05f, eelD);
-            engine.step();
-        }
+        watch(engine, 5, eelL + 0.4f, eelY + 1.5f, eelD);
         float retracted = retractOf(engine, 0);
         assertTrue(retracted > 0.5f, "the eel was not withdrawing when it was carried");
 
@@ -208,82 +218,97 @@ class AnchoredTest {
     }
 
     /**
-     * The one that came from the game: in a big, well-stocked tank the eels sat permanently in the
-     * sand and never came out.
-     *
-     * <p>The cause was the trigger being a <i>state</i> — "hold the retract up while something big
-     * is nearby" — which is right in a quiet tank and wrong in a busy one, because past some
-     * stocking density there is always a fish inside the radius. No radius or rate would have
-     * fixed it: any threshold a crowded tank sits permanently above is the same bug at a different
-     * fish count. The reaction is edge-triggered and habituates now, which bounds the duty cycle
-     * structurally rather than by choosing a number.
+     * A long aquarium, an eel at each end, and someone standing at one of them. The near eel ducks
+     * and the far one never notices — the property that makes this worth doing per burrow rather
+     * than per tank, and the one a "is the player near this block entity" test would have thrown
+     * away.
      */
     @Test
-    void aCrowdedTankDoesNotHoldTheEelsUnderground() {
-        boolean[][][] occupancy = new boolean[4][2][3];
+    void aWatcherAtOneEndOfTheAquariumLeavesTheOtherEndAlone() {
+        boolean[][][] occupancy = new boolean[8][2][1];
         for (boolean[][] column : occupancy) {
-            for (boolean[] cell : column) {
-                cell[0] = true;
-                cell[1] = true;
-                cell[2] = true;
-            }
+            column[0][0] = true;
+            column[1][0] = true;
         }
-        FishSpec[] specs = new FishSpec[22];
-        specs[0] = eel(0.30f, 0);
-        specs[1] = eel(0.32f, 0);
-        for (int i = 2; i < specs.length; i++) {
-            // Comfortably over both eels' threat threshold: what is being measured here is the
-            // duty cycle, not which fish qualifies.
-            specs[i] = new FishSpec(0.28f, Locomotion.FREE_SWIM, false, 1 + i % 3);
-        }
+        FishSpec[] specs = {eel(0.30f, 0), eel(0.32f, 0)};
         FlockEngine engine = new FlockEngine(Tunables.GROUP);
         engine.rebuild(specs, 4242L, 0f, 20f, new VoxelDomain(occupancy));
 
-        int ticks = 6_000; // 5 minutes
-        int[] hidden = new int[2];
-        float[] mostOut = {1f, 1f};
-        for (int tick = 0; tick < ticks; tick++) {
-            engine.step();
-            for (int i = 0; i < 2; i++) {
-                float retract = retractOf(engine, i);
-                if (retract > 0.5f) hidden[i]++;
-                mostOut[i] = Math.min(mostOut[i], retract);
-            }
-        }
-        for (int i = 0; i < 2; i++) {
-            float duty = hidden[i] / (float) ticks;
-            // Measured 10% and 16% here. The bound is the analytic worst case the two constants
-            // allow at the unluckiest draw of their per-fish jitter (~22%), not the measurement —
-            // a tighter number would be a test of this seed's timing jitter. It is deliberately
-            // slack against the refractory as well: lengthening that only ever lowers the duty,
-            // and this test is here for the failure where it never falls at all.
-            assertTrue(duty < 0.30f, "eel " + i + " spent " + Math.round(duty * 100)
-                    + "% of five minutes hidden in a crowded tank");
-            assertTrue(duty > 0.02f, "eel " + i + " never reacted to a tank full of fish at all");
-            assertTrue(mostOut[i] < 0.05f, "eel " + i + " never came fully out");
-        }
+        // The burrows are placed by hand rather than left to the scatter, which spaces a colony
+        // by footprint and is perfectly entitled to put both eels at the same end.
+        int near = 0, far = 1;
+        park(engine, near, engine.domain().minLateral() + 0.5f, engine.posY()[near], 0f);
+        park(engine, far, engine.domain().maxLateral() - 0.5f, engine.posY()[far], 0f);
+        assertTrue(engine.posL()[far] - engine.posL()[near] > 3.5f,
+                "the two burrows are not far enough apart for this to mean anything");
+
+        // Twenty ticks, not four hundred: someone who stays gets one reaction and the eel then
+        // comes back out past them (aWatcherWhoStaysGetsOneReactionNotAPermanentOne), so this has
+        // to look while the reaction is actually happening.
+        watch(engine, 20, engine.posL()[near] + 0.5f, engine.posY()[near] + 1.5f,
+                engine.posD()[near]);
+        assertTrue(retractOf(engine, near) > 0.7f, "the eel being leaned over did not react");
+        assertEquals(0f, retractOf(engine, far), 1e-3f,
+                "the eel at the far end of the aquarium reacted too");
     }
 
     /**
-     * And the habituation is real: a threat that simply parks next to the burrow gets one reaction,
-     * not a permanent one. This is the crowded-tank case reduced to two fish, where it is a
-     * statement about the model rather than about a stocking density.
+     * Someone walks up and <i>stays</i>: one reaction, then the eel comes out and gets on with its
+     * life. Standing at a tank watching a colony duck over and over would read as a nervous tic,
+     * not as an animal that has decided you are furniture — and it is exactly what the refractory
+     * alone would produce, which is why the arming flag exists alongside it.
+     *
+     * <p>This is also where the crowded-tank bug landed after the trigger changed: the failure was
+     * never really about fish, it was about a reaction that a stationary state could hold down
+     * forever.
      */
     @Test
-    void aThreatThatStaysGetsOneReactionNotAPermanentOne() {
-        FlockEngine engine = colony(tank(null), eel(0.05f, 0),
-                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 1));
+    void aWatcherWhoStaysGetsOneReactionNotAPermanentOne() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+
+        int ducks = 0;
+        boolean wasHidden = false;
         int hidden = 0;
-        for (int tick = 0; tick < 2_000; tick++) {
-            // Sitting right on top of the burrow for a hundred seconds, without ever leaving.
-            park(engine, 1, eelL + 0.05f, eelY + 0.05f, eelD);
+        for (int tick = 0; tick < 4_000; tick++) { // 200 s of someone standing at the glass
+            engine.setWatcher(true, eelL + 0.4f, eelY + 1.5f, eelD);
             engine.step();
-            if (retractOf(engine, 0) > 0.5f) hidden++;
+            boolean isHidden = retractOf(engine, 0) > 0.5f;
+            if (isHidden && !wasHidden) ducks++;
+            if (isHidden) hidden++;
+            wasHidden = isHidden;
         }
-        float duty = hidden / 2_000f;
-        assertTrue(duty < 0.35f, "the eel stayed down for " + Math.round(duty * 100)
-                + "% of the run with a threat parked on it");
-        assertTrue(duty > 0.05f, "the parked threat startled it at most once");
+        assertEquals(1, ducks, "an eel reacted more than once to someone who never left");
+        assertTrue(hidden < 100, "the eel stayed down for " + hidden + " ticks of 4000");
+
+        // And it can be startled again once they have gone away and come back.
+        watch(engine, 400, null, null, null);
+        watch(engine, 20, eelL + 0.4f, eelY + 1.5f, eelD);
+        assertTrue(retractOf(engine, 0) > 0.7f, "the eel never reacted to a second approach");
+    }
+
+    /**
+     * {@code toLocal} is the exact inverse of the rotation {@code interpolate} applies, at every
+     * tank rotation — which is the only reason the adapter can hand this engine a player position
+     * at all. Get it wrong and the eels react to somewhere that is not where anybody is standing:
+     * a bug with no symptom except creatures ducking at nothing, which no other test here would
+     * see, since every one of them works in local coordinates already.
+     */
+    @Test
+    void toLocalInvertsTheFrameTheRenderScratchIsWrittenIn() {
+        float[] out = new float[3];
+        for (float rotation : new float[]{0f, 37f, 90f, 180f, 254f, 359f}) {
+            FlockEngine engine = new FlockEngine(Tunables.DEFAULT);
+            engine.rebuild(new FishSpec[]{eel(0.12f, 0), eel(0.14f, 0), eel(0.11f, 1)},
+                    4242L, rotation, 3, 0.35f, 0.3f, 20f, tank(null));
+            engine.step();
+            engine.interpolate(1f);
+            for (int i = 0; i < engine.count(); i++) {
+                engine.toLocal(engine.renderX[i], engine.renderY[i], engine.renderZ[i], out);
+                assertEquals(engine.posL()[i], out[0], 1e-5f, "lateral at rotation " + rotation);
+                assertEquals(engine.posY()[i], out[1], 1e-5f, "vertical at rotation " + rotation);
+                assertEquals(engine.posD()[i], out[2], 1e-5f, "depth at rotation " + rotation);
+            }
+        }
     }
 }

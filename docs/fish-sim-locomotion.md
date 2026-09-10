@@ -870,6 +870,56 @@ see it is a bigger fish, not a lower threshold.
 
 `:fishsim` 151 (150 passing, 1 pre-existing skip).
 
+#### Then: the eels react to the player instead of to the fish
+
+A deliberate change of subject rather than a bug fix, and it makes §3.4's "a neighbour query the
+engine already performs" obsolete. **Nothing inside the tank startles an eel any more.** The only
+thing that does is the **watcher** — one external point the host declares worth hiding from, which
+on the Minecraft side is the local player's eye position.
+
+The reasoning is the crowded-tank lesson taken one step further. A reaction to tankmates is either
+constant or arbitrary depending only on how well stocked the tank is, and the eel sees them all day
+in any case; the habituation made that bearable rather than right. What a garden eel visibly reacts
+to is the large animal that has just leaned over its burrow, and in this game that animal is the
+player standing at the glass — which is also the only reaction the player can *cause*, and so the
+only one they will ever connect to anything.
+
+* **`FlockEngine.setWatcher(present, l, y, d)`** — the engine stays Minecraft-free and deliberately
+  ignorant of what the point is. `ANCHOR_WATCHER_RADIUS` is 3 blocks and, unlike every other radius
+  in the engine, is **absolute rather than a multiple of body length**: the watcher is a fixed-size
+  thing standing in the world, and scaling it by the eel would say a colony of small eels lets you
+  get closer, which is backwards. Much larger than 3 and the eels are already hidden by the time
+  you arrive, which is the same failure as not firing at all.
+* **The test is per burrow, not per tank.** An eel at the far end of a long aquarium does not react
+  to someone standing at the near end — `AnchoredTest.aWatcherAtOneEndOfTheAquariumLeavesTheOtherEndAlone`.
+  A "is the player near this block entity" boolean would have been much easier and would have
+  thrown that away.
+* **`FlockEngine.toLocal`** — the inverse of the rotation `interpolate` applies, and the only way a
+  caller can hand the engine a position in the frame it thinks in. `TankFlockAdapter.setWatcher`
+  does the rest: a lone tank's engine is rotated by the yaw the tank recorded from its placer and
+  originates at the block centre on the item baseline, while the group engine is unrotated and
+  originates at the anchor's corner plus the group offset. Both are the exact inverse of what the
+  draw loops do. `toLocalInvertsTheFrameTheRenderScratchIsWrittenIn` checks the round trip at six
+  rotations, because the failure — creatures ducking at somewhere nobody is standing — has no other
+  symptom, and every other test here already works in local coordinates.
+* **`ClientTankFlocks.tickAll` reads the player once per tick** and hands it to each flock in that
+  tank's own coordinates before stepping it.
+* **A second guard came with it: `anchorArmed`.** The refractory alone would give a player who
+  walks up and *stays* a fresh reaction every twelve seconds, which reads as a nervous tic rather
+  than as an animal that has decided you are furniture. An eel is re-armed only once the watcher
+  has gone. So: approach → one duck → out again → and it will duck again when you come back.
+  `aWatcherWhoStaysGetsOneReactionNotAPermanentOne` asserts *exactly one* reaction across 200 s of
+  someone standing at the glass, which is a much stronger statement than the duty bound it replaces.
+
+**The one thing to watch in game**: with arming doing the "don't repeat yourself" work, the 12 s
+refractory now only suppresses a *re-approach*, and it suppresses it completely — walk away, come
+back within about thirteen seconds, and nothing happens. If that reads as unresponsive, the fix is
+`ANCHOR_REFRACTORY_SECONDS` back down to about 4 (still comfortably longer than the ~3 s emerge, so
+an eel is always seen fully out between reactions); it was doubled to 12 while passing fish were
+still the trigger and re-triggering was constant.
+
+`:fishsim` 153 (152 passing, 1 pre-existing skip), `:common` 44, both loaders compile.
+
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.
 

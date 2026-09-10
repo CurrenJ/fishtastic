@@ -2,7 +2,10 @@ package grill24.fishtastic.client.util;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.TankFlockAdapter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +55,19 @@ public final class ClientTankFlocks {
     public static void tickAll() {
         tickCounter++;
         FLOCKS.entrySet().removeIf(e -> tickCounter - e.getValue().lastExtractTick() > EVICT_AFTER_TICKS);
-        for (TankFlockAdapter flock : FLOCKS.values()) {
+
+        // The one thing outside a tank that its inhabitants know about: whoever is standing in
+        // front of it. Read once per tick rather than per tank — it is the same player — and
+        // handed to each flock in that tank's own coordinates before it steps.
+        Player player = Minecraft.getInstance().player;
+        Vec3 eye = player == null ? null : player.getEyePosition();
+        for (Map.Entry<BlockPos, TankFlockAdapter> entry : FLOCKS.entrySet()) {
+            TankFlockAdapter flock = entry.getValue();
+            if (eye == null) {
+                flock.setWatcher(entry.getKey(), Double.NaN, 0, 0);
+            } else {
+                flock.setWatcher(entry.getKey(), eye.x, eye.y, eye.z);
+            }
             flock.step();
         }
     }

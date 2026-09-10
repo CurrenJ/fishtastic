@@ -110,6 +110,53 @@ public final class TankFlockAdapter {
         this.lastExtractTick = tick;
     }
 
+    /** Scratch for {@link #setWatcher}, so the per-tick mapping allocates nothing. */
+    private final float[] watcherScratch = new float[3];
+
+    /**
+     * Tells this tank's engines where the player is, so anchored creatures can react to being
+     * looked at (docs/fish-sim-locomotion.md §3.4). Called once per client tick, before
+     * {@link #step()}.
+     *
+     * <p>The mapping is the whole of the work, and it is different for the two engines because
+     * they think in different frames. A lone tank's engine is <b>rotated</b> by the yaw the tank
+     * recorded from the player who placed it and its origin is the block's centre at the item
+     * baseline; the group engine is unrotated and its origin is the anchor block's corner plus the
+     * group offset. Both are the inverse of what the draw loops do to get from the engine's
+     * numbers to a position on screen — if a fish is drawn at {@code origin + render}, then the
+     * player is at {@code player − origin} in render space, and {@code toLocal} takes it the rest
+     * of the way.
+     *
+     * @param pos this tank's block position — the anchor's, for the group engine
+     * @param px,py,pz the player's eye position in world space, or NaN in {@code px} for "no
+     *                 player", which clears the watcher on both engines
+     */
+    public void setWatcher(BlockPos pos, double px, double py, double pz) {
+        if (Double.isNaN(px)) {
+            engine.setWatcher(false, 0f, 0f, 0f);
+            if (groupEngine != null) groupEngine.setWatcher(false, 0f, 0f, 0f);
+            return;
+        }
+        // Lone tank: the draw loop translates by ITEM_POSITION_OFFSET (the block's centre at the
+        // item baseline) plus the engine's rotated render offset.
+        float x = (float) (px - pos.getX()) - 0.5f;
+        float y = (float) (py - pos.getY()) - FishTankBlockEntityRenderer.ITEM_BASELINE_Y;
+        float z = (float) (pz - pos.getZ()) - 0.5f;
+        engine.toLocal(x, y, z, watcherScratch);
+        engine.setWatcher(true, watcherScratch[0], watcherScratch[1], watcherScratch[2]);
+
+        if (groupEngine != null) {
+            // Group: the draw loop translates by the group offset alone, in the anchor block's
+            // own frame, and the group engine carries no rotation — so this is a plain subtraction
+            // and toLocal is the identity. Called through it anyway, because "the group engine is
+            // unrotated" is a fact about today's rebuild call and not a law.
+            groupEngine.toLocal((float) (px - pos.getX()) - groupOffsetX,
+                    (float) (py - pos.getY()) - groupOffsetY,
+                    (float) (pz - pos.getZ()) - groupOffsetZ, watcherScratch);
+            groupEngine.setWatcher(true, watcherScratch[0], watcherScratch[1], watcherScratch[2]);
+        }
+    }
+
     /** Advances the engine(s) by one fixed 20 Hz step. Runs on the client tick, never at render. */
     public void step() {
         engine.step();
