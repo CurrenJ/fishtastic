@@ -27,7 +27,12 @@ eels) is the only class left without a motion model.
 
 `:fishsim` 139 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
 
-**In-game status.** Crawlers have had a *partial* look: the user confirmed `willans_chromodoris`
+**In-game status.** Gliding rays are **accepted** — the only part of this work that has been
+looked at and signed off. It took two rounds to get there (a raw bank signal that needed a render
+mirror and a roll-rate limit; then a speed that was wrong only in combination with the turn rate),
+which is the honest estimate of what the remaining classes will each cost.
+
+Crawlers have had a *partial* look: the user confirmed `willans_chromodoris`
 sits correctly after the group-path floor-lift fix, and reported `trapania_scurra` floating, which
 was a pre-existing pivot bug now fixed by measurement. Nobody has yet watched a crawler walk for a
 while, or watched one in a real multi-tank group. **A full in-game acceptance pass is still owed —
@@ -245,9 +250,9 @@ step. In-game acceptance is a human pass, not something to automate.
    needs sub-block resolution in `DistanceField`, which is a redesign of the piece the
    group-scaling work rests on — a real decision, deliberately not bundled into Phase 1. This is
    the open half of §4.1 in the main doc.
-2. **No in-game acceptance** for the benthic walk, the drift, the glide, Tier 2, or the 512 cap.
-   See §1. Every set of tuning numbers here — `CRAWL_*`, `DRIFT_*`, `Tunables.GLIDE` — has the
-   same status: measured with its probe, never looked at. The one most likely to want raising
+2. **No in-game acceptance** for the benthic walk, the drift, Tier 2, or the 512 cap — the glide
+   has one now. See §1. `CRAWL_*` and `DRIFT_*` still have the status `Tunables.GLIDE` had before
+   its two rounds of feedback: measured with a probe, never looked at. The one most likely to want raising
    after a look is `DRIFT_SPEED` — a drifter covers ~0.8 blocks of net carry in 200 s, so crossing
    a 3×3 aquarium would take the better part of ten minutes. A ray covers 1.9 in the same time,
    which is slow on purpose but is the next candidate.

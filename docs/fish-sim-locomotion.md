@@ -694,7 +694,14 @@ produced the orbit. `aGliderCrossesTheAquariumRatherThanCirclingInIt` replaces i
 **Measured, 6×2×4 with one ray:** mean speed 0.060 → **0.138** blocks/s, turn radius 0.53 →
 **1.56** blocks, ground covered 3.7×2.3 → **5.4×3.5** blocks, still zero backstop engagements.
 
-**In-game acceptance is still pending** — as it is for Phases 1 and 2, Tier 2 and the 512 cap.
+**Accepted in game** after this change — the first part of this work that has been. `GLIDE` took
+two rounds of looking to get there, both of them things no headless check would have raised on its
+own: a signal drawn raw that needed a render mirror, and a speed that was wrong only in
+combination with a turn rate. The remaining classes have had no such pass; assume they each owe
+one.
+
+**In-game acceptance:** the glide itself is accepted (see the two follow-up sections below).
+Phases 1 and 2, Tier 2 and the 512 cap are all still owed one.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.
