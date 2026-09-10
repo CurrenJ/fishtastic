@@ -78,6 +78,20 @@ public final class FlockEngine {
     public float[] heading = new float[0]; // +1 / -1 (nose along +lateral / −lateral)
     public float[] speed = new float[0];   // blocks/sec, for animation coupling
     public float[] bank = new float[0];    // bank angle (deg), for animation coupling
+    /**
+     * Low-passed {@link #bank}, and its previous tick — the lean a pose should actually be drawn
+     * with. {@code bank} is computed from the yaw delta of a single tick, so it carries all of the
+     * wander's and the separation term's tick-to-tick noise: measured on a gliding ray it moved a
+     * tenth of full lean every tick and changed sign about twice a second, which reads in game as
+     * a small, fast vibration laid over the real bank. Rolling an animal's whole body is the
+     * slowest thing it does, not the fastest, so the filter is not a cosmetic smoothing pass — it
+     * is the missing physics.
+     *
+     * <p>{@code bank} itself is left exactly as it was: {@code ParityTest} asserts it bitwise.
+     */
+    private float[] bankSmooth = new float[0], prevBankSmooth = new float[0];
+    /** {@link #bankSmooth} interpolated to the frame, the way {@link #renderYaw} mirrors yaw. */
+    public float[] renderBank = new float[0];
 
     // ── Planar mode (voxel domains) ────────────────────────────────────────
     // Continuous horizontal heading instead of the single-tank binary ±lateral: lateral and depth
@@ -107,6 +121,23 @@ public final class FlockEngine {
     private static final float PLANAR_TURN_RATE = 7f;
     /** Horizontal speed below which the yaw holds instead of chasing a noisy direction. */
     private static final float PLANAR_YAW_MIN_SPEED = 0.005f;
+
+    /**
+     * Rate (1/s) at which the drawn lean chases the commanded one — a ~0.25 s time constant. Fast
+     * enough that a turn and its lean still look simultaneous, slow enough that a tick of steering
+     * noise moves the body by a fraction of what it asks for.
+     */
+    private static final float BANK_SMOOTH_RATE = 4.0f;
+
+    /**
+     * Hard limit on how fast the drawn lean may change, in degrees per second. The low-pass alone
+     * is not enough: {@code bank} saturates at ±{@code bankMax} on any turn at all — for a glider,
+     * whose turn budget is small, that is most turns — so it slams the full width of its range and
+     * a fraction of a two-lean gap is still a visible snap (measured: 0.32 of full lean in a single
+     * tick, through the filter). A rolling body has a top rate, and this is it: from level to fully
+     * banked over takes about 1.7 s, which is what an animal with a wingspan looks like.
+     */
+    private static final float BANK_ROLL_RATE_DEG_PER_SECOND = 6f;
 
     /** √3 — scales a uniform(−1,1) draw to unit variance for the OU wander's drive term. */
     private static final float SQRT3 = 1.7320508f;
@@ -582,6 +613,7 @@ public final class FlockEngine {
     private float[] cPrevL = new float[0], cPrevY = new float[0], cPrevD = new float[0];
     private float[] cVelL = new float[0], cVelY = new float[0], cVelD = new float[0];
     private float[] cHeading = new float[0], cSpeed = new float[0], cBank = new float[0];
+    private float[] cBankSmooth = new float[0], cPrevBankSmooth = new float[0];
     private float[] cTailPhase = new float[0], cPrevTailPhase = new float[0];
     private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
     private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
@@ -612,6 +644,7 @@ public final class FlockEngine {
             cPrevL[i] = prevL[from]; cPrevY[i] = prevY[from]; cPrevD[i] = prevD[from];
             cVelL[i] = velL[from]; cVelY[i] = velY[from]; cVelD[i] = velD[from];
             cHeading[i] = heading[from]; cSpeed[i] = speed[from]; cBank[i] = bank[from];
+            cBankSmooth[i] = bankSmooth[from]; cPrevBankSmooth[i] = prevBankSmooth[from];
             cTailPhase[i] = tailPhase[from]; cPrevTailPhase[i] = prevTailPhase[from];
             cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
@@ -644,6 +677,7 @@ public final class FlockEngine {
             prevL[i] = cPrevL[i]; prevY[i] = cPrevY[i]; prevD[i] = cPrevD[i];
             velL[i] = cVelL[i]; velY[i] = cVelY[i]; velD[i] = cVelD[i];
             heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
+            bankSmooth[i] = cBankSmooth[i]; prevBankSmooth[i] = cPrevBankSmooth[i];
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
             wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
@@ -676,6 +710,7 @@ public final class FlockEngine {
         cPrevL = new float[n]; cPrevY = new float[n]; cPrevD = new float[n];
         cVelL = new float[n]; cVelY = new float[n]; cVelD = new float[n];
         cHeading = new float[n]; cSpeed = new float[n]; cBank = new float[n];
+        cBankSmooth = new float[n]; cPrevBankSmooth = new float[n];
         cTailPhase = new float[n]; cPrevTailPhase = new float[n];
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
@@ -702,6 +737,7 @@ public final class FlockEngine {
         velL[i] = velY[i] = velD[i] = 0f;
         speed[i] = 0f;
         bank[i] = 0f;
+        bankSmooth[i] = prevBankSmooth[i] = renderBank[i] = 0f;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
 
@@ -765,12 +801,15 @@ public final class FlockEngine {
      * burst sliders would read as dead until the next reseed.
      */
     private void deriveTraits(int i, long seed) {
-        float jitter = t.traitJitter();
+        // This fish's own set: a glider's burst period is its wingbeat and is nothing like the
+        // shoal's swell. Safe to call from initFish because locomotion[i] is assigned above it.
+        Tunables p = params(i);
+        float jitter = p.traitJitter();
         speedScale[i] = 1f + jitter * unitFromHash(seed, 1);
         patrolScale[i] = 1f + jitter * unitFromHash(seed, 2);
         turnScale[i] = 1f + jitter * unitFromHash(seed, 3);
-        float period = t.burstPeriodSeconds() * (1f + BURST_PERIOD_JITTER * unitFromHash(seed, 5));
-        burstStep[i] = period > 0f ? t.dt() / period : 0f;
+        float period = p.burstPeriodSeconds() * (1f + BURST_PERIOD_JITTER * unitFromHash(seed, 5));
+        burstStep[i] = period > 0f ? p.dt() / period : 0f;
     }
 
     /**
@@ -843,6 +882,7 @@ public final class FlockEngine {
         heading = new float[n];
         speed = new float[n];
         bank = new float[n];
+        bankSmooth = new float[n]; prevBankSmooth = new float[n]; renderBank = new float[n];
         renderX = new float[n]; renderY = new float[n]; renderZ = new float[n];
         renderPhase = new float[n];
         tailPhase = new float[n]; prevTailPhase = new float[n];
@@ -860,6 +900,7 @@ public final class FlockEngine {
         System.arraycopy(posY, 0, prevY, 0, count);
         System.arraycopy(posD, 0, prevD, 0, count);
         System.arraycopy(tailPhase, 0, prevTailPhase, 0, count);
+        System.arraycopy(bankSmooth, 0, prevBankSmooth, 0, count);
         if (planar || continuousYaw()) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
 
@@ -903,6 +944,11 @@ public final class FlockEngine {
             // its own swimming; everything else is animated open-loop against game time by the
             // renderer, and a drifting tailPhase would double-drive it.
             if (beats) tailPhase[i] += speedFactor(i);
+            // Every fish, whether or not it was stepped: a class that never banks holds zero, and
+            // one that just stopped being stepped relaxes out of its lean instead of freezing in it.
+            float roll = (bank[i] - bankSmooth[i]) * BANK_SMOOTH_RATE * t.dt();
+            float maxRoll = BANK_ROLL_RATE_DEG_PER_SECOND * t.dt();
+            bankSmooth[i] += SimMath.clamp(roll, -maxRoll, maxRoll);
         }
     }
 
@@ -935,8 +981,8 @@ public final class FlockEngine {
         // decorrelated by ~4s and went negative by 8s — see WallTurnAnalysis). yawDeg still chases
         // the actual velocity direction every tick (below), just rate-limited — so this is a lag,
         // not a disconnect.
-        advanceWander(i);
-        advanceBurst(i);
+        advanceWander(i, p);
+        advanceBurst(i, p);
 
         float yr = (float) Math.toRadians(yawDeg[i]);
         float dirL = (float) Math.cos(yr);
@@ -1225,14 +1271,16 @@ public final class FlockEngine {
     /**
      * This fish's bank as a fraction of its own full lean, in [−1, 1].
      *
-     * <p>{@link #bank} is in degrees against whichever parameter set stepped the fish, and the
-     * renderer has no business knowing which one that was. A pose that authors its own lean angle
+     * <p>Reads the smoothed, interpolated {@link #renderBank}, so it is only meaningful after
+     * {@link #interpolate} — like every other {@code render*} value the animator consumes.
+     * {@link #bank} in degrees against whichever parameter set stepped the fish is the raw signal
+     * behind it, and the renderer has no business knowing which set that was. A pose that authors its own lean angle
      * (a ray's {@code bank_amplitude}) multiplies it by this instead, so the data file keeps
      * saying how far the creature leans and the engine says only when, and how much of it.
      */
     public float bankFraction(int i) {
         float max = params(i).bankMax();
-        return max <= 0f ? 0f : SimMath.clamp(bank[i] / max, -1f, 1f);
+        return max <= 0f ? 0f : SimMath.clamp(renderBank[i] / max, -1f, 1f);
     }
 
     /**
@@ -1499,11 +1547,16 @@ public final class FlockEngine {
      * driving distribution's shape does not survive into the output, and √3 rescales the uniform
      * to unit variance so sigma keeps its meaning.
      */
-    private void advanceWander(int i) {
-        if (t.wanderTurnSigma() <= 0f) return;
-        float dt = t.dt();
-        float k = t.wanderTurnSigma() * (float) Math.sqrt(dt) * SQRT3;
-        float decay = t.wanderTurnTheta() * dt;
+    /**
+     * @param p this fish's parameter set — not necessarily the engine's, see {@link #params}. A
+     *          glider's wander is deliberately calmer and far more correlated than a shoal fish's,
+     *          and reading {@code t} here would silently hand it the shoal's.
+     */
+    private void advanceWander(int i, Tunables p) {
+        if (p.wanderTurnSigma() <= 0f) return;
+        float dt = p.dt();
+        float k = p.wanderTurnSigma() * (float) Math.sqrt(dt) * SQRT3;
+        float decay = p.wanderTurnTheta() * dt;
         wanderState[i] += -wanderState[i] * decay + k * nextSignedUnit(i);
         wanderStateY[i] += -wanderStateY[i] * decay + k * nextSignedUnit(i);
         wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
@@ -1525,17 +1578,18 @@ public final class FlockEngine {
      * target while the steering gain drives velocity toward it is an active brake, not a glide.
      * Integrating the envelope makes the commanded speed continuous and the decay gradual.
      */
-    private void advanceBurst(int i) {
+    /** @param p as {@link #advanceWander}: for a ray this cycle is a wingbeat, not a tail burst. */
+    private void advanceBurst(int i, Tunables p) {
         if (burstStep[i] <= 0f) {
             burstDrive[i] = 1f;
             return;
         }
         burstPhase[i] += burstStep[i];
         if (burstPhase[i] >= 1f) burstPhase[i] -= 1f;
-        boolean thrusting = burstPhase[i] < t.burstDuty();
-        float target = thrusting ? t.burstThrustScale() : t.burstCoastScale();
+        boolean thrusting = burstPhase[i] < p.burstDuty();
+        float target = thrusting ? p.burstThrustScale() : p.burstCoastScale();
         float rate = thrusting ? BURST_ATTACK_RATE : BURST_DECAY_RATE;
-        burstDrive[i] += (target - burstDrive[i]) * rate * t.dt();
+        burstDrive[i] += (target - burstDrive[i]) * rate * p.dt();
     }
 
     /** This fish's current burst-and-coast multiplier on patrol speed. */
@@ -1755,6 +1809,7 @@ public final class FlockEngine {
             renderZ[i] = -l * sinR + d * cosR;
             renderY[i] = y;
             renderPhase[i] = SimMath.lerp(partialTick, prevTailPhase[i], tailPhase[i]);
+            renderBank[i] = SimMath.lerp(partialTick, prevBankSmooth[i], bankSmooth[i]);
             if (planar || continuousYaw()) {
                 // Wrap-aware angular lerp so a fish crossing the ±180° seam doesn't spin the long way.
                 renderYaw[i] = prevYawDeg[i] + partialTick * wrapDeg(yawDeg[i] - prevYawDeg[i]);

@@ -162,21 +162,42 @@ class GlideTest {
 
     /**
      * The bank the renderer reads is a fraction of this fish's own full lean, so a pose can author
-     * its own amplitude without knowing which parameter set stepped the fish.
+     * its own amplitude without knowing which parameter set stepped the fish — and it is a lean,
+     * not a vibration.
+     *
+     * <p>That second half is the one that came from a real bug: the raw {@code bank} is computed
+     * from a single tick's yaw delta and therefore carries every bit of the steering noise, which
+     * in game read as the ray buzzing. The bound below is on the per-tick <em>change</em>, because
+     * amplitude cannot tell the two apart — a steady lean and a violent flutter have the same
+     * mean. Measured before the low-pass: 0.102 per tick, reversing sign 1.7 times a second.
      */
     @Test
-    void bankFractionIsNormalisedAndEarned() {
+    void bankFractionIsNormalisedAndEarnedAndSteady() {
         FlockEngine engine = groupTank(4, 2, 2, ray(0.30f, 0), ray(0.36f, 0));
         float extreme = 0f;
+        float worstChange = 0f;
+        int reversals = 0;
+        float[] previous = new float[engine.count()];
         for (int tick = 0; tick < TICKS; tick++) {
             engine.step();
+            engine.interpolate(1f); // bankFraction is a render value, like renderYaw
             for (int i = 0; i < engine.count(); i++) {
                 float f = engine.bankFraction(i);
                 assertTrue(f >= -1f && f <= 1f, "bankFraction out of range: " + f);
                 extreme = Math.max(extreme, Math.abs(f));
+                if (tick > 0) {
+                    worstChange = Math.max(worstChange, Math.abs(f - previous[i]));
+                    if (f * previous[i] < 0f) reversals++;
+                }
+                previous[i] = f;
             }
         }
         assertTrue(extreme > 0.25f, "a glider never leaned into a turn (peak " + extreme + ")");
+        assertTrue(worstChange < 0.05f,
+                "the drawn lean jumped " + worstChange + " of full lean in one tick — that is a buzz");
+        float reversalsPerSecond = reversals / (TICKS / 20f) / engine.count();
+        assertTrue(reversalsPerSecond < 0.5f,
+                "the drawn lean changed sign " + reversalsPerSecond + " times a second");
     }
 
     private static float wrap(float deg) {

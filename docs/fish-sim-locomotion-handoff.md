@@ -66,7 +66,7 @@ move is tested against the floor *before* it is taken and refused if it would la
 
 ## 2. Load-bearing details — do not remove these while refactoring
 
-Twelve things that look like nits and are not. Most were found the hard way.
+Thirteen things that look like nits and are not. Most were found the hard way.
 
 1. **Floor lookups are rotated into the block frame** (`FlockEngine.floorHeightAt`). A single
    tank's local lateral/depth axes are rotated by the placement yaw it recorded from the player;
@@ -114,17 +114,27 @@ Twelve things that look like nits and are not. Most were found the hard way.
    `DriftTest.theVerticalCycleStaysCentred` is the guard, and it samples the whole run rather than
    the endpoint — a jellyfish that pins to the lid for a minute and comes back down would pass an
    endpoint check.
-10. **A glider reads `p`, never `t`, inside `stepFishPlanar`.** The whole method was renamed off
-    the engine's field for this: a `t.` that creeps back in is a parameter a ray silently takes
-    from the shoal, and every one of them is a number chosen to make it *not* a shoal fish. The
-    two constants that are not in any parameter set — the ride height off the sand, and its swell
-    — are `GLIDE_*` engine constants, on the same footing as `CRAWL_*` and `DRIFT_*`.
+10. **A glider reads `p`, never `t` — in `stepFishPlanar` *and in everything it calls*.** The
+    method was renamed off the engine's field for this: a `t.` that creeps back in is a parameter a
+    ray silently takes from the shoal, and every one of them is a number chosen to make it *not* a
+    shoal fish. This bit once already: `advanceWander`, `advanceBurst` and `deriveTraits` kept
+    reading `t`, so a ray's wander correlation, wingbeat period and trait spread were the shoal's
+    and half of `Tunables.GLIDE` was inert — found only by changing a constant and measuring no
+    difference at all. They take the set as a parameter now; any helper added later must too. The
+    two numbers that are not in any parameter set — the ride height off the sand and its swell —
+    are `GLIDE_*` engine constants, on the same footing as `CRAWL_*` and `DRIFT_*`.
 11. **The spatial index must be sized from the widest parameter set present**
     (`interactionRadius`, keyed on `hasGlide`). The grid's contract is that a fish it skips
     contributes *exactly* zero to both radius-limited passes; a glider's separation radius is
     three times the shoal's, so sizing the index from `t` alone would silently drop neighbours a
     ray is supposed to keep away from. Any future class with its own set inherits this.
-12. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
+12. **`bank` is a one-tick signal; `renderBank` is what a pose may draw.** `bank` comes from a
+    single tick's yaw delta, so it carries the steering noise and it saturates at ±`bankMax` on any
+    real turn — drawn raw it read in game as a ray buzzing (0.10 of full lean per tick, reversing
+    twice a second). It is low-passed *and* rate-limited to a physical roll rate, then interpolated,
+    and `bankFraction` reads that. `bank` itself must stay untouched: `ParityTest` asserts it
+    bitwise. If another pose starts using lean, point it at `bankFraction`, never at `bank`.
+13. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
     the same thing at `DRIFT`: the engine moves a drifter, but a bell pulse is not a tail beat and
     a running `tailPhase` would double-drive a pose that is already on game time.
 

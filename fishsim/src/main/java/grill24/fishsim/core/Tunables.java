@@ -267,9 +267,15 @@ public record Tunables(
             DEFAULT.dt(),
             DEFAULT.gateFactor(),   // a glider is size-gated exactly like a swimmer — it needs a run
             0.10f,      // maxSpeed — half GROUP's. Nothing about a ray reads as quick
-            0.015f,     // cruiseSpeed — wander turn authority; stays below patrolSpeed for the same
-                        // reason as GROUP's (perpendicular wander vs forward drive), and lower in
-                        // proportion because a ray holds its line far longer than a shoal fish
+            0.008f,     // cruiseSpeed — wander turn authority, and with wanderTurnSigma below the
+                        // pair that sets how much a ray weaves. Reported in game as a wobble laid
+                        // over the banking; measured, a solitary ray reverses which way it is
+                        // turning about once a second whatever these are set to (it is a limit
+                        // cycle in the rate-limited yaw chasing its own steered velocity, not the
+                        // wander), so the lever that works is the AMPLITUDE of each swing. This
+                        // pair took the mean turn from 0.84 to 0.41 deg/tick — roughly +-4 degrees
+                        // of weave, which is an animal swimming rather than a sprite vibrating.
+                        // Stays below patrolSpeed either way, or a ray pirouettes instead of gliding
             DEFAULT.steeringGain(),
             DEFAULT.maxForce(),
             DEFAULT.neighborCount(),
@@ -297,7 +303,12 @@ public record Tunables(
                         // is sized from the widest set in play (FlockEngine.interactionRadius)
             0.05f,      // patrolSpeed — half GROUP's: the whole point of the class
             0.80f,      // separationRadiusOther — strangers get more room still
-            GROUP.wanderTurnSigma(),
+            0.25f,      // wanderTurnSigma — NOT GROUP's. The OU's steady-state amplitude is
+                        // sigma/sqrt(2*theta), so inheriting 0.8 alongside the lower theta below
+                        // would have a ray wandering *harder* than the shoal (0.80 against its
+                        // 0.60) rather than more calmly, which is the opposite of the class. At
+                        // 0.25 the steady state is 0.25, well under half the shoal's — see
+                        // cruiseSpeed above for why this is the axis that mattered
             0.5f,       // wanderTurnTheta — ~2 s of correlation against GROUP's ~1.1 s. A ray commits
                         // to a direction for much longer than a shoal fish does
             0f,         // alignHeadingWeight — see alignmentWeight

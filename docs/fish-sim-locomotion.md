@@ -628,6 +628,45 @@ is a steady 10° lean, not a roll.
 `LocomotionTest` is down to `ANCHORED` alone in its "never moves" and ungated-class rows, which is
 Phase 4's cue.
 
+#### After the first in-game look: the ray buzzed
+
+Reported as a small, fast vibration laid over a banking effect that was otherwise right. Three
+things were wrong, and only the first was the one being looked at.
+
+1. **`bank` is a one-tick signal and was being drawn raw.** It is computed from a single tick's
+   yaw delta, so it carries every bit of the wander's and the separation term's noise, and unlike
+   `renderYaw` and `renderPhase` it had no interpolated mirror — so it also stair-stepped at 20 Hz.
+   Measured on a gliding ray: **0.102 of full lean of change per tick, reversing sign 1.7 times a
+   second.** Now `bankSmooth` → `prevBankSmooth` → `renderBank`, the same three-array shape
+   `tailPhase` has, and `bankFraction` reads the interpolated value. `bank` itself is untouched —
+   `ParityTest` asserts it bitwise.
+2. **A low-pass alone was not enough**, which is worth remembering. `bank` *saturates* at
+   ±`bankMax` on any turn at all — for a glider, whose turn budget is a third of the shoal's, that
+   is most turns — so it slams the full width of its range, and a fifth of a two-lean gap is still
+   a 0.32 snap. The fix is a second, physical constraint: a **maximum roll rate**
+   (`BANK_ROLL_RATE_DEG_PER_SECOND`, 6°/s — level to fully banked in ~1.7 s). A body has a top
+   roll rate; the filter alone only says it has inertia.
+3. **Half of `Tunables.GLIDE` was inert.** `advanceWander`, `advanceBurst` and `deriveTraits` read
+   the engine's `t` rather than the fish's `p`, so a ray's wander correlation, its wingbeat period,
+   and its trait spread were all silently the shoal's. Found by changing a glide constant and
+   measuring *no difference at all* — the `nnFront` lesson in a new costume. They take the
+   parameter set now.
+
+Then the wander itself, which is what the remaining weave was: the OU's steady-state amplitude is
+`sigma/√(2·theta)`, so lowering `theta` for a calmer ray while inheriting GROUP's `sigma` had it
+wandering **harder** than the shoal (0.80 against 0.60). Sweeping `sigma` and `cruiseSpeed`
+separated two things that look alike: they scale how *far* each swing goes (mean turn 0.84 →
+0.41°/tick) and do not touch how *often* it reverses (~1/s at every value tried, solitary or
+crowded). That rate is a limit cycle in the rate-limited yaw chasing its own steered velocity, not
+noise, and it is what a swimming animal weaving looks like — so amplitude was the right lever and
+the rate was never the target.
+
+**Measured after, in the 4×2×2 group:** bank change per tick 0.102 → **0.012**, sign reversals
+1.71 → **0.49/s**, mean turn 1.03 → **0.50°/tick**, with path length and ride height unchanged.
+`GlideTest.bankFractionIsNormalisedAndEarnedAndSteady` now bounds the per-tick change and the
+reversal rate rather than the amplitude — amplitude cannot tell a lean from a flutter, since the
+two have the same mean.
+
 **In-game acceptance is still pending** — as it is for Phases 1 and 2, Tier 2 and the 512 cap.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there

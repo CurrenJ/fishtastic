@@ -26,6 +26,10 @@ public final class GlideProbe {
 
         report("single tank (box, 0.3-block band)", boxTank(), ticks);
         report("4x2x2 group (voxel)", groupTank(4, 2, 2), ticks);
+        // The solitary case, which is the class's normal one — and the control that says how much
+        // of the turning is the ray's own wander versus three of them shoving each other around a
+        // domain barely wider than their separation radius.
+        report("4x2x2 group, one ray", groupTank(4, 2, 2, 1), ticks);
         report("5x3x3 group (voxel, deep)", groupTank(5, 3, 3), ticks);
     }
 
@@ -44,12 +48,16 @@ public final class GlideProbe {
     }
 
     private static FlockEngine groupTank(int lateral, int high, int deep) {
+        return groupTank(lateral, high, deep, 3);
+    }
+
+    private static FlockEngine groupTank(int lateral, int high, int deep, int rays) {
         boolean[][][] occupancy = new boolean[lateral][high][deep];
         for (boolean[][] column : occupancy) {
             for (boolean[] cell : column) java.util.Arrays.fill(cell, true);
         }
         FlockEngine engine = new FlockEngine(Tunables.GROUP);
-        engine.rebuild(rays(), 4242L, 0f, 20f, new VoxelDomain(occupancy));
+        engine.rebuild(java.util.Arrays.copyOf(rays(), rays), 4242L, 0f, 20f, new VoxelDomain(occupancy));
         return engine;
     }
 
@@ -60,13 +68,21 @@ public final class GlideProbe {
         float[] startL = engine.posL().clone(), startD = engine.posD().clone();
         float[] previousYaw = engine.yawDeg.clone();
 
-        double speedSum = 0, heightSum = 0, turnSum = 0, bankSum = 0;
+        double speedSum = 0, heightSum = 0, turnSum = 0, bankSum = 0, bankChangeSum = 0;
+        float[] previousTurn = new float[n];
+        int turnReversals = 0;
+        float[] previousBank = new float[n];
+        int bankReversals = 0;
         float worstTurn = 0f, peakBank = 0f, lowest = Float.MAX_VALUE, highest = -Float.MAX_VALUE;
         double pathLength = 0;
         float[] lastL = engine.posL().clone(), lastD = engine.posD().clone();
 
         for (int tick = 0; tick < ticks; tick++) {
             engine.step();
+            // bankFraction reads the interpolated mirror, so the probe has to do what the renderer
+            // does. partialTick 1 is the tick boundary — the value a frame landing exactly there
+            // would draw.
+            engine.interpolate(1f);
             for (int i = 0; i < n; i++) {
                 speedSum += engine.speed[i];
                 float height = engine.posY()[i] - floor;
@@ -74,14 +90,23 @@ public final class GlideProbe {
                 lowest = Math.min(lowest, height);
                 highest = Math.max(highest, height);
 
-                float turn = Math.abs(wrap(engine.yawDeg[i] - previousYaw[i]));
-                turnSum += turn;
-                worstTurn = Math.max(worstTurn, turn);
+                float signedTurn = wrap(engine.yawDeg[i] - previousYaw[i]);
+                turnSum += Math.abs(signedTurn);
+                worstTurn = Math.max(worstTurn, Math.abs(signedTurn));
+                // How often the ray changes which way it is turning. A weave is fine; several a
+                // second is a wag.
+                if (signedTurn * previousTurn[i] < 0f) turnReversals++;
+                previousTurn[i] = signedTurn;
                 previousYaw[i] = engine.yawDeg[i];
 
-                float bank = Math.abs(engine.bankFraction(i));
-                bankSum += bank;
-                peakBank = Math.max(peakBank, bank);
+                float signedBank = engine.bankFraction(i);
+                bankSum += Math.abs(signedBank);
+                peakBank = Math.max(peakBank, Math.abs(signedBank));
+                // Rate of change beside the amplitude, per the standing note: a lean and a
+                // vibration have the same mean and nothing else in common.
+                bankChangeSum += Math.abs(signedBank - previousBank[i]);
+                if (signedBank * previousBank[i] < 0f) bankReversals++;
+                previousBank[i] = signedBank;
 
                 float dl = engine.posL()[i] - lastL[i], dd = engine.posD()[i] - lastD[i];
                 pathLength += Math.sqrt(dl * dl + dd * dd);
@@ -108,7 +133,11 @@ public final class GlideProbe {
         System.out.printf("  turning      mean %.3f deg/tick, worst %.3f (cap %.2f x %.2f jitter)%n",
                 turnSum / samples, worstTurn, Tunables.GLIDE.turnRateDegPerTick(),
                 1 + Tunables.GLIDE.traitJitter());
+        System.out.printf("  turn motion  %.2f direction reversals/s per ray%n",
+                turnReversals / seconds / n);
         System.out.printf("  bank         mean %.3f of full lean, peak %.3f%n", bankSum / samples, peakBank);
+        System.out.printf("  bank motion  %.4f change/tick, %.2f sign reversals/s per ray%n",
+                bankChangeSum / samples, bankReversals / seconds / n);
         System.out.printf("  backstop     %d engagements%n", engine.backstopEngagements());
     }
 
