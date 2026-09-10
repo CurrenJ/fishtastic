@@ -484,8 +484,9 @@ constants rather than `Tunables`, following `PLANAR_TURN_RATE` and the burst env
 are internal to one motion model, and `DEFAULT`/`GROUP` stay untouched, so the parity lock cannot
 be reached from them at all. They graduate to `Tunables` when the viewer needs sliders.
 
-**In-game acceptance is still pending** — as it is for Tier 2 and the 512 cap. Everything above is
-headless.
+**In-game acceptance: passed** (2026-09-10, together with Phase 2, Tier 2 and the 512 cap). The
+crawlers were called out as a high point. Everything above shipped headless and needed no
+correction once looked at.
 
 ### Phase 2 — landed 2026-09-10 (engine only)
 
@@ -537,7 +538,7 @@ engagements. In a single tank the same numbers hold at 51% of a much shallower b
 breaking: its "never moves" loop now skips `DRIFT` via `simulated()`, its animation-clock test
 moved to `ANCHORED`, and its ungated-classes test is down to `ANCHORED` alone.
 
-**In-game acceptance is still pending** — as it is for Phase 1, Tier 2 and the 512 cap.
+**In-game acceptance: passed** (2026-09-10), with no correction needed.
 
 ### Phase 2b — the group-mode split, landed 2026-09-10
 
@@ -700,8 +701,9 @@ own: a signal drawn raw that needed a render mirror, and a speed that was wrong 
 combination with a turn rate. The remaining classes have had no such pass; assume they each owe
 one.
 
-**In-game acceptance:** the glide itself is accepted (see the two follow-up sections below).
-Phases 1 and 2, Tier 2 and the 512 cap are all still owed one.
+**In-game acceptance: passed**, after the two rounds of correction in the sections above — the
+only phase that needed any. Phases 1 and 2, Tier 2 and the 512 cap passed in the same session with
+no changes.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.
@@ -738,6 +740,14 @@ drifters are worth having as *diagnostics*. They are not targets. The pooled-spe
 standing reminders that a number moving the right way is not the same as the tank looking right —
 the GIF is the acceptance test; the metric only explains it.
 
-**Standing caveat.** Tier 2 swarm realism and the 512-fish group cap have both landed headlessly
-and are still awaiting an in-game acceptance pass. This work stacks on top of both; the acceptance
-pass should probably cover all three at once rather than each separately.
+**Standing caveat — discharged 2026-09-10.** Tier 2 swarm realism, the 512-fish group cap and
+every phase of this document have now had their in-game acceptance pass, in one session as
+intended. Only `GLIDE` needed changes, and both were of a kind headless verification cannot reach:
+a raw per-tick signal that needed interpolating and rate-limiting before it was drawn, and a speed
+that was wrong only in combination with a turn rate. Neither was a metric moving the wrong way —
+in the second case the metric that would have shown it (net displacement) was on screen and was
+read past. The lesson is unchanged and now has a third instance: the picture is the acceptance
+test, and a metric has to be able to *see* the failure before its silence means anything.
+
+The one thing still open is cost rather than behaviour: the 512 cap's render measurement
+(fish-tank-group-scaling.md §3.6).

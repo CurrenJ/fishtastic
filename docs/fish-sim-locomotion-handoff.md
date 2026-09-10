@@ -27,17 +27,20 @@ eels) is the only class left without a motion model.
 
 `:fishsim` 139 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
 
-**In-game status.** Gliding rays are **accepted** — the only part of this work that has been
-looked at and signed off. It took two rounds to get there (a raw bank signal that needed a render
-mirror and a roll-rate limit; then a speed that was wrong only in combination with the turn rate),
-which is the honest estimate of what the remaining classes will each cost.
+**In-game status: accepted, all of it** (2026-09-10). The benthic walk, the drift, the glide,
+Tier 2 swarm realism and the 512-fish cap have now all been watched in a real multi-tank aquarium
+and signed off — the crawling nudibranchs and the swarm behaviour called out as the high points.
+The long-standing "everything here is headless only" caveat is discharged; it is no longer a
+reason to hold back a change.
 
-Crawlers have had a *partial* look: the user confirmed `willans_chromodoris`
-sits correctly after the group-path floor-lift fix, and reported `trapania_scurra` floating, which
-was a pre-existing pivot bug now fixed by measurement. Nobody has yet watched a crawler walk for a
-while, or watched one in a real multi-tank group. **A full in-game acceptance pass is still owed —
-for this, for Tier 2, and for the 512-fish cap, all three of which have landed headlessly only.**
-Doing all three in one session is the sensible move.
+Only the glide needed a second round, and both of its problems were invisible headlessly by
+construction: a signal drawn raw that needed a render mirror and a roll-rate limit, then a speed
+that was wrong only *in combination with* the turn rate. That is the shape to expect from the next
+class too — not a wrong number, but a number that is only wrong next to another one.
+
+What acceptance does **not** cover: the 512 cap's *render cost* is still unmeasured
+(fish-tank-group-scaling.md §3.6 gates raises on a frame-time measurement, and looking right at a
+given count is not that), and nobody has stress-tested near the cap.
 
 ### Four models, five columns — do not confuse them
 
@@ -250,13 +253,13 @@ step. In-game acceptance is a human pass, not something to automate.
    needs sub-block resolution in `DistanceField`, which is a redesign of the piece the
    group-scaling work rests on — a real decision, deliberately not bundled into Phase 1. This is
    the open half of §4.1 in the main doc.
-2. **No in-game acceptance** for the benthic walk, the drift, Tier 2, or the 512 cap — the glide
-   has one now. See §1. `CRAWL_*` and `DRIFT_*` still have the status `Tunables.GLIDE` had before
-   its two rounds of feedback: measured with a probe, never looked at. The one most likely to want raising
-   after a look is `DRIFT_SPEED` — a drifter covers ~0.8 blocks of net carry in 200 s, so crossing
-   a 3×3 aquarium would take the better part of ten minutes. A ray covers 1.9 in the same time,
-   which is slow on purpose but is the next candidate.
-3. **The benthic constants have never been looked at by eye.** §3.
+2. **The 512 cap's render cost is still unmeasured**, which acceptance by eye does not settle:
+   fish-tank-group-scaling.md §3.6 gates every raise past Stage 1 on a frame-time measurement, and
+   nobody has stocked a group anywhere near the cap. Behaviour is accepted; cost is not.
+3. **`DRIFT_SPEED` survived its look but is the number most likely to want raising anyway** — a
+   drifter covers ~0.8 blocks of net carry in 200 s, so crossing a 3×3 aquarium takes the better
+   part of ten minutes. It was not raised, because nobody complained; noted so the next person
+   knows it is a deliberate hold and not an oversight.
 4. **The harness has no mixed-class scenario.** `Scenarios.specs` still builds free swimmers only,
    so `SimViewer` and `HeadlessRunner` cannot show a shoal, a crab, a jelly and a ray in one
    domain — which is the picture the main doc's §6 asks for. Each class has its own probe instead
