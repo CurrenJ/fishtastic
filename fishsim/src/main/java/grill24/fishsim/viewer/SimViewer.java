@@ -72,7 +72,10 @@ public final class SimViewer {
             new Knob("burstPeriod", 0f, 6f, Tunables::burstPeriodSeconds, Tunables::withBurstPeriodSeconds),
             new Knob("burstDuty", 0.05f, 0.95f, Tunables::burstDuty, Tunables::withBurstDuty),
             new Knob("burstThrust", 0.5f, 3f, Tunables::burstThrustScale, Tunables::withBurstThrustScale),
-            new Knob("burstCoast", 0f, 1f, Tunables::burstCoastScale, Tunables::withBurstCoastScale)
+            new Knob("burstCoast", 0f, 1f, Tunables::burstCoastScale, Tunables::withBurstCoastScale),
+            // ── Tier 2 ──
+            new Knob("turnRate", 1f, 20f, Tunables::turnRateDegPerTick, Tunables::withTurnRateDegPerTick),
+            new Knob("sepLookahead", 0f, 3f, Tunables::separationLookahead, Tunables::withSeparationLookahead)
     );
 
     private FlockEngine engine;

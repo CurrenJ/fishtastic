@@ -36,12 +36,16 @@ class VoxelDomainTest {
     // GROUP tunes for loose patrolling shoals, so the acceptable NN band is wider than the
     // single-box set's; the ceiling still catches true scattering. (observed 0.16 .. 0.43)
     private static final double NN_MEAN_MIN = 0.08, NN_MEAN_MAX = 0.55;
-    // Lowered 2026-08-23 with the planar patrol-persistence fix (stepFishPlanar now steers off the
-    // turn-rate-capped yawDeg instead of raw instantaneous velocity direction — see FlockEngine):
-    // fish react to an imminent close pass slightly less nimbly in the degenerate 1x1x1 domain (12
-    // fish in a 0.7-block box), so the tightest approach the crowded case reaches is closer than
-    // before. Re-measured baseline in that case: ~0.037 (was 0.073); floor kept at roughly half.
-    private static final float MIN_PAIRWISE_FLOOR = 0.02f;             // (0.037)
+    // Raised 2026-09-10 with anticipatory separation (Tunables.separationLookahead): repelling
+    // from the PREDICTED point of closest approach rather than only the present one gives a fish
+    // room to resolve a head-on pass by turning instead of by shoving, and the crowded 1x1x1 case
+    // that set the previous floor went from ~0.037 to 0.072 — while separationSpeed came DOWN from
+    // 0.40 to 0.25. Floor kept at roughly half the observed worst, as before.
+    //
+    // This is a real improvement in the model, not a threshold moved to make a test pass; the
+    // reverse move (raising a bound because behaviour got worse) is never the right fix here — see
+    // docs/fish-swarm-tier2-handoff.md on the backstop invariant.
+    private static final float MIN_PAIRWISE_FLOOR = 0.035f;            // (0.072)
     /**
      * Invariant 7's stuck bound: every fish must move at least this far in every 30 s window.
      * A genuinely corner-stuck fish shows near-zero; the observed floor (0.075) is a lone fish
@@ -292,6 +296,78 @@ class VoxelDomainTest {
             }));
         }
         return tests;
+    }
+
+    // ── Invariant 10: the nonholonomic turn limit actually binds ────────────
+
+    /**
+     * A fish's TRAVEL direction may not swing faster than it can turn its body.
+     *
+     * <p>This is the guarantee {@code Tunables.turnRateDegPerTick} exists to provide, and the
+     * reason it is worth a test of its own is that the engine used to satisfy it only by accident:
+     * the sprite yaw was rate-capped while the velocity vector was free to swing as fast as
+     * {@code maxForce} allowed. Measured before the cap, travel direction turned up to 20°/tick
+     * against a 7°/tick sprite limit, and the fish visibly crabbed — pointing one way, moving
+     * another — during wall avoids and separation shoves.
+     *
+     * <p>Two allowances, both deliberate. Per-fish trait jitter scales each fish's turn rate, so
+     * the bound is the nimblest individual the tunables can produce. And below
+     * {@code TURN_CAP_MIN_SPEED_FRACTION} of top speed the cap stops shrinking with speed (a fish
+     * that slow is pivoting, and its travel direction is numerically ill-defined), so the
+     * measurement only counts fish genuinely under way — which is also the only time a viewer
+     * could see the artifact.
+     */
+    @TestFactory
+    List<DynamicTest> travelDirectionNeverOutrunsTheTurnRate() {
+        Tunables t = Tunables.GROUP;
+        // The cap is on the commanded lateral acceleration; the realised per-tick turn is its
+        // arctangent plus one tick of integration slack, so allow a small margin over the bound.
+        float bound = t.turnRateDegPerTick() * (1f + t.traitJitter()) * 1.35f;
+        float underway = 0.25f * t.maxSpeed();
+        List<DynamicTest> tests = new ArrayList<>();
+        for (Config c : matrix()) {
+            tests.add(DynamicTest.dynamicTest(c.name(), () -> {
+                VoxelDomain domain = new VoxelDomain(c.occ());
+                FlockEngine engine = new FlockEngine(t);
+                engine.rebuild(swimmerSpecs(c.fishCount(), c.seed()), c.seed(), 30f, 20f, domain);
+
+                int n = c.fishCount();
+                float[] prevDir = new float[n];
+                boolean[] havePrev = new boolean[n];
+                float worst = 0f;
+                String where = "";
+                for (int tick = 0; tick < 10_000; tick++) {
+                    engine.step();
+                    for (int i = 0; i < n; i++) {
+                        if (!engine.swimmers[i]) continue;
+                        float vl = engine.velL()[i], vd = engine.velD()[i];
+                        float hsp = (float) Math.sqrt(vl * vl + vd * vd);
+                        if (hsp <= underway) { havePrev[i] = false; continue; }
+                        float dir = (float) Math.toDegrees(Math.atan2(-vd, vl));
+                        if (havePrev[i]) {
+                            float turn = Math.abs(wrapDeg(dir - prevDir[i]));
+                            if (turn > worst) {
+                                worst = turn;
+                                where = "fish " + i + " at tick " + tick;
+                            }
+                        }
+                        prevDir[i] = dir;
+                        havePrev[i] = true;
+                    }
+                }
+                assertTrue(worst <= bound,
+                        "travel direction turned " + worst + " deg/tick (" + where + "), bound " + bound);
+            }));
+        }
+        return tests;
+    }
+
+    /** Wraps an angle to (−180, 180] — the engine's own convention. */
+    private static float wrapDeg(float deg) {
+        float d = deg % 360f;
+        if (d > 180f) d -= 360f;
+        if (d <= -180f) d += 360f;
+        return d;
     }
 
     // ── Invariant 7: L-domain arm traversal ─────────────────────────────────

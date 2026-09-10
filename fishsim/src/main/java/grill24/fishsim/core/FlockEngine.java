@@ -100,6 +100,12 @@ public final class FlockEngine {
      * absorb; ~4σ at the shipped tunables, so it clips essentially never.
      */
     private static final float WANDER_CLAMP = 2.5f;
+    /**
+     * Speed, as a fraction of {@code maxSpeed}, below which the nonholonomic turn cap stops
+     * shrinking with speed. A fish this slow is pivoting rather than turning, and the travel
+     * direction it would be "turning" is numerically ill-defined anyway.
+     */
+    private static final float TURN_CAP_MIN_SPEED_FRACTION = 0.25f;
     /** ± spread on each fish's burst-and-coast period, as a fraction of the tunable. */
     private static final float BURST_PERIOD_JITTER = 0.25f;
     /**
@@ -662,6 +668,7 @@ public final class FlockEngine {
         // the wide one — this is what keeps a mixed tank from congealing into one ball while
         // letting each species keep its own cluster.
         float sepL = 0f, sepY = 0f, sepD = 0f;
+        float horizon = t.separationLookahead();
         for (int j = 0; j < count; j++) {
             if (j == i) continue;
             float radius = species[i] == species[j] ? t.separationRadius() : t.separationRadiusOther();
@@ -675,6 +682,38 @@ public final class FlockEngine {
                 sepY += (dy / d) * w;
                 sepD += (dz / d) * w;
             }
+
+            // Anticipatory half of the term (Tier 2): repel from where this pair is predicted to
+            // be at closest approach, not only from where it is now. Folded into the same loop
+            // because the neighbour scan is already the planar step's dominant cost.
+            if (horizon <= 0f) continue;
+            float rvL = velL[i] - velL[j], rvY = velY[i] - velY[j], rvD = velD[i] - velD[j];
+            float closing = dx * rvL + dy * rvY + dz * rvD;
+            if (closing >= 0f) continue; // opening, or holding station — nothing to anticipate
+            float rv2 = rvL * rvL + rvY * rvY + rvD * rvD;
+            if (rv2 < 1e-8f) continue;
+            float tStar = -closing / rv2;
+            if (tStar > horizon) continue; // too far off to steer for yet
+            float pL = dx + rvL * tStar, pY = dy + rvY * tStar, pD = dz + rvD * tStar;
+            float p2 = pL * pL + pY * pY + pD * pD;
+            if (p2 >= radius2) continue; // predicted to pass clear
+            // Sooner means stronger, linearly, so this fades into the distance term rather than
+            // switching on at the horizon.
+            float urgency = 1f - tStar / horizon;
+            float pd = (float) Math.sqrt(p2);
+            if (pd > 1e-4f) {
+                float w = (radius - pd) / radius * urgency;
+                sepL += (pL / pd) * w;
+                sepY += (pY / pd) * w;
+                sepD += (pD / pd) * w;
+            }
+            // No else: a predicted offset this small is an exactly-head-on approach, which carries
+            // no escape direction to normalize. Instrumented over the whole domain matrix, the
+            // branch fired zero times in 42k fish-ticks — an exact head-on is a measure-zero event
+            // in float arithmetic, and near-head-on pairs are already handled above, where the
+            // residual offset is small but well-conditioned. So this is only a divide guard, and
+            // skipping one tick of lead costs nothing: the distance term still applies, and the
+            // pair is back above the threshold by the next step.
         }
 
         // Saturate the total separation thrust below the wall-avoidance authority: in a domain
@@ -765,6 +804,40 @@ public final class FlockEngine {
             aL *= k; aY *= k; aD *= k;
         }
 
+        // Nonholonomic turn limit (Tier 2). A fish redirects by rotating its body, so its travel
+        // direction cannot swing faster than it can turn — but until this term, PLANAR_TURN_RATE
+        // capped only the *sprite* yaw while the velocity vector swung as fast as maxForce allowed.
+        // Measured over the domain matrix before the cap: travel direction turning up to 20°/tick
+        // against a 7°/tick sprite limit, leaving >30° of sideslip on ~3% of ticks in a crowded
+        // tank — the fish visibly crabbing during wall avoids and separation shoves.
+        //
+        // Only the TURNING component is capped: the part of the steering acceleration
+        // perpendicular to the current travel direction, bounded by a = v·ω. Forward thrust and
+        // braking pass through untouched, which is what keeps soft containment's authority intact
+        // — a fish that can no longer sidestep glass still decelerates into it, and the wall term
+        // still commands the turn away. Applied AFTER the maxForce clamp, so it only ever reduces
+        // |a| and the acceleration invariant is unaffected.
+        if (t.turnRateDegPerTick() > 0f) {
+            float hspNow = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
+            if (hspNow > 1e-5f) {
+                // Below a real cruising speed the travel direction is numerically ill-defined and
+                // a fish is effectively pivoting in place, where turning costs nothing; the
+                // reference speed floors the budget rather than letting it collapse to zero.
+                float refSpeed = Math.max(hspNow, TURN_CAP_MIN_SPEED_FRACTION * t.maxSpeed());
+                float omega = (float) Math.toRadians(t.turnRateDegPerTick() * turnScale[i]) / t.dt();
+                float maxLateral = refSpeed * omega;
+                float fwdL = velL[i] / hspNow, fwdD = velD[i] / hspNow;
+                float along = aL * fwdL + aD * fwdD;
+                float latL = aL - along * fwdL, latD = aD - along * fwdD;
+                float latMag = (float) Math.sqrt(latL * latL + latD * latD);
+                if (latMag > maxLateral) {
+                    float k = maxLateral / latMag;
+                    aL = along * fwdL + latL * k;
+                    aD = along * fwdD + latD * k;
+                }
+            }
+        }
+
         velL[i] += aL * t.dt();
         velY[i] += aY * t.dt();
         velY[i] *= (1f - t.verticalDamp() * t.dt());
@@ -802,10 +875,17 @@ public final class FlockEngine {
         if (hsp2 > PLANAR_YAW_MIN_SPEED) {
             float target = (float) Math.toDegrees(Math.atan2(-velD[i], velL[i]));
             float diff = wrapDeg(target - yawDeg[i]);
-            float turnRate = PLANAR_TURN_RATE * turnScale[i];
+            // The same rate that bounds the trajectory above, so sprite and travel agree by
+            // construction rather than by the velocity happening to turn slowly enough.
+            float turnRate = (t.turnRateDegPerTick() > 0f ? t.turnRateDegPerTick() : PLANAR_TURN_RATE)
+                    * turnScale[i];
             float turn = SimMath.clamp(diff, -turnRate, turnRate);
             yawDeg[i] = wrapDeg(yawDeg[i] + turn);
-            bank[i] = SimMath.clamp(turn * 1.5f, -t.bankMax(), t.bankMax());
+            // Bank is a genuine function of turn rate: full rate leans fully, and everything below
+            // it leans proportionally. The old fixed 1.5°-of-bank-per-degree-of-turn saturated at
+            // |turn| ≥ 6.7° of a 7° budget, so with an uncapped trajectory — where diff was pinned
+            // at the limit through every turn — bank read as binary rather than as a lean.
+            bank[i] = SimMath.clamp(turn * (t.bankMax() / turnRate), -t.bankMax(), t.bankMax());
         } else {
             bank[i] *= 0.9f;
         }

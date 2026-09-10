@@ -65,6 +65,10 @@ tasks.withType(Test).configureEach {
     testLogging {
         events "failed"
         exceptionFormat = "full"
+        // Diagnostic probes (docs/fish-swarm-tier2-handoff.md §5 "ablation probes beat
+        // reasoning") print tables to stdout, which Gradle swallows by default.
+        // Run them with -PsimStdout to see it.
+        showStandardStreams = project.hasProperty('simStdout')
     }
     afterSuite { desc, result ->
         if (!desc.parent) {
