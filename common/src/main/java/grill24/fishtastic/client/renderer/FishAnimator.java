@@ -36,6 +36,53 @@ public final class FishAnimator {
         }
     }
 
+    /**
+     * Pose for a creature the engine is walking across the floor: identical to
+     * {@link #apply} except that the heading comes from the simulation rather than from the
+     * fish's seed, so the sprite faces where it is actually going. The idle sway stays on game
+     * time — it is the creature fidgeting, not a function of how fast it is travelling.
+     *
+     * <p>{@code yawDeg} follows the engine's convention (the group swimmer path's
+     * {@code renderYaw + 180f}): the item sprite's nose points along −lateral at rotation 0, so
+     * the caller adds the half-turn that maps the engine's frame onto the sprite's.
+     *
+     * <p>Poses with no floor walk of their own fall through to {@link #apply} unchanged.
+     */
+    public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                    float t, float yawDeg, float baseRotation, float scale, boolean mirrored) {
+        switch (config) {
+            case FishAnimationConfig.FloorSit cfg ->
+                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg);
+            case FishAnimationConfig.UprightSit cfg ->
+                    applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg);
+            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        }
+    }
+
+    /**
+     * How far above the sand a floor-dwelling pose has to sit, on top of whatever floor height the
+     * engine reports: the config's own manual nudge, plus — for an upright pose — the compensation
+     * for the item being pivoted about its centre rather than its base.
+     *
+     * <p>Every path that draws a crawler needs this, which is exactly why it is a method. It used
+     * to be inlined in {@code FishTankBlockEntityRenderer.computeBaseY}, the single-tank path's helper; when crawlers started
+     * rendering in group space too, that path translated by the engine's floor height alone and
+     * upright creatures sank to their waists in the sand.
+     *
+     * <p>The compensation scales with the fish's own per-catch render scale. A fixed offset would
+     * float small catches above the sand and sink large ones into it.
+     */
+    public static float floorPoseLift(FishAnimationConfig animConfig, float scale) {
+        return switch (animConfig) {
+            case FishAnimationConfig.FloorSit    fs -> fs.floorOffset();
+            // The pivot is measured per species rather than assumed to be half the item: see
+            // UprightSit.pivotFraction. PLANTED_PIVOT_Y remains the value for art that fills its
+            // canvas, and the default for art nobody has measured.
+            case FishAnimationConfig.UprightSit  us -> us.floorOffset() + us.pivotFraction() * scale;
+            default -> 0f;
+        };
+    }
+
     // ── Mode implementations ──────────────────────────────────────────────────
 
     /**
@@ -93,10 +140,20 @@ public final class FishAnimator {
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored) {
+        applyFloorSit(poseStack, cfg, random, t, mirrored, null);
+    }
+
+    /**
+     * @param crawlYaw the engine's heading for a walking creature, or null for one that sits still
+     *                 and faces wherever its seed put it
+     */
+    private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
+                                       Random random, float t, boolean mirrored, Float crawlYaw) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
-        poseStack.mulPose(Axis.YP.rotationDegrees((float) Math.toDegrees(randomPhaseRad) + yRot + (mirrored ? 180f : 0f)));
+        float facing = crawlYaw != null ? crawlYaw : (float) Math.toDegrees(randomPhaseRad);
+        poseStack.mulPose(Axis.YP.rotationDegrees(facing + yRot + (mirrored ? 180f : 0f)));
         // Rotate X -90° so item faces upward, lying flat on the floor
         poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
     }
@@ -132,6 +189,14 @@ public final class FishAnimator {
 
     private static void applyUprightSit(PoseStack poseStack, FishAnimationConfig.UprightSit cfg,
                                          Random random, float t, float baseRotation, boolean mirrored) {
+        applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, null);
+    }
+
+    /** @param crawlYaw as {@link #applyFloorSit}: the engine's heading, or null when it sits still. */
+    private static void applyUprightSit(PoseStack poseStack, FishAnimationConfig.UprightSit cfg,
+                                         Random random, float t, float baseRotation, boolean mirrored,
+                                         Float crawlYaw) {
+        if (crawlYaw != null) baseRotation = crawlYaw;
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());

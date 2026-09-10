@@ -1,6 +1,7 @@
 package grill24.fishsim.core;
 
 import grill24.fishsim.domain.FlockDomain;
+import grill24.fishsim.domain.FloorField;
 
 import java.util.Random;
 
@@ -38,7 +39,14 @@ public final class FlockEngine {
     public float[] lengths = new float[0];        // rendered body length (the render scale)
     public float[] baseRotations = new float[0];  // degrees, incl. per-fish jitter
     public long[] seeds = new long[0];            // deterministic per-fish seed (animation RNG)
-    public boolean[] swimmers = new boolean[0];   // passed the size gate
+    /**
+     * Effective locomotion class — the spec's declared class after its size gate, so a fish that
+     * failed its gate reads as {@link Locomotion#STATIC} here. This is what {@link #step}
+     * dispatches on.
+     */
+    public Locomotion[] locomotion = new Locomotion[0];
+    /** Derived from {@link #locomotion}: gate-passing free swimmers. Kept as the hot-path flag consumers read. */
+    public boolean[] swimmers = new boolean[0];
     public boolean[] hoverMirrored = new boolean[0]; // spec mirror flag (hover path only)
     float[] wanderPhaseA = new float[0];
     float[] wanderPhaseB = new float[0];
@@ -78,6 +86,12 @@ public final class FlockEngine {
     // single-tank Box path never uses this — its binary 2.5D model stays bitwise-locked.
     private boolean planar;
     /**
+     * Whether any fish in this rebuild walks the floor. Crawlers carry a continuous heading like
+     * the planar model's, so the sprite yaw has to be tracked and interpolated even in a
+     * single-tank Box engine, which otherwise has no use for it.
+     */
+    private boolean hasBenthic;
+    /**
      * Sprite yaw in degrees, same convention as the render rotation (rotating a +lateral-facing
      * object by this makes it face the swim direction). Chases the velocity direction with a
      * turn-rate cap so a momentary velocity flip never snaps the sprite.
@@ -116,6 +130,105 @@ public final class FlockEngine {
     private static final float BURST_ATTACK_RATE = 3.0f;
     private static final float BURST_DECAY_RATE = 0.8f;
 
+    // ── Benthic crawl (docs/fish-sim-locomotion.md §3.1) ───────────────────────────────────────
+    // Deliberately engine constants rather than Tunables, following PLANAR_TURN_RATE and the burst
+    // envelope rates above: they are internal to one motion model, DEFAULT and GROUP stay untouched
+    // (so the parity lock cannot be reached from here at all), and nothing sweeps them yet. They
+    // graduate to Tunables the day the viewer needs sliders for them.
+
+    /** Crawl speed at full drive, blocks/s — an order of magnitude under a swimmer's cruise. */
+    private static final float CRAWL_SPEED = 0.035f;
+    /** Max crawl turn, degrees per tick. A crawler pivots on the spot; it does not bank. */
+    private static final float CRAWL_TURN_RATE = 4.5f;
+    /** Period of one scuttle-and-pause cycle, seconds (± BURST_PERIOD_JITTER per fish). */
+    private static final float CRAWL_DWELL_SECONDS = 6.0f;
+    /** Fraction of that cycle spent actually moving. */
+    private static final float CRAWL_DUTY = 0.35f;
+    /** Envelope rates for the crawl drive — gentler than the swimmers', a crab has no glide. */
+    private static final float CRAWL_ATTACK_RATE = 2.5f;
+    private static final float CRAWL_STOP_RATE = 2.0f;
+    /** OU wander on the crawl heading. */
+    private static final float CRAWL_WANDER_SIGMA = 0.25f;
+    private static final float CRAWL_WANDER_THETA = 1.2f;
+    /** How far ahead a crawler tests the floor before committing to a step, blocks. */
+    private static final float CRAWL_PROBE = 0.14f;
+    /** Sideways probe angle used to pick which way to turn around an obstacle, degrees. */
+    private static final float CRAWL_PROBE_SPREAD = 60f;
+    /** Footprint radius as a fraction of body length — the 2D separation distance. */
+    private static final float CRAWL_FOOTPRINT = 0.6f;
+    /** Push applied when two crawlers overlap footprints, blocks/s. */
+    private static final float CRAWL_SEPARATION_SPEED = 0.04f;
+    /** Walkable floor a crawler needs, in body-length² — its size gate. */
+    private static final float CRAWL_GATE_AREA_FACTOR = 4f;
+    /** Keeps a crawler off the very edge of the swim volume, blocks. */
+    private static final float CRAWL_EDGE_MARGIN = 0.02f;
+
+    // ── Drift (docs/fish-sim-locomotion.md §3.2) ───────────────────────────────────────────────
+    // Engine constants for the same reason the crawl's are: internal to one motion model, and
+    // unreachable from DEFAULT/GROUP so the parity lock cannot be perturbed from here.
+
+    /** Horizontal advection speed at one sigma of the wander, blocks/s. */
+    private static final float DRIFT_SPEED = 0.012f;
+    /**
+     * OU wander driving the horizontal drift. Theta is an order of magnitude below the swimmers'
+     * deliberately: at ~4 s of correlation the signal reads as being carried by a current rather
+     * than as the creature deciding to go somewhere, which is the whole point of the class.
+     */
+    private static final float DRIFT_WANDER_SIGMA = 0.35f;
+    private static final float DRIFT_WANDER_THETA = 0.25f;
+    /** Period of one pulse-and-sink cycle, seconds (± BURST_PERIOD_JITTER per fish). */
+    private static final float DRIFT_PULSE_SECONDS = 4.5f;
+    /** Fraction of that cycle spent contracting the bell. */
+    private static final float DRIFT_PULSE_DUTY = 0.18f;
+    /**
+     * Envelope rates for the pulse drive, per second. Far more asymmetric than the swimmers'
+     * burst: a jellyfish contracts hard and briefly, then sinks for several seconds.
+     */
+    private static final float DRIFT_PULSE_ATTACK_RATE = 4.0f;
+    private static final float DRIFT_PULSE_DECAY_RATE = 0.9f;
+    /**
+     * Upward speed at full pulse drive, blocks/s, against the passive sink between pulses. The
+     * sink is set to the pulse's own duty-cycle mean (~0.35 of the peak) so the two cancel over a
+     * cycle and a drifter neither climbs to the lid nor settles on the sand; what residual bias
+     * survives is absorbed by the wall avoidance below, which is why this need not be exact.
+     */
+    private static final float DRIFT_PULSE_SPEED = 0.10f;
+    private static final float DRIFT_SINK_SPEED = 0.035f;
+    /**
+     * Wall avoidance for a drifter — its only containment, and its vertical centring.
+     *
+     * <p>The margins are the drifter's own rather than {@code Tunables}', which is not a detail.
+     * A swimmer's margin is sized to give a fish travelling at cruise room to turn; a drifter
+     * moves an order of magnitude slower and needs no room at all, so borrowing the swimmers'
+     * 0.20 left the avoidance term active across the entire width of a one-block-deep tank —
+     * measured: horizontal speed peaking at 0.052 blocks/s against a drift speed of 0.012, i.e.
+     * the containment doing four fifths of the moving. Pulled in to a band near the glass, the
+     * open water is pure drift again and the term does only the job it is there for.
+     *
+     * <p>The authority must still exceed {@link #DRIFT_SINK_SPEED}, or a sinking drifter would
+     * settle on the sand and stay there; vertical gets the wider band because that is the axis
+     * the pulse cycle works on.
+     */
+    private static final float DRIFT_AVOID_SPEED = 0.06f;
+    private static final float DRIFT_WALL_MARGIN = 0.08f;
+    private static final float DRIFT_WALL_MARGIN_VERTICAL = 0.10f;
+    /** Weak same-species cohesion: loose smacks rather than a ball. Radius in blocks. */
+    private static final float DRIFT_COHESION_RADIUS = 0.5f;
+    private static final float DRIFT_COHESION_SPEED = 0.01f;
+    /** Bell radius as a fraction of body length, and the push applied when two overlap. */
+    private static final float DRIFT_FOOTPRINT = 0.7f;
+    private static final float DRIFT_SEPARATION_SPEED = 0.03f;
+    /**
+     * Headroom a drifter needs to pulse, in body lengths — its size gate.
+     *
+     * <p>Below one length on purpose, unlike the swimmers' 2.5. The three drifting species are
+     * 28–40 cm (≈0.30–0.36 blocks rendered) while the legacy single-tank model's vertical band is
+     * only {@code yRange} = 0.25 blocks tall, so any factor at or above 1 would demote every
+     * jellyfish in every single tank to STATIC — a gate that only ever fires is not a gate. A
+     * drifter's excursion is a fraction of its body length, not a multiple of it.
+     */
+    private static final float DRIFT_GATE_HEIGHT_FACTOR = 0.6f;
+
     // Speed-integrated animation clock, in speed-scaled ticks: advances by speedFactor(i) per
     // step, so tail-beat frequency tracks swim speed CONTINUOUSLY. The animator must consume this
     // (via renderPhase) instead of multiplying its sine frequency by the instantaneous speed —
@@ -147,6 +260,7 @@ public final class FlockEngine {
     private boolean spatialIndex = true;
 
     // Domain-callback scratch (reused every step, no allocation).
+    private final float[] floorScratch = new float[2];
     private final float[] avoidScratch = new float[3];
     private final float[] posScratch = new float[3];
 
@@ -240,7 +354,19 @@ public final class FlockEngine {
      */
     public void rebuild(FishSpec[] specs, long baseSeed, float baseRotationDeg,
                         int depthLayers, float xzSpread, float yRange, float rotationJitter) {
-        rebuildBox(specs, null, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange, rotationJitter);
+        rebuild(specs, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange, rotationJitter, null);
+    }
+
+    /**
+     * As above, with the tank's floor supplied — the sand height and the cells its cosmetics are
+     * standing in. Only crawlers read it; passing null gives an open floor at the bottom of the
+     * swim volume, which is what every caller that has no crawlers wants.
+     */
+    public void rebuild(FishSpec[] specs, long baseSeed, float baseRotationDeg,
+                        int depthLayers, float xzSpread, float yRange, float rotationJitter,
+                        FloorField floor) {
+        rebuildBox(specs, null, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange,
+                rotationJitter, floor);
     }
 
     /**
@@ -259,17 +385,34 @@ public final class FlockEngine {
      */
     public void rebuildPreserving(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
                                   int depthLayers, float xzSpread, float yRange, float rotationJitter) {
-        rebuildBox(specs, carryFrom, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange, rotationJitter);
+        rebuildPreserving(specs, carryFrom, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange,
+                rotationJitter, null);
+    }
+
+    /** As above, with the tank's floor supplied — see {@link #rebuild(FishSpec[], long, float, int, float, float, float, FloorField)}. */
+    public void rebuildPreserving(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
+                                  int depthLayers, float xzSpread, float yRange, float rotationJitter,
+                                  FloorField floor) {
+        rebuildBox(specs, carryFrom, baseSeed, baseRotationDeg, depthLayers, xzSpread, yRange,
+                rotationJitter, floor);
     }
 
     private void rebuildBox(FishSpec[] specs, int[] carryFrom, long baseSeed, float baseRotationDeg,
-                            int depthLayers, float xzSpread, float yRange, float rotationJitter) {
+                            int depthLayers, float xzSpread, float yRange, float rotationJitter,
+                            FloorField floor) {
         int n = specs.length;
         // Must run before count/allocate/initFish overwrite the arrays it reads.
         captureCarry(carryFrom, n);
         count = n;
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
+        hasBenthic = false;
+        for (FishSpec spec : specs) {
+            if (spec.locomotion() == Locomotion.BENTHIC) {
+                hasBenthic = true;
+                break;
+            }
+        }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) Math.cos(rotRad);
@@ -279,7 +422,7 @@ public final class FlockEngine {
         depthLayers = Math.max(1, Math.min(depthLayers, layerZ.length));
         xzSpread = Math.min(xzSpread, t.tankHalfExtent());
 
-        domain = new FlockDomain.Box(t.tankHalfExtent(), verticalHalf(yRange), layerZ);
+        domain = new FlockDomain.Box(t.tankHalfExtent(), verticalHalf(yRange), layerZ, floor);
         // The binary 2.5D model — no continuous yaw, no spatial index, brute-force neighbour scan
         // (bitwise parity). Explicit rather than implicit so re-using an engine that previously
         // ran a voxel group cannot leave it in planar mode.
@@ -314,6 +457,13 @@ public final class FlockEngine {
                 y = ly[1];
                 baseRotation = baseRotationDeg + (rng.nextFloat() - 0.5f) * 2f * rotationJitter;
                 seed = baseSeed ^ ((long) (i + 1) * 2654435761L);
+            }
+
+            if (spec.locomotion() == Locomotion.BENTHIC) {
+                placeOnFloor(spec, seed, i, floorScratch);
+                lateral = floorScratch[0];
+                depth = floorScratch[1];
+                y = floorHeightAt(lateral, depth);
             }
 
             initFish(i, spec, lateral, y, depth, baseRotation, seed);
@@ -356,6 +506,13 @@ public final class FlockEngine {
         count = n;
         allocate(n);
         for (int i = 0; i < n; i++) order[i] = i;
+        hasBenthic = false;
+        for (FishSpec spec : specs) {
+            if (spec.locomotion() == Locomotion.BENTHIC) {
+                hasBenthic = true;
+                break;
+            }
+        }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) Math.cos(rotRad);
@@ -378,6 +535,13 @@ public final class FlockEngine {
             float depth = posScratch[2];
             float baseRotation = baseRotationDeg + (rng.nextFloat() - 0.5f) * 2f * rotationJitter;
             long seed = baseSeed ^ ((long) (i + 1) * 2654435761L);
+
+            if (specs[i].locomotion() == Locomotion.BENTHIC) {
+                placeOnFloor(specs[i], seed, i, floorScratch);
+                lateral = floorScratch[0];
+                depth = floorScratch[1];
+                y = floorHeightAt(lateral, depth);
+            }
 
             initFish(i, specs[i], lateral, y, depth, baseRotation, seed);
             yawDeg[i] = prevYawDeg[i] = specs[i].mirrored() ? 180f : 0f;
@@ -469,9 +633,20 @@ public final class FlockEngine {
             noiseState[i] = cNoiseState[i]; burstPhase[i] = cBurstPhase[i];
             burstDrive[i] = cBurstDrive[i];
 
-            placedL[placed] = cPosL[i];
-            placedY[placed] = cPosY[i];
-            placedD[placed] = cPosD[i];
+            // A crawler's world can change under it: a cosmetic dropped into the cell it was
+            // standing in, or a group re-shaped around it. Carrying it there would leave it
+            // inside a shipwreck, so it re-places — the one case where carry-over cannot win.
+            if (specs[i].locomotion() == Locomotion.BENTHIC && !standable(posL[i], posD[i])) {
+                placeOnFloor(specs[i], seeds[i], i, floorScratch);
+                posL[i] = prevL[i] = floorScratch[0];
+                posD[i] = prevD[i] = floorScratch[1];
+                posY[i] = prevY[i] = floorHeightAt(posL[i], posD[i]);
+                velL[i] = velD[i] = velY[i] = 0f;
+            }
+
+            placedL[placed] = posL[i];
+            placedY[placed] = posY[i];
+            placedD[placed] = posD[i];
             placed++;
         }
         return placed;
@@ -499,7 +674,8 @@ public final class FlockEngine {
         seeds[i] = seed;
         species[i] = spec.species();
         hoverMirrored[i] = spec.mirrored();
-        swimmers[i] = spec.canSwim() && domain.sizeGateRun() >= t.gateFactor() * spec.length();
+        locomotion[i] = gate(spec.locomotion(), spec.length());
+        swimmers[i] = locomotion[i] == Locomotion.FREE_SWIM;
 
         posL[i] = prevL[i] = lateral;
         posY[i] = prevY[i] = y;
@@ -518,10 +694,46 @@ public final class FlockEngine {
         deriveTraits(i, seed);
         burstPhase[i] = (unitFromHash(seed, 4) + 1f) * 0.5f;
         burstDrive[i] = 1f;
+        if (locomotion[i] == Locomotion.DRIFT) {
+            // Relaxed bell: burstDrive is the pulse envelope here, and starting it at 1 would fire
+            // every jellyfish in the tank at full contraction on the rebuild tick.
+            burstDrive[i] = 0f;
+        }
+        if (locomotion[i] == Locomotion.BENTHIC) {
+            // A crawler starts at rest facing its mirror direction, and keeps a continuous
+            // heading like the planar model's rather than the swimmers' binary ±lateral.
+            yawDeg[i] = prevYawDeg[i] = spec.mirrored() ? 180f : 0f;
+            burstDrive[i] = 0f;
+        }
         wanderState[i] = 0f;
         wanderStateY[i] = 0f;
         // xorshift64 is dead at zero, so force an odd non-zero stream state.
         noiseState[i] = (seed * 0x2545F4914F6CDD1DL) | 1L;
+    }
+
+    /**
+     * Applies a locomotion class's own size gate, demoting to {@link Locomotion#STATIC} when the
+     * domain is too small for that kind of creature to do its thing. One gate per class, because
+     * they measure different quantities: a swimmer needs a straight run, a crawler needs floor
+     * area, a drifter needs headroom (docs/fish-sim-locomotion.md §2.4).
+     *
+     * <p>The swim gate is the pre-existing rule, unchanged and still bitwise-locked. Classes that
+     * have no gate of their own yet pass through here untouched and are simply not stepped, which
+     * is exactly the behaviour they have now.
+     */
+    private Locomotion gate(Locomotion declared, float length) {
+        return switch (declared) {
+            case FREE_SWIM, GLIDE ->
+                    domain.sizeGateRun() >= t.gateFactor() * length ? declared : Locomotion.STATIC;
+            case BENTHIC ->
+                    domain.floor().area() >= CRAWL_GATE_AREA_FACTOR * length * length
+                            ? declared : Locomotion.STATIC;
+            case DRIFT ->
+                    domain.maxVertical() - domain.minVertical() >= DRIFT_GATE_HEIGHT_FACTOR * length
+                            ? declared : Locomotion.STATIC;
+            case ANCHORED -> declared;
+            case STATIC -> Locomotion.STATIC;
+        };
     }
 
     /**
@@ -593,6 +805,7 @@ public final class FlockEngine {
         lengths = new float[n];
         baseRotations = new float[n];
         seeds = new long[n];
+        locomotion = new Locomotion[n];
         swimmers = new boolean[n];
         hoverMirrored = new boolean[n];
         wanderPhaseA = new float[n];
@@ -625,17 +838,39 @@ public final class FlockEngine {
         System.arraycopy(posY, 0, prevY, 0, count);
         System.arraycopy(posD, 0, prevD, 0, count);
         System.arraycopy(tailPhase, 0, prevTailPhase, 0, count);
-        if (planar) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
+        if (planar || hasBenthic) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
 
         for (int i = 0; i < count; i++) {
-            if (!swimmers[i]) continue;
-            if (planar) {
-                stepFishPlanar(i);
-            } else {
-                stepFish(i);
-            }
-            tailPhase[i] += speedFactor(i);
+            // The one place that decides what a locomotion class actually does. FREE_SWIM reaches
+            // the identical instructions it always has (the parity lock depends on that); the
+            // classes below it have no motion model yet and hold their scatter position exactly
+            // like STATIC — each gains one in its own phase, docs/fish-sim-locomotion.md §5.
+            boolean beats = switch (locomotion[i]) {
+                case FREE_SWIM -> {
+                    if (planar) {
+                        stepFishPlanar(i);
+                    } else {
+                        stepFish(i);
+                    }
+                    yield true;
+                }
+                case BENTHIC -> {
+                    stepBenthic(i);
+                    yield true;
+                }
+                case DRIFT -> {
+                    // Moves, but has no tail beat to clock: a jellyfish's pose is a bell pulse and
+                    // a spin on game time, neither of which is a function of how fast it travels.
+                    stepDrift(i);
+                    yield false;
+                }
+                case GLIDE, ANCHORED, STATIC -> false;
+            };
+            // The speed-integrated animation clock runs only for a fish whose pose is driven by
+            // its own swimming; everything else is animated open-loop against game time by the
+            // renderer, and a drifting tailPhase would double-drive it.
+            if (beats) tailPhase[i] += speedFactor(i);
         }
     }
 
@@ -1209,6 +1444,187 @@ public final class FlockEngine {
         return ((x >>> 40) * (1f / 8388608f)) - 1f;
     }
 
+    // ── Benthic crawl (docs/fish-sim-locomotion.md §3.1) ───────────────────────────────────────
+
+    /**
+     * One step of the floor walk. Deliberately <b>not</b> the swimmers' force model: a crawler is
+     * overdamped — it has no glide and no momentum worth integrating — so this commands velocity
+     * directly, and the position it produces is the position it keeps. That also makes the "never
+     * inside an obstacle" invariant structural rather than emergent: the move is tested against
+     * the floor before it is taken, and refused outright if it would land off it.
+     *
+     * <p>Vertical is not simulated at all. A crawler's Y <i>is</i> the floor height under it, so
+     * it steps up between two tanks of different heights for free, and the domain's vertical
+     * clamp — which describes the swim volume, well above the sand — never applies to it.
+     */
+    private void stepBenthic(int i) {
+        float dt = t.dt();
+
+        // Scuttle-and-pause. Same integrated-envelope shape as the swimmers' burst-and-coast, and
+        // for the same reason: a stepped target reads as a twitch, an integrated one as a start.
+        boolean moving = dwellPhase(i) < CRAWL_DUTY;
+        float target = moving ? 1f : 0f;
+        float rate = moving ? CRAWL_ATTACK_RATE : CRAWL_STOP_RATE;
+        burstDrive[i] += (target - burstDrive[i]) * rate * dt;
+
+        // Heading: band-limited wander, overridden by obstacle avoidance when the way is blocked.
+        float k = CRAWL_WANDER_SIGMA * (float) Math.sqrt(dt) * SQRT3;
+        wanderState[i] += -wanderState[i] * CRAWL_WANDER_THETA * dt + k * nextSignedUnit(i);
+        wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
+
+        float yaw = yawDeg[i];
+        float turn = wanderState[i] * CRAWL_TURN_RATE * turnScale[i];
+        if (!clearAhead(i, yaw)) {
+            boolean left = clearAhead(i, yaw + CRAWL_PROBE_SPREAD);
+            boolean right = clearAhead(i, yaw - CRAWL_PROBE_SPREAD);
+            if (left != right) {
+                turn = left ? CRAWL_TURN_RATE : -CRAWL_TURN_RATE;
+            } else {
+                // Boxed in (a corner, or a gap narrower than the probe spread): turn steadily in
+                // this fish's own preferred direction until something opens up. Seeded rather than
+                // fixed, so two crabs in one corner don't mirror each other forever.
+                turn = (unitFromHash(seeds[i], 8) < 0f ? -2f : 2f) * CRAWL_TURN_RATE;
+            }
+        }
+        yaw = wrapDeg(yaw + turn);
+        yawDeg[i] = yaw;
+
+        float yr = (float) Math.toRadians(yaw);
+        float dirL = (float) Math.cos(yr);
+        float dirD = -(float) Math.sin(yr);
+
+        float drive = CRAWL_SPEED * burstDrive[i] * speedScale[i];
+        float vl = dirL * drive;
+        float vd = dirD * drive;
+
+        // Footprint separation, in 2D and at the scale of the shells rather than the bodies — this
+        // is what stops crawlers stacking on the same patch of sand.
+        float radius = CRAWL_FOOTPRINT * lengths[i];
+        for (int j = 0; j < count; j++) {
+            if (j == i || locomotion[j] != Locomotion.BENTHIC) continue;
+            float dl = posL[i] - posL[j];
+            float dd = posD[i] - posD[j];
+            float distSq = dl * dl + dd * dd;
+            float want = radius + CRAWL_FOOTPRINT * lengths[j];
+            if (distSq >= want * want || distSq <= 1e-8f) continue;
+            float dist = (float) Math.sqrt(distSq);
+            float push = (want - dist) / want * CRAWL_SEPARATION_SPEED;
+            vl += dl / dist * push;
+            vd += dd / dist * push;
+        }
+
+        float nextL = posL[i] + vl * dt;
+        float nextD = posD[i] + vd * dt;
+        if (standable(nextL, nextD)) {
+            posL[i] = nextL;
+            posD[i] = nextD;
+        } else {
+            // The probe missed something — a diagonal clip past a corner, or a neighbour's push
+            // toward an obstacle. Refusing the move is what makes the invariant unconditional.
+            vl = 0f;
+            vd = 0f;
+        }
+        posY[i] = floorHeightAt(posL[i], posD[i]);
+
+        velL[i] = vl;
+        velD[i] = vd;
+        velY[i] = 0f;
+        speed[i] = (float) Math.sqrt(vl * vl + vd * vd);
+        bank[i] = 0f;
+    }
+
+    /** Where this fish sits in its own scuttle-and-pause cycle, in [0, 1). */
+    private float dwellPhase(int i) {
+        float period = CRAWL_DWELL_SECONDS * (1f + BURST_PERIOD_JITTER * unitFromHash(seeds[i], 6));
+        float offset = (unitFromHash(seeds[i], 7) + 1f) * 0.5f;
+        float phase = (simTick * t.dt()) / period + offset;
+        return phase - (float) Math.floor(phase);
+    }
+
+    /** Whether the floor a probe-length ahead on this bearing can be stood on. */
+    private boolean clearAhead(int i, float yaw) {
+        float yr = (float) Math.toRadians(yaw);
+        return standable(posL[i] + (float) Math.cos(yr) * CRAWL_PROBE,
+                posD[i] - (float) Math.sin(yr) * CRAWL_PROBE);
+    }
+
+    /**
+     * Whether a crawler may occupy this horizontal position: the floor is walkable there (sand,
+     * not an obstacle and not thin air) and it is inside the domain's horizontal extent. The
+     * vertical extent deliberately does not apply — the floor lies below the swim volume.
+     */
+    private boolean standable(float l, float d) {
+        return l >= domain.minLateral() + CRAWL_EDGE_MARGIN && l <= domain.maxLateral() - CRAWL_EDGE_MARGIN
+                && d >= domain.minDepth() + CRAWL_EDGE_MARGIN && d <= domain.maxDepth() - CRAWL_EDGE_MARGIN
+                && !Float.isNaN(floorHeightAt(l, d));
+    }
+
+    /**
+     * Floor height under a point given in the sim's local frame.
+     *
+     * <p>The transform matters and is easy to miss: a single tank's local lateral/depth axes are
+     * rotated by the placement yaw the tank recorded from the player who placed it (the same
+     * {@code cosR}/{@code sinR} {@link #interpolate} applies), but the sand and the cosmetic grid
+     * standing on it are <i>block</i>-aligned and do not rotate with it. So the floor is indexed
+     * in the block's own frame, and local coordinates are rotated into it here. The group engine
+     * runs unrotated, where this is the identity.
+     */
+    private float floorHeightAt(float l, float d) {
+        return domain.floor().heightAt(l * cosR + d * sinR, -l * sinR + d * cosR);
+    }
+
+    /**
+     * Picks a walkable spot for a crawler at rebuild, writing {@code out[0..1]} = lateral, depth.
+     *
+     * <p>Draws come from the fish's own seed rather than the shared scatter {@code rng}, which
+     * matters more than it looks: adding a crab to a tank therefore does not shift the random
+     * stream, and every other fish in that tank still scatters to bit-identical positions.
+     * Candidates are rejected against the floor and against the crawlers already placed, so a
+     * colony spaces itself out instead of piling into one corner.
+     */
+    private void placeOnFloor(FishSpec spec, long seed, int upTo, float[] out) {
+        float lo = domain.minLateral() + CRAWL_EDGE_MARGIN;
+        float span = (domain.maxLateral() - CRAWL_EDGE_MARGIN) - lo;
+        float loD = domain.minDepth() + CRAWL_EDGE_MARGIN;
+        float spanD = (domain.maxDepth() - CRAWL_EDGE_MARGIN) - loD;
+        float want = CRAWL_FOOTPRINT * spec.length();
+
+        for (int attempt = 0; attempt < 48; attempt++) {
+            float l = lo + (unitFromHash(seed, 100 + attempt * 2L) + 1f) * 0.5f * span;
+            float d = loD + (unitFromHash(seed, 101 + attempt * 2L) + 1f) * 0.5f * spanD;
+            if (!standable(l, d)) continue;
+            if (attempt < 32 && !farEnoughOnFloor(l, d, want, upTo)) continue;
+            out[0] = l;
+            out[1] = d;
+            return;
+        }
+
+        // Exhaustive fallback: the first walkable cell. A crawler that reaches this is in a
+        // near-fully-obstructed tank, and standing somewhere legal beats standing in a wall.
+        for (float l = lo; l <= lo + span; l += FloorField.CELL_SIZE) {
+            for (float d = loD; d <= loD + spanD; d += FloorField.CELL_SIZE) {
+                if (standable(l, d)) {
+                    out[0] = l;
+                    out[1] = d;
+                    return;
+                }
+            }
+        }
+        out[0] = lo + span * 0.5f;
+        out[1] = loD + spanD * 0.5f;
+    }
+
+    private boolean farEnoughOnFloor(float l, float d, float want, int upTo) {
+        for (int j = 0; j < upTo && j < count; j++) {
+            if (locomotion[j] != Locomotion.BENTHIC) continue;
+            float dl = l - posL[j];
+            float dd = d - posD[j];
+            float other = want + CRAWL_FOOTPRINT * lengths[j];
+            if (dl * dl + dd * dd < other * other) return false;
+        }
+        return true;
+    }
+
     /** Tail-beat frequency factor from forward speed; the hover path always uses 1.0. */
     public float speedFactor(int i) {
         float normalized = SimMath.clamp(speed[i] / t.maxSpeed(), 0f, 1f);
@@ -1230,7 +1646,7 @@ public final class FlockEngine {
             renderZ[i] = -l * sinR + d * cosR;
             renderY[i] = y;
             renderPhase[i] = SimMath.lerp(partialTick, prevTailPhase[i], tailPhase[i]);
-            if (planar) {
+            if (planar || hasBenthic) {
                 // Wrap-aware angular lerp so a fish crossing the ±180° seam doesn't spin the long way.
                 renderYaw[i] = prevYawDeg[i] + partialTick * wrapDeg(yawDeg[i] - prevYawDeg[i]);
             }
@@ -1268,6 +1684,125 @@ public final class FlockEngine {
             if (dx * dx + dy * dy + dz * dz < minSep2) return false;
         }
         return true;
+    }
+
+    // ── Drift (docs/fish-sim-locomotion.md §3.2) ───────────────────────────────────────────────
+
+    /**
+     * One step of the passive drift. Like the crawl and unlike the swimmers, this commands
+     * velocity directly rather than integrating a force: a jellyfish has essentially no inertia of
+     * its own worth modelling — what looks like momentum is the water, and the water is already in
+     * the wander's correlation time.
+     *
+     * <p>The two axes are deliberately unlike each other. Horizontally there is <b>no forward
+     * drive at all</b>: position moves only by a slow, band-limited wander, which reads as being
+     * carried by a current. Vertically there is a pulse-and-sink cycle — the burst-and-coast
+     * envelope again, on a new axis and far more asymmetric — and that is the axis a viewer
+     * actually reads as the animal being alive.
+     *
+     * <p>No alignment: jellyfish do not school, and a drifter is not in {@code swimmers[]} so the
+     * shoal never aligns to one either. Same-species cohesion is weak enough to gather a loose
+     * smack without pulling it into a ball.
+     */
+    private void stepDrift(int i) {
+        float dt = t.dt();
+
+        // Bell pulse. Integrated rather than stepped, for the reason advanceBurst documents at
+        // length: holding a target while a gain chases it is what makes the onset read as a
+        // contraction instead of a twitch.
+        boolean pulsing = pulsePhase(i) < DRIFT_PULSE_DUTY;
+        float target = pulsing ? 1f : 0f;
+        float rate = pulsing ? DRIFT_PULSE_ATTACK_RATE : DRIFT_PULSE_DECAY_RATE;
+        burstDrive[i] += (target - burstDrive[i]) * rate * dt;
+
+        // Horizontal advection: two independent OU processes, one per axis. Independent rather
+        // than a wandering heading (the crawl's formulation) because a drifter has no heading to
+        // wander — it is not pointing where it is going, it is being carried.
+        float k = DRIFT_WANDER_SIGMA * (float) Math.sqrt(dt) * SQRT3;
+        wanderState[i] += -wanderState[i] * DRIFT_WANDER_THETA * dt + k * nextSignedUnit(i);
+        wanderStateY[i] += -wanderStateY[i] * DRIFT_WANDER_THETA * dt + k * nextSignedUnit(i);
+        wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
+        wanderStateY[i] = SimMath.clamp(wanderStateY[i], -WANDER_CLAMP, WANDER_CLAMP);
+
+        float drive = DRIFT_SPEED * speedScale[i];
+        float vl = wanderState[i] * drive;
+        float vd = wanderStateY[i] * drive;
+        float vy = (DRIFT_PULSE_SPEED * burstDrive[i] - DRIFT_SINK_SPEED) * speedScale[i];
+
+        // Bell separation and weak same-species cohesion, in one pass. Drifters interact only with
+        // each other here; every other class already sees them through the swimmers' separation
+        // term, which scans all fish regardless of class.
+        float radius = DRIFT_FOOTPRINT * lengths[i];
+        float cohL = 0f, cohY = 0f, cohD = 0f;
+        int cohCount = 0;
+        for (int j = 0; j < count; j++) {
+            if (j == i || locomotion[j] != Locomotion.DRIFT) continue;
+            float dl = posL[i] - posL[j];
+            float dy = posY[i] - posY[j];
+            float dd = posD[i] - posD[j];
+            float distSq = dl * dl + dy * dy + dd * dd;
+            if (distSq <= 1e-8f) continue;
+
+            float want = radius + DRIFT_FOOTPRINT * lengths[j];
+            if (distSq < want * want) {
+                float dist = (float) Math.sqrt(distSq);
+                float push = (want - dist) / want * DRIFT_SEPARATION_SPEED;
+                vl += dl / dist * push;
+                vy += dy / dist * push;
+                vd += dd / dist * push;
+            }
+            if (species[j] == species[i] && distSq < DRIFT_COHESION_RADIUS * DRIFT_COHESION_RADIUS) {
+                cohL -= dl; cohY -= dy; cohD -= dd;
+                cohCount++;
+            }
+        }
+        if (cohCount > 0) {
+            vl += cohL / cohCount * DRIFT_COHESION_SPEED;
+            vy += cohY / cohCount * DRIFT_COHESION_SPEED;
+            vd += cohD / cohCount * DRIFT_COHESION_SPEED;
+        }
+
+        // Soft containment, and the only thing keeping the vertical cycle centred: whatever bias
+        // survives between the pulse and the sink is cancelled here rather than by tuning the two
+        // against each other, which would be a balance that a domain of a different height breaks.
+        domain.avoidance(posL[i], posY[i], posD[i], DRIFT_WALL_MARGIN, DRIFT_WALL_MARGIN_VERTICAL,
+                avoidScratch);
+        vl += avoidScratch[0] * DRIFT_AVOID_SPEED;
+        vy += avoidScratch[1] * DRIFT_AVOID_SPEED;
+        vd += avoidScratch[2] * DRIFT_AVOID_SPEED;
+
+        posL[i] += vl * dt;
+        posY[i] += vy * dt;
+        posD[i] += vd * dt;
+        posScratch[0] = posL[i];
+        posScratch[1] = posY[i];
+        posScratch[2] = posD[i];
+        domain.constrain(prevL[i], prevY[i], prevD[i], posScratch);
+        if (Float.floatToRawIntBits(posScratch[0]) != Float.floatToRawIntBits(posL[i])
+                || Float.floatToRawIntBits(posScratch[1]) != Float.floatToRawIntBits(posY[i])
+                || Float.floatToRawIntBits(posScratch[2]) != Float.floatToRawIntBits(posD[i])) {
+            backstopEngagements++;
+        }
+        posL[i] = posScratch[0];
+        posY[i] = posScratch[1];
+        posD[i] = posScratch[2];
+
+        velL[i] = vl;
+        velY[i] = vy;
+        velD[i] = vd;
+        speed[i] = (float) Math.sqrt(vl * vl + vy * vy + vd * vd);
+        // Yaw and bank are the pose's business for a drifter: it has no facing to speak of, and
+        // FishAnimationConfig.UprightFloat already owns its spin. Leaving yawDeg alone also keeps
+        // it out of the wrap-aware yaw interpolation, which the box path only runs for crawlers.
+        bank[i] = 0f;
+    }
+
+    /** Where this fish sits in its own pulse-and-sink cycle, in [0, 1). */
+    private float pulsePhase(int i) {
+        float period = DRIFT_PULSE_SECONDS * (1f + BURST_PERIOD_JITTER * unitFromHash(seeds[i], 9));
+        float offset = (unitFromHash(seeds[i], 10) + 1f) * 0.5f;
+        float phase = (simTick * t.dt()) / period + offset;
+        return phase - (float) Math.floor(phase);
     }
 
     private static float verticalHalf(float yRange) {

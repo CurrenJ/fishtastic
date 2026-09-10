@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
@@ -75,7 +76,7 @@ class VoxelDomainTest {
         Random r = new Random(seed * 31 + n);
         FishSpec[] specs = new FishSpec[n];
         for (int i = 0; i < n; i++) {
-            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, true, r.nextBoolean(), r.nextInt(3));
+            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, Locomotion.FREE_SWIM, r.nextBoolean(), r.nextInt(3));
         }
         return specs;
     }
@@ -96,7 +97,7 @@ class VoxelDomainTest {
         Tunables t = Tunables.GROUP;
         for (float len : new float[]{0.05f, 0.2f, 0.28f, 0.3f, 0.5f}) {
             FlockEngine engine = new FlockEngine(t);
-            engine.rebuild(new FishSpec[]{new FishSpec(len, true, false, 0), new FishSpec(0.1f, true, false, 0)},
+            engine.rebuild(new FishSpec[]{new FishSpec(len, Locomotion.FREE_SWIM, false, 0), new FishSpec(0.1f, Locomotion.FREE_SWIM, false, 0)},
                     99L, 0f, 20f, new VoxelDomain(fullGrid(1, 1, 1)));
             assertEquals(d.sizeGateRun() >= t.gateFactor() * len, engine.swimmers[0], "gate at length " + len);
         }
@@ -151,7 +152,7 @@ class VoxelDomainTest {
         // 12 fish, three species of four — fixed lengths so only species drives the difference.
         FishSpec[] specs = new FishSpec[12];
         for (int i = 0; i < 12; i++) {
-            specs[i] = new FishSpec(0.12f, true, (i & 1) == 0, i % 3);
+            specs[i] = new FishSpec(0.12f, Locomotion.FREE_SWIM, (i & 1) == 0, i % 3);
         }
         engine.rebuild(specs, 987L, 0f, 20f, domain);
 

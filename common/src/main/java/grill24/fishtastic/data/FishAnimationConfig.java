@@ -155,19 +155,37 @@ public sealed interface FishAnimationConfig
             float floorOffset,
             float rotationAmplitude,
             float rotationHertz,
-            boolean diagonalTexture
+            boolean diagonalTexture,
+            float pivotFraction
     ) implements FishAnimationConfig {
-        // The renderer separately compensates for this mode's centre-pivot (an upright item's
-        // bottom otherwise sits below the floor) scaled to each fish's own per-catch size, so
-        // floorOffset here is purely a small manual nudge on top of that, like FloorSit's.
-        public static final UprightSit DEFAULT = new UprightSit(0.0f, 8.0f, 0.004f, true);
+        /**
+         * Distance from the item's centre down to the lowest <i>visible</i> pixel of its texture,
+         * as a fraction of the item's own height — how far to lift the creature so it stands on
+         * the sand rather than hovering above it or sinking into it.
+         *
+         * <p>{@link #DEFAULT_PIVOT_FRACTION} (half the item) is what an upright sprite whose art
+         * runs all the way to the bottom edge of its canvas needs. Art that stops short needs
+         * less, by exactly the transparent margin below it, and using the full half instead floats
+         * it by that much: harmless for a texture that nearly fills its canvas, glaring for one
+         * that fills half of it (trapania_scurra hovered by roughly its own visible height).
+         *
+         * <p>Measured from the texture's alpha by {@code tools/fish-render-calibration.ps1}, which
+         * also accounts for {@link #diagonalTexture()}'s 45° roll — after that roll the lowest
+         * point is a rotated corner, not the bottom edge. Re-run it when a texture changes.
+         */
+        public static final float DEFAULT_PIVOT_FRACTION = 0.5f;
+
+        // floorOffset is a small manual nudge on top of the measured pivot, like FloorSit's.
+        public static final UprightSit DEFAULT =
+                new UprightSit(0.0f, 8.0f, 0.004f, true, DEFAULT_PIVOT_FRACTION);
 
         static final MapCodec<UprightSit> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("floor_offset",       0.0f  ).forGetter(UprightSit::floorOffset),
                 Codec.FLOAT.optionalFieldOf("rotation_amplitude", 8.0f  ).forGetter(UprightSit::rotationAmplitude),
                 Codec.FLOAT.optionalFieldOf("rotation_hertz",     0.004f).forGetter(UprightSit::rotationHertz),
                 // See UprightFloat.diagonalTexture: false for textures already painted facing straight up.
-                Codec.BOOL.optionalFieldOf("diagonal_texture",    true  ).forGetter(UprightSit::diagonalTexture)
+                Codec.BOOL.optionalFieldOf("diagonal_texture",    true  ).forGetter(UprightSit::diagonalTexture),
+                Codec.FLOAT.optionalFieldOf("pivot_fraction", DEFAULT_PIVOT_FRACTION).forGetter(UprightSit::pivotFraction)
         ).apply(i, UprightSit::new));
 
         @Override public String modeName() { return "upright_sit"; }

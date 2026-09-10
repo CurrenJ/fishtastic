@@ -17,6 +17,12 @@
   fish_profile/<name>.json as "render_calibration". Re-running it is safe: an existing field is
   updated in place rather than duplicated, and every other field in the file is left untouched.
 
+  For upright_sit species it additionally measures "pivot_fraction": how far below the item's
+  centre the art's lowest visible pixel sits, which is how far the creature must be lifted to stand
+  on the sand. The renderer used to assume half the item — right for art that reaches the bottom of
+  its canvas, and a visible float for art that stops short (trapania_scurra fills half its canvas
+  vertically and hovered by roughly its own visible height).
+
   Run this whenever a fish's texture, animation mode, or diagonal_texture flag changes, and after
   adding a new species via the add-fish-species skill (its fish_profile falls back to a flat
   0.8 slope — see FishProfile.DEFAULT_RENDER_CALIBRATION — until this script has measured it).
@@ -69,11 +75,27 @@ Get-ChildItem $profileDir -Filter *.json | Sort-Object Name | ForEach-Object {
     $minX = [int]::MaxValue; $maxX = -1; $minY = [int]::MaxValue; $maxY = -1
     $minSum = [int]::MaxValue; $maxSum = -1
     $minDiff = [int]::MaxValue; $maxDiff = [int]::MinValue
+    # Lowest visible point of the art in item-local units (item spans -0.5..+0.5, +up), AFTER any
+    # roll the mode applies. This is what an upright pose has to be lifted by to stand on the sand
+    # rather than hover above it; see FishAnimationConfig.UprightSit.pivotFraction.
+    $minLocalY = [double]::MaxValue
 
     for ($y = 0; $y -lt $h; $y++) {
         for ($x = 0; $x -lt $w; $x++) {
             $a = $bmp.GetPixel($x, $y).A
             if ($a -gt 10) {
+                # Test the pixel's own corners, not its centre: the visible edge of the art is the
+                # edge of its lowest pixel, and after a 45 degree roll the lowest point of a pixel
+                # is one of its corners.
+                foreach ($cx in @($x, $x + 1)) {
+                    foreach ($cy in @($y, $y + 1)) {
+                        $u = $cx / $w - 0.5
+                        $v = 0.5 - $cy / $h
+                        # Axis.ZP.rotationDegrees(-45) maps (u,v) -> v' = (v - u) / sqrt(2).
+                        $localY = if ($usesDiagonalRotation) { ($v - $u) / $sqrt2 } else { $v }
+                        if ($localY -lt $minLocalY) { $minLocalY = $localY }
+                    }
+                }
                 if ($x -lt $minX) { $minX = $x }
                 if ($x -gt $maxX) { $maxX = $x }
                 if ($y -lt $minY) { $minY = $y }
@@ -109,6 +131,7 @@ Get-ChildItem $profileDir -Filter *.json | Sort-Object Name | ForEach-Object {
     $correctionMult = if ($usesDiagonalRotation) { $sqrt2 } else { 1.0 }
 
     $renderCalibration = [Math]::Round(1.0 / ($correctionMult * $operativeFraction), 2)
+    $pivotFraction = [Math]::Round(-$minLocalY, 4)
 
     # Surgical text insertion: preserves the file's existing formatting/field order exactly. If a
     # render_calibration field already exists (re-run), replace its value in place instead of
@@ -128,6 +151,29 @@ Get-ChildItem $profileDir -Filter *.json | Sort-Object Name | ForEach-Object {
         $newRaw = $raw.Substring(0, $insertAt) + "  `"render_calibration`": $renderCalibration,`n" + $raw.Substring($insertAt)
     }
 
+    # upright_sit is the one mode whose creature stands ON the floor with the item pivoted about
+    # its centre, so it is the one that needs the measured pivot. floor_sit lies flat (its sprite
+    # plane IS the sand), and planted authors its own plant_depth.
+    if ($mode -eq "upright_sit") {
+        $pivotPattern = [regex]'(?m)^(\s*)"pivot_fraction"\s*:\s*[0-9.]+\s*(,?)\s*$'
+        if ($pivotPattern.IsMatch($newRaw)) {
+            $newRaw = $pivotPattern.Replace($newRaw, "`$1`"pivot_fraction`": $pivotFraction`$2", 1)
+        } else {
+            # Insert as the first field of the animation block, right after its "mode" line, so the
+            # file's existing formatting and field order are otherwise untouched.
+            $modePattern = [regex]'(?m)^(\s*)"mode"\s*:\s*"upright_sit"\s*,?\s*$'
+            $m = $modePattern.Match($newRaw)
+            if ($m.Success) {
+                $indent = $m.Groups[1].Value
+                $insertAt = $m.Index + $m.Length
+                $eol = if ($newRaw.Substring($insertAt).StartsWith("`r`n")) { "`r`n" } else { "`n" }
+                $newRaw = $newRaw.Substring(0, $insertAt) + $eol + $indent + "`"pivot_fraction`": $pivotFraction," + $newRaw.Substring($insertAt)
+            } else {
+                Write-Warning "$name : upright_sit but no `"mode`" line found, pivot_fraction not written"
+            }
+        }
+    }
+
     [System.IO.File]::WriteAllText($file.FullName, $newRaw, (New-Object System.Text.UTF8Encoding($false)))
 
     $summary += [pscustomobject]@{
@@ -136,6 +182,7 @@ Get-ChildItem $profileDir -Filter *.json | Sort-Object Name | ForEach-Object {
         Diagonal    = $usesDiagonalRotation
         CanvasFill  = [Math]::Round($operativeFraction, 2)
         Calibration = $renderCalibration
+        Pivot       = if ($mode -eq "upright_sit") { $pivotFraction } else { "" }
     }
 }
 

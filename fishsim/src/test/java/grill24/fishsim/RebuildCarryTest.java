@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
@@ -30,7 +31,7 @@ class RebuildCarryTest {
         Random r = new Random(seed * 31 + n);
         FishSpec[] specs = new FishSpec[n];
         for (int i = 0; i < n; i++) {
-            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, true, r.nextBoolean(), i % 3);
+            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, Locomotion.FREE_SWIM, r.nextBoolean(), i % 3);
         }
         return specs;
     }
@@ -117,7 +118,7 @@ class RebuildCarryTest {
 
         FishSpec[] grown = new FishSpec[6];
         System.arraycopy(specs, 0, grown, 0, 5);
-        grown[5] = new FishSpec(0.12f, true, false, 0);
+        grown[5] = new FishSpec(0.12f, Locomotion.FREE_SWIM, false, 0);
 
         float[] beforeL = engine.posL().clone();
         float[] beforeY = engine.posY().clone();
@@ -185,6 +186,37 @@ class RebuildCarryTest {
     }
 
     /** A null carry map has to leave the locked scatter untouched — the parity suite's contract. */
+    /**
+     * A carried drifter keeps its pulse cycle, not just its position. The drift model holds live
+     * state the position alone does not reveal — the bell's envelope and the two wander processes
+     * — so a jellyfish that survived a rebuild must not restart mid-contraction while its
+     * neighbours are mid-sink. Stepping both engines on and comparing is what shows the state
+     * came across; comparing positions at the rebuild tick would pass even if it had not.
+     */
+    @Test
+    void aCarriedDrifterKeepsItsPulseCycle() {
+        FishSpec[] specs = {
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.12f, Locomotion.DRIFT, false, 1),
+                new FishSpec(0.11f, Locomotion.DRIFT, true, 1),
+        };
+        FlockEngine engine = settled(specs, 400);
+        float[] beforeY = engine.posY().clone();
+
+        // The swimmer leaves; both drifters stay.
+        engine.rebuildPreserving(without(specs, 0), carryAfterRemoval(3, 0), SEED, 30f,
+                3, 0.35f, 0.3f, 20f);
+        assertEquals(beforeY[1], engine.posY()[0], "a carried drifter was re-scattered");
+        assertEquals(beforeY[2], engine.posY()[1], "a carried drifter was re-scattered");
+
+        // A drifter whose envelope had been reset would sit at drive 0 and hold still for a
+        // moment; one that carried its state keeps moving on the very next tick.
+        float[] atRebuild = engine.posY().clone();
+        engine.step();
+        assertNotEquals(atRebuild[0], engine.posY()[0], "a carried drifter's pulse stalled");
+        assertNotEquals(atRebuild[1], engine.posY()[1], "a carried drifter's pulse stalled");
+    }
+
     @Test
     void rebuildPreservingWithNoCarriedFishMatchesAPlainRebuild() {
         FishSpec[] specs = specs(7, SEED);

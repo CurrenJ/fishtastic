@@ -67,7 +67,15 @@ public final class ClientTankGroups {
                 TankGroups.of(be, level, TankGroups.RENDER_MAX_GROUP_SIZE, BY_MEMBER.keySet());
         // A lone tank takes the legacy single-tank Box path and never touches a voxel domain, so
         // building one for it would be pure waste.
-        Entry entry = new Entry(group, group.isMultiTank() ? new VoxelDomain(group.occupancy()) : null);
+        // The floor carries every member's cosmetics, so a crawler walks around them; it is
+        // refreshed in place by the anchor when they change (see TankFlockAdapter), because
+        // cosmetics move without membership moving and rebuilding the domain for that would cost
+        // the whole distance field.
+        VoxelDomain domain = group.isMultiTank()
+                ? new VoxelDomain(group.occupancy(), VoxelDomain.DEFAULT_INSET,
+                        TankFloors.GROUP_SURFACE_OFFSET, TankFloors.groupBlockedCells(group, level))
+                : null;
+        Entry entry = new Entry(group, domain);
         for (BlockPos member : group.members()) {
             BY_MEMBER.putIfAbsent(member.immutable(), entry);
         }

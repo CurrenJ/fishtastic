@@ -25,13 +25,19 @@ public final class VoxelDomain implements FlockDomain {
 
     private final boolean[][][] occupancy;
     private final float inset;
+    private final float gridMinL, gridMinY, gridMinD;
     private final float minL, minY, minD, maxL, maxY, maxD;
     private final float[] layerDepths;
     private final float sizeGateRun;
     private final DistanceField field;
+    private FloorField floor;
 
     public VoxelDomain(boolean[][][] occupancy) {
-        this(occupancy, DEFAULT_INSET);
+        this(occupancy, DEFAULT_INSET, 0f, null);
+    }
+
+    public VoxelDomain(boolean[][][] occupancy, float inset) {
+        this(occupancy, inset, 0f, null);
     }
 
     /**
@@ -39,12 +45,22 @@ public final class VoxelDomain implements FlockDomain {
      *                  bounds should be the occupied cells' bounding box (empty border planes
      *                  waste field samples but are harmless)
      */
-    public VoxelDomain(boolean[][][] occupancy, float inset) {
+    /**
+     * @param floorSurfaceOffset height of the sand surface above a block's own bottom face
+     * @param blockedFloorCells  obstacle flags over the {@link FloorField} grid — the tank's
+     *                           cosmetic cells, so a crawler walks around a shipwreck instead of
+     *                           through it; null for an open floor
+     */
+    public VoxelDomain(boolean[][][] occupancy, float inset, float floorSurfaceOffset,
+                       boolean[] blockedFloorCells) {
         this.occupancy = occupancy;
         this.inset = inset;
         int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
 
-        float gridMinL = -sx / 2f, gridMinY = -sy / 2f, gridMinD = -sz / 2f;
+        this.gridMinL = -sx / 2f;
+        this.gridMinY = -sy / 2f;
+        this.gridMinD = -sz / 2f;
+        float gridMinL = this.gridMinL, gridMinY = this.gridMinY, gridMinD = this.gridMinD;
         this.minL = gridMinL + inset;
         this.minY = gridMinY + inset;
         this.minD = gridMinD + inset;
@@ -54,6 +70,8 @@ public final class VoxelDomain implements FlockDomain {
 
         this.field = new DistanceField(occupancy, gridMinL, gridMinY, gridMinD, inset);
         this.sizeGateRun = new RunLengths(occupancy).longestRunInterior(inset);
+        this.floor = FloorField.fromOccupancy(occupancy, gridMinL, gridMinY, gridMinD,
+                floorSurfaceOffset, blockedFloorCells);
 
         // Depth planes at LAYER_SPACING across the interior depth extent, centered. The 1-block
         // case (extent 0.7) yields exactly the legacy {−0.25, 0, 0.25}.
@@ -71,6 +89,20 @@ public final class VoxelDomain implements FlockDomain {
     public float inset() { return inset; }
 
     public DistanceField field() { return field; }
+
+    @Override public FloorField floor() { return floor; }
+
+    /**
+     * Rebuilds just the floor. It is the one part of a domain that changes without membership
+     * changing — a player placing a cosmetic moves no tanks — and rebuilding the whole domain for
+     * that would re-incur the distance-field cost the shared per-epoch cache exists to avoid
+     * (docs/fish-tank-group-scaling.md §5.3a). The floor is a cheap 2D pass over the same
+     * occupancy, so it is recomputed in place instead.
+     */
+    public void rebuildFloor(float floorSurfaceOffset, boolean[] blockedFloorCells) {
+        this.floor = FloorField.fromOccupancy(occupancy, gridMinL, gridMinY, gridMinD,
+                floorSurfaceOffset, blockedFloorCells);
+    }
 
     @Override public float minLateral() { return minL; }
     @Override public float maxLateral() { return maxL; }

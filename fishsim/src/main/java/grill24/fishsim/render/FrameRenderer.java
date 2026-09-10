@@ -1,8 +1,10 @@
 package grill24.fishsim.render;
 
 import grill24.fishsim.core.FlockEngine;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.FlockDomain;
+import grill24.fishsim.domain.FloorField;
 import grill24.fishsim.domain.VoxelDomain;
 
 import java.awt.BasicStroke;
@@ -90,6 +92,9 @@ public final class FrameRenderer {
     // ── Layers ──────────────────────────────────────────────────────────────
 
     private void drawDomain(Graphics2D g, FlockDomain domain, View view, int w, int h) {
+        // The floor only reads as a floor from above; in the side view it is one line at the
+        // bottom and tells you nothing.
+        if (view == View.TOP) drawFloor(g, domain);
         if (drawHeatmap && domain instanceof VoxelDomain voxel) {
             drawHeatmap(g, voxel, view, w, h);
         }
@@ -106,6 +111,28 @@ public final class FrameRenderer {
             float y0 = mapY(domain, view, domain.maxVertical(), domain.minDepth());
             float y1 = mapY(domain, view, domain.minVertical(), domain.maxDepth());
             g.draw(new java.awt.geom.Rectangle2D.Float(x0, Math.min(y0, y1), x1 - x0, Math.abs(y1 - y0)));
+        }
+    }
+
+    /**
+     * The walkable floor, seen from above: sand shaded, and the cells something is standing in
+     * (a cosmetic, or thin air under an overhang) filled solid. This is the layer that makes a
+     * crawler's path legible — without it a crab walking around a shipwreck just looks like a
+     * crab taking an odd route.
+     */
+    private void drawFloor(Graphics2D g, FlockDomain domain) {
+        FloorField floor = domain.floor();
+        float cell = FloorField.CELL_SIZE;
+        for (int il = 0; il < floor.cellsLateral(); il++) {
+            for (int id = 0; id < floor.cellsDepth(); id++) {
+                float l = floor.originLateral() + il * cell;
+                float d = floor.originDepth() + id * cell;
+                boolean walkable = !Float.isNaN(floor.heightAtCell(il, id));
+                g.setColor(walkable ? new Color(38, 44, 40) : new Color(96, 74, 48));
+                float x = mapX(domain, l);
+                float y = mapY(domain, View.TOP, 0f, d);
+                g.fill(new java.awt.geom.Rectangle2D.Float(x, y, cell * scale, cell * scale));
+            }
         }
     }
 
@@ -190,11 +217,16 @@ public final class FrameRenderer {
             float bodyLen = Math.max(engine.lengths[i] * scale, 4f);
             float bodyH = bodyLen * 0.38f;
             boolean swims = engine.swimmers[i];
+            boolean crawls = engine.locomotion[i] == Locomotion.BENTHIC;
             boolean facingNeg = swims ? engine.heading[i] < 0f : engine.hoverMirrored[i];
 
             AffineTransform old = g.getTransform();
             g.translate(x, y);
-            if (engine.planar() && swims) {
+            if (crawls) {
+                // A crawler's heading is its own committed yaw, not a direction inferred from a
+                // velocity that is zero for most of its scuttle-and-pause cycle.
+                if (view == View.TOP) g.rotate(Math.toRadians(-engine.yawDeg[i]));
+            } else if (engine.planar() && swims) {
                 // Continuous-yaw model: rotate to the actual travel direction in the top view;
                 // foreshorten in the side view (a fish swimming in depth presents edge-on).
                 float hsp = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);

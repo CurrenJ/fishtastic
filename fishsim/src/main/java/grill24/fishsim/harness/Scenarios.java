@@ -1,6 +1,7 @@
 package grill24.fishsim.harness;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -15,7 +16,7 @@ public final class Scenarios {
         Random r = new Random(seed * 31 + n);
         FishSpec[] specs = new FishSpec[n];
         for (int i = 0; i < n; i++) {
-            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, true, r.nextBoolean(), r.nextInt(3));
+            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, Locomotion.FREE_SWIM, r.nextBoolean(), r.nextInt(3));
         }
         return specs;
     }

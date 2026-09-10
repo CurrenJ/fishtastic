@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import grill24.fishsim.core.FlockEngine;
+import grill24.fishsim.core.Locomotion;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
@@ -90,7 +91,13 @@ public class FishTankBlockEntityRenderer
 
     private static final Vector3f SAND_BASE_Y_OFFSET =
         new Vector3f(0f, CosmeticGridCell.SAND_LAYER_HEIGHT * 0.5f, 0f);
-    private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f, 8f / 16f, 0.5f);
+    /**
+     * Local-space Y every free-swimming fish is positioned from, and so the origin of the
+     * simulation's own vertical axis — see {@code TankFloors.LOCAL_SURFACE_Y}, which measures the
+     * sand relative to it.
+     */
+    public static final float ITEM_BASELINE_Y = 8f / 16f;
+    private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f, ITEM_BASELINE_Y, 0.5f);
     public static final float COSMETIC_FLOOR_Y = CosmeticGridCell.FLOOR_Y;
     // Underside of the tank's glass ceiling, in local block-space Y — where rising bubbles pop.
     private static final float TANK_CEILING_Y = 15f / 16f;
@@ -329,12 +336,16 @@ public class FishTankBlockEntityRenderer
             FishAnimationConfig anim = flock.anims[i];
             float baseY = computeBaseY(anim, state.hasOpenDownFace, scale);
             // Swarm's yRange jitter is an absolute world-space offset meant to spread swimmers
-            // across a water column — it says nothing about a floor-anchored creature's own size,
-            // so applying it there sinks/floats them relative to the sand by a fixed amount that's
+            // across a water column — it says nothing about an anchored creature's own size, so
+            // applying it there sinks/floats them relative to the sand by a fixed amount that's
             // proportionally huge for a small instance and negligible for a large one (visible as
-            // small crabs clipping into the sand). Floor-anchored modes are already pinned to
-            // COSMETIC_FLOOR_Y by computeBaseY (correctly scaled), so they get none of this jitter.
-            float swarmYOffset = isFloorAnchored(anim) ? 0f : eng.renderY[i];
+            // small crabs clipping into the sand). Planted creatures are pinned to COSMETIC_FLOOR_Y
+            // by computeBaseY (correctly scaled), so they get none of it.
+            //
+            // Crawlers are the exception among floor-dwellers: the engine walks them, so their Y
+            // *is* the engine's — the height of the sand under wherever they have got to, which in
+            // a stacked group is not the same everywhere. computeBaseY leaves the floor to them.
+            float swarmYOffset = anim instanceof FishAnimationConfig.Planted ? 0f : eng.renderY[i];
             poseStack.translate(
                     ITEM_POSITION_OFFSET.x() + eng.renderX[i],
                     baseY + swarmYOffset,
@@ -351,6 +362,11 @@ public class FishTankBlockEntityRenderer
                 // phase-teleport jitter of scaling the sine frequency per frame.
                 FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
                         eng.renderPhase[i], eng.baseRotations[i], mirrored, eng.speedFactor(i), eng.bank[i]);
+            } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
+                // A crawler faces where it is walking. The +180° is the same mapping the group
+                // swimmers use: the sprite's nose points along −lateral at rotation 0.
+                FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                        eng.baseRotations[i], scale, false);
             } else {
                 FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale, mirrored);
             }
@@ -371,7 +387,8 @@ public class FishTankBlockEntityRenderer
     }
 
     /**
-     * Draws the connected group's free swimmers when this tank is the group's elected anchor
+     * Draws the fish this tank's group simulates as one aquarium when this tank is the group's
+     * elected anchor
      * (multi-tank preview, docs/fish-sim-engine-handoff.md Task 9). Positions come from the
      * anchor's voxel-domain engine in group-local coordinates (bounding-box center origin,
      * lateral = world X, depth = world Z — no facing rotation in the preview); the adapter's
@@ -391,17 +408,32 @@ public class FishTankBlockEntityRenderer
 
             float scale = eng.lengths[i];
             FishAnimationConfig anim = flock.groupAnims[i];
+            // The engine's Y is the sand surface for a crawler and the swim position for a
+            // swimmer; only the former needs a pose lift off the floor, which floorPoseLift
+            // returns 0 for everything else.
             poseStack.translate(
                     flock.groupOffsetX + eng.renderX[i],
-                    flock.groupOffsetY + eng.renderY[i],
+                    flock.groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
                     flock.groupOffsetZ + eng.renderZ[i]);
 
             fishRandom.setSeed(eng.seeds[i]);
             // Planar model: continuous yaw, no mirror flag. The +180° maps the engine's
             // "faces +lateral at 0°" convention onto the item sprite, whose nose points along
             // −lateral at rotation 0 (same offset the single-tank mirror mapping encodes).
-            FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
-                    eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i]);
+            if (eng.swimmers[i]) {
+                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
+                        eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i]);
+            } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
+                FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                        eng.baseRotations[i], scale, false);
+            } else {
+                // Drifters, and anything the group's engine demoted to STATIC: pose on game time
+                // exactly as the single-tank path does. Branching on swimmers[] rather than
+                // falling through to applySwimming is what keeps a jellyfish — an UprightFloat,
+                // not a HorizontalSwim — from reaching that cast.
+                FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale,
+                        eng.hoverMirrored[i]);
+            }
 
             poseStack.scale(scale, scale, scale);
 
@@ -429,13 +461,14 @@ public class FishTankBlockEntityRenderer
 
     private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
         return switch (animConfig) {
-            case FishAnimationConfig.FloorSit    fs -> COSMETIC_FLOOR_Y + fs.floorOffset();
-            // Planted and UprightSit fish each catch its own per-catch render scale (see
-            // ItemSizeHelper below), so the centre-to-bottom pivot compensation must scale with it
-            // too — a fixed offset overcorrects small catches (floats above the sand) and
-            // undercorrects large ones (sinks into it).
+            // The engine walks crawlers and owns their vertical: it reports the height of the sand
+            // under wherever the creature has got to (see the swarmYOffset note above), so all
+            // that is left here is the baseline that offset is measured from, plus the pose's own
+            // lift off the sand.
+            case FishAnimationConfig.FloorSit    fs -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(fs, scale);
+            // Planted fish are anchored, not walked: their Y is still pinned here (Phase 4).
             case FishAnimationConfig.Planted     p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y * scale;
-            case FishAnimationConfig.UprightSit  us -> COSMETIC_FLOOR_Y + us.floorOffset() + FishAnimator.PLANTED_PIVOT_Y * scale;
+            case FishAnimationConfig.UprightSit  us -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(us, scale);
             default -> {
                 float y = ITEM_POSITION_OFFSET.y();
                 if (!hasOpenDownFace) y += SAND_BASE_Y_OFFSET.y();
