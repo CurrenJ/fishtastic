@@ -142,14 +142,30 @@ public sealed interface FishAnimationConfig
     record Planted(
             float plantDepth,
             float wiggleAmplitude,
-            float wiggleHertz
+            float wiggleHertz,
+            float retractFraction
     ) implements FishAnimationConfig {
-        public static final Planted DEFAULT = new Planted(1f / 16f, 3.0f, 0.018f);
+        /**
+         * How much of its height the creature loses at a full retract — the withdrawal into the
+         * burrow, driven by the engine's own startle envelope
+         * ({@code FlockEngine.renderShape}, docs/fish-sim-locomotion.md §3.4).
+         *
+         * <p>It scales about the base rather than translating, so the animal appears to pull down
+         * into the sand and leave a nub, which is what a garden eel does and what a translate
+         * cannot do without pushing the sprite through the tank's own floor. Deliberately short of
+         * 1: an eel that vanished completely would read as a rendering glitch rather than as an
+         * animal hiding. Zero opts a species out.
+         */
+        public static final float DEFAULT_RETRACT_FRACTION = 0.9f;
+
+        public static final Planted DEFAULT =
+                new Planted(1f / 16f, 3.0f, 0.018f, DEFAULT_RETRACT_FRACTION);
 
         static final MapCodec<Planted> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("plant_depth",      1f / 16f).forGetter(Planted::plantDepth),
                 Codec.FLOAT.optionalFieldOf("wiggle_amplitude", 3.0f  ).forGetter(Planted::wiggleAmplitude),
-                Codec.FLOAT.optionalFieldOf("wiggle_hertz",     0.018f).forGetter(Planted::wiggleHertz)
+                Codec.FLOAT.optionalFieldOf("wiggle_hertz",     0.018f).forGetter(Planted::wiggleHertz),
+                Codec.FLOAT.optionalFieldOf("retract_fraction", DEFAULT_RETRACT_FRACTION).forGetter(Planted::retractFraction)
         ).apply(i, Planted::new));
 
         @Override public String modeName() { return "planted"; }

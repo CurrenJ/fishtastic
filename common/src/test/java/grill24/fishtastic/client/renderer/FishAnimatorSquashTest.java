@@ -192,4 +192,59 @@ class FishAnimatorSquashTest {
             }
         }
     }
+
+    // ── The anchored retract (§3.4), the same machinery with a much larger amplitude ───────────
+
+    private static Matrix4f plantedPose(FishAnimationConfig.Planted cfg, float retract, float t) {
+        PoseStack poseStack = new PoseStack();
+        FishAnimator.applyAnchored(poseStack, cfg, new Random(7L), t, 0f, SCALE, false, retract);
+        poseStack.scale(SCALE, SCALE, SCALE);
+        return new Matrix4f(poseStack.last().pose());
+    }
+
+    /**
+     * An eel withdraws <i>into</i> its burrow: the buried base is the one point on it that cannot
+     * move, through the sway and through the whole withdrawal alike.
+     *
+     * <p>This is also the standing bug the phase fixed. The sway's pivot sandwich was written
+     * {@code (+p, rotate, −p)}, which fixes the item's <b>top</b> and swings the base through the
+     * sand — the opposite of what its own comment claimed, and invisible at 3° of sway until a
+     * retract with fifty times the amplitude hung off the same pivot.
+     */
+    @Test
+    void aPlantedCreaturePivotsAboutItsBuriedBase() {
+        FishAnimationConfig.Planted cfg = FishAnimationConfig.Planted.DEFAULT;
+        Vector3f base = new Vector3f(0f, -0.5f, 0f);
+        Vector3f settled = plantedPose(cfg, 0f, 0f).transformPosition(new Vector3f(base));
+        for (float t : new float[]{0f, 17f, 40f, 133f}) {
+            for (float retract = 0f; retract <= 1f; retract += 0.25f) {
+                Vector3f moved = plantedPose(cfg, retract, t).transformPosition(new Vector3f(base));
+                assertEquals(settled.x, moved.x, EPSILON, "the burrow moved at t " + t);
+                assertEquals(settled.y, moved.y, EPSILON, "the burrow moved at t " + t);
+                assertEquals(settled.z, moved.z, EPSILON, "the burrow moved at t " + t);
+            }
+        }
+    }
+
+    /**
+     * And it gets shorter without getting fatter — the one deformation here that is deliberately
+     * not volume-preserving, because an animal going into a hole does not bulge.
+     */
+    @Test
+    void aRetractingEelLosesExactlyTheHeightItsConfigAsks() {
+        FishAnimationConfig.Planted cfg = FishAnimationConfig.Planted.DEFAULT;
+        Vector3f top = new Vector3f(0f, 0.5f, 0f);
+        Vector3f base = new Vector3f(0f, -0.5f, 0f);
+        float standing = plantedPose(cfg, 0f, 0f).transformPosition(new Vector3f(top)).y
+                - plantedPose(cfg, 0f, 0f).transformPosition(new Vector3f(base)).y;
+        float withdrawn = plantedPose(cfg, 1f, 0f).transformPosition(new Vector3f(top)).y
+                - plantedPose(cfg, 1f, 0f).transformPosition(new Vector3f(base)).y;
+        assertEquals(1f - cfg.retractFraction(), withdrawn / standing, 1e-3f,
+                "the eel did not lose the height its config asks for");
+        assertTrue(withdrawn > 0f, "a fully retracted eel must leave a nub, not vanish");
+
+        assertEquals(lengthOfDirection(plantedPose(cfg, 0f, 0f), new Vector3f(1f, 0f, 0f)),
+                lengthOfDirection(plantedPose(cfg, 1f, 0f), new Vector3f(1f, 0f, 0f)), EPSILON,
+                "an eel going into its burrow got wider");
+    }
 }

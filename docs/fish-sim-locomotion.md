@@ -8,8 +8,13 @@ context for picking the work back up. Both documents' invariants remain binding 
 model (`Tunables.DEFAULT`, `FlockEngine.stepFish`) is bitwise-locked by `GoldenTrajectoryTest` /
 `ParityTest` and **nothing here may perturb it**.
 
-This is a research + spec document, not an implementation. It says what is broken, why the current
-abstraction cannot express the fix, what the replacement is, and in what order to build it.
+This started as a research + spec document: what was broken, why the abstraction could not express
+the fix, what the replacement was, and in what order to build it. **All of it is now built** —
+Phases 0 through 4 and the cross-cutting squash-and-stretch, landed 2026-09-10, each with its
+result logged in §5. The spec sections above that log describe the design as shipped; where the
+implementation departed from the spec, the phase log says so and why. What is left is in §7 of the
+handoff: the in-game look at Phase 4 and §3.6's amplitudes, the mixed-class harness scenario, and
+obstructing the *water* with cosmetics rather than only the floor.
 
 ---
 
@@ -373,7 +378,7 @@ same path.
 | **1** ✅ | `FlockDomain.floor()` + `BENTHIC`, with cosmetics as terrain. 8 species, and it fixes the floor-overlap bug. | medium (new field, group caching) | highest |
 | **2** ✅ | `DRIFT`. 3 species, reuses the burst envelope on a new axis. Group split landed as 2b. | low | high |
 | **3** ✅ | `GLIDE` + engine-driven bank on `belly_down`. 3 species, mostly tuning. | low | medium |
-| **4** | `ANCHORED` retract/emerge. 2 species. | low | medium, and cheap |
+| **4** ✅ | `ANCHORED` retract/emerge. 2 species. | low | medium, and cheap |
 
 Plus one cross-cutting item with no phase of its own: **squash-and-stretch on the locomotion
 drive** (§3.6) — landed 2026-09-10, between Phase 3 and Phase 4 as planned. It is pose work rather
@@ -760,6 +765,69 @@ free-swimmer exclusion — with **no golden or parity edits**. `:common` 41 pass
 
 **The amplitudes are the one thing with no headless acceptance**, exactly like the `CRAWL_*` and
 `DRIFT_*` constants: 0.10 and 0.05 are eye calls that have not yet been looked at in game.
+
+### Phase 4 — landed 2026-09-10
+
+The last class. Garden eels keep a burrow and duck into it when something big swims past.
+
+* **`FlockEngine.stepAnchored`** — the cheapest model here by a wide margin, and the only one whose
+  defining property is what it does *not* do: the footprint is chosen once at rebuild by the same
+  floor scatter a crawler gets and never moves again, which `AnchoredTest.anEelsFootprintNeverMoves`
+  asserts bitwise with a live swimmer alongside. All that is stepped is the retract envelope.
+* **The retract is §3.6's machinery with a different trigger**, exactly as that section predicted:
+  `shapeDrive` again, so there is no new state, no new carry plumbing and no new render mirror —
+  only a pair of rates and a much larger amplitude. Building the squash first is what made this
+  phase a constant rather than a system.
+* **Down fast, up slow** — 10/s and 0.8/s, i.e. most of the way into the sand in 0.3 s and the
+  better part of three seconds to come back out. §3.4 asks for a re-emergence "a couple of seconds
+  later"; the asymmetric decay *is* that, with no hold timer and none of the per-fish state a timer
+  would need. A threat that lingers simply keeps the target held, which is also what a real eel does.
+* **Only something bigger, and only something that moves.** The threat test is relative to the
+  eel's own size (0.8×) and within 4 body lengths, and it skips `ANCHORED` and `STATIC` neighbours
+  outright. Without that exclusion a colony holds itself permanently retracted — every eel is a
+  large object parked half a block from its neighbour — and a demoted swimmer frozen nearby would
+  pin one down forever. The size factor is deliberately **below 1**: an eel's length here is its
+  *height*, it is a thin creature, and a factor above 1 stops the effect firing in an ordinary tank
+  at all. A reaction nobody ever sees is the same as not building it.
+* **A plain scan, not a grid query**, following the crawl's and the drift's separation passes. The
+  classes that scan are the ones with few members, and it keeps the anchored radius out of
+  `interactionRadius`, whose contract — a fish the grid skips contributes exactly zero — would
+  otherwise have had to grow to cover it (handoff §2.11).
+* **`ANCHORED` is placed on the floor, gate or no gate** (`floorPlaced`, now shared with `BENTHIC`),
+  because the renderer stopped pinning `Planted`'s Y in this phase. The gate measures the floor a
+  burrow needs (1 × length²), which is §2.4's "a free floor footprint exists" made into a number.
+  A colony also spaces itself now: `placeOnFloor`'s rejection sampling covers both floor classes, so
+  eels no longer stack and no longer land inside a cosmetic. It also means `garden_eel`'s
+  `xz_spread` no longer clusters them — the floor scatter uses the whole tank, which is what a
+  colony looks like.
+* **Eels join the group**, with their own quota counter — the generalisation Phase 2b left in place
+  cost one line here and one in `stayingHomeAs`. An eel that loses the quota draw keeps its class at
+  home: its model needs nothing the group provides.
+* **A standing pose bug, found by hanging a large amplitude off it.** `applyPlanted`'s sway pivot was
+  written `(+p, rotate, −p)`, which fixes the item's *top* and swings the base through the sand —
+  the opposite of what its own comment claimed. `PoseStack` applies its calls to the geometry in
+  reverse, so the leading translate has to be the negative one. At 3° of sway nobody had noticed;
+  at fifty times that amplitude it would have been the whole effect. `FishAnimatorSquashTest`
+  now pins the buried base across the sway *and* the withdrawal.
+* **The withdrawal is a scale about that base, not a translate**, and deliberately not
+  volume-preserving: an animal going into a hole gets shorter without getting fatter. A translate
+  would push the sprite through the tank's own floor, where the sand is two pixels thick. It stops
+  at 90% (`retract_fraction`) so a nub is left — an eel that vanished completely reads as a
+  rendering glitch rather than as an animal hiding.
+
+**Verification.** `:fishsim` 149 (148 passing, 1 pre-existing skip), of which 5 are `AnchoredTest`;
+goldens and parity again with **no expected-value edits**. `:common` 44 passing, both loaders
+compile. The threat trigger is tested by *parking* the threat rather than by waiting for a roaming
+swimmer to happen past — a test that waits measures the scatter, not the model.
+
+`LocomotionTest` is down to `STATIC` alone in its "never moves" row, and its ungated-classes test is
+gone: every class has a gate of its own now, each asserted next to its own model. That test failing
+was the phase working, as it has been for every phase.
+
+**Not verified in game.** The retract's amplitude, its two rates and the threat radius are eye
+calls with no headless acceptance, exactly like the `CRAWL_*` and `DRIFT_*` constants — and §3.6's
+two amplitudes are in the same position. `GLIDE` needed two rounds of looking; assume this one owes
+its own.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.

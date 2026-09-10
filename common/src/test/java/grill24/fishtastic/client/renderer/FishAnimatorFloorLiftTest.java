@@ -95,8 +95,26 @@ class FishAnimatorFloorLiftTest {
         assertEquals(0f, FishAnimator.floorPoseLift(FishAnimationConfig.HorizontalSwim.DEFAULT, 0.3f), EPSILON);
         assertEquals(0f, FishAnimator.floorPoseLift(FishAnimationConfig.UprightFloat.DEFAULT, 0.3f), EPSILON);
         assertEquals(0f, FishAnimator.floorPoseLift(FishAnimationConfig.BellyDown.DEFAULT, 0.3f), EPSILON);
-        // Planted is anchored rather than walked: its own Y is still pinned by the renderer, so a
-        // lift here would double-count. Phase 4 is where that changes.
-        assertEquals(0f, FishAnimator.floorPoseLift(FishAnimationConfig.Planted.DEFAULT, 0.3f), EPSILON);
+    }
+
+    /**
+     * A planted creature is anchored rather than walked, but the engine owns its Y all the same
+     * since Phase 4 — its burrow is on the group's sand, which in a stacked group is not all at
+     * one height. Its lift is the same centre-pivot compensation an upright pose needs, less the
+     * depth it is planted to; before Phase 4 this returned 0 and the renderer pinned the Y itself,
+     * and the two must never both apply.
+     */
+    @Test
+    void aPlantedPoseIsLiftedByItsPivotLessItsPlantDepth() {
+        FishAnimationConfig.Planted planted = FishAnimationConfig.Planted.DEFAULT;
+        for (float scale : new float[]{0.05f, 0.3f, 0.5f}) {
+            assertEquals(FishAnimator.PLANTED_PIVOT_Y * scale - planted.plantDepth(),
+                    FishAnimator.floorPoseLift(planted, scale), EPSILON, "at scale " + scale);
+        }
+        // The plant depth is an absolute burial, not a fraction of the creature: a deeper value
+        // sinks any size of eel by exactly that much.
+        assertEquals(FishAnimator.PLANTED_PIVOT_Y * 0.3f - 0.25f,
+                FishAnimator.floorPoseLift(new FishAnimationConfig.Planted(0.25f, 3f, 0.018f, 0.9f), 0.3f),
+                EPSILON);
     }
 }

@@ -33,13 +33,13 @@ class GroupSplitTest {
         assertTrue(s.joins(Locomotion.GLIDE, 0.5f));
         assertTrue(s.joins(Locomotion.BENTHIC, 0.5f));
         assertTrue(s.joins(Locomotion.DRIFT, 0.5f));
+        assertTrue(s.joins(Locomotion.ANCHORED, 0.5f));
     }
 
     @Test
-    @DisplayName("classes with no motion model stay on their own tank")
-    void unsimulatedClassesStayHome() {
+    @DisplayName("the one class with no motion model stays on its own tank")
+    void staticStaysHome() {
         GroupSplit s = split(8);
-        assertFalse(s.joins(Locomotion.ANCHORED, 0.5f));
         assertFalse(s.joins(Locomotion.STATIC, 0.5f));
     }
 
@@ -87,10 +87,12 @@ class GroupSplitTest {
         assertEquals(Locomotion.BENTHIC, GroupSplit.stayingHomeAs(Locomotion.BENTHIC));
         assertEquals(Locomotion.DRIFT, GroupSplit.stayingHomeAs(Locomotion.DRIFT));
         assertEquals(Locomotion.GLIDE, GroupSplit.stayingHomeAs(Locomotion.GLIDE));
+        // An eel that lost the quota draw still keeps its burrow in its own tank and still ducks
+        // when something swims past it — its model needs nothing the group provides.
+        assertEquals(Locomotion.ANCHORED, GroupSplit.stayingHomeAs(Locomotion.ANCHORED));
         // The stay-behind list also holds swimmers the GROUP turned away; they must not start
         // swimming locally just because this member's own box is big enough.
         assertEquals(Locomotion.STATIC, GroupSplit.stayingHomeAs(Locomotion.FREE_SWIM));
-        assertEquals(Locomotion.STATIC, GroupSplit.stayingHomeAs(Locomotion.ANCHORED));
         assertEquals(Locomotion.STATIC, GroupSplit.stayingHomeAs(Locomotion.STATIC));
     }
 
@@ -113,6 +115,7 @@ class GroupSplitTest {
             assertEquals(a, b, "the two passes disagreed on a " + loc + " slot");
             if (a) joined++;
         }
-        assertEquals(2 + 2 + 2 + 2, joined, "two each of swimmer, glider, crawler and drifter");
+        assertEquals(2 + 2 + 2 + 2 + 1, joined,
+                "two each of swimmer, glider, crawler and drifter, and the one eel");
     }
 }

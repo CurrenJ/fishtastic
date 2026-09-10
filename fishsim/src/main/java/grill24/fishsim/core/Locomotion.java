@@ -12,12 +12,11 @@ package grill24.fishsim.core;
  * a pose and a locomotion are independent choices (a flounder is a horizontal-swim pose with
  * {@link #BENTHIC} locomotion).
  *
- * <p><b>Status.</b> {@link #FREE_SWIM} (the existing, bitwise-locked flocking code),
- * {@link #BENTHIC} (the floor walk), {@link #DRIFT} (the pulse-and-sink) and {@link #GLIDE} (the
- * planar model under its own parameter set) have motion models today. Only {@link #ANCHORED} is
- * still declared and plumbed but not stepped, so it holds its scatter position exactly as it
- * always has; it gains its model in Phase 4 (docs/fish-sim-locomotion.md §5).
- * {@link FlockEngine#step} is the single place that decides.
+ * <p><b>Status.</b> Every class but {@link #STATIC} has a motion model: {@link #FREE_SWIM} (the
+ * existing, bitwise-locked flocking code), {@link #GLIDE} (the planar model under its own
+ * parameter set), {@link #DRIFT} (the pulse-and-sink), {@link #BENTHIC} (the floor walk) and
+ * {@link #ANCHORED} (the burrow's retract). {@link FlockEngine#step} is the single place that
+ * decides which of them runs.
  */
 public enum Locomotion {
 
@@ -66,8 +65,12 @@ public enum Locomotion {
      */
     STATIC;
 
-    /** Whether {@link FlockEngine#step} has a motion model for this class today. */
+    /**
+     * Whether {@link FlockEngine#step} has a motion model for this class today — everything but
+     * {@link #STATIC}, since Phase 4. Note that it does not mean "travels": an anchored creature
+     * is stepped every tick and its footprint never moves.
+     */
     public boolean simulated() {
-        return this == FREE_SWIM || this == GLIDE || this == BENTHIC || this == DRIFT;
+        return this != STATIC;
     }
 }

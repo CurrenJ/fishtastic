@@ -4,7 +4,6 @@ import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
-import grill24.fishsim.domain.VoxelDomain;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,11 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  * {@code swimmers[]} stays exactly the derived view of {@code locomotion[]} that every consumer
  * reads it as.
  *
- * <p>These are also the tests that <b>fail loudly</b> when a later phase gives a class its motion
- * model: the "does not move" assertions below are a statement about today, and each class leaves
- * them as it gains a model. {@code BENTHIC}, {@code DRIFT} and {@code GLIDE} already have — see
- * {@link BenthicTest}, {@link DriftTest} and {@link GlideTest}. Only {@code ANCHORED} is left in
- * them.
+ * <p>These are also the tests that <b>fail loudly</b> when a phase gives a class its motion model:
+ * the "does not move" assertions below are a statement about today, and each class left them as it
+ * gained one — see {@link BenthicTest}, {@link DriftTest}, {@link GlideTest} and
+ * {@link AnchoredTest}. All five phases have landed, so {@link Locomotion#STATIC} is the only class
+ * left in them, and every class now has a size gate of its own (each asserted with its own model).
  */
 class LocomotionTest {
 
@@ -36,7 +35,11 @@ class LocomotionTest {
         return engine;
     }
 
-    /** Every class that has no motion model yet holds its scatter position exactly — bit for bit. */
+    /**
+     * Every class with no motion model holds its scatter position exactly — bit for bit. Since
+     * Phase 4 that is {@link Locomotion#STATIC} alone, which is the point: it is the one explicit
+     * "does not move" state, and it is also where every gate demotes to.
+     */
     @Test
     void unsimulatedClassesNeverMove() {
         for (Locomotion locomotion : Locomotion.values()) {
@@ -71,10 +74,11 @@ class LocomotionTest {
      * else is animated open-loop against game time by the renderer, and a drifting
      * {@code tailPhase} would double-drive it. That is a property of the pose, not of whether the
      * engine moves the fish, which is why {@code DRIFT} keeps it after gaining a motion model
-     * ({@link DriftTest#driftingDoesNotAdvanceTheTailBeatClock}).
+     * ({@link DriftTest#driftingDoesNotAdvanceTheTailBeatClock}) and why {@code ANCHORED} — stepped
+     * every tick since Phase 4 — is still the case checked here.
      */
     @Test
-    void unsimulatedClassesDoNotAdvanceTheAnimationClock() {
+    void aPoseWithNoTailBeatDoesNotAdvanceTheAnimationClock() {
         FlockEngine engine = boxEngine(
                 new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
                 new FishSpec(0.10f, Locomotion.ANCHORED, false, 1));
@@ -125,29 +129,4 @@ class LocomotionTest {
         assertSame(Locomotion.STATIC, engine.locomotion[3], "an over-gate glider is STATIC");
     }
 
-    /**
-     * Classes with no gate of their own yet pass through untouched, in a box and in a voxel domain
-     * alike. {@code DRIFT} left this set when it gained a headroom gate — see
-     * {@link DriftTest#theDriftGateMeasuresHeadroom}.
-     */
-    @Test
-    void ungatedClassesSurviveAnyDomain() {
-        FishSpec[] specs = {
-                new FishSpec(0.45f, Locomotion.ANCHORED, false, 2),
-        };
-        assertClassesPreserved(boxEngine(specs), specs);
-
-        boolean[][][] occupancy = new boolean[3][1][1];
-        for (boolean[][] column : occupancy) column[0][0] = true;
-        FlockEngine planar = new FlockEngine(Tunables.GROUP);
-        planar.rebuild(specs, 4242L, 0f, 20f, new VoxelDomain(occupancy));
-        assertClassesPreserved(planar, specs);
-    }
-
-    private static void assertClassesPreserved(FlockEngine engine, FishSpec[] specs) {
-        for (int i = 0; i < specs.length; i++) {
-            assertSame(specs[i].locomotion(), engine.locomotion[i],
-                    "declared class was not preserved at fish " + i);
-        }
-    }
 }

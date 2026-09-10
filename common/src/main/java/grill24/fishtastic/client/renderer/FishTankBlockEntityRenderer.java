@@ -342,10 +342,12 @@ public class FishTankBlockEntityRenderer
             // small crabs clipping into the sand). Planted creatures are pinned to COSMETIC_FLOOR_Y
             // by computeBaseY (correctly scaled), so they get none of it.
             //
-            // Crawlers are the exception among floor-dwellers: the engine walks them, so their Y
-            // *is* the engine's — the height of the sand under wherever they have got to, which in
-            // a stacked group is not the same everywhere. computeBaseY leaves the floor to them.
-            float swarmYOffset = anim instanceof FishAnimationConfig.Planted ? 0f : eng.renderY[i];
+            // Floor-dwellers are the exception: the engine places and (for a crawler) walks them,
+            // so their Y *is* the engine's — the height of the sand under wherever they have got
+            // to, which in a stacked group is not the same everywhere. computeBaseY leaves the
+            // floor to them. Since Phase 4 that includes anchored creatures, whose Y the renderer
+            // used to pin itself.
+            float swarmYOffset = eng.renderY[i];
             poseStack.translate(
                     ITEM_POSITION_OFFSET.x() + eng.renderX[i],
                     baseY + swarmYOffset,
@@ -374,6 +376,11 @@ public class FishTankBlockEntityRenderer
                 // The bell contracts on the engine's own pulse rather than on a clock of its own;
                 // everything else about a drifter's pose is still game time.
                 FishAnimator.applyDrifting(poseStack, anim, fishRandom, t, eng.baseRotations[i],
+                        scale, mirrored, eng.renderShape[i]);
+            } else if (eng.locomotion[i] == Locomotion.ANCHORED) {
+                // Likewise for an eel's withdrawal: the sway is game time, the retract is the
+                // engine's answer to what has just swum past the burrow.
+                FishAnimator.applyAnchored(poseStack, anim, fishRandom, t, eng.baseRotations[i],
                         scale, mirrored, eng.renderShape[i]);
             } else {
                 FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale, mirrored);
@@ -440,6 +447,9 @@ public class FishTankBlockEntityRenderer
             } else if (eng.locomotion[i] == Locomotion.DRIFT) {
                 FishAnimator.applyDrifting(poseStack, anim, fishRandom, t, eng.baseRotations[i],
                         scale, eng.hoverMirrored[i], eng.renderShape[i]);
+            } else if (eng.locomotion[i] == Locomotion.ANCHORED) {
+                FishAnimator.applyAnchored(poseStack, anim, fishRandom, t, eng.baseRotations[i],
+                        scale, eng.hoverMirrored[i], eng.renderShape[i]);
             } else {
                 // Anything the group's engine demoted to STATIC: pose on game time exactly as the
                 // single-tank path does. Branching on swimmers[] rather than falling through to
@@ -480,8 +490,10 @@ public class FishTankBlockEntityRenderer
             // that is left here is the baseline that offset is measured from, plus the pose's own
             // lift off the sand.
             case FishAnimationConfig.FloorSit    fs -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(fs, scale);
-            // Planted fish are anchored, not walked: their Y is still pinned here (Phase 4).
-            case FishAnimationConfig.Planted     p  -> COSMETIC_FLOOR_Y - p.plantDepth() + FishAnimator.PLANTED_PIVOT_Y * scale;
+            // An anchored creature's Y is the engine's too, since Phase 4: its burrow is on the
+            // group's sand, which in a stacked group is not all at one height. All that is left
+            // here is the baseline, plus the pose's own plant depth and centre-pivot compensation.
+            case FishAnimationConfig.Planted     p  -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(p, scale);
             case FishAnimationConfig.UprightSit  us -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(us, scale);
             default -> {
                 float y = ITEM_POSITION_OFFSET.y();

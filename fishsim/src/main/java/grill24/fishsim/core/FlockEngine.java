@@ -257,6 +257,35 @@ public final class FlockEngine {
      */
     private static final float DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE;
     private static final float DRIFT_SHAPE_DECAY_RATE = 3.0f;
+
+    // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
+    /**
+     * How close a large fish has to come, as a multiple of the eel's own rendered length, before
+     * it withdraws. A multiple rather than an absolute distance so the same number works for a
+     * garden eel in a one-block tank and for whatever anchored species arrives later at four times
+     * the size.
+     */
+    private static final float ANCHOR_THREAT_RADIUS_FACTOR = 4.0f;
+    /**
+     * And how big it has to be, likewise relative. Below 1 on purpose: an eel's "length" here is
+     * its <i>height</i>, since it is drawn standing up, and it is a thin creature — a fish
+     * measuring four fifths of that is comfortably bigger than the eel in every other dimension.
+     * Set it above 1 and the effect stops firing in an ordinary tank, which for a reaction nobody
+     * would ever see is the same as not building it.
+     */
+    private static final float ANCHOR_THREAT_SIZE_FACTOR = 0.8f;
+    /**
+     * Down fast, up slow — the whole character of the animation is in the asymmetry, and it is the
+     * same shape as every other envelope here, only far more lopsided. 10/s puts the eel most of
+     * the way into the sand inside 0.3 s; 0.8/s takes it the better part of three seconds to come
+     * back out, which is what §3.4's "re-emerges a couple of seconds later" buys without a hold
+     * timer and the per-fish state that would come with it. A threat that lingers simply keeps the
+     * target held, which is also what a real eel does.
+     */
+    private static final float ANCHOR_RETRACT_RATE = 10.0f;
+    private static final float ANCHOR_EMERGE_RATE = 0.8f;
+    /** Floor a burrow needs, in body-length² — §2.4's "a free floor footprint exists", measured. */
+    private static final float ANCHOR_GATE_AREA_FACTOR = 1.0f;
     /**
      * Upward speed at full pulse drive, blocks/s, against the passive sink between pulses. The
      * sink is set to the pulse's own duty-cycle mean (~0.35 of the peak) so the two cancel over a
@@ -546,7 +575,7 @@ public final class FlockEngine {
                 seed = baseSeed ^ ((long) (i + 1) * 2654435761L);
             }
 
-            if (spec.locomotion() == Locomotion.BENTHIC) {
+            if (floorPlaced(spec.locomotion())) {
                 placeOnFloor(spec, seed, i, floorScratch);
                 lateral = floorScratch[0];
                 depth = floorScratch[1];
@@ -622,7 +651,7 @@ public final class FlockEngine {
             float baseRotation = baseRotationDeg + (rng.nextFloat() - 0.5f) * 2f * rotationJitter;
             long seed = baseSeed ^ ((long) (i + 1) * 2654435761L);
 
-            if (specs[i].locomotion() == Locomotion.BENTHIC) {
+            if (floorPlaced(specs[i].locomotion())) {
                 placeOnFloor(specs[i], seed, i, floorScratch);
                 lateral = floorScratch[0];
                 depth = floorScratch[1];
@@ -728,7 +757,7 @@ public final class FlockEngine {
             // A crawler's world can change under it: a cosmetic dropped into the cell it was
             // standing in, or a group re-shaped around it. Carrying it there would leave it
             // inside a shipwreck, so it re-places — the one case where carry-over cannot win.
-            if (specs[i].locomotion() == Locomotion.BENTHIC && !standable(posL[i], posD[i])) {
+            if (floorPlaced(specs[i].locomotion()) && !standable(posL[i], posD[i])) {
                 placeOnFloor(specs[i], seeds[i], i, floorScratch);
                 posL[i] = prevL[i] = floorScratch[0];
                 posD[i] = prevD[i] = floorScratch[1];
@@ -818,9 +847,10 @@ public final class FlockEngine {
      * they measure different quantities: a swimmer needs a straight run, a crawler needs floor
      * area, a drifter needs headroom (docs/fish-sim-locomotion.md §2.4).
      *
-     * <p>The swim gate is the pre-existing rule, unchanged and still bitwise-locked. Classes that
-     * have no gate of their own yet pass through here untouched and are simply not stepped, which
-     * is exactly the behaviour they have now.
+     * <p>The swim gate is the pre-existing rule, unchanged and still bitwise-locked. Every class
+     * has its own gate now; a creature that fails one is demoted to {@link Locomotion#STATIC} and
+     * simply not stepped, but it keeps the position its own class was placed at — a demoted
+     * crawler or eel still stands on the sand.
      */
     private Locomotion gate(Locomotion declared, float length) {
         return switch (declared) {
@@ -829,10 +859,12 @@ public final class FlockEngine {
             case BENTHIC ->
                     domain.floor().area() >= CRAWL_GATE_AREA_FACTOR * length * length
                             ? declared : Locomotion.STATIC;
+            case ANCHORED ->
+                    domain.floor().area() >= ANCHOR_GATE_AREA_FACTOR * length * length
+                            ? declared : Locomotion.STATIC;
             case DRIFT ->
                     domain.maxVertical() - domain.minVertical() >= DRIFT_GATE_HEIGHT_FACTOR * length
                             ? declared : Locomotion.STATIC;
-            case ANCHORED -> declared;
             case STATIC -> Locomotion.STATIC;
         };
     }
@@ -983,7 +1015,13 @@ public final class FlockEngine {
                     // driven by the engine's own turn (FlockEngine.bankFraction).
                     yield false;
                 }
-                case ANCHORED, STATIC -> false;
+                case ANCHORED -> {
+                    // Withdraws and re-emerges without ever leaving its burrow. No tail beat: an
+                    // eel's pose is a sway on game time and a retract on the engine's envelope.
+                    stepAnchored(i);
+                    yield false;
+                }
+                case STATIC -> false;
             };
             // The speed-integrated animation clock runs only for a fish whose pose is driven by
             // its own swimming; everything else is animated open-loop against game time by the
@@ -1834,9 +1872,19 @@ public final class FlockEngine {
         out[1] = loD + spanD * 0.5f;
     }
 
+    /**
+     * Whether the rebuild puts this class on the sand rather than in the water. It keys on the
+     * <b>declared</b> class, never the gated one: a creature the gate demoted still belongs on the
+     * floor — the renderer stopped pinning these poses' Y, so a demoted crab or eel left in
+     * mid-water would simply hover there.
+     */
+    private static boolean floorPlaced(Locomotion locomotion) {
+        return locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED;
+    }
+
     private boolean farEnoughOnFloor(float l, float d, float want, int upTo) {
         for (int j = 0; j < upTo && j < count; j++) {
-            if (locomotion[j] != Locomotion.BENTHIC) continue;
+            if (!floorPlaced(locomotion[j])) continue;
             float dl = l - posL[j];
             float dd = d - posD[j];
             float other = want + CRAWL_FOOTPRINT * lengths[j];
@@ -2017,6 +2065,45 @@ public final class FlockEngine {
         // Yaw and bank are the pose's business for a drifter: it has no facing to speak of, and
         // FishAnimationConfig.UprightFloat already owns its spin. Leaving yawDeg alone also keeps
         // it out of the wrap-aware yaw interpolation, which the box path only runs for crawlers.
+        bank[i] = 0f;
+    }
+
+    // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
+
+    /**
+     * One step of the burrow. The cheapest model here by a wide margin, and deliberately so: an
+     * eel's footprint was chosen at rebuild by the same floor scatter a crawler gets, and it never
+     * moves again — {@code AnchoredTest} asserts it bitwise. All that is stepped is the
+     * retract/emerge envelope, which the renderer draws as the animal pulling down into the sand.
+     *
+     * <p>The trigger is a plain scan rather than a spatial-index query, following the crawl's and
+     * the drift's separation passes: the classes that scan are the ones with few members, and an
+     * eel colony is the smallest of them. It also keeps the anchored radius out of
+     * {@link #interactionRadius}, whose contract — a fish the grid skips contributes exactly zero
+     * — would otherwise have to grow to cover it.
+     *
+     * <p>Only something that <i>moves</i> startles an eel: another anchored creature parked half a
+     * block away is scenery, and would otherwise hold every eel in a colony permanently retracted.
+     */
+    private void stepAnchored(int i) {
+        float radius = ANCHOR_THREAT_RADIUS_FACTOR * lengths[i];
+        float threat = ANCHOR_THREAT_SIZE_FACTOR * lengths[i];
+        boolean startled = false;
+        for (int j = 0; j < count && !startled; j++) {
+            if (j == i || lengths[j] < threat) continue;
+            if (locomotion[j] == Locomotion.ANCHORED || locomotion[j] == Locomotion.STATIC) continue;
+            float dl = posL[i] - posL[j];
+            float dy = posY[i] - posY[j];
+            float dd = posD[i] - posD[j];
+            startled = dl * dl + dy * dy + dd * dd < radius * radius;
+        }
+        advanceShape(i, startled, ANCHOR_RETRACT_RATE, ANCHOR_EMERGE_RATE, t.dt());
+
+        // Nothing else moves, and saying so explicitly matters: velocity feeds the animation
+        // coupling, and an eel that kept a stale speed from its scatter would beat a tail it does
+        // not have.
+        velL[i] = velY[i] = velD[i] = 0f;
+        speed[i] = 0f;
         bank[i] = 0f;
     }
 

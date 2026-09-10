@@ -418,12 +418,13 @@ public final class TankFlockAdapter {
                 // home and hovers in its own tank, which is the behaviour it has always had, and
                 // it spends none of the group's budget on the way.
                 case FREE_SWIM, GLIDE -> gateRun >= gateFactor * length;
-                // Crawlers and drifters are admitted ungated and let the engine's own per-class
-                // gate demote them if it must: a demoted one still belongs in group space, on the
-                // group's sand or hanging in its water, which is where the player sees it.
-                case BENTHIC, DRIFT -> true;
-                // No motion model yet — renders out of its own tank exactly as it always has.
-                case ANCHORED, STATIC -> false;
+                // Crawlers, drifters and eels are admitted ungated and let the engine's own
+                // per-class gate demote them if it must: a demoted one still belongs in group
+                // space, on the group's sand or hanging in its water, which is where the player
+                // sees it.
+                case BENTHIC, DRIFT, ANCHORED -> true;
+                // The one class with no motion model: renders out of its own tank, frozen.
+                case STATIC -> false;
             };
             if (!eligible) return false;
             int idx = locomotion.ordinal();
@@ -444,7 +445,7 @@ public final class TankFlockAdapter {
          */
         static Locomotion stayingHomeAs(Locomotion locomotion) {
             return switch (locomotion) {
-                case BENTHIC, DRIFT, GLIDE -> locomotion;
+                case BENTHIC, DRIFT, GLIDE, ANCHORED -> locomotion;
                 default -> Locomotion.STATIC;
             };
         }

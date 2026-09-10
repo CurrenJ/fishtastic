@@ -30,7 +30,7 @@ public final class FishAnimator {
             case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
             case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
-            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored);
+            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
             case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.UprightSit     cfg -> applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
         }
@@ -80,6 +80,25 @@ public final class FishAnimator {
     }
 
     /**
+     * Pose for a creature the engine has anchored to a burrow — a garden eel. Its position never
+     * comes from the simulation in any interesting sense (the footprint is fixed for the life of
+     * the fish), but its <b>retract</b> does: {@code retract} is the engine's startle envelope
+     * ({@code FlockEngine.renderShape}), 0 fully out and 1 fully withdrawn, so the animal reacts
+     * to what actually swims past it rather than to a clock.
+     *
+     * <p>Poses with no burrow of their own fall through to {@link #apply} unchanged.
+     */
+    public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                     float t, float baseRotation, float scale, boolean mirrored,
+                                     float retract) {
+        switch (config) {
+            case FishAnimationConfig.Planted cfg ->
+                    applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract);
+            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        }
+    }
+
+    /**
      * Pose for a creature the engine is gliding — a ray. Two things come from the simulation
      * rather than from a clock: the heading, as for {@link #applyBenthic}, and the <b>bank</b>,
      * which used to be an open-loop sine and is now the lean the fish has actually earned by
@@ -120,6 +139,11 @@ public final class FishAnimator {
     public static float floorPoseLift(FishAnimationConfig animConfig, float scale) {
         return switch (animConfig) {
             case FishAnimationConfig.FloorSit    fs -> fs.floorOffset();
+            // An eel is planted: its base sits plantDepth *below* the sand the engine reports,
+            // and the rest is the same centre-pivot compensation an upright pose needs. Until
+            // Phase 4 this returned 0 and the renderer pinned the pose's Y itself; the engine
+            // owns it now, exactly as it does for a crawler.
+            case FishAnimationConfig.Planted     p  -> PLANTED_PIVOT_Y * scale - p.plantDepth();
             // The pivot is measured per species rather than assumed to be half the item: see
             // UprightSit.pivotFraction. PLANTED_PIVOT_Y remains the value for art that fills its
             // canvas, and the default for art nobody has measured.
@@ -221,20 +245,35 @@ public final class FishAnimator {
         if (along != 1f && along > 0f) poseStack.scale(along, 1f / along, 1f);
     }
 
+    /**
+     * @param retract the engine's startle envelope in [0, 1] — 0 fully out, 1 withdrawn — or 0 for
+     *                a creature nothing is stepping.
+     */
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
-                                      Random random, float t, float baseRotation, float scale, boolean mirrored) {
+                                      Random random, float t, float baseRotation, float scale,
+                                      boolean mirrored, float retract) {
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float wiggle = (float) (Math.sin(t * cfg.wiggleHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.wiggleAmplitude());
-        // Pivot the sway around the item's base rather than its centre. This translate runs before
-        // the caller's poseStack.scale(scale), i.e. in unscaled world-block units, so PLANTED_PIVOT_Y
-        // (the item's own half-height at scale 1) must be scaled here explicitly to land on the same
-        // point regardless of this fish's own render scale.
+        // Both the sway and the withdrawal pivot about the item's base — the point buried in the
+        // sand, which is the one point on a planted creature that cannot move. The stack applies
+        // its calls to the geometry in reverse, so it is the leading translate that has to be
+        // negative: (−p, transform, +p) fixes the point at −p, the base, while (+p, …, −p) fixes
+        // the top and swings the base through the sand instead. (That was the standing order here,
+        // against this method's own comment; at 3° of sway nobody caught it.)
+        //
+        // This translate runs before the caller's poseStack.scale(scale), i.e. in unscaled
+        // world-block units, so PLANTED_PIVOT_Y — the item's own half-height at scale 1 — is
+        // multiplied by the fish's render scale to land on the same point at any size.
         float pivot = PLANTED_PIVOT_Y * scale;
-        poseStack.translate(0f, pivot, 0f);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(wiggle));
         poseStack.translate(0f, -pivot, 0f);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(wiggle));
+        float height = 1f - cfg.retractFraction() * retract;
+        // Not volume-preserving, unlike the squash-and-stretch of §3.6: an eel going into its
+        // burrow gets shorter without getting fatter.
+        if (height != 1f && height > 0f) poseStack.scale(1f, height, 1f);
+        poseStack.translate(0f, pivot, 0f);
     }
 
     private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,
