@@ -52,6 +52,16 @@ class AnchoredTest {
         return engine;
     }
 
+    /**
+     * Stands the watcher well back for a second, which is what arms an eel: it reacts to an
+     * arrival, and it can only tell an arrival from a state of affairs by having seen the watcher
+     * away first. In game this is free — a tank renders from tens of blocks off, long before
+     * anyone can walk up to it.
+     */
+    private static void standBack(FlockEngine engine, int i) {
+        watch(engine, 20, engine.posL()[i] + 8f, engine.posY()[i] + 2f, engine.posD()[i]);
+    }
+
     /** Runs the engine with the watcher held at one place — leaning over the tank, or gone. */
     private static void watch(FlockEngine engine, int ticks, Float l, Float y, Float d) {
         for (int tick = 0; tick < ticks; tick++) {
@@ -137,8 +147,8 @@ class AnchoredTest {
         FlockEngine engine = colony(tank(null), eel(0.12f, 0));
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
 
-        // Nobody there: fully out, and staying that way.
-        watch(engine, 200, null, null, null);
+        // Someone across the room: fully out, and staying that way.
+        watch(engine, 200, eelL + 8f, eelY + 2f, eelD);
         assertEquals(0f, retractOf(engine, 0), 1e-3f, "an unwatched eel was not fully out");
 
         // Someone walks up, and 0.3 s later the eel is most of the way into the sand.
@@ -206,6 +216,7 @@ class AnchoredTest {
         };
         FlockEngine engine = colony(tank(null), specs);
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        standBack(engine, 0);
         watch(engine, 5, eelL + 0.4f, eelY + 1.5f, eelD);
         float retracted = retractOf(engine, 0);
         assertTrue(retracted > 0.5f, "the eel was not withdrawing when it was carried");
@@ -242,6 +253,8 @@ class AnchoredTest {
         assertTrue(engine.posL()[far] - engine.posL()[near] > 3.5f,
                 "the two burrows are not far enough apart for this to mean anything");
 
+        standBack(engine, near);
+        standBack(engine, far);
         // Twenty ticks, not four hundred: someone who stays gets one reaction and the eel then
         // comes back out past them (aWatcherWhoStaysGetsOneReactionNotAPermanentOne), so this has
         // to look while the reaction is actually happening.
@@ -267,6 +280,7 @@ class AnchoredTest {
         FlockEngine engine = colony(tank(null), eel(0.12f, 0));
         float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
 
+        standBack(engine, 0);
         int ducks = 0;
         boolean wasHidden = false;
         int hidden = 0;
@@ -281,8 +295,10 @@ class AnchoredTest {
         assertEquals(1, ducks, "an eel reacted more than once to someone who never left");
         assertTrue(hidden < 100, "the eel stayed down for " + hidden + " ticks of 4000");
 
-        // And it can be startled again once they have gone away and come back.
-        watch(engine, 400, null, null, null);
+        // And it can be startled again once they have walked away and come back. Away, not gone:
+        // an eel arms on seeing the watcher at a distance, never on losing track of it.
+        standBack(engine, 0);
+        watch(engine, 400, eelL + 8f, eelY + 2f, eelD);
         watch(engine, 20, eelL + 0.4f, eelY + 1.5f, eelD);
         assertTrue(retractOf(engine, 0) > 0.7f, "the eel never reacted to a second approach");
     }
@@ -310,5 +326,108 @@ class AnchoredTest {
                 assertEquals(engine.posD()[i], out[2], 1e-5f, "depth at rotation " + rotation);
             }
         }
+    }
+
+    /**
+     * The one that came from the game: an eel ducked at a player who was standing perfectly still
+     * and had never left, over and over, about every fourteen seconds.
+     *
+     * <p>The cause was writing the arming rule as "arm whenever the watcher is not near", which
+     * reads like the right sentence and is not one. <i>Not near</i> is also true when the engine
+     * has not been told where the watcher is yet, which is the state a group engine is born in
+     * every time tank membership changes, and it was true for a tick after any rebuild that
+     * re-initialised a fish carry-over did not cover. Each of those armed an eel nobody had walked
+     * away from, and the refractory delivered a fresh reaction a dozen seconds later.
+     *
+     * <p>So the three transients get a test each, all of them holding the watcher rigidly in place
+     * over the burrow and demanding exactly one reaction.
+     */
+    @Test
+    void aRebuildDoesNotStartTheReactionOverWhileTheWatcherIsStillThere() {
+        FishSpec[] specs = {eel(0.12f, 0)};
+        FlockEngine engine = colony(tank(null), specs);
+        float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        standBack(engine, 0);
+
+        int ducks = 0;
+        boolean wasHidden = false;
+        for (int tick = 0; tick < 2_000; tick++) {
+            // Something rebuilds the tank every two seconds flat — a cosmetic being nudged, a fish
+            // going in or out of a neighbour, a group re-forming. The watcher never moves.
+            if (tick % 40 == 39) {
+                engine.rebuildPreserving(specs, new int[]{0}, 4242L, 0f,
+                        3, 0.35f, 0.3f, 20f, tank(null));
+            }
+            engine.setWatcher(true, eelL + 0.4f, eelY + 1.5f, eelD);
+            engine.step();
+            boolean isHidden = retractOf(engine, 0) > 0.5f;
+            if (isHidden && !wasHidden) ducks++;
+            wasHidden = isHidden;
+        }
+        assertEquals(1, ducks, "rebuilding the tank re-startled an eel at a motionless watcher");
+    }
+
+    /** The same, for the transient where the engine simply has not been told anything yet. */
+    @Test
+    void losingTheWatcherSignalIsNotTheWatcherLeaving() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
+        float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        standBack(engine, 0);
+
+        int ducks = 0;
+        boolean wasHidden = false;
+        for (int tick = 0; tick < 2_000; tick++) {
+            // Every so often the engine is stepped with no idea where the watcher is — which is
+            // exactly the state a freshly rebuilt group engine is in on its first tick.
+            engine.setWatcher(tick % 40 != 39, eelL + 0.4f, eelY + 1.5f, eelD);
+            engine.step();
+            boolean isHidden = retractOf(engine, 0) > 0.5f;
+            if (isHidden && !wasHidden) ducks++;
+            wasHidden = isHidden;
+        }
+        assertEquals(1, ducks, "a gap in the watcher signal re-startled an eel");
+    }
+
+    /**
+     * And the third: a watcher parked on the radius itself. Without the hysteresis band this
+     * strobes — every crossing is an arrival — which is the same failure at a much shorter period.
+     */
+    @Test
+    void aWatcherSittingOnTheRadiusDoesNotStrobe() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
+        float eelY = engine.posY()[0], eelD = engine.posD()[0];
+        standBack(engine, 0);
+
+        int ducks = 0;
+        boolean wasHidden = false;
+        for (int tick = 0; tick < 4_000; tick++) {
+            // Hovering a hair either side of three blocks, tick after tick.
+            float wobble = (tick % 2 == 0 ? -0.002f : 0.002f);
+            engine.setWatcher(true, engine.posL()[0] + 3f + wobble, eelY, eelD);
+            engine.step();
+            boolean isHidden = retractOf(engine, 0) > 0.5f;
+            if (isHidden && !wasHidden) ducks++;
+            wasHidden = isHidden;
+        }
+        assertTrue(ducks <= 1, "an eel strobed at a watcher sitting on its radius: " + ducks + " ducks");
+    }
+
+    /**
+     * The price of all that, stated as a test so it is a decision rather than a surprise: an eel
+     * that has never seen the watcher away does not react to it being there. If you are already at
+     * the glass when the tank loads, you were not an approach — and one step back is enough to
+     * arm it.
+     */
+    @Test
+    void anEelWhoHasNeverSeenTheWatcherLeaveIgnoresIt() {
+        FlockEngine engine = colony(tank(null), eel(0.12f, 0));
+        float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        watch(engine, 400, eelL + 0.4f, eelY + 1.5f, eelD);
+        assertEquals(0f, retractOf(engine, 0), 1e-3f,
+                "an eel reacted to a watcher that was already there when it was created");
+
+        standBack(engine, 0);
+        watch(engine, 20, eelL + 0.4f, eelY + 1.5f, eelD);
+        assertTrue(retractOf(engine, 0) > 0.7f, "and then ignored a real approach");
     }
 }

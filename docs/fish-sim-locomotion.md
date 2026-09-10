@@ -920,6 +920,43 @@ still the trigger and re-triggering was constant.
 
 `:fishsim` 153 (152 passing, 1 pre-existing skip), `:common` 44, both loaders compile.
 
+##### The arming rule was one sentence away from right
+
+Reported immediately: the eels ducked at a player standing perfectly still who had never left, over
+and over. The arming flag was written as
+
+```java
+if (!near) anchorArmed[i] = true;
+```
+
+which reads like the right sentence and is not one. **"Not near" is not "the watcher left."** It is
+also true when the engine has not been told where the watcher is yet — which is the state a group
+engine is *born* in, since a membership change constructs a new one — and after any rebuild that
+re-initialised a fish carry-over did not cover, and at float resolution on the radius itself. Each
+of those armed an eel nobody had walked away from, and the refractory then delivered a fresh
+reaction a dozen seconds later, forever.
+
+Arming now takes **positive evidence**: the watcher is present *and* beyond `ANCHOR_REARM_RADIUS`,
+a hysteresis band at 1.5× the trigger radius rather than a second threshold to tune. And
+`anchorArmed` starts **false** — a creature that has never seen the watcher leave has no business
+reacting to it arriving. If you are already at the glass when the tank loads you were not an
+approach; in practice a tank renders from tens of blocks away, so an eel arms long before anyone
+can walk up to it.
+
+The three transients get a test each — a rebuild every two seconds, a watcher signal that drops out
+every two seconds, and a watcher hovering a hair either side of three blocks — all holding the
+watcher rigidly over the burrow and demanding exactly one reaction across the run. The cost is
+stated as a test too (`anEelWhoHasNeverSeenTheWatcherLeaveIgnoresIt`), so it is a decision rather
+than a surprise.
+
+The general shape is worth keeping: this is the third time in this document that a rule which was
+*true at the moment it was written* turned out to describe a state rather than an event — the
+crowded tank, the standing player, and now the missing signal. When a reaction should fire on a
+change, say so in terms of the change, and treat "I don't know" as its own answer rather than as
+the negative one.
+
+`:fishsim` 157 (156 passing, 1 pre-existing skip), `:common` 44, both loaders compile.
+
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.
 

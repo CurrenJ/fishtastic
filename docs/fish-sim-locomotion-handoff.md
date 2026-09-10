@@ -43,7 +43,7 @@ with no headless acceptance:
 | `retract_fraction` 0.9 | `planted` | how much of itself an eel pulls into the sand |
 | `ANCHOR_RETRACT_RATE` 10 / `ANCHOR_EMERGE_RATE` 0.8 | engine | 0.3 s down, ~3 s back up |
 | `ANCHOR_HIDE_SECONDS` 1.6 / `ANCHOR_REFRACTORY_SECONDS` 12 | engine | how often an eel may duck at all |
-| `ANCHOR_WATCHER_RADIUS` 3 blocks | engine | how close the player has to come |
+| `ANCHOR_WATCHER_RADIUS` 3 blocks / `ANCHOR_REARM_RADIUS` 4.5 | engine | how close the player comes, and how far they must go before it counts again |
 
 `GLIDE` needed two rounds of looking, and both of its problems were invisible headlessly by
 construction: a signal drawn raw that needed a render mirror and a roll-rate limit, then a speed
@@ -96,7 +96,7 @@ move is tested against the floor *before* it is taken and refused if it would la
 
 ## 2. Load-bearing details — do not remove these while refactoring
 
-Twenty-one things that look like nits and are not. Most were found the hard way.
+Twenty-two things that look like nits and are not. Most were found the hard way.
 
 1. **Floor lookups are rotated into the block frame** (`FlockEngine.floorHeightAt`). A single
    tank's local lateral/depth axes are rotated by the placement yaw it recorded from the player;
@@ -222,6 +222,16 @@ Twenty-one things that look like nits and are not. Most were found the hard way.
     stays a *single* event; the refractory rate-limits one who paces in and out. Both are needed:
     arming alone strobes at the radius boundary, the refractory alone repeats every twelve seconds
     at someone standing still.
+22. **Arming takes positive evidence, and "I don't know" is not evidence.** `if (!near) armed =
+    true` shipped once and ducked the colony at a motionless player every fourteen seconds, because
+    *not near* is also true before the engine has been told where the watcher is — the state a
+    group engine is born in on every membership change — and after a rebuild re-initialised a fish
+    the carry did not cover, and at float resolution on the radius. It now requires the watcher to
+    be **present and beyond `ANCHOR_REARM_RADIUS`**, and `anchorArmed` starts **false**: a creature
+    that has never seen the watcher leave does not react to it arriving. Three tests hold the
+    watcher rigidly in place through a rebuild, through a signal dropout, and on the radius itself,
+    and demand exactly one reaction each. Anything else that ever reacts to an arrival inherits
+    this: state the rule in terms of the *change*, and treat unknown as its own answer.
 
 ## 3. Current per-model constants
 
@@ -243,6 +253,7 @@ CRAWL_SHAPE_ATTACK_RATE = CRAWL_ATTACK_RATE   CRAWL_SHAPE_DECAY_RATE 6.0
 DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE   DRIFT_SHAPE_DECAY_RATE 3.0
 
 ANCHOR_WATCHER_RADIUS 3.0         (blocks, absolute — the watcher is not a fish)
+ANCHOR_REARM_RADIUS 4.5           (= 1.5x the above: a hysteresis band, not a second knob)
 ANCHOR_RETRACT_RATE 10.0          ANCHOR_EMERGE_RATE 0.8
 ANCHOR_HIDE_SECONDS 1.6           ANCHOR_REFRACTORY_SECONDS 12.0
 ANCHOR_TIMING_JITTER 0.35         (per-fish spread on both, so a colony is not in unison)

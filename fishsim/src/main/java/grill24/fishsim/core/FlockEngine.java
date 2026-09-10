@@ -130,10 +130,21 @@ public final class FlockEngine {
 
     /**
      * Whether this creature is ready to be startled at all — the other half of making the reaction
-     * an event. It is cleared when the watcher arrives and set again only once the watcher has
-     * gone, so a player who walks up and then <i>stands there</i> gets one reaction rather than a
-     * fresh one every time the refractory lapses. Standing at a tank watching a colony duck over
-     * and over would read as a nervous tic, not as an animal that has decided you are furniture.
+     * an event. It is cleared when the watcher arrives and set again only on <b>positive evidence
+     * that the watcher went away</b>: present, and beyond {@link #ANCHOR_REARM_RADIUS}.
+     *
+     * <p>That phrasing is the whole of it, and the obvious phrasing is wrong. "Arm whenever the
+     * watcher is not near" reads the same and shipped a colony that ducked at a player standing
+     * perfectly still, because <i>not near</i> is also true when the engine has not been told where
+     * the watcher is yet — a group engine is rebuilt from scratch whenever membership changes — and
+     * when a rebuild re-initialises a fish that carry-over did not cover, and at float resolution
+     * on the radius itself. Each of those armed an eel that nobody had walked away from, and the
+     * refractory then handed it a fresh reaction a dozen seconds later.
+     *
+     * <p>So it starts <b>false</b> too. A creature that has never seen the watcher leave has no
+     * business reacting to it arriving: if you are already at the glass when the tank loads, you
+     * were not an approach. Tanks render from far further away than this radius, so in practice an
+     * eel arms long before anyone can walk up to it.
      */
     boolean[] anchorArmed = new boolean[0];
 
@@ -325,6 +336,13 @@ public final class FlockEngine {
      * the same failure as it not firing.
      */
     private static final float ANCHOR_WATCHER_RADIUS = 3.0f;
+    /**
+     * And how far away the watcher has to get before the same eel will react again — a hysteresis
+     * band, not a second threshold to tune. One radius for both edges means a watcher sitting on
+     * the boundary re-arms and re-fires on sub-block movement, which is a strobe rather than a
+     * reaction.
+     */
+    private static final float ANCHOR_REARM_RADIUS = ANCHOR_WATCHER_RADIUS * 1.5f;
     /**
      * Down fast, up slow — the whole character of the animation is in the asymmetry, and it is the
      * same shape as every other envelope here, only far more lopsided. 10/s puts the eel most of
@@ -887,7 +905,7 @@ public final class FlockEngine {
         bankSmooth[i] = prevBankSmooth[i] = renderBank[i] = 0f;
         shapeDrive[i] = prevShapeDrive[i] = renderShape[i] = 0f;
         anchorTimer[i] = 0f;
-        anchorArmed[i] = true;
+        anchorArmed[i] = false;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
 
@@ -2172,8 +2190,10 @@ public final class FlockEngine {
         // true for an eel to duck: it must be armed (the watcher has been away since it last
         // reacted) and out of its refractory. The first is what makes a player who walks up and
         // stays a single event; the second is what stops one who paces in and out being a strobe.
-        boolean near = watcherNear(i);
-        if (!near) anchorArmed[i] = true;
+        boolean near = watcherWithin(i, ANCHOR_WATCHER_RADIUS);
+        // Positive evidence only — see anchorArmed. "Not near" is not the same statement as "the
+        // watcher left", and the difference is a colony that ducks at someone standing still.
+        if (watcherPresent && !watcherWithin(i, ANCHOR_REARM_RADIUS)) anchorArmed[i] = true;
 
         boolean hiding;
         if (anchorTimer[i] > 0f) {
@@ -2207,7 +2227,11 @@ public final class FlockEngine {
     /**
      * Whether the watcher is next to this burrow right now.
      *
-     * <p><b>Only</b> the watcher. Nothing inside the tank startles an eel, which is a design
+     * <p><b>Only</b> the watcher, and never merely "the watcher is not known to be here": an
+     * absent watcher is absent, which is why this answers a question about a radius rather than
+     * about nearness, and the caller asks it twice with two of them.
+     *
+     * <p><b>Only</b> the watcher, in the other sense too. Nothing inside the tank startles an eel, which is a design
      * statement rather than an omission: the fish an eel shares a tank with are its neighbours,
      * it sees them all day, and a reaction to them is either constant (in a stocked tank) or
      * arbitrary (in an empty one). What a garden eel visibly reacts to is the large animal that
@@ -2215,12 +2239,12 @@ public final class FlockEngine {
      * asks it about its <i>own</i> burrow, so a colony spread down a long aquarium reacts where
      * the watcher actually is.
      */
-    private boolean watcherNear(int i) {
+    private boolean watcherWithin(int i, float radius) {
         if (!watcherPresent) return false;
         float dl = posL[i] - watcherL;
         float dy = posY[i] - watcherY;
         float dd = posD[i] - watcherD;
-        return dl * dl + dy * dy + dd * dd < ANCHOR_WATCHER_RADIUS * ANCHOR_WATCHER_RADIUS;
+        return dl * dl + dy * dy + dd * dd < radius * radius;
     }
 
     /** Where this fish sits in its own pulse-and-sink cycle, in [0, 1). */
