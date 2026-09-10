@@ -667,6 +667,33 @@ the rate was never the target.
 reversal rate rather than the amplitude — amplitude cannot tell a lean from a flutter, since the
 two have the same mean.
 
+#### After the second look: too slow, and orbiting
+
+Two complaints, and they turned out to be one number. A ray holding a steady turn describes a
+circle of radius `v/ω`; at `patrolSpeed` 0.05 and the measured mean 0.5°/tick that circle is
+**0.4 blocks across** — "the mantas just loop over the same two block path", exactly. No amount of
+wander tuning reaches it, because the wander sets the *amplitude of the weave* and not the *radius
+of the orbit*; sweeping it changes the former and leaves the latter alone.
+
+The probe had been printing the evidence since Phase 3 landed and it went unread: 10.6 blocks of
+path against 1.4 of net displacement. Path length cannot distinguish a cruise from a tight circle
+run for three minutes, so the probe and the test now measure **the ground actually visited** and
+the **implied circle** instead.
+
+`patrolSpeed` 0.05 → **0.14** (`maxSpeed` 0.26 to keep the burst peak under the ceiling). That
+opens the circle to 1.6 blocks and a ray crosses a 6×2×4 aquarium corner to corner. `wallMargin`
+was swept too and left at 0.25 — it buys a little radius, but at double the speed a creature this
+slow to turn needs its margin *more*, not less, and containment held with zero backstop
+engagements at every size including a one-block box.
+
+One assertion was deleted rather than adjusted: `GlideTest` required a glider to average below the
+shoal's cruise speed. That encoded "a ray is slow", which is not the class — **what makes a ray a
+ray is that it cannot turn.** Holding it slow while its turn rate stayed capped is precisely what
+produced the orbit. `aGliderCrossesTheAquariumRatherThanCirclingInIt` replaces it.
+
+**Measured, 6×2×4 with one ray:** mean speed 0.060 → **0.138** blocks/s, turn radius 0.53 →
+**1.56** blocks, ground covered 3.7×2.3 → **5.4×3.5** blocks, still zero backstop engagements.
+
 **In-game acceptance is still pending** — as it is for Phases 1 and 2, Tier 2 and the 512 cap.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there

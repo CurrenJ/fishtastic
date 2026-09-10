@@ -25,7 +25,7 @@ eels) is the only class left without a motion model.
 | 3 | `GLIDE` | landed — the planar model under `Tunables.GLIDE`, plus a ride height off the sand |
 | 4 | `ANCHORED` | not started — 2 garden eels still frozen |
 
-`:fishsim` 138 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
+`:fishsim` 139 passing (1 pre-existing skip), `:common` 36 passing, both loaders compile.
 
 **In-game status.** Crawlers have had a *partial* look: the user confirmed `willans_chromodoris`
 sits correctly after the group-path floor-lift fix, and reported `trapania_scurra` floating, which
@@ -66,7 +66,7 @@ move is tested against the floor *before* it is taken and refused if it would la
 
 ## 2. Load-bearing details — do not remove these while refactoring
 
-Thirteen things that look like nits and are not. Most were found the hard way.
+Fourteen things that look like nits and are not. Most were found the hard way.
 
 1. **Floor lookups are rotated into the block frame** (`FlockEngine.floorHeightAt`). A single
    tank's local lateral/depth axes are rotated by the placement yaw it recorded from the player;
@@ -128,13 +128,20 @@ Thirteen things that look like nits and are not. Most were found the hard way.
     contributes *exactly* zero to both radius-limited passes; a glider's separation radius is
     three times the shoal's, so sizing the index from `t` alone would silently drop neighbours a
     ray is supposed to keep away from. Any future class with its own set inherits this.
-12. **`bank` is a one-tick signal; `renderBank` is what a pose may draw.** `bank` comes from a
+12. **A slow creature with a capped turn rate orbits, and path length will not tell you.** Turn
+    radius is `v/ω`: cap the turn rate to make something read as large, then keep it slow, and it
+    circles in place — shipped once exactly like that (a 0.4-block circle, reported as "loops over
+    the same two block path"). The two numbers are one decision. Measure **ground covered** and the
+    implied circle, which `GlideProbe` and
+    `GlideTest.aGliderCrossesTheAquariumRatherThanCirclingInIt` now do; path length says a tight
+    orbit is travelling.
+13. **`bank` is a one-tick signal; `renderBank` is what a pose may draw.** `bank` comes from a
     single tick's yaw delta, so it carries the steering noise and it saturates at ±`bankMax` on any
     real turn — drawn raw it read in game as a ray buzzing (0.10 of full lean per tick, reversing
     twice a second). It is low-passed *and* rate-limited to a physical roll rate, then interpolated,
     and `bankFraction` reads that. `bank` itself must stay untouched: `ParityTest` asserts it
     bitwise. If another pose starts using lean, point it at `bankFraction`, never at `bank`.
-13. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
+14. **`step`'s switch yields "does this pose beat", not "did this fish move".** Those stopped being
     the same thing at `DRIFT`: the engine moves a drifter, but a bell pulse is not a tail beat and
     a running `tailPhase` would double-drive a pose that is already on game time.
 

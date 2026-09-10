@@ -156,8 +156,40 @@ class GlideTest {
         float meanSpeed = (float) (sumSpeed / TICKS);
         assertTrue(meanSpeed < Tunables.GLIDE.maxSpeed(),
                 "a glider averaged " + meanSpeed + " blocks/s, at or above its own ceiling");
-        assertTrue(meanSpeed < Tunables.GROUP.patrolSpeed(), "a glider averaged " + meanSpeed
-                + " blocks/s — no slower than the shoal it is supposed to be gliding past");
+        // Deliberately NOT bounded below the shoal's cruise. That assertion was here, and it was
+        // wrong: it encoded "a ray is slow", when what makes a ray a ray is that it cannot turn.
+        // Holding it slow while its turn rate stayed capped is what produced a 0.4-block orbit.
+    }
+
+    /**
+     * The regression this class exists to prevent after the second in-game look: mantas that
+     * "loop over the same two block path". A ray under a steady turn describes a circle of radius
+     * v/omega, so a slow one with a capped turn rate orbits no matter how its wander is tuned —
+     * and path length cannot see it, since three minutes of tight circling has a long path and
+     * covers nothing. This measures the ground actually visited, and the implied circle.
+     */
+    @Test
+    void aGliderCrossesTheAquariumRatherThanCirclingInIt() {
+        FlockEngine engine = groupTank(6, 2, 4, ray(0.30f, 0));
+        float minL = engine.posL()[0], maxL = minL, minD = engine.posD()[0], maxD = minD;
+        float[] previousYaw = engine.yawDeg.clone();
+        double speedSum = 0, turnSum = 0;
+        for (int tick = 0; tick < TICKS; tick++) {
+            engine.step();
+            minL = Math.min(minL, engine.posL()[0]); maxL = Math.max(maxL, engine.posL()[0]);
+            minD = Math.min(minD, engine.posD()[0]); maxD = Math.max(maxD, engine.posD()[0]);
+            speedSum += engine.speed[0];
+            turnSum += Math.abs(wrap(engine.yawDeg[0] - previousYaw[0]));
+            previousYaw[0] = engine.yawDeg[0];
+        }
+        float coveredL = maxL - minL, coveredD = maxD - minD;
+        assertTrue(coveredL > 4f && coveredD > 2f, "a ray in a 6x2x4 aquarium visited only "
+                + coveredL + " x " + coveredD + " blocks of it");
+
+        double omega = Math.toRadians(turnSum / TICKS * 20.0); // deg/tick -> rad/s
+        double radius = (speedSum / TICKS) / omega;
+        assertTrue(radius > 1.0, "the circle a ray is describing is " + radius
+                + " blocks across at its mean speed and turn rate — that is an orbit, not a cruise");
     }
 
     /**

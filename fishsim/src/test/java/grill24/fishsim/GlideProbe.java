@@ -31,6 +31,9 @@ public final class GlideProbe {
         // domain barely wider than their separation radius.
         report("4x2x2 group, one ray", groupTank(4, 2, 2, 1), ticks);
         report("5x3x3 group (voxel, deep)", groupTank(5, 3, 3), ticks);
+        // A big player aquarium, where "it loops over the same two blocks" is a complaint rather
+        // than a description of the room available.
+        report("6x2x4 group, one ray", groupTank(6, 2, 4, 1), ticks);
     }
 
     private static FishSpec[] rays() {
@@ -76,6 +79,11 @@ public final class GlideProbe {
         float worstTurn = 0f, peakBank = 0f, lowest = Float.MAX_VALUE, highest = -Float.MAX_VALUE;
         double pathLength = 0;
         float[] lastL = engine.posL().clone(), lastD = engine.posD().clone();
+        // How much of the aquarium a ray actually uses, which is the question "it loops over the
+        // same two blocks" is asking. Path length cannot answer it: a tight circle run for three
+        // minutes has a long path and covers nothing.
+        float[] minL = engine.posL().clone(), maxL = engine.posL().clone();
+        float[] minD = engine.posD().clone(), maxD = engine.posD().clone();
 
         for (int tick = 0; tick < ticks; tick++) {
             engine.step();
@@ -108,6 +116,9 @@ public final class GlideProbe {
                 if (signedBank * previousBank[i] < 0f) bankReversals++;
                 previousBank[i] = signedBank;
 
+                minL[i] = Math.min(minL[i], engine.posL()[i]); maxL[i] = Math.max(maxL[i], engine.posL()[i]);
+                minD[i] = Math.min(minD[i], engine.posD()[i]); maxD[i] = Math.max(maxD[i], engine.posD()[i]);
+
                 float dl = engine.posL()[i] - lastL[i], dd = engine.posD()[i] - lastD[i];
                 pathLength += Math.sqrt(dl * dl + dd * dd);
                 lastL[i] = engine.posL()[i];
@@ -126,8 +137,19 @@ public final class GlideProbe {
         System.out.printf("%n== %s — %d rays, %.0f s, headroom %.2f ==%n", label, n, seconds, headroom);
         System.out.printf("  speed        mean %.4f blocks/s (ceiling %.3f)%n",
                 speedSum / samples, Tunables.GLIDE.maxSpeed());
+        double extentL = 0, extentD = 0;
+        for (int i = 0; i < n; i++) {
+            extentL += maxL[i] - minL[i];
+            extentD += maxD[i] - minD[i];
+        }
+        // The circle a ray is describing if it holds its mean turn rate at its mean speed. Under
+        // about a block and it is orbiting rather than travelling, whatever its path length says.
+        double meanSpeed = speedSum / samples;
+        double omega = Math.toRadians(turnSum / samples * 20.0); // deg/tick -> rad/s
         System.out.printf("  travel       %.2f blocks of path, %.2f net displacement, per ray%n",
                 pathLength / n, net / n);
+        System.out.printf("  coverage     %.2f x %.2f blocks visited (lateral x depth), turn radius %.2f%n",
+                extentL / n, extentD / n, omega > 1e-6 ? meanSpeed / omega : 999);
         System.out.printf("  ride height  mean %.3f (%.0f%% of headroom), range %.3f..%.3f%n",
                 heightSum / samples, 100 * (heightSum / samples) / headroom, lowest, highest);
         System.out.printf("  turning      mean %.3f deg/tick, worst %.3f (cap %.2f x %.2f jitter)%n",

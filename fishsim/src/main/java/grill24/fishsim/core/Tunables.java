@@ -266,8 +266,9 @@ public record Tunables(
     public static final Tunables GLIDE = new Tunables(
             DEFAULT.dt(),
             DEFAULT.gateFactor(),   // a glider is size-gated exactly like a swimmer — it needs a run
-            0.10f,      // maxSpeed — half GROUP's. Nothing about a ray reads as quick
-            0.008f,     // cruiseSpeed — wander turn authority, and with wanderTurnSigma below the
+            0.26f,      // maxSpeed — headroom over the burst peak (patrol x thrust x jitter =
+                        // 0.235), the same rule GROUP's ceiling follows
+            0.004f,     // cruiseSpeed — wander turn authority, and with wanderTurnSigma below the
                         // pair that sets how much a ray weaves. Reported in game as a wobble laid
                         // over the banking; measured, a solitary ray reverses which way it is
                         // turning about once a second whatever these are set to (it is a limit
@@ -301,7 +302,16 @@ public record Tunables(
             DEFAULT.layerZ(),
             1.2f,       // neighborRange — wide enough to cover the separation radii above; the grid
                         // is sized from the widest set in play (FlockEngine.interactionRadius)
-            0.05f,      // patrolSpeed — half GROUP's: the whole point of the class
+            0.14f,      // patrolSpeed — raised from 0.05 after the first in-game look: the mantas
+                        // read as too slow, and worse, they orbited. The two are one number. A
+                        // ray under a steady turn describes a circle of radius v/omega, so at 0.05
+                        // and its mean 0.5 deg/tick that circle was 0.4 blocks across — the
+                        // reported "loops over the same two block path", and no amount of wander
+                        // tuning fixes it because the wander sets the amplitude of the weave, not
+                        // the radius of the orbit. At 0.14 the same turn rate opens the circle to
+                        // 1.6 blocks and a ray crosses a 6x2x4 aquarium corner to corner. Faster
+                        // than the shoal's cruise, which is fine: what makes this a ray is that it
+                        // cannot turn, not that it cannot move
             0.80f,      // separationRadiusOther — strangers get more room still
             0.25f,      // wanderTurnSigma — NOT GROUP's. The OU's steady-state amplitude is
                         // sigma/sqrt(2*theta), so inheriting 0.8 alongside the lower theta below
@@ -318,8 +328,8 @@ public record Tunables(
                         // literal gait: a ray flaps its wings and then glides. Slower and deeper
                         // than the shoal's swell
             0.30f,      // burstDuty — the glide is most of the cycle
-            1.8f,       // burstThrustScale — a real wingbeat. Safe to push where GROUP's could not,
-                        // because the peak (0.05 × 1.8 = 0.09) still sits under maxSpeed
+            1.5f,       // burstThrustScale — a real wingbeat rather than the shoal's swell, kept
+                        // under the ceiling above at full trait jitter
             0.35f,      // burstCoastScale
             2.2f,       // turnRateDegPerTick — a third of the shoal's. This is the class's defining
                         // number: what makes a ray read as a ray is that it cannot whip around
