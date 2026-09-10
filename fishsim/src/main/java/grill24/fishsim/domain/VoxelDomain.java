@@ -93,6 +93,25 @@ public final class VoxelDomain implements FlockDomain {
             out[0] = out[1] = out[2] = 0f;
             return;
         }
+        // KNOWN DEFECT, deliberately left in place: marginVertical is accepted and ignored, so
+        // `margin` applies on all three axes where FlockDomain.Box gives the vertical its own,
+        // much narrower zone (0.20 vs 0.05 at the GROUP tunables). Noted in
+        // docs/fish-tank-group-scaling.md §1 and attempted with the rest of that document's fixes.
+        //
+        // It is not the one-line fix it looks like. Scaling the ramp by the gradient's verticality
+        // (a vertical face keeps `margin`, a floor or ceiling gets `marginVertical`, corners blend)
+        // is the right shape and does work — but at 0.05 the vertical zone is far too tight for
+        // GROUP's speeds, which are nearly double the single-tank set's. Measured: the hard
+        // backstop engaged 6 times in the L domain, i.e. a containment failure by the invariant
+        // suite's definition, not a tuning nit. GROUP simply inherited DEFAULT.wallMarginVertical()
+        // and has never had a value of its own, because nothing has ever read it.
+        //
+        // So the real fix is a tuning workstream — give GROUP its own wallMarginVertical and sweep
+        // it against the invariant matrix — plus a deliberate regeneration of the voxel golden
+        // fixture, since it visibly changes how close fish swim to floors and ceilings. That does
+        // not belong bundled with an optimisation whose correctness gate is "the fixture must NOT
+        // move".
+        //
         // Same ramp as the box's per-axis formula — proximity weight (margin − dist)/margin,
         // pointed along the field gradient (away from the nearest wall, concave corners included).
         float w = (margin - dist) / margin;

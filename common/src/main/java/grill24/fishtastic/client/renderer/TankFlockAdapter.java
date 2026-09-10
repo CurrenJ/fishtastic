@@ -5,6 +5,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
@@ -126,7 +127,8 @@ public final class TankFlockAdapter {
      * checks are allocation-light scans; the rebuilds only run on a real change.
      */
     public void sync(FishTankBlockEntity be, int blockPosHash, Level level) {
-        TankGroups.Group group = TankGroups.of(be, level, TankGroups.RENDER_MAX_GROUP_SIZE);
+        ClientTankGroups.Entry entry = ClientTankGroups.get(be, level);
+        TankGroups.Group group = entry.group();
         boolean membershipChanged = !group.members().equals(cachedMembers);
         cachedMembers = group.members();
 
@@ -157,7 +159,7 @@ public final class TankFlockAdapter {
         boolean groupChanged = groupAnchor && groupContentsChanged(level, group);
         if (!membershipChanged && !enteredGroupMode && !ownChanged && !groupChanged) return;
 
-        rebuildGroupMode(be, blockPosHash, level, group);
+        rebuildGroupMode(be, blockPosHash, level, entry);
     }
 
     // ── Single-tank path ────────────────────────────────────────────────────
@@ -232,8 +234,12 @@ public final class TankFlockAdapter {
     // ── Group path ──────────────────────────────────────────────────────────
 
     private void rebuildGroupMode(FishTankBlockEntity be, int blockPosHash, Level level,
-                                  TankGroups.Group group) {
-        VoxelDomain domain = new VoxelDomain(group.occupancy());
+                                  ClientTankGroups.Entry entry) {
+        TankGroups.Group group = entry.group();
+        // Shared with every other member and rebuilt only when membership changes — building one
+        // here per content change was a 26-109 ms hitch every time a player added a fish
+        // (docs/fish-tank-group-scaling.md §5.3a).
+        VoxelDomain domain = entry.domain();
         float gateRun = domain.sizeGateRun();
         float gateFactor = Tunables.DEFAULT.gateFactor();
         ownSnapshot = snapshot(be);
@@ -246,6 +252,11 @@ public final class TankFlockAdapter {
         List<FishAnimationConfig> hoverAnims = new ArrayList<>();
         List<FishSpec> hoverSpecs = new ArrayList<>();
         List<Integer> hoverSlots = new ArrayList<>();
+        // Fish past this tank's share of the group budget hover here instead of joining the shoal.
+        // The anchor's collection pass below applies the identical rule to the identical slots, so
+        // every fish is rendered exactly once — see TankGroups.perTankFishQuota.
+        int quota = TankGroups.perTankFishQuota(group.members().size());
+        int swimmersTaken = 0;
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
@@ -253,7 +264,10 @@ public final class TankFlockAdapter {
             FishTankBlockEntityRenderer.ResolvedFishRender render =
                     FishTankBlockEntityRenderer.resolveFishRender(stack, level);
             float length = renderedLength(stack, render.renderCalibration());
-            if (canSwim(render.animation()) && gateRun >= gateFactor * length) continue; // swims with the group
+            if (canSwim(render.animation()) && gateRun >= gateFactor * length && swimmersTaken < quota) {
+                swimmersTaken++;
+                continue; // swims with the group
+            }
             hoverStacks.add(stack);
             hoverAnims.add(render.animation());
             hoverSlots.add(slot);
@@ -291,6 +305,7 @@ public final class TankFlockAdapter {
         List<Integer> swimKeySlot = new ArrayList<>();
         for (BlockPos memberPos : group.members()) {
             if (!(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity member)) continue;
+            int memberSwimmers = 0;
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
                 ItemStack s = member.getItem(slot);
                 if (s.isEmpty()) continue;
@@ -300,6 +315,8 @@ public final class TankFlockAdapter {
                         FishTankBlockEntityRenderer.resolveFishRender(stack, level);
                 float length = renderedLength(stack, render.renderCalibration());
                 if (!canSwim(render.animation()) || gateRun < gateFactor * length) continue;
+                if (memberSwimmers >= quota) continue; // over this tank's share — hovers at home
+                memberSwimmers++;
                 swimStacks.add(stack);
                 swimAnims.add(render.animation());
                 swimKeyPos.add(memberPos.asLong());

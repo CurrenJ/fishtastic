@@ -137,6 +137,15 @@ public final class FlockEngine {
     private int[] neighborIdx;
     private float[] neighborDist;
 
+    // Uniform-grid spatial index over the planar model's positions (docs/fish-tank-group-scaling.md
+    // §5.2). Rebuilt once per step, queried once per fish; the binary single-tank model never uses
+    // it and keeps its brute-force scan for bitwise parity.
+    private final NeighborGrid grid = new NeighborGrid();
+    /** Candidate count from this fish's grid query, or −1 when the grid is inactive (brute force). */
+    private int candidateCount = -1;
+    /** Verification hook only — see {@link #setSpatialIndexEnabled}. */
+    private boolean spatialIndex = true;
+
     // Domain-callback scratch (reused every step, no allocation).
     private final float[] avoidScratch = new float[3];
     private final float[] posScratch = new float[3];
@@ -182,6 +191,18 @@ public final class FlockEngine {
     /** Whether this engine runs the continuous-yaw planar model (voxel domains) instead of the binary 2.5D one. */
     public boolean planar() { return planar; }
 
+    /**
+     * Verification hook: turns the planar model's spatial index off, forcing the brute-force
+     * O(n²) scan. The index is meant to be a pure optimisation — identical results, not merely
+     * similar ones (docs/fish-tank-group-scaling.md §5.2) — and the only way to assert that is to
+     * run both and compare raw float bits, which {@code SpatialIndexEquivalenceTest} does.
+     * Production code must never call this; the brute-force path is quadratic by construction.
+     */
+    public void setSpatialIndexEnabled(boolean enabled) {
+        this.spatialIndex = enabled;
+        configureGrid();
+    }
+
     public Tunables tunables() { return t; }
 
     /**
@@ -198,6 +219,9 @@ public final class FlockEngine {
         // them so the new parameter set takes effect without a reseed. Everything continuous
         // (positions, velocities, wander state, burst phase) is deliberately left alone.
         for (int i = 0; i < count; i++) deriveTraits(i, seeds[i]);
+        // The interaction radius is derived from the tunables (see interactionRadius()), so the
+        // viewer's sliders must re-size the index or it would silently under-reach.
+        configureGrid();
     }
 
     /**
@@ -256,6 +280,11 @@ public final class FlockEngine {
         xzSpread = Math.min(xzSpread, t.tankHalfExtent());
 
         domain = new FlockDomain.Box(t.tankHalfExtent(), verticalHalf(yRange), layerZ);
+        // The binary 2.5D model — no continuous yaw, no spatial index, brute-force neighbour scan
+        // (bitwise parity). Explicit rather than implicit so re-using an engine that previously
+        // ran a voxel group cannot leave it in planar mode.
+        this.planar = false;
+        configureGrid();
 
         rng.setSeed(baseSeed);
         int placed = 0;
@@ -334,6 +363,7 @@ public final class FlockEngine {
 
         this.domain = newDomain;
         this.planar = true;
+        configureGrid();
 
         rng.setSeed(baseSeed);
         int placed = 0;
@@ -596,6 +626,7 @@ public final class FlockEngine {
         System.arraycopy(posD, 0, prevD, 0, count);
         System.arraycopy(tailPhase, 0, prevTailPhase, 0, count);
         if (planar) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
+        if (planar) grid.build(prevL, prevY, prevD, count);
 
         for (int i = 0; i < count; i++) {
             if (!swimmers[i]) continue;
@@ -618,6 +649,10 @@ public final class FlockEngine {
      * the emergent follow-the-wall loops around a domain's perimeter.
      */
     private void stepFishPlanar(int i) {
+        // One grid query feeds both radius-limited passes below (separation and the neighbour
+        // search). Positions are still this fish's own start-of-step values — stepFishPlanar
+        // integrates i at the very end — so the query point matches what the index was built on.
+        candidateCount = grid.gather(posL[i], posY[i], posD[i]);
         // Patrol/wander steer relative to the fish's own committed heading (yawDeg), not the raw
         // instantaneous velocity direction. yawDeg only turns at PLANAR_TURN_RATE per tick, so
         // this is the persistent "intention" a school needs — using velocity directly here made
@@ -669,7 +704,10 @@ public final class FlockEngine {
         // letting each species keep its own cluster.
         float sepL = 0f, sepY = 0f, sepD = 0f;
         float horizon = t.separationLookahead();
-        for (int j = 0; j < count; j++) {
+        int scanned = candidateCount >= 0 ? candidateCount : count;
+        int[] cand = candidateCount >= 0 ? grid.candidates() : null;
+        for (int c = 0; c < scanned; c++) {
+            int j = cand != null ? cand[c] : c;
             if (j == i) continue;
             float radius = species[i] == species[j] ? t.separationRadius() : t.separationRadiusOther();
             float radius2 = species[i] == species[j] ? t.separationRadius2() : t.separationRadiusOther2();
@@ -903,6 +941,7 @@ public final class FlockEngine {
     }
 
     private void stepFish(int i) {
+        candidateCount = -1; // binary model: brute-force scan, bitwise parity
         // Soft steering: separation over all close fish (swimmers + hovering obstacles), plus
         // alignment and cohesion over the k nearest swimmers.
         float dL = wanderL(i) * t.cruiseSpeed();
@@ -1006,6 +1045,57 @@ public final class FlockEngine {
         bank[i] = SimMath.clamp(-aL * t.bankGain(), -t.bankMax(), t.bankMax());
     }
 
+    /**
+     * The radius beyond which one fish provably cannot affect another, for the planar model —
+     * the sizing input for {@link NeighborGrid}. Getting this wrong silently changes behaviour,
+     * so it is derived rather than tuned:
+     *
+     * <ul>
+     *   <li>The plain separation term is guarded by {@code d2 < radius2}, so it dies past
+     *       {@code max(separationRadius, separationRadiusOther)}.</li>
+     *   <li>{@link #findNearestSwimmers} is guarded by {@code d2 >= neighborRange2}.</li>
+     *   <li>The anticipatory separation term (Tier 2) is <em>not</em> distance-guarded — it fires
+     *       on the predicted offset at closest approach. Since {@code |p| >= |d| - |rv|*tStar},
+     *       {@code tStar <= separationLookahead}, and each fish's speed is capped at
+     *       {@code maxSpeed * (1 + traitJitter)}, it cannot fire past
+     *       {@code sepRadius + 2*vMax*lookahead}. That term, not the neighbour range, is what
+     *       sets the radius at the shipped GROUP tunables (≈1.05 against 0.9).</li>
+     * </ul>
+     */
+    private float interactionRadius() {
+        float nr = t.neighborRange();
+        if (nr == Float.MAX_VALUE || Float.isInfinite(nr)) return Float.MAX_VALUE;
+        float sep = Math.max(t.separationRadius(), t.separationRadiusOther());
+        float anticipatory = sep + 2f * peakSpeed() * Math.max(0f, t.separationLookahead());
+        return Math.max(nr, anticipatory);
+    }
+
+    /** The fastest any fish may be moving — the per-fish speed cap at the top of the trait spread. */
+    private float peakSpeed() {
+        return t.maxSpeed() * (1f + Math.abs(t.traitJitter()));
+    }
+
+    /**
+     * Re-sizes the spatial index for the current domain, tunables, and fish count. Called from
+     * every planar rebuild and from {@link #setTunables}; never from the step loop.
+     */
+    private void configureGrid() {
+        if (!planar || !spatialIndex) {
+            grid.configure(domain, Float.MAX_VALUE, 0f, 0);
+            return;
+        }
+        grid.configure(domain, interactionRadius(), peakSpeed() * t.dt(), count);
+    }
+
+    /**
+     * The {@code k} nearest shoal-mates of fish {@code i}, into {@link #neighborIdx}.
+     *
+     * <p>{@code candidateCount} is the planar model's grid query for this fish (−1 = brute force,
+     * which the binary single-tank model always takes). The candidate list is ascending, so the
+     * scan order — and therefore which index wins a distance tie in the insertion below — is the
+     * same as the full scan's; every fish the grid omitted is farther than {@code neighborRange}
+     * and would have failed the {@code d2 >= range2} test anyway.
+     */
     private int findNearestSwimmers(int i) {
         int neighborCount = neighborIdx.length;
         for (int b = 0; b < neighborCount; b++) {
@@ -1013,7 +1103,10 @@ public final class FlockEngine {
             neighborDist[b] = Float.MAX_VALUE;
         }
         float range2 = t.neighborRange2(); // MAX_VALUE (single-tank set) admits everyone — parity-safe
-        for (int j = 0; j < count; j++) {
+        int scanned = candidateCount >= 0 ? candidateCount : count;
+        int[] cand = candidateCount >= 0 ? grid.candidates() : null;
+        for (int c = 0; c < scanned; c++) {
+            int j = cand != null ? cand[c] : c;
             if (j == i || !swimmers[j]) continue;
             // Planar model: only shoal-mates align/cohere — each species schools with its own.
             // Never filters in the binary single-tank model (bitwise parity).

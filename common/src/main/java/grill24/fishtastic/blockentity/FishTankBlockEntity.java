@@ -12,6 +12,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -218,14 +219,20 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     /**
+     * Whether one face is open, without {@link #getOpenFaces()}'s defensive copy. The group
+     * flood-fill asks this once per member per direction, which at
+     * {@link TankGroups#RENDER_MAX_GROUP_SIZE} is thousands of {@code EnumSet} allocations a walk.
+     */
+    public boolean isFaceOpen(Direction face) {
+        return openFaces.contains(face);
+    }
+
+    /**
      * Set a face as open (connected to another tank)
      */
     public void setFaceOpen(Direction face, boolean open) {
-        if (open) {
-            openFaces.add(face);
-        } else {
-            openFaces.remove(face);
-        }
+        boolean changed = open ? openFaces.add(face) : openFaces.remove(face);
+        if (changed) TankGroups.bumpMembershipEpoch();
         setChanged();
         if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
@@ -237,6 +244,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
      * Set all open faces at once
      */
     public void setOpenFaces(Set<Direction> faces) {
+        if (!this.openFaces.equals(faces)) TankGroups.bumpMembershipEpoch();
         this.openFaces = EnumSet.copyOf(faces);
         setChanged();
         if (level != null && !level.isClientSide()) {
@@ -262,6 +270,17 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
+    }
+
+    /**
+     * A tank leaving the world changes group membership even when no surviving tank's open faces
+     * move — the walk simply has one fewer node. Neighbours normally recompute and bump the epoch
+     * themselves, but this does not depend on that ordering.
+     */
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        if (!openFaces.isEmpty()) TankGroups.bumpMembershipEpoch();
     }
 
     /**
@@ -299,6 +318,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Only update if the connections have changed
         if (!newOpenFaces.equals(this.openFaces)) {
             this.openFaces = newOpenFaces;
+            TankGroups.bumpMembershipEpoch();
             setChanged();
             if (!level.isClientSide()) {
                 level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
@@ -503,6 +523,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 openFaces.add(dir);
             }
         }
+        // Every content change reaches the client through this same path, so the epoch must move
+        // only when the adjacency really did — otherwise adding one fish would invalidate the
+        // group cache and rebuild the whole distance field, which is the hitch §5.3(a) removes.
+        if (openFacesBits != currentOpenFacesBits) TankGroups.bumpMembershipEpoch();
 
         // Load waxed state (same preserve-current-if-absent reasoning as open faces above)
         waxed = input.getBooleanOr("Waxed", waxed);

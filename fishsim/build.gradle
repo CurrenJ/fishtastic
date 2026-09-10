@@ -70,6 +70,9 @@ tasks.withType(Test).configureEach {
         // Run them with -PsimStdout to see it.
         showStandardStreams = project.hasProperty('simStdout')
     }
+    // Measurement probes are @EnabledIfSystemProperty("simStdout") so they stay out of the normal
+    // suite — they time things, which is slow and machine-dependent, not correctness.
+    systemProperty 'simStdout', project.hasProperty('simStdout').toString()
     afterSuite { desc, result ->
         if (!desc.parent) {
             println "\nTest result: ${result.resultType} — ${result.testCount} tests, " +

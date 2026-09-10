@@ -60,5 +60,6 @@ public final class ClientTankFlocks {
     /** Drops all flocks — call on world join/disconnect so block positions never leak across worlds. */
     public static void clear() {
         FLOCKS.clear();
+        ClientTankGroups.clear();
     }
 }
