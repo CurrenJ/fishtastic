@@ -829,6 +829,42 @@ calls with no headless acceptance, exactly like the `CRAWL_*` and `DRIFT_*` cons
 two amplitudes are in the same position. `GLIDE` needed two rounds of looking; assume this one owes
 its own.
 
+#### After the first in-game look: the eels never came out
+
+Reported from a large, well-stocked tank: the colony sat permanently in the sand. The trigger was
+a **state** — hold the retract target up while something big is nearby — which is right in a quiet
+tank and wrong in a busy one. Past some stocking density there is always a qualifying fish inside
+the radius, so the target never falls, and at `ANCHOR_EMERGE_RATE` 0.8/s the eel needs three clear
+seconds to get back out. It never got one.
+
+No radius and no rate would have fixed that. Any threshold a crowded tank sits permanently above is
+the same bug at a different fish count — the number would only have moved which tank it happens in,
+which is the shape of failure this document keeps rediscovering.
+
+The reaction is **edge-triggered and habituating** now. Only an eel that is out and watching can be
+startled; it then hides for a fixed 1.6 s and ignores everything for a further 6 s, whatever is
+still swimming past. Both durations carry a ±35% per-fish jitter off the seed so a colony does not
+duck in unison. The refractory is deliberately longer than the emerge takes, so the eel is always
+fully out and visible for a while before it can be startled again — which bounds the fraction of
+time it spends hidden at about a fifth (analytic worst case 36%) **however many fish are in the
+tank**, rather than by choosing a number that happens to work at one stocking density.
+
+That needed one piece of state: `anchorTimer[i]`, seconds, with the sign carrying the phase
+(positive hiding and counting down, negative habituated and counting up, zero out and watching).
+It is carried across a rebuild like everything else continuous in time.
+
+**Measured**, in a 4×2×3 group with two eels and twenty swimmers over five minutes: hidden 16% and
+29% of the time, both reaching fully out. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground`
+is that scenario, and `aThreatThatStaysGetsOneReactionNotAPermanentOne` is the same statement
+reduced to two fish, where it is about the model rather than about a stocking density.
+
+One thing the report incidentally settled: a **big** eel in a tank of ordinary fish never reacts at
+all, since the threat threshold is 0.8× its own rendered length. That is left as it is — it is the
+same statement as a giant manta staying `STATIC` in a one-block tank, and the fix for wanting to
+see it is a bigger fish, not a lower threshold.
+
+`:fishsim` 151 (150 passing, 1 pre-existing skip).
+
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.
 

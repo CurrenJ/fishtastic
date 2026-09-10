@@ -5,6 +5,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.FloorField;
+import grill24.fishsim.domain.VoxelDomain;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -204,5 +205,83 @@ class AnchoredTest {
         assertEquals(eelL, engine.posL()[0], "a carried eel's burrow moved");
         assertEquals(eelD, engine.posD()[0], "a carried eel's burrow moved");
         assertEquals(retracted, retractOf(engine, 0), 1e-6f, "a carried eel popped back out");
+    }
+
+    /**
+     * The one that came from the game: in a big, well-stocked tank the eels sat permanently in the
+     * sand and never came out.
+     *
+     * <p>The cause was the trigger being a <i>state</i> — "hold the retract up while something big
+     * is nearby" — which is right in a quiet tank and wrong in a busy one, because past some
+     * stocking density there is always a fish inside the radius. No radius or rate would have
+     * fixed it: any threshold a crowded tank sits permanently above is the same bug at a different
+     * fish count. The reaction is edge-triggered and habituates now, which bounds the duty cycle
+     * structurally rather than by choosing a number.
+     */
+    @Test
+    void aCrowdedTankDoesNotHoldTheEelsUnderground() {
+        boolean[][][] occupancy = new boolean[4][2][3];
+        for (boolean[][] column : occupancy) {
+            for (boolean[] cell : column) {
+                cell[0] = true;
+                cell[1] = true;
+                cell[2] = true;
+            }
+        }
+        FishSpec[] specs = new FishSpec[22];
+        specs[0] = eel(0.30f, 0);
+        specs[1] = eel(0.32f, 0);
+        for (int i = 2; i < specs.length; i++) {
+            // Comfortably over both eels' threat threshold: what is being measured here is the
+            // duty cycle, not which fish qualifies.
+            specs[i] = new FishSpec(0.28f, Locomotion.FREE_SWIM, false, 1 + i % 3);
+        }
+        FlockEngine engine = new FlockEngine(Tunables.GROUP);
+        engine.rebuild(specs, 4242L, 0f, 20f, new VoxelDomain(occupancy));
+
+        int ticks = 6_000; // 5 minutes
+        int[] hidden = new int[2];
+        float[] mostOut = {1f, 1f};
+        for (int tick = 0; tick < ticks; tick++) {
+            engine.step();
+            for (int i = 0; i < 2; i++) {
+                float retract = retractOf(engine, i);
+                if (retract > 0.5f) hidden[i]++;
+                mostOut[i] = Math.min(mostOut[i], retract);
+            }
+        }
+        for (int i = 0; i < 2; i++) {
+            float duty = hidden[i] / (float) ticks;
+            // Measured 16% and 29% here. The bound is the analytic worst case the two constants
+            // allow at the unluckiest draw of their per-fish jitter (~36%), not the measurement —
+            // a tighter number would be a test of this seed's timing jitter.
+            assertTrue(duty < 0.40f, "eel " + i + " spent " + Math.round(duty * 100)
+                    + "% of five minutes hidden in a crowded tank");
+            assertTrue(duty > 0.02f, "eel " + i + " never reacted to a tank full of fish at all");
+            assertTrue(mostOut[i] < 0.05f, "eel " + i + " never came fully out");
+        }
+    }
+
+    /**
+     * And the habituation is real: a threat that simply parks next to the burrow gets one reaction,
+     * not a permanent one. This is the crowded-tank case reduced to two fish, where it is a
+     * statement about the model rather than about a stocking density.
+     */
+    @Test
+    void aThreatThatStaysGetsOneReactionNotAPermanentOne() {
+        FlockEngine engine = colony(tank(null), eel(0.05f, 0),
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 1));
+        float eelL = engine.posL()[0], eelY = engine.posY()[0], eelD = engine.posD()[0];
+        int hidden = 0;
+        for (int tick = 0; tick < 2_000; tick++) {
+            // Sitting right on top of the burrow for a hundred seconds, without ever leaving.
+            park(engine, 1, eelL + 0.05f, eelY + 0.05f, eelD);
+            engine.step();
+            if (retractOf(engine, 0) > 0.5f) hidden++;
+        }
+        float duty = hidden / 2_000f;
+        assertTrue(duty < 0.35f, "the eel stayed down for " + Math.round(duty * 100)
+                + "% of the run with a threat parked on it");
+        assertTrue(duty > 0.05f, "the parked threat startled it at most once");
     }
 }

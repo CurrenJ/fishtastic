@@ -113,6 +113,20 @@ public final class FlockEngine {
      */
     float[] shapeDrive = new float[0];
     float[] prevShapeDrive = new float[0];
+
+    /**
+     * An anchored creature's startle clock, in seconds, with the sign carrying the phase:
+     * <b>positive</b> is hiding and counting down, <b>negative</b> is habituated and counting up
+     * (a threat in range is ignored), and zero is out and watching.
+     *
+     * <p>The two phases are what make the reaction an <i>event</i> rather than a state. Holding
+     * the retract target up for as long as something big is nearby is correct in a quiet tank and
+     * completely wrong in a busy one: past a certain stocking density there is always some fish
+     * inside the radius, the target never falls, and the colony sits permanently in the sand
+     * (reported in game, in a large tank). A fixed hide plus a longer refractory bounds the duty
+     * cycle at about a fifth no matter how crowded it gets, so the eels duck and reappear instead.
+     */
+    float[] anchorTimer = new float[0];
     /** {@link #shapeDrive} interpolated to the frame — what a pose may actually scale by. */
     public float[] renderShape = new float[0];
 
@@ -284,6 +298,20 @@ public final class FlockEngine {
      */
     private static final float ANCHOR_RETRACT_RATE = 10.0f;
     private static final float ANCHOR_EMERGE_RATE = 0.8f;
+    /**
+     * How long it stays down once startled, and how long it then ignores everything.
+     *
+     * <p>These are the numbers that decide what a <i>crowded</i> tank looks like, and they are the
+     * reason the reaction is edge-triggered. The hide is a fixed duration rather than "until the
+     * threat leaves", and the refractory that follows is comfortably longer than the emerge takes
+     * (~3 s at {@link #ANCHOR_EMERGE_RATE}), so the eel is always fully out and visible for a
+     * while before it can be startled again. Together they cap the fraction of time an eel spends
+     * hidden at roughly a fifth, however many fish are swimming past it.
+     */
+    private static final float ANCHOR_HIDE_SECONDS = 1.6f;
+    private static final float ANCHOR_REFRACTORY_SECONDS = 6.0f;
+    /** Per-fish spread on both, so a colony does not duck and reappear in unison. */
+    private static final float ANCHOR_TIMING_JITTER = 0.35f;
     /** Floor a burrow needs, in body-length² — §2.4's "a free floor footprint exists", measured. */
     private static final float ANCHOR_GATE_AREA_FACTOR = 1.0f;
     /**
@@ -682,6 +710,7 @@ public final class FlockEngine {
     private float[] cHeading = new float[0], cSpeed = new float[0], cBank = new float[0];
     private float[] cBankSmooth = new float[0], cPrevBankSmooth = new float[0];
     private float[] cShapeDrive = new float[0], cPrevShapeDrive = new float[0];
+    private float[] cAnchorTimer = new float[0];
     private float[] cTailPhase = new float[0], cPrevTailPhase = new float[0];
     private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
     private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
@@ -714,6 +743,7 @@ public final class FlockEngine {
             cHeading[i] = heading[from]; cSpeed[i] = speed[from]; cBank[i] = bank[from];
             cBankSmooth[i] = bankSmooth[from]; cPrevBankSmooth[i] = prevBankSmooth[from];
             cShapeDrive[i] = shapeDrive[from]; cPrevShapeDrive[i] = prevShapeDrive[from];
+            cAnchorTimer[i] = anchorTimer[from];
             cTailPhase[i] = tailPhase[from]; cPrevTailPhase[i] = prevTailPhase[from];
             cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
@@ -748,6 +778,7 @@ public final class FlockEngine {
             heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
             bankSmooth[i] = cBankSmooth[i]; prevBankSmooth[i] = cPrevBankSmooth[i];
             shapeDrive[i] = cShapeDrive[i]; prevShapeDrive[i] = cPrevShapeDrive[i];
+            anchorTimer[i] = cAnchorTimer[i];
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
             wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
@@ -782,6 +813,7 @@ public final class FlockEngine {
         cHeading = new float[n]; cSpeed = new float[n]; cBank = new float[n];
         cBankSmooth = new float[n]; cPrevBankSmooth = new float[n];
         cShapeDrive = new float[n]; cPrevShapeDrive = new float[n];
+        cAnchorTimer = new float[n];
         cTailPhase = new float[n]; cPrevTailPhase = new float[n];
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
@@ -810,6 +842,7 @@ public final class FlockEngine {
         bank[i] = 0f;
         bankSmooth[i] = prevBankSmooth[i] = renderBank[i] = 0f;
         shapeDrive[i] = prevShapeDrive[i] = renderShape[i] = 0f;
+        anchorTimer[i] = 0f;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
 
@@ -959,6 +992,7 @@ public final class FlockEngine {
         bank = new float[n];
         bankSmooth = new float[n]; prevBankSmooth = new float[n]; renderBank = new float[n];
         shapeDrive = new float[n]; prevShapeDrive = new float[n]; renderShape = new float[n];
+        anchorTimer = new float[n];
         renderX = new float[n]; renderY = new float[n]; renderZ = new float[n];
         renderPhase = new float[n];
         tailPhase = new float[n]; prevTailPhase = new float[n];
@@ -2086,18 +2120,30 @@ public final class FlockEngine {
      * block away is scenery, and would otherwise hold every eel in a colony permanently retracted.
      */
     private void stepAnchored(int i) {
-        float radius = ANCHOR_THREAT_RADIUS_FACTOR * lengths[i];
-        float threat = ANCHOR_THREAT_SIZE_FACTOR * lengths[i];
-        boolean startled = false;
-        for (int j = 0; j < count && !startled; j++) {
-            if (j == i || lengths[j] < threat) continue;
-            if (locomotion[j] == Locomotion.ANCHORED || locomotion[j] == Locomotion.STATIC) continue;
-            float dl = posL[i] - posL[j];
-            float dy = posY[i] - posY[j];
-            float dd = posD[i] - posD[j];
-            startled = dl * dl + dy * dy + dd * dd < radius * radius;
+        float dt = t.dt();
+
+        // The startle is edge-triggered and then habituates. Only a creature that is out and
+        // watching (timer 0) can be startled at all; from there it hides for a fixed spell and
+        // ignores everything for a longer one, whatever is still swimming past.
+        boolean hiding;
+        if (anchorTimer[i] > 0f) {
+            anchorTimer[i] -= dt;
+            if (anchorTimer[i] <= 0f) {
+                anchorTimer[i] = -ANCHOR_REFRACTORY_SECONDS
+                        * (1f + ANCHOR_TIMING_JITTER * unitFromHash(seeds[i], 12));
+            }
+            hiding = true;
+        } else if (anchorTimer[i] < 0f) {
+            anchorTimer[i] = Math.min(0f, anchorTimer[i] + dt);
+            hiding = false;
+        } else {
+            hiding = threatNear(i);
+            if (hiding) {
+                anchorTimer[i] = ANCHOR_HIDE_SECONDS
+                        * (1f + ANCHOR_TIMING_JITTER * unitFromHash(seeds[i], 11));
+            }
         }
-        advanceShape(i, startled, ANCHOR_RETRACT_RATE, ANCHOR_EMERGE_RATE, t.dt());
+        advanceShape(i, hiding, ANCHOR_RETRACT_RATE, ANCHOR_EMERGE_RATE, dt);
 
         // Nothing else moves, and saying so explicitly matters: velocity feeds the animation
         // coupling, and an eel that kept a stale speed from its scatter would beat a tail it does
@@ -2105,6 +2151,26 @@ public final class FlockEngine {
         velL[i] = velY[i] = velD[i] = 0f;
         speed[i] = 0f;
         bank[i] = 0f;
+    }
+
+    /**
+     * Whether something worth hiding from is next to this burrow right now.
+     *
+     * <p>Only something that <i>moves</i>: another anchored creature parked half a block away is
+     * scenery, and a colony where each eel startled its neighbour would never come out at all.
+     */
+    private boolean threatNear(int i) {
+        float radius = ANCHOR_THREAT_RADIUS_FACTOR * lengths[i];
+        float threat = ANCHOR_THREAT_SIZE_FACTOR * lengths[i];
+        for (int j = 0; j < count; j++) {
+            if (j == i || lengths[j] < threat) continue;
+            if (locomotion[j] == Locomotion.ANCHORED || locomotion[j] == Locomotion.STATIC) continue;
+            float dl = posL[i] - posL[j];
+            float dy = posY[i] - posY[j];
+            float dd = posD[i] - posD[j];
+            if (dl * dl + dy * dy + dd * dd < radius * radius) return true;
+        }
+        return false;
     }
 
     /** Where this fish sits in its own pulse-and-sink cycle, in [0, 1). */

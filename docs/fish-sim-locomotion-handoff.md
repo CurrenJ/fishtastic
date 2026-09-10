@@ -27,12 +27,14 @@ unless it failed its own size gate.
 | — | squash-and-stretch (§3.6) | landed — the second envelope, and the pose path it feeds |
 | 4 | `ANCHORED` | landed — the burrow, and the retract |
 
-`:fishsim` 149 (148 passing, 1 pre-existing skip), `:common` 44 passing, both loaders compile, and
+`:fishsim` 151 (150 passing, 1 pre-existing skip), `:common` 44 passing, both loaders compile, and
 the goldens and parity suite have never needed an expected-value edit at any phase.
 
 **In-game status: Phases 0–3 accepted** (2026-09-10) — the crawling nudibranchs and the swarm
-behaviour called out as the high points. **Phase 4 and §3.6 have not been looked at.** Their
-amplitudes and rates are eye calls with no headless acceptance:
+behaviour called out as the high points. **Phase 4 has had one look and needed a fix** (the eels
+stayed permanently retracted in a busy tank — see the plan's Phase 4 log; the reaction is
+edge-triggered and habituating now). **§3.6 has not been looked at at all.** These are the numbers
+with no headless acceptance:
 
 | number | where | what it does |
 |---|---|---|
@@ -40,6 +42,7 @@ amplitudes and rates are eye calls with no headless acceptance:
 | `scuttle_squash` 0.05 | `upright_sit`, `floor_sit` | how far a crawler flexes pushing off |
 | `retract_fraction` 0.9 | `planted` | how much of itself an eel pulls into the sand |
 | `ANCHOR_RETRACT_RATE` 10 / `ANCHOR_EMERGE_RATE` 0.8 | engine | 0.3 s down, ~3 s back up |
+| `ANCHOR_HIDE_SECONDS` 1.6 / `ANCHOR_REFRACTORY_SECONDS` 6 | engine | how often an eel may duck at all |
 | `ANCHOR_THREAT_RADIUS_FACTOR` 4 / `_SIZE_FACTOR` 0.8 | engine | what counts as something to hide from |
 
 `GLIDE` needed two rounds of looking, and both of its problems were invisible headlessly by
@@ -191,13 +194,22 @@ Eighteen things that look like nits and are not. Most were found the hard way.
     vertical squash on a face-up sprite deforms it through its own zero thickness and shows
     nothing. Get this wrong and the creature sinks into the floor on every push-off, which is the
     Phase 1 floor-lift bug in a new costume.
-17. **Only something bigger, and only something that moves, startles an eel** (`stepAnchored`
+17. **Only something bigger, and only something that moves, startles an eel** (`threatNear`
     skips `ANCHORED` and `STATIC` neighbours). Without that exclusion a colony holds itself
     permanently retracted — every eel is a large object parked half a block from its neighbour —
     and one demoted swimmer frozen nearby pins an eel down forever.
 18. **The anchor's threat size factor is below 1 on purpose** (0.8). An eel's "length" in the
     engine is its *height*, and it is a thin creature; above 1 the reaction stops firing in an
-    ordinary tank, and a reaction nobody ever sees is the same as not having built it.
+    ordinary tank, and a reaction nobody ever sees is the same as not having built it. A *large*
+    eel among ordinary fish still never reacts, which is left as it is — the same statement as a
+    giant manta staying `STATIC` in a one-block tank.
+19. **The startle is edge-triggered and habituates, and it must stay that way** (`anchorTimer`,
+    whose sign carries the phase). A presence test — "hide while something big is nearby" — shipped
+    once and put the colony permanently underground in a well-stocked tank, because past some
+    density there is always a fish inside the radius and the eel never gets the three clear seconds
+    its emerge needs. The fixed hide plus the longer refractory bounds the hidden fraction at about
+    a fifth *however many fish there are*; a radius or a rate would only have moved which tank the
+    bug happens in. `AnchoredTest.aCrowdedTankDoesNotHoldTheEelsUnderground` is the regression.
 
 ## 3. Current per-model constants
 
@@ -220,6 +232,8 @@ DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE   DRIFT_SHAPE_DECAY_RATE 3.0
 
 ANCHOR_THREAT_RADIUS_FACTOR 4.0   ANCHOR_THREAT_SIZE_FACTOR 0.8
 ANCHOR_RETRACT_RATE 10.0          ANCHOR_EMERGE_RATE 0.8
+ANCHOR_HIDE_SECONDS 1.6           ANCHOR_REFRACTORY_SECONDS 6.0
+ANCHOR_TIMING_JITTER 0.35         (per-fish spread on both, so a colony is not in unison)
 ANCHOR_GATE_AREA_FACTOR 1.0       (floor a burrow needs, in body-length²)
 ```
 
@@ -291,8 +305,11 @@ step. In-game acceptance is a human pass, not something to automate.
 
 ## 7. Known gaps
 
-1. **Phase 4 and §3.6 have not been looked at in game.** The table in §1 is the list of numbers
-   that have no headless acceptance and never will. This is the next thing to do.
+1. **§3.6 has not been looked at in game, and Phase 4 has had one look.** The table in §1 is the
+   list of numbers that have no headless acceptance and never will. Phase 4's first look produced
+   exactly the predicted shape of failure — not a wrong number, but a rule that was only wrong at a
+   stocking density nobody had tried — so treat the crowded case as part of the look for §3.6's
+   amplitudes too.
 2. **Swimmers still pass through cosmetics.** Only the floor is obstructed. Blocking the water
    needs sub-block resolution in `DistanceField`, which is a redesign of the piece the
    group-scaling work rests on — a real decision, deliberately not bundled into Phase 1. This is
