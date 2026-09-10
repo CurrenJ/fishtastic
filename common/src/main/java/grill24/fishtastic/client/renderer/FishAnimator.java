@@ -28,7 +28,7 @@ public final class FishAnimator {
     public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, float scale, boolean mirrored) {
         switch (config) {
             case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
-            case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored);
+            case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
             case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored);
             case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
@@ -49,12 +49,32 @@ public final class FishAnimator {
      * <p>Poses with no floor walk of their own fall through to {@link #apply} unchanged.
      */
     public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
-                                    float t, float yawDeg, float baseRotation, float scale, boolean mirrored) {
+                                    float t, float yawDeg, float baseRotation, float scale,
+                                    boolean mirrored, float shapeDrive) {
         switch (config) {
             case FishAnimationConfig.FloorSit cfg ->
-                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg);
+                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive);
             case FishAnimationConfig.UprightSit cfg ->
-                    applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg);
+                    applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg,
+                            scale, shapeDrive);
+            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        }
+    }
+
+    /**
+     * Pose for a creature the engine is drifting - a jellyfish. Nothing about its <i>heading</i>
+     * comes from the simulation (it has none), but its <b>bell</b> does: {@code shapeDrive} is the
+     * engine's interpolated silhouette envelope ({@code FlockEngine.renderShape}), so the bell
+     * contracts on the same stroke that pushes the animal upward instead of on a clock of its own.
+     *
+     * <p>Poses with no bell of their own fall through to {@link #apply} unchanged.
+     */
+    public static void applyDrifting(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                     float t, float baseRotation, float scale, boolean mirrored,
+                                     float shapeDrive) {
+        switch (config) {
+            case FishAnimationConfig.UprightFloat cfg ->
+                    applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, shapeDrive);
             default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
@@ -150,13 +170,23 @@ public final class FishAnimator {
         poseStack.mulPose(Axis.ZP.rotationDegrees(surfAngle + (cfg.diagonalTexture() ? 45f : 0f)));
     }
 
+    /**
+     * @param shapeDrive the engine's bell envelope in [0, 1], or 0 for a creature nothing is
+     *                   pulsing - which is the relaxed bell, i.e. no deformation at all.
+     */
     private static void applyUprightFloat(PoseStack poseStack, FishAnimationConfig.UprightFloat cfg,
-                                           Random random, float t, float baseRotation, boolean mirrored) {
+                                           Random random, float t, float baseRotation, boolean mirrored,
+                                           float shapeDrive) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.01f);
         float yBob = (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
+        // A drifter hangs in the water, so the bell deforms about the item's own centre and needs
+        // no pivot sandwich. Written before the roll below, which is what puts it in the upright
+        // frame: the stack applies its calls to the geometry in reverse order, so anything written
+        // after the roll would deform along the texture's diagonal instead of along the creature.
+        applyUprightSquash(poseStack, 1f + cfg.pulseStretch() * shapeDrive, 0f);
         if (cfg.diagonalTexture()) {
             // 45° CCW from default item diagonal → fish is upright (head pointing up)
             poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
@@ -165,15 +195,17 @@ public final class FishAnimator {
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored) {
-        applyFloorSit(poseStack, cfg, random, t, mirrored, null);
+        applyFloorSit(poseStack, cfg, random, t, mirrored, null, 0f);
     }
 
     /**
      * @param crawlYaw the engine's heading for a walking creature, or null for one that sits still
      *                 and faces wherever its seed put it
+     * @param shapeDrive the engine's push-off envelope in [0, 1]; 0 is the undeformed body
      */
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
-                                       Random random, float t, boolean mirrored, Float crawlYaw) {
+                                       Random random, float t, boolean mirrored, Float crawlYaw,
+                                       float shapeDrive) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
@@ -181,6 +213,12 @@ public final class FishAnimator {
         poseStack.mulPose(Axis.YP.rotationDegrees(facing + yRot + (mirrored ? 180f : 0f)));
         // Rotate X -90° so item faces upward, lying flat on the floor
         poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+        // In the sprite's own plane, which after that rotation *is* the floor plane: shorten along
+        // the body and spread across it, area preserved. Written after the rotation so the stack
+        // applies it to the already-flat geometry - the opposite placement to the upright poses'
+        // squash, for the same reason: each wants the frame the creature actually lives in.
+        float along = 1f - cfg.scuttleSquash() * shapeDrive;
+        if (along != 1f && along > 0f) poseStack.scale(along, 1f / along, 1f);
     }
 
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
@@ -227,22 +265,51 @@ public final class FishAnimator {
 
     private static void applyUprightSit(PoseStack poseStack, FishAnimationConfig.UprightSit cfg,
                                          Random random, float t, float baseRotation, boolean mirrored) {
-        applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, null);
+        applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, null, 1f, 0f);
     }
 
-    /** @param crawlYaw as {@link #applyFloorSit}: the engine's heading, or null when it sits still. */
+    /**
+     * @param crawlYaw as {@link #applyFloorSit}: the engine's heading, or null when it sits still.
+     * @param scale the caller's per-fish render scale, needed because the squash pivots about a
+     *              point measured as a fraction of the item while this runs in unscaled block units
+     * @param shapeDrive the engine's push-off envelope in [0, 1]; 0 is the undeformed body
+     */
     private static void applyUprightSit(PoseStack poseStack, FishAnimationConfig.UprightSit cfg,
                                          Random random, float t, float baseRotation, boolean mirrored,
-                                         Float crawlYaw) {
+                                         Float crawlYaw, float scale, float shapeDrive) {
         if (crawlYaw != null) baseRotation = crawlYaw;
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + yRot + (mirrored ? 180f : 0f)));
+        // Crouch about the point the creature stands on, not about its centre - scaling about the
+        // centre would sink it into the sand on the squash and float it above on the stretch.
+        // That contact point is pivotFraction of the item below the centre, and this runs before
+        // the caller's uniform scale, hence the multiplication (floorPoseLift does the same).
+        applyUprightSquash(poseStack, 1f - cfg.scuttleSquash() * shapeDrive,
+                cfg.pivotFraction() * scale);
         if (cfg.diagonalTexture()) {
             // Same correction as UprightFloat: 45° CCW from default item diagonal → upright.
             poseStack.mulPose(Axis.ZP.rotationDegrees(-45f));
         }
+    }
+
+    /**
+     * Volume-preserving vertical deformation for an upright creature, pivoted {@code pivot} blocks
+     * below the item's centre: {@code sy} vertically and {@code 1/sqrt(sy)} on both horizontal
+     * axes, so the creature reads as flexing rather than as changing size. That matters more here
+     * than it would in most games - {@code render_calibration} exists precisely to draw these
+     * species true-to-scale - which is why the amplitudes are small and the volume is held.
+     *
+     * <p>Both horizontal factors are equal, so this commutes with the Y rotation above it and may
+     * be written on either side of it.
+     */
+    private static void applyUprightSquash(PoseStack poseStack, float sy, float pivot) {
+        if (sy == 1f || sy <= 0f) return;
+        float horizontal = (float) (1.0 / Math.sqrt(sy));
+        if (pivot != 0f) poseStack.translate(0f, -pivot, 0f);
+        poseStack.scale(horizontal, sy, horizontal);
+        if (pivot != 0f) poseStack.translate(0f, pivot, 0f);
     }
 
     /**

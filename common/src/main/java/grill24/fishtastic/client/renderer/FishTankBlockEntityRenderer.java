@@ -366,10 +366,15 @@ public class FishTankBlockEntityRenderer
                 // A crawler faces where it is walking. The +180° is the same mapping the group
                 // swimmers use: the sprite's nose points along −lateral at rotation 0.
                 FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
-                        eng.baseRotations[i], scale, false);
+                        eng.baseRotations[i], scale, false, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.GLIDE) {
                 FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
                         eng.bankFraction(i), eng.baseRotations[i], scale, false);
+            } else if (eng.locomotion[i] == Locomotion.DRIFT) {
+                // The bell contracts on the engine's own pulse rather than on a clock of its own;
+                // everything else about a drifter's pose is still game time.
+                FishAnimator.applyDrifting(poseStack, anim, fishRandom, t, eng.baseRotations[i],
+                        scale, mirrored, eng.renderShape[i]);
             } else {
                 FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale, mirrored);
             }
@@ -428,15 +433,18 @@ public class FishTankBlockEntityRenderer
                         eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i]);
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
-                        eng.baseRotations[i], scale, false);
+                        eng.baseRotations[i], scale, false, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.GLIDE) {
                 FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
                         eng.bankFraction(i), eng.baseRotations[i], scale, false);
+            } else if (eng.locomotion[i] == Locomotion.DRIFT) {
+                FishAnimator.applyDrifting(poseStack, anim, fishRandom, t, eng.baseRotations[i],
+                        scale, eng.hoverMirrored[i], eng.renderShape[i]);
             } else {
-                // Drifters, and anything the group's engine demoted to STATIC: pose on game time
-                // exactly as the single-tank path does. Branching on swimmers[] rather than
-                // falling through to applySwimming is what keeps a jellyfish — an UprightFloat,
-                // not a HorizontalSwim — from reaching that cast.
+                // Anything the group's engine demoted to STATIC: pose on game time exactly as the
+                // single-tank path does. Branching on swimmers[] rather than falling through to
+                // applySwimming is what keeps a jellyfish — an UprightFloat, not a
+                // HorizontalSwim — from reaching that cast.
                 FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale,
                         eng.hoverMirrored[i]);
             }

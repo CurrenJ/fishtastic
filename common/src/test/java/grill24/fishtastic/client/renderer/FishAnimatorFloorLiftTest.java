@@ -20,7 +20,8 @@ class FishAnimatorFloorLiftTest {
     private static final float EPSILON = 1e-6f;
 
     private static FishAnimationConfig.UprightSit upright(float floorOffset, float pivotFraction) {
-        return new FishAnimationConfig.UprightSit(floorOffset, 8f, 0.004f, true, pivotFraction);
+        return new FishAnimationConfig.UprightSit(floorOffset, 8f, 0.004f, true, pivotFraction,
+                FishAnimationConfig.UprightSit.DEFAULT_SCUTTLE_SQUASH);
     }
 
     /**
@@ -75,14 +76,14 @@ class FishAnimatorFloorLiftTest {
     /** A pose that lies flat on the sand is already resting on it and needs no lift. */
     @Test
     void aFlatPoseNeedsNoLift() {
-        assertEquals(0f, FishAnimator.floorPoseLift(new FishAnimationConfig.FloorSit(0f, 8f, 0.004f), 0.3f),
+        assertEquals(0f, FishAnimator.floorPoseLift(new FishAnimationConfig.FloorSit(0f, 8f, 0.004f, 0f), 0.3f),
                 EPSILON);
     }
 
     /** The config's own manual nudge is carried on top, for both floor poses. */
     @Test
     void theConfigsOwnNudgeIsCarried() {
-        assertEquals(0.02f, FishAnimator.floorPoseLift(new FishAnimationConfig.FloorSit(0.02f, 8f, 0.004f), 0.3f),
+        assertEquals(0.02f, FishAnimator.floorPoseLift(new FishAnimationConfig.FloorSit(0.02f, 8f, 0.004f, 0f), 0.3f),
                 EPSILON);
         assertEquals(0.02f + 0.4062f * 0.3f, FishAnimator.floorPoseLift(upright(0.02f, 0.4062f), 0.3f),
                 EPSILON);

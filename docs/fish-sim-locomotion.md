@@ -376,9 +376,9 @@ same path.
 | **4** | `ANCHORED` retract/emerge. 2 species. | low | medium, and cheap |
 
 Plus one cross-cutting item with no phase of its own: **squash-and-stretch on the locomotion
-drive** (§3.6). It is pose work rather than a motion model, it applies to `DRIFT` and `BENTHIC`
-today, and it builds the machinery Phase 4's retract needs — so it is best done after the Phase 2
-group split and before Phase 4.
+drive** (§3.6) — landed 2026-09-10, between Phase 3 and Phase 4 as planned. It is pose work rather
+than a motion model, it applies to `DRIFT` and `BENTHIC` today, and it builds the machinery Phase
+4's retract needs.
 
 ### Phase 0 — landed 2026-09-10
 
@@ -704,6 +704,62 @@ one.
 **In-game acceptance: passed**, after the two rounds of correction in the sections above — the
 only phase that needed any. Phases 1 and 2, Tier 2 and the 512 cap passed in the same session with
 no changes.
+
+### Squash-and-stretch (§3.6) — landed 2026-09-10
+
+The cross-cutting item, shipped between Phase 3 and Phase 4 exactly where §5 put it: it is the
+drive → pose → pivot path that Phase 4's retract needs, so building it first makes that phase a
+trigger and a constant rather than a new system.
+
+* **`FlockEngine.shapeDrive` / `prevShapeDrive` / `renderShape`** — a second envelope off the same
+  trigger as `burstDrive`, advanced by `advanceShape` next to it in both `stepDrift` and
+  `stepBenthic`, mirrored to render time the way `tailPhase` is, and carried across a rebuild.
+  Separate arrays rather than a reuse of `burstDrive`, because the two want opposite decays: drift's
+  drive relaxes at 0.9/s because that is the *coast*, and a bell mapped onto it would snap shut and
+  take four seconds to refill. The shape shares each model's attack and relaxes at 3.0/s (drift) and
+  6.0/s (crawl) — measured half-life 5 ticks against the motion drive's ~15.
+* **It is in the engine although it is purely cosmetic**, on `tailPhase`'s precedent: that is where
+  it can be integrated at a fixed 20 Hz, interpolated, carried, and tested headlessly. A render-side
+  follower would be re-derived per frame at a variable rate and none of that would hold.
+* **Only the classes whose poses are otherwise nearly still run it.** `FREE_SWIM` has a `burstDrive`
+  too and deliberately gains no shape: `horizontal_swim` already has a tail wiggle and a bank driven
+  by the same motion, and a third deformation on top would fight both — the burst-"hop" lesson
+  again. `ShapeDriveTest.aFreeSwimmerNeverDeforms` pins it.
+* **The frame is the thing to get right, and the plan had it backwards.** §3.6c says the scale goes
+  "last, after the roll". Under `PoseStack`'s composition it is the other way round: calls are
+  applied to the geometry in reverse, so a scale written *after* the −45° roll deforms along the
+  texture's diagonal, and one written *before* it deforms along the creature. The upright poses now
+  write it before the roll; `FishAnimatorSquashTest.anUprightCreatureDeformsAlongItsOwnAxes`
+  measures the upright frame's axes rather than the amount of change, because the wrong placement
+  produces a deformation of exactly the right magnitude pointed 45° off.
+* **Each class pivots where it actually touches the world.** A drifter hangs, so its bell scales
+  about the item's centre with no sandwich. A crawler scales about its measured contact point
+  (`UprightSit.pivotFraction × scale`, the same product `floorPoseLift` forms) — scaling about the
+  centre would sink it into the sand on the squash and float it on the stretch, which is the Phase 1
+  floor-lift bug in a new guise, and is the assertion
+  `aCrawlersContactPointHoldsStillThroughTheWholeSquash` exists for.
+* **A flat-lying creature deforms in its own plane, not vertically.** §3.6 assumes an upright
+  silhouette throughout; `floor_sit` (starfish) is face-up, and a vertical squash there deforms the
+  sprite through its own zero thickness and shows *nothing*. It shortens along the body and spreads
+  across it instead, area preserved, written after the `XP(-90)` so it lands in the plane the
+  creature lies in — the opposite placement to the upright poses', for the same reason.
+* **Volume is preserved** (`sy`, `1/√sy`, `1/√sy`), which is what makes the effect read as flexing
+  rather than as the animal changing size. That matters more here than it would elsewhere, since
+  `render_calibration` exists precisely to draw these species true-to-scale.
+* **Authoring surface**: `pulse_stretch` on `upright_float` (0.10) and `scuttle_squash` on
+  `upright_sit` / `floor_sit` (0.05), optional with non-zero defaults, so the effect ships without
+  touching any of the 60 `fish_profile` files and a species that looks wrong can opt down. The names
+  deviate from §3.6's `pulse_squash` because the two are not the same motion: a bell *elongates* as
+  it contracts (`sy = 1 + a·d`) and a crawler *crouches* as it pushes off (`sy = 1 − a·d`), and one
+  name across both would have had an author guessing the sign.
+
+**Verification.** `:fishsim` 145 (144 passing, 1 pre-existing skip), of which 5 are `ShapeDriveTest`
+— range, the decay comparison, the interpolation endpoints and midpoint, carry-over, and the
+free-swimmer exclusion — with **no golden or parity edits**. `:common` 41 passing, of which 5 are
+`FishAnimatorSquashTest`. Both loaders compile.
+
+**The amplitudes are the one thing with no headless acceptance**, exactly like the `CRAWL_*` and
+`DRIFT_*` constants: 0.10 and 0.05 are eye calls that have not yet been looked at in game.
 
 Each phase ships independently and leaves the other species on their current behaviour, so there
 is no half-migrated state at any point.

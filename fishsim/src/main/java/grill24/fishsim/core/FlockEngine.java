@@ -93,6 +93,29 @@ public final class FlockEngine {
     /** {@link #bankSmooth} interpolated to the frame, the way {@link #renderYaw} mirrors yaw. */
     public float[] renderBank = new float[0];
 
+    /**
+     * A second envelope off the same trigger as {@link #burstDrive}, shaped for the
+     * <i>silhouette</i> rather than for the velocity — the squash-and-stretch drive of
+     * docs/fish-sim-locomotion.md §3.6. Only the classes whose poses are otherwise nearly still
+     * run it: a drifter's bell contraction and a crawler's push-off.
+     *
+     * <p>It is a separate array rather than a reuse of {@code burstDrive} because the two want
+     * opposite decays. Drift's drive rises in ~0.8&nbsp;s and relaxes over ~3.7&nbsp;s, because
+     * that is what makes the <i>motion</i> right — a quick push and a long coast. Mapped straight
+     * onto scale, the bell would snap shut and then take four seconds to refill, which is not what
+     * a jellyfish does: a real one recovers quickly and then simply hangs. So the shape shares the
+     * attack and relaxes several times faster.
+     *
+     * <p>It lives in the engine despite being purely cosmetic, for the same reason
+     * {@link #tailPhase} does: this is where it can be integrated at a fixed 20&nbsp;Hz,
+     * interpolated to the frame, carried across a rebuild and tested headlessly. A render-side
+     * follower would be re-derived per frame at a variable rate and none of that would hold.
+     */
+    float[] shapeDrive = new float[0];
+    float[] prevShapeDrive = new float[0];
+    /** {@link #shapeDrive} interpolated to the frame — what a pose may actually scale by. */
+    public float[] renderShape = new float[0];
+
     // ── Planar mode (voxel domains) ────────────────────────────────────────
     // Continuous horizontal heading instead of the single-tank binary ±lateral: lateral and depth
     // are fully symmetric swim axes (an L-tank's two arms behave identically), wander curves the
@@ -180,6 +203,13 @@ public final class FlockEngine {
     /** Envelope rates for the crawl drive — gentler than the swimmers', a crab has no glide. */
     private static final float CRAWL_ATTACK_RATE = 2.5f;
     private static final float CRAWL_STOP_RATE = 2.0f;
+    /**
+     * Push-off deformation envelope (§3.6): shares the scuttle's attack, then relaxes far faster
+     * than the scuttle does. A crab compresses as it shoves off and is back to its own shape well
+     * before it stops moving — the deformation is the start of the move, not the whole of it.
+     */
+    private static final float CRAWL_SHAPE_ATTACK_RATE = CRAWL_ATTACK_RATE;
+    private static final float CRAWL_SHAPE_DECAY_RATE = 6.0f;
     /** OU wander on the crawl heading. */
     private static final float CRAWL_WANDER_SIGMA = 0.25f;
     private static final float CRAWL_WANDER_THETA = 1.2f;
@@ -219,6 +249,14 @@ public final class FlockEngine {
      */
     private static final float DRIFT_PULSE_ATTACK_RATE = 4.0f;
     private static final float DRIFT_PULSE_DECAY_RATE = 0.9f;
+    /**
+     * Bell-contraction deformation envelope (§3.6). Shares the pulse's attack — the squeeze and
+     * the thrust are the same event — and relaxes more than three times faster, because the long
+     * decay in {@link #DRIFT_PULSE_DECAY_RATE} is the coast, and a bell does not stay squeezed
+     * through it.
+     */
+    private static final float DRIFT_SHAPE_ATTACK_RATE = DRIFT_PULSE_ATTACK_RATE;
+    private static final float DRIFT_SHAPE_DECAY_RATE = 3.0f;
     /**
      * Upward speed at full pulse drive, blocks/s, against the passive sink between pulses. The
      * sink is set to the pulse's own duty-cycle mean (~0.35 of the peak) so the two cancel over a
@@ -614,6 +652,7 @@ public final class FlockEngine {
     private float[] cVelL = new float[0], cVelY = new float[0], cVelD = new float[0];
     private float[] cHeading = new float[0], cSpeed = new float[0], cBank = new float[0];
     private float[] cBankSmooth = new float[0], cPrevBankSmooth = new float[0];
+    private float[] cShapeDrive = new float[0], cPrevShapeDrive = new float[0];
     private float[] cTailPhase = new float[0], cPrevTailPhase = new float[0];
     private float[] cHomeDepth = new float[0], cBaseRotation = new float[0];
     private float[] cYawDeg = new float[0], cPrevYawDeg = new float[0];
@@ -645,6 +684,7 @@ public final class FlockEngine {
             cVelL[i] = velL[from]; cVelY[i] = velY[from]; cVelD[i] = velD[from];
             cHeading[i] = heading[from]; cSpeed[i] = speed[from]; cBank[i] = bank[from];
             cBankSmooth[i] = bankSmooth[from]; cPrevBankSmooth[i] = prevBankSmooth[from];
+            cShapeDrive[i] = shapeDrive[from]; cPrevShapeDrive[i] = prevShapeDrive[from];
             cTailPhase[i] = tailPhase[from]; cPrevTailPhase[i] = prevTailPhase[from];
             cHomeDepth[i] = homeDepth[from]; cBaseRotation[i] = baseRotations[from];
             cYawDeg[i] = yawDeg[from]; cPrevYawDeg[i] = prevYawDeg[from];
@@ -678,6 +718,7 @@ public final class FlockEngine {
             velL[i] = cVelL[i]; velY[i] = cVelY[i]; velD[i] = cVelD[i];
             heading[i] = cHeading[i]; speed[i] = cSpeed[i]; bank[i] = cBank[i];
             bankSmooth[i] = cBankSmooth[i]; prevBankSmooth[i] = cPrevBankSmooth[i];
+            shapeDrive[i] = cShapeDrive[i]; prevShapeDrive[i] = cPrevShapeDrive[i];
             tailPhase[i] = cTailPhase[i]; prevTailPhase[i] = cPrevTailPhase[i];
             yawDeg[i] = cYawDeg[i]; prevYawDeg[i] = cPrevYawDeg[i];
             wanderState[i] = cWanderState[i]; wanderStateY[i] = cWanderStateY[i];
@@ -711,6 +752,7 @@ public final class FlockEngine {
         cVelL = new float[n]; cVelY = new float[n]; cVelD = new float[n];
         cHeading = new float[n]; cSpeed = new float[n]; cBank = new float[n];
         cBankSmooth = new float[n]; cPrevBankSmooth = new float[n];
+        cShapeDrive = new float[n]; cPrevShapeDrive = new float[n];
         cTailPhase = new float[n]; cPrevTailPhase = new float[n];
         cHomeDepth = new float[n]; cBaseRotation = new float[n];
         cYawDeg = new float[n]; cPrevYawDeg = new float[n];
@@ -738,6 +780,7 @@ public final class FlockEngine {
         speed[i] = 0f;
         bank[i] = 0f;
         bankSmooth[i] = prevBankSmooth[i] = renderBank[i] = 0f;
+        shapeDrive[i] = prevShapeDrive[i] = renderShape[i] = 0f;
         wanderPhaseA[i] = (float) ((seed & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
         wanderPhaseB[i] = (float) (((seed >>> 16) & 0xFFFF) / 65536.0) * 2f * (float) Math.PI;
 
@@ -883,6 +926,7 @@ public final class FlockEngine {
         speed = new float[n];
         bank = new float[n];
         bankSmooth = new float[n]; prevBankSmooth = new float[n]; renderBank = new float[n];
+        shapeDrive = new float[n]; prevShapeDrive = new float[n]; renderShape = new float[n];
         renderX = new float[n]; renderY = new float[n]; renderZ = new float[n];
         renderPhase = new float[n];
         tailPhase = new float[n]; prevTailPhase = new float[n];
@@ -901,6 +945,7 @@ public final class FlockEngine {
         System.arraycopy(posD, 0, prevD, 0, count);
         System.arraycopy(tailPhase, 0, prevTailPhase, 0, count);
         System.arraycopy(bankSmooth, 0, prevBankSmooth, 0, count);
+        System.arraycopy(shapeDrive, 0, prevShapeDrive, 0, count);
         if (planar || continuousYaw()) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
 
@@ -1607,6 +1652,17 @@ public final class FlockEngine {
         return ((x >>> 40) * (1f / 8388608f)) - 1f;
     }
 
+    /**
+     * Advances the silhouette envelope off the motion envelope's own trigger (§3.6). Same
+     * integrator as the drives it rides alongside, with its own pair of rates — see
+     * {@link #shapeDrive} for why it is not simply the drive itself.
+     */
+    private void advanceShape(int i, boolean driving, float attack, float decay, float dt) {
+        float target = driving ? 1f : 0f;
+        float rate = driving ? attack : decay;
+        shapeDrive[i] += (target - shapeDrive[i]) * rate * dt;
+    }
+
     // ── Benthic crawl (docs/fish-sim-locomotion.md §3.1) ───────────────────────────────────────
 
     /**
@@ -1629,6 +1685,7 @@ public final class FlockEngine {
         float target = moving ? 1f : 0f;
         float rate = moving ? CRAWL_ATTACK_RATE : CRAWL_STOP_RATE;
         burstDrive[i] += (target - burstDrive[i]) * rate * dt;
+        advanceShape(i, moving, CRAWL_SHAPE_ATTACK_RATE, CRAWL_SHAPE_DECAY_RATE, dt);
 
         // Heading: band-limited wander, overridden by obstacle avoidance when the way is blocked.
         float k = CRAWL_WANDER_SIGMA * (float) Math.sqrt(dt) * SQRT3;
@@ -1810,6 +1867,7 @@ public final class FlockEngine {
             renderY[i] = y;
             renderPhase[i] = SimMath.lerp(partialTick, prevTailPhase[i], tailPhase[i]);
             renderBank[i] = SimMath.lerp(partialTick, prevBankSmooth[i], bankSmooth[i]);
+            renderShape[i] = SimMath.lerp(partialTick, prevShapeDrive[i], shapeDrive[i]);
             if (planar || continuousYaw()) {
                 // Wrap-aware angular lerp so a fish crossing the ±180° seam doesn't spin the long way.
                 renderYaw[i] = prevYawDeg[i] + partialTick * wrapDeg(yawDeg[i] - prevYawDeg[i]);
@@ -1878,6 +1936,7 @@ public final class FlockEngine {
         float target = pulsing ? 1f : 0f;
         float rate = pulsing ? DRIFT_PULSE_ATTACK_RATE : DRIFT_PULSE_DECAY_RATE;
         burstDrive[i] += (target - burstDrive[i]) * rate * dt;
+        advanceShape(i, pulsing, DRIFT_SHAPE_ATTACK_RATE, DRIFT_SHAPE_DECAY_RATE, dt);
 
         // Horizontal advection: two independent OU processes, one per axis. Independent rather
         // than a wandering heading (the crawl's formulation) because a drifter has no heading to
