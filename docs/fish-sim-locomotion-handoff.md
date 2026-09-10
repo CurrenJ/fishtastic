@@ -80,8 +80,8 @@ phases.
 the crawl's scuttle. `shapeDrive[i]` is the **silhouette** envelope: same integrator, same trigger,
 its own pair of rates, mirrored to render time as `renderShape[i]`. They exist separately because
 the decay that makes a movement read right is not the one that makes a shape read right (§3.6b).
-`ANCHORED` reuses `shapeDrive` as its retract state, which is why Phase 4 needed no new arrays and
-no new carry plumbing.
+`ANCHORED` reuses `shapeDrive` as its retract state, which is why Phase 4 needed no new envelope of
+its own — only `anchorTimer[i]`, the startle clock that decides when the envelope is driven.
 
 ### The benthic model in one paragraph
 
