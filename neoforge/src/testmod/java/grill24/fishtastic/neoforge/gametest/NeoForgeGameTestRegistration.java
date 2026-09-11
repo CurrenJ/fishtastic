@@ -21,6 +21,7 @@ import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
+import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.StormCharmGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
@@ -515,6 +516,16 @@ public class NeoForgeGameTestRegistration {
             helper -> ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "grant_rewards_delivers_normally_when_inventory_has_space", 200,
             helper -> ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- RemoveTankEntryPacket.giveOrDrop -----
+        register(event, env, "give_or_drop_drops_fish_when_inventory_is_full", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_drops_fish_when_inventory_is_full_in_creative_mode", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_delivers_fish_normally_when_inventory_has_space", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_piles_a_second_fish_into_the_existing_pile", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);

@@ -4,6 +4,7 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.TankEntryKind;
 import grill24.fishtastic.fishtank.TankGroups;
+import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.menu.FishTankBrowserMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -70,16 +71,48 @@ public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int
                         : ItemStack.EMPTY;
             };
 
-            if (!toGive.isEmpty()) {
-                player.getInventory().add(toGive);
-                // Inventory.add() only consumes what fits, leaving the remainder in `toGive` —
-                // drop it at the player's feet instead of silently discarding a removed item
-                // (see PurchaseShopEntryPacket#grantRewards, fixed for the same reason).
-                if (!toGive.isEmpty()) {
-                    player.drop(toGive, false);
-                }
-            }
+            giveOrDrop(player, toGive);
         });
+    }
+
+    /**
+     * Delivers a removed entry to the player, piling fish rather than filling separate slots and
+     * dropping at their feet whatever doesn't fit rather than silently discarding it. Public so
+     * gametests can exercise the full-inventory path directly without an open
+     * {@link FishTankBrowserMenu} — mirrors {@link grill24.fishtastic.network.PurchaseShopEntryPacket#grantRewards}.
+     */
+    public static void giveOrDrop(ServerPlayer player, ItemStack toGive) {
+        if (toGive.isEmpty()) return;
+
+        // Inventory.add() special-cases a creative player: once nothing fits, instead of leaving
+        // the leftover for the caller to drop, it just zeroes the stack's count outright (see
+        // Inventory#add's "player.hasInfiniteMaterials()" branch) — reasonable for something like
+        // a creative-menu pick, which isn't a real item to begin with, but wrong here: this is an
+        // existing fish/cosmetic coming OUT of the tank, not a freshly conjured one, so a creative
+        // player with a full inventory needs it dropped exactly like a survival player would.
+        // Suppressing instabuild for the duration of the give forces Inventory.add() down the
+        // normal "leave the leftover in the stack" path regardless of game mode.
+        boolean instabuild = player.getAbilities().instabuild;
+        player.getAbilities().instabuild = false;
+        try {
+            // Fish get piled rather than each landing in its own slot — every fish carries its own
+            // random ItemSize/FishQuality, so vanilla's stack-matching never merges two of them and
+            // clearing a tank one click at a time would otherwise flood the inventory with
+            // single-fish stacks (see PileOfFishItem#fillOrCreatePiles).
+            if (PileOfFishItem.canInsertInPile(toGive)) {
+                PileOfFishItem.fillOrCreatePiles(player, toGive);
+            } else {
+                player.getInventory().add(toGive);
+            }
+        } finally {
+            player.getAbilities().instabuild = instabuild;
+        }
+        // Inventory.add() / fillOrCreatePiles() only consume what fits, leaving the remainder in
+        // `toGive` — drop it at the player's feet instead of silently discarding a removed item
+        // (see PurchaseShopEntryPacket#grantRewards, fixed for the same reason).
+        if (!toGive.isEmpty()) {
+            player.drop(toGive, false);
+        }
     }
 
     private static boolean isValidCell(int packed) {

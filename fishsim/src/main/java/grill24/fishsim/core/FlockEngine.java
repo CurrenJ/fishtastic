@@ -3,6 +3,8 @@ package grill24.fishsim.core;
 import grill24.fishsim.domain.FlockDomain;
 import grill24.fishsim.domain.FloorField;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -154,6 +156,29 @@ public final class FlockEngine {
      * eel arms long before anyone can walk up to it.
      */
     boolean[] anchorArmed = new boolean[0];
+
+    /**
+     * One species' garden-eel colony: the patch of sand new members scatter into at rebuild, and
+     * the state machine that occasionally relocates the whole colony together (see
+     * {@link #stepColonies}). Keyed by {@link FishSpec#species()} and kept on the engine itself
+     * rather than in the per-fish arrays a rebuild reallocates — a colony is a property of "this
+     * tank has eels of this species", and it has to outlive the index shuffling a rebuild does, or
+     * adding one fish would restart every relocation clock in the tank.
+     */
+    private final Map<Integer, ColonyState> colonies = new HashMap<>();
+    /** The baseSeed of the rebuild that last touched {@link #colonies} — a relocation's anchor draw
+     * needs a seed and happens between rebuilds, so this is where it borrows one from. */
+    private long colonySeedBase;
+
+    /** Mutable per-colony state — see {@link #colonies}. */
+    private static final class ColonyState {
+        static final int IDLE = 0, RETRACTING = 1, EMERGING = 2;
+        boolean initialized;
+        int phase = IDLE;
+        float timer;
+        long generation;
+        float anchorL, anchorD, radius;
+    }
 
     // The watcher: one external point the host may declare worth hiding from, in this engine's own
     // local coordinates. The engine is deliberately ignorant of what it is — on the Minecraft side
@@ -397,6 +422,38 @@ public final class FlockEngine {
     private static final float ANCHOR_TIMING_JITTER = 0.35f;
     /** Floor a burrow needs, in body-length² — §2.4's "a free floor footprint exists", measured. */
     private static final float ANCHOR_GATE_AREA_FACTOR = 1.0f;
+
+    // ── Colony (garden-eel colony placement + relocation, per-species) ────────────────────────
+    /**
+     * Colony patch radius scales with √(member count), in footprint widths — the same
+     * {@code CRAWL_FOOTPRINT × length} unit {@link #farEnoughOnFloor} already spaces individuals
+     * by. √n rather than n keeps a big colony from spreading out linearly with headcount (which
+     * would just recreate the old whole-floor scatter at scale); it grows, just slower than the
+     * membership does.
+     */
+    private static final float COLONY_RADIUS_PER_MEMBER = 0.75f;
+    /** A colony of one is still a patch, not a point. */
+    private static final float COLONY_MIN_RADIUS = 0.05f;
+    /**
+     * Average seconds between relocations — long enough to read as an occasional event rather than
+     * a fidget. Not real garden-eel behaviour (see docs/fish-sim-locomotion.md §3.4); it exists
+     * purely so an anchored class isn't the one thing in the tank that never does anything.
+     */
+    private static final float COLONY_RELOCATION_PERIOD_SECONDS = 600f;
+    /** ± spread on the relocation clock, so multiple colonies in one tank don't relocate in lockstep. */
+    private static final float COLONY_TIMING_JITTER = 0.35f;
+    /** How long a colony spends withdrawn before its footprint rerolls — long enough to fully retract
+     * at {@link #COLONY_RETRACT_RATE} first. */
+    private static final float COLONY_RETRACT_SECONDS = 4.0f;
+    /** How long a colony spends coming back out at its new spot, matching {@link #ANCHOR_EMERGE_RATE}. */
+    private static final float COLONY_EMERGE_SECONDS = 6.0f;
+    /**
+     * Retract rate for a relocation — gentler than {@link #ANCHOR_RETRACT_RATE}. The startle's fast
+     * duck reads as alarm; a colony moving house on its own clock should not look frightened, so it
+     * gets a slower withdrawal and shares the startle's own gentle {@link #ANCHOR_EMERGE_RATE} for
+     * coming back out.
+     */
+    private static final float COLONY_RETRACT_RATE = 2.0f;
     /**
      * Upward speed at full pulse drive, blocks/s, against the passive sink between pulses. The
      * sink is set to the pulse's own duty-cycle mean (~0.35 of the peak) so the two cancel over a
@@ -656,6 +713,9 @@ public final class FlockEngine {
         this.planar = false;
         configureGrid();
 
+        colonySeedBase = baseSeed;
+        prepareColonies(specs);
+
         rng.setSeed(baseSeed);
         int placed = 0;
 
@@ -747,6 +807,9 @@ public final class FlockEngine {
         this.domain = newDomain;
         this.planar = true;
         configureGrid();
+
+        colonySeedBase = baseSeed;
+        prepareColonies(specs);
 
         rng.setSeed(baseSeed);
         int placed = 0;
@@ -1105,6 +1168,10 @@ public final class FlockEngine {
         System.arraycopy(shapeDrive, 0, prevShapeDrive, 0, count);
         if (planar || continuousYaw()) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
+        // Colony relocation runs ahead of the per-fish dispatch below: a colony that finishes
+        // repositioning this tick is already at its new spot by the time stepAnchored runs for its
+        // members, so there is nothing to interpolate across.
+        stepColonies();
 
         for (int i = 0; i < count; i++) {
             // The one place that decides what a locomotion class actually does. FREE_SWIM reaches
@@ -1957,7 +2024,10 @@ public final class FlockEngine {
     }
 
     /**
-     * Picks a walkable spot for a crawler at rebuild, writing {@code out[0..1]} = lateral, depth.
+     * Picks a walkable spot for a floor-placed fish at rebuild, writing {@code out[0..1]} =
+     * lateral, depth. An {@link Locomotion#ANCHORED} eel goes to {@link #placeInColony} — it draws
+     * from its species' colony patch rather than the whole floor; every other floor-placed class
+     * (just {@link Locomotion#BENTHIC} today) scatters uniformly, below.
      *
      * <p>Draws come from the fish's own seed rather than the shared scatter {@code rng}, which
      * matters more than it looks: adding a crab to a tank therefore does not shift the random
@@ -1966,11 +2036,51 @@ public final class FlockEngine {
      * colony spaces itself out instead of piling into one corner.
      */
     private void placeOnFloor(FishSpec spec, long seed, int upTo, float[] out) {
+        float want = CRAWL_FOOTPRINT * spec.length();
+        if (spec.locomotion() == Locomotion.ANCHORED
+                && placeInColony(colonies.get(spec.species()), seed, want, upTo, out)) {
+            return;
+        }
+        placeAnywhereOnFloor(seed, want, upTo, out);
+    }
+
+    /**
+     * Picks a spot for one eel inside its colony's patch (see {@link ColonyState}) instead of
+     * anywhere on the floor: polar sampling around the anchor, denser toward the centre (area
+     * scales with r², so a uniform disc needs {@code r = radius·√u}), so the colony reads as a
+     * cluster rather than a disc stamped flat onto the sand.
+     *
+     * @return false if the patch has no room for it in 48 tries — a tightly packed or heavily
+     * obstructed colony — in which case the caller falls back to {@link #placeAnywhereOnFloor},
+     * exactly as a crawler would. A patch running out of room must never strand an eel that a less
+     * cramped search of the same floor would have placed just fine.
+     */
+    private boolean placeInColony(ColonyState colony, long seed, float want, int upTo, float[] out) {
+        for (int attempt = 0; attempt < 48; attempt++) {
+            float u = (unitFromHash(seed, 200 + attempt * 3L) + 1f) * 0.5f;
+            float r = colony.radius * (float) Math.sqrt(u);
+            float theta = (float) Math.PI * (unitFromHash(seed, 201 + attempt * 3L) + 1f);
+            float l = colony.anchorL + r * (float) Math.cos(theta);
+            float d = colony.anchorD + r * (float) Math.sin(theta);
+            if (!standable(l, d)) continue;
+            if (attempt < 32 && !farEnoughOnFloor(l, d, want, upTo)) continue;
+            out[0] = l;
+            out[1] = d;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Scatters uniformly over the whole floor — the original crawler search, and now also the
+     * fallback for an eel whose colony patch has no room left. Exhaustive grid fallback if even
+     * that finds nothing.
+     */
+    private void placeAnywhereOnFloor(long seed, float want, int upTo, float[] out) {
         float lo = domain.minLateral() + CRAWL_EDGE_MARGIN;
         float span = (domain.maxLateral() - CRAWL_EDGE_MARGIN) - lo;
         float loD = domain.minDepth() + CRAWL_EDGE_MARGIN;
         float spanD = (domain.maxDepth() - CRAWL_EDGE_MARGIN) - loD;
-        float want = CRAWL_FOOTPRINT * spec.length();
 
         for (int attempt = 0; attempt < 48; attempt++) {
             float l = lo + (unitFromHash(seed, 100 + attempt * 2L) + 1f) * 0.5f * span;
@@ -1982,8 +2092,20 @@ public final class FlockEngine {
             return;
         }
 
-        // Exhaustive fallback: the first walkable cell. A crawler that reaches this is in a
-        // near-fully-obstructed tank, and standing somewhere legal beats standing in a wall.
+        exhaustiveFloorSpot(out);
+    }
+
+    /**
+     * Exhaustive fallback shared by {@link #placeAnywhereOnFloor} and {@link #placeInColony}'s
+     * caller: the first walkable cell on the whole floor. A creature that reaches this is in a
+     * near-fully-obstructed tank, and standing somewhere legal beats standing in a wall or piling
+     * onto a neighbour.
+     */
+    private void exhaustiveFloorSpot(float[] out) {
+        float lo = domain.minLateral() + CRAWL_EDGE_MARGIN;
+        float span = (domain.maxLateral() - CRAWL_EDGE_MARGIN) - lo;
+        float loD = domain.minDepth() + CRAWL_EDGE_MARGIN;
+        float spanD = (domain.maxDepth() - CRAWL_EDGE_MARGIN) - loD;
         for (float l = lo; l <= lo + span; l += FloorField.CELL_SIZE) {
             for (float d = loD; d <= loD + spanD; d += FloorField.CELL_SIZE) {
                 if (standable(l, d)) {
@@ -1995,6 +2117,154 @@ public final class FlockEngine {
         }
         out[0] = lo + span * 0.5f;
         out[1] = loD + spanD * 0.5f;
+    }
+
+    /**
+     * Ensures every {@link Locomotion#ANCHORED} species declared in this rebuild has a colony to
+     * scatter new members into, sizing (never moving — see {@link #sizeColony}) it to the species'
+     * current membership. A species no longer present is dropped, so a colony that leaves the tank
+     * does not linger forever waiting on a relocation clock nobody will ever see fire.
+     */
+    private void prepareColonies(FishSpec[] specs) {
+        Map<Integer, Integer> counts = null;
+        Map<Integer, Float> footprint = null;
+        for (FishSpec spec : specs) {
+            if (spec.locomotion() != Locomotion.ANCHORED) continue;
+            if (counts == null) {
+                counts = new HashMap<>();
+                footprint = new HashMap<>();
+            }
+            counts.merge(spec.species(), 1, Integer::sum);
+            footprint.merge(spec.species(), CRAWL_FOOTPRINT * spec.length(), Math::max);
+        }
+        if (counts == null) {
+            colonies.clear();
+            return;
+        }
+        colonies.keySet().retainAll(counts.keySet());
+        for (Map.Entry<Integer, Integer> e : counts.entrySet()) {
+            int speciesId = e.getKey();
+            ColonyState c = colonies.computeIfAbsent(speciesId, k -> new ColonyState());
+            sizeColony(c, speciesId, e.getValue(), footprint.get(speciesId));
+        }
+    }
+
+    /**
+     * Sizes a colony's patch to its current membership. The anchor itself — where the patch
+     * actually is — is drawn once, the first time this species is ever seen, and never touched
+     * here again: only {@link #relocateColony} moves an established colony, and only on its own
+     * clock, or every fish added to a growing colony would nudge the whole thing sideways.
+     */
+    private void sizeColony(ColonyState c, int speciesId, int memberCount, float footprintWant) {
+        float lo = domain.minLateral() + CRAWL_EDGE_MARGIN;
+        float span = (domain.maxLateral() - CRAWL_EDGE_MARGIN) - lo;
+        float loD = domain.minDepth() + CRAWL_EDGE_MARGIN;
+        float spanD = (domain.maxDepth() - CRAWL_EDGE_MARGIN) - loD;
+        float maxRadius = Math.max(COLONY_MIN_RADIUS, 0.5f * Math.min(span, spanD));
+        c.radius = SimMath.clamp((float) Math.sqrt(memberCount) * footprintWant * COLONY_RADIUS_PER_MEMBER,
+                COLONY_MIN_RADIUS, maxRadius);
+        if (c.initialized) return;
+
+        long seed = colonySeedBase ^ ((long) speciesId * 0x9E3779B97F4A7C15L) ^ (c.generation * 0xD1B54A32D192ED03L);
+        float ul = (unitFromHash(seed, 900) + 1f) * 0.5f;
+        float ud = (unitFromHash(seed, 901) + 1f) * 0.5f;
+        c.anchorL = lo + c.radius + ul * Math.max(0f, span - 2f * c.radius);
+        c.anchorD = loD + c.radius + ud * Math.max(0f, spanD - 2f * c.radius);
+        c.timer = COLONY_RELOCATION_PERIOD_SECONDS * (1f + COLONY_TIMING_JITTER * unitFromHash(seed, 902));
+        c.initialized = true;
+    }
+
+    /** How many currently-simulated (post-gate) eels belong to this species' colony. */
+    private int colonyMemberCount(int speciesId) {
+        int n = 0;
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] == Locomotion.ANCHORED && species[i] == speciesId) n++;
+        }
+        return n;
+    }
+
+    /**
+     * One tick of every colony's relocation clock. Three phases, cycling forever once a colony
+     * exists: {@code IDLE} counts down to the next relocation, {@code RETRACTING} holds the colony
+     * down just long enough to fully withdraw (see {@link #stepAnchored}, which is what actually
+     * drives the retract envelope for every member), and the transition out of it is where the
+     * whole point happens — {@link #relocateColony} rerolls the patch and every member's footprint
+     * while they are all invisible — then {@code EMERGING} holds them coming back out at the new
+     * spot before the clock resets. Runs once per {@link #step()}, ahead of the per-fish dispatch,
+     * so a colony that finishes relocating this tick is already at its new spot by the time
+     * {@code stepAnchored} runs for its members.
+     */
+    private void stepColonies() {
+        if (colonies.isEmpty()) return;
+        float dt = t.dt();
+        for (Map.Entry<Integer, ColonyState> e : colonies.entrySet()) {
+            int speciesId = e.getKey();
+            ColonyState c = e.getValue();
+            c.timer -= dt;
+            if (c.timer > 0f) continue;
+            switch (c.phase) {
+                case ColonyState.IDLE -> {
+                    if (colonyMemberCount(speciesId) == 0) {
+                        // Nobody home (species left, or every member is gate-demoted) — keep
+                        // waiting rather than relocating an empty patch nobody will ever see.
+                        c.timer = COLONY_RELOCATION_PERIOD_SECONDS;
+                    } else {
+                        c.phase = ColonyState.RETRACTING;
+                        c.timer = COLONY_RETRACT_SECONDS;
+                    }
+                }
+                case ColonyState.RETRACTING -> {
+                    relocateColony(speciesId, c);
+                    c.phase = ColonyState.EMERGING;
+                    c.timer = COLONY_EMERGE_SECONDS;
+                }
+                case ColonyState.EMERGING -> {
+                    c.phase = ColonyState.IDLE;
+                    c.timer = COLONY_RELOCATION_PERIOD_SECONDS
+                            * (1f + COLONY_TIMING_JITTER * unitFromHash(colonySeedBase ^ speciesId, simTick));
+                }
+                default -> {}
+            }
+        }
+    }
+
+    /**
+     * The reroll at the heart of a relocation: a fresh colony anchor — never the last one, since
+     * {@link #sizeColony}'s seed includes {@link ColonyState#generation} — and a fresh footprint
+     * for every current member, written straight into both current and previous position so there
+     * is no lerp across the tank: every member is fully retracted and invisible at this instant
+     * (see {@link #stepAnchored}'s {@code relocating} branch, which is what got them there), so the
+     * jump costs nothing to see.
+     */
+    private void relocateColony(int speciesId, ColonyState c) {
+        int memberCount = 0;
+        float footprintWant = 0f;
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] != Locomotion.ANCHORED || species[i] != speciesId) continue;
+            memberCount++;
+            footprintWant = Math.max(footprintWant, CRAWL_FOOTPRINT * lengths[i]);
+        }
+        if (memberCount == 0) return;
+
+        c.generation++;
+        c.initialized = false;
+        sizeColony(c, speciesId, memberCount, footprintWant);
+
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] != Locomotion.ANCHORED || species[i] != speciesId) continue;
+            float want = CRAWL_FOOTPRINT * lengths[i];
+            if (!placeInColony(c, seeds[i], want, count, floorScratch)) {
+                placeAnywhereOnFloor(seeds[i], want, count, floorScratch);
+            }
+            posL[i] = prevL[i] = floorScratch[0];
+            posD[i] = prevD[i] = floorScratch[1];
+            posY[i] = prevY[i] = floorHeightAt(posL[i], posD[i]);
+            // A freshly relocated eel has not seen the watcher do anything yet — same reasoning as
+            // a freshly initialised one (see anchorArmed's own doc): if you are already at the
+            // glass when it re-emerges, you were not an approach.
+            anchorTimer[i] = 0f;
+            anchorArmed[i] = false;
+        }
     }
 
     /**
@@ -2222,6 +2492,13 @@ public final class FlockEngine {
     private void stepAnchored(int i) {
         float dt = t.dt();
 
+        // A colony mid-relocation (see stepColonies) overrides the startle entirely: every member
+        // ducks and re-emerges together on the colony's own clock, regardless of the watcher. Only
+        // RETRACTING actually forces the duck — EMERGING (and every other phase) lets it come back
+        // out, which is also what a colony that finishes relocating this same tick wants.
+        ColonyState colony = colonies.get(species[i]);
+        boolean relocating = colony != null && colony.phase != ColonyState.IDLE;
+
         // The startle is edge-triggered, then habituates. Two independent conditions have to be
         // true for an eel to duck: it must be armed (the watcher has been away since it last
         // reacted) and out of its refractory. The first is what makes a player who walks up and
@@ -2232,7 +2509,9 @@ public final class FlockEngine {
         if (watcherPresent && !watcherWithin(i, ANCHOR_REARM_RADIUS)) anchorArmed[i] = true;
 
         boolean hiding;
-        if (anchorTimer[i] > 0f) {
+        if (relocating) {
+            hiding = colony.phase == ColonyState.RETRACTING;
+        } else if (anchorTimer[i] > 0f) {
             anchorTimer[i] -= dt;
             if (anchorTimer[i] <= 0f) {
                 anchorTimer[i] = -ANCHOR_REFRACTORY_SECONDS
@@ -2250,7 +2529,12 @@ public final class FlockEngine {
                         * (1f + ANCHOR_TIMING_JITTER * unitFromHash(seeds[i], 11));
             }
         }
-        advanceShape(i, hiding, ANCHOR_RETRACT_RATE, ANCHOR_EMERGE_RATE, dt);
+        // A relocation's retract is deliberately gentler than the startle's — see
+        // COLONY_RETRACT_RATE — so a colony moving house reads as unhurried, not frightened. The
+        // emerge shares the startle's own rate either way: coming back out slowly is just what an
+        // eel does, whatever sent it down.
+        float retractRate = relocating ? COLONY_RETRACT_RATE : ANCHOR_RETRACT_RATE;
+        advanceShape(i, hiding, retractRate, ANCHOR_EMERGE_RATE, dt);
 
         // Nothing else moves, and saying so explicitly matters: velocity feeds the animation
         // coupling, and an eel that kept a stale speed from its scatter would beat a tail it does
