@@ -100,7 +100,7 @@ public class FishTankBlockEntityRenderer
     private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f, ITEM_BASELINE_Y, 0.5f);
     public static final float COSMETIC_FLOOR_Y = CosmeticGridCell.FLOOR_Y;
     // Underside of the tank's glass ceiling, in local block-space Y — where rising bubbles pop.
-    private static final float TANK_CEILING_Y = 15f / 16f;
+    static final float TANK_CEILING_Y = 15f / 16f;
 
     // ── Water fill behind the glass ──────────────────────────────────────────────
     // Flat quads on every closed side wall, textured with vanilla's animated still-water sprite,
@@ -483,7 +483,7 @@ public class FishTankBlockEntityRenderer
                 || animConfig instanceof FishAnimationConfig.UprightSit;
     }
 
-    private static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
+    static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
         return switch (animConfig) {
             // The engine walks crawlers and owns their vertical: it reports the height of the sand
             // under wherever the creature has got to (see the swarmYOffset note above), so all
@@ -950,7 +950,7 @@ public class FishTankBlockEntityRenderer
     }
 
     /** Walks upward through tanks connected via an open UP face, so bubbles rise to the true top of a vertical stack. */
-    private static BlockPos topOfConnectedTankStack(Level level, BlockPos pos) {
+    static BlockPos topOfConnectedTankStack(Level level, BlockPos pos) {
         BlockPos current = pos;
         // Bounded to avoid any chance of looping on malformed/cyclic open-face state.
         for (int i = 0; i < 64; i++) {

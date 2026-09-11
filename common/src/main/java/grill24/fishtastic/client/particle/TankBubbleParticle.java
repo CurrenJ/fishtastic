@@ -24,7 +24,9 @@ public class TankBubbleParticle extends SingleQuadParticle {
         // way up to the connected stack's true top, so it shouldn't collide with block shapes.
         this.hasPhysics = false;
         this.setSize(0.02F, 0.02F);
-        this.quadSize *= (this.random.nextFloat() * 0.6F + 0.2F) * 0.45F;
+        // Wide spread (0.12–0.8 of the base) so fish-emitted full bubbles vary visibly in size; the
+        // chest cosmetic's stream shares this and reads fine with the extra small ones.
+        this.quadSize *= (this.random.nextFloat() * 0.68F + 0.12F) * 0.45F;
         this.xd = (this.random.nextFloat() * 2.0F - 1.0F) * 0.01F;
         this.yd = 0.01F + this.random.nextFloat() * 0.01F;
         this.zd = (this.random.nextFloat() * 2.0F - 1.0F) * 0.01F;
@@ -37,6 +39,8 @@ public class TankBubbleParticle extends SingleQuadParticle {
         this.yo = this.y;
         this.zo = this.z;
         if (this.lifetime-- <= 0 || this.y >= this.popY) {
+            // Vanilla's BubbleParticle vanishes silently; ours bursts, with the pop sized to the bubble.
+            TankBubblePopParticle.spawn(this.level, this.x, this.y, this.z, this.quadSize);
             this.remove();
             return;
         }

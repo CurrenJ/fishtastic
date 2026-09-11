@@ -80,6 +80,9 @@ public final class TankFlockAdapter {
 
     private int count;
     private long lastExtractTick = Long.MIN_VALUE;
+    /** Bubble-emitter edge memory, one per engine (docs/fish-tank-bubbles.md). */
+    final TankBubbleEmitter.State loneEmitter = new TankBubbleEmitter.State();
+    final TankBubbleEmitter.State groupEmitter = new TankBubbleEmitter.State();
     /**
      * Last-seen cosmetic layout, own tank and (anchor only) group-wide. Cosmetics are terrain for
      * crawlers, so moving one has to re-shape the floor and re-place anything standing where it

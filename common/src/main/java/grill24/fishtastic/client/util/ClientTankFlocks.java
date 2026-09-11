@@ -1,8 +1,10 @@
 package grill24.fishtastic.client.util;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.client.renderer.TankFlockAdapter;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -69,6 +71,12 @@ public final class ClientTankFlocks {
                 flock.setWatcher(entry.getKey(), eye.x, eye.y, eye.z);
             }
             flock.step();
+            // Bubbles are an observer of the step just taken, and only for tanks actually on
+            // screen — a warm-but-unseen flock keeps simulating without spending particles.
+            if (flock.lastExtractTick() == tickCounter - 1
+                    && Minecraft.getInstance().level instanceof ClientLevel clientLevel) {
+                TankBubbleEmitter.emit(clientLevel, entry.getKey(), flock, eye);
+            }
         }
     }
 

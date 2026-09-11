@@ -208,6 +208,41 @@ public final class FlockEngine {
         out[1] = y;
         out[2] = x * sinR + z * cosR;
     }
+
+    /**
+     * Maps a sim-local offset into the model-space frame the render scratch is written in — the
+     * same rotation {@link #interpolate} applies, exposed so a caller working at tick time (not
+     * from the interpolated scratch) can place something at a fish's true position. Inverse of
+     * {@link #toLocal}.
+     */
+    public void toRender(float l, float y, float d, float[] out) {
+        out[0] = l * cosR + d * sinR;
+        out[1] = y;
+        out[2] = -l * sinR + d * cosR;
+    }
+
+    // ── Read-only event probes for the MC-side bubble emitter ──────────────
+    // These expose envelope state that already exists so a client-side observer can detect
+    // exertion onsets (a burst kicking off, a jelly contracting, a crawler starting a scuttle,
+    // an eel retracting) without the engine knowing anything about particles — and without any
+    // new state or step change, so the golden/parity locks are untouched.
+
+    /**
+     * Burst-and-coast phase in [0,1); it wraps to 0 at the start of each thrust. Only advanced for
+     * the classes {@link #advanceBurst} runs for (free swimmers and gliders) — a drifter's pulse
+     * and a crawler's scuttle run on their own seed-derived clocks ({@code pulsePhase},
+     * {@code dwellPhase}) and leave this where the rebuild put it.
+     */
+    public float burstPhase(int i) { return burstPhase[i]; }
+
+    /**
+     * The integrated exertion envelope, whatever drives it: a swimmer's burst-and-coast
+     * multiplier (coast scale … thrust scale), or a drifter's pulse / a crawler's scuttle (0 … 1).
+     */
+    public float burstDrive(int i) { return burstDrive[i]; }
+
+    /** Anchored-creature hide timer: positive while retracting/hidden, negative in refractory, 0 idle. */
+    public float anchorTimer(int i) { return anchorTimer[i]; }
     /** {@link #shapeDrive} interpolated to the frame — what a pose may actually scale by. */
     public float[] renderShape = new float[0];
 
