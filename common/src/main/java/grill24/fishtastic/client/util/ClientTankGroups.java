@@ -73,7 +73,8 @@ public final class ClientTankGroups {
         // the whole distance field.
         VoxelDomain domain = group.isMultiTank()
                 ? new VoxelDomain(group.occupancy(), VoxelDomain.DEFAULT_INSET,
-                        TankFloors.GROUP_SURFACE_OFFSET, TankFloors.groupBlockedCells(group, level))
+                        TankFloors.GROUP_SURFACE_OFFSET, TankFloors.groupBlockedCells(group, level),
+                        group.blockedX(), group.blockedY(), group.blockedZ())
                 : null;
         Entry entry = new Entry(group, domain);
         for (BlockPos member : group.members()) {

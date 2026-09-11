@@ -336,6 +336,10 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::cosmeticsRoundTrip);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
+        register(event, env, "honeycomb_sealed_face_is_blocked_even_when_grouped_via_another_path", 200,
+            FishTankGameTests::honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath);
+        register(event, env, "honeycomb_sealed_isolated_pair_form_separate_groups", 200,
+            FishTankGameTests::honeycombSealedIsolatedPairFormSeparateGroups);
         register(event, env, "broken_tank_drop_carries_shape_and_materials", 200,
             FishTankGameTests::brokenTankDropCarriesShapeAndMaterials);
         register(event, env, "broken_tank_drop_restores_shape_when_replaced", 200,

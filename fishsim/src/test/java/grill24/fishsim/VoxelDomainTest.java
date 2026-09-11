@@ -17,6 +17,7 @@ import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -201,6 +202,66 @@ class VoxelDomainTest {
                 ? domain.maxLateral() - domain.minLateral()
                 : domain.maxDepth() - domain.minDepth();
         return (max - min) / span;
+    }
+
+    // ── Honeycomb-sealed connections between merged members ─────────────────
+
+    /**
+     * Two tanks honeycomb-sealed against each other but still merged into one occupancy union
+     * (e.g. both also connect to a third tank around a corner) must keep a real wall on that one
+     * sealed face — occupancy alone is one bit per cell, so without the blocked-face mask the seam
+     * silently reads as open water (docs/fish-tank-... honeycomb-through-walls investigation).
+     */
+    @Test
+    void blockedInternalFaceStaysAWallDespiteMergedOccupancy() {
+        boolean[][][] occ = fullGrid(2, 1, 1);
+        boolean[][][] blockedX = {{{true}}}; // the one face, between cell 0 and cell 1
+
+        VoxelDomain sealed = new VoxelDomain(occ, VoxelDomain.DEFAULT_INSET, 0f, null, blockedX, null, null);
+        // Each cell keeps its own swimmable interior...
+        assertTrue(sealed.contains(-0.5f, 0f, 0f), "left cell center must be swimmable");
+        assertTrue(sealed.contains(0.5f, 0f, 0f), "right cell center must be swimmable");
+        // ...but the seam itself is walled off exactly like an exterior boundary (same inset).
+        assertFalse(sealed.contains(-0.1f, 0f, 0f), "left cell must not reach past the sealed face");
+        assertFalse(sealed.contains(0.1f, 0f, 0f), "right cell must not reach past the sealed face");
+
+        // Control: the same union with no mask is one open interior — the bug this guards against.
+        VoxelDomain merged = new VoxelDomain(occ, VoxelDomain.DEFAULT_INSET, 0f, null, null, null, null);
+        assertTrue(merged.contains(-0.1f, 0f, 0f), "sanity: unmasked union is open water at the seam");
+        assertTrue(merged.contains(0.1f, 0f, 0f), "sanity: unmasked union is open water at the seam");
+    }
+
+    /**
+     * Whichever side of a sealed pair a fish starts on, it must never cross to the other side over
+     * a long run — the end-to-end guarantee, not just the static distance-field check above. Fish
+     * may spawn on either side, so this tracks each fish's own starting side rather than assuming
+     * one; a bug that let the seam pass would show up as some fish's side flipping mid-run.
+     */
+    @Test
+    void fishNeverCrossesASealedInternalFace() {
+        boolean[][][] occ = fullGrid(2, 1, 1);
+        boolean[][][] blockedX = {{{true}}};
+        VoxelDomain domain = new VoxelDomain(occ, VoxelDomain.DEFAULT_INSET, 0f, null, blockedX, null, null);
+
+        FlockEngine engine = new FlockEngine(Tunables.GROUP);
+        engine.rebuild(swimmerSpecs(8, 20260911L), 20260911L, 0f, 20f, domain);
+        Boolean[] startedNegative = new Boolean[engine.count()];
+        for (int tick = 0; tick < 10_000; tick++) {
+            engine.step();
+            for (int i = 0; i < engine.count(); i++) {
+                if (!engine.swimmers[i]) continue;
+                float l = engine.posL()[i];
+                assertTrue(l <= -1e-3f || l >= 1e-3f,
+                    "fish " + i + " sat inside the sealed face's zero-width plane at tick " + tick + " (l=" + l + ")");
+                boolean negative = l < 0f;
+                if (startedNegative[i] == null) {
+                    startedNegative[i] = negative;
+                } else {
+                    assertTrue(startedNegative[i] == negative,
+                        "fish " + i + " crossed the sealed face at tick " + tick + " (l=" + l + ")");
+                }
+            }
+        }
     }
 
     // ── Invariants 1–6 + stuck detector over the voxel matrix ───────────────

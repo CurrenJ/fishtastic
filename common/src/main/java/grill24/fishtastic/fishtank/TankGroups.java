@@ -122,8 +122,17 @@ public final class TankGroups {
      * @param anchor    the elected simulation owner — the smallest member position
      * @param occupancy voxel grid over the members' bounding box, indexed [x][y][z] from {@code min}
      * @param min       world position of occupancy cell (0,0,0)
+     * @param blockedX  faces between two members that are honeycomb-sealed against each other
+     *                  despite both being in this group (reached via some other path) — sized
+     *                  {@code [sx-1][sy][sz]}, null if none. Occupancy alone can't represent this:
+     *                  it is one bit per cell, not per shared face, so two members merged into the
+     *                  same flood-filled group always read as open water between them unless this
+     *                  mask says otherwise. See {@link grill24.fishsim.domain.DistanceField}.
+     * @param blockedY  same, over the vertical axis, sized {@code [sx][sy-1][sz]}
+     * @param blockedZ  same, over the depth axis, sized {@code [sx][sy][sz-1]}
      */
-    public record Group(List<BlockPos> members, BlockPos anchor, boolean[][][] occupancy, BlockPos min) {
+    public record Group(List<BlockPos> members, BlockPos anchor, boolean[][][] occupancy, BlockPos min,
+                         boolean[][][] blockedX, boolean[][][] blockedY, boolean[][][] blockedZ) {
 
         public boolean isMultiTank() {
             return members.size() > 1;
@@ -186,11 +195,11 @@ public final class TankGroups {
             }
         }
 
-        return ofMembers(visited);
+        return ofMembers(visited, level);
     }
 
     /** Builds the group record (sorted members, anchor, occupancy grid) from a member set. */
-    private static Group ofMembers(Set<BlockPos> visited) {
+    private static Group ofMembers(Set<BlockPos> visited, Level level) {
         List<BlockPos> members = new ArrayList<>(visited);
         Collections.sort(members);
         BlockPos anchor = members.getFirst();
@@ -203,10 +212,60 @@ public final class TankGroups {
             minZ = Math.min(minZ, p.getZ()); maxZ = Math.max(maxZ, p.getZ());
         }
         BlockPos min = new BlockPos(minX, minY, minZ);
-        boolean[][][] occupancy = new boolean[maxX - minX + 1][maxY - minY + 1][maxZ - minZ + 1];
+        int sx = maxX - minX + 1, sy = maxY - minY + 1, sz = maxZ - minZ + 1;
+        boolean[][][] occupancy = new boolean[sx][sy][sz];
         for (BlockPos p : members) {
             occupancy[p.getX() - minX][p.getY() - minY][p.getZ() - minZ] = true;
         }
-        return new Group(members, anchor, occupancy, min);
+
+        // A member pair can be physically adjacent and both in this group (reached via some other
+        // path) while the direct face between them is honeycomb-sealed — the flood-fill above only
+        // required *a* path in, not that every adjacent pair agree to connect. Record those faces
+        // so the voxel domain can keep a real wall there instead of reading two occupied neighbour
+        // cells as open water.
+        boolean[][][] blockedX = sx > 1 ? new boolean[sx - 1][sy][sz] : null;
+        boolean[][][] blockedY = sy > 1 ? new boolean[sx][sy - 1][sz] : null;
+        boolean[][][] blockedZ = sz > 1 ? new boolean[sx][sy][sz - 1] : null;
+        boolean anyBlocked = false;
+        for (BlockPos p : members) {
+            if (!(level.getBlockEntity(p) instanceof FishTankBlockEntity tank)) continue;
+            int ix = p.getX() - minX, iy = p.getY() - minY, iz = p.getZ() - minZ;
+            if (blockedX != null && ix + 1 < sx
+                    && isSealedPair(tank, level, p, Direction.EAST, visited)) {
+                blockedX[ix][iy][iz] = true;
+                anyBlocked = true;
+            }
+            if (blockedY != null && iy + 1 < sy
+                    && isSealedPair(tank, level, p, Direction.UP, visited)) {
+                blockedY[ix][iy][iz] = true;
+                anyBlocked = true;
+            }
+            if (blockedZ != null && iz + 1 < sz
+                    && isSealedPair(tank, level, p, Direction.SOUTH, visited)) {
+                blockedZ[ix][iy][iz] = true;
+                anyBlocked = true;
+            }
+        }
+        if (!anyBlocked) {
+            blockedX = null;
+            blockedY = null;
+            blockedZ = null;
+        }
+
+        return new Group(members, anchor, occupancy, min, blockedX, blockedY, blockedZ);
+    }
+
+    /**
+     * Whether the face from {@code pos} toward {@code dir} sits between two members but is not
+     * mutually open — i.e. it is a wall the flood-fill happened to route around rather than a
+     * connection. Only meaningful when the neighbour is itself a member; a boundary face is
+     * already a wall regardless of open-face state.
+     */
+    private static boolean isSealedPair(FishTankBlockEntity tank, Level level, BlockPos pos,
+                                         Direction dir, Set<BlockPos> members) {
+        BlockPos neighborPos = pos.relative(dir);
+        if (!members.contains(neighborPos)) return false;
+        return !(level.getBlockEntity(neighborPos) instanceof FishTankBlockEntity neighbor
+                && tank.isFaceOpen(dir) && neighbor.isFaceOpen(dir.getOpposite()));
     }
 }

@@ -53,6 +53,17 @@ public final class VoxelDomain implements FlockDomain {
      */
     public VoxelDomain(boolean[][][] occupancy, float inset, float floorSurfaceOffset,
                        boolean[] blockedFloorCells) {
+        this(occupancy, inset, floorSurfaceOffset, blockedFloorCells, null, null, null);
+    }
+
+    /**
+     * @param blockedX see {@link DistanceField#DistanceField(boolean[][][], float, float, float, float, boolean[][][], boolean[][][], boolean[][][])}
+     * @param blockedY see above
+     * @param blockedZ see above
+     */
+    public VoxelDomain(boolean[][][] occupancy, float inset, float floorSurfaceOffset,
+                       boolean[] blockedFloorCells,
+                       boolean[][][] blockedX, boolean[][][] blockedY, boolean[][][] blockedZ) {
         this.occupancy = occupancy;
         this.inset = inset;
         int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
@@ -68,7 +79,8 @@ public final class VoxelDomain implements FlockDomain {
         this.maxY = sy / 2f - inset;
         this.maxD = sz / 2f - inset;
 
-        this.field = new DistanceField(occupancy, gridMinL, gridMinY, gridMinD, inset);
+        this.field = new DistanceField(occupancy, gridMinL, gridMinY, gridMinD, inset,
+                blockedX, blockedY, blockedZ);
         this.sizeGateRun = new RunLengths(occupancy).longestRunInterior(inset);
         this.floor = FloorField.fromOccupancy(occupancy, gridMinL, gridMinY, gridMinD,
                 floorSurfaceOffset, blockedFloorCells);

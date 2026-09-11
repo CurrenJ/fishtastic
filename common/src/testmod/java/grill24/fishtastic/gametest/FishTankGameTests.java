@@ -8,6 +8,7 @@ import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.TankGroups;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -31,6 +32,9 @@ public final class FishTankGameTests {
     private static final BlockPos FLOOR = new BlockPos(1, 0, 1);
     private static final BlockPos TANK_POS = new BlockPos(1, 1, 1);
     private static final BlockPos TANK_POS_EAST = new BlockPos(2, 1, 1);
+    // North of TANK_POS / TANK_POS_EAST — completes a 2x2 loop for the honeycomb-loop tests below.
+    private static final BlockPos TANK_POS_NORTH = new BlockPos(1, 1, 0);
+    private static final BlockPos TANK_POS_NORTHEAST = new BlockPos(2, 1, 0);
 
     private FishTankGameTests() {}
 
@@ -42,8 +46,12 @@ public final class FishTankGameTests {
 
     /** Places a second tank immediately east of {@link #TANK_POS}, for connection-gating tests. */
     private static FishTankBlockEntity placeEastNeighborFishTank(GameTestHelper helper) {
-        helper.setBlock(TANK_POS_EAST, FishtasticBlocks.FISH_TANK.value());
-        return helper.getBlockEntity(TANK_POS_EAST, FishTankBlockEntity.class);
+        return placeFishTankAt(helper, TANK_POS_EAST);
+    }
+
+    private static FishTankBlockEntity placeFishTankAt(GameTestHelper helper, BlockPos pos) {
+        helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
+        return helper.getBlockEntity(pos, FishTankBlockEntity.class);
     }
 
     // -------------------------------------------------------------------------
@@ -313,6 +321,94 @@ public final class FishTankGameTests {
             "FACETED must open its EAST face toward a BASTION neighbor (shared collection)");
         helper.assertTrue(east.getOpenFaces().contains(Direction.WEST),
             "BASTION must open its WEST face toward a FACETED neighbor (shared collection)");
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Honeycomb-sealed faces vs. group membership (real TankGroups.of)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Two tanks honeycomb-sealed directly against each other, but still connected via a loop
+     * through two other tanks, must merge into one flood-filled group — the flood-fill only needs
+     * *a* mutually-open path in, not that every adjacent pair agree — with the direct sealed face
+     * recorded as a blocked internal face rather than left for the voxel domain to silently read
+     * as open water because both cells are occupied. This is the root cause behind fish swimming
+     * straight through a honeycomb-blocked wall between two tanks that are otherwise connected
+     * some other way.
+     *
+     * <p>Layout (looking down): sw at {@link #TANK_POS}, se at {@link #TANK_POS_EAST} (sealed
+     * against sw), nw at {@link #TANK_POS_NORTH}, ne at {@link #TANK_POS_NORTHEAST} — a 2×2 loop
+     * with the sw-se leg cut.
+     */
+    public static void honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(GameTestHelper helper) {
+        FishTankBlockEntity sw = placeFishTank(helper);
+        FishTankBlockEntity nw = placeFishTankAt(helper, TANK_POS_NORTH);
+        sw.updateConnections(helper.getLevel(), sw.getBlockPos());
+        nw.updateConnections(helper.getLevel(), nw.getBlockPos());
+        helper.assertTrue(sw.getOpenFaces().contains(Direction.NORTH), "sw must connect north to nw before waxing");
+
+        // Sealing sw refuses any NEW connection on any of its faces; the already-open sw-nw face
+        // stays open (waxing never retroactively closes a connection) — only the not-yet-open
+        // sw-se face, placed next, is refused.
+        sw.setWaxed(true);
+
+        FishTankBlockEntity se = placeEastNeighborFishTank(helper);
+        sw.updateConnections(helper.getLevel(), sw.getBlockPos());
+        se.updateConnections(helper.getLevel(), se.getBlockPos());
+        helper.assertTrue(!sw.getOpenFaces().contains(Direction.EAST), "waxed sw must refuse the new sw-se connection");
+        helper.assertTrue(sw.getOpenFaces().contains(Direction.NORTH), "waxing must not retroactively close sw-nw");
+
+        FishTankBlockEntity ne = placeFishTankAt(helper, TANK_POS_NORTHEAST);
+        nw.updateConnections(helper.getLevel(), nw.getBlockPos());
+        ne.updateConnections(helper.getLevel(), ne.getBlockPos());
+        se.updateConnections(helper.getLevel(), se.getBlockPos());
+        helper.assertTrue(nw.getOpenFaces().contains(Direction.EAST), "nw must connect east to ne");
+        helper.assertTrue(se.getOpenFaces().contains(Direction.NORTH), "se must connect north to ne");
+
+        TankGroups.Group group = TankGroups.of(sw, helper.getLevel(), TankGroups.RENDER_MAX_GROUP_SIZE);
+        helper.assertTrue(group.members().size() == 4,
+            "sw-nw-ne-se loop must merge into one 4-member group despite the direct sw-se seal, got " + group.members());
+        helper.assertTrue(group.members().contains(se.getBlockPos()),
+            "se must be a member, reached via the nw-ne loop");
+
+        int ix = sw.getBlockPos().getX() - group.min().getX();
+        int iy = sw.getBlockPos().getY() - group.min().getY();
+        int iz = sw.getBlockPos().getZ() - group.min().getZ();
+        helper.assertTrue(group.blockedX() != null && group.blockedX()[ix][iy][iz],
+            "the direct sw-se face must be recorded as a blocked internal face");
+        helper.succeed();
+    }
+
+    /**
+     * Two tanks honeycomb-sealed against each other with no alternate path between them must NOT
+     * merge into one group — each stays its own independent single-tank group, exactly as if they
+     * had never been placed next to each other. This is the case with no bug to guard against: the
+     * flood-fill only requires a mutually-open face, so with no alternate path the direct seal is
+     * already enough to keep them apart; it exists here as a regression guard alongside the loop
+     * case above, so a future change can't "fix" the loop case by merging every adjacent tank
+     * regardless of open-face state.
+     */
+    public static void honeycombSealedIsolatedPairFormSeparateGroups(GameTestHelper helper) {
+        FishTankBlockEntity west = placeFishTank(helper);
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        west.setWaxed(true);
+
+        FishTankBlockEntity east = placeEastNeighborFishTank(helper);
+        west.updateConnections(helper.getLevel(), west.getBlockPos());
+        east.updateConnections(helper.getLevel(), east.getBlockPos());
+        helper.assertTrue(!west.getOpenFaces().contains(Direction.EAST), "waxed west must refuse the connection");
+        helper.assertTrue(!east.getOpenFaces().contains(Direction.WEST), "east must not see an open face back either");
+
+        TankGroups.Group westGroup = TankGroups.of(west, helper.getLevel(), TankGroups.RENDER_MAX_GROUP_SIZE);
+        TankGroups.Group eastGroup = TankGroups.of(east, helper.getLevel(), TankGroups.RENDER_MAX_GROUP_SIZE);
+
+        helper.assertTrue(westGroup.members().size() == 1 && westGroup.members().contains(west.getBlockPos()),
+            "west must form its own single-tank group, got " + westGroup.members());
+        helper.assertTrue(eastGroup.members().size() == 1 && eastGroup.members().contains(east.getBlockPos()),
+            "east must form its own single-tank group, got " + eastGroup.members());
+        helper.assertTrue(westGroup.blockedX() == null && westGroup.blockedY() == null && westGroup.blockedZ() == null,
+            "a single-tank group has no internal faces to block");
         helper.succeed();
     }
 

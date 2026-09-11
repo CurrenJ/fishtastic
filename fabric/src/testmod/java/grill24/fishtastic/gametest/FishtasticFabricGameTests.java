@@ -536,6 +536,16 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(GameTestHelper helper) {
+        FishTankGameTests.honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void honeycombSealedIsolatedPairFormSeparateGroups(GameTestHelper helper) {
+        FishTankGameTests.honeycombSealedIsolatedPairFormSeparateGroups(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void brokenTankDropCarriesShapeAndMaterials(GameTestHelper helper) {
         FishTankGameTests.brokenTankDropCarriesShapeAndMaterials(helper);
     }
