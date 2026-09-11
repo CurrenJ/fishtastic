@@ -64,10 +64,12 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.NEON_TETRA.value());
                     output.accept(FishtasticItems.NORTHERN_PIKE.value());
                     output.accept(FishtasticItems.OCEAN_SUNFISH.value());
+                    output.accept(FishtasticItems.OPHISTERNON_CANDIDUM.value());
                     output.accept(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
                     output.accept(FishtasticItems.ORNATE_BICHIR.value());
                     output.accept(FishtasticItems.OSCAR.value());
                     output.accept(FishtasticItems.PARROTFISH.value());
+                    output.accept(FishtasticItems.PLAICE.value());
                     output.accept(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
                     output.accept(FishtasticItems.RAINBOW_TROUT.value());
                     output.accept(FishtasticItems.RAINFORDIA.value());

@@ -185,10 +185,12 @@ public class FishtasticItems {
     public static Holder<Item> NEON_TETRA;
     public static Holder<Item> NORTHERN_PIKE;
     public static Holder<Item> OCEAN_SUNFISH;
+    public static Holder<Item> OPHISTERNON_CANDIDUM;
     public static Holder<Item> ORANGE_AUSTRALE_KILLIFISH;
     public static Holder<Item> ORNATE_BICHIR;
     public static Holder<Item> OSCAR;
     public static Holder<Item> PARROTFISH;
+    public static Holder<Item> PLAICE;
     public static Holder<Item> PORTUGUESE_MAN_O_WAR;
     public static Holder<Item> RAINBOW_TROUT;
     public static Holder<Item> RAINFORDIA;
@@ -274,10 +276,12 @@ public class FishtasticItems {
         NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> new FishtasticFishItem(props(loc)));
         NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> new FishtasticFishItem(props(loc)));
         OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(props(loc)));
+        OPHISTERNON_CANDIDUM = RegistrationApiSided.getInstance().registerItem("ophisternon_candidum", loc -> new FishtasticFishItem(props(loc)));
         ORANGE_AUSTRALE_KILLIFISH = RegistrationApiSided.getInstance().registerItem("orange_australe_killifish", loc -> new FishtasticFishItem(props(loc)));
         ORNATE_BICHIR = RegistrationApiSided.getInstance().registerItem("ornate_bichir", loc -> new FishtasticFishItem(props(loc)));
         OSCAR = RegistrationApiSided.getInstance().registerItem("oscar", loc -> new FishtasticFishItem(props(loc)));
         PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> new FishtasticFishItem(props(loc)));
+        PLAICE = RegistrationApiSided.getInstance().registerItem("plaice", loc -> new FishtasticFishItem(props(loc)));
         PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> new FishtasticFishItem(props(loc)));
         RAINBOW_TROUT = RegistrationApiSided.getInstance().registerItem("rainbow_trout", loc -> new FishtasticFishItem(props(loc)));
         RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> new FishtasticFishItem(props(loc)));

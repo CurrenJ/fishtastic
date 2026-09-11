@@ -110,7 +110,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value())
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
-                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
+                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
@@ -154,7 +155,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.LINED_SEAHORSE.value())
                 .add(FishtasticItems.YELLOWSTRIPE_GRUNT.value())
                 .add(FishtasticItems.DISCUS.value())
-                .add(FishtasticItems.CHAUNACOPS.value());
+                .add(FishtasticItems.CHAUNACOPS.value())
+                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
 
         // Calm fish: bait-affinity/encyclopedia cluster for docile, easy catches.
         // Curated membership (not derivable from fish_profile), same rationale as above.
