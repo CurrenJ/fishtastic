@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "fishtastic:item/ophisternon_candidum" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "fishtastic:item/ophisternon_candidum"
+  }
+}

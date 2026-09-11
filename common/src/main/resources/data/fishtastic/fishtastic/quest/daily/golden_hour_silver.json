@@ -5,7 +5,9 @@
   "display_name": "Golden Hour",
   "objective": {
     "target_count": 5,
-    "time_condition": "dusk"
+    "time_condition": [
+      "dusk"
+    ]
   },
   "reward": {
     "quest_tokens": 7
