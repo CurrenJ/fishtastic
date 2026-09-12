@@ -76,6 +76,90 @@ public final class ShellFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * Cupola frame: the STURDY-family body ({@link #generate}) with the solid ceiling cap replaced
+     * by a frame ring + glass window (mirrors {@code TaperedFrameGeometryGenerator#generateSkylight}),
+     * sized to {@link CornerTaperProfile#baseWidth()} rather than the profile's literal floor-adjacent
+     * row — for a stepped profile like STURDY that row is a full-width ({@code 16}) chamfered-ring
+     * row, not a usable window inset. The chamfered ring band immediately below the cap (Y 14-15 for
+     * STURDY) is a donut shape that already leaves that same {@code baseWidth()} square hollow in its
+     * middle with no frame or glass of its own (see {@link #addChamferedRing}), which is what makes
+     * swapping just the cap enough to read as a real skylight without touching the ring band. Floor
+     * and sand are unchanged from {@link #generate}.
+     */
+    public static JsonObject generateCupola(int permutationIndex, CornerTaperProfile profile) {
+        return generateCupola(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCupola(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        if (!openFaces.contains(TankFace.UP)) {
+            TaperedFrameGeometryGenerator.createSkylightCeiling(elements, openFaces, profile.baseWidth());
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            elements.add(createFloor(openFaces));
+        }
+
+        int[] horizontalRowWidths = profile.effectiveRowWidths(!openFaces.contains(TankFace.NORTH), !openFaces.contains(TankFace.SOUTH));
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+        for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) {
+                addChamferedRing(elements, run, horizontalRowWidths, openFaces);
+            } else {
+                addFlatPlates(elements, run, openFaces);
+                if (run.yFrom() <= 1 && !openFaces.contains(TankFace.DOWN)) {
+                    addFloorChamfers(elements, run, horizontalRowWidths, openFaces);
+                }
+            }
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_" + permutationIndex);
+        return model;
+    }
+
+    /**
+     * Hutch frame: the STURDY-family body with both ceiling and floor caps replaced by a ring +
+     * glass window (see {@link #generateCupola}) and no sand at all, so the floor chamfers
+     * {@link #generate} normally adds to bridge glass and sand ({@link #addFloorChamfers}) are
+     * skipped entirely — there's no sand edge left to bridge to.
+     */
+    public static JsonObject generateHutch(int permutationIndex, CornerTaperProfile profile) {
+        return generateHutch(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateHutch(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        if (!openFaces.contains(TankFace.UP)) {
+            TaperedFrameGeometryGenerator.createSkylightCeiling(elements, openFaces, profile.baseWidth());
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            TaperedFrameGeometryGenerator.createSkylightFloor(elements, openFaces, profile.baseWidth());
+        }
+
+        int[] horizontalRowWidths = profile.effectiveRowWidths(!openFaces.contains(TankFace.NORTH), !openFaces.contains(TankFace.SOUTH));
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+        for (CornerTaperProfile.Run run : runs) {
+            if (run.width() >= 16) {
+                addChamferedRing(elements, run, horizontalRowWidths, openFaces);
+            } else {
+                addFlatPlates(elements, run, openFaces);
+            }
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_" + permutationIndex);
+        return model;
+    }
+
     /** 1px-thick flat plates: two per face (north/south ends on west/east faces, west/east ends on
      * north/south faces), each reaching {@code w} inward. Leaves the face middle for the glass.
      * Each plate belongs to a corner and is gated by <em>both</em> of that corner's faces, so a

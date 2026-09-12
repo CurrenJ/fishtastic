@@ -291,7 +291,8 @@ public final class FishTankGameTests {
         for (FishTankShape shape : new FishTankShape[]{FishTankShape.STURDY, FishTankShape.FACETED, FishTankShape.BASTION,
                 FishTankShape.HONED, FishTankShape.RAMPART, FishTankShape.ORNATE, FishTankShape.SHAGGY, FishTankShape.BRAMBLE,
                 FishTankShape.TOOTH, FishTankShape.FILM, FishTankShape.ARCH, FishTankShape.MULLION, FishTankShape.LATTICE,
-                FishTankShape.DUNE, FishTankShape.CREEPER}) {
+                FishTankShape.DUNE, FishTankShape.CREEPER, FishTankShape.VITRINE, FishTankShape.CUPOLA,
+                FishTankShape.HUTCH}) {
             FishTankBlockEntity west = placeFishTank(helper);
             FishTankBlockEntity east = placeEastNeighborFishTank(helper);
             west.setShape(shape);

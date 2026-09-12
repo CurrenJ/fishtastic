@@ -71,7 +71,19 @@ public final class TankShapeGeometryStrategies {
             new Strategy("creeper",
                     CreeperFrameGeometryGenerator::generate,
                     CreeperGlassGeometryGenerator::generate,
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD))
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+            new Strategy("vitrine",
+                    perm -> TaperedFrameGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
+                    perm -> TaperedGlassGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
+                    SandGeometryGenerator::generateNone),
+            new Strategy("cupola",
+                    perm -> ShellFrameGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
+                    perm -> TaperedGlassGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
+                    perm -> SteppedSandGeometryGenerator.generate(perm, CornerTaperProfile.STURDY)),
+            new Strategy("hutch",
+                    perm -> ShellFrameGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
+                    perm -> TaperedGlassGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
+                    SandGeometryGenerator::generateNone)
     );
 
     private TankShapeGeometryStrategies() {}

@@ -51,7 +51,7 @@ STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase")
 //       ^ id                       ^ connectionCollection     ^ modelPathPrefix
 ```
 
-**Eighteen shapes ship today**, all sharing the `standard` connection collection so every shape
+**Twenty-two shapes ship today**, all sharing the `standard` connection collection so every shape
 connects to every other:
 
 | Shape | Model prefix | Geometry summary |
@@ -74,8 +74,11 @@ connects to every other:
 | `MULLION` | `fishtank_mullion` | Standard frame plus three full-height interior mullion bars per face at local `x = 4, 8, 12`; the `x = 0` bar is persistent so bars stay 3px apart across a connection. |
 | `LATTICE` | `fishtank_lattice` | 1px edge per row (2px at top/bottom) plus paired diagonal points walking inward, crossing at the vertical midpoint. |
 | `DUNE` | `fishtank_dune` | STANDARD's frame and glass reused byte-for-byte, with a two-step raised sand hill that spreads toward each connected horizontal face. |
+| `VITRINE` | `fishtank_vitrine` | STANDARD's body with both the ceiling and floor caps replaced by a frame ring + horizontal glass pane (mirroring SKYLIGHT's ceiling treatment at the floor too), and no sand at all — every one of the 6 faces is glass. |
+| `CUPOLA` | `fishtank_cupola` | STURDY's chunky 2px body with the solid ceiling cap replaced by a frame ring + glass pane — STURDY's counterpart to SKYLIGHT. Sand unchanged. |
+| `HUTCH` | `fishtank_hutch` | STURDY's chunky 2px body with both caps replaced by a ring + glass pane and no sand at all — STURDY's counterpart to VITRINE. |
 
-`STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated, and unlike most of
+`STANDARD`, `SKYLIGHT`, `VITRINE`, `CUPOLA`, and `HUTCH` are always available. Every other shape is quest-gated, and unlike most of
 this file, the gating is *not* declared anywhere — it's derived at runtime by
 `FishTankShapeUnlocks`, which scans the `Quest` registry for reward items carrying an explicit
 `fishtastic:fish_tank_shape` component: a quest "unlocks" whatever shape(s) its own reward grants.
@@ -216,7 +219,7 @@ Three behaviors are baked into the profile rather than into each generator:
 | Generator | Used by | What it does |
 |---|---|---|
 | `TaperedFrameGeometryGenerator` | STANDARD | Fixed 1px caps + one solid `w×w` box per run at each of the 4 corners. |
-| `ShellFrameGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. |
+| `ShellFrameGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION, STURDY, CUPOLA, HUTCH | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. `generateCupola`/`generateHutch` additionally swap the solid ceiling (and, for HUTCH, floor) cap for a ring + glass window sized to `CornerTaperProfile.baseWidth()` — the chamfered ring band right under the cap already leaves that same square hollow open, so swapping just the cap is enough. |
 | `OrnateFrameGeometryGenerator` | ORNATE | Standard 1px frame + hardcoded decorative bracket spans per Y band. |
 | `ShaggyFrameGeometryGenerator` | SHAGGY | Same as the ornate frame, reading its spans from the shared `ShaggyTankSpans` table. |
 | `TaperedGlassGeometryGenerator` | all but ORNATE/SHAGGY | Pane split into one stacked segment per run; only the along-wall trim varies. |
@@ -336,6 +339,12 @@ Material tanks are typically quest-gated (`unlock_quests` + `daily_max_purchases
 non-standard shape tanks are gated by `unlock_quests` alone (no purchase cap) — each is granted once
 by its first-claimed unlock quest and then stays purchasable, so the shape reads as earned rather
 than bought. See the table in §2 for the full any-one-of-these quest lists.
+
+`VITRINE` and `HUTCH` are the two shapes with `FishTankShape.requiresSandMaterial() == false`: since
+their geometry never renders sand at all (see §3), the Fish Tank Assembly menu (`FishTankAssemblyMenu`)
+lets them be crafted with an empty sand slot and never consumes whatever's placed there — the sand
+slot becomes purely decorative for these shapes (its block, if any, is still recorded on
+`FishTankMaterials` but is never sampled by their models).
 
 Each shape's `ShopEntry` also sets `"is_tank_shape": true`, pulling it out of the shop's main
 weighted draw entirely (the same isolation `"is_charm": true` gets — see `ShopEntry.CODEC`). Shapes

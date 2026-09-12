@@ -38,13 +38,6 @@ import java.util.function.Predicate;
 public enum FishTankShape implements TooltipProvider {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
     /**
-     * Standard body with a skylight: the solid ceiling is replaced by a frame ring and a horizontal
-     * glass pane mirroring the square sand footprint (see TaperedFrameGeometryGenerator#generateSkylight /
-     * TaperedGlassGeometryGenerator#generateSkylight). Shares STANDARD's connectionCollection and is
-     * ungated, like STANDARD.
-     */
-    SKYLIGHT(Fishtastic.id("skylight"), Fishtastic.id("standard"), "fishtank_skylight"),
-    /**
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
      * Shares STANDARD's connectionCollection by deliberate curation (not the default-to-self
      * behavior) — all three shipped shapes are meant to interconnect with each other.
@@ -86,6 +79,39 @@ public enum FishTankShape implements TooltipProvider {
      * Shares STANDARD's connectionCollection like {@link #FACETED}.
      */
     RAMPART(Fishtastic.id("rampart"), Fishtastic.id("standard"), "fishtank_rampart"),
+    /**
+     * Standard body with a skylight: the solid ceiling is replaced by a frame ring and a horizontal
+     * glass pane mirroring the square sand footprint (see TaperedFrameGeometryGenerator#generateSkylight /
+     * TaperedGlassGeometryGenerator#generateSkylight). Shares STANDARD's connectionCollection and is
+     * ungated, like STANDARD.
+     */
+    SKYLIGHT(Fishtastic.id("skylight"), Fishtastic.id("standard"), "fishtank_skylight"),
+    /**
+     * Vitrine tank: STANDARD's body with both the ceiling and floor caps replaced by a frame ring
+     * plus a horizontal glass pane (see TaperedFrameGeometryGenerator#generateVitrine /
+     * TaperedGlassGeometryGenerator#generateVitrine) and no sand at all — every one of the 6 faces
+     * is glass. {@link #requiresSandMaterial()} is {@code false} so the Fish Tank Assembly menu lets
+     * it be crafted with an empty sand slot and never consumes whatever is placed there (see
+     * {@link grill24.fishtastic.menu.FishTankAssemblyMenu}). Shares STANDARD's connectionCollection
+     * like {@link #FACETED}.
+     */
+    VITRINE(Fishtastic.id("vitrine"), Fishtastic.id("standard"), "fishtank_vitrine", false),
+    /**
+     * Cupola tank: STURDY's chunky 2px body with the solid ceiling cap replaced by a frame ring and
+     * horizontal glass pane (see ShellFrameGeometryGenerator#generateCupola /
+     * TaperedGlassGeometryGenerator#generateCupola) — STURDY's counterpart to SKYLIGHT. Sand is
+     * unchanged (stepped-octagon, as STURDY's own). Shares STANDARD's connectionCollection like
+     * {@link #FACETED}, and is ungated like STANDARD/SKYLIGHT/VITRINE.
+     */
+    CUPOLA(Fishtastic.id("cupola"), Fishtastic.id("standard"), "fishtank_cupola"),
+    /**
+     * Hutch tank: STURDY's chunky 2px body with both ceiling and floor caps replaced by a frame ring
+     * plus glass pane (see ShellFrameGeometryGenerator#generateHutch) and no sand at all — STURDY's
+     * counterpart to VITRINE. {@link #requiresSandMaterial()} is {@code false} for the same reason as
+     * VITRINE. Shares STANDARD's connectionCollection like {@link #FACETED}, and is ungated like
+     * STANDARD/SKYLIGHT/VITRINE/CUPOLA.
+     */
+    HUTCH(Fishtastic.id("hutch"), Fishtastic.id("standard"), "fishtank_hutch", false),
     /**
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
@@ -173,11 +199,17 @@ public enum FishTankShape implements TooltipProvider {
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
+    private final boolean requiresSandMaterial;
 
     FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix) {
+        this(id, connectionCollection, modelPathPrefix, true);
+    }
+
+    FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix, boolean requiresSandMaterial) {
         this.id = id;
         this.connectionCollection = connectionCollection;
         this.modelPathPrefix = modelPathPrefix;
+        this.requiresSandMaterial = requiresSandMaterial;
     }
 
     public Identifier id() {
@@ -197,6 +229,16 @@ public enum FishTankShape implements TooltipProvider {
     /** Path segment under {@code models/block/} this shape's 64-permutation frame/sand/glass models live in. */
     public String modelPathPrefix() {
         return modelPathPrefix;
+    }
+
+    /**
+     * Whether the Fish Tank Assembly menu must have a valid block in the sand slot to craft this
+     * shape, and whether crafting consumes it. {@code false} only for shapes whose geometry never
+     * renders sand at all (currently just {@link #VITRINE}) — see
+     * {@link grill24.fishtastic.menu.FishTankAssemblyMenu}.
+     */
+    public boolean requiresSandMaterial() {
+        return requiresSandMaterial;
     }
 
     /**
