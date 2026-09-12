@@ -161,7 +161,14 @@ public enum FishTankShape implements TooltipProvider {
      * gives an entirely flat, raised sand surface at the hill's top height. Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
      */
-    DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune");
+    DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune"),
+    /**
+     * Creeper tank: standard 1px frame/corner posts (byte identical to STANDARD's own) plus a
+     * classic 8x8 creeper-face inlay embedded 1px deep into the glass, centered on each of the
+     * four side faces (see CreeperFrameGeometryGenerator / CreeperGlassGeometryGenerator). Shares
+     * STANDARD's connectionCollection like {@link #FACETED}.
+     */
+    CREEPER(Fishtastic.id("creeper"), Fishtastic.id("standard"), "fishtank_creeper");
 
     private final Identifier id;
     private final Identifier connectionCollection;

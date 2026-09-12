@@ -67,7 +67,11 @@ public final class TankShapeGeometryStrategies {
             new Strategy("dune",
                     perm -> TaperedFrameGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
-                    DuneSandGeometryGenerator::generate)
+                    DuneSandGeometryGenerator::generate),
+            new Strategy("creeper",
+                    CreeperFrameGeometryGenerator::generate,
+                    CreeperGlassGeometryGenerator::generate,
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD))
     );
 
     private TankShapeGeometryStrategies() {}

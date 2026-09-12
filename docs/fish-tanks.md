@@ -407,7 +407,13 @@ runtime geometry generation or shipped per-datapack models.
    states, so it's worth running before spending more time there.
 6. **Run datagen**, confirm `STANDARD` still diffs clean, and confirm the new prefix directory got
    all 192 files.
-7. **Add lang** (`shape.fishtastic.<id>`) and a shop entry if it should be purchasable.
+7. **Add lang** (`shape.fishtastic.<id>`). If the shape should be purchasable/earnable, add a
+   `fishtastic:fish_tank_shape` component to some quest's `fish_tank` reward instead of
+   hand-authoring a shop entry — `ShopEntryFromQuestProvider` generates the `shop_entry` from that
+   quest data (see §2 above), naming it `<quest_path>_<shape>`. Re-run datagen afterward. If the
+   quest didn't previously grant a shape, this produces a *new*, differently-named file; delete the
+   old unsuffixed `shop_entry` it replaces (common's copy — `fabric/src/main/generated` is
+   gitignored and safe to ignore) so the two don't both exist and drift.
 8. **Add a gametest** to `FishTankGameTests` covering its connection behavior against the shapes it
    is and isn't supposed to connect to.
 9. **Look at it in-game.** Datagen and the previewer verify geometry; neither verifies texturing,

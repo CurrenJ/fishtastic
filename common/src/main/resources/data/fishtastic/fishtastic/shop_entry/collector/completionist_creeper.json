@@ -1,8 +1,8 @@
 {
   "cost": 100,
-  "daily_max_purchases": 1,
   "description": "Earned by completing \"Completionist\".",
-  "display_name": "Completionist Fish Tank",
+  "display_name": "Creeper Fish Tank",
+  "is_tank_shape": true,
   "reward": [
     {
       "components": {
@@ -10,7 +10,8 @@
           "frame": "minecraft:diamond_block",
           "glass": "fishtastic:light_blue_clear_stained_glass",
           "sand": "minecraft:sand"
-        }
+        },
+        "fishtastic:fish_tank_shape": "creeper"
       },
       "count": 8,
       "id": "fishtastic:fish_tank"
