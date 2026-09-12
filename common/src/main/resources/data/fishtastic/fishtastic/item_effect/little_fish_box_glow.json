@@ -1,0 +1,13 @@
+{
+    "texture": "fishtastic:textures/misc/charm_glow/little_fish_box.png",
+    "conditions": [
+        {
+            "type": "item",
+            "item": "fishtastic:little_fish_box"
+        }
+    ],
+    "priority": 30,
+    "outline_color": -3569077,
+    "outline_falloff": 0.55,
+    "outline_width": 0.75
+}

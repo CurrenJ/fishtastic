@@ -1,0 +1,26 @@
+{
+  "category": "explorer",
+  "objective": {
+    "target_count": 10,
+    "time_condition": "dusk"
+  },
+  "reward": {
+    "quest_tokens": 12,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "fishtastic:yellow_clear_stained_glass",
+            "sand": "minecraft:red_concrete_powder",
+            "glass": "fishtastic:pink_clear_stained_glass"
+          }
+        }
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Evening Haul",
+  "description": "Catch 10 fish at dusk."
+}

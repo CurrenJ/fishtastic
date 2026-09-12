@@ -106,12 +106,15 @@ public final class DailyQuestFamily {
         return this;
     }
 
+    /** Gold-tier tank reward count — bronze/silver dailies grant no tank at all. */
+    private static final int GOLD_TANK_COUNT = 4;
+
     /** Builds the reward's bonus fish tank: a plain {@code fishtastic:fish_tank} carrying a distinctive material combo. */
     private static QuestReward.RewardItem goldTank(Block frame, Block sand, Block glass) {
         DataComponentPatch patch = DataComponentPatch.builder()
                 .set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), new FishTankMaterials(frame, sand, glass))
                 .build();
-        return new QuestReward.RewardItem(FishtasticBlocks.FISH_TANK.value().asItem(), 1, patch);
+        return new QuestReward.RewardItem(FishtasticBlocks.FISH_TANK.value().asItem(), GOLD_TANK_COUNT, patch);
     }
 
     /** Emits the bronze/silver/gold trio, keyed by file name (without the {@code daily/} prefix or extension). */

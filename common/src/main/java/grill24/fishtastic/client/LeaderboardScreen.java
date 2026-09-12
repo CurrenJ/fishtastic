@@ -1,7 +1,7 @@
 package grill24.fishtastic.client;
 
-import com.mojang.authlib.GameProfile;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.client.util.PlayerHeadItems;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.LeaderboardResponsePacket;
 import grill24.fishtastic.network.LeaderboardType;
@@ -218,7 +218,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
         if (type == LeaderboardType.GLOBAL_CATCH_COUNT) {
             entry.playerUuid().ifPresent(uuid ->
-                    inner.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?")))));
+                    inner.addChild(UI.itemRenderer(PlayerHeadItems.headStack(uuid, entry.playerName().orElse(null)))));
         } else {
             entry.fishType().ifPresent(loc -> {
                 Item item = BuiltInRegistries.ITEM.getOptional(loc).orElse(Items.COD);
@@ -230,7 +230,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
         if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
             entry.playerUuid().ifPresent(uuid ->
-                    inner.addChild(UI.itemRenderer(playerHeadStack(uuid, entry.playerName().orElse("?")))));
+                    inner.addChild(UI.itemRenderer(PlayerHeadItems.headStack(uuid, entry.playerName().orElse(null)))));
         }
 
         VBox row = UI.vbox().padding(3, 3, 6, 6).alignment(VBox.Alignment.CENTER);
@@ -266,12 +266,6 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
                 .textureSize(ROW_BG_SOURCE_WIDTH, ROW_BG_SOURCE_HEIGHT)
                 .renderMode(SpriteRenderMode.SLICE)
                 .slice(ROW_BG_SLICE_LEFT, ROW_BG_SLICE_RIGHT, ROW_BG_SLICE_TOP, ROW_BG_SLICE_BOTTOM);
-    }
-
-    private static ItemStack playerHeadStack(UUID uuid, String name) {
-        ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-        head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(new GameProfile(uuid, name)));
-        return head;
     }
 
     private static String entryText(LeaderboardEntry entry, LeaderboardType type) {

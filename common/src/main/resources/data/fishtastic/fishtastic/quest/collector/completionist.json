@@ -12,8 +12,9 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 4,
+        "count": 8,
         "components": {
+          "fishtastic:fish_tank_shape": "creeper",
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:diamond_block",
             "sand": "minecraft:sand",

@@ -2,14 +2,17 @@ package grill24.fishtastic.server;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.data.Temperament;
 import grill24.fishtastic.server.QuestTracker;
@@ -39,14 +42,14 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
-import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -130,6 +133,86 @@ public class FishingMinigameManager {
     private static final float QUALITY_DIFFICULTY_BOOST_STRENGTH = 0.6f;
     private static final int DEFAULT_TARGET_COUNT_MEAN = 1;
 
+    /**
+     * Data-driven treasure loot table (under {@code data/fishtastic/loot_table/gameplay/fishing/})
+     * per rolled {@link FishQuality.Quality} tier. Legendary has no entry here — it's a dedicated
+     * code path, see {@link #generateLegendaryTreasureTank}, since it composes three independently
+     * rolled blocks plus a shape into one {@code FishTankMaterials} component rather than picking
+     * a single loot-table item.
+     */
+    private static final Map<FishQuality.Quality, String> TREASURE_LOOT_TABLE_NAMES = Map.of(
+            FishQuality.Quality.COMMON, "gameplay/fishing/treasure_common",
+            FishQuality.Quality.UNCOMMON, "gameplay/fishing/treasure_uncommon",
+            FishQuality.Quality.RARE, "gameplay/fishing/treasure_rare",
+            FishQuality.Quality.EPIC, "gameplay/fishing/treasure_epic"
+    );
+
+    /** Reward count for a Legendary treasure hit's fish tank — matches the shop-tank bulk convention. */
+    private static final int LEGENDARY_TANK_COUNT = 8;
+
+    // Legendary treasure: frame/sand/glass/shape are each rolled independently from these preset
+    // lists (see the tiered treasure pool design doc) rather than a fixed preset combo, so a
+    // legendary pull is always a surprise. Frame is deliberately stocked with materials little/no
+    // existing shop/quest tank uses.
+    private static final List<Identifier> LEGENDARY_TANK_FRAMES = List.of(
+            Identifier.withDefaultNamespace("emerald_block"),
+            Identifier.withDefaultNamespace("netherite_block"),
+            Identifier.withDefaultNamespace("copper_block"),
+            Identifier.withDefaultNamespace("crying_obsidian"),
+            Identifier.withDefaultNamespace("sculk"),
+            Identifier.withDefaultNamespace("end_stone_bricks"),
+            Identifier.withDefaultNamespace("warped_planks"),
+            Identifier.withDefaultNamespace("crimson_planks"),
+            Identifier.withDefaultNamespace("lodestone"),
+            Identifier.withDefaultNamespace("sea_lantern"),
+            Identifier.withDefaultNamespace("obsidian"),
+            Identifier.withDefaultNamespace("ancient_debris"),
+            Identifier.withDefaultNamespace("respawn_anchor"),
+            Identifier.withDefaultNamespace("reinforced_deepslate"),
+            Identifier.withDefaultNamespace("chiseled_nether_bricks"),
+            Identifier.withDefaultNamespace("purpur_pillar"),
+            Identifier.withDefaultNamespace("exposed_copper"),
+            Identifier.withDefaultNamespace("chiseled_polished_blackstone"),
+            Identifier.withDefaultNamespace("budding_amethyst"),
+            Identifier.withDefaultNamespace("dripstone_block"),
+            Identifier.withDefaultNamespace("glowstone"),
+            Identifier.withDefaultNamespace("shroomlight"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass")
+    );
+    private static final List<Identifier> LEGENDARY_TANK_SANDS = List.of(
+            Identifier.withDefaultNamespace("sand"),
+            Identifier.withDefaultNamespace("red_sand"),
+            Identifier.withDefaultNamespace("gravel"),
+            Identifier.withDefaultNamespace("soul_sand"),
+            Identifier.withDefaultNamespace("soul_soil"),
+            Identifier.withDefaultNamespace("snow_block"),
+            Identifier.withDefaultNamespace("glowstone"),
+            Identifier.withDefaultNamespace("shroomlight"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass")
+    );
+    private static final List<Identifier> LEGENDARY_TANK_GLASS = List.of(
+            Fishtastic.id("white_clear_stained_glass"),
+            Fishtastic.id("light_gray_clear_stained_glass"),
+            Fishtastic.id("gray_clear_stained_glass"),
+            Fishtastic.id("black_clear_stained_glass"),
+            Fishtastic.id("brown_clear_stained_glass"),
+            Fishtastic.id("red_clear_stained_glass"),
+            Fishtastic.id("orange_clear_stained_glass"),
+            Fishtastic.id("yellow_clear_stained_glass"),
+            Fishtastic.id("lime_clear_stained_glass"),
+            Fishtastic.id("green_clear_stained_glass"),
+            Fishtastic.id("cyan_clear_stained_glass"),
+            Fishtastic.id("light_blue_clear_stained_glass"),
+            Fishtastic.id("blue_clear_stained_glass"),
+            Fishtastic.id("purple_clear_stained_glass"),
+            Fishtastic.id("magenta_clear_stained_glass"),
+            Fishtastic.id("pink_clear_stained_glass")
+    );
+
     private final ServerLevel level;
 
     private FishingMinigameManager(ServerLevel level) {
@@ -173,6 +256,9 @@ public class FishingMinigameManager {
 
         CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
 
+        // Decided now, once, rather than at completion — see ActiveSession#baitWillBeSaved.
+        boolean baitWillBeSaved = rollBaitWillBeSaved(player, charmEffect);
+
         List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
 
         boolean revealTopWeightedFish = (charmEffect != null && charmEffect.showTopWeightedFish())
@@ -193,8 +279,9 @@ public class FishingMinigameManager {
         FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
         Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
+        Identifier sessionBaitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones);
+                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved, sessionBaitId);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -211,7 +298,7 @@ public class FishingMinigameManager {
         Set<Identifier> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
 
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered));
+                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -247,14 +334,19 @@ public class FishingMinigameManager {
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
         Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
 
+        ItemStack tutorialRod = findFishtasticRod(player);
+        ItemStack tutorialCharmStack = tutorialRod.isEmpty() ? ItemStack.EMPTY : CopperFishingRod.getCharm(tutorialRod);
+        CharmEffect tutorialCharmEffect = tutorialCharmStack.isEmpty() ? null : tutorialCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        boolean baitWillBeSaved = rollBaitWillBeSaved(player, tutorialCharmEffect);
+
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
-                level.getGameTime(), biome, timeOfDay, weather, tutorialZones);
+                level.getGameTime(), biome, timeOfDay, weather, tutorialZones, baitWillBeSaved);
         activeSessions.put(playerId, session);
 
         // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
         // the undiscovered set is deliberately empty regardless of the player's catch history.
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of()));
+                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of(), baitWillBeSaved));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());
@@ -282,7 +374,9 @@ public class FishingMinigameManager {
         List<ItemStack> questStacks = new ArrayList<>();
         List<ItemStack> firstCatchItems = new ArrayList<>();
         int trashCaught = 0;
+        int xpAwarded = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
+        Registry<FishProfile> xpFishProfiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
@@ -295,6 +389,7 @@ public class FishingMinigameManager {
                 for (ItemStack rewardStack : target.rewardStacks()) {
                     ItemStack reward = rewardStack.copy();
                     if (!reward.isEmpty()) {
+                        stripQualityIfNotEligible(reward, xpFishProfiles);
                         if (catchDb.recordCatch(catchDb.resolvePlayerKey(player), player.getName().getString(), reward)) {
                             firstCatchItems.add(reward.copy());
                         }
@@ -303,8 +398,10 @@ public class FishingMinigameManager {
                         // (usually 0) — reading these after the call under-counts trash almost every time.
                         boolean isTrash = reward.is(FishtasticItemTags.TRASH);
                         int caughtCount = reward.getCount();
+                        // Scored before inventory.add() mutates the stack's count down to its leftover.
+                        xpAwarded += FishingXpAward.forRewardStack(reward, xpFishProfiles);
                         if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
-                            addToFishPiles(player, reward);
+                            PileOfFishItem.fillOrCreatePiles(player, reward);
                         } else {
                             player.getInventory().add(reward);
                         }
@@ -324,6 +421,13 @@ public class FishingMinigameManager {
             }
         }
 
+        // Fishtastic rods bypass vanilla's retrieve loot branch entirely (FishingHookMixin), so
+        // this is the only xp a minigame catch ever grants. Orbs spawn at the player rather than
+        // the bobber — the hook is already gone by the time the client reports results.
+        if (xpAwarded > 0) {
+            ExperienceOrb.award(level, player.position(), xpAwarded);
+        }
+
         // Record trash contributions first so the quest sync packet below (which snapshots
         // the cleanup goal total) reflects this session's catches instead of a stale total.
         if (trashCaught > 0) {
@@ -333,14 +437,22 @@ public class FishingMinigameManager {
         // Batch quest tracking — only one sync packet for all catches in this session
         if (!questStacks.isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
-                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones);
+                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones,
+                    session.hookBaitId);
         }
 
         TutorialManager.onMinigameComplete(player);
 
         ItemStack baitDepletedItem = ItemStack.EMPTY;
         if (!rewards.isEmpty()) {
-            baitDepletedItem = consumeBait(player);
+            // The save/consume decision was already rolled once at cast time (see
+            // ActiveSession#baitWillBeSaved) and told to the client in StartFishingMinigamePacket,
+            // so it's applied here verbatim rather than re-rolled — otherwise the client's minigame
+            // animation (which has to guess at completion time, before this fires) could show a
+            // bait pop-off or charm-save effect that doesn't match what actually happens here.
+            if (!session.baitWillBeSaved) {
+                baitDepletedItem = consumeBait(player);
+            }
             damageUpgrades(player);
         }
 
@@ -405,7 +517,6 @@ public class FishingMinigameManager {
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
                 + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
-        List<ItemStack> treasureRewards = getTreasureRewards(lootparams);
         boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
                 .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
@@ -413,9 +524,9 @@ public class FishingMinigameManager {
                 .toList();
         List<Holder<Item>> trashPool = getTrashPool(player);
 
-        float treasureChance = Math.max(0f, (baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
-                + (hookEffect != null ? hookEffect.treasureChanceDelta() : 0.0f)
-                + (charmEffect != null ? charmEffect.treasureChanceDelta() : 0.0f));
+        float treasureChance = Math.max(0f, ((baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
+                + (hookEffect != null ? hookEffect.treasureChanceDelta() : 0.0f))
+                * (charmEffect != null ? charmEffect.treasureChanceMultiplier() : 1.0f));
         float trashChance = Math.max(0f, (baitEffect != null ? baitEffect.trashChance() : DEFAULT_TRASH_CHANCE)
                 + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f)
                 + (charmEffect != null ? charmEffect.trashChanceDelta() : 0.0f));
@@ -459,7 +570,7 @@ public class FishingMinigameManager {
                     }
                 }
             } else if (isTreasure) {
-                rewardStacks = generateTreasureRewards(randomSource, treasureRewards, numRewards);
+                rewardStacks = generateTreasureRewards(randomSource, lootparams, qualityBias, numRewards, forcedQuality);
             } else {
                 rewardStacks = generateTrashRewards(randomSource, trashPool, numRewards);
             }
@@ -467,11 +578,14 @@ public class FishingMinigameManager {
             if (rewardStacks.isEmpty()) continue;
 
             ItemStack reward = rewardStacks.getFirst();
-            FishingTarget.TargetCategory category = reward.is(ItemTags.FISHES)
-                    ? FishingTarget.TargetCategory.FISH
-                    : reward.is(FishtasticItemTags.TRASH)
+            // Driven by which roll produced this target, not the reward's own tags — Common-tier
+            // treasure can itself roll bulk trash items (#fishtastic:trash), which would otherwise
+            // misclassify as a TRASH target (generic-fish icon) instead of TREASURE (chest icon).
+            FishingTarget.TargetCategory category = isTreasure
+                    ? FishingTarget.TargetCategory.TREASURE
+                    : isTrash
                             ? FishingTarget.TargetCategory.TRASH
-                            : FishingTarget.TargetCategory.TREASURE;
+                            : FishingTarget.TargetCategory.FISH;
 
             float difficulty;
             List<PhaseRule> phases = null;
@@ -604,22 +718,87 @@ public class FishingMinigameManager {
         return temperamentRegistry.getOptional(profile.temperament().get()).orElse(null);
     }
 
-    private @NotNull List<ItemStack> getTreasureRewards(LootParams lootparams) {
-        List<ItemStack> treasureRewards = new ArrayList<>();
-        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING_TREASURE);
-        for (int i = 0; i < 8; i++) {
-            treasureRewards.addAll(lootTable.getRandomItems(lootparams));
+    /**
+     * Rolls a {@link FishQuality.Quality} tier for this treasure target (same call/bias as fish
+     * quality — see {@link FishtasticFishItem#sampleRandomQuality}) and generates {@code numRewards}
+     * reward stacks from that tier, each stamped with the rolled quality so Crystal Ball Charm's
+     * rarity outline works on treasure the same way it does on fish.
+     *
+     * <p>The tier is rolled once for the whole target rather than once per reward — a treasure hit
+     * is one themed pull that may surface 1-3 items of that same rarity, not a grab-bag of mixed
+     * tiers. Legendary short-circuits entirely: it isn't a loot table, it's a dedicated fish-tank
+     * builder (see {@link #generateLegendaryTreasureTank}) that always returns exactly one stack
+     * regardless of {@code numRewards}, since "8 tanks" is the whole jackpot, not a per-roll unit.
+     *
+     * @param forcedQuality when non-null (the {@code /fishtastic forcequality} debug override),
+     *                      skips the roll entirely and uses this tier instead — mirrors how the
+     *                      fish path restamps quality after a forced override, but here it's simpler
+     *                      to just skip the roll since treasure quality has no species to preserve.
+     */
+    /**
+     * Strips {@code FISH_QUALITY} from stacks where it isn't mechanically meaningful, right before
+     * the reward is handed to the player. Treasure stamps quality onto every rolled item (see
+     * {@link #generateTreasureRewards}) so the in-flight celebration/difficulty/glow systems can
+     * read it off the stack during the catch, but a plain bait or material carrying that component
+     * can never stack with the same item bought from the shop or composted from marine compost.
+     * Only fish (anything with a {@link FishProfile}, which includes the fish-tank-worthy Blazed
+     * Grub — see {@link BaitEffect#scaledByQuality}) and fish tanks keep the component past this
+     * point.
+     */
+    private static void stripQualityIfNotEligible(ItemStack reward, Registry<FishProfile> fishProfiles) {
+        if (!FishQualityHelper.hasQuality(reward)) return;
+        if (reward.is(FishtasticBlocks.FISH_TANK.value().asItem())) return;
+
+        boolean isFish = BuiltInRegistries.ITEM.getResourceKey(reward.getItem())
+                .map(key -> net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .map(fishProfiles::containsKey)
+                .orElse(false);
+        if (!isFish) {
+            FishQualityHelper.removeQuality(reward);
         }
-        return treasureRewards;
     }
 
-    private static List<ItemStack> generateTreasureRewards(RandomSource randomSource, List<ItemStack> possibleTreasures, int numRewards) {
+    private List<ItemStack> generateTreasureRewards(RandomSource randomSource, LootParams lootParams, float qualityBias, int numRewards, @Nullable FishQuality.Quality forcedQuality) {
+        FishQuality.Quality quality = forcedQuality != null ? forcedQuality : FishtasticFishItem.sampleRandomQuality(randomSource, qualityBias);
+
+        if (quality == FishQuality.Quality.LEGENDARY) {
+            return List.of(generateLegendaryTreasureTank(randomSource));
+        }
+
+        String tableName = TREASURE_LOOT_TABLE_NAMES.get(quality);
+        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(
+                net.minecraft.resources.ResourceKey.create(Registries.LOOT_TABLE, Fishtastic.id(tableName)));
+
         List<ItemStack> rewardStacks = new ArrayList<>();
         for (int n = 0; n < numRewards; n++) {
-            if (possibleTreasures.isEmpty()) break;
-            rewardStacks.add(possibleTreasures.get(randomSource.nextInt(possibleTreasures.size())).copy());
+            for (ItemStack stack : lootTable.getRandomItems(lootParams)) {
+                ItemStack reward = stack.copy();
+                reward.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
+                rewardStacks.add(reward);
+            }
         }
         return rewardStacks;
+    }
+
+    /**
+     * Legendary treasure: a {@code fishtastic:fish_tank} whose frame/sand/glass and shape are each
+     * rolled independently from the preset lists above, rather than a fixed preset combo like the
+     * shop/quest tanks — every legendary pull is a fresh combination. Shape rolls uniformly across
+     * every {@link FishTankShape}, including ones normally locked behind quest unlocks — same
+     * precedent as Epic/Legendary-tier charms bypassing their shop/quest gates as a rare RNG bonus.
+     */
+    private static ItemStack generateLegendaryTreasureTank(RandomSource randomSource) {
+        Block frame = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_FRAMES.get(randomSource.nextInt(LEGENDARY_TANK_FRAMES.size())));
+        Block sand = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_SANDS.get(randomSource.nextInt(LEGENDARY_TANK_SANDS.size())));
+        Block glass = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_GLASS.get(randomSource.nextInt(LEGENDARY_TANK_GLASS.size())));
+        FishTankShape[] shapes = FishTankShape.values();
+        FishTankShape shape = shapes[randomSource.nextInt(shapes.length)];
+
+        ItemStack tank = new ItemStack(FishtasticBlocks.FISH_TANK.value(), LEGENDARY_TANK_COUNT);
+        tank.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), new FishTankMaterials(frame, sand, glass));
+        tank.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
+        tank.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.LEGENDARY));
+        return tank;
     }
 
     private static @NotNull List<Holder<Item>> getTrashPool(ServerPlayer player) {
@@ -746,54 +925,21 @@ public class FishingMinigameManager {
     }
 
     /**
-     * Delivery effect for the Little Fish Box charm: fills existing Pile of Fish stacks in the
-     * player's inventory first, then creates new piles for any remainder. Mirrors the manual
-     * click-driven insertion in {@link PileOfFishItem} but goes straight through
-     * {@link BundleContents.Mutable} since there's no slot/click to route through here.
-     * <p>
-     * When a new pile has to be created, any other loose fish/sized items already sitting in
-     * the inventory are swept into it too. This isn't just a convenience — {@link PileOfFishItem}
-     * auto-unpacks any pile that drops to exactly 1 item back into a loose stack on the next
-     * inventory tick (its single-item safety net). Since most catches are a single fish, a
-     * freshly-created pile with just that one fish would otherwise get unpacked again before
-     * the next cast, so single catches would never actually accumulate. Combining with a loose
-     * item up front (or, failing that, letting the *next* catch's sweep find this one after it
-     * unpacks) keeps the pile at 2+ items so it survives.
+     * Sums {@code extractor} across every charm in the player's inventory (not just the rod's
+     * charm slot — same passive-from-anywhere reach as {@link #findCharmSlotInInventory}), then
+     * clamps the total to {@code cap}. Used by {@link SunsetExtensionHandler} so a player carrying
+     * several Sunset Postcard Charms doesn't contribute more than one player's fair share.
      */
-    private static void addToFishPiles(ServerPlayer player, ItemStack reward) {
+    static float sumCharmEffectInInventory(ServerPlayer player, java.util.function.ToDoubleFunction<CharmEffect> extractor, float cap) {
         Inventory inventory = player.getInventory();
-        for (int i = 0; i < inventory.getContainerSize() && !reward.isEmpty(); i++) {
-            ItemStack slotStack = inventory.getItem(i);
-            if (slotStack.is(FishtasticItems.PILE_OF_FISH.value())) {
-                BundleContents.Mutable contents = new BundleContents.Mutable(
-                        slotStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
-                contents.tryInsert(reward);
-                slotStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        float total = 0.0f;
+        for (int i = 0; i < inventory.getContainerSize() && total < cap; i++) {
+            CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
+            if (effect != null) {
+                total += (float) extractor.applyAsDouble(effect);
             }
         }
-        while (!reward.isEmpty()) {
-            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
-            int beforeCount = reward.getCount();
-            contents.tryInsert(reward);
-            if (reward.getCount() == beforeCount) {
-                break; // a fresh, empty pile couldn't accept anything — avoid spinning forever
-            }
-
-            for (int i = 0; i < inventory.getContainerSize(); i++) {
-                ItemStack slotStack = inventory.getItem(i);
-                if (!slotStack.isEmpty() && !slotStack.is(FishtasticItems.PILE_OF_FISH.value())
-                        && PileOfFishItem.canInsertInPile(slotStack)) {
-                    contents.tryInsert(slotStack);
-                }
-            }
-
-            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-            inventory.add(newPile);
-            if (!newPile.isEmpty()) {
-                player.drop(newPile, false);
-            }
-        }
+        return Math.min(total, cap);
     }
 
     /** @return a single copy of the bait item if this consumption emptied the stack, else EMPTY. */
@@ -834,6 +980,32 @@ public class FishingMinigameManager {
         // damage/break sound/shrink-on-break itself.
         damagePassiveCharmInInventory(player, CharmEffect::autoPileFish);
         damagePassiveCharmInInventory(player, CharmEffect::showTopWeightedFish);
+        damagePassiveCharmInInventory(player, effect -> effect.baitSaveChance() > 0.0f);
+    }
+
+    /**
+     * Rolls, once, whether a bait-save-chance charm (equipped in the rod's charm slot or
+     * carried passively in the inventory — see {@link #inventoryBaitSaveChance}) saves the bait
+     * this session. Called at cast time so the outcome can be told to the client up front (see
+     * {@link ActiveSession#baitWillBeSaved}) instead of being decided too late for its minigame
+     * animation to react to correctly.
+     */
+    private static boolean rollBaitWillBeSaved(ServerPlayer player, @Nullable CharmEffect deliveryCharmEffect) {
+        float baitSaveChance = Math.max(
+                deliveryCharmEffect != null ? deliveryCharmEffect.baitSaveChance() : 0.0f,
+                inventoryBaitSaveChance(player));
+        return baitSaveChance > 0.0f && player.getRandom().nextFloat() < baitSaveChance;
+    }
+
+    /**
+     * Bait Buddy's save-chance is passive, like {@link CharmEffect#autoPileFish()}: it works
+     * from anywhere in the inventory, not just the rod's charm slot.
+     */
+    private static float inventoryBaitSaveChance(ServerPlayer player) {
+        int slot = findCharmSlotInInventory(player, effect -> effect.baitSaveChance() > 0.0f);
+        if (slot < 0) return 0.0f;
+        CharmEffect effect = player.getInventory().getItem(slot).get(FishtasticDataComponents.CHARM_EFFECT.value());
+        return effect == null ? 0.0f : effect.baitSaveChance();
     }
 
     private static void damagePassiveCharmInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
@@ -885,7 +1057,7 @@ public class FishingMinigameManager {
         Holder<Biome> biome = level.getBiome(player.blockPosition());
         Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, player.blockPosition().getY(), level.getSeaLevel());
         activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones));
+                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones, false));
         return sessionId;
     }
 
@@ -898,10 +1070,29 @@ public class FishingMinigameManager {
         final FishProfile.TimeOfDay hookTimeOfDay;
         final FishProfile.WeatherCondition hookWeather;
         final Set<FishProfile.Zone> hookZones;
+        // Decided once at cast time (see FishingMinigameManager#rollBaitWillBeSaved) rather than
+        // re-rolled at completion, so the client's minigame animation — told the same value in
+        // StartFishingMinigamePacket — can show the correct bait pop-off/charm-save effect instead
+        // of predicting blind and guessing wrong whenever the charm actually saves the bait.
+        final boolean baitWillBeSaved;
+        // The bait item loaded on the rod when this session was cast, or null if none — resolved
+        // once here rather than re-read at completion since the rod's bait slot may have changed
+        // (or been consumed) by the time results come back. Feeds QuestObjective#distinctBaitTag
+        // matching in QuestTracker; unrelated to baitWillBeSaved, which only governs whether this
+        // bait is consumed.
+        @Nullable
+        final Identifier hookBaitId;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
-                Set<FishProfile.Zone> hookZones) {
+                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved) {
+            this(sessionId, playerId, targets, startTime, hookBiome, hookTimeOfDay, hookWeather, hookZones,
+                    baitWillBeSaved, null);
+        }
+
+        ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
+                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
+                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved, @Nullable Identifier hookBaitId) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
@@ -910,6 +1101,8 @@ public class FishingMinigameManager {
             this.hookTimeOfDay = hookTimeOfDay;
             this.hookWeather = hookWeather;
             this.hookZones = hookZones;
+            this.baitWillBeSaved = baitWillBeSaved;
+            this.hookBaitId = hookBaitId;
         }
     }
 

@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"The Grand Haul\".",
+  "display_name": "The Grand Haul Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:gold_block",
+          "glass": "fishtastic:yellow_clear_stained_glass",
+          "sand": "minecraft:red_sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:challenge/the_grand_haul"
+  ],
+  "weight": 0.5
+}

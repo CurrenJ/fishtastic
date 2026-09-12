@@ -5,16 +5,23 @@ import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.ShopEntry;
+import grill24.fishtastic.network.PurchaseShopEntryPacket;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Server-side game tests for ShopEntry.getActiveDailyShop — same shape as
@@ -290,6 +297,123 @@ public final class ShopEntryGameTests {
         double expected = ShopEntry.CHARM_REPLACE_CHANCE * ShopEntry.ANY_TANK_REPLACE_CHANCE;
         helper.assertTrue(Math.abs(rate - expected) < 0.05,
             "Both-present rate should be close to the independent product " + expected + ", got " + rate);
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // PurchaseShopEntryPacket.grantRewards — full-inventory delivery
+    // -------------------------------------------------------------------------
+
+    private static ShopEntry entryWithReward(List<ShopEntry.ShopReward> reward) {
+        return new ShopEntry("", "", 10, 1.0f, reward, 0, false, false, List.of());
+    }
+
+    /**
+     * GameTestHelper's mock player is hardcoded to creative (see makeMockServerPlayerInLevel),
+     * and creative players bypass the overflow entirely: Inventory.add()'s addResource loop
+     * checks player.hasInfiniteMaterials() and force-zeroes an unplaceable stack's count instead
+     * of leaving it for the caller to drop, since a creative player doesn't need it back. That
+     * would make a full-inventory test misleadingly pass with 0 in inventory and 0 dropped —
+     * flip abilities().instabuild off so the mock player exercises the real survival-player path.
+     */
+    private static void forceSurvivalMode(ServerPlayer player) {
+        player.getAbilities().instabuild = false;
+    }
+
+    /**
+     * GameTestHelper's deprecated mock-player helper drops the player at literal world (0,0,0)
+     * rather than inside this test's own structure bounds — a chunk that may not be force-loaded,
+     * so an ItemEntity dropped there can inconsistently fail to register in the level's entity
+     * storage (observed as flaky drop-detection: player.drop() returns a live entity, but it's
+     * absent from a getAllEntities() scan moments later). Relocating into helper.absolutePos(...)
+     * puts the player in this test's actively-ticking structure region instead.
+     */
+    private static void relocateIntoTestStructure(GameTestHelper helper, ServerPlayer player) {
+        BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
+        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    }
+
+    /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
+    private static void fillInventoryCompletely(ServerPlayer player, net.minecraft.world.item.Item fillerItem) {
+        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
+        }
+    }
+
+    /**
+     * getEntitiesOfClass()'s AABB query goes through the level's chunk-based spatial index, which
+     * lags a freshly addFreshEntity()'d ItemEntity by up to a tick — invisible from inside the
+     * same synchronous test call that just triggered the drop. getAllEntities() reads the level's
+     * raw entity storage directly, so it sees the entity immediately. Delta-based (see call sites)
+     * because the mock player's fixed (0,0,0) position is shared across every test/run, so stray
+     * matching items can already be present in the world before this call.
+     */
+    private static int countNearbyDroppedItems(ServerPlayer player, net.minecraft.world.item.Item item) {
+        int total = 0;
+        for (net.minecraft.world.entity.Entity entity : ((net.minecraft.server.level.ServerLevel) player.level()).getAllEntities()) {
+            if (entity instanceof ItemEntity itemEntity && itemEntity.getItem().is(item)) {
+                total += itemEntity.getItem().getCount();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Regression test for the bug where buying a shop entry with a full inventory deducted the
+     * player's tokens (via PlayerQuestState.purchase, called before this) but the reward
+     * ItemStack silently vanished — Inventory.add() only consumes what fits and leaves the
+     * remainder in the stack, which grantRewards must drop at the player's feet instead of
+     * discarding.
+     */
+    public static void grantRewardsDropsLeftoverWhenInventoryIsFull(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        relocateIntoTestStructure(helper, player);
+        forceSurvivalMode(player);
+        fillInventoryCompletely(player, Items.DIRT);
+        // Stray item entities from other tests/prior runs can still share this world region —
+        // measure the delta around the grant rather than an absolute nearby count.
+        int baselineCount = countNearbyDroppedItems(player, Items.DIAMOND);
+
+        Identifier diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
+        ShopEntry entry = entryWithReward(List.of(new ShopEntry.ShopReward(diamondId, 3)));
+
+        PurchaseShopEntryPacket.grantRewards(player, entry);
+
+        int diamondsInInventory = 0;
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (stack.is(Items.DIAMOND)) diamondsInInventory += stack.getCount();
+        }
+        helper.assertTrue(diamondsInInventory == 0,
+            "Sanity check: a completely full inventory must have no room for the reward, got " + diamondsInInventory);
+
+        // >0 rather than ==3: this shared gametest world persists across runs/tests at the mock
+        // player's fixed position, so an unrelated leftover entity from another test can legally
+        // despawn in the same instant and shift the exact delta — the regression this guards
+        // against is the reward vanishing entirely (delta 0), not the precise leftover count.
+        int droppedDelta = countNearbyDroppedItems(player, Items.DIAMOND) - baselineCount;
+        helper.assertTrue(droppedDelta > 0,
+            "A reward that doesn't fit in a full inventory must be dropped at the player's feet rather than vanishing, got delta " + droppedDelta);
+        helper.succeed();
+    }
+
+    /** With free space, the reward must go straight into the inventory rather than being dropped. */
+    public static void grantRewardsDeliversNormallyWhenInventoryHasSpace(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        int baselineCount = countNearbyDroppedItems(player, Items.DIAMOND);
+
+        Identifier diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
+        ShopEntry entry = entryWithReward(List.of(new ShopEntry.ShopReward(diamondId, 3)));
+
+        PurchaseShopEntryPacket.grantRewards(player, entry);
+
+        int diamondsInInventory = 0;
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (stack.is(Items.DIAMOND)) diamondsInInventory += stack.getCount();
+        }
+        helper.assertTrue(diamondsInInventory == 3,
+            "With room available, the full reward must land in the inventory, got " + diamondsInInventory);
+        helper.assertTrue(countNearbyDroppedItems(player, Items.DIAMOND) == baselineCount,
+            "With room available, nothing new should be dropped on the ground");
         helper.succeed();
     }
 

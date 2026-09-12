@@ -64,10 +64,12 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.NEON_TETRA.value());
                     output.accept(FishtasticItems.NORTHERN_PIKE.value());
                     output.accept(FishtasticItems.OCEAN_SUNFISH.value());
+                    output.accept(FishtasticItems.OPHISTERNON_CANDIDUM.value());
                     output.accept(FishtasticItems.ORANGE_AUSTRALE_KILLIFISH.value());
                     output.accept(FishtasticItems.ORNATE_BICHIR.value());
                     output.accept(FishtasticItems.OSCAR.value());
                     output.accept(FishtasticItems.PARROTFISH.value());
+                    output.accept(FishtasticItems.PLAICE.value());
                     output.accept(FishtasticItems.PORTUGUESE_MAN_O_WAR.value());
                     output.accept(FishtasticItems.RAINBOW_TROUT.value());
                     output.accept(FishtasticItems.RAINFORDIA.value());
@@ -95,8 +97,12 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.BANANA_CHARM.value());
                     output.accept(FishtasticItems.ANGLERS_ALMANAC.value());
                     output.accept(FishtasticItems.LITTLE_FISH_BOX.value());
+                    output.accept(FishtasticItems.BAIT_BUDDY_CHARM.value());
+                    output.accept(FishtasticItems.SUNSET_POSTCARD_CHARM.value());
                     output.accept(FishtasticItems.STORM_CHARM.value());
                     output.accept(FishtasticItems.PILE_OF_COINS.value());
+                    output.accept(FishtasticItems.SMALL_PILE_OF_COINS.value());
+                    output.accept(FishtasticItems.MEDIUM_PILE_OF_COINS.value());
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
                     output.accept(FishtasticItems.FISHOPEDIA.value());
                     output.accept(FishtasticItems.QUEST_BOOK.value());
@@ -110,6 +116,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
                     output.accept(FishtasticBlocks.FISH_TANK.value());
                     output.accept(FishtasticBlocks.MARINE_COMPOST.value());
+                    output.accept(FishtasticBlocks.ELECTRIC_FISH_ORGANIZER.value());
 
                     // Undyed glass
                     output.accept(FishtasticBlocks.BORDERLESS_GLASS.value());

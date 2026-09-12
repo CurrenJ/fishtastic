@@ -1,0 +1,13 @@
+{
+    "texture": "fishtastic:textures/misc/charm_glow/sunset_postcard_charm.png",
+    "conditions": [
+        {
+            "type": "item",
+            "item": "fishtastic:sunset_postcard_charm"
+        }
+    ],
+    "priority": 30,
+    "outline_color": -558304,
+    "outline_falloff": 0.55,
+    "outline_width": 0.75
+}

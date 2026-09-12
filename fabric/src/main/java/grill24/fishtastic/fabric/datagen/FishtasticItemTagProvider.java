@@ -74,6 +74,18 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FRENZY_BAIT.value())
                 .add(FishtasticItems.TROPHY_BAIT.value());
 
+        // Super bait: premium all-purpose baits, shown as "Super Bait" in gold on the item name.
+        valueLookupBuilder(FishtasticItemTags.SUPER_BAIT)
+                .add(FishtasticItems.GUMMY_WORMS.value())
+                .add(FishtasticItems.BLAZED_GRUB.value());
+
+        // Specialist bait: single-affinity baits with a downside, shown in light blue on the item name.
+        valueLookupBuilder(FishtasticItemTags.SPECIALIST_BAIT)
+                .add(FishtasticItems.SMALL_FISH_BAIT.value())
+                .add(FishtasticItems.CALM_BAIT.value())
+                .add(FishtasticItems.FRENZY_BAIT.value())
+                .add(FishtasticItems.TROPHY_BAIT.value());
+
         valueLookupBuilder(ItemTags.FISHING_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
 
@@ -98,7 +110,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value())
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
-                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
+                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
@@ -106,7 +119,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
-                .add(FishtasticItems.ACUTE_IASPIS.value());
+                .add(FishtasticItems.ACUTE_IASPIS.value())
+                .add(FishtasticItems.ELECTRIC_EEL.value());
 
         // Small fish: bait-affinity/encyclopedia cluster for small or delicate species.
         // Curated membership (not derivable from fish_profile), so listed here rather than
@@ -141,7 +155,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.LINED_SEAHORSE.value())
                 .add(FishtasticItems.YELLOWSTRIPE_GRUNT.value())
                 .add(FishtasticItems.DISCUS.value())
-                .add(FishtasticItems.CHAUNACOPS.value());
+                .add(FishtasticItems.CHAUNACOPS.value())
+                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
 
         // Calm fish: bait-affinity/encyclopedia cluster for docile, easy catches.
         // Curated membership (not derivable from fish_profile), same rationale as above.

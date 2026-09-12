@@ -13,8 +13,6 @@ import java.util.Map;
 public class QuestClientCache {
     /** Must match the day length {@code ServerTickHandler}/{@code QuestTracker} use to compute {@code currentDay}. */
     private static final long DAY_TICKS = 24000L;
-    /** Must match the period length {@code FishCatchSavedData#resetCleanupGoalIfNeeded} anchors to. */
-    private static final long CLEANUP_GOAL_PERIOD_TICKS = DAY_TICKS * 7L;
 
     private static Map<Identifier, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
     private static int tokenBalance = 0;
@@ -159,6 +157,11 @@ public class QuestClientCache {
         return cleanupGoal.threshold();
     }
 
+    /** Current cycle's contributors, sorted descending and capped at 10 (already trimmed server-side). */
+    public static List<CleanupGoalProgress.Contributor> getCleanupGoalContributors() {
+        return cleanupGoal.contributors();
+    }
+
     public static Map<Identifier, PlayerQuestState.QuestProgress> getQuestProgress() {
         return questProgress;
     }
@@ -190,13 +193,6 @@ public class QuestClientCache {
         long time = estimatedServerGameTime();
         if (time < 0) return -1;
         return DAY_TICKS - Math.floorMod(time, DAY_TICKS);
-    }
-
-    /** Ticks remaining until the shared cleanup goal period rolls over, or -1 if unknown. */
-    public static long getTicksUntilCleanupGoalReset() {
-        long time = estimatedServerGameTime();
-        if (time < 0) return -1;
-        return CLEANUP_GOAL_PERIOD_TICKS - Math.floorMod(time, CLEANUP_GOAL_PERIOD_TICKS);
     }
 
     /** Reset the cache to a clean state. Call on client disconnect / world exit. */

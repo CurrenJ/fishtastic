@@ -15,6 +15,10 @@ public class FishtasticItemTags {
     public static final TagKey<Item> TRASH = create("trash");
     public static final TagKey<Item> TREASURE = create("treasure");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");
+    /** The two premium all-purpose baits (Blazed Grub, Gummy Worms) — shown as "Super Bait" in gold. */
+    public static final TagKey<Item> SUPER_BAIT = create("super_bait");
+    /** The four specialist baits (Small Fish/Calm/Frenzy/Trophy) — shown as "Bait" in light blue. */
+    public static final TagKey<Item> SPECIALIST_BAIT = create("specialist_bait");
     public static final TagKey<Item> FISHING_HOOKS = create("fishing_hooks");
     public static final TagKey<Item> FISHING_CHARMS = create("fishing_charms");
     public static final TagKey<Item> EXOTIC_FISH = create("exotic_fish");
@@ -25,6 +29,11 @@ public class FishtasticItemTags {
     public static final TagKey<Item> STEADY_FISH = create("steady_fish");
     public static final TagKey<Item> FRENZY_FISH = create("frenzy_fish");
     public static final TagKey<Item> COLOR_YELLOW = create("color_yellow");
+    public static final TagKey<Item> COLOR_ORANGE = create("color_orange");
+    public static final TagKey<Item> COLOR_PINK = create("color_pink");
+    public static final TagKey<Item> COLOR_RED = create("color_red");
+    /** Union of {@link #COLOR_YELLOW}, {@link #COLOR_ORANGE}, {@link #COLOR_PINK} and {@link #COLOR_RED} — the "sunset-hued fish" quest condition. */
+    public static final TagKey<Item> COLOR_SUNSET = create("color_sunset");
     public static final TagKey<Item> ZONE_OCEAN = create("zone_ocean");
     public static final TagKey<Item> ZONE_DEEP_OCEAN = create("zone_deep_ocean");
     public static final TagKey<Item> ZONE_RIVER = create("zone_river");

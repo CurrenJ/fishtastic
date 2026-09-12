@@ -100,7 +100,7 @@ public final class PacketRoundTripGameTests {
             BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value())
         );
         StartFishingMinigamePacket original =
-            new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered);
+            new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered, true);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
@@ -116,6 +116,7 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.zones().equals(original.zones()), "zones must round-trip");
         helper.assertTrue(decoded.undiscoveredSpecies().equals(original.undiscoveredSpecies()),
             "undiscoveredSpecies must round-trip, got " + decoded.undiscoveredSpecies());
+        helper.assertTrue(decoded.baitWillBeSaved() == original.baitWillBeSaved(), "baitWillBeSaved must round-trip");
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
         helper.assertTrue(decodedTarget.category() == target.category(), "TargetData.category must round-trip");
@@ -165,8 +166,12 @@ public final class PacketRoundTripGameTests {
         ItemStack baitStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 1);
         List<ItemStack> firstCatchItems = List.of(new ItemStack(FishtasticItems.BLUEGILL.value(), 1));
 
+        List<grill24.fishtastic.network.CleanupGoalProgress.Contributor> contributors = List.of(
+                new grill24.fishtastic.network.CleanupGoalProgress.Contributor(UUID.randomUUID(), "Steve", 90),
+                new grill24.fishtastic.network.CleanupGoalProgress.Contributor(UUID.randomUUID(), "Alex", 30));
+
         QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
-                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0), 12345L,
+                new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0, contributors), 12345L,
                 baitStack, firstCatchItems, 3);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
@@ -207,7 +212,7 @@ public final class PacketRoundTripGameTests {
     public static void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
         QuestSyncPacket original = new QuestSyncPacket(
             Map.of(), 0, Map.of(), Map.of(),
-            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400), 0L,
+            new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400, List.of()), 0L,
             ItemStack.EMPTY, List.of(), 0);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);

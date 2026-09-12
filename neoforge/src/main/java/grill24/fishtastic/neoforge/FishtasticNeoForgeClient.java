@@ -30,9 +30,12 @@ import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.particle.TankBubblePopParticle;
+import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.TankCosmeticTooltip;
@@ -167,6 +170,10 @@ public final class FishtasticNeoForgeClient {
 
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
         event.registerSpriteSet(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
         event.registerSpriteSet(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
         event.registerSpriteSet(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
@@ -180,7 +187,6 @@ public final class FishtasticNeoForgeClient {
         FishtasticKeyBinds.init();
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         event.register(FishtasticKeyBinds.openQuestLog);
-        event.register(FishtasticKeyBinds.toggleFishTankEditMode);
         event.register(FishtasticKeyBinds.openFishEncyclopedia);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
@@ -205,10 +211,13 @@ public final class FishtasticNeoForgeClient {
 
     public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
         event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
+        event.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
+        event.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
     }
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         ItemEffectManager.clearCache();
+        ClientTankFlocks.clear();
     }
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
@@ -217,6 +226,7 @@ public final class FishtasticNeoForgeClient {
         EncyclopediaTutorialClientHandler.reset();
         FishEncyclopediaClientCache.reset();
         CosmeticCaptureClientState.reset();
+        ClientTankFlocks.clear();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -241,6 +251,7 @@ public final class FishtasticNeoForgeClient {
 
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
+            ClientTankFlocks.tickAll();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);

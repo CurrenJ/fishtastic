@@ -1,0 +1,86 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:copper_fishing_rod",
+          "weight": 10
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:copper_fishing_rod",
+          "weight": 8,
+          "functions": [
+            { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:lure": 1 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:copper_fishing_rod",
+          "weight": 5,
+          "functions": [
+            { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:lure": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:copper_fishing_rod",
+          "weight": 2,
+          "functions": [
+            { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:lure": 3 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:old_copper_hook",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:little_fish_box",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:anglers_almanac",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:freshwater_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:ocean_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:predator_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:deep_sea_bait",
+          "weight": 15,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

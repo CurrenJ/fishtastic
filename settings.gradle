@@ -17,6 +17,11 @@ include 'common'
 include 'fabric'
 include 'neoforge'
 
+// Minecraft-free flocking simulation engine (see docs/fish-sim-engine-plan.md) — plain Java,
+// deliberately independent of Minecraft/Loom/Architectury so its unit tests run in seconds and
+// the compile classpath enforces the abstraction. Unlike tools:*, this ships in the mod jar.
+include 'fishsim'
+
 // Standalone dev tooling for the fish tank shape-variants design (see
 // docs/fish-tanks.md) — plain Java, deliberately independent of
 // Minecraft/Loom/Architectury so it builds and iterates fast.

@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"The Unlisted\".",
+  "display_name": "The Unlisted Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:oxidized_copper",
+          "glass": "fishtastic:green_clear_stained_glass",
+          "sand": "minecraft:sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:collector/unlisted_collector"
+  ],
+  "weight": 0.5
+}

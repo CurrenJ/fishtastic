@@ -37,6 +37,7 @@ public class FishtasticBlockLootTableProvider extends FabricBlockLootSubProvider
         this.add(FishtasticBlocks.FISH_TANK.value(), createFishTankDrop(FishtasticBlocks.FISH_TANK.value()));
 
         dropSelf(FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
+        dropSelf(FishtasticBlocks.ELECTRIC_FISH_ORGANIZER.value());
 
         // Glass variants: drop themselves (decorative blocks should always return on break)
         for (DyeColor color : DyeColor.values()) {

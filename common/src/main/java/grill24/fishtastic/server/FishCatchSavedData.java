@@ -147,23 +147,17 @@ public class FishCatchSavedData extends SavedData {
     }
 
     static final class CleanupGoalState {
-        long periodStartDay = -1;
         int totalContributed = 0;
-        int lastThresholdPaidOut = 0;
         final Map<UUID, Integer> contributions = new HashMap<>();
 
         static final Codec<CleanupGoalState> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
-                Codec.LONG.optionalFieldOf("period_start_day", -1L).forGetter(s -> s.periodStartDay),
                 Codec.INT.optionalFieldOf("total_contributed", 0).forGetter(s -> s.totalContributed),
-                Codec.INT.optionalFieldOf("last_threshold_paid_out", 0).forGetter(s -> s.lastThresholdPaidOut),
                 Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT)
                         .optionalFieldOf("contributions", Map.of()).forGetter(s -> new HashMap<>(s.contributions))
-            ).apply(instance, (start, total, paid, contrib) -> {
+            ).apply(instance, (total, contrib) -> {
                 CleanupGoalState s = new CleanupGoalState();
-                s.periodStartDay = start;
                 s.totalContributed = total;
-                s.lastThresholdPaidOut = paid;
                 s.contributions.putAll(contrib);
                 return s;
             })
@@ -469,25 +463,33 @@ public class FishCatchSavedData extends SavedData {
     private static final int CLEANUP_GOAL_REWARD_TOKENS = 50;
 
     /**
-     * Records trash caught by a player toward the shared weekly cleanup goal.
-     * Returns the cumulative totals of any thresholds crossed by this contribution
-     * (usually empty or one entry), so the caller can broadcast a milestone notification.
+     * Records trash caught by a player toward the shared cleanup goal. The goal has no
+     * time-based reset — it only rolls over once it's actually completed (total reaches the
+     * threshold), at which point that cycle's contributors are paid out and a fresh cycle
+     * starts at 0. A single large contribution can complete more than one cycle in a row, so
+     * any leftover carries forward into the next cycle rather than being discarded.
+     *
+     * @return the threshold value once per cycle completed by this contribution (usually
+     * empty or one entry), so the caller can broadcast a milestone notification.
      */
     public List<Integer> recordTrashContribution(ServerPlayer player, int amount) {
         if (amount <= 0) return List.of();
         UUID key = resolvePlayerKey(player);
-        int before = cleanupGoal.totalContributed;
-        cleanupGoal.contributions.merge(key, amount, Integer::sum);
-        cleanupGoal.totalContributed += amount;
 
         List<Integer> crossed = new ArrayList<>();
-        int beforeThresholds = before / CLEANUP_GOAL_THRESHOLD;
-        int afterThresholds = cleanupGoal.totalContributed / CLEANUP_GOAL_THRESHOLD;
-        for (int t = beforeThresholds + 1; t <= afterThresholds; t++) {
-            crossed.add(t * CLEANUP_GOAL_THRESHOLD);
-        }
-        if (!crossed.isEmpty()) {
-            payoutCleanupGoalContributors(crossed.size() * CLEANUP_GOAL_REWARD_TOKENS);
+        int remaining = amount;
+        while (remaining > 0) {
+            int room = CLEANUP_GOAL_THRESHOLD - cleanupGoal.totalContributed;
+            int add = Math.min(remaining, room);
+            cleanupGoal.contributions.merge(key, add, Integer::sum);
+            cleanupGoal.totalContributed += add;
+            remaining -= add;
+
+            if (cleanupGoal.totalContributed >= CLEANUP_GOAL_THRESHOLD) {
+                crossed.add(CLEANUP_GOAL_THRESHOLD);
+                payoutCleanupGoalContributors(CLEANUP_GOAL_REWARD_TOKENS);
+                cleanupGoal = new CleanupGoalState();
+            }
         }
         setDirty();
         return crossed;
@@ -520,20 +522,5 @@ public class FishCatchSavedData extends SavedData {
                 })
                 .sorted(order)
                 .toList();
-    }
-
-    /** Weekly rollover: wipes contributions and re-anchors the period once a new week starts. */
-    public void resetCleanupGoalIfNeeded(long currentWeek) {
-        if (cleanupGoal.periodStartDay < 0) {
-            cleanupGoal.periodStartDay = currentWeek * 7;
-            setDirty();
-            return;
-        }
-        long goalWeek = cleanupGoal.periodStartDay / 7;
-        if (goalWeek < currentWeek) {
-            cleanupGoal = new CleanupGoalState();
-            cleanupGoal.periodStartDay = currentWeek * 7;
-            setDirty();
-        }
     }
 }

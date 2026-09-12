@@ -29,6 +29,9 @@
     ],
     "gelatinui:screen_registration": [
       "grill24.fishtastic.compat.GelatinScreens::registerScreens"
+    ],
+    "jei_mod_plugin": [
+      "grill24.fishtastic.compat.jei.FishtasticJeiPlugin"
     ]
   },
   "mixins": [
@@ -43,6 +46,7 @@
     "fabric-api": "*"
   },
   "suggests": {
-    "gelatinui": "*"
+    "gelatinui": "*",
+    "jei": "*"
   }
 }

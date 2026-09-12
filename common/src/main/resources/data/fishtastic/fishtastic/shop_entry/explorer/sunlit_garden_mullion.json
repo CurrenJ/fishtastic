@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Sunlit Garden\".",
+  "display_name": "Mullion Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:bamboo_block",
+          "glass": "fishtastic:yellow_borderless_stained_glass",
+          "sand": "minecraft:green_concrete_powder"
+        },
+        "fishtastic:fish_tank_shape": "mullion"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/sunlit_garden"
+  ],
+  "weight": 0.5
+}

@@ -91,10 +91,15 @@ public class FishtasticItems {
     public static Holder<Item> BANANA_CHARM;
     public static Holder<Item> LITTLE_FISH_BOX;
     public static Holder<Item> ANGLERS_ALMANAC;
+    public static Holder<Item> BAIT_BUDDY_CHARM;
+    public static Holder<Item> SUNSET_POSTCARD_CHARM;
 
     // ----- Quest Items -----
     // Currency display icon (pile-of-coins texture) — used wherever a token balance/cost/reward is shown.
     public static Holder<Item> PILE_OF_COINS;
+    // Smaller currency display icons — used for quest reward rows, scaled to the token amount.
+    public static Holder<Item> SMALL_PILE_OF_COINS;
+    public static Holder<Item> MEDIUM_PILE_OF_COINS;
     // Single-coin texture, decorative only — used for the mini coin-fly particles on quest claim.
     public static Holder<Item> QUEST_TOKEN;
 
@@ -180,10 +185,12 @@ public class FishtasticItems {
     public static Holder<Item> NEON_TETRA;
     public static Holder<Item> NORTHERN_PIKE;
     public static Holder<Item> OCEAN_SUNFISH;
+    public static Holder<Item> OPHISTERNON_CANDIDUM;
     public static Holder<Item> ORANGE_AUSTRALE_KILLIFISH;
     public static Holder<Item> ORNATE_BICHIR;
     public static Holder<Item> OSCAR;
     public static Holder<Item> PARROTFISH;
+    public static Holder<Item> PLAICE;
     public static Holder<Item> PORTUGUESE_MAN_O_WAR;
     public static Holder<Item> RAINBOW_TROUT;
     public static Holder<Item> RAINFORDIA;
@@ -269,10 +276,12 @@ public class FishtasticItems {
         NEON_TETRA = RegistrationApiSided.getInstance().registerItem("neon_tetra", loc -> new FishtasticFishItem(props(loc)));
         NORTHERN_PIKE = RegistrationApiSided.getInstance().registerItem("northern_pike", loc -> new FishtasticFishItem(props(loc)));
         OCEAN_SUNFISH = RegistrationApiSided.getInstance().registerItem("ocean_sunfish", loc -> new FishtasticFishItem(props(loc)));
+        OPHISTERNON_CANDIDUM = RegistrationApiSided.getInstance().registerItem("ophisternon_candidum", loc -> new FishtasticFishItem(props(loc)));
         ORANGE_AUSTRALE_KILLIFISH = RegistrationApiSided.getInstance().registerItem("orange_australe_killifish", loc -> new FishtasticFishItem(props(loc)));
         ORNATE_BICHIR = RegistrationApiSided.getInstance().registerItem("ornate_bichir", loc -> new FishtasticFishItem(props(loc)));
         OSCAR = RegistrationApiSided.getInstance().registerItem("oscar", loc -> new FishtasticFishItem(props(loc)));
         PARROTFISH = RegistrationApiSided.getInstance().registerItem("parrotfish", loc -> new FishtasticFishItem(props(loc)));
+        PLAICE = RegistrationApiSided.getInstance().registerItem("plaice", loc -> new FishtasticFishItem(props(loc)));
         PORTUGUESE_MAN_O_WAR = RegistrationApiSided.getInstance().registerItem("portuguese_man_o_war", loc -> new FishtasticFishItem(props(loc)));
         RAINBOW_TROUT = RegistrationApiSided.getInstance().registerItem("rainbow_trout", loc -> new FishtasticFishItem(props(loc)));
         RAINFORDIA = RegistrationApiSided.getInstance().registerItem("rainfordia", loc -> new FishtasticFishItem(props(loc)));
@@ -318,32 +327,50 @@ public class FishtasticItems {
         // at 75-100 vs most tag-mates at 2-7) would eat almost all of the boosted weight. Chosen
         // per tag from its actual base_weight spread: small_fish/frenzy_fish span 2-100 (strong
         // flattening), calm_fish spans 2-75 (strong), big_fish is already tight at 2-15 (mild).
+        // smallBobber true — Small Fish Bait's downside: a shorter bobber (see
+        // FishingMinigameAnimation.LAYOUT_SMALL) narrows the catch window for the whole session,
+        // punishing sloppy centering on its already-boosted small-fish pool. Session-wide, not a
+        // per-fish FishGroupAffinity field, since only one bobber renders per cast — see
+        // BaitEffect.smallBobber's field doc.
         SMALL_FISH_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 2.0f, 0.3f, 0.35f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 2.0f, 0.3f, 0.35f)),
+                                1.0f, true))));
+        // catchProgressMultiplier 0.7 — Calm Bait's downside: favored (calm) catches fill the
+        // catch bar at 70% rate (milder than Trophy's 0.5x — calm isn't meant to be as punishing,
+        // just less of a pushover), per the 2026-09-08 bait-downside pass.
         CALM_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 2.0f, 0.3f, 0.4f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 2.0f, 0.3f, 0.4f, 1.0f, 0.7f))))));
         // multiplier raised 1.5->2.2 (and, for Trophy Bait, rarityExponent steepened 0.6->0.45)
         // per the 2026-07-24 bait balance audit: Gummy Worms' rarityFlattening=0.85 was
         // dominating both baits' rare/uncommon tag-mates. New values move the crossover point
         // vs Gummy Worms to base_weight ~12-13 (up from ~4.4 for Frenzy, ~0.6 for Trophy) — see
         // [[feedback_fish_multiplier_cap]] memory. (Not Gummy Worms' modFishMultiplier — that's
         // a flat pool-wide scalar, inert against anything; see its field doc.)
+        // targetSpeedMultiplier 1.6 — Frenzy Bait's actual "frenzy": favored catches move ~60%
+        // faster (drift/dart/oscillate/flee/lunge, minigame-only) during the catch minigame, per
+        // the 2026-09-08 feedback that the bait didn't feel frenzied enough. This is the bait's
+        // slight challenge/downside counterweight for its 2.2x catch-odds boost — see
+        // FishGroupAffinity.targetSpeedMultiplier's field doc.
         FRENZY_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 2.2f, 0.3f, 0.35f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 2.2f, 0.3f, 0.35f, 1.6f))))));
+        // catchProgressMultiplier 0.5 — Trophy Bait's downside: favored (big) catches are chonky
+        // and fill the catch bar at half rate, roughly doubling how long they take to reel in
+        // (minigame-only; see FishGroupAffinity.catchProgressMultiplier's field doc). This bait's
+        // counterweight for its 2.2x catch-odds boost, per the 2026-09-08 bait-downside pass.
         TROPHY_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
                 loc -> new FishtasticFishItem(props(loc)
                         .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
                                 0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, -1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 2.2f, 0.3f, 0.45f))))));
+                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 2.2f, 0.3f, 0.45f, 1.0f, 0.5f))))));
 
         // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance
         HOOK = RegistrationApiSided.getInstance().registerItem("hook",
@@ -379,8 +406,20 @@ public class FishtasticItems {
         LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box",
                 loc -> new FishtasticFishItem(props(loc).durability(64)
                         .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LITTLE_FISH_BOX)));
+        BAIT_BUDDY_CHARM = RegistrationApiSided.getInstance().registerItem("bait_buddy_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(64)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BAIT_BUDDY_CHARM)));
+        // Passive like Little Fish Box/Angler's Almanac — works from anywhere in inventory, no
+        // rod-slotting required. See SunsetExtensionHandler for the tick-driven dusk slowdown.
+        SUNSET_POSTCARD_CHARM = RegistrationApiSided.getInstance().registerItem("sunset_postcard_charm",
+                loc -> new FishtasticFishItem(props(loc).durability(64)
+                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.SUNSET_POSTCARD_CHARM)));
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
+                loc -> new Item(props(loc).stacksTo(64)));
+        SMALL_PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("small_pile_of_coins",
+                loc -> new Item(props(loc).stacksTo(64)));
+        MEDIUM_PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("medium_pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));
         QUEST_TOKEN = RegistrationApiSided.getInstance().registerItem("quest_token",
                 loc -> new Item(props(loc).stacksTo(64)));

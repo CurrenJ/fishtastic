@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Abyssal Cartographer\".",
+  "display_name": "Sturdy Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:dark_prismarine",
+          "glass": "fishtastic:blue_clear_stained_glass",
+          "sand": "minecraft:gravel"
+        },
+        "fishtastic:fish_tank_shape": "sturdy"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:collector/deep_ocean_collector"
+  ],
+  "weight": 0.5
+}

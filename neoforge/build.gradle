@@ -45,9 +45,24 @@ dependencies {
 
     implementation("io.github.currenj.gelatinui:gelatinui-neoforge:${gelatinui_version}")
 
+    // JEI integration is optional at runtime — compile-only api, plus the full jar as a
+    // dev-time convenience so `runClient` can exercise the integration locally.
+    // transitive = false: JEI's published neoforge-api/neoforge POMs declare their common-api
+    // dependency under a bogus "build" groupId (a JEI publishing quirk), which fails
+    // resolution — harmless to disable since we depend on common-api explicitly ourselves.
+    compileOnly("mezz.jei:jei-26.1.2-common-api:${rootProject.jei_version}")
+    compileOnly("mezz.jei:jei-26.1.2-neoforge-api:${rootProject.jei_version}") { transitive = false }
+    localRuntime("mezz.jei:jei-26.1.2-neoforge:${rootProject.jei_version}") { transitive = false }
+
     // namedElements no longer exists in loom-no-remap; reference common directly.
     common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+
+    // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev
+    // classpath dep and a shadowBundle entry — dev runs resolve the former, the shipped jar only
+    // contains the latter (skipping it = NoClassDefFoundError in production).
+    implementation project(':fishsim')
+    shadowBundle project(':fishsim')
 
     // Testmod: access the compiled main classes.
     testmodImplementation sourceSets.main.output
@@ -92,6 +107,12 @@ shadowJar {
     // grill24.fishtastic.env.DevEnvironmentCheck, which stays in the jar, so a missing class here is safe.
     exclude 'grill24/fishtastic/mcp/**'
     exclude 'grill24/fishtastic/neoforge/mcp/**'
+
+    // fishsim's render/harness/viewer packages are dev-only verification tooling (headless PNG/GIF
+    // export, the desktop viewer) — only core/ and domain/ are reachable from the mod at runtime.
+    exclude 'grill24/fishsim/render/**'
+    exclude 'grill24/fishsim/harness/**'
+    exclude 'grill24/fishsim/viewer/**'
 }
 
 // Redirect components.java to publish the shadow jar instead of the plain jar.

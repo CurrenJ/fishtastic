@@ -488,7 +488,7 @@ public final class QuestTrackerGameTests {
         FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
         PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
 
-        helper.assertTrue(!shape.isUnlockedFor(k -> state.getProgress(k).claimed()),
+        helper.assertTrue(!shape.isUnlockedFor(quests, k -> state.getProgress(k).claimed()),
             shape + " must start locked before " + questPath + " is claimed");
 
         for (int i = 0; i < target - 1; i++) {
@@ -504,7 +504,7 @@ public final class QuestTrackerGameTests {
         helper.assertTrue(state.canClaim(questKey, target), questPath + " must be claimable once completed");
 
         state.claim(questKey, quest.reward().questTokens());
-        helper.assertTrue(shape.isUnlockedFor(k -> state.getProgress(k).claimed()),
+        helper.assertTrue(shape.isUnlockedFor(quests, k -> state.getProgress(k).claimed()),
             shape + " must unlock once " + questPath + " is claimed");
     }
 

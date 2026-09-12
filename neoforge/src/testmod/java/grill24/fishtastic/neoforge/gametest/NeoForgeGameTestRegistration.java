@@ -21,6 +21,7 @@ import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
+import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.StormCharmGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
@@ -137,8 +138,8 @@ public class NeoForgeGameTestRegistration {
             helper -> FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "crossing_threshold_pays_out_tokens_proportionally", 200,
             helper -> FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "reset_cleanup_goal_if_needed_wipes_contributions_on_new_week", 200,
-            helper -> FishCatchDataGameTests.resetCleanupGoalIfNeededWipesContributionsOnNewWeek(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "cleanup_goal_only_resets_on_completion_not_over_time", 200,
+            helper -> FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "get_cleanup_goal_contributors_lists_all_contributors", 200,
             helper -> FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
@@ -335,6 +336,10 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::cosmeticsRoundTrip);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
+        register(event, env, "honeycomb_sealed_face_is_blocked_even_when_grouped_via_another_path", 200,
+            FishTankGameTests::honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath);
+        register(event, env, "honeycomb_sealed_isolated_pair_form_separate_groups", 200,
+            FishTankGameTests::honeycombSealedIsolatedPairFormSeparateGroups);
         register(event, env, "broken_tank_drop_carries_shape_and_materials", 200,
             FishTankGameTests::brokenTankDropCarriesShapeAndMaterials);
         register(event, env, "broken_tank_drop_restores_shape_when_replaced", 200,
@@ -479,8 +484,10 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "trash_chance_one_always_awards_trash_items", 200,
             helper -> FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "treasure_chance_one_with_zero_trash_never_awards_trash", 200,
-            helper -> FishingMinigameManagerGameTests.treasureChanceOneWithZeroTrashNeverAwardsTrash(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_drops_reward_at_player_feet_when_inventory_is_full", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "handle_minigame_complete_drops_reward_when_inventory_is_full_and_auto_pile_fish_is_active", 200,
+            helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,
@@ -509,6 +516,20 @@ public class NeoForgeGameTestRegistration {
             ShopEntryGameTests::getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly);
         register(event, env, "get_active_daily_shop_charm_and_tank_shape_replacements_can_coexist", 200,
             ShopEntryGameTests::getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist);
+        register(event, env, "grant_rewards_drops_leftover_when_inventory_is_full", 200,
+            helper -> ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "grant_rewards_delivers_normally_when_inventory_has_space", 200,
+            helper -> ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- RemoveTankEntryPacket.giveOrDrop -----
+        register(event, env, "give_or_drop_drops_fish_when_inventory_is_full", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_drops_fish_when_inventory_is_full_in_creative_mode", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_delivers_fish_normally_when_inventory_has_space", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "give_or_drop_piles_a_second_fish_into_the_existing_pile", 200,
+            helper -> RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);

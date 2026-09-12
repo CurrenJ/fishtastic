@@ -34,6 +34,10 @@ import java.util.Set;
 
 public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int tickCount = 0;
+    // Which bar/bobber geometry this session renders — LAYOUT unless the equipped bait requests
+    // LAYOUT_SMALL (see BaitEffect.smallBobber). Chosen once at construction, since a session's
+    // bobber can't change size mid-cast.
+    private final FishingBarLayout layout;
     private final FishingMinigameState minigameState;
     private boolean isTutorial = false;
     private final Random sparkleRandom = new Random();
@@ -76,7 +80,10 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // was 1 at minigame start — the same condition FishingMinigameManager#consumeBait uses
     // server-side to detect depletion). We predict it client-side rather than waiting on the
     // server's confirmation because that confirmation only arrives after sendMinigameResults(),
-    // by which point this animation instance is normally already hidden/discarded.
+    // by which point this animation instance is normally already hidden/discarded. Whether the
+    // bait actually gets consumed or a bait-save charm (e.g. Bait Buddy) saves it instead is not
+    // predicted, though — it's told to us up front in StartFishingMinigamePacket (see
+    // setBaitWillBeSaved), decided once server-side at cast time, so this never has to guess.
     private boolean baitPopTriggered = false;
     @Nullable private PhysicsSimulation baitDepletedSimulation = null;
     private int baitDepletedAnimationTick = 0;
@@ -84,6 +91,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     // Scales down the rendered pop-off motion relative to a full reward item's (see
     // renderBaitDepletedAnimation) — tune this to make the bait icon's pop faster/slower.
     private static final float BAIT_POP_SPEED_SCALE = 0.4f;
+
+    // Whether a bait-save charm has already won its roll for this session (see the packet doc
+    // above) — set once at minigame start, read the moment the bait-depletion check fires.
+    private boolean baitWillBeSaved = false;
+    // -1 while idle; counts up from 0 while the charm icon plays its single save-activation spin.
+    private int charmSpinTick = -1;
+    private static final int CHARM_SPIN_DURATION_TICKS = 10;
 
     // Zone(s) the current cast resolved to (server-computed, see FishProfile.Zone#resolve),
     // rendered as a small icon stack tucked against the bar's top-right corner — the mirror image
@@ -160,7 +174,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private int lastAnticipationTick = -ANTICIPATION_INTERVAL_TICKS;
 
     public FishingMinigameAnimation() {
-        this.minigameState = new FishingMinigameState(LAYOUT.bobberSize(), (1.0f - LAYOUT.bobberSize()) / 2f);
+        this(LAYOUT);
+    }
+
+    /** @param layout Bar/bobber geometry for this session — see {@link #LAYOUT}/{@link #LAYOUT_SMALL}. */
+    public FishingMinigameAnimation(FishingBarLayout layout) {
+        this.layout = layout;
+        this.minigameState = new FishingMinigameState(layout.bobberSize(), (1.0f - layout.bobberSize()) / 2f);
 
         // Add some example targets
         Random random = new Random();
@@ -309,7 +329,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 target.updateCatchProgress(overlapQuality);
 
                 if (target.isCaught()) {
-                    float targetYOffset = (target.getPosition() - 0.5f) * LAYOUT.itemMaxYOffset();
+                    float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
                     caughtTargetIndices.add(targetIndex);
 
                     CatchCelebration.Tier tier = resolveCelebrationTier(target);
@@ -323,8 +343,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                     if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
                         baitPopTriggered = true;
-                        baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
-                        equippedBaitStack = null;
+                        if (baitWillBeSaved) {
+                            charmSpinTick = 0;
+                        } else {
+                            baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
+                            equippedBaitStack = null;
+                        }
                     }
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
@@ -347,6 +371,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
         }
 
+        if (charmSpinTick >= 0) {
+            charmSpinTick++;
+            if (charmSpinTick >= CHARM_SPIN_DURATION_TICKS) {
+                charmSpinTick = -1;
+            }
+        }
+
         // Hide once every target has fully completed its animation (and the bait pop-off, if any).
         //
         // The celebration has to be checked here as well as at the top of this method. A catch
@@ -358,6 +389,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         boolean allComplete = !targets.isEmpty()
                 && targets.stream().allMatch(FishingTarget::isAnimationComplete)
                 && baitDepletedSimulation == null
+                && charmSpinTick < 0
                 && celebration == null;
         if (!anyOngoing && allComplete) {
             if (!isHiding) {
@@ -514,6 +546,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         this.equippedBaitStack = (bait == null || bait.isEmpty()) ? null : bait;
         this.equippedHookStack = (hook == null || hook.isEmpty()) ? null : hook;
         this.equippedCharmStack = (charm == null || charm.isEmpty()) ? null : charm;
+    }
+
+    /** Called once at minigame start with whether a bait-save charm has already won its roll (see StartFishingMinigamePacket#baitWillBeSaved). */
+    public void setBaitWillBeSaved(boolean baitWillBeSaved) {
+        this.baitWillBeSaved = baitWillBeSaved;
     }
 
     /**
@@ -815,8 +852,21 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         }
         if (equippedCharmStack != null) {
             float slideY = -sidePanelDisplacement(partialTick, 0f) * screenHeight;
-            renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY);
+            renderGearIcon(extension, guiGraphics, equippedCharmStack, slotX, slotYTop + stackGap * 2f + slideY,
+                    charmSpinScaleX(partialTick));
         }
+    }
+
+    /**
+     * Horizontal squash factor for the charm icon's save-activation spin — a full 360-degree
+     * y-axis spin faked, on a flat 2D icon, by scaling its width through one cosine cycle (1 at
+     * rest, 0 edge-on at the quarter/three-quarter points, -1 momentarily "mirrored" at the
+     * halfway point). Returns 1 (no effect) while no spin is in progress.
+     */
+    private float charmSpinScaleX(float partialTick) {
+        if (charmSpinTick < 0) return 1f;
+        float progress = Math.min(1f, (charmSpinTick + partialTick) / CHARM_SPIN_DURATION_TICKS);
+        return (float) Math.cos(progress * Math.PI * 2.0);
     }
 
     /**
@@ -916,9 +966,14 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * instead of a fill, so the small icon reads clearly against a busy background.
      */
     private static void renderGearIcon(IGuiGraphicsExtension extension, GuiGraphicsExtractor guiGraphics, ItemStack stack, float x, float y) {
+        renderGearIcon(extension, guiGraphics, stack, x, y, 1f);
+    }
+
+    /** @param scaleX extra horizontal scale multiplier — see {@link #charmSpinScaleX}. */
+    private static void renderGearIcon(IGuiGraphicsExtension extension, GuiGraphicsExtractor guiGraphics, ItemStack stack, float x, float y, float scaleX) {
         guiGraphics.pose().pushMatrix();
         guiGraphics.pose().translate(x, y);
-        guiGraphics.pose().scale(GEAR_ICON_SIZE, GEAR_ICON_SIZE);
+        guiGraphics.pose().scale(GEAR_ICON_SIZE * scaleX, GEAR_ICON_SIZE);
         FishtasticGlintState.BLACK_OUTLINE_REQUESTED.set(Boolean.TRUE);
         try {
             extension.fishtastic$renderItem(stack, 0, 0);
@@ -991,19 +1046,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float scale = 2 * screenHeight / 3f;
         guiGraphics.pose().scale(scale, scale);
 
-        renderItem(LAYOUT.bar(), guiGraphics, minecraft, angle, 0);
+        renderItem(layout.bar(), guiGraphics, minecraft, angle, 0);
 
         guiGraphics.pose().pushMatrix();
         float normalizedBobberPosition = minigameState.getBobberPosition();
-        float yOffset = normalizedBobberPosition * LAYOUT.bobberMaxYOffset();
+        float yOffset = normalizedBobberPosition * layout.bobberMaxYOffset();
         guiGraphics.pose().translate(0, -yOffset);
-        renderItem(LAYOUT.bobber(), guiGraphics, minecraft, angle, 1);
+        renderItem(layout.bobber(), guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popMatrix();
     }
 
     private void renderTargets(GuiGraphicsExtractor guiGraphics, float partialTick) {
         // Render all targets from the minigame state
-        final float itemMaxYOffset = LAYOUT.itemMaxYOffset();
+        final float itemMaxYOffset = layout.itemMaxYOffset();
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
         // Calculate bobber bounds for shake effect
@@ -1204,6 +1259,18 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             28,  // travel zone: 32px texture minus ~2px margin at each end
             9,   // bobber height in pixels
             26   // target zone: slightly tighter margins than the bobber travel zone
+    );
+
+    // Small Fish Bait's downside (see BaitEffect.smallBobber's field doc): a shorter bobber
+    // narrows the effective catch window (bobberSize = bobberHeightPx / travelZonePx) for the
+    // whole session. Bar/target-zone geometry is unchanged — only the bobber sprite and its
+    // height shrink, 2px shorter than LAYOUT's.
+    public static final FishingBarLayout LAYOUT_SMALL = new FishingBarLayout(
+            LAYOUT.bar(),
+            new GuiTextureItem(0, 0, 8, 32, 32, 32, Fishtastic.id("textures/item/fishing_bobber_small.png")),
+            28,
+            7,   // 2px shorter than LAYOUT's 9
+            26
     );
 
     /**

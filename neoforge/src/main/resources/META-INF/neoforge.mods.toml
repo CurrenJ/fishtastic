@@ -34,6 +34,13 @@ versionRange = "${mod_gelatinui_version_range}"
 ordering = "BEFORE"
 side = "BOTH"
 
+[[dependencies.fishtastic]]
+modId = "jei"
+type = "optional"
+versionRange = "[29.2.0.0,)"
+ordering = "NONE"
+side = "CLIENT"
+
 [[mixins]]
 config = "fishtastic.mixins.json"
 

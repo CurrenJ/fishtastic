@@ -1,5 +1,6 @@
 package grill24.fishtastic.data;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.component.FishQuality;
@@ -13,6 +14,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 
+import java.util.List;
 import java.util.Optional;
 
 public record QuestObjective(
@@ -22,9 +24,14 @@ public record QuestObjective(
         boolean distinctSpecies,
         Optional<Integer> targetCount,
         Optional<FishQuality.Quality> minQuality,
-        Optional<Float> minSize,
         Optional<TagKey<Biome>> biomeCondition,
-        Optional<FishProfile.TimeOfDay> timeCondition,
+        /**
+         * A catch's time-of-day must match one of these to satisfy the objective; empty means
+         * unconditional. A list rather than a single {@link FishProfile.TimeOfDay} so a quest can
+         * require e.g. "dawn or dusk" without needing two near-duplicate objectives — the JSON
+         * still accepts a single string for the common single-value case (see {@link #TIME_CONDITIONS_CODEC}).
+         */
+        List<FishProfile.TimeOfDay> timeConditions,
         Optional<FishProfile.WeatherCondition> weatherCondition,
         /**
          * Gates a match to catches made while the player's hook position actually resolves to this
@@ -39,7 +46,6 @@ public record QuestObjective(
          * hook does.
          */
         Optional<FishProfile.Zone> zoneCondition,
-        Optional<Integer> minSessionCatches,
         int notificationInterval,
         /**
          * When true, progress is not an incrementing counter but a direct read of the player's
@@ -84,8 +90,54 @@ public record QuestObjective(
          * {@code RecordCodecBuilder}'s {@code group()} tops out at 16 fields, and this record was
          * already at 15.
          */
-        Optional<TankSnapshotCondition> tankSnapshot
+        Optional<TankSnapshotCondition> tankSnapshot,
+        /**
+         * Bundles {@link CatchStatCondition#minSize} and {@link CatchStatCondition#minSessionCatches}
+         * — both rarely-authored per-catch stat filters — into one slot so this record can grow
+         * without exceeding {@code RecordCodecBuilder#group()}'s 16-field cap. {@link #minSize()} and
+         * {@link #minSessionCatches()} below unwrap it, so every existing call site (matching,
+         * datagen, tests) reads through the same accessor names as before and needs no changes.
+         */
+        Optional<CatchStatCondition> catchStat,
+        /**
+         * Present iff this objective is "use every bait in this tag at least once" (e.g. the Bait
+         * Buddy unlock quest) rather than a species-based catch objective. Matched in
+         * {@code QuestTracker#matchesObjective} against the bait actually loaded on the rod for that
+         * catch — never against the caught fish's own tags, unlike {@link #targetSpeciesTag}, since a
+         * bait quest cares which bait was used, not what came back. Tracked the same way as
+         * {@link #distinctSpecies}: {@code PlayerQuestState} credits each newly-seen bait id once via
+         * the existing distinct-id bookkeeping, just fed a bait id instead of a caught species id.
+         */
+        Optional<TagKey<Item>> distinctBaitTag
 ) {
+    /**
+     * Rarely-both-set per-catch stat filters, bundled to keep {@link QuestObjective}'s top-level
+     * field count under the {@code RecordCodecBuilder#group()} cap. JSON shape: a nested
+     * {@code "catch_stat": {"min_size": ..., "min_session_catches": ...}} object instead of two
+     * top-level keys.
+     */
+    public record CatchStatCondition(Optional<Float> minSize, Optional<Integer> minSessionCatches) {
+        public static final Codec<CatchStatCondition> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.FLOAT.optionalFieldOf("min_size").forGetter(CatchStatCondition::minSize),
+                Codec.INT.optionalFieldOf("min_session_catches").forGetter(CatchStatCondition::minSessionCatches)
+        ).apply(i, CatchStatCondition::new));
+    }
+
+    private static Optional<CatchStatCondition> catchStatOf(Optional<Float> minSize, Optional<Integer> minSessionCatches) {
+        return (minSize.isPresent() || minSessionCatches.isPresent())
+                ? Optional.of(new CatchStatCondition(minSize, minSessionCatches))
+                : Optional.empty();
+    }
+
+    /** See {@link #catchStat}. */
+    public Optional<Float> minSize() {
+        return catchStat.flatMap(CatchStatCondition::minSize);
+    }
+
+    /** See {@link #catchStat}. */
+    public Optional<Integer> minSessionCatches() {
+        return catchStat.flatMap(CatchStatCondition::minSessionCatches);
+    }
     /**
      * Material conditions for a {@link #tankSnapshot} objective, checked against the tank's
      * {@code FishTankMaterials#frame()}. Both fields optional and independently checkable, same as
@@ -116,9 +168,9 @@ public record QuestObjective(
             Optional<FishProfile.TimeOfDay> timeCondition, Optional<FishProfile.WeatherCondition> weatherCondition,
             Optional<FishProfile.Zone> zoneCondition, Optional<Integer> minSessionCatches, int notificationInterval,
             boolean lifetimeCount) {
-        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality, minSize,
-                biomeCondition, timeCondition, weatherCondition, zoneCondition, minSessionCatches, notificationInterval,
-                lifetimeCount, false, Optional.empty());
+        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality,
+                biomeCondition, timeCondition.map(List::of).orElse(List.of()), weatherCondition, zoneCondition, notificationInterval,
+                lifetimeCount, false, Optional.empty(), catchStatOf(minSize, minSessionCatches), Optional.empty());
     }
 
     /** Back-compat with call sites predating {@link #tankSnapshot}. */
@@ -128,10 +180,20 @@ public record QuestObjective(
             Optional<FishProfile.TimeOfDay> timeCondition, Optional<FishProfile.WeatherCondition> weatherCondition,
             Optional<FishProfile.Zone> zoneCondition, Optional<Integer> minSessionCatches, int notificationInterval,
             boolean lifetimeCount, boolean allDailiesClaimedToday) {
-        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality, minSize,
-                biomeCondition, timeCondition, weatherCondition, zoneCondition, minSessionCatches, notificationInterval,
-                lifetimeCount, allDailiesClaimedToday, Optional.empty());
+        this(targetSpecies, targetSpeciesTag, excludeSpeciesTag, distinctSpecies, targetCount, minQuality,
+                biomeCondition, timeCondition.map(List::of).orElse(List.of()), weatherCondition, zoneCondition, notificationInterval,
+                lifetimeCount, allDailiesClaimedToday, Optional.empty(), catchStatOf(minSize, minSessionCatches), Optional.empty());
     }
+
+    /**
+     * Accepts either a single {@code "time_condition": "dusk"} string (the common case, and every
+     * pre-existing quest file) or a {@code "time_condition": ["dawn", "dusk"]} array for an
+     * objective that should match any of several times of day. Always round-trips through the list
+     * shape on encode.
+     */
+    public static final Codec<List<FishProfile.TimeOfDay>> TIME_CONDITIONS_CODEC =
+            Codec.either(FishProfile.TimeOfDay.CODEC.listOf(), FishProfile.TimeOfDay.CODEC)
+                    .xmap(either -> either.map(list -> list, List::of), Either::left);
 
     public static final Codec<QuestObjective> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceKey.codec(Registries.ITEM).optionalFieldOf("target_species").forGetter(QuestObjective::targetSpecies),
@@ -140,16 +202,16 @@ public record QuestObjective(
             Codec.BOOL.optionalFieldOf("distinct_species", false).forGetter(QuestObjective::distinctSpecies),
             Codec.INT.optionalFieldOf("target_count").forGetter(QuestObjective::targetCount),
             FishQuality.Quality.CODEC.optionalFieldOf("min_quality").forGetter(QuestObjective::minQuality),
-            Codec.FLOAT.optionalFieldOf("min_size").forGetter(QuestObjective::minSize),
             TagKey.codec(Registries.BIOME).optionalFieldOf("biome_condition").forGetter(QuestObjective::biomeCondition),
-            FishProfile.TimeOfDay.CODEC.optionalFieldOf("time_condition").forGetter(QuestObjective::timeCondition),
+            TIME_CONDITIONS_CODEC.optionalFieldOf("time_condition", List.of()).forGetter(QuestObjective::timeConditions),
             FishProfile.WeatherCondition.CODEC.optionalFieldOf("weather_condition").forGetter(QuestObjective::weatherCondition),
             FishProfile.Zone.CODEC.optionalFieldOf("zone_condition").forGetter(QuestObjective::zoneCondition),
-            Codec.INT.optionalFieldOf("min_session_catches").forGetter(QuestObjective::minSessionCatches),
             Codec.INT.optionalFieldOf("notification_interval", 1).forGetter(QuestObjective::notificationInterval),
             Codec.BOOL.optionalFieldOf("lifetime_count", false).forGetter(QuestObjective::lifetimeCount),
             Codec.BOOL.optionalFieldOf("all_dailies_claimed_today", false).forGetter(QuestObjective::allDailiesClaimedToday),
-            TankSnapshotCondition.CODEC.optionalFieldOf("tank_snapshot").forGetter(QuestObjective::tankSnapshot)
+            TankSnapshotCondition.CODEC.optionalFieldOf("tank_snapshot").forGetter(QuestObjective::tankSnapshot),
+            CatchStatCondition.CODEC.optionalFieldOf("catch_stat").forGetter(QuestObjective::catchStat),
+            TagKey.codec(Registries.ITEM).optionalFieldOf("distinct_bait_tag").forGetter(QuestObjective::distinctBaitTag)
     ).apply(i, QuestObjective::new));
 
     /**
@@ -159,9 +221,9 @@ public record QuestObjective(
      * Used to fail fast on mis-authored quests rather than silently ignoring the conditions.
      */
     public boolean isLifetimeCompatible() {
-        return minQuality.isEmpty() && minSize.isEmpty() && biomeCondition.isEmpty()
-                && timeCondition.isEmpty() && weatherCondition.isEmpty() && zoneCondition.isEmpty()
-                && minSessionCatches.isEmpty() && !distinctSpecies;
+        return minQuality.isEmpty() && minSize().isEmpty() && biomeCondition.isEmpty()
+                && timeConditions.isEmpty() && weatherCondition.isEmpty() && zoneCondition.isEmpty()
+                && minSessionCatches().isEmpty() && !distinctSpecies && distinctBaitTag.isEmpty();
     }
 
     /**
@@ -181,6 +243,12 @@ public record QuestObjective(
                 if (excludeSpeciesTag.isPresent() && holder.is(excludeSpeciesTag.get())) continue;
                 count++;
             }
+            return count;
+        }
+        if (distinctBaitTag.isPresent()) {
+            Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
+            int count = 0;
+            for (Holder<Item> holder : items.getTagOrEmpty(distinctBaitTag.get())) count++;
             return count;
         }
         return 1;

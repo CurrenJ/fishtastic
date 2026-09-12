@@ -6,14 +6,14 @@ public class ObsidianFishingRod extends FishtasticFishingRodItem {
         super(properties);
     }
 
-    // The intended tool for lava fishing — obsidian shrugs off the heat far better than copper.
+    // The intended tool for lava fishing — obsidian is fully immune to lava heat.
     @Override
     public int getLavaDamageIntervalTicks() {
-        return 100;
+        return Integer.MAX_VALUE;
     }
 
     @Override
     public int getLavaDamagePerTick() {
-        return 1;
+        return 0;
     }
 }

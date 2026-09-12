@@ -88,8 +88,13 @@ public record QuestSyncPacket(
                                     Map<Identifier, ItemStack> triggeringItems, int milestoneReached,
                                     ItemStack baitDepletedItem, List<ItemStack> firstCatchItems) {
         PlayerQuestState state = data.getOrCreateQuestState(player);
+        List<CleanupGoalProgress.Contributor> topContributors = data
+                .getCleanupGoalContributors(FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC).stream()
+                .limit(10)
+                .map(e -> new CleanupGoalProgress.Contributor(e.playerUuid(), e.playerName(), e.totalCatches()))
+                .toList();
         CleanupGoalProgress cleanupGoal = new CleanupGoalProgress(
-                data.getCleanupGoalTotal(), data.getCleanupGoalThreshold(), milestoneReached);
+                data.getCleanupGoalTotal(), data.getCleanupGoalThreshold(), milestoneReached, topContributors);
         long gameTime = ((ServerLevel) player.level()).getServer().overworld().getGameTime();
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),

@@ -12,13 +12,13 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 4,
+        "count": 8,
         "components": {
           "fishtastic:fish_tank_shape": "rampart",
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:blackstone",
             "sand": "minecraft:soul_soil",
-            "glass": "fishtastic:gray_clear_stained_glass"
+            "glass": "fishtastic:borderless_glass"
           }
         }
       }

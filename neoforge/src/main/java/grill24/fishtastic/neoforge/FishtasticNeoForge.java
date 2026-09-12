@@ -72,7 +72,15 @@ public final class FishtasticNeoForge {
         grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
         FishtasticRegistriesNeoForge.RECIPE_SERIALIZERS.register(modEventBus);
 
-        grill24.fishtastic.FishtasticDispenseBehaviors.registerDispenseBehaviors();
+        // Deferred to common setup, not called inline: registerDispenseBehaviors() dereferences
+        // FishtasticBlocks.MARINE_COMPOST.value(), and on NeoForge a DeferredHolder is still
+        // unbound while the mod constructor runs — doing it here threw
+        // "Trying to access unbound value: ResourceKey[minecraft:block / fishtastic:marine_compost]"
+        // and killed mod loading outright. enqueueWork because DispenserBlock's behavior map is
+        // plain mutable global state and common setup runs in parallel across mods. Fabric calls
+        // it inline in onInitialize and is fine — its registries are populated eagerly.
+        modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
+                event.enqueueWork(grill24.fishtastic.FishtasticDispenseBehaviors::registerDispenseBehaviors));
 
         // Register our custom registries
         modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);

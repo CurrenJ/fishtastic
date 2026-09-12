@@ -11,13 +11,13 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 4,
+        "count": 8,
         "components": {
           "fishtastic:fish_tank_shape": "trimmed",
           "fishtastic:fish_tank_materials": {
             "frame": "minecraft:mangrove_planks",
             "sand": "minecraft:coarse_dirt",
-            "glass": "fishtastic:brown_clear_stained_glass"
+            "glass": "fishtastic:borderless_glass"
           }
         }
       }

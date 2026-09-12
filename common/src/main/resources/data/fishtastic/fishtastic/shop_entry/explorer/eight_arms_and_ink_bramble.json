@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Eight Arms and Ink\".",
+  "display_name": "Bramble Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:polished_blackstone",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:blue_concrete_powder"
+        },
+        "fishtastic:fish_tank_shape": "bramble"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/eight_arms_and_ink"
+  ],
+  "weight": 0.5
+}

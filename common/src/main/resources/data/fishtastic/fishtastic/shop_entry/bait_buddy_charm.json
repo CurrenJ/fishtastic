@@ -1,0 +1,15 @@
+{
+  "display_name": "Bait Buddy Charm",
+  "description": "He wears a hat! — 50%% chance to not consume bait on a catch.",
+  "cost": 40,
+  "weight": 0.15,
+  "reward": [
+    {
+      "id": "fishtastic:bait_buddy_charm",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1,
+  "is_charm": true,
+  "unlock_quests": ["fishtastic:collector/bait_master"]
+}

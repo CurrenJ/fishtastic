@@ -4,7 +4,23 @@
     "target_count": 5,
     "weather_condition": "snow"
   },
-  "reward": { "quest_tokens": 12, "items": [] },
+  "reward": {
+    "quest_tokens": 12,
+    "items": [
+      {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "arch",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:chiseled_quartz_block",
+            "sand": "minecraft:snow_block",
+            "glass": "fishtastic:white_borderless_stained_glass"
+          }
+        }
+      }
+    ]
+  },
   "hidden": false,
   "display_name": "Frost-Bitten Haul",
   "description": "Catch 5 fish while it's actively snowing."

@@ -1,0 +1,20 @@
+{
+  "category": "collector",
+  "difficulty": "silver",
+  "objective": {
+    "distinct_bait_tag": "fishtastic:fishing_bait",
+    "notification_interval": 9999
+  },
+  "reward": {
+    "quest_tokens": 40,
+    "items": [
+      {
+        "id": "fishtastic:bait_buddy_charm",
+        "count": 1
+      }
+    ]
+  },
+  "hidden": false,
+  "display_name": "Bait Master",
+  "description": "Catch a fish using every kind of bait at least once."
+}

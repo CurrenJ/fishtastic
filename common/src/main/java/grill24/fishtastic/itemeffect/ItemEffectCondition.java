@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.itemeffect.condition.AndCondition;
 import grill24.fishtastic.itemeffect.condition.ComponentCondition;
 import grill24.fishtastic.itemeffect.condition.ComponentValueCondition;
+import grill24.fishtastic.itemeffect.condition.ItemCondition;
 import grill24.fishtastic.itemeffect.condition.ItemTagCondition;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,6 +18,7 @@ public interface ItemEffectCondition {
     class Codecs {
         private static final Map<String, Supplier<MapCodec<? extends ItemEffectCondition>>> CONDITION_TYPE_SUPPLIERS = Map.of(
                 "item_tag", () -> ItemTagCondition.CODEC,
+                "item", () -> ItemCondition.CODEC,
                 "has_component", () -> ComponentCondition.CODEC,
                 "component_value", () -> ComponentValueCondition.CODEC,
                 "and", () -> AndCondition.CODEC

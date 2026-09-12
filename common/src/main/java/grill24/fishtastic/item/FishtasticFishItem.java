@@ -13,6 +13,7 @@ import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -67,6 +68,53 @@ public class FishtasticFishItem extends Item {
 
     protected int getAdditionalWeight(LootParams lootParams) {
         return 0;
+    }
+
+    /**
+     * Every bait item ({@code fishtastic:fishing_bait} tag members — Worms, Gummy Worms, Blazed
+     * Grub, and the four specialist baits) carries a {@code BAIT_EFFECT} component as an item-level
+     * default, so its presence on the stack (rather than the tag, which isn't available from an
+     * {@code ItemStack} alone here) reliably distinguishes a bait item from every other
+     * {@code FishtasticFishItem} use (plain fish, hooks, charms). Rod-slot charms are identified the
+     * same way via {@code CHARM_EFFECT}, and hooks via {@code HOOK_EFFECT}. Storm Charm is
+     * deliberately not one of these — see {@link grill24.fishtastic.item.StormCharmItem}'s class
+     * doc — so it gets no suffix here.
+     */
+    @Override
+    public Component getName(ItemStack stack) {
+        Component base = super.getName(stack);
+        if (stack.get(FishtasticDataComponents.BAIT_EFFECT.value()) != null) {
+            return Component.empty().append(base).append(Component.translatable(baitNameSuffixKey(stack)).withStyle(baitLabelColor(stack)));
+        }
+        if (stack.get(FishtasticDataComponents.CHARM_EFFECT.value()) != null) {
+            return Component.empty().append(base).append(Component.translatable("item.fishtastic.charm_name_suffix").withStyle(ChatFormatting.GRAY));
+        }
+        if (stack.get(FishtasticDataComponents.HOOK_EFFECT.value()) != null) {
+            return Component.empty().append(base).append(Component.translatable("item.fishtastic.hook_name_suffix").withStyle(ChatFormatting.GRAY));
+        }
+        return base;
+    }
+
+    /**
+     * "Super Bait" (gold) for the two premium all-purpose baits (Blazed Grub, Gummy Worms);
+     * "Specialist Bait" (light blue, see {@link #baitLabelColor}) for the four single-affinity
+     * baits; plain "Bait" (gray) for everything else (plain Worms).
+     */
+    private static String baitNameSuffixKey(ItemStack stack) {
+        if (stack.is(FishtasticItemTags.SUPER_BAIT)) return "item.fishtastic.super_bait_name_suffix";
+        if (stack.is(FishtasticItemTags.SPECIALIST_BAIT)) return "item.fishtastic.specialist_bait_name_suffix";
+        return "item.fishtastic.bait_name_suffix";
+    }
+
+    /**
+     * Gold for the two "premium" all-purpose baits ({@link FishtasticItemTags#SUPER_BAIT}); light
+     * blue for the four specialist baits ({@link FishtasticItemTags#SPECIALIST_BAIT}) that trade a
+     * downside for a targeted catch-odds boost; gray for everything else (plain Worms).
+     */
+    private static ChatFormatting baitLabelColor(ItemStack stack) {
+        if (stack.is(FishtasticItemTags.SUPER_BAIT)) return ChatFormatting.GOLD;
+        if (stack.is(FishtasticItemTags.SPECIALIST_BAIT)) return ChatFormatting.AQUA;
+        return ChatFormatting.GRAY;
     }
 
     @Override

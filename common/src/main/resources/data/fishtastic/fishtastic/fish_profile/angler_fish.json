@@ -6,11 +6,11 @@
     "deep_ocean"
   ],
   "time_weights": [
-    { "time": "night", "multiplier": 2.0 },
-    { "time": "dusk", "multiplier": 1.3 }
+    { "time": "night", "multiplier": 1.5 },
+    { "time": "dusk", "multiplier": 2.0 }
   ],
   "moon_weights": [
-    { "phase": "new_moon", "multiplier": 1.3, "tier": "secondary" }
+    { "phase": "new_moon", "multiplier": 1.5, "tier": "secondary" }
   ],
   "temperament": "fishtastic:ambusher"
 }

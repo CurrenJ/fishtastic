@@ -1,13 +1,13 @@
 {
   "render_calibration": 0.84,
-  "base_weight": 3,
-  "size": { "mean": 150.0, "std_dev": 30.0 },
+  "base_weight": 2,
+  "size": { "mean": 120.0, "std_dev": 20.0 },
   "zones": [
     "ocean",
     "river"
   ],
   "biome_weights": [
-    { "biome": "#minecraft:is_river", "multiplier": 2.0 },
+    { "biome": "#minecraft:is_river", "multiplier": 1.5 },
     { "biome": "#minecraft:is_jungle", "multiplier": 1.5, "tier": "secondary" }
   ],
   "time_weights": [

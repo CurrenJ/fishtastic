@@ -32,9 +32,12 @@ import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
 import grill24.fishtastic.client.particle.MiniFlameParticle;
 import grill24.fishtastic.client.particle.MiniSmokeParticle;
 import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.particle.TankBubblePopParticle;
+import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
@@ -109,6 +112,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         net.minecraft.client.gui.screens.MenuScreens.register(
                 FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
 
+        // Register the Electric Fish Organizer menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
+
+        // Register the Fish Tank Browser menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
+
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
 
@@ -143,7 +154,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         FishtasticKeyBinds.init();
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
-        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.toggleFishTankEditMode);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openFishEncyclopedia);
 
         // Register block entity renderer
@@ -158,6 +168,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register tank bubble particle provider
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
+        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
@@ -168,7 +182,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
 
         // Clear caches on world join
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> ItemEffectManager.clearCache());
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            ItemEffectManager.clearCache();
+            ClientTankFlocks.clear();
+        });
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             QuestClientCache.reset();
@@ -176,6 +193,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             EncyclopediaTutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
             CosmeticCaptureClientState.reset();
+            ClientTankFlocks.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
@@ -192,6 +210,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
+                ClientTankFlocks.tickAll();
                 TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);

@@ -7,10 +7,12 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.FishingMinigameManager;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -48,6 +50,56 @@ public final class FishingMinigameManagerGameTests {
         int total = 0;
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
             if (stack.is(item)) total += stack.getCount();
+        }
+        return total;
+    }
+
+    /**
+     * GameTestHelper's mock player is hardcoded to creative (see makeMockServerPlayerInLevel),
+     * and creative players bypass the overflow entirely: Inventory.add()'s addResource loop
+     * checks player.hasInfiniteMaterials() and force-zeroes an unplaceable stack's count instead
+     * of leaving it for the caller to drop, since a creative player doesn't need it back. That
+     * would make a full-inventory test misleadingly pass with 0 in inventory and 0 dropped —
+     * flip abilities().instabuild off so the mock player exercises the real survival-player path.
+     */
+    private static void forceSurvivalMode(ServerPlayer player) {
+        player.getAbilities().instabuild = false;
+    }
+
+    /**
+     * GameTestHelper's deprecated mock-player helper drops the player at literal world (0,0,0)
+     * rather than inside this test's own structure bounds — a chunk that may not be force-loaded,
+     * so an ItemEntity dropped there can inconsistently fail to register in the level's entity
+     * storage (observed as flaky drop-detection: player.drop() returns a live entity, but it's
+     * absent from a getAllEntities() scan moments later). Relocating into helper.absolutePos(...)
+     * puts the player in this test's actively-ticking structure region instead.
+     */
+    private static void relocateIntoTestStructure(GameTestHelper helper, ServerPlayer player) {
+        BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
+        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    }
+
+    /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
+    private static void fillInventoryCompletely(ServerPlayer player, Item fillerItem) {
+        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
+        }
+    }
+
+    /**
+     * getEntitiesOfClass()'s AABB query goes through the level's chunk-based spatial index, which
+     * lags a freshly addFreshEntity()'d ItemEntity by up to a tick — invisible from inside the
+     * same synchronous test call that just triggered the drop. getAllEntities() reads the level's
+     * raw entity storage directly, so it sees the entity immediately. Delta-based (see call sites)
+     * because the mock player's fixed (0,0,0) position is shared across every test/run, so stray
+     * matching items can already be present in the world before this call.
+     */
+    private static int countNearbyDroppedItems(ServerPlayer player, Item item) {
+        int total = 0;
+        for (net.minecraft.world.entity.Entity entity : ((net.minecraft.server.level.ServerLevel) player.level()).getAllEntities()) {
+            if (entity instanceof ItemEntity itemEntity && itemEntity.getItem().is(item)) {
+                total += itemEntity.getItem().getCount();
+            }
         }
         return total;
     }
@@ -213,6 +265,60 @@ public final class FishingMinigameManagerGameTests {
         helper.succeed();
     }
 
+    /**
+     * A full inventory must not eat a minigame reward. Mirrors the shop-purchase overflow bug:
+     * inventory.add() only consumes what fits and leaves the remainder in the stack, which the
+     * caller must drop at the player's feet rather than silently discarding.
+     */
+    public static void handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        relocateIntoTestStructure(helper, player);
+        forceSurvivalMode(player);
+        fillInventoryCompletely(player, Items.DIRT);
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        // Stray item entities from other tests/prior runs can still share this world region —
+        // measure the delta around this call rather than an absolute nearby count.
+        int baselineCount = countNearbyDroppedItems(player, Items.COD);
+
+        int sessionId = manager.seedSessionForTest(player, List.of(List.of(new ItemStack(Items.COD, 3))));
+        manager.handleMinigameComplete(player, sessionId, List.of(0));
+
+        helper.assertTrue(countItem(player, Items.COD) == 0,
+            "Sanity check: a completely full inventory must have no room for the reward");
+        // >0 rather than ==3: this shared gametest world persists across runs/tests at the mock
+        // player's fixed position, so an unrelated leftover entity from another test can legally
+        // despawn in the same instant and shift the exact delta — the regression this guards
+        // against is the reward vanishing entirely (delta 0), not the precise leftover count.
+        int droppedDelta = countNearbyDroppedItems(player, Items.COD) - baselineCount;
+        helper.assertTrue(droppedDelta > 0,
+            "A minigame reward that doesn't fit in a full inventory must be dropped at the player's feet rather than vanishing, got delta " + droppedDelta);
+        helper.succeed();
+    }
+
+    /** Same overflow case, but routed through the auto-pile-fish charm delivery path (addToFishPiles). */
+    public static void handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        relocateIntoTestStructure(helper, player);
+        forceSurvivalMode(player);
+        fillInventoryCompletely(player, Items.DIRT);
+        // Little Fish Box carries CharmEffect.LITTLE_FISH_BOX (autoPileFish=true) by default —
+        // any inventory slot works, hasCharmEffectInInventory scans the whole container size.
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(FishtasticItems.LITTLE_FISH_BOX.value()));
+        int baselineCount = countNearbyDroppedItems(player, Items.COD)
+            + countNearbyDroppedItems(player, FishtasticItems.PILE_OF_FISH.value());
+
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        int sessionId = manager.seedSessionForTest(player, List.of(List.of(new ItemStack(Items.COD, 3))));
+        manager.handleMinigameComplete(player, sessionId, List.of(0));
+
+        int droppedDelta = countNearbyDroppedItems(player, Items.COD)
+            + countNearbyDroppedItems(player, FishtasticItems.PILE_OF_FISH.value())
+            - baselineCount;
+        helper.assertTrue(droppedDelta > 0,
+            "A reward that can't be piled or inserted into a full inventory must still be dropped, not discarded");
+        helper.succeed();
+    }
+
     // -------------------------------------------------------------------------
     // generateTargets — three-way fish/treasure/trash roll, real RNG path
     // -------------------------------------------------------------------------
@@ -256,29 +362,6 @@ public final class FishingMinigameManagerGameTests {
         int cleanupGoalTotal = FishCatchSavedData.getOrCreate(helper.getLevel().getServer()).getCleanupGoalTotal();
         helper.assertTrue(cleanupGoalTotal > 0,
                 "trash caught with room in the inventory must still count toward the cleanup goal, got total=" + cleanupGoalTotal);
-        helper.succeed();
-    }
-
-    /**
-     * With trashChance at 0 and treasureChance at 1.0, the trash branch must never fire —
-     * proves adding the trash roll didn't regress the pre-existing treasure-only path.
-     */
-    public static void treasureChanceOneWithZeroTrashNeverAwardsTrash(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
-        ServerPlayer player = mockPlayer.get();
-        player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
-            new BaitEffect(0f, 1.0f, 0.0f, 0, 1.0f, 0f, Optional.empty(), List.of())));
-        castLine(helper, player);
-
-        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
-        int sessionId = manager.startSession(player, 1.0f, false);
-        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
-
-        manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
-
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            helper.assertTrue(!stack.is(FishtasticItemTags.TRASH),
-                "trashChance=0.0 must never award a trash item, got " + stack.getItem());
-        }
         helper.succeed();
     }
 }

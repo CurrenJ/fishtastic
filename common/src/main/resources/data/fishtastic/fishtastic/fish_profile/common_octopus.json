@@ -10,6 +10,7 @@
   "temperament": "fishtastic:wily",
   "animation": {
     "mode": "upright_sit",
+    "pivot_fraction": 0.4062,
     "floor_offset": 0.12,
     "diagonal_texture": false
   }

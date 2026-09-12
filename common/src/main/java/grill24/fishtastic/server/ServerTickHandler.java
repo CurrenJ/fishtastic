@@ -12,7 +12,6 @@ import static grill24.fishtastic.server.FishCatchSavedData.getOrCreate;
 public class ServerTickHandler {
 
     private static long lastResetDay = -1;
-    private static long lastResetWeek = -1;
 
     public static void onServerTick(MinecraftServer server) {
         long currentDay = server.overworld().getGameTime() / 24000L;
@@ -23,11 +22,14 @@ public class ServerTickHandler {
             getOrCreate(server).resetDailyQuestsIfNeeded(server, currentDay);
         }
 
-        // Weekly cleanup goal reset check
-        long currentWeek = currentDay / 7L;
-        if (currentWeek > lastResetWeek) {
-            lastResetWeek = currentWeek;
-            getOrCreate(server).resetCleanupGoalIfNeeded(currentWeek);
+        // The shared cleanup goal has no time-based reset — it only rolls over to a fresh
+        // cycle when a threshold is actually completed (see FishCatchSavedData#recordTrashContribution).
+
+        // Sunset Postcard Charm-driven sunset elongation
+        try {
+            SunsetExtensionHandler.tick(server);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Error ticking sunset extension handler", e);
         }
 
         // Tick fishing minigame managers for all levels

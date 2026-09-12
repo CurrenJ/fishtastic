@@ -46,6 +46,20 @@ public final class SandGeometryGenerator {
         return generate(permutationIndex, DEFAULT_TEXTURE, profile);
     }
 
+    /**
+     * Always-empty sand model, for shapes that never have sand at all — e.g. VITRINE, whose floor
+     * footprint is glazed with a glass pane instead (see {@code TaperedGlassGeometryGenerator#generateVitrine}).
+     * Keeps the same base-texture/group JSON shell as {@link #generate} so the model still loads
+     * correctly; it's just permanently zero elements, unlike {@link #generate}'s DOWN-open case
+     * which is only conditionally empty.
+     */
+    public static JsonObject generateNone(int permutationIndex) {
+        JsonObject model = baseModel(DEFAULT_TEXTURE);
+        model.add("elements", new JsonArray());
+        addSingleGroup(model, "sand_" + permutationIndex);
+        return model;
+    }
+
     public static JsonObject generate(int permutationIndex, String textureId, CornerTaperProfile profile) {
         Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
         // Sand only ever cares about the floor-adjacent row (image row 14 = the profile's last

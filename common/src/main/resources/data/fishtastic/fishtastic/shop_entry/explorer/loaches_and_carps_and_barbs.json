@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"Loaches and Carps and Barbs, Oh My!\".",
+  "display_name": "Loaches and Carps and Barbs, Oh My! Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:jungle_planks",
+          "glass": "fishtastic:green_clear_stained_glass",
+          "sand": "minecraft:sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/loaches_and_carps_and_barbs"
+  ],
+  "weight": 0.5
+}

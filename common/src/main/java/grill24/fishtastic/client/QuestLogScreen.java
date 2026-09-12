@@ -51,6 +51,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.biome.Biome;
+import grill24.fishtastic.client.util.PlayerHeadItems;
+import grill24.fishtastic.network.CleanupGoalProgress;
 
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
@@ -78,7 +80,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private Label cleanupGoalCountLabel;
     private SpriteProgressBar cleanupGoalBar;
     private Label dailyResetLabel;
-    private Label cleanupGoalResetLabel;
+    private HBox cleanupGoalContributorsRow;
     private Label shopResetLabel;
     private SpriteButton shopRefreshBtn;
     private Label shopRefreshCostLabel;
@@ -314,9 +316,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (dailyResetLabel != null) {
             dailyResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.dailies_reset", QuestClientCache.getTicksUntilDailyReset()));
         }
-        if (cleanupGoalResetLabel != null) {
-            cleanupGoalResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()));
-        }
         if (shopResetLabel != null) {
             shopResetLabel.text(formatResetCountdown("screen.fishtastic.quest_log.shop.resets", QuestClientCache.getTicksUntilDailyReset()));
         }
@@ -375,7 +374,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalCountLabel = null;
         cleanupGoalBar = null;
         dailyResetLabel = null;
-        cleanupGoalResetLabel = null;
+        cleanupGoalContributorsRow = null;
         shopResetLabel = null;
         shopRefreshBtn = null;
         shopRefreshCostLabel = null;
@@ -615,7 +614,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private static boolean hasEnvironmentCondition(QuestObjective obj) {
-        return obj.biomeCondition().isPresent() || obj.timeCondition().isPresent() || obj.weatherCondition().isPresent()
+        return obj.biomeCondition().isPresent() || !obj.timeConditions().isEmpty() || obj.weatherCondition().isPresent()
                 || obj.zoneCondition().isPresent();
     }
 
@@ -633,9 +632,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             if (!biome.is(obj.biomeCondition().get())) return false;
         }
 
-        if (obj.timeCondition().isPresent()) {
+        if (!obj.timeConditions().isEmpty()) {
             FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
-            if (timeOfDay != obj.timeCondition().get()) return false;
+            if (!obj.timeConditions().contains(timeOfDay)) return false;
         }
 
         if (obj.weatherCondition().isPresent()) {
@@ -656,7 +655,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static String buildConditionTooltipText(QuestObjective obj) {
         List<String> parts = new ArrayList<>();
         obj.biomeCondition().ifPresent(tag -> parts.add(formatConditionWord(tag.location().getPath())));
-        obj.timeCondition().ifPresent(t -> parts.add(formatConditionWord(t.getSerializedName())));
+        if (!obj.timeConditions().isEmpty()) {
+            StringBuilder times = new StringBuilder();
+            for (FishProfile.TimeOfDay t : obj.timeConditions()) {
+                if (!times.isEmpty()) times.append("/");
+                times.append(formatConditionWord(t.getSerializedName()));
+            }
+            parts.add(times.toString());
+        }
         obj.weatherCondition().ifPresent(w -> parts.add(formatConditionWord(w.getSerializedName())));
         obj.zoneCondition().ifPresent(z -> parts.add(formatConditionWord(z.getSerializedName())));
         return translated("screen.fishtastic.quest_log.condition_requires", String.join(", ", parts));
@@ -730,10 +736,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      */
     @Nullable
     private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale) {
+        return buildSpeciesIcon(speciesKey, scale, isDiscovered(speciesKey));
+    }
+
+    /**
+     * Same as {@link #buildSpeciesIcon(ResourceKey, float)}, but with the discovered/silhouette
+     * state passed in explicitly rather than derived from the fish encyclopedia — used by a bait
+     * checklist, where "discovered" means "used on this quest already" instead.
+     */
+    @Nullable
+    private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale, boolean discovered) {
         if (isHiddenUnlistedSpecies(speciesKey)) return null;
 
         Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
-        boolean discovered = isDiscovered(speciesKey);
 
         SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
         icon.itemScale(scale);
@@ -776,6 +791,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * render as silhouettes, mirroring the single-species icon's spoiler guard.
      */
     private VBox buildTagFishList(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess) {
+        return buildTagFishList(tag, excludeTag, registryAccess, QuestLogScreen::isDiscovered);
+    }
+
+    /**
+     * Same as {@link #buildTagFishList(TagKey, Optional, RegistryAccess)}, but with the
+     * discovered/silhouette state for each icon supplied by {@code discoveredFn} instead of the
+     * fish-encyclopedia default — used by a bait checklist, where "discovered" means "used on this
+     * quest already" rather than "ever caught". Encyclopedia click-navigation is skipped for
+     * non-fish members either way, since they have no encyclopedia entry to jump to.
+     */
+    private VBox buildTagFishList(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess,
+            java.util.function.Predicate<ResourceKey<Item>> discoveredFn) {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
 
         VBox wrap = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
@@ -784,8 +811,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             HBox iconRow = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
             for (int j = i; j < rowEnd; j++) {
                 ResourceKey<Item> speciesKey = members.get(j);
-                SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE);
-                wireEncyclopediaNavigation(icon, speciesKey);
+                SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE, discoveredFn.test(speciesKey));
+                // Non-fish tag members (e.g. a bait checklist) have no encyclopedia entry to jump to.
+                if (isFishSpecies(speciesKey)) wireEncyclopediaNavigation(icon, speciesKey);
                 iconRow.addChild(icon);
             }
             wrap.addChild(iconRow);
@@ -954,6 +982,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         if (quest.objective().distinctSpecies() && quest.objective().targetSpeciesTag().isPresent()) {
             VBox tagList = buildTagFishList(quest.objective().targetSpeciesTag().get(), quest.objective().excludeSpeciesTag(),
                     Minecraft.getInstance().level.registryAccess());
+            collectLeaves(tagList, tagListIcons);
+            row.addChild(tagList);
+        } else if (quest.objective().distinctBaitTag().isPresent()) {
+            // "Discovered" here means "already used on this quest" (progress.caughtSpecies() is
+            // fed bait ids for a distinctBaitTag objective — see QuestTracker#onCatch), not the
+            // fish-encyclopedia default buildTagFishList otherwise falls back to.
+            List<Identifier> usedBaitIds = progress.caughtSpecies();
+            VBox tagList = buildTagFishList(quest.objective().distinctBaitTag().get(), Optional.empty(),
+                    Minecraft.getInstance().level.registryAccess(),
+                    speciesKey -> usedBaitIds.contains(speciesKey.identifier()));
             collectLeaves(tagList, tagListIcons);
             row.addChild(tagList);
         }
@@ -1139,10 +1177,73 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 () -> coinFlyOverlay.removeChild(coin)));
     }
 
+    // Reward-row coin icon scales with the token amount so bigger quests visibly promise a
+    // bigger payout at a glance, before the player even reads the number. Boundaries are tuned
+    // from the actual quest_tokens distribution across every quest (daily/explorer/collector/
+    // challenge/mastery), which falls into six natural clusters with clean gaps between them:
+    //   4-7 (daily bronze), 9-13 (daily silver), 14-21 (daily gold + small explorer/mastery),
+    //   25-45, 50-60 (mid explorer/collector/challenge/mastery), 75-206 (top mastery/challenge,
+    //   with nothing between 61 and 74).
+    private static final int REWARD_ICON_TWO_COINS_THRESHOLD = 9;
+    private static final int REWARD_ICON_THREE_COINS_THRESHOLD = 14;
+    private static final int REWARD_ICON_SMALL_PILE_THRESHOLD = 25;
+    private static final int REWARD_ICON_MEDIUM_PILE_THRESHOLD = 50;
+    private static final int REWARD_ICON_LARGE_PILE_THRESHOLD = 75;
+
+    // Shop price-tag coin icon — a separate six-tier ladder from the reward-row one above, tuned
+    // to shop_entry "cost" instead of quest "quest_tokens". The two economies have very different
+    // shapes (shop costs cluster hard at 18 (fence arches) and 100 (every tank shape), rather than
+    // the reward side's smooth daily->explorer->mastery climb), so they need their own boundaries
+    // even though they share the same six textures. Clusters from the actual shop_entry data:
+    //   5-8 (worms/starter baits), 10-16 (common baits/cosmetics), 18 (fence arches, exactly),
+    //   20-25, 35-50 (charms/cosmetics), 55-100 (top charms + every tank shape, with nothing
+    //   between 70 and 85).
+    private static final int SHOP_ICON_TWO_COINS_THRESHOLD = 10;
+    private static final int SHOP_ICON_THREE_COINS_THRESHOLD = 18;
+    private static final int SHOP_ICON_SMALL_PILE_THRESHOLD = 20;
+    private static final int SHOP_ICON_MEDIUM_PILE_THRESHOLD = 35;
+    private static final int SHOP_ICON_LARGE_PILE_THRESHOLD = 55;
+
+    private static final Identifier COIN_ICON_ONE_TEXTURE = Fishtastic.id("textures/gui/one_coin.png");
+    private static final Identifier COIN_ICON_TWO_TEXTURE = Fishtastic.id("textures/gui/two_coins.png");
+    private static final Identifier COIN_ICON_THREE_TEXTURE = Fishtastic.id("textures/gui/three_coins.png");
+
+    /** Builds the reward-row icon for a quest's token payout: a loose-coins sprite for small amounts, scaling up through coin-pile item icons for larger ones. */
+    private static UIElement<?> rewardCoinIconFor(int questTokens) {
+        return coinLadderIcon(questTokens, REWARD_ICON_TWO_COINS_THRESHOLD, REWARD_ICON_THREE_COINS_THRESHOLD,
+                REWARD_ICON_SMALL_PILE_THRESHOLD, REWARD_ICON_MEDIUM_PILE_THRESHOLD, REWARD_ICON_LARGE_PILE_THRESHOLD);
+    }
+
+    /** Builds the shop price-tag icon for a token cost, on its own threshold ladder — see {@link #SHOP_ICON_TWO_COINS_THRESHOLD}. */
+    private static UIElement<?> shopCoinIconFor(int cost) {
+        return coinLadderIcon(cost, SHOP_ICON_TWO_COINS_THRESHOLD, SHOP_ICON_THREE_COINS_THRESHOLD,
+                SHOP_ICON_SMALL_PILE_THRESHOLD, SHOP_ICON_MEDIUM_PILE_THRESHOLD, SHOP_ICON_LARGE_PILE_THRESHOLD);
+    }
+
+    private static UIElement<?> coinLadderIcon(int amount, int twoCoinsThreshold, int threeCoinsThreshold,
+            int smallPileThreshold, int mediumPileThreshold, int largePileThreshold) {
+        if (amount >= largePileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value()));
+        }
+        if (amount >= mediumPileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.MEDIUM_PILE_OF_COINS.value()));
+        }
+        if (amount >= smallPileThreshold) {
+            return UI.itemRenderer(new ItemStack(FishtasticItems.SMALL_PILE_OF_COINS.value()));
+        }
+        if (amount >= threeCoinsThreshold) {
+            return UI.spriteRectangle(8f, 11f, COIN_ICON_THREE_TEXTURE).texture(new SpriteData(COIN_ICON_THREE_TEXTURE));
+        }
+        if (amount >= twoCoinsThreshold) {
+            return UI.spriteRectangle(12f, 8f, COIN_ICON_TWO_TEXTURE).texture(new SpriteData(COIN_ICON_TWO_TEXTURE));
+        }
+        return UI.spriteRectangle(8f, 7f, COIN_ICON_ONE_TEXTURE).texture(new SpriteData(COIN_ICON_ONE_TEXTURE));
+    }
+
     private HBox buildRewardRow(Quest quest) {
         HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
         if (quest.reward().questTokens() > 0) {
-            row.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+            row.addChild(rewardCoinIconFor(quest.reward().questTokens()));
             row.addChild(new Label(translated("screen.fishtastic.quest_log.tokens", quest.reward().questTokens()), 0xFFFFAA00).init(tempContext));
         }
         if (!quest.reward().items().isEmpty()) {
@@ -1191,11 +1292,31 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         cleanupGoalTotalLabel = new Label(translated("screen.fishtastic.quest_log.cleanup.total", total), 0xFFFFAA00).init(tempContext);
         panel.addChild(cleanupGoalTotalLabel);
 
-        cleanupGoalResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.cleanup.resets", QuestClientCache.getTicksUntilCleanupGoalReset()), 0xFF88CCFF)
-                .init(tempContext);
-        panel.addChild(cleanupGoalResetLabel);
+        cleanupGoalContributorsRow = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
+        rebuildCleanupGoalContributorsRow();
+        panel.addChild(cleanupGoalContributorsRow);
 
         return panel;
+    }
+
+    /** Rebuilds the contributor breakdown row from scratch — the set of contributors and their
+     *  shares can change entirely between syncs, so in-place updates aren't worth the bookkeeping. */
+    private void rebuildCleanupGoalContributorsRow() {
+        if (cleanupGoalContributorsRow == null) return;
+        cleanupGoalContributorsRow.clearChildren();
+
+        List<CleanupGoalProgress.Contributor> contributors = QuestClientCache.getCleanupGoalContributors();
+        int total = contributors.stream().mapToInt(CleanupGoalProgress.Contributor::amount).sum();
+        if (total <= 0) return;
+
+        for (CleanupGoalProgress.Contributor contributor : contributors) {
+            int pct = Math.round(contributor.amount() * 100f / total);
+
+            VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+            column.addChild(UI.itemRenderer(PlayerHeadItems.headStack(contributor.playerUuid(), contributor.playerName())));
+            column.addChild(new Label(pct + "%", 0xFFAAAAAA).init(tempContext));
+            cleanupGoalContributorsRow.addChild(column);
+        }
     }
 
     private VBox buildShopPanel(Registry<ShopEntry> shopRegistry, long currentDay) {
@@ -1266,7 +1387,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         shopRefreshNotEnoughLabel = notEnoughLabel;
 
         refreshRow.addChild(refreshBtn);
-        refreshRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        refreshRow.addChild(shopCoinIconFor(refreshCost));
         refreshRow.addChild(costLabel);
         refreshRow.addChild(notEnoughLabel);
 
@@ -1337,7 +1458,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         int costColor = soldOut ? 0xFF555555 : (canAfford ? 0xFFFFAA00 : 0xFFFF4444);
         Label costLabel = new Label(String.valueOf(entry.cost()), costColor).init(tempContext);
         HBox costRow = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        costRow.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        costRow.addChild(shopCoinIconFor(entry.cost()));
         costRow.addChild(costLabel);
         costRow.setVisible(!soldOut);
 
@@ -1488,6 +1609,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             cleanupGoalTotalLabel.text(translated("screen.fishtastic.quest_log.cleanup.total", total));
             cleanupGoalCountLabel.text(translated("screen.fishtastic.quest_log.progress_count", intoCurrentTier, threshold));
             cleanupGoalBar.progressImmediate(fraction);
+            rebuildCleanupGoalContributorsRow();
         }
 
         for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {

@@ -221,7 +221,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     private static Component questDisplayName(FishTankShape shape) {
         var quests = Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         MutableComponent joined = null;
-        for (ResourceKey<Quest> key : shape.unlockQuests()) {
+        for (ResourceKey<Quest> key : shape.unlockQuests(quests)) {
             Component name = quests.getOptional(key)
                     .<Component>map(quest -> Component.literal(quest.displayName()))
                     .orElse(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip.unknown_quest"));
@@ -249,7 +249,8 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
         List<Component> lines = new ArrayList<>(2);
         lines.add(hovered.getDisplayName());
-        if (!hovered.isUnlockedFor(FishTankAssemblyScreen::isQuestClaimed)) {
+        var quests = Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        if (!hovered.isUnlockedFor(quests, FishTankAssemblyScreen::isQuestClaimed)) {
             lines.add(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip",
                     questDisplayName(hovered)).withStyle(ChatFormatting.GRAY));
         }
