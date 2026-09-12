@@ -8,6 +8,7 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
+        "fishtastic:fish_tank_shape": "rampart",
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:prismarine_bricks",
           "sand": "minecraft:sand",

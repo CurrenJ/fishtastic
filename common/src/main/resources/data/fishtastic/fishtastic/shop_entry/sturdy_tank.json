@@ -1,6 +1,6 @@
 {
   "display_name": "Sturdy Fish Tank",
-  "description": "A hard-edged tank with thick 2px corner posts, the Standard tank's sturdier sibling. Earned by catching your first fish.",
+  "description": "A hard-edged tank with thick 2px corner posts, the Standard tank's sturdier sibling. Earned via several quest lines.",
   "cost": 100,
   "weight": 0.5,
   "is_tank_shape": true,
@@ -18,5 +18,5 @@
       }
     }
   ],
-  "unlock_quests": ["fishtastic:tutorial/first_catch", "fishtastic:mastery/bluegill_novice"]
+  "unlock_quests": ["fishtastic:tutorial/first_catch", "fishtastic:mastery/bluegill_novice", "fishtastic:collector/deep_ocean_collector"]
 }

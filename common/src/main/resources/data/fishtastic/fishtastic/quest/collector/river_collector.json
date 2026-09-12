@@ -11,10 +11,11 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 4,
+        "count": 8,
         "components": {
+          "fishtastic:fish_tank_shape": "film",
           "fishtastic:fish_tank_materials": {
-            "frame": "minecraft:mossy_cobblestone",
+            "frame": "minecraft:oxidized_cut_copper",
             "sand": "minecraft:sand",
             "glass": "fishtastic:lime_clear_stained_glass"
           }

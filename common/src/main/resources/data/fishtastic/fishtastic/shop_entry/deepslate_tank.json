@@ -8,6 +8,7 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
+        "fishtastic:fish_tank_shape": "honed",
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:polished_deepslate",
           "sand": "minecraft:gravel",

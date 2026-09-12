@@ -87,25 +87,26 @@ reward item (shape must match; materials are free to differ) — nothing enforce
 
 | Shape | Unlocked by (any one) |
 |---|---|
-| `STURDY` | `tutorial/first_catch` (catch any fish) *or* `mastery/bluegill_novice` |
+| `STURDY` | `tutorial/first_catch` (catch any fish) *or* `mastery/bluegill_novice` *or* `collector/deep_ocean_collector` |
 | `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) *or* `mastery/gar_hunter` |
 | `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) *or* `mastery/tetra_scholar` |
-| `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` |
-| `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` |
-| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` |
+| `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` *or* `collector/cave_collector` |
+| `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` *or* `collector/ocean_collector` |
+| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` *or* `collector/high_altitude_collector` |
 | `BASTION` | `collector/nether_collector` (every Nether species) *or* `challenge/predator_run` |
 | `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) *or* `mastery/tetra_legend` |
 | `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) *or* `mastery/tetra_tracker` |
 | `BRAMBLE` | `explorer/jungle_downpour` |
-| `TOOTH` | `explorer/tank_keeper_silver` |
-| `FILM` | `explorer/tank_keeper_gold` |
-| `ARCH` | `challenge/golden_showcase` |
+| `TOOTH` | `explorer/tank_keeper_silver` *or* `explorer/older_than_the_hills` |
+| `FILM` | `explorer/tank_keeper_gold` *or* `collector/river_collector` |
+| `ARCH` | `challenge/golden_showcase` *or* `explorer/frost_bitten_haul` |
 | `MULLION` | `explorer/sunlit_garden` |
 | `LATTICE` | `explorer/idol_admirer` |
 | `DUNE` | `explorer/tidepool_twilight` |
 
-The seven shapes from `BRAMBLE` down are deliberately single-quest gates rather than the any-one-of-two
-pairing used above them.
+`BRAMBLE`, `MULLION`, `LATTICE`, and `DUNE` remain deliberately single-quest gates; the other shapes
+each have at least one additional collector/explorer-quest unlock path layered on top of their
+original mastery/challenge gate.
 
 ### Connection gating
 

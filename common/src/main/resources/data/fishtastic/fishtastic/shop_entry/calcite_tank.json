@@ -8,6 +8,7 @@
       "id": "fishtastic:fish_tank",
       "count": 8,
       "components": {
+        "fishtastic:fish_tank_shape": "faceted",
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:calcite",
           "sand": "minecraft:snow_block",

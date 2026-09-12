@@ -1,6 +1,6 @@
 {
   "display_name": "Arch Fish Tank",
-  "description": "A window-arch motif on every face, with a repeating arcade when tanks connect side by side. Earned by displaying a Legendary-quality fish in a gold-framed tank.",
+  "description": "A window-arch motif on every face, with a repeating arcade when tanks connect side by side. Earned via several quest lines.",
   "cost": 100,
   "weight": 0.5,
   "is_tank_shape": true,
@@ -18,5 +18,5 @@
       }
     }
   ],
-  "unlock_quests": ["fishtastic:challenge/golden_showcase"]
+  "unlock_quests": ["fishtastic:challenge/golden_showcase", "fishtastic:explorer/frost_bitten_haul"]
 }

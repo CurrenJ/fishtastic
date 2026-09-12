@@ -59,32 +59,36 @@ public enum FishTankShape implements TooltipProvider {
     /**
      * REINFORCED's deeper sibling — a 6px→1px taper with no full-width rows (see
      * CornerTaperProfile.HONED). Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s
-     * note. Locked until {@code mastery/angler_master} or {@code mastery/bluegill_master} is
-     * claimed — see {@link #unlockQuests}.
+     * note. Locked until {@code mastery/angler_master}, {@code mastery/bluegill_master}, or
+     * {@code collector/cave_collector} is claimed — see {@link #unlockQuests}.
      */
     HONED(Fishtastic.id("honed"), Fishtastic.id("standard"), "fishtank_honed",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_master")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_master")))),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_master")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/cave_collector")))),
     /**
      * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
      * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
-     * {@link #TRIMMED}'s note. Locked until {@code tutorial/first_catch} or
-     * {@code mastery/bluegill_novice} is claimed — see {@link #unlockQuests}.
+     * {@link #TRIMMED}'s note. Locked until {@code tutorial/first_catch},
+     * {@code mastery/bluegill_novice}, or {@code collector/deep_ocean_collector} is claimed —
+     * see {@link #unlockQuests}.
      */
     STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("tutorial/first_catch")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_novice")))),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_novice")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/deep_ocean_collector")))),
     /**
      * A 16px→2px corner taper with 2px-thick chamfered octagonal cap rings and a stepped-octagon
      * sand — BASTION's thinner-stepped sibling (see CornerTaperProfile.FACETED and
      * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all shipped
      * shapes are meant to freely interconnect (see {@link #TRIMMED}'s note).
-     * Locked until {@code challenge/sunrise_ambush} or {@code mastery/gar_veteran} is claimed —
-     * see {@link #unlockQuests}.
+     * Locked until {@code challenge/sunrise_ambush}, {@code mastery/gar_veteran}, or
+     * {@code collector/high_altitude_collector} is claimed — see {@link #unlockQuests}.
      */
     FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/sunrise_ambush")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_veteran")))),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_veteran")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/high_altitude_collector")))),
     /**
      * 16px→2px taper with 2px-thick caps, whose {@code 16} rows are chamfered octagonal base rings
      * and whose sand is a stepped octagon (see CornerTaperProfile.BASTION). Shares STANDARD's
@@ -99,12 +103,13 @@ public enum FishTankShape implements TooltipProvider {
      * BASTION's deeper sibling — a 16px→2px taper whose full-width cap rows taper one pixel
      * further out (7 vs BASTION's 6) for a tighter frame circle (see CornerTaperProfile.RAMPART).
      * Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code mastery/angler_legend} or {@code mastery/gar_legend} is claimed —
-     * see {@link #unlockQuests}.
+     * Locked until {@code mastery/angler_legend}, {@code mastery/gar_legend}, or
+     * {@code collector/ocean_collector} is claimed — see {@link #unlockQuests}.
      */
     RAMPART(Fishtastic.id("rampart"), Fishtastic.id("standard"), "fishtank_rampart",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_legend")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_legend")))),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_legend")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/ocean_collector")))),
     /**
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
@@ -144,20 +149,24 @@ public enum FishTankShape implements TooltipProvider {
      * them, read pixel-exactly off {@code docs/tank-shapes/tooth_shape_3_wide.png} (see
      * CombFrameGeometryGenerator / CombGlassGeometryGenerator, spans in ToothTankSpans). Shares
      * STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code explorer/tank_keeper_silver} is claimed — see {@link #unlockQuests}.
+     * Locked until {@code explorer/tank_keeper_silver} or {@code explorer/older_than_the_hills}
+     * is claimed — see {@link #unlockQuests}.
      */
     TOOTH(Fishtastic.id("tooth"), Fishtastic.id("standard"), "fishtank_tooth",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_silver")))),
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_silver")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/older_than_the_hills")))),
     /**
      * Film tank: a filmstrip-sprocket motif — a period-2 perforated comb band under the ceiling and
      * above the sand, with a plain 1px corner post filling the waist, read pixel-exactly off
      * {@code docs/tank-shapes/film_shape_3_wide.png} (see CombFrameGeometryGenerator /
      * CombGlassGeometryGenerator, spans in FilmTankSpans). Shares STANDARD's connectionCollection
      * like {@link #FACETED}.
-     * Locked until {@code explorer/tank_keeper_gold} is claimed — see {@link #unlockQuests}.
+     * Locked until {@code explorer/tank_keeper_gold} or {@code collector/river_collector} is
+     * claimed — see {@link #unlockQuests}.
      */
     FILM(Fishtastic.id("film"), Fishtastic.id("standard"), "fishtank_film",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_gold")))),
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_gold")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/river_collector")))),
     /**
      * Arch tank: a window-arch motif on every face — an arc curve springing from a crown blob down
      * to the corners, framed by a jamb that is 1px up high and widens to 2px below the springing
@@ -168,11 +177,12 @@ public enum FishTankShape implements TooltipProvider {
      * opens, while the arc renders regardless of the perpendicular faces. Connected tanks therefore
      * lose the pillar at the seam and their two arcs meet there instead, reading as a continuous
      * row of open archways. Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code challenge/golden_showcase} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     * Locked until {@code challenge/golden_showcase} or {@code explorer/frost_bitten_haul} is
+     * claimed — see {@link #unlockQuests}.
      */
     ARCH(Fishtastic.id("arch"), Fishtastic.id("standard"), "fishtank_arch",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/golden_showcase")))),
+            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/golden_showcase")),
+                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/frost_bitten_haul")))),
     /**
      * Mullion tank: a standard 1px frame plus three interior window-mullion bars per face at local
      * {@code x = 4, 8, 12}, running the full wall height including through the sand row (see
@@ -182,7 +192,7 @@ public enum FishTankShape implements TooltipProvider {
      * apart across a horizontal connection. Shares STANDARD's connectionCollection like
      * {@link #FACETED}.
      * Locked until {@code explorer/sunlit_garden} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
     MULLION(Fishtastic.id("mullion"), Fishtastic.id("standard"), "fishtank_mullion",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/sunlit_garden")))),
@@ -194,7 +204,7 @@ public enum FishTankShape implements TooltipProvider {
      * connection behavior was requested). Shares STANDARD's connectionCollection like
      * {@link #FACETED}.
      * Locked until {@code explorer/idol_admirer} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
     LATTICE(Fishtastic.id("lattice"), Fishtastic.id("standard"), "fishtank_lattice",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/idol_admirer")))),
@@ -205,7 +215,7 @@ public enum FishTankShape implements TooltipProvider {
      * gives an entirely flat, raised sand surface at the hill's top height. Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
      * Locked until {@code explorer/tidepool_twilight} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE}/{@link #TOOTH}/{@link #FILM} precedent — see {@link #unlockQuests}.
+     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
     DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune",
             List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tidepool_twilight"))));

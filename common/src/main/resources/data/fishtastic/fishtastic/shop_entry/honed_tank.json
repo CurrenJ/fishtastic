@@ -1,6 +1,6 @@
 {
   "display_name": "Honed Fish Tank",
-  "description": "A tank with a deep, precisely-tapered corner brace, tighter than the Reinforced Tank's. Earned by reaching Angler Master (catch 250 fish).",
+  "description": "A tank with a deep, precisely-tapered corner brace, tighter than the Reinforced Tank's. Earned via several quest lines.",
   "cost": 100,
   "weight": 0.5,
   "is_tank_shape": true,
@@ -18,5 +18,5 @@
       }
     }
   ],
-  "unlock_quests": ["fishtastic:mastery/angler_master", "fishtastic:mastery/bluegill_master"]
+  "unlock_quests": ["fishtastic:mastery/angler_master", "fishtastic:mastery/bluegill_master", "fishtastic:collector/cave_collector"]
 }

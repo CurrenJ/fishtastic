@@ -1,6 +1,6 @@
 {
   "display_name": "Film Fish Tank",
-  "description": "A filmstrip-sprocket tank with a perforated comb band under the ceiling and above the sand. Earned by placing 300 fish into tanks over your lifetime.",
+  "description": "A filmstrip-sprocket tank with a perforated comb band under the ceiling and above the sand. Earned via several quest lines.",
   "cost": 100,
   "weight": 0.5,
   "is_tank_shape": true,
@@ -18,5 +18,5 @@
       }
     }
   ],
-  "unlock_quests": ["fishtastic:explorer/tank_keeper_gold"]
+  "unlock_quests": ["fishtastic:explorer/tank_keeper_gold", "fishtastic:collector/river_collector"]
 }
