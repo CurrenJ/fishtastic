@@ -1,7 +1,7 @@
 {
   "render_calibration": 1.02,
   "base_weight": 15,
-  "size": { "mean": 20.0, "std_dev": 4.0 },
+  "size": { "mean": 13.5, "std_dev": 2.7 },
   "zones": [
     "cave"
   ],

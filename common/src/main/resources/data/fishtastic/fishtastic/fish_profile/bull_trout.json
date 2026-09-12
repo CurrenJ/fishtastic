@@ -1,7 +1,7 @@
 {
   "render_calibration": 0.83,
   "base_weight": 5,
-  "size": { "mean": 65.0, "std_dev": 14.0 },
+  "size": { "mean": 50.0, "std_dev": 11.0 },
   "zones": [
     "high_altitude"
   ],

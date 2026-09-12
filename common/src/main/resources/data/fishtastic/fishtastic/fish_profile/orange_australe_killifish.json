@@ -1,7 +1,7 @@
 {
   "render_calibration": 0.93,
   "base_weight": 15,
-  "size": { "mean": 14.0, "std_dev": 3.0 },
+  "size": { "mean": 10.0, "std_dev": 2.2 },
   "zones": [
     "nether"
   ],
