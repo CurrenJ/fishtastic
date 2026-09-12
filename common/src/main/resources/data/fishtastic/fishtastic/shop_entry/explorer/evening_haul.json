@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"Evening Haul\".",
+  "display_name": "Evening Haul Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "fishtastic:yellow_clear_stained_glass",
+          "glass": "fishtastic:pink_clear_stained_glass",
+          "sand": "minecraft:red_concrete_powder"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/evening_haul"
+  ],
+  "weight": 0.5
+}

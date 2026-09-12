@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Frost-Bitten Haul\".",
+  "display_name": "Arch Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:chiseled_quartz_block",
+          "glass": "fishtastic:white_borderless_stained_glass",
+          "sand": "minecraft:snow_block"
+        },
+        "fishtastic:fish_tank_shape": "arch"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/frost_bitten_haul"
+  ],
+  "weight": 0.5
+}

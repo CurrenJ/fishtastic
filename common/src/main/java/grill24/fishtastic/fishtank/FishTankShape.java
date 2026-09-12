@@ -1,10 +1,10 @@
 package grill24.fishtastic.fishtank;
 
-import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.Quest;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -27,6 +27,13 @@ import java.util.function.Predicate;
  *
  * <p>A code-defined enum (matching {@link FishTankFrameType}'s minimalism) rather than a dynamic
  * registry: shapes are curated content shipped with the mod, not something datapacks need to add.
+ *
+ * <p>Which quests unlock a given shape is <em>not</em> declared here. It's derived at runtime by
+ * {@link FishTankShapeUnlocks}, which scans the {@code Quest} registry for reward items carrying an
+ * explicit {@code fishtastic:fish_tank_shape} component — the quest reward JSON is the only place
+ * that needs editing to add a new unlock path. (An earlier version hardcoded a per-constant list of
+ * unlock quests here, which had to be hand-kept in sync with both the reward JSON and the matching
+ * {@code shop_entry} JSON; the three silently drifted more than once.)
  */
 public enum FishTankShape implements TooltipProvider {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
@@ -41,132 +48,81 @@ public enum FishTankShape implements TooltipProvider {
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
      * Shares STANDARD's connectionCollection by deliberate curation (not the default-to-self
      * behavior) — all three shipped shapes are meant to interconnect with each other.
-     * Locked until {@code mastery/angler_apprentice} or {@code mastery/gar_hunter} is claimed —
-     * see {@link #unlockQuests}.
      */
-    TRIMMED(Fishtastic.id("trimmed"), Fishtastic.id("standard"), "fishtank_trimmed",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_apprentice")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_hunter")))),
+    TRIMMED(Fishtastic.id("trimmed"), Fishtastic.id("standard"), "fishtank_trimmed"),
     /**
      * Chunkier corner brackets — deeper 5px→1px taper. See CornerTaperProfile.REINFORCED.
      * Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s note.
-     * Locked until {@code mastery/angler_journeyman} or {@code mastery/tetra_scholar} is claimed —
-     * see {@link #unlockQuests}.
      */
-    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_journeyman")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/tetra_scholar")))),
+    REINFORCED(Fishtastic.id("reinforced"), Fishtastic.id("standard"), "fishtank_reinforced"),
     /**
      * REINFORCED's deeper sibling — a 6px→1px taper with no full-width rows (see
      * CornerTaperProfile.HONED). Shares STANDARD's connectionCollection — see {@link #TRIMMED}'s
-     * note. Locked until {@code mastery/angler_master}, {@code mastery/bluegill_master}, or
-     * {@code collector/cave_collector} is claimed — see {@link #unlockQuests}.
+     * note.
      */
-    HONED(Fishtastic.id("honed"), Fishtastic.id("standard"), "fishtank_honed",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_master")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_master")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/cave_collector")))),
+    HONED(Fishtastic.id("honed"), Fishtastic.id("standard"), "fishtank_honed"),
     /**
      * STANDARD's chunky hard-edged sibling: a uniform 2px mid-body with chamfered octagonal cap
      * rings (see CornerTaperProfile.STURDY). Shares STANDARD's connectionCollection — see
-     * {@link #TRIMMED}'s note. Locked until {@code tutorial/first_catch},
-     * {@code mastery/bluegill_novice}, or {@code collector/deep_ocean_collector} is claimed —
-     * see {@link #unlockQuests}.
+     * {@link #TRIMMED}'s note.
      */
-    STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("tutorial/first_catch")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/bluegill_novice")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/deep_ocean_collector")))),
+    STURDY(Fishtastic.id("sturdy"), Fishtastic.id("standard"), "fishtank_sturdy"),
     /**
      * A 16px→2px corner taper with 2px-thick chamfered octagonal cap rings and a stepped-octagon
      * sand — BASTION's thinner-stepped sibling (see CornerTaperProfile.FACETED and
      * SteppedSandGeometryGenerator). Shares STANDARD's connectionCollection — all shipped
      * shapes are meant to freely interconnect (see {@link #TRIMMED}'s note).
-     * Locked until {@code challenge/sunrise_ambush}, {@code mastery/gar_veteran}, or
-     * {@code collector/high_altitude_collector} is claimed — see {@link #unlockQuests}.
      */
-    FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/sunrise_ambush")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_veteran")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/high_altitude_collector")))),
+    FACETED(Fishtastic.id("faceted"), Fishtastic.id("standard"), "fishtank_faceted"),
     /**
      * 16px→2px taper with 2px-thick caps, whose {@code 16} rows are chamfered octagonal base rings
      * and whose sand is a stepped octagon (see CornerTaperProfile.BASTION). Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
-     * Locked until {@code collector/nether_collector} or {@code challenge/predator_run} is claimed —
-     * see {@link #unlockQuests}.
      */
-    BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/nether_collector")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/predator_run")))),
+    BASTION(Fishtastic.id("bastion"), Fishtastic.id("standard"), "fishtank_bastion"),
     /**
      * BASTION's deeper sibling — a 16px→2px taper whose full-width cap rows taper one pixel
      * further out (7 vs BASTION's 6) for a tighter frame circle (see CornerTaperProfile.RAMPART).
      * Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code mastery/angler_legend}, {@code mastery/gar_legend}, or
-     * {@code collector/ocean_collector} is claimed — see {@link #unlockQuests}.
      */
-    RAMPART(Fishtastic.id("rampart"), Fishtastic.id("standard"), "fishtank_rampart",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/angler_legend")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/gar_legend")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/ocean_collector")))),
+    RAMPART(Fishtastic.id("rampart"), Fishtastic.id("standard"), "fishtank_rampart"),
     /**
      * Ornate tank: standard 1px frame plus decorative 1px inlay brackets on each face, with a
      * standard sand and a glass pane shaped around the brackets (see OrnateFrameGeometryGenerator /
      * OrnateGlassGeometryGenerator). Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code challenge/daily_completionist} or {@code mastery/tetra_legend} is
-     * claimed — see {@link #unlockQuests}.
      */
-    ORNATE(Fishtastic.id("ornate"), Fishtastic.id("standard"), "fishtank_ornate",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/daily_completionist")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/tetra_legend")))),
+    ORNATE(Fishtastic.id("ornate"), Fishtastic.id("standard"), "fishtank_ornate"),
     /**
      * Shaggy tank: the ornate tank's construction — standard 1px frame plus 1px decorative inlays
      * inset into the glass layer — with a shaggier, deliberately asymmetric fringe and a full-width
      * band at Y [1,2] that hides the sand from the side (see ShaggyFrameGeometryGenerator /
      * ShaggyGlassGeometryGenerator, spans in ShaggyTankSpans). Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
-     * Locked until {@code challenge/storm_prize} or {@code mastery/tetra_tracker} is claimed —
-     * see {@link #unlockQuests}.
      */
-    SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/storm_prize")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("mastery/tetra_tracker")))),
+    SHAGGY(Fishtastic.id("shaggy"), Fishtastic.id("standard"), "fishtank_shaggy"),
     /**
      * Bramble tank: no plain corner post at all — every interior Y band carries its own thorny,
      * asymmetric inlay pattern read off {@code docs/tank-shapes/bramble_shape_*.png} (see
      * BrambleFrameGeometryGenerator / BrambleGlassGeometryGenerator, spans in BrambleTankSpans).
      * Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code explorer/jungle_downpour} is claimed — unlike every other shape's
-     * any-one-of-two gating, bramble is deliberately tied to this single quest — see
-     * {@link #unlockQuests}.
      */
-    BRAMBLE(Fishtastic.id("bramble"), Fishtastic.id("standard"), "fishtank_bramble",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/jungle_downpour")))),
+    BRAMBLE(Fishtastic.id("bramble"), Fishtastic.id("standard"), "fishtank_bramble"),
     /**
      * Tooth tank: a shark-jaw motif — doubled ceiling/floor bands, a comb-tooth fringe hanging down
      * from the ceiling and rising up from the floor, and a 2px corner post filling the waist between
      * them, read pixel-exactly off {@code docs/tank-shapes/tooth_shape_3_wide.png} (see
      * CombFrameGeometryGenerator / CombGlassGeometryGenerator, spans in ToothTankSpans). Shares
      * STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code explorer/tank_keeper_silver} or {@code explorer/older_than_the_hills}
-     * is claimed — see {@link #unlockQuests}.
      */
-    TOOTH(Fishtastic.id("tooth"), Fishtastic.id("standard"), "fishtank_tooth",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_silver")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/older_than_the_hills")))),
+    TOOTH(Fishtastic.id("tooth"), Fishtastic.id("standard"), "fishtank_tooth"),
     /**
      * Film tank: a filmstrip-sprocket motif — a period-2 perforated comb band under the ceiling and
      * above the sand, with a plain 1px corner post filling the waist, read pixel-exactly off
      * {@code docs/tank-shapes/film_shape_3_wide.png} (see CombFrameGeometryGenerator /
      * CombGlassGeometryGenerator, spans in FilmTankSpans). Shares STANDARD's connectionCollection
      * like {@link #FACETED}.
-     * Locked until {@code explorer/tank_keeper_gold} or {@code collector/river_collector} is
-     * claimed — see {@link #unlockQuests}.
      */
-    FILM(Fishtastic.id("film"), Fishtastic.id("standard"), "fishtank_film",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tank_keeper_gold")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("collector/river_collector")))),
+    FILM(Fishtastic.id("film"), Fishtastic.id("standard"), "fishtank_film"),
     /**
      * Arch tank: a window-arch motif on every face — an arc curve springing from a crown blob down
      * to the corners, framed by a jamb that is 1px up high and widens to 2px below the springing
@@ -177,12 +133,8 @@ public enum FishTankShape implements TooltipProvider {
      * opens, while the arc renders regardless of the perpendicular faces. Connected tanks therefore
      * lose the pillar at the seam and their two arcs meet there instead, reading as a continuous
      * row of open archways. Shares STANDARD's connectionCollection like {@link #FACETED}.
-     * Locked until {@code challenge/golden_showcase} or {@code explorer/frost_bitten_haul} is
-     * claimed — see {@link #unlockQuests}.
      */
-    ARCH(Fishtastic.id("arch"), Fishtastic.id("standard"), "fishtank_arch",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("challenge/golden_showcase")),
-                    ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/frost_bitten_haul")))),
+    ARCH(Fishtastic.id("arch"), Fishtastic.id("standard"), "fishtank_arch"),
     /**
      * Mullion tank: a standard 1px frame plus three interior window-mullion bars per face at local
      * {@code x = 4, 8, 12}, running the full wall height including through the sand row (see
@@ -191,11 +143,8 @@ public enum FishTankShape implements TooltipProvider {
      * {@code x = 15} is an ordinary gated wall — this asymmetry is what keeps the bars exactly 3px
      * apart across a horizontal connection. Shares STANDARD's connectionCollection like
      * {@link #FACETED}.
-     * Locked until {@code explorer/sunlit_garden} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
-    MULLION(Fishtastic.id("mullion"), Fishtastic.id("standard"), "fishtank_mullion",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/sunlit_garden")))),
+    MULLION(Fishtastic.id("mullion"), Fishtastic.id("standard"), "fishtank_mullion"),
     /**
      * Lattice tank: a 1px edge on every row (2px at the very top/bottom, matching the sand's 2px
      * inset) plus a pair of diagonal 1px points per row that walk inward from the edge, crossing at
@@ -203,44 +152,25 @@ public enum FishTankShape implements TooltipProvider {
      * Every element is face-local, following the shipped ornate-family convention (no special
      * connection behavior was requested). Shares STANDARD's connectionCollection like
      * {@link #FACETED}.
-     * Locked until {@code explorer/idol_admirer} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
-    LATTICE(Fishtastic.id("lattice"), Fishtastic.id("standard"), "fishtank_lattice",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/idol_admirer")))),
+    LATTICE(Fishtastic.id("lattice"), Fishtastic.id("standard"), "fishtank_lattice"),
     /**
      * Dune tank: standard 1px frame/glass (identical to STANDARD's own, reused byte-for-byte)
      * with a two-step raised sand hill in the center (see DuneSandGeometryGenerator). Each connected
      * horizontal face pushes the hill's footprint out toward that boundary, and connecting all four
      * gives an entirely flat, raised sand surface at the hill's top height. Shares STANDARD's
      * connectionCollection like {@link #FACETED}.
-     * Locked until {@code explorer/tidepool_twilight} is claimed — a single-quest gate, following the
-     * {@link #BRAMBLE} precedent — see {@link #unlockQuests}.
      */
-    DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune",
-            List.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Fishtastic.id("explorer/tidepool_twilight"))));
+    DUNE(Fishtastic.id("dune"), Fishtastic.id("standard"), "fishtank_dune");
 
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
-    /**
-     * When non-empty, this shape can't be selected in the assembly GUI or crafted until *any* one
-     * of the named quests has been claimed — mirrors {@link grill24.fishtastic.data.ShopEntry#unlockQuests}.
-     * Several quests rather than one so a shape isn't hard-gated behind a single grind: a player
-     * can earn it via whichever path they're already pursuing. Empty (the default) means the shape
-     * is available from the start, like the other five shipped shapes.
-     */
-    private final List<ResourceKey<Quest>> unlockQuests;
 
     FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix) {
-        this(id, connectionCollection, modelPathPrefix, List.of());
-    }
-
-    FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix, List<ResourceKey<Quest>> unlockQuests) {
         this.id = id;
         this.connectionCollection = connectionCollection;
         this.modelPathPrefix = modelPathPrefix;
-        this.unlockQuests = unlockQuests;
     }
 
     public Identifier id() {
@@ -262,16 +192,22 @@ public enum FishTankShape implements TooltipProvider {
         return modelPathPrefix;
     }
 
-    public List<ResourceKey<Quest>> unlockQuests() {
-        return unlockQuests;
+    /**
+     * The quests that unlock this shape (claiming any one is enough), derived from {@code Quest}
+     * reward data — see {@link FishTankShapeUnlocks}. Empty means the shape is available from the
+     * start, like STANDARD/SKYLIGHT/TRIMMED/REINFORCED/BASTION.
+     */
+    public List<ResourceKey<Quest>> unlockQuests(Registry<Quest> quests) {
+        return FishTankShapeUnlocks.unlockQuestsFor(quests, this);
     }
 
     /**
      * Whether this shape is available to a player, given a lookup of whether a quest has been
-     * claimed. Ungated shapes (no listed quests) are always available; gated shapes need only one
-     * of their listed quests claimed. Mirrors {@link grill24.fishtastic.data.ShopEntry#isUnlockedFor}.
+     * claimed. Ungated shapes (no unlocking quests) are always available; gated shapes need only
+     * one of their unlocking quests claimed. Mirrors {@link grill24.fishtastic.data.ShopEntry#isUnlockedFor}.
      */
-    public boolean isUnlockedFor(Predicate<ResourceKey<Quest>> questClaimed) {
+    public boolean isUnlockedFor(Registry<Quest> quests, Predicate<ResourceKey<Quest>> questClaimed) {
+        List<ResourceKey<Quest>> unlockQuests = unlockQuests(quests);
         return unlockQuests.isEmpty() || unlockQuests.stream().anyMatch(questClaimed);
     }
 

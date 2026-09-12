@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Infernal Registrar\".",
+  "display_name": "Bastion Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:polished_blackstone",
+          "glass": "fishtastic:red_clear_stained_glass",
+          "sand": "minecraft:soul_sand"
+        },
+        "fishtastic:fish_tank_shape": "bastion"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:collector/nether_collector"
+  ],
+  "weight": 0.5
+}

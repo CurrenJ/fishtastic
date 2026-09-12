@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Angler Apprentice\".",
+  "display_name": "Trimmed Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:quartz_block",
+          "glass": "fishtastic:white_clear_stained_glass",
+          "sand": "minecraft:shroomlight"
+        },
+        "fishtastic:fish_tank_shape": "trimmed"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/angler_apprentice"
+  ],
+  "weight": 0.5
+}

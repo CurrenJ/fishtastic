@@ -75,15 +75,23 @@ connects to every other:
 | `LATTICE` | `fishtank_lattice` | 1px edge per row (2px at top/bottom) plus paired diagonal points walking inward, crossing at the vertical midpoint. |
 | `DUNE` | `fishtank_dune` | STANDARD's frame and glass reused byte-for-byte, with a two-step raised sand hill that spreads toward each connected horizontal face. |
 
-`STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated: `unlockQuests` on
-the enum entry (mirrored by `unlock_quests` on its shop entry) lists a small set of quests, and
-claiming *any one* of them unlocks the shape. Every quest in that list grants a matching tank of that
-shape as its own reward, so a player pursuing a different chain from the shape's "primary" quest
-still walks away with a tank in hand, not just the unlock flag — but each path's tank is themed with
-its own frame/sand/glass materials rather than cloning the primary's, so a different grind feels like
-a distinct reward rather than a recolor-free duplicate. Keep all three in sync by hand when adding a
-path: the enum's `unlockQuests`, the shop entry's `unlock_quests`, and that quest's own `fish_tank`
-reward item (shape must match; materials are free to differ) — nothing enforces this structurally.
+`STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated, and unlike most of
+this file, the gating is *not* declared anywhere — it's derived at runtime by
+`FishTankShapeUnlocks`, which scans the `Quest` registry for reward items carrying an explicit
+`fishtastic:fish_tank_shape` component: a quest "unlocks" whatever shape(s) its own reward grants.
+Claiming *any one* quest that grants a shape unlocks it, and since the unlock condition and the
+reward are the same JSON field, a player pursuing a different chain from the shape's "primary" quest
+always walks away with a themed tank in hand, not just the unlock flag — there's no way for the two
+to drift apart the way they used to.
+
+Shop listings for these tanks are generated the same way: `ShopEntryFromQuestProvider` (run via
+`:fabric:runDatagen`) emits one `shop_entry` per qualifying quest reward item, selling the exact
+stack — shape and materials — that quest grants, gated on that one quest. Adding a new unlock path
+for a shape is therefore a one-file change: add a `fishtastic:fish_tank_shape` component to a
+quest's `fish_tank` reward and regenerate datagen; the shop listing and the crafting/assembly gate
+both pick it up automatically. (The older design hand-authored both the enum's `unlockQuests` list
+and the shop entry per shape, which repeatedly drifted from the quest reward data they were meant to
+mirror — this replaced all three with one source of truth.)
 
 | Shape | Unlocked by (any one) |
 |---|---|

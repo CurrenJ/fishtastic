@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"Completionist\".",
+  "display_name": "Completionist Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:diamond_block",
+          "glass": "fishtastic:light_blue_clear_stained_glass",
+          "sand": "minecraft:sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:collector/completionist"
+  ],
+  "weight": 0.5
+}

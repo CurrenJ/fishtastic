@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Sunrise Ambush\".",
+  "display_name": "Faceted Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:amethyst_block",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:purple_concrete_powder"
+        },
+        "fishtastic:fish_tank_shape": "faceted"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:challenge/sunrise_ambush"
+  ],
+  "weight": 0.5
+}

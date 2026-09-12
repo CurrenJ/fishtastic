@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Angler Legend\".",
+  "display_name": "Rampart Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:deepslate_bricks",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:gravel"
+        },
+        "fishtastic:fish_tank_shape": "rampart"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/angler_legend"
+  ],
+  "weight": 0.5
+}

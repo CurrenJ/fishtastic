@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Bluegill Beginner\".",
+  "display_name": "Sturdy Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:birch_planks",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:sand"
+        },
+        "fishtastic:fish_tank_shape": "sturdy"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/bluegill_novice"
+  ],
+  "weight": 0.5
+}

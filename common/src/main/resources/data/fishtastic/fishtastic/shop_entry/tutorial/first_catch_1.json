@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"First Catch\".",
+  "display_name": "First Catch Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:oak_planks",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:tutorial/first_catch"
+  ],
+  "weight": 0.5
+}
