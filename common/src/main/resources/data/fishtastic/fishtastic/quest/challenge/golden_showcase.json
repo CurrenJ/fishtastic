@@ -2,8 +2,7 @@
   "category": "challenge",
   "difficulty": "gold",
   "objective": {
-    "target_count": 1,
-    "min_quality": "legendary",
+    "target_count": 1, "min_quality": "legendary",
     "tank_snapshot": { "material": "minecraft:gold_block" }
   },
   "reward": {

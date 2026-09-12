@@ -15,8 +15,8 @@
         "components": {
           "fishtastic:fish_tank_shape": "honed",
           "fishtastic:fish_tank_materials": {
-            "frame": "minecraft:polished_deepslate",
-            "sand": "minecraft:gravel",
+            "frame": "minecraft:cracked_deepslate_bricks",
+            "sand": "minecraft:granite",
             "glass": "fishtastic:gray_clear_stained_glass"
           }
         }

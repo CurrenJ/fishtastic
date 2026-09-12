@@ -7,9 +7,9 @@
     {
       "components": {
         "fishtastic:fish_tank_materials": {
-          "frame": "minecraft:polished_deepslate",
+          "frame": "minecraft:cracked_deepslate_bricks",
           "glass": "fishtastic:gray_clear_stained_glass",
-          "sand": "minecraft:gravel"
+          "sand": "minecraft:granite"
         },
         "fishtastic:fish_tank_shape": "honed"
       },
