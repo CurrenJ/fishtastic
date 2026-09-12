@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Jungle Downpour\".",
+  "display_name": "Bramble Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:jungle_planks",
+          "glass": "fishtastic:lime_clear_stained_glass",
+          "sand": "minecraft:mud"
+        },
+        "fishtastic:fish_tank_shape": "bramble"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/jungle_downpour"
+  ],
+  "weight": 0.5
+}

@@ -10,7 +10,7 @@
     "items": [
       {
         "id": "fishtastic:fish_tank",
-        "count": 4,
+        "count": 8,
         "components": {
           "fishtastic:fish_tank_shape": "shaggy",
           "fishtastic:fish_tank_materials": {

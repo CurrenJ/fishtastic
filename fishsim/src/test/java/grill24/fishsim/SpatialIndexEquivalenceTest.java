@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
@@ -116,7 +117,8 @@ class SpatialIndexEquivalenceTest {
         for (int i = 0; i < n; i++) {
             specs[i] = new FishSpec(
                     0.07f + rng.nextFloat() * 0.20f,
-                    rng.nextInt(10) > 0, // ~10% non-swimming hover obstacles (separation still sees them)
+                    // ~10% unsimulated hover obstacles (separation still sees them)
+                    rng.nextInt(10) > 0 ? Locomotion.FREE_SWIM : Locomotion.STATIC,
                     rng.nextBoolean(),
                     rng.nextInt(3));
         }

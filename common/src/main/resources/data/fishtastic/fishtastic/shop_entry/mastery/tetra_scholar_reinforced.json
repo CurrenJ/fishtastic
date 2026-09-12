@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Tetra Scholar\".",
+  "display_name": "Reinforced Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:quartz_pillar",
+          "glass": "fishtastic:magenta_clear_stained_glass",
+          "sand": "minecraft:sand"
+        },
+        "fishtastic:fish_tank_shape": "reinforced"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/tetra_scholar"
+  ],
+  "weight": 0.5
+}

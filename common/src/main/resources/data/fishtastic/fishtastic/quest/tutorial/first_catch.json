@@ -8,7 +8,7 @@
     { "id": "fishtastic:worms", "count": 4 },
     {
       "id": "fishtastic:fish_tank",
-      "count": 4,
+      "count": 8,
       "components": {
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:oak_planks",
@@ -19,7 +19,7 @@
     },
     {
       "id": "fishtastic:fish_tank",
-      "count": 4,
+      "count": 8,
       "components": {
         "fishtastic:fish_tank_shape": "sturdy",
         "fishtastic:fish_tank_materials": {

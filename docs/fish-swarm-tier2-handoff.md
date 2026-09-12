@@ -19,7 +19,12 @@ Tier 1 is implemented, tested, and confirmed good in game by the user (2026-09-0
 > blocked by Tier 2/3 work — but it is the reason a big build looks wrong today, so read it before
 > concluding the flocking model is at fault for a distribution problem.
 
-Tier 2 is **implemented and headlessly verified, but has NOT had its in-game acceptance pass**
+Tier 2 is **implemented, headlessly verified, and accepted in game** (2026-09-10 — watched in a
+real multi-tank aquarium alongside the locomotion classes and called out as a high point; no
+changes were needed). The paragraph below described the state before that pass and is kept for the
+reasoning it carries.
+
+Tier 2 was, at the time of writing, **implemented and headlessly verified, but had NOT had its in-game acceptance pass**
 (2026-09-10). All 103 `:fishsim` tests pass; both loaders compile. Two of the four planned Tier 2
 items landed, one was disproven and reverted, one is untouched:
 

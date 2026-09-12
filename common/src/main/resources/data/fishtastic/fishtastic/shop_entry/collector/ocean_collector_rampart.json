@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Coastal Cataloguer\".",
+  "display_name": "Rampart Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:prismarine_bricks",
+          "glass": "fishtastic:cyan_clear_stained_glass",
+          "sand": "minecraft:sand"
+        },
+        "fishtastic:fish_tank_shape": "rampart"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:collector/ocean_collector"
+  ],
+  "weight": 0.5
+}

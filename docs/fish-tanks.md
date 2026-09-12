@@ -51,7 +51,7 @@ STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase")
 //       ^ id                       ^ connectionCollection     ^ modelPathPrefix
 ```
 
-**Eighteen shapes ship today**, all sharing the `standard` connection collection so every shape
+**Twenty-two shapes ship today**, all sharing the `standard` connection collection so every shape
 connects to every other:
 
 | Shape | Model prefix | Geometry summary |
@@ -74,38 +74,50 @@ connects to every other:
 | `MULLION` | `fishtank_mullion` | Standard frame plus three full-height interior mullion bars per face at local `x = 4, 8, 12`; the `x = 0` bar is persistent so bars stay 3px apart across a connection. |
 | `LATTICE` | `fishtank_lattice` | 1px edge per row (2px at top/bottom) plus paired diagonal points walking inward, crossing at the vertical midpoint. |
 | `DUNE` | `fishtank_dune` | STANDARD's frame and glass reused byte-for-byte, with a two-step raised sand hill that spreads toward each connected horizontal face. |
+| `VITRINE` | `fishtank_vitrine` | STANDARD's body with both the ceiling and floor caps replaced by a frame ring + horizontal glass pane (mirroring SKYLIGHT's ceiling treatment at the floor too), and no sand at all — every one of the 6 faces is glass. |
+| `CUPOLA` | `fishtank_cupola` | STURDY's chunky 2px body with the solid ceiling cap replaced by a frame ring + glass pane — STURDY's counterpart to SKYLIGHT. Sand unchanged. |
+| `HUTCH` | `fishtank_hutch` | STURDY's chunky 2px body with both caps replaced by a ring + glass pane and no sand at all — STURDY's counterpart to VITRINE. |
 
-`STANDARD` and `SKYLIGHT` are always available. Every other shape is quest-gated: `unlockQuests` on
-the enum entry (mirrored by `unlock_quests` on its shop entry) lists a small set of quests, and
-claiming *any one* of them unlocks the shape. Every quest in that list grants a matching tank of that
-shape as its own reward, so a player pursuing a different chain from the shape's "primary" quest
-still walks away with a tank in hand, not just the unlock flag — but each path's tank is themed with
-its own frame/sand/glass materials rather than cloning the primary's, so a different grind feels like
-a distinct reward rather than a recolor-free duplicate. Keep all three in sync by hand when adding a
-path: the enum's `unlockQuests`, the shop entry's `unlock_quests`, and that quest's own `fish_tank`
-reward item (shape must match; materials are free to differ) — nothing enforces this structurally.
+`STANDARD`, `SKYLIGHT`, `VITRINE`, `CUPOLA`, and `HUTCH` are always available. Every other shape is quest-gated, and unlike most of
+this file, the gating is *not* declared anywhere — it's derived at runtime by
+`FishTankShapeUnlocks`, which scans the `Quest` registry for reward items carrying an explicit
+`fishtastic:fish_tank_shape` component: a quest "unlocks" whatever shape(s) its own reward grants.
+Claiming *any one* quest that grants a shape unlocks it, and since the unlock condition and the
+reward are the same JSON field, a player pursuing a different chain from the shape's "primary" quest
+always walks away with a themed tank in hand, not just the unlock flag — there's no way for the two
+to drift apart the way they used to.
+
+Shop listings for these tanks are generated the same way: `ShopEntryFromQuestProvider` (run via
+`:fabric:runDatagen`) emits one `shop_entry` per qualifying quest reward item, selling the exact
+stack — shape and materials — that quest grants, gated on that one quest. Adding a new unlock path
+for a shape is therefore a one-file change: add a `fishtastic:fish_tank_shape` component to a
+quest's `fish_tank` reward and regenerate datagen; the shop listing and the crafting/assembly gate
+both pick it up automatically. (The older design hand-authored both the enum's `unlockQuests` list
+and the shop entry per shape, which repeatedly drifted from the quest reward data they were meant to
+mirror — this replaced all three with one source of truth.)
 
 | Shape | Unlocked by (any one) |
 |---|---|
-| `STURDY` | `tutorial/first_catch` (catch any fish) *or* `mastery/bluegill_novice` |
+| `STURDY` | `tutorial/first_catch` (catch any fish) *or* `mastery/bluegill_novice` *or* `collector/deep_ocean_collector` |
 | `TRIMMED` | `mastery/angler_apprentice` (catch 50 fish) *or* `mastery/gar_hunter` |
 | `REINFORCED` | `mastery/angler_journeyman` (catch 100 fish) *or* `mastery/tetra_scholar` |
-| `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` |
-| `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` |
-| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` |
+| `HONED` | `mastery/angler_master` (catch 250 fish) *or* `mastery/bluegill_master` *or* `collector/cave_collector` |
+| `RAMPART` | `mastery/angler_legend` (catch 500 fish) *or* `mastery/gar_legend` *or* `collector/ocean_collector` |
+| `FACETED` | `challenge/sunrise_ambush` (5 frenzied @ Rare+ at dawn) *or* `mastery/gar_veteran` *or* `collector/high_altitude_collector` |
 | `BASTION` | `collector/nether_collector` (every Nether species) *or* `challenge/predator_run` |
 | `ORNATE` | `challenge/daily_completionist` (clear every daily in a day) *or* `mastery/tetra_legend` |
 | `SHAGGY` | `challenge/storm_prize` (Epic+ in a thunderstorm) *or* `mastery/tetra_tracker` |
 | `BRAMBLE` | `explorer/jungle_downpour` |
-| `TOOTH` | `explorer/tank_keeper_silver` |
-| `FILM` | `explorer/tank_keeper_gold` |
-| `ARCH` | `challenge/golden_showcase` |
+| `TOOTH` | `explorer/tank_keeper_silver` *or* `explorer/older_than_the_hills` |
+| `FILM` | `explorer/tank_keeper_gold` *or* `collector/river_collector` |
+| `ARCH` | `challenge/golden_showcase` *or* `explorer/frost_bitten_haul` |
 | `MULLION` | `explorer/sunlit_garden` |
 | `LATTICE` | `explorer/idol_admirer` |
 | `DUNE` | `explorer/tidepool_twilight` |
 
-The seven shapes from `BRAMBLE` down are deliberately single-quest gates rather than the any-one-of-two
-pairing used above them.
+`BRAMBLE`, `MULLION`, `LATTICE`, and `DUNE` remain deliberately single-quest gates; the other shapes
+each have at least one additional collector/explorer-quest unlock path layered on top of their
+original mastery/challenge gate.
 
 ### Connection gating
 
@@ -207,7 +219,7 @@ Three behaviors are baked into the profile rather than into each generator:
 | Generator | Used by | What it does |
 |---|---|---|
 | `TaperedFrameGeometryGenerator` | STANDARD | Fixed 1px caps + one solid `w×w` box per run at each of the 4 corners. |
-| `ShellFrameGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. |
+| `ShellFrameGeometryGenerator` | TRIMMED, REINFORCED, FACETED, BASTION, STURDY, CUPOLA, HUTCH | **1px-thick flat plates** instead of solid posts, plus chamfered octagonal rings for `16`-width rows and floor chamfers bridging glass to sand. `generateCupola`/`generateHutch` additionally swap the solid ceiling (and, for HUTCH, floor) cap for a ring + glass window sized to `CornerTaperProfile.baseWidth()` — the chamfered ring band right under the cap already leaves that same square hollow open, so swapping just the cap is enough. |
 | `OrnateFrameGeometryGenerator` | ORNATE | Standard 1px frame + hardcoded decorative bracket spans per Y band. |
 | `ShaggyFrameGeometryGenerator` | SHAGGY | Same as the ornate frame, reading its spans from the shared `ShaggyTankSpans` table. |
 | `TaperedGlassGeometryGenerator` | all but ORNATE/SHAGGY | Pane split into one stacked segment per run; only the along-wall trim varies. |
@@ -328,6 +340,12 @@ non-standard shape tanks are gated by `unlock_quests` alone (no purchase cap) �
 by its first-claimed unlock quest and then stays purchasable, so the shape reads as earned rather
 than bought. See the table in §2 for the full any-one-of-these quest lists.
 
+`VITRINE` and `HUTCH` are the two shapes with `FishTankShape.requiresSandMaterial() == false`: since
+their geometry never renders sand at all (see §3), the Fish Tank Assembly menu (`FishTankAssemblyMenu`)
+lets them be crafted with an empty sand slot and never consumes whatever's placed there — the sand
+slot becomes purely decorative for these shapes (its block, if any, is still recorded on
+`FishTankMaterials` but is never sampled by their models).
+
 Each shape's `ShopEntry` also sets `"is_tank_shape": true`, pulling it out of the shop's main
 weighted draw entirely (the same isolation `"is_charm": true` gets — see `ShopEntry.CODEC`). Shapes
 only surface via a separate `ANY_TANK_REPLACE_CHANCE` roll (`ShopEntry.getActiveDailyShop`) that
@@ -398,7 +416,13 @@ runtime geometry generation or shipped per-datapack models.
    states, so it's worth running before spending more time there.
 6. **Run datagen**, confirm `STANDARD` still diffs clean, and confirm the new prefix directory got
    all 192 files.
-7. **Add lang** (`shape.fishtastic.<id>`) and a shop entry if it should be purchasable.
+7. **Add lang** (`shape.fishtastic.<id>`). If the shape should be purchasable/earnable, add a
+   `fishtastic:fish_tank_shape` component to some quest's `fish_tank` reward instead of
+   hand-authoring a shop entry — `ShopEntryFromQuestProvider` generates the `shop_entry` from that
+   quest data (see §2 above), naming it `<quest_path>_<shape>`. Re-run datagen afterward. If the
+   quest didn't previously grant a shape, this produces a *new*, differently-named file; delete the
+   old unsuffixed `shop_entry` it replaces (common's copy — `fabric/src/main/generated` is
+   gitignored and safe to ignore) so the two don't both exist and drift.
 8. **Add a gametest** to `FishTankGameTests` covering its connection behavior against the shapes it
    is and isn't supposed to connect to.
 9. **Look at it in-game.** Datagen and the previewer verify geometry; neither verifies texturing,

@@ -536,6 +536,16 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(GameTestHelper helper) {
+        FishTankGameTests.honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void honeycombSealedIsolatedPairFormSeparateGroups(GameTestHelper helper) {
+        FishTankGameTests.honeycombSealedIsolatedPairFormSeparateGroups(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void brokenTankDropCarriesShapeAndMaterials(GameTestHelper helper) {
         FishTankGameTests.brokenTankDropCarriesShapeAndMaterials(helper);
     }
@@ -1116,6 +1126,35 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void grantRewardsDeliversNormallyWhenInventoryHasSpace(GameTestHelper helper) {
         ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    // -------------------------------------------------------------------------
+    // RemoveTankEntryPacket.giveOrDrop — fish tank browser GUI removal delivery
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void giveOrDropDropsFishWhenInventoryIsFull(GameTestHelper helper) {
+        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(GameTestHelper helper) {
+        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void giveOrDropDeliversFishNormallyWhenInventoryHasSpace(GameTestHelper helper) {
+        RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void giveOrDropPilesASecondFishIntoTheExistingPile(GameTestHelper helper) {
+        RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish(GameTestHelper helper) {
+        RemoveTankEntryPacketGameTests.giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

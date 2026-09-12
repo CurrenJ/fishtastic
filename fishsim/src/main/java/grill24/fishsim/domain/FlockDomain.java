@@ -37,6 +37,12 @@ public interface FlockDomain {
      */
     float sizeGateRun();
 
+    /**
+     * The walkable floor of this domain — terrain for {@link grill24.fishsim.core.Locomotion#BENTHIC}
+     * creatures, ignored entirely by swimmers.
+     */
+    FloorField floor();
+
     /** Whether the point lies inside the swimmable interior. */
     boolean contains(float l, float y, float d);
 
@@ -66,8 +72,27 @@ public interface FlockDomain {
                 Math.min(d - minDepth(), maxDepth() - d));
     }
 
-    /** A single tank: an axis-aligned box in local (lateral, vertical, depth) space. */
-    record Box(float halfExtent, float verticalHalf, float[] layerDepths) implements FlockDomain {
+    /**
+     * A single tank: an axis-aligned box in local (lateral, vertical, depth) space.
+     *
+     * <p>The box is the tank's swimmable <i>interior</i> (inset from the glass), but its floor
+     * spans the whole block, because the tank's cosmetic grid does — the two are aligned by
+     * {@link FloorField}'s block-grid convention. A caller with no floor to describe passes null
+     * and gets an open floor at the bottom of the swim volume.
+     */
+    record Box(float halfExtent, float verticalHalf, float[] layerDepths, FloorField floor)
+            implements FlockDomain {
+
+        public Box {
+            if (floor == null) {
+                floor = FloorField.flat(1, 1, -0.5f, -0.5f, -verticalHalf, null);
+            }
+        }
+
+        public Box(float halfExtent, float verticalHalf, float[] layerDepths) {
+            this(halfExtent, verticalHalf, layerDepths, null);
+        }
+
         @Override public float minLateral() { return -halfExtent; }
         @Override public float maxLateral() { return halfExtent; }
         @Override public float minVertical() { return -verticalHalf; }

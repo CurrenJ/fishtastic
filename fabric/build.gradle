@@ -135,6 +135,10 @@ loom {
             vmArg "-Dfabric-api.datagen"
             vmArg "-Dfabric-api.datagen.output-dir=${file("src/main/generated")}"
             vmArg "-Dfabric-api.datagen.modid=fishtastic"
+            // Lets ShopEntryFromQuestProvider read the hand-authored quest JSON (explorer/mastery/
+            // challenge/tutorial/collector quests have no Java-side bootstrap data to generate shop
+            // entries from otherwise) — see that class for why.
+            vmArg "-Dfishtastic.quest-source-dir=${rootProject.file("common/src/main/resources/data/fishtastic/fishtastic/quest")}"
 
             runDir "build/datagen"
         }

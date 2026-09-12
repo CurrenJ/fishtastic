@@ -21,6 +21,7 @@ public class FishtasticDataGenerator implements DataGeneratorEntrypoint {
         pack.addProvider(ItemEffectProvider::new);
         pack.addProvider(CosmeticStructureProvider::new);
         pack.addProvider(QuestProvider::new);
+        pack.addProvider(ShopEntryFromQuestProvider::new);
         pack.addProvider(FishtasticRecipeProvider::new);
         pack.addProvider(FishtasticBlockLootTableProvider::new);
     }

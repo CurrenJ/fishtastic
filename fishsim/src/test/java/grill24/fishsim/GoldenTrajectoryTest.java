@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import org.junit.jupiter.api.Test;
@@ -45,18 +46,18 @@ class GoldenTrajectoryTest {
         // depend on JDK RNG stream stability across releases for its *inputs*; the engine's own
         // seeded scatter is part of what the fixture locks down).
         return new FishSpec[]{
-                new FishSpec(0.10f, true, false, 0),
-                new FishSpec(0.14f, true, true, 0),
-                new FishSpec(0.08f, true, false, 0),
-                new FishSpec(0.30f, true, true, 0),   // fails the 2.5×length gate in a 0.7 run → hovers
-                new FishSpec(0.12f, false, false, 0), // floor-anchored species
-                new FishSpec(0.11f, true, true, 0),
-                new FishSpec(0.09f, true, false, 0),
-                new FishSpec(0.16f, true, false, 0),
-                new FishSpec(0.07f, true, true, 0),
-                new FishSpec(0.13f, true, false, 0),
-                new FishSpec(0.20f, true, true, 0),
-                new FishSpec(0.10f, true, false, 0),
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.14f, Locomotion.FREE_SWIM, true, 0),
+                new FishSpec(0.08f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.30f, Locomotion.FREE_SWIM, true, 0),   // fails the 2.5×length gate in a 0.7 run → hovers
+                new FishSpec(0.12f, Locomotion.STATIC, false, 0), // unsimulated species (a pose with no motion model)
+                new FishSpec(0.11f, Locomotion.FREE_SWIM, true, 0),
+                new FishSpec(0.09f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.16f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.07f, Locomotion.FREE_SWIM, true, 0),
+                new FishSpec(0.13f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.20f, Locomotion.FREE_SWIM, true, 0),
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
         };
     }
 

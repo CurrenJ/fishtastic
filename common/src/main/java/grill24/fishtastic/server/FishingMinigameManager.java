@@ -48,7 +48,6 @@ import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
-import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -402,7 +401,7 @@ public class FishingMinigameManager {
                         // Scored before inventory.add() mutates the stack's count down to its leftover.
                         xpAwarded += FishingXpAward.forRewardStack(reward, xpFishProfiles);
                         if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
-                            addToFishPiles(player, reward);
+                            PileOfFishItem.fillOrCreatePiles(player, reward);
                         } else {
                             player.getInventory().add(reward);
                         }
@@ -941,57 +940,6 @@ public class FishingMinigameManager {
             }
         }
         return Math.min(total, cap);
-    }
-
-    /**
-     * Delivery effect for the Little Fish Box charm: fills existing Pile of Fish stacks in the
-     * player's inventory first, then creates new piles for any remainder. Mirrors the manual
-     * click-driven insertion in {@link PileOfFishItem} but goes straight through
-     * {@link BundleContents.Mutable} since there's no slot/click to route through here.
-     * <p>
-     * When a new pile has to be created, any other loose fish/sized items already sitting in
-     * the inventory are swept into it too. This isn't just a convenience — {@link PileOfFishItem}
-     * auto-unpacks any pile that drops to exactly 1 item back into a loose stack on the next
-     * inventory tick (its single-item safety net). Since most catches are a single fish, a
-     * freshly-created pile with just that one fish would otherwise get unpacked again before
-     * the next cast, so single catches would never actually accumulate. Combining with a loose
-     * item up front (or, failing that, letting the *next* catch's sweep find this one after it
-     * unpacks) keeps the pile at 2+ items so it survives.
-     */
-    private static void addToFishPiles(ServerPlayer player, ItemStack reward) {
-        Inventory inventory = player.getInventory();
-        for (int i = 0; i < inventory.getContainerSize() && !reward.isEmpty(); i++) {
-            ItemStack slotStack = inventory.getItem(i);
-            if (slotStack.is(FishtasticItems.PILE_OF_FISH.value())) {
-                BundleContents.Mutable contents = new BundleContents.Mutable(
-                        slotStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
-                contents.tryInsert(reward);
-                slotStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-            }
-        }
-        while (!reward.isEmpty()) {
-            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
-            int beforeCount = reward.getCount();
-            contents.tryInsert(reward);
-            if (reward.getCount() == beforeCount) {
-                break; // a fresh, empty pile couldn't accept anything — avoid spinning forever
-            }
-
-            for (int i = 0; i < inventory.getContainerSize(); i++) {
-                ItemStack slotStack = inventory.getItem(i);
-                if (!slotStack.isEmpty() && !slotStack.is(FishtasticItems.PILE_OF_FISH.value())
-                        && PileOfFishItem.canInsertInPile(slotStack)) {
-                    contents.tryInsert(slotStack);
-                }
-            }
-
-            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-            inventory.add(newPile);
-            if (!newPile.isEmpty()) {
-                player.drop(newPile, false);
-            }
-        }
     }
 
     /** @return a single copy of the bait item if this consumption emptied the stack, else EMPTY. */

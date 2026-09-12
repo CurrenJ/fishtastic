@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Angler Journeyman\".",
+  "display_name": "Reinforced Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:iron_block",
+          "glass": "fishtastic:light_gray_clear_stained_glass",
+          "sand": "minecraft:white_concrete_powder"
+        },
+        "fishtastic:fish_tank_shape": "reinforced"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/angler_journeyman"
+  ],
+  "weight": 0.5
+}

@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Gar Hunter\".",
+  "display_name": "Trimmed Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:mangrove_planks",
+          "glass": "fishtastic:borderless_glass",
+          "sand": "minecraft:coarse_dirt"
+        },
+        "fishtastic:fish_tank_shape": "trimmed"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:mastery/gar_hunter"
+  ],
+  "weight": 0.5
+}

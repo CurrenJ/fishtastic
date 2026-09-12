@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import org.junit.jupiter.api.DynamicTest;
@@ -35,9 +36,10 @@ class ParityTest {
             FishSpec[] specs = new FishSpec[fishCount];
             for (int i = 0; i < fishCount; i++) {
                 float length = 0.06f + r.nextFloat() * 0.34f; // 0.06 .. 0.40 → mix of swim/hover
-                boolean canSwim = r.nextInt(5) != 0;          // ~20% floor-anchored/hover species
+                boolean canSwim = r.nextInt(5) != 0;          // ~20% unsimulated hover species
                 boolean mirrored = r.nextBoolean();
-                specs[i] = new FishSpec(length, canSwim, mirrored, 0);
+                specs[i] = new FishSpec(length, canSwim ? Locomotion.FREE_SWIM : Locomotion.STATIC,
+                        mirrored, 0);
             }
             return specs;
         }
@@ -87,7 +89,7 @@ class ParityTest {
         boolean[] mirrored = new boolean[specs.length];
         for (int i = 0; i < specs.length; i++) {
             lengths[i] = specs[i].length();
-            canSwim[i] = specs[i].canSwim();
+            canSwim[i] = specs[i].locomotion() == Locomotion.FREE_SWIM;
             mirrored[i] = specs[i].mirrored();
         }
         legacy.rebuild(lengths, canSwim, mirrored, sc.blockPosHash(), sc.rotation(),
@@ -155,7 +157,7 @@ class ParityTest {
             boolean[] mirrored = new boolean[specs.length];
             for (int i = 0; i < specs.length; i++) {
                 lengths[i] = specs[i].length();
-                canSwim[i] = specs[i].canSwim();
+                canSwim[i] = specs[i].locomotion() == Locomotion.FREE_SWIM;
                 mirrored[i] = specs[i].mirrored();
             }
             engine.rebuild(specs, sc.blockPosHash(), sc.rotation(),

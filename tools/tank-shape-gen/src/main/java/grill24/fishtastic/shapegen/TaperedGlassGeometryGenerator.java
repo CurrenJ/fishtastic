@@ -100,6 +100,123 @@ public final class TaperedGlassGeometryGenerator {
         return model;
     }
 
+    /**
+     * Vitrine glass: identical to {@link #generate(int, String, CornerTaperProfile)} plus horizontal
+     * panes on both the UP and DOWN faces when closed — the tank is fully glazed on all 6 faces and
+     * has no solid ceiling/floor slab or sand (see {@code TaperedFrameGeometryGenerator#generateVitrine}
+     * and {@code SandGeometryGenerator#generateNone}).
+     */
+    public static JsonObject generateVitrine(int permutationIndex, CornerTaperProfile profile) {
+        return generateVitrine(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateVitrine(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+
+        if (!openFaces.contains(TankFace.NORTH)) {
+            addNorthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.SOUTH)) {
+            addSouthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.WEST)) {
+            addWestGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.EAST)) {
+            addEastGlassPane(elements, openFaces, runs);
+        }
+
+        if (!openFaces.contains(TankFace.UP)) {
+            elements.add(createSkylightPane(profile, openFaces));
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            elements.add(createFloorlightPane(profile, openFaces));
+        }
+
+        model.add("elements", elements);
+        return model;
+    }
+
+    /**
+     * Cupola glass: side panes as usual, plus a window pane at the ceiling cap sized to
+     * {@link CornerTaperProfile#baseWidth()} instead of the sand-derived floor-adjacent row (see
+     * {@code ShellFrameGeometryGenerator#generateCupola} for why).
+     */
+    public static JsonObject generateCupola(int permutationIndex, CornerTaperProfile profile) {
+        return generateCupola(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCupola(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+
+        if (!openFaces.contains(TankFace.NORTH)) {
+            addNorthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.SOUTH)) {
+            addSouthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.WEST)) {
+            addWestGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.EAST)) {
+            addEastGlassPane(elements, openFaces, runs);
+        }
+
+        if (!openFaces.contains(TankFace.UP)) {
+            elements.add(createSkylightPane(openFaces, profile.baseWidth()));
+        }
+
+        model.add("elements", elements);
+        return model;
+    }
+
+    /** Hutch glass: {@link #generateCupola} plus the same window treatment at the floor cap. */
+    public static JsonObject generateHutch(int permutationIndex, CornerTaperProfile profile) {
+        return generateHutch(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateHutch(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+
+        if (!openFaces.contains(TankFace.NORTH)) {
+            addNorthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.SOUTH)) {
+            addSouthGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.WEST)) {
+            addWestGlassPane(elements, openFaces, runs);
+        }
+        if (!openFaces.contains(TankFace.EAST)) {
+            addEastGlassPane(elements, openFaces, runs);
+        }
+
+        if (!openFaces.contains(TankFace.UP)) {
+            elements.add(createSkylightPane(openFaces, profile.baseWidth()));
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            elements.add(createFloorlightPane(openFaces, profile.baseWidth()));
+        }
+
+        model.add("elements", elements);
+        return model;
+    }
+
     private static void addNorthGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
@@ -184,7 +301,19 @@ public final class TaperedGlassGeometryGenerator {
      * omitted, so nothing coincident renders against the ring's inner faces or the side panes.
      */
     private static JsonObject createSkylightPane(CornerTaperProfile profile, Set<TankFace> openFaces) {
-        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1];
+        // Correct for a plain-taper profile like STANDARD, where the floor-adjacent row equals the
+        // profile's steady-state width. See the (int) overload for the stepped-shape case.
+        return createSkylightPane(openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+    }
+
+    /**
+     * Window-inset overload of {@link #createSkylightPane(CornerTaperProfile, Set)} — for a stepped
+     * shape like STURDY, whose literal floor-adjacent row is a full-width chamfered-ring row rather
+     * than a usable window size, {@code generateCupola}/{@code generateHutch} pass
+     * {@link CornerTaperProfile#baseWidth()} instead, matching
+     * {@code ShellFrameGeometryGenerator#generateCupola}'s ring.
+     */
+    private static JsonObject createSkylightPane(Set<TankFace> openFaces, int t) {
         int xLo = openFaces.contains(TankFace.WEST) ? 0 : t;
         int xHi = openFaces.contains(TankFace.EAST) ? 16 : 16 - t;
         int zLo = openFaces.contains(TankFace.NORTH) ? 0 : t;
@@ -194,6 +323,35 @@ public final class TaperedGlassGeometryGenerator {
         element.addProperty("name", "skylight");
         element.add("from", vec3(xLo, 15, zLo));
         element.add("to", vec3(xHi, 16, zHi));
+
+        JsonObject faces = new JsonObject();
+        faces.add("up", face(xLo, zLo, xHi, zHi, "#all"));
+        faces.add("down", face(xLo, zLo, xHi, zHi, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
+    /**
+     * The vitrine floorlight pane: {@link #createSkylightPane}'s mirror image at the bottom cap
+     * (Y 0..1), same footprint math and same up/down-only faces (this pane's thickness axis is Y,
+     * so only the faces perpendicular to it are ever defined — see the class-level translucency
+     * invariant).
+     */
+    private static JsonObject createFloorlightPane(CornerTaperProfile profile, Set<TankFace> openFaces) {
+        return createFloorlightPane(openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+    }
+
+    /** Window-inset overload — see {@link #createSkylightPane(Set, int)}'s note. */
+    private static JsonObject createFloorlightPane(Set<TankFace> openFaces, int t) {
+        int xLo = openFaces.contains(TankFace.WEST) ? 0 : t;
+        int xHi = openFaces.contains(TankFace.EAST) ? 16 : 16 - t;
+        int zLo = openFaces.contains(TankFace.NORTH) ? 0 : t;
+        int zHi = openFaces.contains(TankFace.SOUTH) ? 16 : 16 - t;
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "floorlight");
+        element.add("from", vec3(xLo, 0, zLo));
+        element.add("to", vec3(xHi, 1, zHi));
 
         JsonObject faces = new JsonObject();
         faces.add("up", face(xLo, zLo, xHi, zHi, "#all"));

@@ -108,6 +108,51 @@ public final class TaperedFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * Vitrine frame: both ceiling and floor are replaced by a {@link #createSkylightCeiling}/
+     * {@link #createSkylightFloor} frame ring, leaving square openings for horizontal glass panes
+     * on both caps (see {@code TaperedGlassGeometryGenerator#generateVitrine}) instead of the
+     * usual solid ceiling + sand. Corner posts are unchanged from {@link #generate}.
+     */
+    public static JsonObject generateVitrine(int permutationIndex, CornerTaperProfile profile) {
+        return generateVitrine(permutationIndex, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateVitrine(int permutationIndex, String textureId, CornerTaperProfile profile) {
+        Set<TankFace> openFaces = TankFace.fromPermutationIndex(permutationIndex);
+
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        if (!openFaces.contains(TankFace.UP)) {
+            createSkylightCeiling(elements, openFaces, profile);
+        }
+        if (!openFaces.contains(TankFace.DOWN)) {
+            createSkylightFloor(elements, openFaces, profile);
+        }
+
+        boolean ceilingClosed = !openFaces.contains(TankFace.UP);
+        boolean floorClosed = !openFaces.contains(TankFace.DOWN);
+        List<CornerTaperProfile.Run> runs = profile.runs(ceilingClosed, floorClosed);
+
+        if (!openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST)) {
+            addTaperedSupport(elements, 0, 0, runs);      // NW corner
+        }
+        if (!openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST)) {
+            addTaperedSupport(elements, 1, 0, runs);      // NE corner
+        }
+        if (!openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST)) {
+            addTaperedSupport(elements, 0, 1, runs);      // SW corner
+        }
+        if (!openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST)) {
+            addTaperedSupport(elements, 1, 1, runs);      // SE corner
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_" + permutationIndex);
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");
@@ -160,7 +205,21 @@ public final class TaperedFrameGeometryGenerator {
      * up/down are always drawn — the glass pane defines no side faces, so nothing here can z-fight it.
      */
     private static void createSkylightCeiling(JsonArray elements, Set<TankFace> openFaces, CornerTaperProfile profile) {
-        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]; // mirror the sand's floor-adjacent inset
+        // Mirrors the sand's floor-adjacent inset — correct for a plain-taper profile like STANDARD,
+        // where that row equals the profile's steady-state width. Not reused as-is by the stepped
+        // shapes (see the (int) overload below).
+        createSkylightCeiling(elements, openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+    }
+
+    /**
+     * Window-inset overload of {@link #createSkylightCeiling(JsonArray, Set, CornerTaperProfile)},
+     * for shapes whose literal floor-adjacent row isn't a usable window size — a stepped shape like
+     * STURDY has a full-width ({@code 16}) chamfered-ring row there, so
+     * {@code ShellFrameGeometryGenerator#generateCupola}/{@code #generateHutch} pass
+     * {@link CornerTaperProfile#baseWidth()} instead, matching the hollow square the chamfered ring
+     * band immediately below the cap already leaves open.
+     */
+    static void createSkylightCeiling(JsonArray elements, Set<TankFace> openFaces, int t) {
         boolean northOpen = openFaces.contains(TankFace.NORTH);
         boolean southOpen = openFaces.contains(TankFace.SOUTH);
         boolean westOpen = openFaces.contains(TankFace.WEST);
@@ -182,6 +241,44 @@ public final class TaperedFrameGeometryGenerator {
         }
         if (xHi < 16) {
             elements.add(createRingBox("skylight_east", xHi, 15, zLo, 16, 16, zHi, openFaces));
+        }
+    }
+
+    /**
+     * The vitrine floor ring: {@link #createSkylightCeiling}'s mirror image at the bottom cap,
+     * leaving a square opening for the floorlight glass pane (see
+     * {@code TaperedGlassGeometryGenerator#generateVitrine}) instead of a solid floor slab or sand.
+     * {@link #createRingBox} is direction-agnostic about which cap it sits on — it gates the "up"
+     * face on the block's UP boundary and "down" on DOWN regardless of the box's own Y extent — so
+     * reusing it here at Y 0..1 is exactly as safe as the ceiling's Y 15..16 use.
+     */
+    private static void createSkylightFloor(JsonArray elements, Set<TankFace> openFaces, CornerTaperProfile profile) {
+        createSkylightFloor(elements, openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+    }
+
+    /** Window-inset overload — see {@link #createSkylightCeiling(JsonArray, Set, int)}'s note. */
+    static void createSkylightFloor(JsonArray elements, Set<TankFace> openFaces, int t) {
+        boolean northOpen = openFaces.contains(TankFace.NORTH);
+        boolean southOpen = openFaces.contains(TankFace.SOUTH);
+        boolean westOpen = openFaces.contains(TankFace.WEST);
+        boolean eastOpen = openFaces.contains(TankFace.EAST);
+
+        int xLo = westOpen ? 0 : t;
+        int xHi = eastOpen ? 16 : 16 - t;
+        int zLo = northOpen ? 0 : t;
+        int zHi = southOpen ? 16 : 16 - t;
+
+        if (zLo > 0) {
+            elements.add(createRingBox("floorlight_north", 0, 0, 0, 16, 1, zLo, openFaces));
+        }
+        if (zHi < 16) {
+            elements.add(createRingBox("floorlight_south", 0, 0, zHi, 16, 1, 16, openFaces));
+        }
+        if (xLo > 0) {
+            elements.add(createRingBox("floorlight_west", 0, 0, zLo, xLo, 1, zHi, openFaces));
+        }
+        if (xHi < 16) {
+            elements.add(createRingBox("floorlight_east", xHi, 0, zLo, 16, 1, zHi, openFaces));
         }
     }
 

@@ -17,6 +17,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 
 /**
  * Menu for the Fish Tank Assembly block: 3 real material slots (frame/sand/glass)
@@ -189,16 +190,29 @@ public class FishTankAssemblyMenu extends GelatinMenu {
         ItemStack frame = inputContainer.getItem(FRAME_SLOT);
         ItemStack sand = inputContainer.getItem(SAND_SLOT);
         ItemStack glass = inputContainer.getItem(GLASS_SLOT);
+        boolean needsSand = getShape().requiresSandMaterial();
+
+        // A shape that never renders sand (VITRINE) doesn't need the slot filled to craft. Its
+        // FishTankMaterials record still needs *some* sand Block (the field isn't nullable), so an
+        // empty slot falls back to a placeholder that's never actually sampled by that shape's
+        // geometry. A filled slot is still honored (and still validated) so the choice round-trips
+        // if the player later swaps to a shape that does use sand.
+        Block sandBlock = Blocks.SAND;
+        boolean sandOk;
+        if (!sand.isEmpty()) {
+            sandOk = sand.getItem() instanceof BlockItem sandItem && isValidMaterial(sandItem.getBlock(), "sand");
+            if (sandOk) sandBlock = ((BlockItem) sand.getItem()).getBlock();
+        } else {
+            sandOk = !needsSand;
+        }
 
         ItemStack result = ItemStack.EMPTY;
-        if (!frame.isEmpty() && !sand.isEmpty() && !glass.isEmpty()
+        if (!frame.isEmpty() && sandOk && !glass.isEmpty()
                 && frame.getItem() instanceof BlockItem frameItem
-                && sand.getItem() instanceof BlockItem sandItem
                 && glass.getItem() instanceof BlockItem glassItem
                 && isValidMaterial(frameItem.getBlock(), "frame")
-                && isValidMaterial(sandItem.getBlock(), "sand")
                 && isValidMaterial(glassItem.getBlock(), "glass")) {
-            FishTankMaterials materials = new FishTankMaterials(frameItem.getBlock(), sandItem.getBlock(), glassItem.getBlock());
+            FishTankMaterials materials = new FishTankMaterials(frameItem.getBlock(), sandBlock, glassItem.getBlock());
             result = new ItemStack(FishtasticBlocks.FISH_TANK.value());
             result.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), materials);
             result.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), getShape());
@@ -240,7 +254,9 @@ public class FishTankAssemblyMenu extends GelatinMenu {
         @Override
         public void onTake(Player player, ItemStack stack) {
             inputContainer.removeItem(FRAME_SLOT, 1);
-            inputContainer.removeItem(SAND_SLOT, 1);
+            if (getShape().requiresSandMaterial()) {
+                inputContainer.removeItem(SAND_SLOT, 1);
+            }
             inputContainer.removeItem(GLASS_SLOT, 1);
             updateResult();
             super.onTake(player, stack);

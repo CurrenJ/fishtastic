@@ -1,0 +1,13 @@
+{
+  "render_calibration": 1.1,
+  "base_weight": 12,
+  "size": { "mean": 35.0, "std_dev": 8.0 },
+  "zones": ["ocean"],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_cold_ocean", "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:wily",
+  "animation": {
+    "mode": "floor_sit"
+  }
+}

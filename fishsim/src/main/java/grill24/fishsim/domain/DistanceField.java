@@ -28,6 +28,23 @@ public final class DistanceField {
      * @param inset     interior inset from every wall face, blocks
      */
     public DistanceField(boolean[][][] occupancy, float minL, float minY, float minD, float inset) {
+        this(occupancy, minL, minY, minD, inset, null, null, null);
+    }
+
+    /**
+     * @param occupancy occupied cells, indexed {@code [ix][iy][iz]}
+     * @param minL      local coordinate of the grid's low corner (lateral)
+     * @param inset     interior inset from every wall face, blocks
+     * @param blockedX  faces forced closed between {@code (i,j,k)} and {@code (i+1,j,k)}, sized
+     *                  {@code [sx-1][sy][sz]}; null if no lateral face is force-closed. Lets two
+     *                  occupied, otherwise-merged cells (e.g. two tanks in one flood-filled group
+     *                  via a third tank) keep a real wall on a specific honeycomb-sealed face,
+     *                  which plain occupancy — a single bit per cell — cannot represent.
+     * @param blockedY  same, between {@code (i,j,k)} and {@code (i,j+1,k)}, sized {@code [sx][sy-1][sz]}
+     * @param blockedZ  same, between {@code (i,j,k)} and {@code (i,j,k+1)}, sized {@code [sx][sy][sz-1]}
+     */
+    public DistanceField(boolean[][][] occupancy, float minL, float minY, float minD, float inset,
+                          boolean[][][] blockedX, boolean[][][] blockedY, boolean[][][] blockedZ) {
         int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
         this.minL = minL;
         this.minY = minY;
@@ -52,12 +69,21 @@ public final class DistanceField {
                     if (!occupancy[ix][iy][iz]) continue;
                     float x0 = minL + ix, y0 = minY + iy, z0 = minD + iz;
                     java.util.List<float[]> bucket = new java.util.ArrayList<>(6);
-                    if (!occupied(occupancy, ix - 1, iy, iz)) bucket.add(new float[]{0, x0, y0, y0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix + 1, iy, iz)) bucket.add(new float[]{0, x0 + 1, y0, y0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy - 1, iz)) bucket.add(new float[]{1, y0, x0, x0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy + 1, iz)) bucket.add(new float[]{1, y0 + 1, x0, x0 + 1, z0, z0 + 1});
-                    if (!occupied(occupancy, ix, iy, iz - 1)) bucket.add(new float[]{2, z0, x0, x0 + 1, y0, y0 + 1});
-                    if (!occupied(occupancy, ix, iy, iz + 1)) bucket.add(new float[]{2, z0 + 1, x0, x0 + 1, y0, y0 + 1});
+                    // A face is a wall either where the neighbour is missing (the original rule)
+                    // or where a mask forces it closed even though the neighbour is occupied — the
+                    // honeycomb-sealed-face case a single occupancy bit per cell can't represent.
+                    if (!occupied(occupancy, ix - 1, iy, iz) || blockedAt(blockedX, ix - 1, iy, iz))
+                        bucket.add(new float[]{0, x0, y0, y0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix + 1, iy, iz) || blockedAt(blockedX, ix, iy, iz))
+                        bucket.add(new float[]{0, x0 + 1, y0, y0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy - 1, iz) || blockedAt(blockedY, ix, iy - 1, iz))
+                        bucket.add(new float[]{1, y0, x0, x0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy + 1, iz) || blockedAt(blockedY, ix, iy, iz))
+                        bucket.add(new float[]{1, y0 + 1, x0, x0 + 1, z0, z0 + 1});
+                    if (!occupied(occupancy, ix, iy, iz - 1) || blockedAt(blockedZ, ix, iy, iz - 1))
+                        bucket.add(new float[]{2, z0, x0, x0 + 1, y0, y0 + 1});
+                    if (!occupied(occupancy, ix, iy, iz + 1) || blockedAt(blockedZ, ix, iy, iz))
+                        bucket.add(new float[]{2, z0 + 1, x0, x0 + 1, y0, y0 + 1});
                     if (!bucket.isEmpty()) faceBuckets[(ix * sy + iy) * sz + iz] = bucket;
                 }
             }
@@ -151,6 +177,13 @@ public final class DistanceField {
         return ix >= 0 && iy >= 0 && iz >= 0
                 && ix < occ.length && iy < occ[0].length && iz < occ[0][0].length
                 && occ[ix][iy][iz];
+    }
+
+    /** {@code blocked[i][j][k]}, or false if the mask is absent or the index is out of range. */
+    private static boolean blockedAt(boolean[][][] blocked, int i, int j, int k) {
+        return blocked != null && i >= 0 && j >= 0 && k >= 0
+                && i < blocked.length && j < blocked[0].length && k < blocked[0][0].length
+                && blocked[i][j][k];
     }
 
     private static boolean sampleInside(boolean[][][] occ, float relX, float relY, float relZ,

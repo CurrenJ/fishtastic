@@ -5,7 +5,9 @@
   "display_name": "Night Bite",
   "objective": {
     "target_count": 8,
-    "time_condition": "night"
+    "time_condition": [
+      "night"
+    ]
   },
   "reward": {
     "items": [
@@ -17,7 +19,7 @@
             "sand": "minecraft:soul_sand"
           }
         },
-        "count": 1,
+        "count": 4,
         "id": "fishtastic:fish_tank"
       }
     ],

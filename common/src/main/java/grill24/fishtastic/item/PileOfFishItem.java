@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.SlotAccess;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -99,6 +100,56 @@ public class PileOfFishItem extends BundleItem {
         } else {
             heldStack.shrink(1);
             if (!player.getInventory().add(newPile)) {
+                player.drop(newPile, false);
+            }
+        }
+    }
+
+    /**
+     * Fills existing Pile of Fish stacks in the player's inventory first, then creates new piles
+     * for any remainder — sweeping other loose fish/sized items already sitting in the inventory
+     * into a freshly created pile too. That sweep isn't just a convenience: {@link #inventoryTick}
+     * auto-unpacks any pile that drops to exactly 1 item back into a loose stack, so a freshly
+     * created pile holding only the one item just given would get unpacked again before it could
+     * ever accumulate. Combining with a loose item up front (or, failing that, leaving the loose
+     * item for the *next* call's sweep to find after this one unpacks) keeps the pile at 2+ items
+     * so it survives.
+     *
+     * <p>Mutates {@code reward} down to whatever didn't fit (usually empty) — the caller is
+     * responsible for the leftover exactly as with {@link Inventory#add}, e.g. dropping it rather
+     * than discarding it when the inventory (and every existing pile) is full.
+     */
+    public static void fillOrCreatePiles(Player player, ItemStack reward) {
+        Inventory inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize() && !reward.isEmpty(); i++) {
+            ItemStack slotStack = inventory.getItem(i);
+            if (slotStack.is(FishtasticItems.PILE_OF_FISH.value())) {
+                BundleContents.Mutable contents = new BundleContents.Mutable(
+                        slotStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+                contents.tryInsert(reward);
+                slotStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            }
+        }
+        while (!reward.isEmpty()) {
+            BundleContents.Mutable contents = new BundleContents.Mutable(BundleContents.EMPTY);
+            int beforeCount = reward.getCount();
+            contents.tryInsert(reward);
+            if (reward.getCount() == beforeCount) {
+                break; // a fresh, empty pile couldn't accept anything — avoid spinning forever
+            }
+
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack slotStack = inventory.getItem(i);
+                if (!slotStack.isEmpty() && !slotStack.is(FishtasticItems.PILE_OF_FISH.value())
+                        && canInsertInPile(slotStack)) {
+                    contents.tryInsert(slotStack);
+                }
+            }
+
+            ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            inventory.add(newPile);
+            if (!newPile.isEmpty()) {
                 player.drop(newPile, false);
             }
         }

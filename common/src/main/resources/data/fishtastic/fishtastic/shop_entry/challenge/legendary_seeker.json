@@ -1,0 +1,23 @@
+{
+  "cost": 100,
+  "daily_max_purchases": 1,
+  "description": "Earned by completing \"Legendary Seeker\".",
+  "display_name": "Legendary Seeker Fish Tank",
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:amethyst_block",
+          "glass": "fishtastic:purple_clear_stained_glass",
+          "sand": "minecraft:sand"
+        }
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:challenge/legendary_seeker"
+  ],
+  "weight": 0.5
+}

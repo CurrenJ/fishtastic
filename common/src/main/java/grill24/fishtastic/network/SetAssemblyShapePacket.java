@@ -1,9 +1,12 @@
 package grill24.fishtastic.network;
 
+import grill24.FishtasticRegistries;
+import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
+import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -45,7 +48,8 @@ public record SetAssemblyShapePacket(FishTankShape shape) implements CustomPacke
             MinecraftServer server = ((ServerLevel) player.level()).getServer();
             if (server == null) return;
             PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
-            if (!packet.shape().isUnlockedFor(quest -> state.getProgress(quest).claimed())) return;
+            Registry<Quest> quests = player.level().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            if (!packet.shape().isUnlockedFor(quests, quest -> state.getProgress(quest).claimed())) return;
 
             assembly.setShape(packet.shape());
         });

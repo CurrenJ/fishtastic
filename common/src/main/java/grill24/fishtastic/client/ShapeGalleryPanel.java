@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
@@ -9,6 +10,8 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.components.ManualContainer;
 import io.github.currenj.gelatinui.gui.components.SpriteData;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
@@ -88,7 +91,7 @@ public class ShapeGalleryPanel {
             icon.onClick(e -> {
                 // A locked cell is inert: the shape is browsable but not selectable, so there is
                 // nothing for the server to reject and nothing that can desync.
-                if (shape.isUnlockedFor(questClaimed)) {
+                if (shape.isUnlockedFor(quests(), questClaimed)) {
                     onShapePicked.accept(shape);
                 }
             });
@@ -147,9 +150,14 @@ public class ShapeGalleryPanel {
      * claimed (via the quest log, or a notification) while this screen is open.
      */
     public void refreshUnlockStates(Predicate<ResourceKey<Quest>> questClaimed) {
+        Registry<Quest> quests = quests();
         for (FishTankShape shape : FishTankShape.values()) {
-            icons.get(shape.ordinal()).setSilhouette(!shape.isUnlockedFor(questClaimed));
+            icons.get(shape.ordinal()).setSilhouette(!shape.isUnlockedFor(quests, questClaimed));
         }
+    }
+
+    private static Registry<Quest> quests() {
+        return Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
     }
 
     /**

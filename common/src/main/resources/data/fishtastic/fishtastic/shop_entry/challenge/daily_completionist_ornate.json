@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Daily Completionist\".",
+  "display_name": "Ornate Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:gilded_blackstone",
+          "glass": "fishtastic:orange_clear_stained_glass",
+          "sand": "minecraft:black_concrete_powder"
+        },
+        "fishtastic:fish_tank_shape": "ornate"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:challenge/daily_completionist"
+  ],
+  "weight": 0.5
+}

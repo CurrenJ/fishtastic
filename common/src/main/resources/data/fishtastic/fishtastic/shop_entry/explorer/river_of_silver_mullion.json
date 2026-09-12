@@ -1,0 +1,24 @@
+{
+  "cost": 100,
+  "description": "Earned by completing \"Silver River\".",
+  "display_name": "Mullion Fish Tank",
+  "is_tank_shape": true,
+  "reward": [
+    {
+      "components": {
+        "fishtastic:fish_tank_materials": {
+          "frame": "minecraft:spruce_log",
+          "glass": "fishtastic:light_blue_clear_stained_glass",
+          "sand": "minecraft:gravel"
+        },
+        "fishtastic:fish_tank_shape": "mullion"
+      },
+      "count": 8,
+      "id": "fishtastic:fish_tank"
+    }
+  ],
+  "unlock_quests": [
+    "fishtastic:explorer/river_of_silver"
+  ],
+  "weight": 0.5
+}

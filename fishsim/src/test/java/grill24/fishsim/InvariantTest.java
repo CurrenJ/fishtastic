@@ -1,6 +1,7 @@
 package grill24.fishsim;
 
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.harness.Metrics;
@@ -53,7 +54,7 @@ class InvariantTest {
         Random r = new Random(seed * 31 + n);
         FishSpec[] specs = new FishSpec[n];
         for (int i = 0; i < n; i++) {
-            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, true, r.nextBoolean(), 0);
+            specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, Locomotion.FREE_SWIM, r.nextBoolean(), 0);
         }
         return specs;
     }
@@ -143,11 +144,11 @@ class InvariantTest {
         float boundary = run / t.gateFactor(); // longest length that still swims
 
         FishSpec[] specs = {
-                new FishSpec(0.05f, true, false, 0),                     // tiny → swims
-                new FishSpec(boundary, true, false, 0),                  // exactly at the gate → swims
-                new FishSpec(Math.nextUp(boundary), true, false, 0),     // one ulp over → hovers
-                new FishSpec(0.5f, true, false, 0),                      // unmeasured-stack default → hovers
-                new FishSpec(0.05f, false, false, 0),                    // tiny but hover-only species → hovers
+                new FishSpec(0.05f, Locomotion.FREE_SWIM, false, 0),                     // tiny → swims
+                new FishSpec(boundary, Locomotion.FREE_SWIM, false, 0),                  // exactly at the gate → swims
+                new FishSpec(Math.nextUp(boundary), Locomotion.FREE_SWIM, false, 0),     // one ulp over → hovers
+                new FishSpec(0.5f, Locomotion.FREE_SWIM, false, 0),                      // unmeasured-stack default → hovers
+                new FishSpec(0.05f, Locomotion.STATIC, false, 0),                    // tiny but unsimulated species → hovers
         };
         boolean[] expected = {true, run >= t.gateFactor() * boundary, false, false, false};
 
@@ -155,7 +156,7 @@ class InvariantTest {
         engine.rebuild(specs, 99L, 0f, 3, 0.35f, 0.3f, 20f);
         for (int i = 0; i < specs.length; i++) {
             assertEquals(expected[i], engine.swimmers[i],
-                    "gate verdict for length=" + specs[i].length() + " canSwim=" + specs[i].canSwim());
+                    "gate verdict for length=" + specs[i].length() + " locomotion=" + specs[i].locomotion());
         }
     }
 
@@ -190,10 +191,10 @@ class InvariantTest {
     @Test
     void hoverFishNeverMove() {
         FishSpec[] specs = {
-                new FishSpec(0.10f, true, false, 0),
-                new FishSpec(0.45f, true, true, 0),   // gate failure → hovers
-                new FishSpec(0.10f, false, false, 0), // floor-anchored → hovers
-                new FishSpec(0.12f, true, true, 0),
+                new FishSpec(0.10f, Locomotion.FREE_SWIM, false, 0),
+                new FishSpec(0.45f, Locomotion.FREE_SWIM, true, 0),   // gate failure → hovers
+                new FishSpec(0.10f, Locomotion.STATIC, false, 0), // unsimulated species → hovers
+                new FishSpec(0.12f, Locomotion.FREE_SWIM, true, 0),
         };
         FlockEngine engine = new FlockEngine(Tunables.DEFAULT);
         engine.rebuild(specs, 4242L, 15f, 3, 0.35f, 0.3f, 20f);
