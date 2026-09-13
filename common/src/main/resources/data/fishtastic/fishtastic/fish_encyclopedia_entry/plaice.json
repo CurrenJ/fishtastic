@@ -1,5 +1,5 @@
 {
-  "lore": "Plaice are a group of flatfish, a type of benthic marine fish. They are born with one eye on each side of their head, and then undergo metamorphosis, during which one eye migrates across to the other side.",
+  "lore": "Plaice are a group of flatfish; a type of benthic marine fish. They are born with one eye on each side of their head, and then undergo metamorphosis, during which one eye migrates across to the other side.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
