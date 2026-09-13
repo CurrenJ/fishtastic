@@ -2,8 +2,10 @@ package grill24.fishtastic.fabric.datagen;
 
 import com.google.gson.JsonObject;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankShapeGeometryStrategies;
 
+import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 
 /**
@@ -20,12 +22,13 @@ import java.util.function.IntFunction;
  */
 final class FishTankShapeGeometryStrategies {
 
-    record Strategy(IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand) {}
+    record Strategy(IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
+                     BiFunction<TankCorner, Integer, JsonObject> cornerFragment) {}
 
     private FishTankShapeGeometryStrategies() {}
 
     static Strategy forShape(FishTankShape shape) {
         TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.byName(shape.getSerializedName());
-        return new Strategy(strategy.frame(), strategy.glass(), strategy.sand());
+        return new Strategy(strategy.frame(), strategy.glass(), strategy.sand(), strategy.cornerFragment());
     }
 }

@@ -303,6 +303,43 @@ without another piece extending to cover its territory). Runs on every commit vi
 `scripts/git-hooks/pre-commit`. A new shape gets this coverage automatically the moment it's added to
 `TankShapeGeometryStrategies.ALL` — no separate wiring.
 
+### Diagonal-aware corner posts
+
+The connection system above (`openFaces`, the 64-permutation models) has no idea what's occupying a
+tank's *diagonal* neighbor cells. A generator's frame model omits a corner post whenever both of that
+corner's orthogonal faces are open — correct when the diagonal cell is also occupied by a same-collection
+tank (an L-shaped cluster's inner corner should stay open there), wrong when it's empty (the post is
+needed to close off the tank's silhouette).
+
+Rather than a flat 6-bit (`openFaces`) + 4-bit (diagonals) = 1024-permutation cross product (~16x asset
+growth), `FishTankBlockEntity` tracks `filledDiagonals` (a `TankDiagonal` `EnumSet`, recomputed live on
+every neighbor-change/load exactly like `openFaces`, no world-save migration needed) as an independent
+side-channel. `FishTankCompositeModelData#getDiagonalOverrideMask()` is the single canonicalization
+point: for each corner, "post needed despite both faces open" iff both faces are open *and* the
+corresponding diagonal is empty.
+
+Only 16 of the 22 shapes can ever need this (`FishTankShape#hasDiagonalCornerFragments()`) — the rest
+(`BRAMBLE`, `TOOTH`, `FILM`, `ARCH`, `MULLION`, `LATTICE`) gate their frame geometry per-face
+independently, with no combined-face corner gate to begin with (verified by reading their generators;
+`TankShapeConnectivitySafetyTest`'s `shapesWithoutCornerFragmentSupportHaveNoCombinedFaceCornerGate`
+guardrail keeps that claim from silently going stale). For the other 16, each shape's `Strategy` in
+`TankShapeGeometryStrategies` gets a `cornerFragment` function
+(`(TankCorner, capState 0-3) -> JsonObject`) that produces one small standalone model — just that
+corner's post geometry, independent of `openFaces` — reusing the exact same box-building code the base
+generator uses (`TaperedFrameGeometryGenerator`/`ShellFrameGeometryGenerator`/`OrnateFrameGeometryGenerator`/
+`ShaggyFrameGeometryGenerator`/`CreeperFrameGeometryGenerator` each expose a `generateCornerFragment`).
+Datagen emits these as 16 extra files per shape (`fish_tank_frame_corner_<nw|ne|sw|se>_<capState>.json`)
+alongside the unchanged 64 base permutations — **zero changes to the existing 64 files**, so the
+STANDARD byte-identical gate above stays trivially satisfied. Both platforms' baked-model classes
+(`FishTankBakedModelFabric`/`FishTankBakedModel`) load these 16-per-shape fragments at bake time and
+splice a fragment's quads onto the composite whenever `getDiagonalOverrideMask()` calls for it — the
+64 base models are never rebaked with the post included.
+
+`TankShapeConnectivitySafetyTest#diagonalCornersHaveNoGapsWhenDiagonalEmpty` sweeps every
+`(shape, permutation, corner)` triple where a corner is orthogonally eligible and asserts the base
+model plus that corner's fragment leaves no gap — confirming each fragment is genuinely
+geometry-equivalent to "this corner's post as if both faces were closed."
+
 ### The previewer
 
 ```bash

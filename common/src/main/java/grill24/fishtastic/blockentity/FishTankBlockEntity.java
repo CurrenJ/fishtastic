@@ -12,6 +12,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
@@ -87,6 +88,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
 
     // Store which faces are connected to other fish tanks (open faces)
     private Set<Direction> openFaces = EnumSet.noneOf(Direction.class);
+
+    // Which diagonal (horizontal corner-adjacent) neighbor cells are occupied by another tank in
+    // the same connection collection. Independent of openFaces — a diagonal shares no wall with
+    // this tank, it only matters for whether a corner post needs to render back in when both of
+    // that corner's orthogonal faces are open (see FishTankCompositeModelData#getDiagonalOverrideMask).
+    private Set<TankDiagonal> filledDiagonals = EnumSet.noneOf(TankDiagonal.class);
 
     // Waxed tanks refuse to open NEW connections on any face (honeycomb/axe, mirroring vanilla
     // copper). Purely behavioral — no visual change — so it isn't part of getMaterials()/the
@@ -241,6 +248,19 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     /**
+     * Get the set of filled diagonals (diagonal-adjacent cell occupied by another tank in the
+     * same connection collection).
+     */
+    public Set<TankDiagonal> getFilledDiagonals() {
+        return EnumSet.copyOf(filledDiagonals);
+    }
+
+    /** Whether one diagonal neighbor cell is occupied, without {@link #getFilledDiagonals()}'s defensive copy. */
+    public boolean isDiagonalFilled(TankDiagonal diagonal) {
+        return filledDiagonals.contains(diagonal);
+    }
+
+    /**
      * Set all open faces at once
      */
     public void setOpenFaces(Set<Direction> faces) {
@@ -315,10 +335,28 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
         }
 
+        // Check all 4 horizontal diagonal cells for adjacent fish tanks. Diagonals share no wall
+        // with this tank — unlike the orthogonal loop above, waxing (which only ever gated a
+        // shared wall opening) is irrelevant here; a diagonal is simply "is this corner cell
+        // occupied by a same-collection tank", recomputed fresh every time like openFaces.
+        Set<TankDiagonal> newFilledDiagonals = EnumSet.noneOf(TankDiagonal.class);
+        for (TankDiagonal diagonal : TankDiagonal.values()) {
+            BlockPos diagonalPos = pos.relative(diagonal.first()).relative(diagonal.second());
+            BlockEntity diagonalBE = level.getBlockEntity(diagonalPos);
+            if (diagonalBE instanceof FishTankBlockEntity other
+                    && other.getShape().connectionCollection().equals(this.shape.connectionCollection())) {
+                newFilledDiagonals.add(diagonal);
+            }
+        }
+
+        boolean facesChanged = !newOpenFaces.equals(this.openFaces);
+        boolean diagonalsChanged = !newFilledDiagonals.equals(this.filledDiagonals);
+
         // Only update if the connections have changed
-        if (!newOpenFaces.equals(this.openFaces)) {
+        if (facesChanged || diagonalsChanged) {
             this.openFaces = newOpenFaces;
-            TankGroups.bumpMembershipEpoch();
+            this.filledDiagonals = newFilledDiagonals;
+            if (facesChanged) TankGroups.bumpMembershipEpoch();
             setChanged();
             if (!level.isClientSide()) {
                 level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
@@ -396,6 +434,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 openFacesBits |= (1 << dir.ordinal());
             }
             output.putInt("OpenFaces", openFacesBits);
+            int filledDiagonalsBits = 0;
+            for (TankDiagonal diagonal : filledDiagonals) {
+                filledDiagonalsBits |= (1 << diagonal.ordinal());
+            }
+            if (filledDiagonalsBits != 0) {
+                output.putInt("FilledDiagonals", filledDiagonalsBits);
+            }
             if (waxed) {
                 output.putBoolean("Waxed", true);
             }
@@ -527,6 +572,21 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // only when the adjacency really did — otherwise adding one fish would invalidate the
         // group cache and rebuild the whole distance field, which is the hitch §5.3(a) removes.
         if (openFacesBits != currentOpenFacesBits) TankGroups.bumpMembershipEpoch();
+
+        // Load filled diagonals (same preserve-current-if-absent reasoning as open faces above;
+        // no membership-epoch bump — diagonals don't affect group membership, only corner-post
+        // rendering).
+        int currentFilledDiagonalsBits = 0;
+        for (TankDiagonal diagonal : filledDiagonals) {
+            currentFilledDiagonalsBits |= (1 << diagonal.ordinal());
+        }
+        int filledDiagonalsBits = input.getIntOr("FilledDiagonals", currentFilledDiagonalsBits);
+        filledDiagonals.clear();
+        for (TankDiagonal diagonal : TankDiagonal.values()) {
+            if ((filledDiagonalsBits & (1 << diagonal.ordinal())) != 0) {
+                filledDiagonals.add(diagonal);
+            }
+        }
 
         // Load waxed state (same preserve-current-if-absent reasoning as open faces above)
         waxed = input.getBooleanOr("Waxed", waxed);

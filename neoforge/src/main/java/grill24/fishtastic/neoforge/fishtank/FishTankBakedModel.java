@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.TankDiagonal;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
@@ -26,6 +27,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -45,6 +47,9 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
     private final Map<FishTankShape, ResolvedModel[]> frameModels;   // shape -> [0..63]
     private final Map<FishTankShape, ResolvedModel[]> sandModels;    // shape -> [0..63]
     private final Map<FishTankShape, ResolvedModel[]> glassModels;   // shape -> [0..63]
+    // Diagonal-aware corner post fragments, [diagonal.ordinal() * 4 + capState]; absent for shapes
+    // whose frame generator has no combined-face corner gate (see FishTankShape#hasDiagonalCornerFragments).
+    private final Map<FishTankShape, ResolvedModel[]> cornerFragmentModels;
 
     // ── Default (fallback) model ──────────────────────────────────────────
 
@@ -62,7 +67,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
     // ── Cache key record ──────────────────────────────────────────────────
 
-    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation) {}
+    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides) {}
 
     private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial,
                                 @BakedQuad.MaterialFlags int materialFlags) {}
@@ -72,11 +77,13 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
     public FishTankBakedModel(ModelBaker baker,
                               Map<FishTankShape, ResolvedModel[]> frameModels,
                               Map<FishTankShape, ResolvedModel[]> sandModels,
-                              Map<FishTankShape, ResolvedModel[]> glassModels) {
+                              Map<FishTankShape, ResolvedModel[]> glassModels,
+                              Map<FishTankShape, ResolvedModel[]> cornerFragmentModels) {
         this.baker = baker;
         this.frameModels = frameModels;
         this.sandModels = sandModels;
         this.glassModels = glassModels;
+        this.cornerFragmentModels = cornerFragmentModels;
 
         // Pre-bake the default model (permutation 0, default textures).
         FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
@@ -85,7 +92,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         if (defaultModel != null) {
             CacheKey defaultKey = new CacheKey(
                     defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
-                    defaultData.glassBlock(), defaultData.getPermutationIndex());
+                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask());
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
             this.defaultParticleMaterial = defaultModel.particleMaterial();
@@ -118,7 +125,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
 
         // Fast path: check cache without locking.
         CachedModel cached = modelCache.get(key);
@@ -173,7 +180,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
     }
@@ -193,7 +200,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.materialFlags() : defaultMaterialFlags;
     }
@@ -207,7 +214,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         if (data == null) data = FishTankCompositeModelData.DEFAULT;
         return new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -267,6 +274,28 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             compositeBuilder.addAll(frameQuads);
             compositeBuilder.addAll(sandQuads);
             compositeBuilder.addAll(glassQuads);
+            int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
+
+            // Diagonal-aware corner posts: composite a small fragment back in for each corner whose
+            // orthogonal faces are both open but its diagonal neighbor cell is empty (see
+            // FishTankCompositeModelData#getDiagonalOverrideMask). Absent for shapes with no
+            // combined-face corner gate to begin with.
+            ResolvedModel[] cornerFragmentsForShape = cornerFragmentModels.get(data.shape());
+            Set<TankDiagonal> diagonalOverrides = data.getDiagonalOverrideMask();
+            if (cornerFragmentsForShape != null && !diagonalOverrides.isEmpty()) {
+                boolean ceilingClosed = !data.openFaces().contains(net.minecraft.core.Direction.UP);
+                boolean floorClosed = !data.openFaces().contains(net.minecraft.core.Direction.DOWN);
+                int capState = (ceilingClosed ? 2 : 0) | (floorClosed ? 1 : 0);
+                for (TankDiagonal diagonal : diagonalOverrides) {
+                    ResolvedModel fragmentModel = cornerFragmentsForShape[diagonal.ordinal() * 4 + capState];
+                    QuadCollection fragmentQuads = bakeGeometry(fragmentModel, frameSlots);
+                    if (fragmentQuads != null) {
+                        compositeBuilder.addAll(fragmentQuads);
+                        flags |= fragmentQuads.materialFlags();
+                    }
+                }
+            }
+
             QuadCollection composite = compositeBuilder.build();
 
             Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModelsForShape[perm]);
@@ -274,7 +303,6 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
             // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
             BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);
-            int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
 
             return new CachedModel(List.of(part), particleMat, flags);
 

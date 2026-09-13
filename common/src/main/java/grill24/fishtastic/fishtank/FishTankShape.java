@@ -196,6 +196,16 @@ public enum FishTankShape implements TooltipProvider {
      */
     CREEPER(Fishtastic.id("creeper"), Fishtastic.id("standard"), "fishtank_creeper");
 
+    /**
+     * Shapes whose frame generator has no combined-face corner gate to begin with, so a diagonal
+     * corner post can never be missing for them — mirrors {@code TankShapeGeometryStrategies}'s
+     * {@code cornerFragment == null} entries in {@code tools/tank-shape-gen} exactly (that module
+     * has no Minecraft dependency, so this list can't be derived from it directly; keep the two in
+     * sync — {@code TankShapeConnectivitySafetyTest}'s guardrail test fails if they drift).
+     */
+    private static final java.util.Set<String> NO_DIAGONAL_CORNER_FRAGMENTS = java.util.Set.of(
+            "bramble", "tooth", "film", "arch", "mullion", "lattice");
+
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
@@ -239,6 +249,17 @@ public enum FishTankShape implements TooltipProvider {
      */
     public boolean requiresSandMaterial() {
         return requiresSandMaterial;
+    }
+
+    /**
+     * Whether this shape's datagen emitted diagonal-aware corner-post fragments (16 small
+     * per-corner/cap-state models under this shape's model path prefix, alongside the 64 base
+     * permutations) for the bake-time compositor to load and stitch in when
+     * {@link FishTankCompositeModelData#getDiagonalOverrideMask()} calls for one. See
+     * {@link #NO_DIAGONAL_CORNER_FRAGMENTS}.
+     */
+    public boolean hasDiagonalCornerFragments() {
+        return !NO_DIAGONAL_CORNER_FRAGMENTS.contains(getSerializedName());
     }
 
     /**

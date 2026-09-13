@@ -4,13 +4,22 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -175,6 +184,92 @@ class TankShapeConnectivitySafetyTest {
         if (north) return !northOpen;
         if (south) return !southOpen;
         return false; // interior cell
+    }
+
+    /**
+     * Sweeps every shape whose frame generator has a combined-face corner gate (i.e. every
+     * {@link TankShapeGeometryStrategies.Strategy} with a non-null {@code cornerFragment()}) across
+     * every permutation/corner pair where that corner's two orthogonal faces are both open — the one
+     * scenario a diagonal-empty neighbor cell needs the corner post composited back in for (see
+     * docs on diagonal-aware corner posts). Confirms the fragment {@code cornerFragment()} produces,
+     * merged onto the base frame/sand/glass for that permutation, actually closes the gap at that
+     * corner cell at every Y-band — i.e. the fragment really is geometry-equivalent to "this corner's
+     * post as if both faces were closed."
+     */
+    @TestFactory
+    Stream<DynamicTest> diagonalCornersHaveNoGapsWhenDiagonalEmpty() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.cornerFragment() == null) continue;
+            List<Double> yBounds = distinctYBoundaries(shape);
+            for (int perm = 0; perm < 64; perm++) {
+                Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+                for (TankCorner corner : TankCorner.values()) {
+                    if (!corner.isOrthogonallyEligible(openFaces)) continue;
+                    int p = perm;
+                    TankCorner c = corner;
+                    tests.add(dynamicTest(shape.name() + " perm " + p + " " + openFaces + " corner " + c, () -> {
+                        boolean ceilingClosed = !openFaces.contains(TankFace.UP);
+                        boolean floorClosed = !openFaces.contains(TankFace.DOWN);
+                        int capState = TankCorner.capState(ceilingClosed, floorClosed);
+                        JsonObject fragment = shape.cornerFragment().apply(c, capState);
+
+                        int x = c.xEdge() == 0 ? 0 : 15;
+                        int z = c.zEdge() == 0 ? 0 : 15;
+
+                        for (int i = 0; i < yBounds.size() - 1; i++) {
+                            double yLo = yBounds.get(i);
+                            double yHi = yBounds.get(i + 1);
+                            boolean[][] covered = new boolean[16][16];
+                            cover(covered, shape.frame().apply(p), yLo, yHi);
+                            cover(covered, shape.sand().apply(p), yLo, yHi);
+                            cover(covered, shape.glass().apply(p), yLo, yHi);
+                            cover(covered, fragment, yLo, yHi);
+                            assertTrue(covered[x][z], shape.name() + " perm " + p + " (" + openFaces + ") corner " + c
+                                    + " y[" + yLo + "," + yHi + ") still has a gap at (" + x + "," + z
+                                    + ") even with its corner fragment composited in");
+                        }
+                    }));
+                }
+            }
+        }
+        return tests.stream();
+    }
+
+    /**
+     * Guards the manual audit behind {@code TankShapeGeometryStrategies}'s null {@code
+     * cornerFragment()} entries: each of these shapes' frame generator was confirmed, by reading the
+     * source, to gate its corner posts independently per face rather than on both faces at once —
+     * the one pattern that can leave a real gap when a diagonal neighbor tank is missing. If a future
+     * edit introduces that combined gate here without also adding corner-fragment support, this test
+     * catches it instead of silently shipping a corner-post gap.
+     */
+    private static final Map<String, List<String>> SHAPES_WITHOUT_CORNER_FRAGMENT_SOURCE_FILES = Map.of(
+            "bramble", List.of("BrambleFrameGeometryGenerator.java"),
+            "tooth", List.of("CombFrameGeometryGenerator.java"),
+            "film", List.of("CombFrameGeometryGenerator.java"),
+            "arch", List.of("ArchFrameGeometryGenerator.java"),
+            "mullion", List.of("MullionFrameGeometryGenerator.java"),
+            "lattice", List.of("LatticeFrameGeometryGenerator.java")
+    );
+
+    private static final Pattern COMBINED_CORNER_GATE = Pattern.compile(
+            "!openFaces\\.contains\\(TankFace\\.(NORTH|SOUTH)\\)\\s*&&\\s*!openFaces\\.contains\\(TankFace\\.(WEST|EAST)\\)");
+
+    @Test
+    void shapesWithoutCornerFragmentSupportHaveNoCombinedFaceCornerGate() throws IOException {
+        Path srcDir = Path.of("src/main/java/grill24/fishtastic/shapegen");
+        for (Map.Entry<String, List<String>> entry : SHAPES_WITHOUT_CORNER_FRAGMENT_SOURCE_FILES.entrySet()) {
+            TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.byName(entry.getKey());
+            assertNull(strategy.cornerFragment(), entry.getKey()
+                    + " now has corner-fragment support — remove it from this guardrail's exemption list");
+            for (String fileName : entry.getValue()) {
+                String source = Files.readString(srcDir.resolve(fileName));
+                assertFalse(COMBINED_CORNER_GATE.matcher(source).find(), fileName
+                        + " now has a combined-face corner gate but no corner-fragment support was added for '"
+                        + entry.getKey() + "' — see docs on diagonal-aware corner posts");
+            }
+        }
     }
 
     private static List<Double> distinctYBoundaries(TankShapeGeometryStrategies.Strategy shape) {

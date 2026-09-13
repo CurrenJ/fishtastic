@@ -273,6 +273,51 @@ public final class ShellFrameGeometryGenerator {
         }
     }
 
+    /**
+     * A standalone corner-post fragment for {@code corner}: the flat plates {@link #addFlatPlates}
+     * would draw for this corner if both its adjacent faces were closed, for every run below the
+     * full-width (16) chamfered-ring threshold. A full-width run's own {@link #addChamferedRing}
+     * gates its ring_n/ring_s/ring_w/ring_e pieces independently per face — closed enough to cover
+     * every corner on its own <em>except</em> exactly this diagonal case (both of a corner's faces
+     * open at once skips both the piece that would cover it from the north/south side and the one
+     * that would from the west/east side), so this fragment plugs that gap with a plate clamped to
+     * {@link CornerTaperProfile#baseWidth()} — the same steady-state fallback the ring itself falls
+     * back to at an open cap (see {@code effectiveRowWidths}). Composited back onto the base bake
+     * when both faces are open but the diagonal neighbor cell is empty (see
+     * {@code FishTankCompositeModelData#getDiagonalOverrideMask}).
+     */
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(ceilingClosed, floorClosed);
+        boolean north = corner.faceA() == TankFace.NORTH;
+        boolean west = corner.faceB() == TankFace.WEST;
+        for (CornerTaperProfile.Run run : runs) {
+            int width = Math.min(run.width(), profile.baseWidth());
+            double y1 = run.yFrom();
+            double y2 = run.yTo();
+            if (north && west) elements.add(createBox("n_" + smartLabel(y1) + "_w", 0, y1, 0, width, y2, 1));
+            if (north && !west) elements.add(createBox("n_" + smartLabel(y1) + "_e", 16 - width, y1, 0, 16, y2, 1));
+            if (!north && west) elements.add(createBox("s_" + smartLabel(y1) + "_w", 0, y1, 15, width, y2, 16));
+            if (!north && !west) elements.add(createBox("s_" + smartLabel(y1) + "_e", 16 - width, y1, 15, 16, y2, 16));
+            if (width > 1) {
+                if (west && north) elements.add(createBox("w_" + smartLabel(y1) + "_n", 0, y1, 1, 1, y2, width));
+                if (west && !north) elements.add(createBox("w_" + smartLabel(y1) + "_s", 0, y1, 16 - width, 1, y2, 15));
+                if (!west && north) elements.add(createBox("e_" + smartLabel(y1) + "_n", 15, y1, 1, 16, y2, width));
+                if (!west && !north) elements.add(createBox("e_" + smartLabel(y1) + "_s", 15, y1, 16 - width, 16, y2, 15));
+            }
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_corner_" + corner.name().toLowerCase());
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");

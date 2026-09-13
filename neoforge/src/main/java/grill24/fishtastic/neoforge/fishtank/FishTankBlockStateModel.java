@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.fishtank;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.TankDiagonal;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.ModelBaker;
@@ -46,6 +47,13 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
                 resolver.markDependency(modelLocation(shape, "sand", i));
                 resolver.markDependency(modelLocation(shape, "glass", i));
             }
+            if (shape.hasDiagonalCornerFragments()) {
+                for (TankDiagonal diagonal : TankDiagonal.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        resolver.markDependency(cornerFragmentLocation(shape, diagonal, capState));
+                    }
+                }
+            }
         }
     }
 
@@ -55,6 +63,7 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
         Map<FishTankShape, ResolvedModel[]> frameModels = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> sandModels  = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> glassModels = new EnumMap<>(FishTankShape.class);
+        Map<FishTankShape, ResolvedModel[]> cornerFragmentModels = new EnumMap<>(FishTankShape.class);
 
         for (FishTankShape shape : FishTankShape.values()) {
             ResolvedModel[] frame = new ResolvedModel[PERMUTATION_COUNT];
@@ -68,15 +77,39 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
             frameModels.put(shape, frame);
             sandModels.put(shape, sand);
             glassModels.put(shape, glass);
+
+            if (shape.hasDiagonalCornerFragments()) {
+                ResolvedModel[] fragments = new ResolvedModel[TankDiagonal.values().length * 4];
+                for (TankDiagonal diagonal : TankDiagonal.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        fragments[diagonal.ordinal() * 4 + capState] = baker.getModel(cornerFragmentLocation(shape, diagonal, capState));
+                    }
+                }
+                cornerFragmentModels.put(shape, fragments);
+            }
         }
 
         Fishtastic.LOGGER.info("Fish Tank block state model baked — {} sub-models resolved across {} shape(s).",
                 PERMUTATION_COUNT * 3 * FishTankShape.values().length, FishTankShape.values().length);
 
-        return new FishTankBakedModel(baker, frameModels, sandModels, glassModels);
+        return new FishTankBakedModel(baker, frameModels, sandModels, glassModels, cornerFragmentModels);
     }
 
     private static Identifier modelLocation(FishTankShape shape, String part, int permutation) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_" + part + "_" + permutation);
+    }
+
+    private static Identifier cornerFragmentLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
+        return ft("block/" + shape.modelPathPrefix() + "/fish_tank_frame_corner_" + cornerSuffix(diagonal) + "_" + capState);
+    }
+
+    /** Matches {@code TankCorner.name().toLowerCase()} in {@code tools/tank-shape-gen}'s datagen naming. */
+    private static String cornerSuffix(TankDiagonal diagonal) {
+        return switch (diagonal) {
+            case NORTHWEST -> "nw";
+            case NORTHEAST -> "ne";
+            case SOUTHWEST -> "sw";
+            case SOUTHEAST -> "se";
+        };
     }
 }

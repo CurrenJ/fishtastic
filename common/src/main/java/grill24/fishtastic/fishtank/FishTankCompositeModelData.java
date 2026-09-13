@@ -16,16 +16,16 @@ import java.util.Set;
  *
  * <p>Platform adapters pass this around as Fabric render data or a NeoForge {@code ModelProperty} value.
  */
-public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces) {
+public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces, Set<TankDiagonal> filledDiagonals) {
 
     public static final FishTankCompositeModelData DEFAULT = new FishTankCompositeModelData(
             FishTankShape.STANDARD, Blocks.OAK_PLANKS, Blocks.SAND,
             FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(),
-            EnumSet.noneOf(Direction.class)
+            EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class)
     );
 
     public FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock) {
-        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class));
+        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class));
     }
 
     /**
@@ -50,5 +50,25 @@ public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, 
             }
         }
         return openFaces;
+    }
+
+    /**
+     * The corners that need a post rendered back in despite both their orthogonal faces being
+     * open — true only when the diagonal neighbor cell for that corner is empty. This is the
+     * single canonicalization point for the corner-post override logic (see docs/... diagonal
+     * corner posts): {@code TaperedFrameGeometryGenerator}/{@code ShellFrameGeometryGenerator}/etc.
+     * gate a corner post on "both adjacent faces closed"; this mask adds back the corners where
+     * that gate says "no post" but the diagonal being empty means one is still needed to close off
+     * the tank's silhouette there.
+     */
+    public Set<TankDiagonal> getDiagonalOverrideMask() {
+        Set<TankDiagonal> mask = EnumSet.noneOf(TankDiagonal.class);
+        for (TankDiagonal diagonal : TankDiagonal.values()) {
+            boolean orthogonallyEligible = openFaces.contains(diagonal.first()) && openFaces.contains(diagonal.second());
+            if (orthogonallyEligible && !filledDiagonals.contains(diagonal)) {
+                mask.add(diagonal);
+            }
+        }
+        return mask;
     }
 }

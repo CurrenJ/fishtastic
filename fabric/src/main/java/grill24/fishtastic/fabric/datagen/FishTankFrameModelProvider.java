@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric.datagen;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
@@ -48,6 +49,21 @@ public class FishTankFrameModelProvider implements DataProvider {
                 JsonObject model = strategy.frame().apply(i);
                 Path path = pathProvider.json(Fishtastic.id(shape.modelPathPrefix() + "/fish_tank_frame_" + i));
                 futures.add(DataProvider.saveStable(cache, model, path));
+            }
+
+            // Diagonal-aware corner posts (docs/tank-shapes diagonal-corner-post project): small
+            // standalone fragments composited onto the 64 base bakes above at render time — not
+            // baked into the permutations themselves, so the 64 files above stay byte-identical.
+            // Only shapes whose frame generator has a combined-face corner gate need these.
+            if (strategy.cornerFragment() != null) {
+                for (TankCorner corner : TankCorner.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        JsonObject fragment = strategy.cornerFragment().apply(corner, capState);
+                        Path path = pathProvider.json(Fishtastic.id(shape.modelPathPrefix()
+                                + "/fish_tank_frame_corner_" + corner.name().toLowerCase() + "_" + capState));
+                        futures.add(DataProvider.saveStable(cache, fragment, path));
+                    }
+                }
             }
         }
 

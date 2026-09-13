@@ -3,6 +3,7 @@ package grill24.fishtastic.shapegen;
 import com.google.gson.JsonObject;
 
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 
 /**
@@ -17,7 +18,27 @@ import java.util.function.IntFunction;
  */
 public final class TankShapeGeometryStrategies {
 
-    public record Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand) {}
+    /**
+     * {@code cornerFragment} is null for shapes whose frame generator has no combined-face corner
+     * gate to begin with (no diagonal-corner-post bug is possible there) — see
+     * {@code TankShapeConnectivitySafetyTest}'s guardrail test for the shapes this covers.
+     */
+    public record Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
+                            BiFunction<TankCorner, Integer, JsonObject> cornerFragment) {
+        public Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand) {
+            this(name, frame, glass, sand, null);
+        }
+    }
+
+    private static BiFunction<TankCorner, Integer, JsonObject> taperedCornerFragment(CornerTaperProfile profile) {
+        return (corner, capState) -> TaperedFrameGeometryGenerator.generateCornerFragment(
+                corner, (capState & 2) != 0, (capState & 1) != 0, profile);
+    }
+
+    private static BiFunction<TankCorner, Integer, JsonObject> shellCornerFragment(CornerTaperProfile profile) {
+        return (corner, capState) -> ShellFrameGeometryGenerator.generateCornerFragment(
+                corner, (capState & 2) != 0, (capState & 1) != 0, profile);
+    }
 
     public static final List<Strategy> ALL = List.of(
             cornerTaper("standard", CornerTaperProfile.STANDARD),
@@ -31,11 +52,13 @@ public final class TankShapeGeometryStrategies {
             new Strategy("ornate",
                     OrnateFrameGeometryGenerator::generate,
                     OrnateGlassGeometryGenerator::generate,
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    (corner, capState) -> OrnateFrameGeometryGenerator.generateCornerFragment(corner, (capState & 2) != 0, (capState & 1) != 0)),
             new Strategy("shaggy",
                     ShaggyFrameGeometryGenerator::generate,
                     ShaggyGlassGeometryGenerator::generate,
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    (corner, capState) -> ShaggyFrameGeometryGenerator.generateCornerFragment(corner, (capState & 2) != 0, (capState & 1) != 0)),
             new Strategy("bramble",
                     BrambleFrameGeometryGenerator::generate,
                     BrambleGlassGeometryGenerator::generate,
@@ -51,7 +74,8 @@ public final class TankShapeGeometryStrategies {
             new Strategy("skylight",
                     perm -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    taperedCornerFragment(CornerTaperProfile.STANDARD)),
             new Strategy("arch",
                     ArchFrameGeometryGenerator::generate,
                     ArchGlassGeometryGenerator::generate,
@@ -67,23 +91,28 @@ public final class TankShapeGeometryStrategies {
             new Strategy("dune",
                     perm -> TaperedFrameGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
-                    DuneSandGeometryGenerator::generate),
+                    DuneSandGeometryGenerator::generate,
+                    taperedCornerFragment(CornerTaperProfile.STANDARD)),
             new Strategy("creeper",
                     CreeperFrameGeometryGenerator::generate,
                     CreeperGlassGeometryGenerator::generate,
-                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD)),
+                    perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
+                    (corner, capState) -> CreeperFrameGeometryGenerator.generateCornerFragment(corner, (capState & 2) != 0, (capState & 1) != 0)),
             new Strategy("vitrine",
                     perm -> TaperedFrameGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
-                    SandGeometryGenerator::generateNone),
+                    SandGeometryGenerator::generateNone,
+                    taperedCornerFragment(CornerTaperProfile.STANDARD)),
             new Strategy("cupola",
                     perm -> ShellFrameGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
                     perm -> TaperedGlassGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
-                    perm -> SteppedSandGeometryGenerator.generate(perm, CornerTaperProfile.STURDY)),
+                    perm -> SteppedSandGeometryGenerator.generate(perm, CornerTaperProfile.STURDY),
+                    shellCornerFragment(CornerTaperProfile.STURDY)),
             new Strategy("hutch",
                     perm -> ShellFrameGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
                     perm -> TaperedGlassGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
-                    SandGeometryGenerator::generateNone)
+                    SandGeometryGenerator::generateNone,
+                    shellCornerFragment(CornerTaperProfile.STURDY))
     );
 
     private TankShapeGeometryStrategies() {}
@@ -100,7 +129,8 @@ public final class TankShapeGeometryStrategies {
         return new Strategy(name,
                 perm -> TaperedFrameGeometryGenerator.generate(perm, profile),
                 perm -> TaperedGlassGeometryGenerator.generate(perm, profile),
-                perm -> SandGeometryGenerator.generate(perm, profile));
+                perm -> SandGeometryGenerator.generate(perm, profile),
+                taperedCornerFragment(profile));
     }
 
     /** Stepped-octagon shape: chamfered-ring frame (for {@code 16} rows) + tapered glass + stepped sand. */
@@ -108,6 +138,7 @@ public final class TankShapeGeometryStrategies {
         return new Strategy(name,
                 perm -> ShellFrameGeometryGenerator.generate(perm, profile),
                 perm -> TaperedGlassGeometryGenerator.generate(perm, profile),
-                perm -> SteppedSandGeometryGenerator.generate(perm, profile));
+                perm -> SteppedSandGeometryGenerator.generate(perm, profile),
+                shellCornerFragment(profile));
     }
 }

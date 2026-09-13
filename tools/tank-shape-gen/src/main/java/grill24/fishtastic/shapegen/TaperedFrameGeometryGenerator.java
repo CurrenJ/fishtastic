@@ -153,6 +153,27 @@ public final class TaperedFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone corner-post fragment for {@code corner}, independent of open-face state — used
+     * to composite a post back onto the base bake at render time when both of {@code corner}'s
+     * orthogonal faces are open but its diagonal neighbor cell is empty (see
+     * {@code FishTankCompositeModelData#getDiagonalOverrideMask}). Geometry-identical to what
+     * {@link #generate} would draw for this corner if both its faces were closed.
+     */
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        List<CornerTaperProfile.Run> runs = profile.runs(ceilingClosed, floorClosed);
+        addTaperedSupport(elements, corner.xEdge(), corner.zEdge(), runs);
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_corner_" + corner.name().toLowerCase());
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");
