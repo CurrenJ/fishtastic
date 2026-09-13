@@ -1,5 +1,5 @@
 {
-  "lore": "Called the tiger of the river by generations of anglers, the golden mahseer holds its ground in the swiftest Himalayan currents, its burnished scales flashing gold as it fights the hook with astonishing power for its size.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

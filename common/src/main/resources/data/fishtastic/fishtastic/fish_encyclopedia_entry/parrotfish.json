@@ -1,5 +1,5 @@
 {
-  "lore": "Armed with a beak strong enough to grind coral into sand, the parrotfish spends its daylight hours grazing reefs -- responsible, in no small part, for the very sand beneath a beachgoer's feet.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

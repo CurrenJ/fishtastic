@@ -1,5 +1,5 @@
 {
-  "lore": "Bold, intelligent, and fiercely territorial, the oscar patrols its stretch of river with mottled orange and black flanks on full display, driving off rivals twice its size rather than yield an inch of muddy water.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

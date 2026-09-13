@@ -1,5 +1,5 @@
 {
-  "lore": "Enormous and silent, the giant manta ray glides through open water at dawn like a shadow cast by nothing, filtering the sunlit shallows for plankton with barely a ripple.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

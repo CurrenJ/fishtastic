@@ -1,5 +1,5 @@
 {
-  "lore": "Deep in flooded lush caves, colonies of royal garden eels root themselves in silt gardens, swaying together until dawn or dusk light finally coaxes them fully upright to feed. Approach at midday and they retreat into their burrows before a hook ever reaches them.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

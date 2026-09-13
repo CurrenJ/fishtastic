@@ -1,5 +1,5 @@
 {
-  "lore": "Back on the surface, this pupfish survives nowhere on Earth but a single scalding desert cavern pool no bigger than a room -- so when it turns up thriving in the Nether's superheated pockets instead, most anglers refuse to believe it until they've hooked one themselves. An inch of blue and silver, and somehow it's everywhere down here.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

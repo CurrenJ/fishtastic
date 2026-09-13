@@ -1,5 +1,5 @@
 {
-  "lore": "Striped in bold yellow and black like a wasp, the clown loach wriggles playfully through submerged roots in bustling little groups, using barbels at its mouth to feel out shrimp and snails hidden in the silt below.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

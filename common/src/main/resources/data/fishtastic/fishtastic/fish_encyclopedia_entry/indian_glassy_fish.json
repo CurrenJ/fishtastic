@@ -1,5 +1,5 @@
 {
-  "lore": "Its body is almost entirely see-through, showing off its skeleton and organs like a fish carved from glass. Indian glassy fish shoal in tight, nervous clusters through flooded caverns, catching stray light along their spines whenever they turn.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

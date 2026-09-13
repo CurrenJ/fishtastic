@@ -1,5 +1,5 @@
 {
-  "lore": "An ambush predator with a temper to match its teeth, the northern pike strikes hardest in the low light of dawn and dusk, closing the gap on unsuspecting prey before they ever see it coming.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

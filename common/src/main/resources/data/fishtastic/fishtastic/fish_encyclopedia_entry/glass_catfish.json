@@ -1,5 +1,5 @@
 {
-  "lore": "Its flesh is so transparent that its spine and organs are visible through the skin. Glass catfish drift in loose, unhurried schools through slow cave pools, nearly invisible until the light catches them just right.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

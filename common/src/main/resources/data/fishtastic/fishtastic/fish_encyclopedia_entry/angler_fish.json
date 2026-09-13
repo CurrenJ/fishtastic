@@ -1,5 +1,5 @@
 {
-  "lore": "In the black water below the reach of sunlight, the angler fish dangles its own glow like a lure, waiting motionless for something curious enough to investigate. It hunts boldest at night, when the deep is darkest and its light is the only one for miles.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

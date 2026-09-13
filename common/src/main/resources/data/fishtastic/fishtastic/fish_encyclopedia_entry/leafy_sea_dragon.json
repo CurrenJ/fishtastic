@@ -1,5 +1,5 @@
 {
-  "lore": "Draped in leaf-shaped fronds that sway like kelp in the current, the leafy sea dragon drifts through sunlit shallows by day, all but invisible until it moves.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "Not a single creature but a colony of specialized organisms drifting as one, the Portuguese man o' war trails stinging tentacles beneath its sail-like float, and rides stormy weather right to the surface.",
+  "lore": "",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+
