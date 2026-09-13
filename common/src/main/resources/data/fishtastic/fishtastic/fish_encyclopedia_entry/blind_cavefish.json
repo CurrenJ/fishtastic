@@ -1,5 +1,5 @@
 {
-  "lore": "",
+  "lore": "The blind cavefish (Typhleotris madagascariensis) is endemic to underground waters in Madagascar. They live in warm water in limestone caves and sinkholes",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,4 +8,5 @@
     "lore_catches": 6
   }
 }
+
 
