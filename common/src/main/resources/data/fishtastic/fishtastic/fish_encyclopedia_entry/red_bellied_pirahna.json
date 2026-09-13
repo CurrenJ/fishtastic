@@ -1,5 +1,5 @@
 {
-  "lore": "The red-bellied pirahna is a species of carnivorous freshwater fish belonging to the family Serrasalmidae. It feeds on worms, crustaceans, and other fish. While it has a reputation as highly carnivorous, in reality is is an omnivorous scavenger.",
+  "lore": "The red-bellied pirahna is a species of carnivorous freshwater fish belonging to the family Serrasalmidae. It feeds on worms, crustaceans, and other fish. While it has a reputation as highly carnivorous, in reality it is an omnivorous scavenger.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
