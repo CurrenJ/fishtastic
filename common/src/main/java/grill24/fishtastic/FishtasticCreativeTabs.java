@@ -25,6 +25,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ANGLER_FISH.value());
                     output.accept(FishtasticItems.ARCTIC_CHAR.value());
                     output.accept(FishtasticItems.BETTA.value());
+                    output.accept(FishtasticItems.BLACK_GHOST_KNIFEFISH.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLIND_CAVEFISH.value());
                     output.accept(FishtasticItems.BLIND_CAVE_TETRA.value());

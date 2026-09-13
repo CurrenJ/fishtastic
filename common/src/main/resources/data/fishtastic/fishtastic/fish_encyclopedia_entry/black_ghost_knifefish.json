@@ -1,0 +1,10 @@
+{
+  "lore": "The Black Ghost Knifefish is a nocturnal, slightly electric fish. It uses electrolocation to sense small prey. It is a member of the order Gymnotiformes, also known as electric knifefishes. Although commonly known to lack a dorsal fin, some specimens from aquaculture facilities present a median fin expressed dorsally.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}

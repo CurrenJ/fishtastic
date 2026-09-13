@@ -105,6 +105,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.ANGLER_FISH.value(), "angler_fish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.ARCTIC_CHAR.value(), "arctic_char");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BETTA.value(), "betta");
+        generateFishItemModel(itemModelGenerators, FishtasticItems.BLACK_GHOST_KNIFEFISH.value(), "black_ghost_knifefish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLAZED_GRUB.value(), "blazed_grub");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLIND_CAVEFISH.value(), "blind_cavefish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.BLIND_CAVE_TETRA.value(), "blind_cave_tetra");

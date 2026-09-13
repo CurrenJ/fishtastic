@@ -148,6 +148,7 @@ public class FishtasticItems {
     public static Holder<Item> AMERICAN_PADDLEFISH;
     public static Holder<Item> ANGLER_FISH;
     public static Holder<Item> ARCTIC_CHAR;
+    public static Holder<Item> BLACK_GHOST_KNIFEFISH;
     public static Holder<Item> BLIND_CAVEFISH;
     public static Holder<Item> BLIND_CAVE_TETRA;
     public static Holder<Item> BLUEGILL;
@@ -239,6 +240,7 @@ public class FishtasticItems {
         AMERICAN_PADDLEFISH = RegistrationApiSided.getInstance().registerItem("american_paddlefish", loc -> new FishtasticFishItem(props(loc)));
         ANGLER_FISH = RegistrationApiSided.getInstance().registerItem("angler_fish", loc -> new FishtasticFishItem(props(loc)));
         ARCTIC_CHAR = RegistrationApiSided.getInstance().registerItem("arctic_char", loc -> new FishtasticFishItem(props(loc)));
+        BLACK_GHOST_KNIFEFISH = RegistrationApiSided.getInstance().registerItem("black_ghost_knifefish", loc -> new FishtasticFishItem(props(loc)));
         BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVEFISH = RegistrationApiSided.getInstance().registerItem("blind_cavefish", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVE_TETRA = RegistrationApiSided.getInstance().registerItem("blind_cave_tetra", loc -> new FishtasticFishItem(props(loc)));
