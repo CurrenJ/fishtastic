@@ -37,6 +37,7 @@ public class FishtasticCommand {
                 .then(CleanupGoalCommand.build())
                 .then(QuestsCommand.build())
                 .then(DebugEncyclopediaCommand.build())
+                .then(DebugShapesCommand.build())
                 .then(TokenBalanceCommand.build())
                 .then(NotificationVolumeCommand.build())
                 .then(SimulateFishingCommand.build());
