@@ -3,6 +3,7 @@ package grill24.fishtastic.shapegen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -217,52 +218,179 @@ public final class TaperedGlassGeometryGenerator {
         return model;
     }
 
+    /**
+     * Splits one run's {@code [yFrom, yTo]} span at the boundaries of the narrow "cap band(s)" — Y
+     * {@code [0, run.width()]} when the floor is open, Y {@code [16-run.width(), 16]} when the
+     * ceiling is open — the exact footprint of an eligible edge-diagonal frame beam (see
+     * {@code TaperedFrameGeometryGenerator#generateEdgeFragment}). Only the portion of a run that
+     * actually falls in such a band is tagged {@code capBand}; the rest of the run (even a run that
+     * happens to be flush-extended to the same boundary, e.g. a uniform-taper shape's single
+     * whole-height run) keeps its ordinary flush/inset behavior. Splitting geometrically like this —
+     * rather than by "is this the first/last run" — is what makes it safe for shapes whose runs
+     * merge into far fewer, taller pieces than the number of cap bands.
+     *
+     * <p>Returned as {@code {yFrom, yTo, capBand(0/1)}} triples, ordered bottom-to-top-independent
+     * (whatever order the cuts fall in); at most 3 entries for a run overlapping both bands.
+     */
+    private static List<double[]> splitRunForCapBands(CornerTaperProfile.Run run, boolean floorOpen, boolean ceilingOpen) {
+        double yFrom = run.yFrom(), yTo = run.yTo();
+        double downBandTo = floorOpen ? run.width() : -1;
+        double upBandFrom = ceilingOpen ? 16 - run.width() : 17;
+
+        java.util.TreeSet<Double> cuts = new java.util.TreeSet<>();
+        cuts.add(yFrom);
+        cuts.add(yTo);
+        if (downBandTo > yFrom && downBandTo < yTo) cuts.add(downBandTo);
+        if (upBandFrom > yFrom && upBandFrom < yTo) cuts.add(upBandFrom);
+
+        List<Double> sorted = new ArrayList<>(cuts);
+        List<double[]> result = new ArrayList<>();
+        for (int i = 0; i < sorted.size() - 1; i++) {
+            double lo = sorted.get(i), hi = sorted.get(i + 1);
+            double mid = (lo + hi) / 2;
+            boolean capBand = mid < downBandTo || mid > upBandFrom;
+            result.add(new double[]{lo, hi, capBand ? 1 : 0});
+        }
+        return result;
+    }
+
     private static void addNorthGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
+        boolean westOpen = openFaces.contains(TankFace.WEST);
+        boolean eastOpen = openFaces.contains(TankFace.EAST);
+        boolean floorOpen = openFaces.contains(TankFace.DOWN);
+        boolean ceilingOpen = openFaces.contains(TankFace.UP);
         for (CornerTaperProfile.Run run : runs) {
             if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
-            double minX = nwCorner ? run.width() : 0;
-            double maxX = neCorner ? 16 - run.width() : 16;
-            if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
-            elements.add(pane(minX, run.yFrom(), 0, maxX, run.yTo(), 1, "north", "south"));
+            for (double[] band : splitRunForCapBands(run, floorOpen, ceilingOpen)) {
+                double yFrom = band[0], yTo = band[1];
+                boolean capBand = band[2] != 0;
+                // Within a cap band, a corner that would otherwise flush to the boundary (because
+                // its perpendicular face is open) instead yields to that face's own edge-diagonal
+                // beam — see splitRunForCapBands's note.
+                double minX = (nwCorner || (capBand && westOpen)) ? run.width() : 0;
+                double maxX = (neCorner || (capBand && eastOpen)) ? 16 - run.width() : 16;
+                if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
+                elements.add(pane(minX, yFrom, 0, maxX, yTo, 1, "north", "south"));
+            }
         }
     }
 
     private static void addSouthGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean swCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST);
         boolean seCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST);
+        boolean westOpen = openFaces.contains(TankFace.WEST);
+        boolean eastOpen = openFaces.contains(TankFace.EAST);
+        boolean floorOpen = openFaces.contains(TankFace.DOWN);
+        boolean ceilingOpen = openFaces.contains(TankFace.UP);
         for (CornerTaperProfile.Run run : runs) {
             if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
-            double minX = swCorner ? run.width() : 0;
-            double maxX = seCorner ? 16 - run.width() : 16;
-            if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
-            elements.add(pane(minX, run.yFrom(), 15, maxX, run.yTo(), 16, "north", "south"));
+            for (double[] band : splitRunForCapBands(run, floorOpen, ceilingOpen)) {
+                double yFrom = band[0], yTo = band[1];
+                boolean capBand = band[2] != 0;
+                double minX = (swCorner || (capBand && westOpen)) ? run.width() : 0;
+                double maxX = (seCorner || (capBand && eastOpen)) ? 16 - run.width() : 16;
+                if (minX >= maxX) continue; // degenerate — a full-width run leaves no pane
+                elements.add(pane(minX, yFrom, 15, maxX, yTo, 16, "north", "south"));
+            }
         }
     }
 
     private static void addWestGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean nwCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.WEST);
         boolean swCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.WEST);
+        boolean northOpen = openFaces.contains(TankFace.NORTH);
+        boolean southOpen = openFaces.contains(TankFace.SOUTH);
+        boolean floorOpen = openFaces.contains(TankFace.DOWN);
+        boolean ceilingOpen = openFaces.contains(TankFace.UP);
         for (CornerTaperProfile.Run run : runs) {
             if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
-            double minZ = nwCorner ? run.width() : 0;
-            double maxZ = swCorner ? 16 - run.width() : 16;
-            if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
-            elements.add(paneZAxis(0, run.yFrom(), minZ, 1, run.yTo(), maxZ, "west", "east"));
+            for (double[] band : splitRunForCapBands(run, floorOpen, ceilingOpen)) {
+                double yFrom = band[0], yTo = band[1];
+                boolean capBand = band[2] != 0;
+                double minZ = (nwCorner || (capBand && northOpen)) ? run.width() : 0;
+                double maxZ = (swCorner || (capBand && southOpen)) ? 16 - run.width() : 16;
+                if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
+                elements.add(paneZAxis(0, yFrom, minZ, 1, yTo, maxZ, "west", "east"));
+            }
         }
     }
 
     private static void addEastGlassPane(JsonArray elements, Set<TankFace> openFaces, List<CornerTaperProfile.Run> runs) {
         boolean neCorner = !openFaces.contains(TankFace.NORTH) && !openFaces.contains(TankFace.EAST);
         boolean seCorner = !openFaces.contains(TankFace.SOUTH) && !openFaces.contains(TankFace.EAST);
+        boolean northOpen = openFaces.contains(TankFace.NORTH);
+        boolean southOpen = openFaces.contains(TankFace.SOUTH);
+        boolean floorOpen = openFaces.contains(TankFace.DOWN);
+        boolean ceilingOpen = openFaces.contains(TankFace.UP);
         for (CornerTaperProfile.Run run : runs) {
             if (run.width() >= 16) continue; // full-width run is a solid cap ring — never a window
-            double minZ = neCorner ? run.width() : 0;
-            double maxZ = seCorner ? 16 - run.width() : 16;
-            if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
-            elements.add(paneZAxis(15, run.yFrom(), minZ, 16, run.yTo(), maxZ, "west", "east"));
+            for (double[] band : splitRunForCapBands(run, floorOpen, ceilingOpen)) {
+                double yFrom = band[0], yTo = band[1];
+                boolean capBand = band[2] != 0;
+                double minZ = (neCorner || (capBand && northOpen)) ? run.width() : 0;
+                double maxZ = (seCorner || (capBand && southOpen)) ? 16 - run.width() : 16;
+                if (minZ >= maxZ) continue; // degenerate — a full-width run leaves no pane
+                elements.add(paneZAxis(15, yFrom, minZ, 16, yTo, maxZ, "west", "east"));
+            }
         }
+    }
+
+    /**
+     * A standalone glass-restore fragment for one end of an eligible edge-diagonal beam (see
+     * {@code TaperedFrameGeometryGenerator#generateEdgeFragment}) — composited back in, using the
+     * glass texture, when that beam's edge-diagonal neighbor cell IS filled (so the beam itself does
+     * <em>not</em> render there — see {@code FishTankCompositeModelData#getEdgeDiagonalGlassFillMask},
+     * the inverse of the beam's own override mask). Restores exactly the flush pane sliver the base
+     * bake's cap-band split (see {@link #splitRunForCapBands}) removed from {@code corner}'s "wall"
+     * side — the corner's face other than {@code edge.horizontal()}, which is the side that's
+     * actually closed and carries glass in the first place (the other face, matching
+     * {@code edge.horizontal()}, is open — that's what made the beam eligible).
+     *
+     * <p>{@code corner} must be one of {@code edge.horizontal()}'s two end corners (the ones a beam
+     * on that wall touches) — e.g. for {@code EAST_DOWN}, {@code NE} or {@code SE}.
+     */
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner, CornerTaperProfile profile) {
+        return generateEdgeGlassFillFragment(edge, corner, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        int width = profile.baseWidth();
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        TankFace wall = corner.faceA() == edge.horizontal() ? corner.faceB() : corner.faceA();
+
+        switch (wall) {
+            case NORTH -> {
+                double x1 = corner.xEdge() == 1 ? 16 - width : 0;
+                double x2 = corner.xEdge() == 1 ? 16 : width;
+                elements.add(pane(x1, y1, 0, x2, y2, 1, "north", "south"));
+            }
+            case SOUTH -> {
+                double x1 = corner.xEdge() == 1 ? 16 - width : 0;
+                double x2 = corner.xEdge() == 1 ? 16 : width;
+                elements.add(pane(x1, y1, 15, x2, y2, 16, "north", "south"));
+            }
+            case WEST -> {
+                double z1 = corner.zEdge() == 1 ? 16 - width : 0;
+                double z2 = corner.zEdge() == 1 ? 16 : width;
+                elements.add(paneZAxis(0, y1, z1, 1, y2, z2, "west", "east"));
+            }
+            case EAST -> {
+                double z1 = corner.zEdge() == 1 ? 16 - width : 0;
+                double z2 = corner.zEdge() == 1 ? 16 : width;
+                elements.add(paneZAxis(15, y1, z1, 16, y2, z2, "west", "east"));
+            }
+            default -> throw new IllegalArgumentException("Not a wall face: " + wall);
+        }
+
+        model.add("elements", elements);
+        return model;
     }
 
     /** North/south-facing pane segment: UV mirrors the X/Y footprint. */

@@ -318,6 +318,49 @@ public final class ShellFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — mirrors
+     * {@code TaperedFrameGeometryGenerator#generateEdgeFragment}: a single box at
+     * {@link CornerTaperProfile#baseWidth()}, spanning the full 0-16 perpendicular width, occupying
+     * the vertical cap's band. No {@code capState} parameter needed for the same reason as the
+     * tapered generator's version — eligibility requires the vertical face open, which already
+     * forces the cap-adjacent run to base width. Composited back onto the base bake when both the
+     * edge's horizontal and vertical faces are open but its edge-diagonal neighbor cell is empty
+     * (see {@code FishTankCompositeModelData#getEdgeDiagonalOverrideMask}).
+     *
+     * <p>Deliberately not inset against the perpendicular wall's own glass pane — that pane insets
+     * itself instead when this beam is eligible (see
+     * {@code TaperedGlassGeometryGenerator#addNorthGlassPane} et al.'s cap-adjacent-run note), so
+     * the beam stays a full structural seal along the whole wall/cap seam rather than leaving its
+     * load-bearing ends looking like a missing corner.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge, CornerTaperProfile profile) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        int width = profile.baseWidth();
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        int x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        elements.add(createBox("edge_" + edge.name().toLowerCase(), x1, y1, z1, x2, y2, z2));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");

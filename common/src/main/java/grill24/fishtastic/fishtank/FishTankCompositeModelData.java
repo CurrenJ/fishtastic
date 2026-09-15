@@ -16,16 +16,16 @@ import java.util.Set;
  *
  * <p>Platform adapters pass this around as Fabric render data or a NeoForge {@code ModelProperty} value.
  */
-public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces, Set<TankDiagonal> filledDiagonals) {
+public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces, Set<TankDiagonal> filledDiagonals, Set<TankEdgeDiagonal> filledEdgeDiagonals) {
 
     public static final FishTankCompositeModelData DEFAULT = new FishTankCompositeModelData(
             FishTankShape.STANDARD, Blocks.OAK_PLANKS, Blocks.SAND,
             FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(),
-            EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class)
+            EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class)
     );
 
     public FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock) {
-        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class));
+        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class));
     }
 
     /**
@@ -67,6 +67,49 @@ public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, 
             boolean orthogonallyEligible = openFaces.contains(diagonal.first()) && openFaces.contains(diagonal.second());
             if (orthogonallyEligible && !filledDiagonals.contains(diagonal)) {
                 mask.add(diagonal);
+            }
+        }
+        return mask;
+    }
+
+    /**
+     * The edges that need a frame beam rendered back in despite both their horizontal and
+     * vertical faces being open — true only when the edge-diagonal neighbor cell is empty.
+     * Mirrors {@link #getDiagonalOverrideMask()} for the edge-diagonal case: the base
+     * per-permutation bake never draws an edge beam (nothing in the frame generators gates on the
+     * combination of one horizontal face and one vertical face), so this mask is unconditional on
+     * eligibility rather than "the base bake omitted it" — see {@code TaperedFrameGeometryGenerator#generateEdgeFragment}.
+     */
+    public Set<TankEdgeDiagonal> getEdgeDiagonalOverrideMask() {
+        Set<TankEdgeDiagonal> mask = EnumSet.noneOf(TankEdgeDiagonal.class);
+        for (TankEdgeDiagonal edgeDiagonal : TankEdgeDiagonal.values()) {
+            boolean eligible = openFaces.contains(edgeDiagonal.horizontal()) && openFaces.contains(edgeDiagonal.vertical());
+            if (eligible && !filledEdgeDiagonals.contains(edgeDiagonal)) {
+                mask.add(edgeDiagonal);
+            }
+        }
+        return mask;
+    }
+
+    /**
+     * The edges whose beam does <em>not</em> render (edge-diagonal cell filled by a real neighbor —
+     * the inverse of {@link #getEdgeDiagonalOverrideMask()}) and so need their base glass bake's
+     * flush corner sliver restored instead. The base glass bake (see
+     * {@code TaperedGlassGeometryGenerator#addNorthGlassPane} et al.) always omits that sliver at an
+     * eligible edge's cap band — regardless of runtime fill state, since the glass model is baked
+     * once per permutation with no knowledge of it — so this mask adds it back with a small
+     * glass-textured fragment on exactly the permutations where the beam itself won't be there to
+     * cover it. Each entry still needs a per-corner check against the actual perpendicular wall
+     * being closed (a corner cell only has glass to restore at all when that wall exists) — see
+     * {@code TankEdgeDiagonal#endDiagonals()}/{@code #wallFace}, applied by the compositor using
+     * this same {@link #openFaces()}.
+     */
+    public Set<TankEdgeDiagonal> getEdgeDiagonalGlassFillMask() {
+        Set<TankEdgeDiagonal> mask = EnumSet.noneOf(TankEdgeDiagonal.class);
+        for (TankEdgeDiagonal edgeDiagonal : TankEdgeDiagonal.values()) {
+            boolean eligible = openFaces.contains(edgeDiagonal.horizontal()) && openFaces.contains(edgeDiagonal.vertical());
+            if (eligible && filledEdgeDiagonals.contains(edgeDiagonal)) {
+                mask.add(edgeDiagonal);
             }
         }
         return mask;

@@ -174,6 +174,81 @@ public final class TaperedFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge}, independent of open-face
+     * state — used to composite a beam back onto the base bake at render time when both of
+     * {@code edge}'s horizontal and vertical faces are open but its edge-diagonal neighbor cell is
+     * empty (see {@code FishTankCompositeModelData#getEdgeDiagonalOverrideMask}).
+     *
+     * <p>No {@code capState} parameter, unlike {@link #generateCornerFragment}: eligibility
+     * <em>requires</em> the vertical face (UP or DOWN) to be open, and
+     * {@link CornerTaperProfile#effectiveRowWidths} already forces the cap-adjacent run to
+     * {@link CornerTaperProfile#baseWidth()} whenever that cap is open — so this fragment is
+     * always exactly one box at {@link CornerTaperProfile#baseWidth()}, reaching inward from the
+     * beam's edge by that width and spanning the full 0-16 perpendicular width (the beam is a real
+     * structural seal along the entire wall/floor-or-ceiling seam, not just its middle). It is not
+     * trimmed against the adjacent corner fragments' own reach — the two are allowed to overlap,
+     * since both render the same opaque frame texture from coplanar or fully-interior boxes (the
+     * same flush-overlap-by-construction convention {@link #addTaperedSupport} already relies on).
+     *
+     * <p>The beam's ends previously also collided with the perpendicular wall's own glass pane,
+     * which flush-extends into the same corner cell when that wall's own corner post is absent
+     * (see {@code TaperedGlassGeometryGenerator}) — real opaque-over-translucent overlap, not the
+     * coplanar frame-on-frame kind, and it z-fought. That is fixed on the glass side instead (see
+     * {@code TaperedGlassGeometryGenerator#addNorthGlassPane} et al.'s cap-adjacent-run note): the
+     * glass now insets there too whenever this beam is eligible, rather than shrinking the beam —
+     * insetting the beam instead once caused a visible regression (a "missing" frame corner with
+     * glass showing through in its place), since the beam's ends are exactly where a corner post is
+     * expected to read as solid.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge, CornerTaperProfile profile) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        elements.add(createEdgeBeamBox(edge, profile.baseWidth()));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
+    /**
+     * The edge beam box: occupies the vertical cap's band (Y 0-1 for a DOWN edge, Y 15-16 for UP),
+     * reaches inward from the horizontal side's true edge by {@code width}, and spans the full
+     * 0-16 perpendicular width (no trimming against corner fragments — see
+     * {@link #generateEdgeFragment}'s note).
+     */
+    private static JsonObject createEdgeBeamBox(TankEdge edge, int width) {
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        double x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "edge_" + edge.name().toLowerCase());
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
+
+        JsonObject faces = new JsonObject();
+        faces.add("north", face(16 - x2, 16 - y2, 16 - x1, 16 - y1, "#all"));
+        faces.add("south", face(x1, 16 - y2, x2, 16 - y1, "#all"));
+        faces.add("west", face(z1, 16 - y2, z2, 16 - y1, "#all"));
+        faces.add("east", face(16 - z2, 16 - y2, 16 - z1, 16 - y1, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");

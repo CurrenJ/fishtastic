@@ -6,7 +6,9 @@ import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankShapeGeometryStrategies;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.IntFunction;
+import grill24.fishtastic.shapegen.TankEdge;
 
 /**
  * Maps each {@link FishTankShape} to the {@code tools/tank-shape-gen} calls that produce its
@@ -23,12 +25,14 @@ import java.util.function.IntFunction;
 final class FishTankShapeGeometryStrategies {
 
     record Strategy(IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
-                     BiFunction<TankCorner, Integer, JsonObject> cornerFragment) {}
+                     BiFunction<TankCorner, Integer, JsonObject> cornerFragment, Function<TankEdge, JsonObject> edgeFragment,
+                     BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment) {}
 
     private FishTankShapeGeometryStrategies() {}
 
     static Strategy forShape(FishTankShape shape) {
         TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.byName(shape.getSerializedName());
-        return new Strategy(strategy.frame(), strategy.glass(), strategy.sand(), strategy.cornerFragment());
+        return new Strategy(strategy.frame(), strategy.glass(), strategy.sand(), strategy.cornerFragment(), strategy.edgeFragment(),
+                strategy.edgeGlassFillFragment());
     }
 }

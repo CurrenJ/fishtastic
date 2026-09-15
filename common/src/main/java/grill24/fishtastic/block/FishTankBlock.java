@@ -11,6 +11,7 @@ import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.TankDiagonal;
+import grill24.fishtastic.fishtank.TankEdgeDiagonal;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -113,6 +114,17 @@ public class FishTankBlock extends Block implements EntityBlock {
                     updateConnections(level, diagonalPos);
                 }
             }
+
+            // Same reasoning as the diagonal loop above, for edge-diagonal (horizontal×vertical)
+            // neighbors — vanilla neighbor notifications never reach these either, so a tank whose
+            // edge-diagonal cell is filled by this placement would otherwise never recompute,
+            // leaving a phantom frame beam rendered where this new tank now covers the gap.
+            for (TankEdgeDiagonal edgeDiagonal : TankEdgeDiagonal.values()) {
+                BlockPos edgeDiagonalPos = blockPos.relative(edgeDiagonal.horizontal()).relative(edgeDiagonal.vertical());
+                if (level.getBlockEntity(edgeDiagonalPos) instanceof FishTankBlockEntity) {
+                    updateConnections(level, edgeDiagonalPos);
+                }
+            }
         }
     }
 
@@ -146,6 +158,16 @@ public class FishTankBlock extends Block implements EntityBlock {
             BlockPos diagonalPos = pos.relative(diagonal.first()).relative(diagonal.second());
             if (level.getBlockEntity(diagonalPos) instanceof FishTankBlockEntity) {
                 updateConnections(level, diagonalPos);
+            }
+        }
+
+        // Update filledEdgeDiagonals for all edge-diagonally adjacent tanks too — see the matching
+        // note in onPlace; a tank whose edge-diagonal cell just emptied out needs the same forced
+        // recompute.
+        for (TankEdgeDiagonal edgeDiagonal : TankEdgeDiagonal.values()) {
+            BlockPos edgeDiagonalPos = pos.relative(edgeDiagonal.horizontal()).relative(edgeDiagonal.vertical());
+            if (level.getBlockEntity(edgeDiagonalPos) instanceof FishTankBlockEntity) {
+                updateConnections(level, edgeDiagonalPos);
             }
         }
     }

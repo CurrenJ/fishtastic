@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.shapegen.TankCorner;
+import grill24.fishtastic.shapegen.TankEdge;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
@@ -63,6 +64,20 @@ public class FishTankFrameModelProvider implements DataProvider {
                                 + "/fish_tank_frame_corner_" + corner.name().toLowerCase() + "_" + capState));
                         futures.add(DataProvider.saveStable(cache, fragment, path));
                     }
+                }
+            }
+
+            // Edge-diagonal frame beams (edge-diagonal frame beam fix): small standalone
+            // fragments composited onto the 64 base bakes above at render time, one per horizontal
+            // × vertical face combination — not baked into the permutations themselves, so the 64
+            // files above stay byte-identical. Only shapes whose frame generator supports it emit
+            // these (see FishTankShape#hasEdgeDiagonalFragments).
+            if (strategy.edgeFragment() != null) {
+                for (TankEdge edge : TankEdge.values()) {
+                    JsonObject fragment = strategy.edgeFragment().apply(edge);
+                    Path path = pathProvider.json(Fishtastic.id(shape.modelPathPrefix()
+                            + "/fish_tank_frame_edge_" + edge.name().toLowerCase()));
+                    futures.add(DataProvider.saveStable(cache, fragment, path));
                 }
             }
         }

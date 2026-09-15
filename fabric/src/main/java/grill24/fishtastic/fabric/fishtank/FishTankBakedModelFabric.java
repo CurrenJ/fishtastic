@@ -6,6 +6,7 @@ import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.TankDiagonal;
+import grill24.fishtastic.fishtank.TankEdgeDiagonal;
 import net.fabricmc.fabric.api.blockgetter.v2.FabricBlockGetter;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart;
@@ -51,6 +52,13 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     // Diagonal-aware corner post fragments, [diagonal.ordinal() * 4 + capState]; absent for shapes
     // whose frame generator has no combined-face corner gate (see FishTankShape#hasDiagonalCornerFragments).
     private final Map<FishTankShape, ResolvedModel[]> cornerFragmentModels;
+    // Edge-diagonal frame beam fragments, indexed by [edge.ordinal()]; absent for shapes with no
+    // taper/plate abstraction to borrow edge geometry from (see FishTankShape#hasEdgeDiagonalFragments).
+    private final Map<FishTankShape, ResolvedModel[]> edgeFragmentModels;
+    // Edge-diagonal glass-fill fragments (the beam's z-fight followup fix), indexed by
+    // [edge.ordinal() * TankDiagonal.values().length + corner.ordinal()]; same absence condition
+    // as edgeFragmentModels.
+    private final Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels;
 
     private final List<BlockStateModelPart> defaultParts;
     private final Material.Baked defaultParticleMaterial;
@@ -59,7 +67,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     private final ConcurrentHashMap<CacheKey, CachedModel> modelCache = new ConcurrentHashMap<>();
     private final Object bakeLock = new Object();
 
-    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides) {}
+    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides, Set<TankEdgeDiagonal> edgeDiagonalOverrides) {}
 
     private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial, int materialFlags) {}
 
@@ -67,12 +75,16 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                                     Map<FishTankShape, ResolvedModel[]> frameModels,
                                     Map<FishTankShape, ResolvedModel[]> sandModels,
                                     Map<FishTankShape, ResolvedModel[]> glassModels,
-                                    Map<FishTankShape, ResolvedModel[]> cornerFragmentModels) {
+                                    Map<FishTankShape, ResolvedModel[]> cornerFragmentModels,
+                                    Map<FishTankShape, ResolvedModel[]> edgeFragmentModels,
+                                    Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels) {
         this.baker = baker;
         this.frameModels = frameModels;
         this.sandModels = sandModels;
         this.glassModels = glassModels;
         this.cornerFragmentModels = cornerFragmentModels;
+        this.edgeFragmentModels = edgeFragmentModels;
+        this.edgeGlassFillModels = edgeGlassFillModels;
 
         FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
         CachedModel defaultModel = generateCompositeModel(defaultData);
@@ -80,7 +92,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         if (defaultModel != null) {
             CacheKey defaultKey = new CacheKey(
                     defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
-                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask());
+                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask(),
+                    defaultData.getEdgeDiagonalOverrideMask());
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
             this.defaultParticleMaterial = defaultModel.particleMaterial();
@@ -103,7 +116,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                data.getEdgeDiagonalOverrideMask());
 
         CachedModel cached = modelCache.get(key);
         if (cached == null) {
@@ -139,7 +153,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         return new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                data.getEdgeDiagonalOverrideMask());
     }
 
     @Override
@@ -147,7 +162,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
     }
@@ -157,7 +173,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask());
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.materialFlags() : defaultMaterialFlags;
     }
@@ -255,6 +272,45 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                     if (fragmentQuads != null) {
                         compositeBuilder.addAll(fragmentQuads);
                         flags |= fragmentQuads.materialFlags();
+                    }
+                }
+            }
+
+            // Edge-diagonal frame beams: composite a small fragment back in for each edge whose
+            // horizontal and vertical faces are both open but its edge-diagonal neighbor cell is
+            // empty (see FishTankCompositeModelData#getEdgeDiagonalOverrideMask). Absent for
+            // shapes with no taper/plate abstraction to borrow edge geometry from.
+            ResolvedModel[] edgeFragmentsForShape = edgeFragmentModels.get(data.shape());
+            Set<TankEdgeDiagonal> edgeDiagonalOverrides = data.getEdgeDiagonalOverrideMask();
+            if (edgeFragmentsForShape != null && !edgeDiagonalOverrides.isEmpty()) {
+                for (TankEdgeDiagonal edge : edgeDiagonalOverrides) {
+                    ResolvedModel fragmentModel = edgeFragmentsForShape[edge.ordinal()];
+                    QuadCollection fragmentQuads = bakeGeometry(fragmentModel, frameSlots);
+                    if (fragmentQuads != null) {
+                        compositeBuilder.addAll(fragmentQuads);
+                        flags |= fragmentQuads.materialFlags();
+                    }
+                }
+            }
+
+            // Edge-diagonal glass fill: restore the small flush glass sliver the base glass bake
+            // omits at an eligible edge's cap band, when that edge's beam does NOT render (its
+            // edge-diagonal cell is filled — see FishTankCompositeModelData#getEdgeDiagonalGlassFillMask,
+            // the inverse of the beam's own override mask). Each of the edge's two end corners is
+            // independently gated on its "wall" face actually being closed — a corner cell only has
+            // glass to restore at all when that perpendicular wall exists.
+            ResolvedModel[] edgeGlassFillForShape = edgeGlassFillModels.get(data.shape());
+            Set<TankEdgeDiagonal> edgeDiagonalGlassFills = data.getEdgeDiagonalGlassFillMask();
+            if (edgeGlassFillForShape != null && !edgeDiagonalGlassFills.isEmpty()) {
+                for (TankEdgeDiagonal edge : edgeDiagonalGlassFills) {
+                    for (TankDiagonal corner : edge.endDiagonals()) {
+                        if (data.openFaces().contains(edge.wallFace(corner))) continue; // wall open — no pane to restore
+                        ResolvedModel fillModel = edgeGlassFillForShape[edge.ordinal() * TankDiagonal.values().length + corner.ordinal()];
+                        QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
+                        if (fillQuads != null) {
+                            compositeBuilder.addAll(fillQuads);
+                            flags |= fillQuads.materialFlags();
+                        }
                     }
                 }
             }

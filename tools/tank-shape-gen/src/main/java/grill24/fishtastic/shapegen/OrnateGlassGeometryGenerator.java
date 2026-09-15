@@ -55,39 +55,52 @@ public final class OrnateGlassGeometryGenerator {
         JsonObject model = baseModel(textureId);
         JsonArray elements = new JsonArray();
 
-        List<Band> bands = glassBands(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+        boolean upOpen = openFaces.contains(TankFace.UP);
+        boolean downOpen = openFaces.contains(TankFace.DOWN);
+        List<Band> bands = glassBands(!upOpen, !downOpen);
 
+        // Within the 1px cap band (Y[0,1) when the floor is open, Y[15,16) when the ceiling is
+        // open), a corner that would otherwise flush to the boundary (its perpendicular face open)
+        // instead yields to that face's own edge-diagonal frame beam — see
+        // TaperedFrameGeometryGenerator#generateEdgeFragment and
+        // TaperedGlassGeometryGenerator#splitRunForCapBands's matching note. Ornate's corner post is
+        // the same plain 1px post as CornerTaperProfile.STANDARD, so the same fix applies here,
+        // hand-duplicated since ornate has its own glass generator.
         if (northClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(b.bracketSpans, minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom, 0, span[1], b.yTo, 1, "north", "south"));
                 }
             }
         }
         if (southClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(b.bracketSpans, minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom, 15, span[1], b.yTo, 16, "north", "south"));
                 }
             }
         }
         if (westClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(b.bracketSpans, minZ, maxZ)) {
                     elements.add(paneZAxis(0, b.yFrom, span[0], 1, b.yTo, span[1], "west", "east"));
                 }
             }
         }
         if (eastClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(b.bracketSpans, minZ, maxZ)) {
                     elements.add(paneZAxis(15, b.yFrom, span[0], 16, b.yTo, span[1], "west", "east"));
                 }
@@ -104,16 +117,28 @@ public final class OrnateGlassGeometryGenerator {
     /**
      * The glass's Y bands, top to bottom. Each band's {@code bracketSpans} are the holes to leave;
      * they are empty when the corresponding cap is open (the brackets are gone). The band touching
-     * an open cap extends to the block boundary (y=0 / y=16) for the seam.
+     * an open cap extends to the block boundary (y=0 / y=16) for the seam, and is kept as its own
+     * separate 1px band there (rather than merged with its neighbor) so the cap-band-only corner
+     * fix above can target exactly that 1px slice.
      */
     private static List<Band> glassBands(boolean upClosed, boolean downClosed) {
         List<Band> bands = new ArrayList<>();
-        bands.add(new Band(downClosed ? 1 : 0, 2, downClosed ? BOTTOM_Y12 : List.of()));
+        if (downClosed) {
+            bands.add(new Band(1, 2, BOTTOM_Y12));
+        } else {
+            bands.add(new Band(0, 1, List.of()));
+            bands.add(new Band(1, 2, List.of()));
+        }
         bands.add(new Band(2, 3, downClosed ? BOTTOM_Y23 : List.of()));
         bands.add(new Band(3, 12, List.of()));
         bands.add(new Band(12, 13, upClosed ? TOP_Y1213 : List.of()));
         bands.add(new Band(13, 14, upClosed ? TOP_Y1314 : List.of()));
-        bands.add(new Band(14, upClosed ? 15 : 16, upClosed ? TOP_Y1415 : List.of()));
+        if (upClosed) {
+            bands.add(new Band(14, 15, TOP_Y1415));
+        } else {
+            bands.add(new Band(14, 15, List.of()));
+            bands.add(new Band(15, 16, List.of()));
+        }
         return bands;
     }
 

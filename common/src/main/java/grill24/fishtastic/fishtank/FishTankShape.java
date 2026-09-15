@@ -206,6 +206,23 @@ public enum FishTankShape implements TooltipProvider {
     private static final java.util.Set<String> NO_DIAGONAL_CORNER_FRAGMENTS = java.util.Set.of(
             "bramble", "tooth", "film", "arch", "mullion", "lattice");
 
+    /**
+     * Shapes whose datagen does not emit edge-diagonal frame-beam fragments (the edge-diagonal
+     * frame beam fix). Ornate/Shaggy/Creeper turned out to already use a plain 1px corner post
+     * identical in formula to {@code CornerTaperProfile.STANDARD} (proven by inspection: same
+     * {@code floorClosed?1:0}/{@code ceilingClosed?15:16} extent), so they were promoted out of this
+     * set and reuse the shared tapered generator directly. Tooth/film/mullion/lattice/arch remain
+     * excluded — each has a real structural difference (asymmetric per-row corner widths for
+     * tooth/film, an anchor/wall asymmetry for mullion, a fixed-width-regardless-of-cap-state corner
+     * for lattice, a capped-height jamb for arch) that breaks the shared profile-based abstraction
+     * and needs bespoke geometry, not just a wider exclusion list. Bramble has no uniform corner
+     * post at all. See docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup.
+     * Mirrors {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
+     * {@code tools/tank-shape-gen} exactly — keep the two in sync.
+     */
+    private static final java.util.Set<String> NO_EDGE_DIAGONAL_FRAGMENTS = java.util.Set.of(
+            "bramble", "tooth", "film", "arch", "mullion", "lattice");
+
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
@@ -260,6 +277,17 @@ public enum FishTankShape implements TooltipProvider {
      */
     public boolean hasDiagonalCornerFragments() {
         return !NO_DIAGONAL_CORNER_FRAGMENTS.contains(getSerializedName());
+    }
+
+    /**
+     * Whether this shape's datagen emitted edge-diagonal frame-beam fragments (8 small
+     * per-edge models under this shape's model path prefix, alongside the 64 base permutations)
+     * for the bake-time compositor to load and stitch in when
+     * {@link FishTankCompositeModelData#getEdgeDiagonalOverrideMask()} calls for one. See
+     * {@link #NO_EDGE_DIAGONAL_FRAGMENTS}.
+     */
+    public boolean hasEdgeDiagonalFragments() {
+        return !NO_EDGE_DIAGONAL_FRAGMENTS.contains(getSerializedName());
     }
 
     /**
