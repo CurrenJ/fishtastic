@@ -114,4 +114,26 @@ public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, 
         }
         return mask;
     }
+
+    /**
+     * The corners whose diagonal-aware post does <em>not</em> render (diagonal cell filled by a
+     * real neighbor — the inverse of {@link #getDiagonalOverrideMask()}) and so, for shapes whose
+     * ceiling/floor is a glass-paned ring ({@link FishTankShape#hasCornerGlassFillFragments()}),
+     * need their base glass bake's notched corner restored as flush glass instead. The base glass
+     * bake (see {@code TaperedGlassGeometryGenerator#addHorizontalPaneBoxes}) always notches that
+     * corner at an eligible permutation — regardless of runtime fill state, since the glass model is
+     * baked once per permutation with no knowledge of it — so this mask adds the notch back with a
+     * small glass-textured fragment on exactly the permutations where no corner post renders to
+     * cover it. Mirrors {@link #getEdgeDiagonalGlassFillMask()} for the horizontal-corner case.
+     */
+    public Set<TankDiagonal> getDiagonalGlassFillMask() {
+        Set<TankDiagonal> mask = EnumSet.noneOf(TankDiagonal.class);
+        for (TankDiagonal diagonal : TankDiagonal.values()) {
+            boolean orthogonallyEligible = openFaces.contains(diagonal.first()) && openFaces.contains(diagonal.second());
+            if (orthogonallyEligible && filledDiagonals.contains(diagonal)) {
+                mask.add(diagonal);
+            }
+        }
+        return mask;
+    }
 }

@@ -236,6 +236,20 @@ public enum FishTankShape implements TooltipProvider {
     private static final java.util.Set<String> NO_EDGE_DIAGONAL_FRAGMENTS = java.util.Set.of(
             "bramble", "arch");
 
+    /**
+     * Shapes whose datagen emits corner glass-fill fragments — the glass-side counterpart of
+     * {@link #NO_DIAGONAL_CORNER_FRAGMENTS}'s corner posts, needed only by the four shapes whose
+     * ceiling/floor is a frame ring around a glass pane instead of a solid slab (the pane now
+     * notches out any corner whose two faces are both open, to avoid overlapping/z-fighting the
+     * diagonal-aware corner post there — see {@code TaperedGlassGeometryGenerator#addHorizontalPaneBoxes}
+     * in {@code tools/tank-shape-gen}). An allowlist rather than an exclusion list, unlike the other
+     * two fragment sets, since this is the rare case (4 of 22 shapes) rather than the common one.
+     * Mirrors {@code TankShapeGeometryStrategies}'s {@code cornerGlassFillFragment != null} entries
+     * exactly — keep the two in sync.
+     */
+    private static final java.util.Set<String> CORNER_GLASS_FILL_FRAGMENTS = java.util.Set.of(
+            "skylight", "vitrine", "cupola", "hutch");
+
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
@@ -301,6 +315,17 @@ public enum FishTankShape implements TooltipProvider {
      */
     public boolean hasEdgeDiagonalFragments() {
         return !NO_EDGE_DIAGONAL_FRAGMENTS.contains(getSerializedName());
+    }
+
+    /**
+     * Whether this shape's datagen emitted corner glass-fill fragments (4 small per-corner/cap-state
+     * glass models under this shape's model path prefix) for the bake-time compositor to load and
+     * stitch in when {@link FishTankCompositeModelData#getDiagonalGlassFillMask()} calls for one —
+     * restoring the base glass pane's notch as flush glass when the diagonal neighbor cell is
+     * filled (so no corner post renders there). See {@link #CORNER_GLASS_FILL_FRAGMENTS}.
+     */
+    public boolean hasCornerGlassFillFragments() {
+        return CORNER_GLASS_FILL_FRAGMENTS.contains(getSerializedName());
     }
 
     /**

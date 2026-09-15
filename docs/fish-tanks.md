@@ -338,7 +338,39 @@ splice a fragment's quads onto the composite whenever `getDiagonalOverrideMask()
 `TankShapeConnectivitySafetyTest#diagonalCornersHaveNoGapsWhenDiagonalEmpty` sweeps every
 `(shape, permutation, corner)` triple where a corner is orthogonally eligible and asserts the base
 model plus that corner's fragment leaves no gap — confirming each fragment is genuinely
-geometry-equivalent to "this corner's post as if both faces were closed."
+geometry-equivalent to "this corner's post as if both faces were closed." That check treats glass as
+valid coverage too (its only job is "no bare voxel"), so it didn't catch a real visual bug: for the
+four shapes with a ring-shaped cap instead of a solid slab (`skylight`/`vitrine` via
+`TaperedFrameGeometryGenerator#createSkylightCeiling`/`createSkylightFloor`, `cupola`/`hutch` via
+`ShellFrameGeometryGenerator#addChamferedRing`'s full-width run), the ring's own corner square goes
+uncovered at a diagonal-empty bend — both of the corner's strips are gated on their own single face
+and clear at once — while the skylight glass pane isn't gated that way and flushes into it regardless.
+The plain `generateCornerFragment`/`ShellFrameGeometryGenerator`'s clamped-plate fragment never
+patched it either: both are built from `CornerTaperProfile#runs`, which only covers Minecraft Y 1-15
+(image rows 1-14) — Y 15-16/0-1 is the solid ceiling/floor slab's territory for the other 12 shapes, a
+slab these four replace with a ring. `generateSkylightCornerFragment`/`generateVitrineCornerFragment`
+(`TaperedFrameGeometryGenerator`) and `generateCupolaCornerFragment`/`generateHutchCornerFragment`
+(`ShellFrameGeometryGenerator`) add the missing cap-band plug(s) on top of the ordinary fragment,
+matching the ring's own inset width, gated on that cap actually being closed (an open cap means no
+ring was drawn — a real vertical-stacking seam, nothing to plug).
+
+**Follow-up: the plug z-fought the base glass pane.** The plug closes the gap, but for these same
+four shapes the base glass bake's skylight/floorlight pane (`TaperedGlassGeometryGenerator#addSkylightPaneBoxes`/
+`addFloorlightPaneBoxes`) *also* flushes into that same corner whenever both faces are open — it has
+no diagonal awareness, since it's baked once per permutation — so the plug ended up opaque frame
+occupying the exact same volume as translucent glass, visibly z-fighting. Fixed on the glass side,
+mirroring the edge-diagonal beam's own z-fight fix: `addHorizontalPaneBoxes` now notches a `t x t`
+square out of any corner whose two faces are both open (splitting the pane into a grid at each
+eligible corner's inset boundary so several simultaneously-eligible corners each get their own notch),
+and `generateSkylightGlassFillFragment`/`generateVitrineGlassFillFragment`/`generateCupolaGlassFillFragment`/
+`generateHutchGlassFillFragment` restore that notch as flush glass when the diagonal neighbor cell is
+filled instead (no plug renders there, so the pane should read as continuous). Composited via a new
+`FishTankCompositeModelData#getDiagonalGlassFillMask()` — the inverse of `getDiagonalOverrideMask()`,
+exactly mirroring `getEdgeDiagonalGlassFillMask()`'s relationship to `getEdgeDiagonalOverrideMask()` —
+and a new `Strategy.cornerGlassFillFragment()` slot, non-null only for these four shapes (see
+`FishTankShape#hasCornerGlassFillFragments()`). Verified empirically (a throwaway JUnit probe, not
+checked in) that the base pane no longer overlaps the plug, and that the fill fragment exactly
+reconstructs the old flush-corner footprint with no overlap against the notched base pane either.
 
 ### The previewer
 

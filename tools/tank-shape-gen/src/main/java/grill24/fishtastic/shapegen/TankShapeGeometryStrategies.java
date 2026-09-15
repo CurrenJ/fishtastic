@@ -34,22 +34,37 @@ public final class TankShapeGeometryStrategies {
      * counterpart, restoring the flush glass sliver the base glass bake omits at an eligible edge's
      * cap band, for whichever of the two shapes calling it fails to render the frame beam because
      * the edge-diagonal cell is filled — see {@code TaperedGlassGeometryGenerator#generateEdgeGlassFillFragment}.
+     *
+     * <p>{@code cornerGlassFillFragment} is non-null only for the four shapes whose ceiling/floor is
+     * a frame ring around a glass pane instead of a solid slab (skylight, vitrine, cupola, hutch):
+     * their base glass pane now notches out any corner whose two adjacent faces are both open (see
+     * {@code TaperedGlassGeometryGenerator#addHorizontalPaneBoxes}), to avoid overlapping/z-fighting
+     * the diagonal-aware corner plug {@code cornerFragment} composites back in there when the
+     * diagonal neighbor cell is empty. When that cell is filled instead (no plug), this fragment
+     * restores the notch as flush glass — see {@code FishTankCompositeModelData#getDiagonalGlassFillMask}.
      */
     public record Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
                             BiFunction<TankCorner, Integer, JsonObject> cornerFragment, Function<TankEdge, JsonObject> edgeFragment,
-                            BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment) {
+                            BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment,
+                            BiFunction<TankCorner, Integer, JsonObject> cornerGlassFillFragment) {
         public Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand) {
-            this(name, frame, glass, sand, null, null, null);
+            this(name, frame, glass, sand, null, null, null, null);
         }
 
         public Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
                          BiFunction<TankCorner, Integer, JsonObject> cornerFragment) {
-            this(name, frame, glass, sand, cornerFragment, null, null);
+            this(name, frame, glass, sand, cornerFragment, null, null, null);
         }
 
         public Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
                          BiFunction<TankCorner, Integer, JsonObject> cornerFragment, Function<TankEdge, JsonObject> edgeFragment) {
-            this(name, frame, glass, sand, cornerFragment, edgeFragment, null);
+            this(name, frame, glass, sand, cornerFragment, edgeFragment, null, null);
+        }
+
+        public Strategy(String name, IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
+                         BiFunction<TankCorner, Integer, JsonObject> cornerFragment, Function<TankEdge, JsonObject> edgeFragment,
+                         BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment) {
+            this(name, frame, glass, sand, cornerFragment, edgeFragment, edgeGlassFillFragment, null);
         }
     }
 
@@ -120,8 +135,12 @@ public final class TankShapeGeometryStrategies {
                     perm -> TaperedFrameGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generateSkylight(perm, CornerTaperProfile.STANDARD),
                     perm -> SandGeometryGenerator.generate(perm, CornerTaperProfile.STANDARD),
-                    taperedCornerFragment(CornerTaperProfile.STANDARD), taperedEdgeFragment(CornerTaperProfile.STANDARD),
-                    edgeGlassFillFragment(CornerTaperProfile.STANDARD)),
+                    (corner, capState) -> TaperedFrameGeometryGenerator.generateSkylightCornerFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STANDARD),
+                    taperedEdgeFragment(CornerTaperProfile.STANDARD),
+                    edgeGlassFillFragment(CornerTaperProfile.STANDARD),
+                    (corner, capState) -> TaperedGlassGeometryGenerator.generateSkylightGlassFillFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STANDARD)),
             new Strategy("arch",
                     ArchFrameGeometryGenerator::generate,
                     ArchGlassGeometryGenerator::generate,
@@ -155,20 +174,32 @@ public final class TankShapeGeometryStrategies {
                     perm -> TaperedFrameGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
                     perm -> TaperedGlassGeometryGenerator.generateVitrine(perm, CornerTaperProfile.STANDARD),
                     SandGeometryGenerator::generateNone,
-                    taperedCornerFragment(CornerTaperProfile.STANDARD), taperedEdgeFragment(CornerTaperProfile.STANDARD),
-                    edgeGlassFillFragment(CornerTaperProfile.STANDARD)),
+                    (corner, capState) -> TaperedFrameGeometryGenerator.generateVitrineCornerFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STANDARD),
+                    taperedEdgeFragment(CornerTaperProfile.STANDARD),
+                    edgeGlassFillFragment(CornerTaperProfile.STANDARD),
+                    (corner, capState) -> TaperedGlassGeometryGenerator.generateVitrineGlassFillFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STANDARD)),
             new Strategy("cupola",
                     perm -> ShellFrameGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
                     perm -> TaperedGlassGeometryGenerator.generateCupola(perm, CornerTaperProfile.STURDY),
                     perm -> SteppedSandGeometryGenerator.generate(perm, CornerTaperProfile.STURDY),
-                    shellCornerFragment(CornerTaperProfile.STURDY), shellEdgeFragment(CornerTaperProfile.STURDY),
-                    edgeGlassFillFragment(CornerTaperProfile.STURDY)),
+                    (corner, capState) -> ShellFrameGeometryGenerator.generateCupolaCornerFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STURDY),
+                    shellEdgeFragment(CornerTaperProfile.STURDY),
+                    edgeGlassFillFragment(CornerTaperProfile.STURDY),
+                    (corner, capState) -> TaperedGlassGeometryGenerator.generateCupolaGlassFillFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STURDY)),
             new Strategy("hutch",
                     perm -> ShellFrameGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
                     perm -> TaperedGlassGeometryGenerator.generateHutch(perm, CornerTaperProfile.STURDY),
                     SandGeometryGenerator::generateNone,
-                    shellCornerFragment(CornerTaperProfile.STURDY), shellEdgeFragment(CornerTaperProfile.STURDY),
-                    edgeGlassFillFragment(CornerTaperProfile.STURDY))
+                    (corner, capState) -> ShellFrameGeometryGenerator.generateHutchCornerFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STURDY),
+                    shellEdgeFragment(CornerTaperProfile.STURDY),
+                    edgeGlassFillFragment(CornerTaperProfile.STURDY),
+                    (corner, capState) -> TaperedGlassGeometryGenerator.generateHutchGlassFillFragment(
+                            corner, (capState & 2) != 0, (capState & 1) != 0, CornerTaperProfile.STURDY))
     );
 
     private TankShapeGeometryStrategies() {}

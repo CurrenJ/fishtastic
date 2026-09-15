@@ -319,6 +319,61 @@ public final class ShellFrameGeometryGenerator {
     }
 
     /**
+     * Corner-post fragment for {@link #generateCupola}-shaped caps: {@link #generateCornerFragment}
+     * plus one extra plug at the ceiling cap band (Y 15-16). Same root cause as {@code
+     * TaperedFrameGeometryGenerator#generateSkylightCornerFragment}: {@link #addChamferedRing}'s
+     * ring_n/ring_w pieces are each gated on their own single face, so a corner whose both
+     * orthogonal faces are open — this fragment's own diagonal-empty-corner scenario — clears both
+     * at once and leaves the ring's hollow-middle square uncovered there, while the skylight glass
+     * pane flushes into it regardless (unaffected by either face's ring gating). {@code
+     * generateCornerFragment}'s clamped plates never reach that band either: they're built from
+     * {@code profile.runs()}, which only covers image rows 1-14 (Minecraft Y 1-15) — Y 15-16 is the
+     * solid ceiling slab's territory for the plain {@link #generate}, a slab {@link #generateCupola}
+     * replaces with the ring. The plug matches the ring's own inset, {@link
+     * CornerTaperProfile#baseWidth()} (see {@code generateCupola}'s {@code
+     * TaperedFrameGeometryGenerator#createSkylightCeiling} call), and is only added when the
+     * ceiling cap is closed — an open ceiling means no ring was drawn, a real vertical-stacking seam.
+     */
+    public static JsonObject generateCupolaCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCupolaCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCupolaCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        if (ceilingClosed) {
+            int t = profile.baseWidth();
+            model.getAsJsonArray("elements").add(createCapCornerPlug(corner, 15, 16, t));
+        }
+        return model;
+    }
+
+    /**
+     * Corner-post fragment for {@link #generateHutch}-shaped caps: {@link
+     * #generateCupolaCornerFragment}'s ceiling-band plug, plus the mirror-image plug at the floor
+     * cap band (Y 0-1) for {@link #generateHutch}'s floor ring — both caps are rings here.
+     */
+    public static JsonObject generateHutchCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateHutchCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateHutchCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        JsonArray elements = model.getAsJsonArray("elements");
+        int t = profile.baseWidth();
+        if (ceilingClosed) elements.add(createCapCornerPlug(corner, 15, 16, t));
+        if (floorClosed) elements.add(createCapCornerPlug(corner, 0, 1, t));
+        return model;
+    }
+
+    /** A {@code t x t} plug flush at {@code corner}, spanning {@code [y1, y2)} — the same footprint
+     * {@link #addChamferedRing}'s ring pieces would leave hollow at an open-both-faces corner. */
+    private static JsonObject createCapCornerPlug(TankCorner corner, double y1, double y2, int t) {
+        int x1 = corner.xEdge() == 0 ? 0 : 16 - t;
+        int z1 = corner.zEdge() == 0 ? 0 : 16 - t;
+        return createBox("cap_plug_" + corner.name().toLowerCase() + "_" + smartLabel(y1), x1, y1, z1, x1 + t, y2, z1 + t);
+    }
+
+    /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge} — mirrors
      * {@code TaperedFrameGeometryGenerator#generateEdgeFragment}: a single box at
      * {@link CornerTaperProfile#baseWidth()}, spanning the full 0-16 perpendicular width, occupying

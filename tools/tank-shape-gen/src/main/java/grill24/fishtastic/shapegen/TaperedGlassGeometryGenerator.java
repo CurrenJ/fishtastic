@@ -94,7 +94,7 @@ public final class TaperedGlassGeometryGenerator {
         }
 
         if (!openFaces.contains(TankFace.UP)) {
-            elements.add(createSkylightPane(profile, openFaces));
+            addSkylightPaneBoxes(elements, profile, openFaces);
         }
 
         model.add("elements", elements);
@@ -133,10 +133,10 @@ public final class TaperedGlassGeometryGenerator {
         }
 
         if (!openFaces.contains(TankFace.UP)) {
-            elements.add(createSkylightPane(profile, openFaces));
+            addSkylightPaneBoxes(elements, profile, openFaces);
         }
         if (!openFaces.contains(TankFace.DOWN)) {
-            elements.add(createFloorlightPane(profile, openFaces));
+            addFloorlightPaneBoxes(elements, profile, openFaces);
         }
 
         model.add("elements", elements);
@@ -174,7 +174,7 @@ public final class TaperedGlassGeometryGenerator {
         }
 
         if (!openFaces.contains(TankFace.UP)) {
-            elements.add(createSkylightPane(openFaces, profile.baseWidth()));
+            addSkylightPaneBoxes(elements, openFaces, profile.baseWidth());
         }
 
         model.add("elements", elements);
@@ -208,10 +208,10 @@ public final class TaperedGlassGeometryGenerator {
         }
 
         if (!openFaces.contains(TankFace.UP)) {
-            elements.add(createSkylightPane(openFaces, profile.baseWidth()));
+            addSkylightPaneBoxes(elements, openFaces, profile.baseWidth());
         }
         if (!openFaces.contains(TankFace.DOWN)) {
-            elements.add(createFloorlightPane(openFaces, profile.baseWidth()));
+            addFloorlightPaneBoxes(elements, openFaces, profile.baseWidth());
         }
 
         model.add("elements", elements);
@@ -427,64 +427,189 @@ public final class TaperedGlassGeometryGenerator {
      * perpendicular to its thickness are {@code up}/{@code down}, so only those are defined (same UV
      * on both, matching {@link SandGeometryGenerator} and the side panes); the 1px side edges are
      * omitted, so nothing coincident renders against the ring's inner faces or the side panes.
+     *
+     * <p>Delegates to {@link #addHorizontalPaneBoxes}, which carves a {@code t x t} notch out of any
+     * corner whose two adjacent faces are both open — see that method for why.
      */
-    private static JsonObject createSkylightPane(CornerTaperProfile profile, Set<TankFace> openFaces) {
+    private static void addSkylightPaneBoxes(JsonArray elements, CornerTaperProfile profile, Set<TankFace> openFaces) {
         // Correct for a plain-taper profile like STANDARD, where the floor-adjacent row equals the
         // profile's steady-state width. See the (int) overload for the stepped-shape case.
-        return createSkylightPane(openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+        addSkylightPaneBoxes(elements, openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
     }
 
     /**
-     * Window-inset overload of {@link #createSkylightPane(CornerTaperProfile, Set)} — for a stepped
-     * shape like STURDY, whose literal floor-adjacent row is a full-width chamfered-ring row rather
-     * than a usable window size, {@code generateCupola}/{@code generateHutch} pass
-     * {@link CornerTaperProfile#baseWidth()} instead, matching
-     * {@code ShellFrameGeometryGenerator#generateCupola}'s ring.
+     * Window-inset overload of {@link #addSkylightPaneBoxes(JsonArray, CornerTaperProfile, Set)} —
+     * for a stepped shape like STURDY, whose literal floor-adjacent row is a full-width
+     * chamfered-ring row rather than a usable window size, {@code generateCupola}/{@code
+     * generateHutch} pass {@link CornerTaperProfile#baseWidth()} instead, matching {@code
+     * ShellFrameGeometryGenerator#generateCupola}'s ring.
      */
-    private static JsonObject createSkylightPane(Set<TankFace> openFaces, int t) {
-        int xLo = openFaces.contains(TankFace.WEST) ? 0 : t;
-        int xHi = openFaces.contains(TankFace.EAST) ? 16 : 16 - t;
-        int zLo = openFaces.contains(TankFace.NORTH) ? 0 : t;
-        int zHi = openFaces.contains(TankFace.SOUTH) ? 16 : 16 - t;
-
-        JsonObject element = new JsonObject();
-        element.addProperty("name", "skylight");
-        element.add("from", vec3(xLo, 15, zLo));
-        element.add("to", vec3(xHi, 16, zHi));
-
-        JsonObject faces = new JsonObject();
-        faces.add("up", face(xLo, zLo, xHi, zHi, "#all"));
-        faces.add("down", face(xLo, zLo, xHi, zHi, "#all"));
-        element.add("faces", faces);
-        return element;
+    private static void addSkylightPaneBoxes(JsonArray elements, Set<TankFace> openFaces, int t) {
+        addHorizontalPaneBoxes(elements, openFaces, t, 15, 16, "skylight");
     }
 
     /**
-     * The vitrine floorlight pane: {@link #createSkylightPane}'s mirror image at the bottom cap
+     * The vitrine floorlight pane: {@link #addSkylightPaneBoxes}'s mirror image at the bottom cap
      * (Y 0..1), same footprint math and same up/down-only faces (this pane's thickness axis is Y,
      * so only the faces perpendicular to it are ever defined — see the class-level translucency
      * invariant).
      */
-    private static JsonObject createFloorlightPane(CornerTaperProfile profile, Set<TankFace> openFaces) {
-        return createFloorlightPane(openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+    private static void addFloorlightPaneBoxes(JsonArray elements, CornerTaperProfile profile, Set<TankFace> openFaces) {
+        addFloorlightPaneBoxes(elements, openFaces, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
     }
 
-    /** Window-inset overload — see {@link #createSkylightPane(Set, int)}'s note. */
-    private static JsonObject createFloorlightPane(Set<TankFace> openFaces, int t) {
+    /** Window-inset overload — see {@link #addSkylightPaneBoxes(JsonArray, Set, int)}'s note. */
+    private static void addFloorlightPaneBoxes(JsonArray elements, Set<TankFace> openFaces, int t) {
+        addHorizontalPaneBoxes(elements, openFaces, t, 0, 1, "floorlight");
+    }
+
+    /**
+     * Builds a skylight/floorlight pane's boxes, carving a {@code t x t} notch out of each corner
+     * whose two adjacent faces are both open ({@link TankCorner#isOrthogonallyEligible}) — those are
+     * exactly the corners whose frame ring strips both clear at once, needing the diagonal-aware
+     * corner plug composited back in (see {@code TaperedFrameGeometryGenerator#generateSkylightCornerFragment}
+     * et al.), which would otherwise occupy the same volume as this pane's flush corner and z-fight
+     * against it. A non-eligible corner (at least one wall closed) keeps its flush behavior
+     * unchanged — that closed wall's own ring strip already covers it, nothing to plug.
+     *
+     * <p>Decomposes the pane into a grid split at each eligible corner's inset boundary, so multiple
+     * simultaneously-eligible corners (e.g. all four faces open at once) each get their own notch
+     * without disturbing the others — then skips exactly the grid cells that fall inside a notch.
+     * The corresponding notch-sized patch is restored by {@link #generateSkylightGlassFillFragment}/
+     * {@link #generateVitrineGlassFillFragment}/{@link #generateCupolaGlassFillFragment}/
+     * {@link #generateHutchGlassFillFragment} when the diagonal neighbor cell is filled instead (no
+     * plug — the pane should read as continuous there, matching
+     * {@code FishTankCompositeModelData#getDiagonalGlassFillMask}).
+     */
+    private static void addHorizontalPaneBoxes(JsonArray elements, Set<TankFace> openFaces, int t,
+                                                double y1, double y2, String name) {
         int xLo = openFaces.contains(TankFace.WEST) ? 0 : t;
         int xHi = openFaces.contains(TankFace.EAST) ? 16 : 16 - t;
         int zLo = openFaces.contains(TankFace.NORTH) ? 0 : t;
         int zHi = openFaces.contains(TankFace.SOUTH) ? 16 : 16 - t;
+        if (xLo >= xHi || zLo >= zHi) return;
 
+        boolean nw = TankCorner.NW.isOrthogonallyEligible(openFaces);
+        boolean ne = TankCorner.NE.isOrthogonallyEligible(openFaces);
+        boolean sw = TankCorner.SW.isOrthogonallyEligible(openFaces);
+        boolean se = TankCorner.SE.isOrthogonallyEligible(openFaces);
+
+        java.util.TreeSet<Integer> xBreaks = new java.util.TreeSet<>(java.util.Set.of(xLo, xHi));
+        if ((nw || sw) && xLo + t < xHi) xBreaks.add(xLo + t);
+        if ((ne || se) && xHi - t > xLo) xBreaks.add(xHi - t);
+        java.util.TreeSet<Integer> zBreaks = new java.util.TreeSet<>(java.util.Set.of(zLo, zHi));
+        if ((nw || ne) && zLo + t < zHi) zBreaks.add(zLo + t);
+        if ((sw || se) && zHi - t > zLo) zBreaks.add(zHi - t);
+
+        List<Integer> xs = new ArrayList<>(xBreaks);
+        List<Integer> zs = new ArrayList<>(zBreaks);
+        for (int xi = 0; xi < xs.size() - 1; xi++) {
+            int bx1 = xs.get(xi), bx2 = xs.get(xi + 1);
+            for (int zi = 0; zi < zs.size() - 1; zi++) {
+                int bz1 = zs.get(zi), bz2 = zs.get(zi + 1);
+                if (nw && bx1 == xLo && bx2 == xLo + t && bz1 == zLo && bz2 == zLo + t) continue;
+                if (ne && bx2 == xHi && bx1 == xHi - t && bz1 == zLo && bz2 == zLo + t) continue;
+                if (sw && bx1 == xLo && bx2 == xLo + t && bz2 == zHi && bz1 == zHi - t) continue;
+                if (se && bx2 == xHi && bx1 == xHi - t && bz2 == zHi && bz1 == zHi - t) continue;
+                elements.add(createHorizontalPaneBox(name, bx1, y1, bz1, bx2, y2, bz2));
+            }
+        }
+    }
+
+    private static JsonObject createHorizontalPaneBox(String name, double x1, double y1, double z1, double x2, double y2, double z2) {
         JsonObject element = new JsonObject();
-        element.addProperty("name", "floorlight");
-        element.add("from", vec3(xLo, 0, zLo));
-        element.add("to", vec3(xHi, 1, zHi));
+        element.addProperty("name", name);
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
 
         JsonObject faces = new JsonObject();
-        faces.add("up", face(xLo, zLo, xHi, zHi, "#all"));
-        faces.add("down", face(xLo, zLo, xHi, zHi, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, z1, x2, z2, "#all"));
         element.add("faces", faces);
         return element;
+    }
+
+    /**
+     * The glass-side counterpart of {@code TaperedFrameGeometryGenerator#generateSkylightCornerFragment}
+     * et al.: a small {@code t x t} pane patch restoring {@link #addHorizontalPaneBoxes}'s notch at
+     * {@code corner} when the diagonal neighbor cell there is filled instead of empty — in that case
+     * no frame plug renders (the neighbor reads as a continuous connection, not a sealed corner), so
+     * the pane should flush all the way into the corner exactly like the un-notched single-box pane
+     * used to, restoring the old behavior for that one case. Composited by the same {@code
+     * FishTankCompositeModelData#getDiagonalGlassFillMask} mechanism {@code
+     * TaperedGlassGeometryGenerator#generateEdgeGlassFillFragment} uses for edges.
+     */
+    private static void addCornerGlassFillPatch(JsonArray elements, TankCorner corner, boolean top, int t) {
+        double y1 = top ? 15 : 0;
+        double y2 = top ? 16 : 1;
+        double x1 = corner.xEdge() == 0 ? 0 : 16 - t;
+        double z1 = corner.zEdge() == 0 ? 0 : 16 - t;
+        String name = top ? "skylight_fill_" + corner.name().toLowerCase() : "floorlight_fill_" + corner.name().toLowerCase();
+        elements.add(createHorizontalPaneBox(name, x1, y1, z1, x1 + t, y2, z1 + t));
+    }
+
+    /** Glass-fill counterpart of {@code TaperedFrameGeometryGenerator#generateSkylightCornerFragment} —
+     * restores the ceiling-band notch only, matching that fragment's ceiling-only plug. */
+    public static JsonObject generateSkylightGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateSkylightGlassFillFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateSkylightGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        if (ceilingClosed) {
+            addCornerGlassFillPatch(elements, corner, true, profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1]);
+        }
+        model.add("elements", elements);
+        return model;
+    }
+
+    /** Glass-fill counterpart of {@code TaperedFrameGeometryGenerator#generateVitrineCornerFragment} —
+     * restores both the ceiling- and floor-band notches. */
+    public static JsonObject generateVitrineGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateVitrineGlassFillFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateVitrineGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1];
+        if (ceilingClosed) addCornerGlassFillPatch(elements, corner, true, t);
+        if (floorClosed) addCornerGlassFillPatch(elements, corner, false, t);
+        model.add("elements", elements);
+        return model;
+    }
+
+    /** Glass-fill counterpart of {@code ShellFrameGeometryGenerator#generateCupolaCornerFragment} —
+     * restores the ceiling-band notch only, at {@link CornerTaperProfile#baseWidth()} to match that
+     * ring's own inset. */
+    public static JsonObject generateCupolaGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCupolaGlassFillFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCupolaGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        if (ceilingClosed) {
+            addCornerGlassFillPatch(elements, corner, true, profile.baseWidth());
+        }
+        model.add("elements", elements);
+        return model;
+    }
+
+    /** Glass-fill counterpart of {@code ShellFrameGeometryGenerator#generateHutchCornerFragment} —
+     * restores both ceiling- and floor-band notches, at {@link CornerTaperProfile#baseWidth()}. */
+    public static JsonObject generateHutchGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateHutchGlassFillFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateHutchGlassFillFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        int t = profile.baseWidth();
+        if (ceilingClosed) addCornerGlassFillPatch(elements, corner, true, t);
+        if (floorClosed) addCornerGlassFillPatch(elements, corner, false, t);
+        model.add("elements", elements);
+        return model;
     }
 }

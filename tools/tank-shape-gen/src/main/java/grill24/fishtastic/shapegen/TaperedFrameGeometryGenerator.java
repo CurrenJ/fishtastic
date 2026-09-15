@@ -175,6 +175,54 @@ public final class TaperedFrameGeometryGenerator {
     }
 
     /**
+     * Corner-post fragment for {@link #generateSkylight}-shaped caps: identical to
+     * {@link #generateCornerFragment} plus one extra plug at the ceiling cap band (Y 15-16).
+     * {@link #createSkylightCeiling}'s ring strips are gated per side (north/south/west/east), so
+     * at a corner whose both orthogonal faces are open — exactly the diagonal-empty-corner scenario
+     * this fragment is composited back in for — neither strip reaches that corner cell, leaving the
+     * ring's own corner square uncovered there (the skylight glass pane, unlike the ring, isn't
+     * gated that way and flushes all the way into it instead — see
+     * {@code TaperedGlassGeometryGenerator#createSkylightPane}). {@link #generateCornerFragment}'s
+     * taper post never reaches this band either: {@link CornerTaperProfile#runs} only covers image
+     * rows 1-14 (Minecraft Y 1-15), leaving Y 15-16 to the solid ceiling slab for ordinary shapes —
+     * a slab {@link #generateSkylight} doesn't have. The plug matches the ring strip's own width,
+     * {@code profile.rowWidths()[ROW_COUNT - 1]} (see {@link #createSkylightCeiling}), and is only
+     * added when the ceiling cap is actually closed (matching the ring's own guard) — an open
+     * ceiling means no ring was drawn at all, a real vertical-stacking seam with nothing to plug.
+     */
+    public static JsonObject generateSkylightCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateSkylightCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateSkylightCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        if (ceilingClosed) {
+            int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1];
+            model.getAsJsonArray("elements").add(createSupportBox(corner.xEdge(), corner.zEdge(), 15, 16, t));
+        }
+        return model;
+    }
+
+    /**
+     * Corner-post fragment for {@link #generateVitrine}-shaped caps: {@link
+     * #generateSkylightCornerFragment}'s ceiling-band plug, plus the mirror-image plug at the floor
+     * cap band (Y 0-1) for {@link #createSkylightFloor}'s ring — both caps are rings here, so both
+     * can leave this corner's cell uncovered at once.
+     */
+    public static JsonObject generateVitrineCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateVitrineCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateVitrineCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        JsonArray elements = model.getAsJsonArray("elements");
+        int t = profile.rowWidths()[CornerTaperProfile.ROW_COUNT - 1];
+        if (ceilingClosed) elements.add(createSupportBox(corner.xEdge(), corner.zEdge(), 15, 16, t));
+        if (floorClosed) elements.add(createSupportBox(corner.xEdge(), corner.zEdge(), 0, 1, t));
+        return model;
+    }
+
+    /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge}, independent of open-face
      * state — used to composite a beam back onto the base bake at render time when both of
      * {@code edge}'s horizontal and vertical faces are open but its edge-diagonal neighbor cell is

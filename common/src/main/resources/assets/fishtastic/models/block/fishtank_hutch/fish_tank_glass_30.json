@@ -72,7 +72,106 @@
           "texture": "#all",
           "uv": [
             0,
+            2,
+            2,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#all",
+          "uv": [
             0,
+            2,
+            2,
+            14
+          ]
+        }
+      },
+      "from": [
+        0,
+        0,
+        2
+      ],
+      "name": "floorlight",
+      "to": [
+        2,
+        1,
+        14
+      ]
+    },
+    {
+      "faces": {
+        "down": {
+          "texture": "#all",
+          "uv": [
+            2,
+            0,
+            14,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#all",
+          "uv": [
+            2,
+            0,
+            14,
+            2
+          ]
+        }
+      },
+      "from": [
+        2,
+        0,
+        0
+      ],
+      "name": "floorlight",
+      "to": [
+        14,
+        1,
+        2
+      ]
+    },
+    {
+      "faces": {
+        "down": {
+          "texture": "#all",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#all",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        }
+      },
+      "from": [
+        2,
+        0,
+        2
+      ],
+      "name": "floorlight",
+      "to": [
+        14,
+        1,
+        14
+      ]
+    },
+    {
+      "faces": {
+        "down": {
+          "texture": "#all",
+          "uv": [
+            2,
+            14,
             14,
             16
           ]
@@ -80,17 +179,17 @@
         "up": {
           "texture": "#all",
           "uv": [
-            0,
-            0,
+            2,
+            14,
             14,
             16
           ]
         }
       },
       "from": [
+        2,
         0,
-        0,
-        0
+        14
       ],
       "name": "floorlight",
       "to": [

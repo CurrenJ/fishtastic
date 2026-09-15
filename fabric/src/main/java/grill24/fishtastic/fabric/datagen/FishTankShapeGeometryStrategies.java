@@ -26,13 +26,14 @@ final class FishTankShapeGeometryStrategies {
 
     record Strategy(IntFunction<JsonObject> frame, IntFunction<JsonObject> glass, IntFunction<JsonObject> sand,
                      BiFunction<TankCorner, Integer, JsonObject> cornerFragment, Function<TankEdge, JsonObject> edgeFragment,
-                     BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment) {}
+                     BiFunction<TankEdge, TankCorner, JsonObject> edgeGlassFillFragment,
+                     BiFunction<TankCorner, Integer, JsonObject> cornerGlassFillFragment) {}
 
     private FishTankShapeGeometryStrategies() {}
 
     static Strategy forShape(FishTankShape shape) {
         TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.byName(shape.getSerializedName());
         return new Strategy(strategy.frame(), strategy.glass(), strategy.sand(), strategy.cornerFragment(), strategy.edgeFragment(),
-                strategy.edgeGlassFillFragment());
+                strategy.edgeGlassFillFragment(), strategy.cornerGlassFillFragment());
     }
 }

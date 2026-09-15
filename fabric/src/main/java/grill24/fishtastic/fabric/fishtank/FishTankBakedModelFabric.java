@@ -52,6 +52,10 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
     // Diagonal-aware corner post fragments, [diagonal.ordinal() * 4 + capState]; absent for shapes
     // whose frame generator has no combined-face corner gate (see FishTankShape#hasDiagonalCornerFragments).
     private final Map<FishTankShape, ResolvedModel[]> cornerFragmentModels;
+    // Corner glass-fill fragments (the corner plug's z-fight followup fix), indexed by
+    // [diagonal.ordinal() * 4 + capState]; only present for the four shapes whose ceiling/floor is
+    // a glass-paned ring (see FishTankShape#hasCornerGlassFillFragments).
+    private final Map<FishTankShape, ResolvedModel[]> cornerGlassFillModels;
     // Edge-diagonal frame beam fragments, indexed by [edge.ordinal()]; absent for shapes with no
     // taper/plate abstraction to borrow edge geometry from (see FishTankShape#hasEdgeDiagonalFragments).
     private final Map<FishTankShape, ResolvedModel[]> edgeFragmentModels;
@@ -76,6 +80,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                                     Map<FishTankShape, ResolvedModel[]> sandModels,
                                     Map<FishTankShape, ResolvedModel[]> glassModels,
                                     Map<FishTankShape, ResolvedModel[]> cornerFragmentModels,
+                                    Map<FishTankShape, ResolvedModel[]> cornerGlassFillModels,
                                     Map<FishTankShape, ResolvedModel[]> edgeFragmentModels,
                                     Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels) {
         this.baker = baker;
@@ -83,6 +88,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         this.sandModels = sandModels;
         this.glassModels = glassModels;
         this.cornerFragmentModels = cornerFragmentModels;
+        this.cornerGlassFillModels = cornerGlassFillModels;
         this.edgeFragmentModels = edgeFragmentModels;
         this.edgeGlassFillModels = edgeGlassFillModels;
 
@@ -272,6 +278,27 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                     if (fragmentQuads != null) {
                         compositeBuilder.addAll(fragmentQuads);
                         flags |= fragmentQuads.materialFlags();
+                    }
+                }
+            }
+
+            // Corner glass fill: restore the small notch the base glass bake carves out of an
+            // eligible corner's pane, when that corner's post does NOT render (its diagonal cell is
+            // filled instead — see FishTankCompositeModelData#getDiagonalGlassFillMask, the inverse
+            // of the post's own override mask). Only present for the four shapes whose ceiling/floor
+            // is a glass-paned ring.
+            ResolvedModel[] cornerGlassFillForShape = cornerGlassFillModels.get(data.shape());
+            Set<TankDiagonal> diagonalGlassFills = data.getDiagonalGlassFillMask();
+            if (cornerGlassFillForShape != null && !diagonalGlassFills.isEmpty()) {
+                boolean ceilingClosed = !data.openFaces().contains(Direction.UP);
+                boolean floorClosed = !data.openFaces().contains(Direction.DOWN);
+                int capState = (ceilingClosed ? 2 : 0) | (floorClosed ? 1 : 0);
+                for (TankDiagonal diagonal : diagonalGlassFills) {
+                    ResolvedModel fillModel = cornerGlassFillForShape[diagonal.ordinal() * 4 + capState];
+                    QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
+                    if (fillQuads != null) {
+                        compositeBuilder.addAll(fillQuads);
+                        flags |= fillQuads.materialFlags();
                     }
                 }
             }

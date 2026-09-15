@@ -55,6 +55,13 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
                     }
                 }
             }
+            if (shape.hasCornerGlassFillFragments()) {
+                for (TankDiagonal diagonal : TankDiagonal.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        resolver.markDependency(cornerGlassFillLocation(shape, diagonal, capState));
+                    }
+                }
+            }
             if (shape.hasEdgeDiagonalFragments()) {
                 for (TankEdgeDiagonal edge : TankEdgeDiagonal.values()) {
                     resolver.markDependency(edgeFragmentLocation(shape, edge));
@@ -73,6 +80,7 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
         Map<FishTankShape, ResolvedModel[]> sandModels  = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> glassModels = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> cornerFragmentModels = new EnumMap<>(FishTankShape.class);
+        Map<FishTankShape, ResolvedModel[]> cornerGlassFillModels = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> edgeFragmentModels = new EnumMap<>(FishTankShape.class);
         Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels = new EnumMap<>(FishTankShape.class);
 
@@ -99,6 +107,16 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
                 cornerFragmentModels.put(shape, fragments);
             }
 
+            if (shape.hasCornerGlassFillFragments()) {
+                ResolvedModel[] glassFillFragments = new ResolvedModel[TankDiagonal.values().length * 4];
+                for (TankDiagonal diagonal : TankDiagonal.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        glassFillFragments[diagonal.ordinal() * 4 + capState] = baker.getModel(cornerGlassFillLocation(shape, diagonal, capState));
+                    }
+                }
+                cornerGlassFillModels.put(shape, glassFillFragments);
+            }
+
             if (shape.hasEdgeDiagonalFragments()) {
                 ResolvedModel[] edgeFragments = new ResolvedModel[TankEdgeDiagonal.values().length];
                 ResolvedModel[] glassFillFragments = new ResolvedModel[TankEdgeDiagonal.values().length * TankDiagonal.values().length];
@@ -117,7 +135,7 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
         Fishtastic.LOGGER.info("Fish Tank block state model baked — {} sub-models resolved across {} shape(s).",
                 PERMUTATION_COUNT * 3 * FishTankShape.values().length, FishTankShape.values().length);
 
-        return new FishTankBakedModel(baker, frameModels, sandModels, glassModels, cornerFragmentModels, edgeFragmentModels, edgeGlassFillModels);
+        return new FishTankBakedModel(baker, frameModels, sandModels, glassModels, cornerFragmentModels, cornerGlassFillModels, edgeFragmentModels, edgeGlassFillModels);
     }
 
     private static Identifier modelLocation(FishTankShape shape, String part, int permutation) {
@@ -126,6 +144,10 @@ public class FishTankBlockStateModel implements CustomUnbakedBlockStateModel {
 
     private static Identifier cornerFragmentLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_frame_corner_" + cornerSuffix(diagonal) + "_" + capState);
+    }
+
+    private static Identifier cornerGlassFillLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
+        return ft("block/" + shape.modelPathPrefix() + "/fish_tank_glass_fill_corner_" + cornerSuffix(diagonal) + "_" + capState);
     }
 
     private static Identifier edgeFragmentLocation(FishTankShape shape, TankEdgeDiagonal edge) {

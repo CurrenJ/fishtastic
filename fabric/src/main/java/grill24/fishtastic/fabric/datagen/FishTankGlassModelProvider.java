@@ -67,6 +67,23 @@ public class FishTankGlassModelProvider implements DataProvider {
                     }
                 }
             }
+
+            // Corner glass-fill fragments (diagonal-corner-post z-fight followup): small
+            // glass-textured fragments composited back in when an eligible corner's post does NOT
+            // render (its diagonal cell is filled) — restoring the notch addHorizontalPaneBoxes
+            // always carves out of the base glass bake above at that cap band. Only the four shapes
+            // with a glass-paned ceiling/floor ring need these (see
+            // FishTankShape#hasCornerGlassFillFragments).
+            if (strategy.cornerGlassFillFragment() != null) {
+                for (TankCorner corner : TankCorner.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        JsonObject fragment = strategy.cornerGlassFillFragment().apply(corner, capState);
+                        Path path = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix()
+                                + "/fish_tank_glass_fill_corner_" + corner.name().toLowerCase() + "_" + capState));
+                        futures.add(DataProvider.saveStable(cache, fragment, path));
+                    }
+                }
+            }
         }
 
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
