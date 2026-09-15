@@ -91,6 +91,67 @@ public final class MullionFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
+     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * mullion writeup. Unlike every corner-post-based shape, mullion's frame is not gated on a
+     * combined-face corner at all (anchor bars are unconditional, the far wall gates on a single
+     * perpendicular face independently) — the "gap in the middle of an open wall" problem this fix
+     * addresses is universal here, independent of the anchor/wall asymmetry, so a plain 1px seal
+     * (the same shape {@code TaperedFrameGeometryGenerator}'s STANDARD profile would produce, not
+     * mullion's own bar pattern) is used uniformly for all 8 edges, ignoring the specific bar
+     * positions — matching every other shape's "beam is allowed to overlap the shape's own frame,
+     * since it's opaque-on-opaque" convention.
+     *
+     * <p>Only {@code edge.horizontal() == EAST} or {@code SOUTH} ever needs a matching glass-fill
+     * fragment (see {@link MullionGlassGeometryGenerator#generateEdgeGlassFillFragment}) — the
+     * anchor side (NORTH/WEST) never flushes glass into the corner the beam reaches, since the
+     * anchor's own frame box unconditionally occupies that cell regardless of the perpendicular
+     * face's state.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        elements.add(createEdgeBeamBox(edge, 1));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
+    /** Mirrors {@code TaperedFrameGeometryGenerator#createEdgeBeamBox} exactly — see its note. */
+    private static JsonObject createEdgeBeamBox(TankEdge edge, int width) {
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        double x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "edge_" + edge.name().toLowerCase());
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
+
+        JsonObject faces = new JsonObject();
+        faces.add("north", face(16 - x2, 16 - y2, 16 - x1, 16 - y1, "#all"));
+        faces.add("south", face(x1, 16 - y2, x2, 16 - y1, "#all"));
+        faces.add("west", face(z1, 16 - y2, z2, 16 - y1, "#all"));
+        faces.add("east", face(16 - z2, 16 - y2, 16 - z1, 16 - y1, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
     private static JsonObject createCap(String name, int y1, int y2, Set<TankFace> openFaces, boolean ceiling) {
         JsonObject element = new JsonObject();
         element.addProperty("name", name);

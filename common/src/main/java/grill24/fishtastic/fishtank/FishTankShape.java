@@ -211,17 +211,30 @@ public enum FishTankShape implements TooltipProvider {
      * frame beam fix). Ornate/Shaggy/Creeper turned out to already use a plain 1px corner post
      * identical in formula to {@code CornerTaperProfile.STANDARD} (proven by inspection: same
      * {@code floorClosed?1:0}/{@code ceilingClosed?15:16} extent), so they were promoted out of this
-     * set and reuse the shared tapered generator directly. Tooth/film/mullion/lattice/arch remain
-     * excluded — each has a real structural difference (asymmetric per-row corner widths for
-     * tooth/film, an anchor/wall asymmetry for mullion, a fixed-width-regardless-of-cap-state corner
-     * for lattice, a capped-height jamb for arch) that breaks the shared profile-based abstraction
-     * and needs bespoke geometry, not just a wider exclusion list. Bramble has no uniform corner
-     * post at all. See docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup.
-     * Mirrors {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
+     * set and reuse the shared tapered generator directly. Tooth/film got bespoke support too: their
+     * near-cap "teeth" bands carry asymmetric per-row low/high pixels {@code CornerTaperProfile.Run}
+     * can't represent, so {@code CombFrameGeometryGenerator#generateEdgeFragment} reconstructs the
+     * actual band list directly instead of borrowing a uniform-width profile (see
+     * {@code CombGlassGeometryGenerator#addWaistGlassPanes} for the matching glass-side cap-band
+     * split). Lattice got bespoke support too: its cap-adjacent rows never narrow when their cap
+     * opens (unlike every tapered/shell profile's cap-adjacent row), so {@code
+     * LatticeFrameGeometryGenerator#generateEdgeFragment} uses that same constant width directly
+     * instead of borrowing {@code CornerTaperProfile#baseWidth()} — and needs no matching glass-fill
+     * fragment, since lattice's own glass already excludes the corner columns unconditionally.
+     * Mullion got bespoke support too: its beam is a plain 1px seal used uniformly on all 8 edges
+     * (mullion has no combined-face corner gate to begin with, so the usual "gap when a diagonal
+     * neighbor is missing" problem is universal there, not cap-band-specific), but only the
+     * EAST/SOUTH-horizontal edges ever collide with real glass — the wall-gated corner, not the
+     * always-present anchor corner — so {@code MullionGlassGeometryGenerator#generateEdgeGlassFillFragment}
+     * is a no-op for the other four edges. Arch remains excluded — its capped-height jamb breaks the
+     * shared profile-based abstraction and needs bespoke geometry, not just a wider exclusion list.
+     * Bramble has no uniform corner post at all. See
+     * docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup. Mirrors
+     * {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
      * {@code tools/tank-shape-gen} exactly — keep the two in sync.
      */
     private static final java.util.Set<String> NO_EDGE_DIAGONAL_FRAGMENTS = java.util.Set.of(
-            "bramble", "tooth", "film", "arch", "mullion", "lattice");
+            "bramble", "arch");
 
     private final Identifier id;
     private final Identifier connectionCollection;

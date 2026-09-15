@@ -225,32 +225,23 @@ class TankShapeConnectivitySafetyTest {
     }
 
     /**
-     * Whether {@code (x,z)} falls inside an eligible edge's cap-band "reach square" at
-     * {@code [yLo, yHi)} — i.e. whether coverage there depends on the edge-diagonal mask (frame
-     * beam or glass-fill fragment) rather than the base bake alone. The reach isn't always a single
-     * pixel — a {@code width > 1} shape (e.g. STURDY-family, width 2) has its beam's own perpendicular
-     * thickness carve out a {@code width × width} square at the corner, not just the corner pixel —
-     * so this derives {@code width} straight from the real edge fragment's own baked box rather than
-     * assuming 1, and checks the Y-band against that same box's Y-extent, so it can't drift from the
-     * actual geometry.
+     * Whether {@code (x,z)} falls inside an eligible edge's cap-band reach at {@code [yLo, yHi)} —
+     * i.e. whether coverage there depends on the edge-diagonal mask (frame beam or glass-fill
+     * fragment) rather than the base bake alone. Checked by direct coverage from the real edge
+     * fragment's own baked boxes (rather than inferring a single {@code width × width} square from
+     * one representative box) so it can't drift from the actual geometry — needed once a shape's
+     * edge fragment can be more than one uniform box (e.g. the comb family's per-row asymmetric
+     * teeth reconstruction; see {@code CombFrameGeometryGenerator#generateEdgeFragment}), not just a
+     * shape like STURDY's constant {@code width × width} corner.
      */
     private static boolean isEdgeCapBandExemption(int x, int z, double yLo, double yHi,
                                                    TankShapeGeometryStrategies.Strategy shape, Set<TankFace> openFaces) {
         if (shape.edgeFragment() == null) return false;
         for (TankEdge edge : TankEdge.values()) {
             if (!edge.isEligible(openFaces)) continue;
-            List<Box> boxes = boxes(shape.edgeFragment().apply(edge));
-            if (boxes.isEmpty()) continue;
-            Box beam = boxes.get(0);
-            if (!(yLo >= beam.y1() - 1e-9 && yHi <= beam.y2() + 1e-9)) continue;
-            double width = (edge.horizontal() == TankFace.NORTH || edge.horizontal() == TankFace.SOUTH)
-                    ? beam.z2() - beam.z1()
-                    : beam.x2() - beam.x1();
-            for (TankCorner corner : edge.endCorners()) {
-                boolean xInReach = corner.xEdge() == 0 ? (x < width) : (x >= 16 - width);
-                boolean zInReach = corner.zEdge() == 0 ? (z < width) : (z >= 16 - width);
-                if (xInReach && zInReach) return true;
-            }
+            boolean[][] covered = new boolean[16][16];
+            cover(covered, shape.edgeFragment().apply(edge), yLo, yHi);
+            if (covered[x][z]) return true;
         }
         return false;
     }
