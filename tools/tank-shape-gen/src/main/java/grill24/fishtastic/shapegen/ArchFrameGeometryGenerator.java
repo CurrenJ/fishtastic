@@ -100,6 +100,60 @@ public final class ArchFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
+     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s arch
+     * writeup. Arch's jamb is a plain rectangular post whose width varies only by height band (1px
+     * near the ceiling, 2px near the floor — {@link ArchTankSpans#NEAR_CEILING_JAMB_WIDTH}/{@link
+     * ArchTankSpans#NEAR_FLOOR_JAMB_WIDTH}), so — unlike the comb family's asymmetric teeth — a
+     * single uniform box borrowed at the width of the row nearest the vacated cap is enough, mirroring
+     * {@code TaperedFrameGeometryGenerator#createEdgeBeamBox} exactly (full 0-16 perpendicular reach,
+     * no trimming against the arc or jamb).
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        int width = edge.vertical() == TankFace.DOWN ? ArchTankSpans.NEAR_FLOOR_JAMB_WIDTH : ArchTankSpans.NEAR_CEILING_JAMB_WIDTH;
+        elements.add(createEdgeBeamBox(edge, width));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
+    /** Mirrors {@code TaperedFrameGeometryGenerator#createEdgeBeamBox} exactly — see its note. */
+    private static JsonObject createEdgeBeamBox(TankEdge edge, int width) {
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        double x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "edge_" + edge.name().toLowerCase());
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
+
+        JsonObject faces = new JsonObject();
+        faces.add("north", face(16 - x2, 16 - y2, 16 - x1, 16 - y1, "#all"));
+        faces.add("south", face(x1, 16 - y2, x2, 16 - y1, "#all"));
+        faces.add("west", face(z1, 16 - y2, z2, 16 - y1, "#all"));
+        faces.add("east", face(16 - z2, 16 - y2, 16 - z1, 16 - y1, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
     private static JsonObject createCap(String name, int y1, int y2, Set<TankFace> openFaces, boolean ceiling) {
         JsonObject element = new JsonObject();
         element.addProperty("name", name);

@@ -226,15 +226,21 @@ public enum FishTankShape implements TooltipProvider {
      * neighbor is missing" problem is universal there, not cap-band-specific), but only the
      * EAST/SOUTH-horizontal edges ever collide with real glass — the wall-gated corner, not the
      * always-present anchor corner — so {@code MullionGlassGeometryGenerator#generateEdgeGlassFillFragment}
-     * is a no-op for the other four edges. Arch remains excluded — its capped-height jamb breaks the
-     * shared profile-based abstraction and needs bespoke geometry, not just a wider exclusion list.
-     * Bramble has no uniform corner post at all. See
-     * docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup. Mirrors
-     * {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
+     * is a no-op for the other four edges. Arch got bespoke support too: its jamb is a plain
+     * rectangular post whose width only varies by height band (1px near the ceiling, 2px near the
+     * floor), so {@code ArchFrameGeometryGenerator#generateEdgeFragment} borrows the near-cap row's
+     * own width directly instead of a {@code CornerTaperProfile} — and because every one of arch's 8
+     * edges is an ordinary gated corner post (no always-present anchor side, unlike mullion),
+     * {@code ArchGlassGeometryGenerator} needed its own cap-band-forced {@code glassBands} (see
+     * {@code ArchTankSpans#glassBands}) to keep the base glass bake from extending into the beam's
+     * territory, plus a matching {@code generateEdgeGlassFillFragment} for both of an edge's end
+     * corners, not just one. Bramble has no uniform corner post at all, and stays permanently
+     * excluded. See docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup.
+     * Mirrors {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
      * {@code tools/tank-shape-gen} exactly — keep the two in sync.
      */
     private static final java.util.Set<String> NO_EDGE_DIAGONAL_FRAGMENTS = java.util.Set.of(
-            "bramble", "arch");
+            "bramble");
 
     /**
      * Shapes whose datagen emits corner glass-fill fragments — the glass-side counterpart of
