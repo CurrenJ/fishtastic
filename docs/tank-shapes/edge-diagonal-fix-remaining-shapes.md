@@ -43,11 +43,20 @@ sliver, over the widened Y-range, when the diagonal neighbor is filled instead.
 
 `LatticeFrameGeometryGenerator#generateEdgeFragment` uses a constant-width-2 box (`CAP_EDGE_WIDTH`,
 matching the cap rows' own fixed width — `addEdge`'s `w = wide ? 2 : 1` never narrows with
-`upOpen`/`downOpen`) instead of borrowing `CornerTaperProfile#baseWidth()`. No matching glass-fill
-fragment is needed: `LatticeGlassGeometryGenerator`'s cap-row bands already exclude the
-`[0,width)`/`[16-width,16)` corner columns from glass *unconditionally*, mirroring how
-`LatticeFrameGeometryGenerator#addEdge` renders both of a closed face's corner columns unconditionally
-too — so the beam's full-width reach never overlaps real glass at any permutation.
+`upOpen`/`downOpen`) instead of borrowing `CornerTaperProfile#baseWidth()`. The matching glass-fill
+fragment (`LatticeGlassGeometryGenerator#generateEdgeGlassFillFragment`) is an empty no-op:
+`LatticeGlassGeometryGenerator`'s cap-row bands already exclude the `[0,width)`/`[16-width,16)`
+corner columns from glass *unconditionally*, mirroring how `LatticeFrameGeometryGenerator#addEdge`
+renders both of a closed face's corner columns unconditionally too — so the beam's full-width reach
+never overlaps real glass at any permutation, and there is nothing to restore.
+
+**It must still be emitted, though.** Lattice originally shipped with *no* glass-fill fragments at
+all, and the client loader (`FishTankBlockStateModel#resolveDependencies` on both platforms) loads
+all 16 `fish_tank_glass_fill_*` models for every shape in `FishTankShape#hasEdgeDiagonalFragments()`
+regardless. The missing files resolved to vanilla's missing model and were composited in as a full
+purple/black cube whenever a lattice tank had an eligible edge whose edge-diagonal cell was filled
+(2026-09-17). Two guardrails now pin the contract: `TankShapeConnectivitySafetyTest#everyShapeWithEdgeFragmentsAlsoHasEdgeGlassFillFragments`
+(strategy table) and `FishTankShapeModelAssetsTest` in `common` (checked-in files vs. loader flags).
 
 ## mullion — MullionFrameGeometryGenerator (done)
 

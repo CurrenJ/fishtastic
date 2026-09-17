@@ -489,6 +489,33 @@ class TankShapeConnectivitySafetyTest {
         }
     }
 
+    /**
+     * Guardrail for the runtime loader contract: {@code FishTankShape#hasEdgeDiagonalFragments()}
+     * makes both platforms' block state models load the 8 {@code fish_tank_frame_edge_*} models
+     * <em>and</em> all 16 {@code fish_tank_glass_fill_*} models for a shape, and composite a glass
+     * fill in whenever an eligible edge's diagonal cell is filled. A strategy that emits edge
+     * fragments but no glass-fill fragments therefore ships a tank that bakes vanilla's missing
+     * model (a full purple/black cube) into that connection state — exactly what lattice did
+     * (2026-09-17). A shape with nothing to restore still has to emit an empty fragment, as
+     * mullion's non-wall edges and lattice do.
+     */
+    @Test
+    void everyShapeWithEdgeFragmentsAlsoHasEdgeGlassFillFragments() {
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeFragment() == null) continue;
+            assertTrue(shape.edgeGlassFillFragment() != null, shape.name()
+                    + " has edge fragments but no edge glass-fill fragments — the client loads both for every"
+                    + " shape in FishTankShape#hasEdgeDiagonalFragments(); emit an empty fragment if nothing needs restoring");
+            for (TankEdge edge : TankEdge.values()) {
+                for (TankCorner corner : edge.endCorners()) {
+                    JsonObject fragment = shape.edgeGlassFillFragment().apply(edge, corner);
+                    assertTrue(fragment.has("elements"), shape.name() + " glass fill " + edge + "/" + corner
+                            + " has no elements array — even a no-op fragment needs an empty one");
+                }
+            }
+        }
+    }
+
     private static List<Double> distinctYBoundaries(TankShapeGeometryStrategies.Strategy shape) {
         // Permutation 0 (everything closed) has the richest set of elements/bands across every
         // shape's frame generator.

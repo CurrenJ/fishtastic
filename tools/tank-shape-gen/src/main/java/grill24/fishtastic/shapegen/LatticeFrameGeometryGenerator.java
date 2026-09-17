@@ -107,13 +107,14 @@ public final class LatticeFrameGeometryGenerator {
      * {@link #addEdge} always uses {@link #CAP_EDGE_WIDTH} regardless of {@code upOpen}/{@code
      * downOpen} — so this uses that same constant width directly instead of borrowing a profile.
      *
-     * <p>No matching glass-fill fragment is needed (unlike the tapered/comb families): {@link
-     * LatticeGlassGeometryGenerator}'s cap-row bands already exclude the {@code [0,width)}/{@code
-     * [16-width,16)} corner columns from glass <em>unconditionally</em> — regardless of whether the
-     * perpendicular face is open — since {@link #addEdge} likewise renders both of a closed face's
-     * corner columns unconditionally (see this class's javadoc). So the beam's full-width reach never
-     * overlaps real glass at any permutation, and there is no cap-band sliver a glass-fill fragment
-     * would ever need to restore.
+     * <p>The matching glass-fill fragment ({@link LatticeGlassGeometryGenerator#generateEdgeGlassFillFragment})
+     * is an empty no-op (unlike the tapered/comb families): {@link LatticeGlassGeometryGenerator}'s
+     * cap-row bands already exclude the {@code [0,width)}/{@code [16-width,16)} corner columns from
+     * glass <em>unconditionally</em> — regardless of whether the perpendicular face is open — since
+     * {@link #addEdge} likewise renders both of a closed face's corner columns unconditionally (see
+     * this class's javadoc). So the beam's full-width reach never overlaps real glass at any
+     * permutation, and there is no cap-band sliver to restore — but the fragment model must still be
+     * emitted, because the runtime loads one for every shape that has edge fragments.
      */
     public static JsonObject generateEdgeFragment(TankEdge edge) {
         return generateEdgeFragment(edge, DEFAULT_TEXTURE);
