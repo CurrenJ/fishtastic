@@ -92,6 +92,28 @@ public final class LatticeGlassGeometryGenerator {
         return result;
     }
 
+    /**
+     * The edge-diagonal glass-restore fragment for one end of a lattice beam — deliberately a
+     * <b>no-op</b> (empty {@code elements}), like {@code MullionGlassGeometryGenerator}'s non-wall
+     * edges. Lattice's cap-row bands in {@link #generate} already exclude the {@code [0,2)}/{@code
+     * [14,16)} corner columns unconditionally (see {@link LatticeFrameGeometryGenerator#generateEdgeFragment}),
+     * so there is never a sliver to restore when the beam does not render.
+     *
+     * <p>It still has to exist: the client model loader loads all 16 {@code fish_tank_glass_fill_*}
+     * models for every shape with edge fragments ({@code FishTankShape#hasEdgeDiagonalFragments}) and
+     * composites one in whenever an eligible edge's diagonal cell is filled. With no file on disk it
+     * gets vanilla's missing model — a full purple/black cube — instead of nothing.
+     */
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner) {
+        return generateEdgeGlassFillFragment(edge, corner, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner, String textureId) {
+        JsonObject model = baseModel(textureId);
+        model.add("elements", new JsonArray());
+        return model;
+    }
+
     private static JsonObject pane(int x1, int y1, int z1, int x2, int y2, int z2, String faceA, String faceB) {
         JsonObject element = new JsonObject();
         element.add("from", vec3(x1, y1, z1));

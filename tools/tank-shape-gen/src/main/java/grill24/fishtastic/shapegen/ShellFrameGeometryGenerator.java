@@ -273,6 +273,149 @@ public final class ShellFrameGeometryGenerator {
         }
     }
 
+    /**
+     * A standalone corner-post fragment for {@code corner}: the flat plates {@link #addFlatPlates}
+     * would draw for this corner if both its adjacent faces were closed, for every run below the
+     * full-width (16) chamfered-ring threshold. A full-width run's own {@link #addChamferedRing}
+     * gates its ring_n/ring_s/ring_w/ring_e pieces independently per face — closed enough to cover
+     * every corner on its own <em>except</em> exactly this diagonal case (both of a corner's faces
+     * open at once skips both the piece that would cover it from the north/south side and the one
+     * that would from the west/east side), so this fragment plugs that gap with a plate clamped to
+     * {@link CornerTaperProfile#baseWidth()} — the same steady-state fallback the ring itself falls
+     * back to at an open cap (see {@code effectiveRowWidths}). Composited back onto the base bake
+     * when both faces are open but the diagonal neighbor cell is empty (see
+     * {@code FishTankCompositeModelData#getDiagonalOverrideMask}).
+     */
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CornerTaperProfile.Run> runs = profile.runs(ceilingClosed, floorClosed);
+        boolean north = corner.faceA() == TankFace.NORTH;
+        boolean west = corner.faceB() == TankFace.WEST;
+        for (CornerTaperProfile.Run run : runs) {
+            int width = Math.min(run.width(), profile.baseWidth());
+            double y1 = run.yFrom();
+            double y2 = run.yTo();
+            if (north && west) elements.add(createBox("n_" + smartLabel(y1) + "_w", 0, y1, 0, width, y2, 1));
+            if (north && !west) elements.add(createBox("n_" + smartLabel(y1) + "_e", 16 - width, y1, 0, 16, y2, 1));
+            if (!north && west) elements.add(createBox("s_" + smartLabel(y1) + "_w", 0, y1, 15, width, y2, 16));
+            if (!north && !west) elements.add(createBox("s_" + smartLabel(y1) + "_e", 16 - width, y1, 15, 16, y2, 16));
+            if (width > 1) {
+                if (west && north) elements.add(createBox("w_" + smartLabel(y1) + "_n", 0, y1, 1, 1, y2, width));
+                if (west && !north) elements.add(createBox("w_" + smartLabel(y1) + "_s", 0, y1, 16 - width, 1, y2, 15));
+                if (!west && north) elements.add(createBox("e_" + smartLabel(y1) + "_n", 15, y1, 1, 16, y2, width));
+                if (!west && !north) elements.add(createBox("e_" + smartLabel(y1) + "_s", 15, y1, 16 - width, 16, y2, 15));
+            }
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_corner_" + corner.name().toLowerCase());
+        return model;
+    }
+
+    /**
+     * Corner-post fragment for {@link #generateCupola}-shaped caps: {@link #generateCornerFragment}
+     * plus one extra plug at the ceiling cap band (Y 15-16). Same root cause as {@code
+     * TaperedFrameGeometryGenerator#generateSkylightCornerFragment}: {@link #addChamferedRing}'s
+     * ring_n/ring_w pieces are each gated on their own single face, so a corner whose both
+     * orthogonal faces are open — this fragment's own diagonal-empty-corner scenario — clears both
+     * at once and leaves the ring's hollow-middle square uncovered there, while the skylight glass
+     * pane flushes into it regardless (unaffected by either face's ring gating). {@code
+     * generateCornerFragment}'s clamped plates never reach that band either: they're built from
+     * {@code profile.runs()}, which only covers image rows 1-14 (Minecraft Y 1-15) — Y 15-16 is the
+     * solid ceiling slab's territory for the plain {@link #generate}, a slab {@link #generateCupola}
+     * replaces with the ring. The plug matches the ring's own inset, {@link
+     * CornerTaperProfile#baseWidth()} (see {@code generateCupola}'s {@code
+     * TaperedFrameGeometryGenerator#createSkylightCeiling} call), and is only added when the
+     * ceiling cap is closed — an open ceiling means no ring was drawn, a real vertical-stacking seam.
+     */
+    public static JsonObject generateCupolaCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateCupolaCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateCupolaCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        if (ceilingClosed) {
+            int t = profile.baseWidth();
+            model.getAsJsonArray("elements").add(createCapCornerPlug(corner, 15, 16, t));
+        }
+        return model;
+    }
+
+    /**
+     * Corner-post fragment for {@link #generateHutch}-shaped caps: {@link
+     * #generateCupolaCornerFragment}'s ceiling-band plug, plus the mirror-image plug at the floor
+     * cap band (Y 0-1) for {@link #generateHutch}'s floor ring — both caps are rings here.
+     */
+    public static JsonObject generateHutchCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, CornerTaperProfile profile) {
+        return generateHutchCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateHutchCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId, CornerTaperProfile profile) {
+        JsonObject model = generateCornerFragment(corner, ceilingClosed, floorClosed, textureId, profile);
+        JsonArray elements = model.getAsJsonArray("elements");
+        int t = profile.baseWidth();
+        if (ceilingClosed) elements.add(createCapCornerPlug(corner, 15, 16, t));
+        if (floorClosed) elements.add(createCapCornerPlug(corner, 0, 1, t));
+        return model;
+    }
+
+    /** A {@code t x t} plug flush at {@code corner}, spanning {@code [y1, y2)} — the same footprint
+     * {@link #addChamferedRing}'s ring pieces would leave hollow at an open-both-faces corner. */
+    private static JsonObject createCapCornerPlug(TankCorner corner, double y1, double y2, int t) {
+        int x1 = corner.xEdge() == 0 ? 0 : 16 - t;
+        int z1 = corner.zEdge() == 0 ? 0 : 16 - t;
+        return createBox("cap_plug_" + corner.name().toLowerCase() + "_" + smartLabel(y1), x1, y1, z1, x1 + t, y2, z1 + t);
+    }
+
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — mirrors
+     * {@code TaperedFrameGeometryGenerator#generateEdgeFragment}: a single box at
+     * {@link CornerTaperProfile#baseWidth()}, spanning the full 0-16 perpendicular width, occupying
+     * the vertical cap's band. No {@code capState} parameter needed for the same reason as the
+     * tapered generator's version — eligibility requires the vertical face open, which already
+     * forces the cap-adjacent run to base width. Composited back onto the base bake when both the
+     * edge's horizontal and vertical faces are open but its edge-diagonal neighbor cell is empty
+     * (see {@code FishTankCompositeModelData#getEdgeDiagonalOverrideMask}).
+     *
+     * <p>Deliberately not inset against the perpendicular wall's own glass pane — that pane insets
+     * itself instead when this beam is eligible (see
+     * {@code TaperedGlassGeometryGenerator#addNorthGlassPane} et al.'s cap-adjacent-run note), so
+     * the beam stays a full structural seal along the whole wall/cap seam rather than leaving its
+     * load-bearing ends looking like a missing corner.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge, CornerTaperProfile profile) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE, profile);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId, CornerTaperProfile profile) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        int width = profile.baseWidth();
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        int x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        elements.add(createBox("edge_" + edge.name().toLowerCase(), x1, y1, z1, x2, y2, z2));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
     private static JsonObject createCeiling(Set<TankFace> openFaces) {
         JsonObject element = new JsonObject();
         element.addProperty("name", "ceiling");

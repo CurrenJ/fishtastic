@@ -3,6 +3,8 @@ package grill24.fishtastic.shapegen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import static grill24.fishtastic.shapegen.TankShapeGeometry.addSingleGroup;
@@ -74,6 +76,79 @@ public final class CombFrameGeometryGenerator {
         model.add("elements", elements);
         addSingleGroup(model, "frame_" + permutationIndex);
         return model;
+    }
+
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
+     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * tooth/film writeup. Unlike {@link TaperedFrameGeometryGenerator#generateEdgeFragment}'s single
+     * uniform-width box, the comb family's near-cap "teeth" bands carry their own asymmetric
+     * low/high pixels per row (e.g. tooth's row just above the waist is 1px on the low side but 2px
+     * on the high side) that {@link CornerTaperProfile.Run} can't represent — so this reconstructs
+     * the actual {@code top()}/{@code bottom()} band list directly on {@code edge.horizontal()}'s
+     * face, base+low+high all rendered unconditionally (eligibility already requires that face open,
+     * so the ordinary per-permutation gating, which requires the face closed before drawing anything,
+     * can't be reused as-is).
+     *
+     * <p>The band nearest the vacated cap is extended flush to the block boundary and rendered as a
+     * plain solid strip (not its own actual pattern) — mirroring {@link CornerTaperProfile#runs}'s
+     * cap-extension convention, so two stacked tanks meet with no gap at the seam. This widens the
+     * reconstructed zone to exactly {@code [spec.middleYToClosed(), 16]} (or {@code [0,
+     * spec.middleYFromClosed()]} for a DOWN edge) — the same boundary {@link
+     * CombGlassGeometryGenerator}'s cap-band split targets on the perpendicular walls' own glass, so
+     * the two fixes cover exactly the same volume. Solidifying rather than reconstructing this one
+     * row's real pattern is deliberate: film's near-cap rows are period-2 perforated combs with no
+     * neighbor-gated content at all, so there is no "as if closed" version of them to fall back to —
+     * their holes are meant to show glass, but the open face this beam substitutes for has no glass
+     * of its own to show through (the face itself is open), so a solid strip is the only option that
+     * doesn't leave a real void at the hole positions.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge, CombTankSpans.Spec spec) {
+        return generateEdgeFragment(edge, spec, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, CombTankSpans.Spec spec, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        List<CombTankSpans.Band> bands = new ArrayList<>();
+        if (edge.vertical() == TankFace.UP) {
+            bands.addAll(spec.top());
+        } else {
+            bands.addAll(spec.bottom());
+            if (spec.sandRow() != null) bands.add(spec.sandRow());
+        }
+
+        if (!bands.isEmpty()) {
+            int i = edge.vertical() == TankFace.UP ? 0 : bands.size() - 1;
+            CombTankSpans.Band b = bands.get(i);
+            bands.set(i, edge.vertical() == TankFace.UP
+                    ? new CombTankSpans.Band(b.yFrom(), 16, new int[][]{{0, 16}})
+                    : new CombTankSpans.Band(0, b.yTo(), new int[][]{{0, 16}}));
+        }
+
+        for (CombTankSpans.Band band : bands) {
+            addClosedFaceInlaySpans(elements, edge.horizontal(), band.yFrom(), band.yTo(), band.base());
+            addClosedFaceInlaySpans(elements, edge.horizontal(), band.yFrom(), band.yTo(), band.low());
+            addClosedFaceInlaySpans(elements, edge.horizontal(), band.yFrom(), band.yTo(), band.high());
+        }
+
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
+    /** One band's spans drawn unconditionally on a single named face — see {@link #generateEdgeFragment}. */
+    private static void addClosedFaceInlaySpans(JsonArray elements, TankFace face, int y1, int y2, int[][] spans) {
+        for (int[] span : spans) {
+            switch (face) {
+                case NORTH -> elements.add(createBox("edge_n_" + y1 + "_" + span[0], span[0], y1, 0, span[1], y2, 1));
+                case SOUTH -> elements.add(createBox("edge_s_" + y1 + "_" + span[0], span[0], y1, 15, span[1], y2, 16));
+                case WEST -> elements.add(createBox("edge_w_" + y1 + "_" + span[0], 0, y1, span[0], 1, y2, span[1]));
+                case EAST -> elements.add(createBox("edge_e_" + y1 + "_" + span[0], 15, y1, span[0], 16, y2, span[1]));
+                default -> throw new IllegalArgumentException("Not a horizontal face: " + face);
+            }
+        }
     }
 
     /** Adds one band's base/low/high spans as 1px plates on each closed face. */

@@ -141,6 +141,27 @@ public final class CreeperFrameGeometryGenerator {
         return element;
     }
 
+    /**
+     * A standalone corner-post fragment for {@code corner}, matching what {@link #generate} would
+     * draw for it if both adjacent faces were closed. Composited back onto the base bake when both
+     * faces are open but the diagonal neighbor cell is empty (see
+     * {@code FishTankCompositeModelData#getDiagonalOverrideMask}).
+     */
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed) {
+        return generateCornerFragment(corner, ceilingClosed, floorClosed, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateCornerFragment(TankCorner corner, boolean ceilingClosed, boolean floorClosed, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        int supportYFrom = floorClosed ? 1 : 0;
+        int supportYTo = ceilingClosed ? 15 : 16;
+        elements.add(createSupport(corner.xEdge(), corner.zEdge(), supportYFrom, supportYTo));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_corner_" + corner.name().toLowerCase());
+        return model;
+    }
+
     private static JsonObject createSupport(int cornerX, int cornerZ, int yFrom, int yTo) {
         double x1 = cornerX == 0 ? 0 : 15;
         double z1 = cornerZ == 0 ? 0 : 15;

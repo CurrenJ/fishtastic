@@ -104,6 +104,10 @@ public final class FishtasticNeoForgeClient {
         grill24.fishtastic.network.NotificationVolumeSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setNotificationVolume(packet.volume()));
 
+        // Register tank water fill toggle sync packet client handler
+        grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 

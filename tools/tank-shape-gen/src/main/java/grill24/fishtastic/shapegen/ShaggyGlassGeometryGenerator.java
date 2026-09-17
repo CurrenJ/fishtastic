@@ -50,39 +50,53 @@ public final class ShaggyGlassGeometryGenerator {
         JsonObject model = baseModel(textureId);
         JsonArray elements = new JsonArray();
 
+        boolean upOpen = !upClosed;
+        boolean downOpen = !downClosed;
         List<ShaggyTankSpans.Band> bands = glassBands(upClosed, downClosed);
 
+        // Within the 1px cap band (Y[0,1) when the floor is open, Y[15,16) when the ceiling is
+        // open), a corner that would otherwise flush to the boundary (its perpendicular face open)
+        // instead yields to that face's own edge-diagonal frame beam — see
+        // TaperedFrameGeometryGenerator#generateEdgeFragment and
+        // TaperedGlassGeometryGenerator#splitRunForCapBands's matching note. Shaggy's corner post is
+        // the same plain 1px post as CornerTaperProfile.STANDARD, so the same fix applies here,
+        // hand-duplicated since shaggy has its own glass generator. This is independent of the
+        // fringe's own edge-merge logic in ShaggyTankSpans#spansFor, which stays unchanged.
         if (northClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (ShaggyTankSpans.Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom() == 0) || (upOpen && b.yTo() == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(ShaggyTankSpans.spansFor(b, !westClosed, !eastClosed), minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom(), 0, span[1], b.yTo(), 1, "north", "south"));
                 }
             }
         }
         if (southClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (ShaggyTankSpans.Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom() == 0) || (upOpen && b.yTo() == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(ShaggyTankSpans.spansFor(b, !westClosed, !eastClosed), minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom(), 15, span[1], b.yTo(), 16, "north", "south"));
                 }
             }
         }
         if (westClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (ShaggyTankSpans.Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom() == 0) || (upOpen && b.yTo() == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(ShaggyTankSpans.spansFor(b, !northClosed, !southClosed), minZ, maxZ)) {
                     elements.add(paneZAxis(0, b.yFrom(), span[0], 1, b.yTo(), span[1], "west", "east"));
                 }
             }
         }
         if (eastClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (ShaggyTankSpans.Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom() == 0) || (upOpen && b.yTo() == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(ShaggyTankSpans.spansFor(b, !northClosed, !southClosed), minZ, maxZ)) {
                     elements.add(paneZAxis(15, b.yFrom(), span[0], 16, b.yTo(), span[1], "west", "east"));
                 }
@@ -98,22 +112,30 @@ public final class ShaggyGlassGeometryGenerator {
     /**
      * The glass's Y bands, top to bottom. A band's spans are the inlay holes to leave; they're
      * dropped when the corresponding cap is open (the fringe is gone with it), and the band touching
-     * an open cap extends to the block boundary for the seam.
+     * an open cap extends to the block boundary for the seam — kept as its own separate 1px band
+     * there (rather than merged with its neighbor) so the cap-band-only corner fix above can target
+     * exactly that 1px slice.
      */
     private static List<ShaggyTankSpans.Band> glassBands(boolean upClosed, boolean downClosed) {
         List<ShaggyTankSpans.Band> bands = new ArrayList<>();
-        for (ShaggyTankSpans.Band band : ShaggyTankSpans.TOP) {
-            int yTo = band.yTo() == 15 && !upClosed ? 16 : band.yTo();
-            bands.add(upClosed
-                    ? new ShaggyTankSpans.Band(band.yFrom(), yTo, band.spans(), band.lowEdgeInlay(), band.highEdgeInlay())
-                    : new ShaggyTankSpans.Band(band.yFrom(), yTo, NO_SPANS, false, false));
+        for (int i = 0; i < ShaggyTankSpans.TOP.length; i++) {
+            ShaggyTankSpans.Band band = ShaggyTankSpans.TOP[i];
+            if (i == 0 && !upClosed) {
+                bands.add(new ShaggyTankSpans.Band(14, 15, NO_SPANS, false, false));
+                bands.add(new ShaggyTankSpans.Band(15, 16, NO_SPANS, false, false));
+            } else {
+                bands.add(upClosed ? band : new ShaggyTankSpans.Band(band.yFrom(), band.yTo(), NO_SPANS, false, false));
+            }
         }
         bands.add(new ShaggyTankSpans.Band(4, 11, NO_SPANS, false, false));
-        for (ShaggyTankSpans.Band band : ShaggyTankSpans.BOTTOM) {
-            int yFrom = band.yFrom() == 1 && !downClosed ? 0 : band.yFrom();
-            bands.add(downClosed
-                    ? new ShaggyTankSpans.Band(yFrom, band.yTo(), band.spans(), band.lowEdgeInlay(), band.highEdgeInlay())
-                    : new ShaggyTankSpans.Band(yFrom, band.yTo(), NO_SPANS, false, false));
+        for (int i = 0; i < ShaggyTankSpans.BOTTOM.length; i++) {
+            ShaggyTankSpans.Band band = ShaggyTankSpans.BOTTOM[i];
+            if (i == ShaggyTankSpans.BOTTOM.length - 1 && !downClosed) {
+                bands.add(new ShaggyTankSpans.Band(0, 1, NO_SPANS, false, false));
+                bands.add(new ShaggyTankSpans.Band(1, 2, NO_SPANS, false, false));
+            } else {
+                bands.add(downClosed ? band : new ShaggyTankSpans.Band(band.yFrom(), band.yTo(), NO_SPANS, false, false));
+            }
         }
         return bands;
     }

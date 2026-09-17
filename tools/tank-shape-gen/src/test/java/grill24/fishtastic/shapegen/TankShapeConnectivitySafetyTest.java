@@ -4,13 +4,22 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -119,6 +128,37 @@ class TankShapeConnectivitySafetyTest {
     }
 
     /**
+     * Confirms an edge-diagonal frame beam never occupies volume the base bake's own glass already
+     * fills at that permutation — the exact bug class a full-length (untrimmed) beam produced: a
+     * perpendicular closed wall's glass pane flush-extends into the corner cell whenever that
+     * corner's own post is absent (see {@code TaperedFrameGeometryGenerator#generateEdgeFragment}'s
+     * note), so a beam reaching that far double-covers it with opaque frame over translucent glass
+     * and z-fights. The beam is inset at both perpendicular ends specifically to avoid this; this
+     * test guards that inset against regressing back to a full-length beam.
+     */
+    @TestFactory
+    Stream<DynamicTest> edgeFragmentNeverOverlapsBaseGlass() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeFragment() == null) continue;
+            for (int perm = 0; perm < 64; perm++) {
+                Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+                for (TankEdge edge : TankEdge.values()) {
+                    if (!edge.isEligible(openFaces)) continue;
+                    int p = perm;
+                    TankEdge e = edge;
+                    tests.add(dynamicTest(shape.name() + " perm " + p + " " + openFaces + " edge " + e, () -> {
+                        List<Box> fragment = boxes(shape.edgeFragment().apply(e));
+                        List<Box> glass = boxes(shape.glass().apply(p));
+                        assertNoOverlap("edge fragment", fragment, "glass", glass);
+                    }));
+                }
+            }
+        }
+        return tests.stream();
+    }
+
+    /**
      * Every distinct Y-value that appears as a box boundary in any shape's frame model — the set of
      * Y-bands worth checking the wall skin at, so this doesn't have to hardcode "the ceiling band"
      * as one arbitrary example and miss the rest.
@@ -145,6 +185,13 @@ class TankShapeConnectivitySafetyTest {
                         for (int x = 0; x < 16; x++) {
                             for (int z = 0; z < 16; z++) {
                                 if (!requiresCoverage(x, z, westOpen, eastOpen, northOpen, southOpen)) continue;
+                                // A corner cell inside an eligible edge's cap band is covered by the
+                                // frame beam (diagonal empty) or a glass-fill fragment (diagonal
+                                // filled) instead of the base bake alone — see
+                                // edgeDiagonalsHaveNoGapsWhenEdgeDiagonalEmpty/Filled, which already
+                                // validate both of those; the base-bake-only invariant this test
+                                // otherwise checks doesn't apply there.
+                                if (isEdgeCapBandExemption(x, z, yLo, yHi, shape, openFaces)) continue;
                                 if (!covered[x][z]) gaps.add("(" + x + "," + z + ")");
                             }
                         }
@@ -175,6 +222,298 @@ class TankShapeConnectivitySafetyTest {
         if (north) return !northOpen;
         if (south) return !southOpen;
         return false; // interior cell
+    }
+
+    /**
+     * Whether {@code (x,z)} falls inside an eligible edge's cap-band reach at {@code [yLo, yHi)} —
+     * i.e. whether coverage there depends on the edge-diagonal mask (frame beam or glass-fill
+     * fragment) rather than the base bake alone. Checked by direct coverage from the real edge
+     * fragment's own baked boxes (rather than inferring a single {@code width × width} square from
+     * one representative box) so it can't drift from the actual geometry — needed once a shape's
+     * edge fragment can be more than one uniform box (e.g. the comb family's per-row asymmetric
+     * teeth reconstruction; see {@code CombFrameGeometryGenerator#generateEdgeFragment}), not just a
+     * shape like STURDY's constant {@code width × width} corner.
+     */
+    private static boolean isEdgeCapBandExemption(int x, int z, double yLo, double yHi,
+                                                   TankShapeGeometryStrategies.Strategy shape, Set<TankFace> openFaces) {
+        if (shape.edgeFragment() == null) return false;
+        for (TankEdge edge : TankEdge.values()) {
+            if (!edge.isEligible(openFaces)) continue;
+            boolean[][] covered = new boolean[16][16];
+            cover(covered, shape.edgeFragment().apply(edge), yLo, yHi);
+            if (covered[x][z]) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Sweeps every shape whose frame generator has a combined-face corner gate (i.e. every
+     * {@link TankShapeGeometryStrategies.Strategy} with a non-null {@code cornerFragment()}) across
+     * every permutation/corner pair where that corner's two orthogonal faces are both open — the one
+     * scenario a diagonal-empty neighbor cell needs the corner post composited back in for (see
+     * docs on diagonal-aware corner posts). Confirms the fragment {@code cornerFragment()} produces,
+     * merged onto the base frame/sand/glass for that permutation, actually closes the gap at that
+     * corner cell at every Y-band — i.e. the fragment really is geometry-equivalent to "this corner's
+     * post as if both faces were closed."
+     */
+    @TestFactory
+    Stream<DynamicTest> diagonalCornersHaveNoGapsWhenDiagonalEmpty() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.cornerFragment() == null) continue;
+            List<Double> yBounds = distinctYBoundaries(shape);
+            for (int perm = 0; perm < 64; perm++) {
+                Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+                for (TankCorner corner : TankCorner.values()) {
+                    if (!corner.isOrthogonallyEligible(openFaces)) continue;
+                    int p = perm;
+                    TankCorner c = corner;
+                    tests.add(dynamicTest(shape.name() + " perm " + p + " " + openFaces + " corner " + c, () -> {
+                        boolean ceilingClosed = !openFaces.contains(TankFace.UP);
+                        boolean floorClosed = !openFaces.contains(TankFace.DOWN);
+                        int capState = TankCorner.capState(ceilingClosed, floorClosed);
+                        JsonObject fragment = shape.cornerFragment().apply(c, capState);
+
+                        int x = c.xEdge() == 0 ? 0 : 15;
+                        int z = c.zEdge() == 0 ? 0 : 15;
+
+                        for (int i = 0; i < yBounds.size() - 1; i++) {
+                            double yLo = yBounds.get(i);
+                            double yHi = yBounds.get(i + 1);
+                            boolean[][] covered = new boolean[16][16];
+                            cover(covered, shape.frame().apply(p), yLo, yHi);
+                            cover(covered, shape.sand().apply(p), yLo, yHi);
+                            cover(covered, shape.glass().apply(p), yLo, yHi);
+                            cover(covered, fragment, yLo, yHi);
+                            assertTrue(covered[x][z], shape.name() + " perm " + p + " (" + openFaces + ") corner " + c
+                                    + " y[" + yLo + "," + yHi + ") still has a gap at (" + x + "," + z
+                                    + ") even with its corner fragment composited in");
+                        }
+                    }));
+                }
+            }
+        }
+        return tests.stream();
+    }
+
+    /**
+     * Sweeps every shape whose frame generator supports edge-diagonal frame beams (i.e. every
+     * {@link TankShapeGeometryStrategies.Strategy} with a non-null {@code edgeFragment()}) across
+     * every permutation/edge pair where that edge's horizontal and vertical faces are both open —
+     * the scenario an empty edge-diagonal neighbor cell needs the frame beam composited back in for
+     * (see the edge-diagonal frame beam fix design doc). Confirms the fragment {@code
+     * edgeFragment()} produces, merged onto the base frame/sand/glass for that permutation, actually
+     * closes the gap along that edge's beam run at every Y-band spot-checked (not just a single
+     * pixel, since this is a beam spanning a length).
+     */
+    @TestFactory
+    Stream<DynamicTest> edgeDiagonalsHaveNoGapsWhenEdgeDiagonalEmpty() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeFragment() == null) continue;
+            for (int perm = 0; perm < 64; perm++) {
+                Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+                for (TankEdge edge : TankEdge.values()) {
+                    if (!edge.isEligible(openFaces)) continue;
+                    int p = perm;
+                    TankEdge e = edge;
+                    tests.add(dynamicTest(shape.name() + " perm " + p + " " + openFaces + " edge " + e, () -> {
+                        JsonObject fragment = shape.edgeFragment().apply(e);
+
+                        // Sample points along the beam's run: the two ends and the middle of the
+                        // edge, on the vertical band the beam occupies.
+                        double y = e.vertical() == TankFace.DOWN ? 0.5 : 15.5;
+                        int[] xs, zs;
+                        if (e.horizontal() == TankFace.NORTH || e.horizontal() == TankFace.SOUTH) {
+                            xs = new int[]{0, 8, 15};
+                            zs = new int[]{e.horizontal() == TankFace.NORTH ? 0 : 15};
+                        } else {
+                            xs = new int[]{e.horizontal() == TankFace.WEST ? 0 : 15};
+                            zs = new int[]{0, 8, 15};
+                        }
+
+                        boolean[][] covered = new boolean[16][16];
+                        cover(covered, shape.frame().apply(p), y, y + 1e-6);
+                        cover(covered, shape.sand().apply(p), y, y + 1e-6);
+                        cover(covered, shape.glass().apply(p), y, y + 1e-6);
+                        cover(covered, fragment, y, y + 1e-6);
+
+                        // The edge beam is deliberately inset at both perpendicular ends (see
+                        // TaperedFrameGeometryGenerator#generateEdgeFragment's note) — those end
+                        // cells are covered instead by whichever corner mechanism actually applies
+                        // there in the real composited render: the corner-diagonal fragment, when
+                        // that corner's own two orthogonal faces are both open too. Mirror that here
+                        // by compositing it under the same worst-case assumption the corner-diagonal
+                        // test itself uses (diagonal empty, so the override fires).
+                        boolean ceilingClosed = !openFaces.contains(TankFace.UP);
+                        boolean floorClosed = !openFaces.contains(TankFace.DOWN);
+                        int capState = TankCorner.capState(ceilingClosed, floorClosed);
+                        for (TankCorner corner : e.endCorners()) {
+                            if (shape.cornerFragment() != null && corner.isOrthogonallyEligible(openFaces)) {
+                                cover(covered, shape.cornerFragment().apply(corner, capState), y, y + 1e-6);
+                            }
+                        }
+
+                        List<String> gaps = new ArrayList<>();
+                        for (int x : xs) {
+                            for (int z : zs) {
+                                if (!covered[x][z]) gaps.add("(" + x + "," + z + ")");
+                            }
+                        }
+                        assertTrue(gaps.isEmpty(), shape.name() + " perm " + p + " (" + openFaces + ") edge " + e
+                                + " still has gaps at " + gaps + " even with its edge fragment composited in");
+                    }));
+                }
+            }
+        }
+        return tests.stream();
+    }
+
+    /**
+     * The mirror image of {@link #edgeDiagonalsHaveNoGapsWhenEdgeDiagonalEmpty}: sweeps the same
+     * shape/permutation/edge space, but for the case the edge-diagonal cell IS filled by a real
+     * neighbor tank — meaning the beam itself does <em>not</em> render (see
+     * {@code FishTankCompositeModelData#getEdgeDiagonalGlassFillMask}, the inverse of the beam's own
+     * override mask). Confirms the base frame/sand/glass bake, plus the glass-fill fragment(s) for
+     * whichever of the edge's two end corners actually has a closed perpendicular wall, still fully
+     * covers that wall's corner cell — i.e. the fragment restores exactly what the base glass bake's
+     * cap-band split (see {@code TaperedGlassGeometryGenerator#splitRunForCapBands}) removed.
+     */
+    @TestFactory
+    Stream<DynamicTest> edgeDiagonalsHaveNoGapsWhenEdgeDiagonalFilled() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeGlassFillFragment() == null) continue;
+            for (int perm = 0; perm < 64; perm++) {
+                Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+                for (TankEdge edge : TankEdge.values()) {
+                    if (!edge.isEligible(openFaces)) continue;
+                    int p = perm;
+                    TankEdge e = edge;
+                    tests.add(dynamicTest(shape.name() + " perm " + p + " " + openFaces + " edge " + e, () -> {
+                        double y = e.vertical() == TankFace.DOWN ? 0.5 : 15.5;
+
+                        boolean[][] covered = new boolean[16][16];
+                        cover(covered, shape.frame().apply(p), y, y + 1e-6);
+                        cover(covered, shape.sand().apply(p), y, y + 1e-6);
+                        cover(covered, shape.glass().apply(p), y, y + 1e-6);
+                        // No edge frame fragment here — the whole point is that it does NOT render
+                        // when the diagonal is filled.
+
+                        for (TankCorner corner : e.endCorners()) {
+                            TankFace wall = corner.faceA() == e.horizontal() ? corner.faceB() : corner.faceA();
+                            if (openFaces.contains(wall)) continue; // wall open — nothing to restore
+                            cover(covered, shape.edgeGlassFillFragment().apply(e, corner), y, y + 1e-6);
+
+                            int x = corner.xEdge() == 0 ? 0 : 15;
+                            int z = corner.zEdge() == 0 ? 0 : 15;
+                            assertTrue(covered[x][z], shape.name() + " perm " + p + " (" + openFaces + ") edge " + e
+                                    + " corner " + corner + " still has a gap at (" + x + "," + z
+                                    + ") even with its glass-fill fragment composited in");
+                        }
+                    }));
+                }
+            }
+        }
+        return tests.stream();
+    }
+
+    /**
+     * Guards the manual audit behind {@code TankShapeGeometryStrategies}'s null {@code
+     * edgeFragment()} entries: each of these shapes was confirmed to have no edge-beam support yet
+     * (permanently excluded, no taper/plate abstraction to borrow from, or deferred pending
+     * hand-authored geometry) and the known edge-diagonal gap still reproduces at one representative
+     * eligible permutation/edge. This is an intentional "expected failure, not a pass" tracking
+     * assertion — it starts failing the moment someone adds edge-fragment support for that shape,
+     * which is the signal to remove it from the exclusion list.
+     */
+    @Test
+    void excludedShapesHaveKnownEdgeDiagonalGapsDocumented() {
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeFragment() != null) continue;
+
+            // Representative permutation: EAST and DOWN open (the repro from the design doc's
+            // Context section), checked at TankEdge.EAST_DOWN.
+            int perm = (1 << TankFace.EAST.ordinal()) | (1 << TankFace.DOWN.ordinal());
+            TankEdge edge = TankEdge.EAST_DOWN;
+            Set<TankFace> openFaces = TankFace.fromPermutationIndex(perm);
+            assertTrue(edge.isEligible(openFaces), shape.name() + ": expected EAST_DOWN eligible at this permutation");
+
+            boolean[][] covered = new boolean[16][16];
+            cover(covered, shape.frame().apply(perm), 0.0, 1e-6);
+            cover(covered, shape.sand().apply(perm), 0.0, 1e-6);
+            cover(covered, shape.glass().apply(perm), 0.0, 1e-6);
+
+            // The gap should still be present at the east edge's midpoint (z=8) — a spot along the
+            // missing beam's run away from the corners, which the corner-post fragments (if any)
+            // don't reach and a closed perpendicular wall's own extension can't coincidentally cover.
+            assertFalse(covered[15][8], shape.name()
+                    + " no longer has the known edge-diagonal gap at EAST_DOWN — if edge-fragment support "
+                    + "was added for this shape, remove it from the null-edgeFragment() exclusion list");
+        }
+    }
+
+    /**
+     * Guards the manual audit behind {@code TankShapeGeometryStrategies}'s null {@code
+     * cornerFragment()} entries: each of these shapes' frame generator was confirmed, by reading the
+     * source, to gate its corner posts independently per face rather than on both faces at once —
+     * the one pattern that can leave a real gap when a diagonal neighbor tank is missing. If a future
+     * edit introduces that combined gate here without also adding corner-fragment support, this test
+     * catches it instead of silently shipping a corner-post gap.
+     */
+    private static final Map<String, List<String>> SHAPES_WITHOUT_CORNER_FRAGMENT_SOURCE_FILES = Map.of(
+            "bramble", List.of("BrambleFrameGeometryGenerator.java"),
+            "tooth", List.of("CombFrameGeometryGenerator.java"),
+            "film", List.of("CombFrameGeometryGenerator.java"),
+            "arch", List.of("ArchFrameGeometryGenerator.java"),
+            "mullion", List.of("MullionFrameGeometryGenerator.java"),
+            "lattice", List.of("LatticeFrameGeometryGenerator.java")
+    );
+
+    private static final Pattern COMBINED_CORNER_GATE = Pattern.compile(
+            "!openFaces\\.contains\\(TankFace\\.(NORTH|SOUTH)\\)\\s*&&\\s*!openFaces\\.contains\\(TankFace\\.(WEST|EAST)\\)");
+
+    @Test
+    void shapesWithoutCornerFragmentSupportHaveNoCombinedFaceCornerGate() throws IOException {
+        Path srcDir = Path.of("src/main/java/grill24/fishtastic/shapegen");
+        for (Map.Entry<String, List<String>> entry : SHAPES_WITHOUT_CORNER_FRAGMENT_SOURCE_FILES.entrySet()) {
+            TankShapeGeometryStrategies.Strategy strategy = TankShapeGeometryStrategies.byName(entry.getKey());
+            assertNull(strategy.cornerFragment(), entry.getKey()
+                    + " now has corner-fragment support — remove it from this guardrail's exemption list");
+            for (String fileName : entry.getValue()) {
+                String source = Files.readString(srcDir.resolve(fileName));
+                assertFalse(COMBINED_CORNER_GATE.matcher(source).find(), fileName
+                        + " now has a combined-face corner gate but no corner-fragment support was added for '"
+                        + entry.getKey() + "' — see docs on diagonal-aware corner posts");
+            }
+        }
+    }
+
+    /**
+     * Guardrail for the runtime loader contract: {@code FishTankShape#hasEdgeDiagonalFragments()}
+     * makes both platforms' block state models load the 8 {@code fish_tank_frame_edge_*} models
+     * <em>and</em> all 16 {@code fish_tank_glass_fill_*} models for a shape, and composite a glass
+     * fill in whenever an eligible edge's diagonal cell is filled. A strategy that emits edge
+     * fragments but no glass-fill fragments therefore ships a tank that bakes vanilla's missing
+     * model (a full purple/black cube) into that connection state — exactly what lattice did
+     * (2026-09-17). A shape with nothing to restore still has to emit an empty fragment, as
+     * mullion's non-wall edges and lattice do.
+     */
+    @Test
+    void everyShapeWithEdgeFragmentsAlsoHasEdgeGlassFillFragments() {
+        for (TankShapeGeometryStrategies.Strategy shape : TankShapeGeometryStrategies.ALL) {
+            if (shape.edgeFragment() == null) continue;
+            assertTrue(shape.edgeGlassFillFragment() != null, shape.name()
+                    + " has edge fragments but no edge glass-fill fragments — the client loads both for every"
+                    + " shape in FishTankShape#hasEdgeDiagonalFragments(); emit an empty fragment if nothing needs restoring");
+            for (TankEdge edge : TankEdge.values()) {
+                for (TankCorner corner : edge.endCorners()) {
+                    JsonObject fragment = shape.edgeGlassFillFragment().apply(edge, corner);
+                    assertTrue(fragment.has("elements"), shape.name() + " glass fill " + edge + "/" + corner
+                            + " has no elements array — even a no-op fragment needs an empty one");
+                }
+            }
+        }
     }
 
     private static List<Double> distinctYBoundaries(TankShapeGeometryStrategies.Strategy shape) {

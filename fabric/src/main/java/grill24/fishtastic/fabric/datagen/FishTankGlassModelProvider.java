@@ -3,6 +3,8 @@ package grill24.fishtastic.fabric.datagen;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.shapegen.TankCorner;
+import grill24.fishtastic.shapegen.TankEdge;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
@@ -49,6 +51,38 @@ public class FishTankGlassModelProvider implements DataProvider {
                 JsonObject model = strategy.glass().apply(i);
                 Path outputPath = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix() + "/fish_tank_glass_" + i));
                 futures.add(DataProvider.saveStable(cache, model, outputPath));
+            }
+
+            // Edge-diagonal glass-fill fragments (edge-diagonal frame beam fix, z-fight followup):
+            // small glass-textured fragments composited back in when an eligible edge's beam does
+            // NOT render (its edge-diagonal cell is filled) — restoring the flush corner sliver the
+            // base glass bake above always omits at that cap band. One per (edge, end corner) pair.
+            if (strategy.edgeGlassFillFragment() != null) {
+                for (TankEdge edge : TankEdge.values()) {
+                    for (TankCorner corner : edge.endCorners()) {
+                        JsonObject fragment = strategy.edgeGlassFillFragment().apply(edge, corner);
+                        Path path = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix()
+                                + "/fish_tank_glass_fill_" + edge.name().toLowerCase() + "_" + corner.name().toLowerCase()));
+                        futures.add(DataProvider.saveStable(cache, fragment, path));
+                    }
+                }
+            }
+
+            // Corner glass-fill fragments (diagonal-corner-post z-fight followup): small
+            // glass-textured fragments composited back in when an eligible corner's post does NOT
+            // render (its diagonal cell is filled) — restoring the notch addHorizontalPaneBoxes
+            // always carves out of the base glass bake above at that cap band. Only the four shapes
+            // with a glass-paned ceiling/floor ring need these (see
+            // FishTankShape#hasCornerGlassFillFragments).
+            if (strategy.cornerGlassFillFragment() != null) {
+                for (TankCorner corner : TankCorner.values()) {
+                    for (int capState = 0; capState < 4; capState++) {
+                        JsonObject fragment = strategy.cornerGlassFillFragment().apply(corner, capState);
+                        Path path = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix()
+                                + "/fish_tank_glass_fill_corner_" + corner.name().toLowerCase() + "_" + capState));
+                        futures.add(DataProvider.saveStable(cache, fragment, path));
+                    }
+                }
             }
         }
 
