@@ -1,6 +1,6 @@
 {
   "display_name": "Angler's Almanac",
-  "description": "Highlights the highest-weighted fish profile for the current conditions on the minigame HUD.",
+  "description": "Shows the highest weighted catches under the currently active circumstances. Does not need to be equipped to rod charm slot.",
   "cost": 55,
   "weight": 0.15,
   "reward": [

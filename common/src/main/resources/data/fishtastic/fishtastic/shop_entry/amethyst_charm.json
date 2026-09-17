@@ -1,6 +1,6 @@
 {
   "display_name": "Amethyst Charm",
-  "description": "Calms the fishing line \u2014 reduces input force by 33%%, making the minigame easier to control.",
+  "description": "Augments your fishing power, causing the bobber to accelerate more rapidly in response to your touch.",
   "cost": 70,
   "weight": 0.15,
   "reward": [

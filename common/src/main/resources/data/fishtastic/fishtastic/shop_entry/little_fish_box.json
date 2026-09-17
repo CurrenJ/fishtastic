@@ -1,6 +1,6 @@
 {
   "display_name": "Little Fish Box",
-  "description": "Automatically sorts caught fish into Piles of Fish in your inventory, filling existing piles first and creating new ones as needed.",
+  "description": "Automatically sorts fish into Piles of Fish in your inventory upon catch. The avid fisherman's best friend.",
   "cost": 40,
   "weight": 0.15,
   "reward": [

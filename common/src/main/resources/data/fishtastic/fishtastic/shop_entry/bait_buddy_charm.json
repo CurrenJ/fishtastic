@@ -1,6 +1,6 @@
 {
   "display_name": "Bait Buddy Charm",
-  "description": "He wears a hat! — 50%% chance to not consume bait on a catch.",
+  "description": "He wears a hat! 50%% chance to not consume bait on a catch.",
   "cost": 40,
   "weight": 0.15,
   "reward": [

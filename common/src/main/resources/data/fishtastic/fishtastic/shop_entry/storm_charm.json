@@ -1,6 +1,6 @@
 {
   "display_name": "Storm Charm",
-  "description": "Snap it and the sky answers — a real thunderstorm for five minutes. One use only.",
+  "description": "Summons a thunderstorm for 5 minutes. Single-use. Better make it worth it!.",
   "cost": 25,
   "reward": [
     {
@@ -8,5 +8,5 @@
       "count": 1
     }
   ],
-  "daily_max_purchases": 2
+  "daily_max_purchases": 1
 }

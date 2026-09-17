@@ -1,6 +1,6 @@
 {
   "display_name": "Crystal Ball Charm",
-  "description": "Reveals a glowing rarity outline around hooked fish before you reel them in.",
+  "description": "Reveals a glowing rarity outline around hooked fish and treasure before you reel them in.",
   "cost": 55,
   "weight": 0.15,
   "reward": [

@@ -1,6 +1,6 @@
 {
   "display_name": "Luna Charm",
-  "description": "Forces night-fishing conditions regardless of time of day, with a +25%% multiplier under moonlight.",
+  "description": "While this charm is equipped, the night fish are always about, no matter the time.",
   "cost": 85,
   "weight": 0.15,
   "reward": [
