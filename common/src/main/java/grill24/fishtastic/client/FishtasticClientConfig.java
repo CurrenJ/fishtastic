@@ -10,7 +10,9 @@ import java.util.Properties;
 /**
  * Lightweight client-only visual toggles, stored as a plain properties file in the mod's config
  * directory. Same convention as {@link grill24.fishtastic.mcp.McpConfig}: hand-edit the file and
- * restart the game to apply changes — values are cached after first read, not polled live.
+ * restart the game to apply changes — values are cached after first read, not polled live. Settings
+ * with a setter here can also be changed in-game (via command or GUI), which updates the cache and
+ * rewrites the file so the change applies immediately and survives a restart.
  */
 public final class FishtasticClientConfig {
     private static final String FILE_NAME = "fishtastic-client.properties";
@@ -22,7 +24,8 @@ public final class FishtasticClientConfig {
             # Fishtastic client-side visual toggles.
             # Edit and restart the game to apply changes.
 
-            # Draws an animated water fill behind fish tank glass.
+            # Draws an animated water fill behind fish tank glass. Toggled via
+            # "/fishtastic tank waterfill <true|false>" in-game, which also rewrites this file.
             tankWaterFillEnabled=true
 
             # Volume (0-100) of quest/notification banner sounds. Set via
@@ -50,6 +53,15 @@ public final class FishtasticClientConfig {
             tankWaterFillEnabled = Boolean.parseBoolean(load().getProperty(TANK_WATER_FILL_KEY, "true"));
         }
         return tankWaterFillEnabled;
+    }
+
+    /**
+     * Persists the tank water fill toggle to the properties file and caches it. The renderer reads
+     * {@link #isTankWaterFillEnabled()} every frame, so the change is visible immediately.
+     */
+    public static void setTankWaterFillEnabled(boolean enabled) {
+        tankWaterFillEnabled = enabled;
+        persist();
     }
 
     /** Notification banner sound volume, as a 0-100 int. */

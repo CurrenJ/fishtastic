@@ -155,6 +155,11 @@ public class FishtasticPackets {
                 NotificationVolumeSyncPacket.STREAM_CODEC,
                 NotificationVolumeSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                TankWaterFillSyncPacket.TYPE,
+                TankWaterFillSyncPacket.STREAM_CODEC,
+                TankWaterFillSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -174,6 +179,7 @@ public class FishtasticPackets {
         registrar.accept(CosmeticCaptureSyncPacket.TYPE, CosmeticCaptureSyncPacket.STREAM_CODEC);
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
+        registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
     }
 
     /**
