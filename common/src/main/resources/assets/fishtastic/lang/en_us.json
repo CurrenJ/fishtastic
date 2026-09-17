@@ -208,7 +208,7 @@
   "screen.fishtastic.quest_log.shop.buy": "Buy",
   "screen.fishtastic.quest_log.shop.refresh": "Refresh",
   "screen.fishtastic.quest_log.shop.not_enough_tokens": "Not enough tokens",
-  "key.categories.fishtastic": "Fishtastic",
+  "key.category.fishtastic.fishtastic": "Fishtastic",
   "key.fishtastic.fishing_minigame_impulse": "Fishing Minigame Impulse",
   "key.fishtastic.open_quest_log": "Open Quest Log",
   "key.fishtastic.open_fish_encyclopedia": "Open Fish Encyclopedia",
