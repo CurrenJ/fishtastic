@@ -1,7 +1,7 @@
 {
   "render_calibration": 1.1,
   "base_weight": 6,
-  "size": { "mean": 25.0, "std_dev": 6.0 },
+  "size": { "mean": 14.5, "std_dev": 3.5 },
   "zones": ["ocean"],
   "temperament": "fishtastic:docile",
   "animation": {

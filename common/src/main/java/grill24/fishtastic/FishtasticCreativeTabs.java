@@ -25,6 +25,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ANGLER_FISH.value());
                     output.accept(FishtasticItems.ARCTIC_CHAR.value());
                     output.accept(FishtasticItems.BETTA.value());
+                    output.accept(FishtasticItems.BLACK_GHOST_KNIFEFISH.value());
                     output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLIND_CAVEFISH.value());
                     output.accept(FishtasticItems.BLIND_CAVE_TETRA.value());
@@ -56,6 +57,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.LARGETOOTH_SAWFISH.value());
                     output.accept(FishtasticItems.LEAFY_SEA_DRAGON.value());
                     output.accept(FishtasticItems.LINED_SEAHORSE.value());
+                    output.accept(FishtasticItems.LIONFISH.value());
                     output.accept(FishtasticItems.LIZARDFISH.value());
                     output.accept(FishtasticItems.LONGNOSE_GAR.value());
                     output.accept(FishtasticItems.MOLTEN_MOORISH_IDOL.value());

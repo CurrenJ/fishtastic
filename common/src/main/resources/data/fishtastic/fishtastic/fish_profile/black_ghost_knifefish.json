@@ -1,0 +1,21 @@
+{
+  "render_calibration": 1,
+  "base_weight": 4,
+  "size": { "mean": 35.0, "std_dev": 8.0 },
+  "zones": [
+    "cave"
+  ],
+  "biome_weights": [
+    { "biome": "#fishtastic:is_lush_caves", "multiplier": 1.5 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 0.6 }
+  ],
+  "moon_weights": [
+    { "phase": "full_moon", "multiplier": 1.3, "tier": "secondary" }
+  ],
+  "temperament": "fishtastic:ghost",
+  "animation": {
+    "mode": "horizontal_swim"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "lore": "A living fossil little changed since prehistory, the ornate bichir creeps along muddy riverbeds on stub-like fins, its row of dorsal spines bristling as it waits motionless for the dark to bring prey within striking range.",
+  "lore": "The ornate bichir is a freshwater bony fish belonging to family Polypteridae. It is found in Lake Tanganyika and the Congo River basin. It has a spotted black and yellow appearance with dorsal spines running its length. It has a pair of primitive lungs, enabling it to breathe air in low oxygen environments and even survive outside of water.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

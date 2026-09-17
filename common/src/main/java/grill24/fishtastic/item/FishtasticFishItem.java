@@ -41,16 +41,20 @@ import java.util.function.Consumer;
 
 public class FishtasticFishItem extends Item {
 
-    public record GaussianModifier(
-            float meanOffset, float stdDevOffset,
-            float meanMultiplier, float stdDevMultiplier) {}
+    /**
+     * Size scales relative to a species' own base mean/std-dev, not by a flat centimeter amount —
+     * a flat offset let quality tiers dwarf small species (e.g. a shrimp's 25cm base mean) while
+     * barely registering against large ones, so a Legendary shrimp ended up as long as a Legendary
+     * sawfish. Multiplying keeps every species' quality growth proportional to its own size.
+     */
+    public record GaussianModifier(float meanMultiplier, float stdDevMultiplier) {}
 
     public static final Map<FishQuality.Quality, List<GaussianModifier>> QUALITY_SIZE_MODIFIERS = Map.of(
-            FishQuality.Quality.COMMON,    List.of(new GaussianModifier(0.0f,  0.0f, 1.0f, 1.0f)),
-            FishQuality.Quality.UNCOMMON,  List.of(new GaussianModifier(10.0f, 0.0f, 1.1f, 1.1f)),
-            FishQuality.Quality.RARE,      List.of(new GaussianModifier(20.0f, 0.0f, 1.2f, 1.2f)),
-            FishQuality.Quality.EPIC,      List.of(new GaussianModifier(45.0f, 0.0f, 1.3f, 1.3f)),
-            FishQuality.Quality.LEGENDARY, List.of(new GaussianModifier(75.0f, 0.0f, 1.5f, 1.5f))
+            FishQuality.Quality.COMMON,    List.of(new GaussianModifier(1.0f, 1.0f)),
+            FishQuality.Quality.UNCOMMON,  List.of(new GaussianModifier(1.1f, 1.1f)),
+            FishQuality.Quality.RARE,      List.of(new GaussianModifier(1.2f, 1.15f)),
+            FishQuality.Quality.EPIC,      List.of(new GaussianModifier(1.35f, 1.25f)),
+            FishQuality.Quality.LEGENDARY, List.of(new GaussianModifier(1.6f, 1.4f))
     );
 
     public static final Map<FishQuality.Quality, Integer> QUALITY_WEIGHTS = Map.of(
@@ -293,8 +297,8 @@ public class FishtasticFishItem extends Item {
     public static float getRandomSize(RandomSource randomSource, FishQuality.Quality quality, float baseMeanSize, float baseStdDevSize) {
         List<GaussianModifier> modifiers = QUALITY_SIZE_MODIFIERS.get(quality);
         for (GaussianModifier modifier : modifiers) {
-            baseMeanSize += modifier.meanOffset;
-            baseStdDevSize = baseStdDevSize * modifier.meanMultiplier + modifier.stdDevOffset;
+            baseMeanSize *= modifier.meanMultiplier;
+            baseStdDevSize *= modifier.stdDevMultiplier;
         }
         return MathUtil.randomGaussian(randomSource, baseMeanSize, baseStdDevSize);
     }

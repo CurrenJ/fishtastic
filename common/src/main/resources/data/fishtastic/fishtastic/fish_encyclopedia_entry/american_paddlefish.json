@@ -1,0 +1,11 @@
+{
+  "lore": "The American paddleish, also known as a Mississippi paddlefish, spoon-billed cat, or spoonbill, is the last extant species of paddlefish. This primitive-looking filter-feeder consumes zooplankton for survival using its specially adapted body. It is the largest and longest-lived freshwater fish in North America, and can live for upwards of 30 years.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}
+

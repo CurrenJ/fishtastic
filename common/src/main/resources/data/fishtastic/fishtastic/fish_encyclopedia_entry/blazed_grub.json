@@ -1,5 +1,5 @@
 {
-  "lore": "Nobody quite agrees on whether the blazed grub is a fish that adapted to fire or a creature of fire that merely looks like one. Either way, it swarms the Nether's lava-warmed pools in numbers no other species there can match.",
+  "lore": "One of many curious species native to the Nether, the blazed grub scuttles slowly on lava lake beds. Forever parched, it seeks water that does not exist in its dimension.",
   "thresholds": {
     "name_reveal_catches": 2,
     "stats_catches": 3,
@@ -8,3 +8,4 @@
     "lore_catches": 30
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "Named for its tall, spotted flanks, the giraffe cichlid has one trick that unnerves every angler who's seen it: it goes still and sinks like a corpse the moment danger passes, only to spring back to life the instant something wanders too close. In the Nether's mottled crimson thickets, it blends in disturbingly well.",
+  "lore": "The giraffe cichlid is endemic to Lake Malawi in Africa. It uses a specialized hunting technique: it buries itself in sand and lies motionless in wait for prey.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

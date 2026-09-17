@@ -57,9 +57,6 @@ public final class CombGlassGeometryGenerator {
 
         List<CombTankSpans.Band> bands = new ArrayList<>();
         if (!upOpen) bands.addAll(spec.top());
-        int midYFrom = downOpen ? 0 : spec.middleYFromClosed();
-        int midYTo = upOpen ? 16 : spec.middleYToClosed();
-        bands.add(new CombTankSpans.Band(midYFrom, midYTo, new int[0][], spec.middleLow(), spec.middleHigh()));
         if (!downOpen) {
             bands.addAll(spec.bottom());
             if (spec.sandRow() != null) bands.add(spec.sandRow());
@@ -92,6 +89,169 @@ public final class CombGlassGeometryGenerator {
                     elements.add(paneZAxis(15, b.yFrom(), span[0], 16, b.yTo(), span[1], "west", "east"));
                 }
             }
+        }
+
+        addWaistGlassPanes(elements, spec, northClosed, southClosed, westClosed, eastClosed, upOpen, downOpen);
+
+        model.add("elements", elements);
+        return model;
+    }
+
+    /**
+     * The waist band's glass, split at the {@code spec.middleYFromClosed()}/{@code
+     * middleYToClosed()} boundary the same way {@code TaperedGlassGeometryGenerator#splitRunForCapBands}/
+     * {@code OrnateGlassGeometryGenerator} split a run — within the zone the waist's own Y-range
+     * extends into once a cap opens (see {@link CombFrameGeometryGenerator}'s {@code midYFrom}/{@code
+     * midYTo}), a corner that would otherwise flush fully to the boundary (its perpendicular face
+     * open, so no corner post excludes that span) instead yields to that face's own edge-diagonal
+     * beam — see {@link CombFrameGeometryGenerator#generateEdgeFragment}, which reconstructs the
+     * comb's asymmetric near-cap teeth over exactly this same widened Y-range.
+     *
+     * <p>Unlike {@code TaperedGlassGeometryGenerator}'s corner posts (a solid box whose reach-in
+     * <em>is</em> its glass-exclusion width), every comb inlay — including the waist's own
+     * {@code middleLow}/{@code middleHigh} — is a flush 1-unit-deep plate regardless of how far its
+     * span runs along the wall; the beam mirrors that same 1-unit depth. So within the capBand zone,
+     * only a single 1px sliver nearest the corner is excluded (matching the beam's actual footprint),
+     * not the waist's full along-wall width — excluding the full width here would carve out glass the
+     * beam never fills, reopening the exact gap this fix exists to close (confirmed by the tooth
+     * shape's capWidth=2 failing {@code TankShapeConnectivitySafetyTest#outerWallSkinHasNoGapsAtAnyBand}
+     * at the second cell in from the corner when this used the full width instead).
+     */
+    private static void addWaistGlassPanes(JsonArray elements, CombTankSpans.Spec spec,
+            boolean northClosed, boolean southClosed, boolean westClosed, boolean eastClosed,
+            boolean upOpen, boolean downOpen) {
+        int midYFrom = downOpen ? 0 : spec.middleYFromClosed();
+        int midYTo = upOpen ? 16 : spec.middleYToClosed();
+
+        for (double[] seg : splitForCapBands(midYFrom, midYTo, spec.middleYFromClosed(), spec.middleYToClosed(), upOpen, downOpen)) {
+            int yFrom = (int) seg[0], yTo = (int) seg[1];
+            if (yFrom >= yTo) continue;
+            boolean capBand = seg[2] != 0;
+
+            if (northClosed) {
+                List<int[]> excluded = new ArrayList<>();
+                excluded.addAll(waistExclusion(spec.middleLow(), true, westClosed, capBand));
+                excluded.addAll(waistExclusion(spec.middleHigh(), false, eastClosed, capBand));
+                excluded.sort((a, b) -> Integer.compare(a[0], b[0]));
+                for (int[] span : complement(excluded, 0, 16)) {
+                    elements.add(pane(span[0], yFrom, 0, span[1], yTo, 1, "north", "south"));
+                }
+            }
+            if (southClosed) {
+                List<int[]> excluded = new ArrayList<>();
+                excluded.addAll(waistExclusion(spec.middleLow(), true, westClosed, capBand));
+                excluded.addAll(waistExclusion(spec.middleHigh(), false, eastClosed, capBand));
+                excluded.sort((a, b) -> Integer.compare(a[0], b[0]));
+                for (int[] span : complement(excluded, 0, 16)) {
+                    elements.add(pane(span[0], yFrom, 15, span[1], yTo, 16, "north", "south"));
+                }
+            }
+            if (westClosed) {
+                List<int[]> excluded = new ArrayList<>();
+                excluded.addAll(waistExclusion(spec.middleLow(), true, northClosed, capBand));
+                excluded.addAll(waistExclusion(spec.middleHigh(), false, southClosed, capBand));
+                excluded.sort((a, b) -> Integer.compare(a[0], b[0]));
+                for (int[] span : complement(excluded, 0, 16)) {
+                    elements.add(paneZAxis(0, yFrom, span[0], 1, yTo, span[1], "west", "east"));
+                }
+            }
+            if (eastClosed) {
+                List<int[]> excluded = new ArrayList<>();
+                excluded.addAll(waistExclusion(spec.middleLow(), true, northClosed, capBand));
+                excluded.addAll(waistExclusion(spec.middleHigh(), false, southClosed, capBand));
+                excluded.sort((a, b) -> Integer.compare(a[0], b[0]));
+                for (int[] span : complement(excluded, 0, 16)) {
+                    elements.add(paneZAxis(15, yFrom, span[0], 16, yTo, span[1], "west", "east"));
+                }
+            }
+        }
+    }
+
+    /**
+     * The span to exclude from a waist glass pane for one side (low/high) of one Y-segment: the
+     * waist's real full-width plate when its neighbor is genuinely closed, a 1px sliver nearest the
+     * corner (matching the edge-diagonal beam's fixed plate depth) when the neighbor is open but this
+     * segment falls in the beam's capBand zone, or nothing otherwise.
+     */
+    private static List<int[]> waistExclusion(int[][] fullSpan, boolean anchoredAtZero, boolean neighborClosed, boolean capBand) {
+        if (neighborClosed) return List.of(fullSpan);
+        if (capBand) return List.of(anchoredAtZero ? new int[]{0, 1} : new int[]{15, 16});
+        return List.of();
+    }
+
+    /**
+     * Splits {@code [yFrom,yTo]} at the cap-band boundary(ies) — mirrors {@code
+     * TaperedGlassGeometryGenerator#splitRunForCapBands}, generalized off a plain Y-range plus the
+     * waist's own closed boundaries instead of a {@code CornerTaperProfile.Run}. Returned as
+     * {@code {yFrom, yTo, capBand(0/1)}} triples.
+     */
+    private static List<double[]> splitForCapBands(int yFrom, int yTo, int middleYFromClosed, int middleYToClosed,
+            boolean upOpen, boolean downOpen) {
+        double downBandTo = downOpen ? middleYFromClosed : -1;
+        double upBandFrom = upOpen ? middleYToClosed : 17;
+
+        java.util.TreeSet<Double> cuts = new java.util.TreeSet<>();
+        cuts.add((double) yFrom);
+        cuts.add((double) yTo);
+        if (downBandTo > yFrom && downBandTo < yTo) cuts.add(downBandTo);
+        if (upBandFrom > yFrom && upBandFrom < yTo) cuts.add(upBandFrom);
+
+        List<Double> sorted = new ArrayList<>(cuts);
+        List<double[]> result = new ArrayList<>();
+        for (int i = 0; i < sorted.size() - 1; i++) {
+            double lo = sorted.get(i), hi = sorted.get(i + 1);
+            double mid = (lo + hi) / 2;
+            boolean capBand = mid < downBandTo || mid > upBandFrom;
+            result.add(new double[]{lo, hi, capBand ? 1 : 0});
+        }
+        return result;
+    }
+
+    /**
+     * A standalone glass-restore fragment for one end of an eligible edge-diagonal beam — the comb
+     * counterpart to {@code TaperedGlassGeometryGenerator#generateEdgeGlassFillFragment}, restoring
+     * exactly the 1px sliver {@link #addWaistGlassPanes}'s cap-band split removed from {@code
+     * corner}'s "wall" side when the edge-diagonal neighbor cell IS filled (so the beam itself does
+     * not render there). Spans the full widened capBand Y-range (from {@code
+     * spec.middleYToClosed()}/{@code middleYFromClosed()} to the block boundary — matching {@code
+     * addWaistGlassPanes}'s split, not just the beam's own 1px vertical thickness at the true cap),
+     * since that's the whole zone the inset actually removed.
+     */
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner, CombTankSpans.Spec spec) {
+        return generateEdgeGlassFillFragment(edge, corner, spec, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeGlassFillFragment(TankEdge edge, TankCorner corner, CombTankSpans.Spec spec, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+
+        int y1 = edge.vertical() == TankFace.DOWN ? 0 : spec.middleYToClosed();
+        int y2 = edge.vertical() == TankFace.DOWN ? spec.middleYFromClosed() : 16;
+
+        TankFace wall = corner.faceA() == edge.horizontal() ? corner.faceB() : corner.faceA();
+
+        switch (wall) {
+            case NORTH -> {
+                int x1 = corner.xEdge() == 1 ? 15 : 0;
+                int x2 = corner.xEdge() == 1 ? 16 : 1;
+                elements.add(pane(x1, y1, 0, x2, y2, 1, "north", "south"));
+            }
+            case SOUTH -> {
+                int x1 = corner.xEdge() == 1 ? 15 : 0;
+                int x2 = corner.xEdge() == 1 ? 16 : 1;
+                elements.add(pane(x1, y1, 15, x2, y2, 16, "north", "south"));
+            }
+            case WEST -> {
+                int z1 = corner.zEdge() == 1 ? 15 : 0;
+                int z2 = corner.zEdge() == 1 ? 16 : 1;
+                elements.add(paneZAxis(0, y1, z1, 1, y2, z2, "west", "east"));
+            }
+            case EAST -> {
+                int z1 = corner.zEdge() == 1 ? 15 : 0;
+                int z2 = corner.zEdge() == 1 ? 16 : 1;
+                elements.add(paneZAxis(15, y1, z1, 16, y2, z2, "west", "east"));
+            }
+            default -> throw new IllegalArgumentException("Not a wall face: " + wall);
         }
 
         model.add("elements", elements);

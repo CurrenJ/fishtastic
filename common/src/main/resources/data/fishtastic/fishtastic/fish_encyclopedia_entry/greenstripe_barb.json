@@ -1,5 +1,5 @@
 {
-  "lore": "Quick, narrow, and built for speed, the greenstripe barb darts through jungle river shallows in flashes of green -- blink and you'll only see the ripple it left behind.",
+  "lore": "The greenstrip barb, also known as silver barb or striped barb, is a tropical freshwater fish of family Cyprinidae. It has black dots on its fins, and a yellow-green iridescence to its scales.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

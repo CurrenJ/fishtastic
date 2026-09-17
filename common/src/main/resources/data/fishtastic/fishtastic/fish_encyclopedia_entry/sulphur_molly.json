@@ -1,5 +1,5 @@
 {
-  "lore": "Long before anyone imagined a Nether, this molly was already thriving in scalding, sulfur-choked springs back on the surface -- gulping air at the surface to survive water that would kill most fish outright. Of everything swimming down here, it's the one species that seems the least surprised to be here.",
+  "lore": "The sulphur molly, also known as molly del Teapa, is a species of poeciliid fish. It is endemic to certain Mexican sulfur springs, surviving in the concentrated hydrogen sulfide that most other fish cannot.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

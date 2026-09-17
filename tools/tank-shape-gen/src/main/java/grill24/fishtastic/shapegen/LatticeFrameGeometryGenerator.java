@@ -62,6 +62,10 @@ public final class LatticeFrameGeometryGenerator {
             new Row(2, 3, new int[][]{{2, 3}, {13, 14}})      // row13
     );
 
+    /** The cap rows' edge width (rows 1/14) — constant regardless of whether the adjacent cap is
+     * open, unlike every tapered/shell shape's cap-adjacent row (see {@link #generateEdgeFragment}). */
+    private static final int CAP_EDGE_WIDTH = 2;
+
     private LatticeFrameGeometryGenerator() {}
 
     public static JsonObject generate(int permutationIndex) {
@@ -94,11 +98,72 @@ public final class LatticeFrameGeometryGenerator {
         return model;
     }
 
+    /**
+     * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
+     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * lattice writeup. Unlike {@link TaperedFrameGeometryGenerator#generateEdgeFragment}, which
+     * derives its box width from {@link CornerTaperProfile#baseWidth()} (the width a tapered
+     * corner post narrows <em>to</em> once its cap opens), lattice's cap rows never narrow at all —
+     * {@link #addEdge} always uses {@link #CAP_EDGE_WIDTH} regardless of {@code upOpen}/{@code
+     * downOpen} — so this uses that same constant width directly instead of borrowing a profile.
+     *
+     * <p>The matching glass-fill fragment ({@link LatticeGlassGeometryGenerator#generateEdgeGlassFillFragment})
+     * is an empty no-op (unlike the tapered/comb families): {@link LatticeGlassGeometryGenerator}'s
+     * cap-row bands already exclude the {@code [0,width)}/{@code [16-width,16)} corner columns from
+     * glass <em>unconditionally</em> — regardless of whether the perpendicular face is open — since
+     * {@link #addEdge} likewise renders both of a closed face's corner columns unconditionally (see
+     * this class's javadoc). So the beam's full-width reach never overlaps real glass at any
+     * permutation, and there is no cap-band sliver to restore — but the fragment model must still be
+     * emitted, because the runtime loads one for every shape that has edge fragments.
+     */
+    public static JsonObject generateEdgeFragment(TankEdge edge) {
+        return generateEdgeFragment(edge, DEFAULT_TEXTURE);
+    }
+
+    public static JsonObject generateEdgeFragment(TankEdge edge, String textureId) {
+        JsonObject model = baseModel(textureId);
+        JsonArray elements = new JsonArray();
+        elements.add(createEdgeBeamBox(edge, CAP_EDGE_WIDTH));
+        model.add("elements", elements);
+        addSingleGroup(model, "frame_edge_" + edge.name().toLowerCase());
+        return model;
+    }
+
+    /** Mirrors {@code TaperedFrameGeometryGenerator#createEdgeBeamBox} exactly — see its note. */
+    private static JsonObject createEdgeBeamBox(TankEdge edge, int width) {
+        double y1 = edge.vertical() == TankFace.DOWN ? 0 : 16 - width;
+        double y2 = edge.vertical() == TankFace.DOWN ? width : 16;
+
+        double x1, x2, z1, z2;
+        switch (edge.horizontal()) {
+            case NORTH -> { x1 = 0; x2 = 16; z1 = 0; z2 = width; }
+            case SOUTH -> { x1 = 0; x2 = 16; z1 = 16 - width; z2 = 16; }
+            case WEST -> { x1 = 0; x2 = width; z1 = 0; z2 = 16; }
+            case EAST -> { x1 = 16 - width; x2 = 16; z1 = 0; z2 = 16; }
+            default -> throw new IllegalArgumentException("Not a horizontal face: " + edge.horizontal());
+        }
+
+        JsonObject element = new JsonObject();
+        element.addProperty("name", "edge_" + edge.name().toLowerCase());
+        element.add("from", vec3(x1, y1, z1));
+        element.add("to", vec3(x2, y2, z2));
+
+        JsonObject faces = new JsonObject();
+        faces.add("north", face(16 - x2, 16 - y2, 16 - x1, 16 - y1, "#all"));
+        faces.add("south", face(x1, 16 - y2, x2, 16 - y1, "#all"));
+        faces.add("west", face(z1, 16 - y2, z2, 16 - y1, "#all"));
+        faces.add("east", face(16 - z2, 16 - y2, 16 - z1, 16 - y1, "#all"));
+        faces.add("up", face(x1, z1, x2, z2, "#all"));
+        faces.add("down", face(x1, 16 - z2, x2, 16 - z1, "#all"));
+        element.add("faces", faces);
+        return element;
+    }
+
     /** Adds the row's edge columns — width 2 for the cap rows (y span 1 unit tall touching a cap),
      * width 1 otherwise, inferred from the y-span identity used by the two callers above. */
     private static void addEdge(JsonArray elements, Set<TankFace> openFaces, int y1, int y2, String tag) {
         boolean wide = tag.equals("top") || tag.equals("bottom");
-        int w = wide ? 2 : 1;
+        int w = wide ? CAP_EDGE_WIDTH : 1;
         boolean northClosed = !openFaces.contains(TankFace.NORTH);
         boolean southClosed = !openFaces.contains(TankFace.SOUTH);
         boolean westClosed = !openFaces.contains(TankFace.WEST);

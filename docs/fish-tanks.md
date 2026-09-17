@@ -303,6 +303,75 @@ without another piece extending to cover its territory). Runs on every commit vi
 `scripts/git-hooks/pre-commit`. A new shape gets this coverage automatically the moment it's added to
 `TankShapeGeometryStrategies.ALL` — no separate wiring.
 
+### Diagonal-aware corner posts
+
+The connection system above (`openFaces`, the 64-permutation models) has no idea what's occupying a
+tank's *diagonal* neighbor cells. A generator's frame model omits a corner post whenever both of that
+corner's orthogonal faces are open — correct when the diagonal cell is also occupied by a same-collection
+tank (an L-shaped cluster's inner corner should stay open there), wrong when it's empty (the post is
+needed to close off the tank's silhouette).
+
+Rather than a flat 6-bit (`openFaces`) + 4-bit (diagonals) = 1024-permutation cross product (~16x asset
+growth), `FishTankBlockEntity` tracks `filledDiagonals` (a `TankDiagonal` `EnumSet`, recomputed live on
+every neighbor-change/load exactly like `openFaces`, no world-save migration needed) as an independent
+side-channel. `FishTankCompositeModelData#getDiagonalOverrideMask()` is the single canonicalization
+point: for each corner, "post needed despite both faces open" iff both faces are open *and* the
+corresponding diagonal is empty.
+
+Only 16 of the 22 shapes can ever need this (`FishTankShape#hasDiagonalCornerFragments()`) — the rest
+(`BRAMBLE`, `TOOTH`, `FILM`, `ARCH`, `MULLION`, `LATTICE`) gate their frame geometry per-face
+independently, with no combined-face corner gate to begin with (verified by reading their generators;
+`TankShapeConnectivitySafetyTest`'s `shapesWithoutCornerFragmentSupportHaveNoCombinedFaceCornerGate`
+guardrail keeps that claim from silently going stale). For the other 16, each shape's `Strategy` in
+`TankShapeGeometryStrategies` gets a `cornerFragment` function
+(`(TankCorner, capState 0-3) -> JsonObject`) that produces one small standalone model — just that
+corner's post geometry, independent of `openFaces` — reusing the exact same box-building code the base
+generator uses (`TaperedFrameGeometryGenerator`/`ShellFrameGeometryGenerator`/`OrnateFrameGeometryGenerator`/
+`ShaggyFrameGeometryGenerator`/`CreeperFrameGeometryGenerator` each expose a `generateCornerFragment`).
+Datagen emits these as 16 extra files per shape (`fish_tank_frame_corner_<nw|ne|sw|se>_<capState>.json`)
+alongside the unchanged 64 base permutations — **zero changes to the existing 64 files**, so the
+STANDARD byte-identical gate above stays trivially satisfied. Both platforms' baked-model classes
+(`FishTankBakedModelFabric`/`FishTankBakedModel`) load these 16-per-shape fragments at bake time and
+splice a fragment's quads onto the composite whenever `getDiagonalOverrideMask()` calls for it — the
+64 base models are never rebaked with the post included.
+
+`TankShapeConnectivitySafetyTest#diagonalCornersHaveNoGapsWhenDiagonalEmpty` sweeps every
+`(shape, permutation, corner)` triple where a corner is orthogonally eligible and asserts the base
+model plus that corner's fragment leaves no gap — confirming each fragment is genuinely
+geometry-equivalent to "this corner's post as if both faces were closed." That check treats glass as
+valid coverage too (its only job is "no bare voxel"), so it didn't catch a real visual bug: for the
+four shapes with a ring-shaped cap instead of a solid slab (`skylight`/`vitrine` via
+`TaperedFrameGeometryGenerator#createSkylightCeiling`/`createSkylightFloor`, `cupola`/`hutch` via
+`ShellFrameGeometryGenerator#addChamferedRing`'s full-width run), the ring's own corner square goes
+uncovered at a diagonal-empty bend — both of the corner's strips are gated on their own single face
+and clear at once — while the skylight glass pane isn't gated that way and flushes into it regardless.
+The plain `generateCornerFragment`/`ShellFrameGeometryGenerator`'s clamped-plate fragment never
+patched it either: both are built from `CornerTaperProfile#runs`, which only covers Minecraft Y 1-15
+(image rows 1-14) — Y 15-16/0-1 is the solid ceiling/floor slab's territory for the other 12 shapes, a
+slab these four replace with a ring. `generateSkylightCornerFragment`/`generateVitrineCornerFragment`
+(`TaperedFrameGeometryGenerator`) and `generateCupolaCornerFragment`/`generateHutchCornerFragment`
+(`ShellFrameGeometryGenerator`) add the missing cap-band plug(s) on top of the ordinary fragment,
+matching the ring's own inset width, gated on that cap actually being closed (an open cap means no
+ring was drawn — a real vertical-stacking seam, nothing to plug).
+
+**Follow-up: the plug z-fought the base glass pane.** The plug closes the gap, but for these same
+four shapes the base glass bake's skylight/floorlight pane (`TaperedGlassGeometryGenerator#addSkylightPaneBoxes`/
+`addFloorlightPaneBoxes`) *also* flushes into that same corner whenever both faces are open — it has
+no diagonal awareness, since it's baked once per permutation — so the plug ended up opaque frame
+occupying the exact same volume as translucent glass, visibly z-fighting. Fixed on the glass side,
+mirroring the edge-diagonal beam's own z-fight fix: `addHorizontalPaneBoxes` now notches a `t x t`
+square out of any corner whose two faces are both open (splitting the pane into a grid at each
+eligible corner's inset boundary so several simultaneously-eligible corners each get their own notch),
+and `generateSkylightGlassFillFragment`/`generateVitrineGlassFillFragment`/`generateCupolaGlassFillFragment`/
+`generateHutchGlassFillFragment` restore that notch as flush glass when the diagonal neighbor cell is
+filled instead (no plug renders there, so the pane should read as continuous). Composited via a new
+`FishTankCompositeModelData#getDiagonalGlassFillMask()` — the inverse of `getDiagonalOverrideMask()`,
+exactly mirroring `getEdgeDiagonalGlassFillMask()`'s relationship to `getEdgeDiagonalOverrideMask()` —
+and a new `Strategy.cornerGlassFillFragment()` slot, non-null only for these four shapes (see
+`FishTankShape#hasCornerGlassFillFragments()`). Verified empirically (a throwaway JUnit probe, not
+checked in) that the base pane no longer overlaps the plug, and that the fill fragment exactly
+reconstructs the old flush-corner footprint with no overlap against the notched base pane either.
+
 ### The previewer
 
 ```bash

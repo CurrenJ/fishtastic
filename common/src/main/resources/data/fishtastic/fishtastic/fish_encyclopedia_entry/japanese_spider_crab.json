@@ -1,5 +1,5 @@
 {
-  "lore": "With a leg span that can dwarf a diver, the Japanese spider crab picks its way across the deep ocean floor at night, patient and watchful, in no hurry at all.",
+  "lore": "The Japanese spider crab is a marine crab with the largest leg-span of any arthropod. It is the sole living member of the genus Macrocheira. Its unique molting process takes nearly two hours, and it is immobile during the process.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

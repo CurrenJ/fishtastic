@@ -1,0 +1,11 @@
+{
+  "lore": "The lionfish is a venomous marine fish belonging to genus Pterois. It is native to Indo-Pacific coral reefs. It makes use of aposematism to warn others of its venomous spines with its bright coloration. It hunts by blowing jets of water to confuse and orient its prey for easier capture.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}
+

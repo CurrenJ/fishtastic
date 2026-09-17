@@ -1,0 +1,11 @@
+{
+  "lore": "The fire dartfish, also known as the red fire goby, is native to coral reefs. Its bright yellow head and starkly red-orange tail are only outshined by an elongated dorsal fin that flicks back and forth.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}
+

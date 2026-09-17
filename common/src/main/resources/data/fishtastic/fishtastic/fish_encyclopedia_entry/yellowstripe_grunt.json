@@ -1,5 +1,5 @@
 {
-  "lore": "A gregarious reef dweller with bold yellow stripes, the yellowstripe grunt schools by the hundreds over sandy flats by day and scatters to hunt at night.",
+  "lore": "The yellowstrip grunt, also known as the smallmouth grunt or bronze grunt, is a species of grunt fish belonging to the family Haemulidae. It has five bronze-yellow horizontal lines on its side. It inhabits coral reefs and rocky coasts, and spends daytime in schools before dispersing at night to feed.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

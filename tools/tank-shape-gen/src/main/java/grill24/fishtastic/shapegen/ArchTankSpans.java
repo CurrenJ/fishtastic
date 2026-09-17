@@ -79,6 +79,14 @@ public final class ArchTankSpans {
     /** The Y the 2px jamb reaches up to — the band the corner diagonal fill has to span. */
     public static final int WIDE_JAMB_Y_TO = 9;
 
+    /** The jamb width of the row nearest the floor ({@code ROWS}' last entry) — the edge-diagonal
+     * frame beam's width for a {@code DOWN} edge (see {@code ArchFrameGeometryGenerator#generateEdgeFragment}). */
+    public static final int NEAR_FLOOR_JAMB_WIDTH = ROWS.getLast().jambWidth();
+
+    /** The jamb width of the row nearest the ceiling ({@code ROWS}' first entry) — the edge-diagonal
+     * frame beam's width for an {@code UP} edge. */
+    public static final int NEAR_CEILING_JAMB_WIDTH = ROWS.getFirst().jambWidth();
+
     private ArchTankSpans() {}
 
     /**
@@ -95,6 +103,51 @@ public final class ArchTankSpans {
             int yFrom = row.yFrom() == 1 && downOpen ? 0 : row.yFrom();
             int yTo = row.yTo() == 15 && upOpen ? 16 : row.yTo();
             bands.add(new Band(yFrom, yTo, solidSpans(row, lowOpen, highOpen)));
+        }
+        return mergeAdjacent(bands);
+    }
+
+    /**
+     * The glass-side counterpart to {@link #bands}: identical except that, within the narrow band
+     * nearest an open cap that an edge-diagonal frame beam might occupy — {@code [0,
+     * NEAR_FLOOR_JAMB_WIDTH)} when {@code downOpen}, {@code [16-NEAR_CEILING_JAMB_WIDTH, 16)} when
+     * {@code upOpen} — both jamb ends are treated as present (closed) regardless of the real {@code
+     * lowOpen}/{@code highOpen}, so the glass complement never extends flush into the beam's
+     * territory (which would double-cover it with opaque frame over translucent glass — see {@code
+     * TankShapeConnectivitySafetyTest#edgeFragmentNeverOverlapsBaseGlass}). Everywhere outside that
+     * band, the real open state applies, unchanged from {@link #bands}. See {@code
+     * ArchGlassGeometryGenerator#generateEdgeGlassFillFragment} for the matching restore fragment.
+     *
+     * <p>Only the near-floor row (height 6, wider than its 2px cap band) actually needs splitting;
+     * the near-ceiling row's own height already equals its 1px cap band, so forcing applies to it
+     * whole. The split is written generically off the two cap-band cut points rather than hardcoding
+     * "the last row", so it keeps working if the pixel transcription ever changes.
+     */
+    public static List<Band> glassBands(boolean lowOpen, boolean highOpen, boolean upOpen, boolean downOpen) {
+        int downCapTo = downOpen ? NEAR_FLOOR_JAMB_WIDTH : -1;
+        int upCapFrom = upOpen ? 16 - NEAR_CEILING_JAMB_WIDTH : 17;
+
+        List<Band> bands = new ArrayList<>();
+        for (Row row : ROWS) {
+            int yFrom = row.yFrom() == 1 && downOpen ? 0 : row.yFrom();
+            int yTo = row.yTo() == 15 && upOpen ? 16 : row.yTo();
+
+            List<Integer> cuts = new ArrayList<>();
+            cuts.add(yFrom);
+            if (downCapTo > yFrom && downCapTo < yTo) cuts.add(downCapTo);
+            if (upCapFrom > yFrom && upCapFrom < yTo) cuts.add(upCapFrom);
+            cuts.add(yTo);
+
+            // Descending so a row's own sub-bands come out high-to-low, matching bands()'s overall
+            // top-down order (mergeAdjacent expects previous.yFrom() == current.yTo()).
+            for (int i = cuts.size() - 2; i >= 0; i--) {
+                int subFrom = cuts.get(i), subTo = cuts.get(i + 1);
+                if (subFrom >= subTo) continue;
+                int mid = (subFrom + subTo) / 2;
+                boolean forcedClosed = mid < downCapTo || mid >= upCapFrom;
+                List<int[]> spans = solidSpans(row, forcedClosed ? false : lowOpen, forcedClosed ? false : highOpen);
+                bands.add(new Band(subFrom, subTo, spans));
+            }
         }
         return mergeAdjacent(bands);
     }

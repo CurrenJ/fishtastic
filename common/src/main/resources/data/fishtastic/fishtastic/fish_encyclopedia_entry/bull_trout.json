@@ -1,5 +1,5 @@
 {
-  "lore": "A stout, powerfully built char that prowls the deepest pools of frigid mountain rivers, ambushing smaller fish with sudden bursts of speed. Its presence is a sign of pristine, cold water.",
+  "lore": "The bull trout is a species of char found in rivers in North America. Its large head and mouth are unusual for salmonids. It can be migratory throughout its life cycle.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "A streak of iridescent pink runs the length of this trout's flank, flashing as it launches into the air fighting the hook. Cold headwater streams below snowy peaks are its favorite hunting grounds.",
+  "lore": "The rainbow trout is a cold-water trout found in rivers and lakes. It ranges from blue-green to olive in color, with black spots along its flank. Adults have a pink-reddish lateral stripe. It returns to freshwater to spawn after living in the ocean for two to three years..",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

@@ -148,6 +148,7 @@ public class FishtasticItems {
     public static Holder<Item> AMERICAN_PADDLEFISH;
     public static Holder<Item> ANGLER_FISH;
     public static Holder<Item> ARCTIC_CHAR;
+    public static Holder<Item> BLACK_GHOST_KNIFEFISH;
     public static Holder<Item> BLIND_CAVEFISH;
     public static Holder<Item> BLIND_CAVE_TETRA;
     public static Holder<Item> BLUEGILL;
@@ -177,6 +178,7 @@ public class FishtasticItems {
     public static Holder<Item> LARGETOOTH_SAWFISH;
     public static Holder<Item> LEAFY_SEA_DRAGON;
     public static Holder<Item> LINED_SEAHORSE;
+    public static Holder<Item> LIONFISH;
     public static Holder<Item> LIZARDFISH;
     public static Holder<Item> LONGNOSE_GAR;
     public static Holder<Item> MOLTEN_MOORISH_IDOL;
@@ -238,6 +240,7 @@ public class FishtasticItems {
         AMERICAN_PADDLEFISH = RegistrationApiSided.getInstance().registerItem("american_paddlefish", loc -> new FishtasticFishItem(props(loc)));
         ANGLER_FISH = RegistrationApiSided.getInstance().registerItem("angler_fish", loc -> new FishtasticFishItem(props(loc)));
         ARCTIC_CHAR = RegistrationApiSided.getInstance().registerItem("arctic_char", loc -> new FishtasticFishItem(props(loc)));
+        BLACK_GHOST_KNIFEFISH = RegistrationApiSided.getInstance().registerItem("black_ghost_knifefish", loc -> new FishtasticFishItem(props(loc)));
         BETTA = RegistrationApiSided.getInstance().registerItem("betta", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVEFISH = RegistrationApiSided.getInstance().registerItem("blind_cavefish", loc -> new FishtasticFishItem(props(loc)));
         BLIND_CAVE_TETRA = RegistrationApiSided.getInstance().registerItem("blind_cave_tetra", loc -> new FishtasticFishItem(props(loc)));
@@ -268,6 +271,7 @@ public class FishtasticItems {
         LARGETOOTH_SAWFISH = RegistrationApiSided.getInstance().registerItem("largetooth_sawfish", loc -> new FishtasticFishItem(props(loc)));
         LEAFY_SEA_DRAGON = RegistrationApiSided.getInstance().registerItem("leafy_sea_dragon", loc -> new FishtasticFishItem(props(loc)));
         LINED_SEAHORSE = RegistrationApiSided.getInstance().registerItem("lined_seahorse", loc -> new FishtasticFishItem(props(loc)));
+        LIONFISH = RegistrationApiSided.getInstance().registerItem("lionfish", loc -> new FishtasticFishItem(props(loc)));
         LIZARDFISH = RegistrationApiSided.getInstance().registerItem("lizardfish", loc -> new FishtasticFishItem(props(loc)));
         LONGNOSE_GAR = RegistrationApiSided.getInstance().registerItem("longnose_gar", loc -> new FishtasticFishItem(props(loc)));
         MOLTEN_MOORISH_IDOL = RegistrationApiSided.getInstance().registerItem("molten_moorish_idol", loc -> new FishtasticFishItem(props(loc)));

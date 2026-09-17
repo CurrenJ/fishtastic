@@ -1,5 +1,5 @@
 {
-  "lore": "A sharp-eyed hunter of open water, the acute iaspis grows bolder as night deepens, and hunts most fiercely of all beneath a full moon, when its instincts sharpen to a razor's edge.",
+  "lore": "The fantastical Acute Iapsis has yet to be officially documented in any official records. Folklore describes its appearance as evocative of gems. Its hard skin is highly reflective and gleams under any hint of light; a dazzling display.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

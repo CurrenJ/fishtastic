@@ -9,7 +9,7 @@
         "fishtastic:fish_tank_materials": {
           "frame": "minecraft:dark_prismarine",
           "glass": "fishtastic:blue_clear_stained_glass",
-          "sand": "minecraft:gravel"
+          "sand": "minecraft:lime_concrete_powder"
         },
         "fishtastic:fish_tank_shape": "sturdy"
       },

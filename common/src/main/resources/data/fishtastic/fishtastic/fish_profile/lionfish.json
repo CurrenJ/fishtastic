@@ -1,0 +1,16 @@
+{
+  "render_calibration": 1.13,
+  "base_weight": 5,
+  "size": { "mean": 32.0, "std_dev": 8.0 },
+  "zones": [
+    "ocean"
+  ],
+  "temperament": "fishtastic:aggressive",
+  "time_weights": [
+    { "time": "dawn", "multiplier": 1.5 }
+  ],
+  "weather_weights": [
+    { "weather": "snow", "multiplier": 2.0 },
+    { "weather": "thunder", "multiplier": 1.5 }
+  ]
+}

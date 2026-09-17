@@ -1,5 +1,5 @@
 {
-  "lore": "Where the ocean's warmth gives way to ice, a pale cousin of the giant manta ray glides beneath the frozen swells. It startles at the faintest disturbance, drifting closest to the surface only under moonless skies and driving rain, when the water hides it best.",
+  "lore": "The fantastical frozen giant manta ray sparkles in the dim light of its deep ocean home. Its slow metabolism and cold body contribute to its slow movement. Its got nowhere to be.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "An unbothered, easygoing fish found in slow rivers and high mountain lakes alike, the bluegill bites readily by day and rarely puts up much of a fight -- the reliable first catch for most anglers.",
+  "lore": "The bluegill, also known as bream or sunny, is a freshwater fish found in rivers, streams, and lakes in North America.",
   "thresholds": {
     "name_reveal_catches": 2,
     "stats_catches": 3,
@@ -8,3 +8,4 @@
     "lore_catches": 30
   }
 }
+

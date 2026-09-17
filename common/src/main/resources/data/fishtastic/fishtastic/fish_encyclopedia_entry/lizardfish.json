@@ -1,5 +1,5 @@
 {
-  "lore": "A patient ambush predator that lies half-buried in the sand waiting for prey to wander close, the lizardfish hunts most confidently on the darkest nights, when a thin crescent moon or none at all leaves the water black.",
+  "lore": "Lizardfishes are benthic marine bony fishes. They have many sharp teeth, including on their tongues.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

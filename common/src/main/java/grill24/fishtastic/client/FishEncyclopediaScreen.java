@@ -88,6 +88,17 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final Identifier STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
     private static final float STATUS_PIP_SIZE = 5f;
 
+    // Shared cap on the unscaled width of the info page's widest wrappable content elements
+    // (lore text, and merged spawn-condition rows — see addSpawnConditionRows). Without a
+    // shared cap, a fish with a long lore string or many same-tier conditions merged onto one
+    // comma-joined row (see addAxisRows) would produce a wider element than other fish, which
+    // becomes the info page's widest child and drags its single page.scaleToWidth(...) factor
+    // down — shrinking every section's text, not just the long one. Keeping both content types
+    // wrapped to the same width keeps every fish's widest content element in the same ballpark,
+    // so text size stays consistent across the encyclopedia regardless of content. Bump this to
+    // let lore/spawn lines run wider before wrapping; both call sites must stay in sync.
+    private static final float CONTENT_MAX_WIDTH = 220f;
+
     // Zone icon shown atop each Zones-section column, same art (and outline shader) the fishing
     // minigame's HUD zone stack uses — rendered larger than a normal row icon since Zones is now
     // its own always-visible section rather than a line item tucked into Types.
@@ -522,7 +533,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         root.addChild(backBtn);
         backButton = backBtn;
 
-        float pageWidth = this.width * 0.4f;
+        float pageWidth = this.width * 0.6f;
 
         VBox page = UI.vbox().spacing(8).padding(6).alignment(VBox.Alignment.CENTER);
 
@@ -731,9 +742,34 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                             nameGetter.apply(w) + " (" + formatMultiplier(tier, multiplierGetter.apply(w)) + ")",
                             () -> metCheck.test(w)))
                     .toList();
-            content.addChild(buildSpawnConditionRow(segments, spawnConditionPipUpdaters, 0xFFCCCCCC, STATUS_PIP_DEFAULT_TEXTURE));
+            addSpawnConditionRows(content, segments, spawnConditionPipUpdaters, 0xFFCCCCCC, STATUS_PIP_DEFAULT_TEXTURE);
         }
         return true;
+    }
+
+    /**
+     * Adds one or more rows for {@code segments}, wrapping onto a new row whenever the next
+     * segment would push the current row's estimated width past {@link #SPAWN_ROW_MAX_WIDTH}.
+     * See {@link #SPAWN_ROW_MAX_WIDTH}'s javadoc for why this cap exists.
+     */
+    private void addSpawnConditionRows(VBox content, List<ConditionSegment> segments, List<Runnable> pipUpdaters,
+                                        int textColor, Identifier unmetTexture) {
+        List<ConditionSegment> currentRow = new ArrayList<>();
+        float currentRowWidth = 0f;
+        for (ConditionSegment segment : segments) {
+            float segmentWidth = STATUS_PIP_SIZE + 2 + tempContext.getStringWidth(segment.text());
+            float addedWidth = segmentWidth + (currentRow.isEmpty() ? 0 : tempContext.getStringWidth(",") + 2);
+            if (!currentRow.isEmpty() && currentRowWidth + addedWidth > CONTENT_MAX_WIDTH) {
+                content.addChild(buildSpawnConditionRow(currentRow, pipUpdaters, textColor, unmetTexture));
+                currentRow = new ArrayList<>();
+                addedWidth = segmentWidth;
+            }
+            currentRow.add(segment);
+            currentRowWidth += addedWidth;
+        }
+        if (!currentRow.isEmpty()) {
+            content.addChild(buildSpawnConditionRow(currentRow, pipUpdaters, textColor, unmetTexture));
+        }
     }
 
     private static String formatMultiplier(FishProfile.ConditionTier tier, float multiplier) {
@@ -838,7 +874,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildLoreContent(FishEncyclopediaEntry entry) {
         VBox content = UI.vbox().spacing(2).padding(4).alignment(VBox.Alignment.CENTER).backgroundColor(0x44222222);
         String lore = entry.lore().orElseGet(() -> translated("screen.fishtastic.encyclopedia.no_lore"));
-        content.addChild(new Label(lore, 0xFFDDDDDD).maxWidth(150).centered(true).init(tempContext));
+        content.addChild(new Label(lore, 0xFFDDDDDD).maxWidth(CONTENT_MAX_WIDTH).centered(true).init(tempContext));
         return content;
     }
 

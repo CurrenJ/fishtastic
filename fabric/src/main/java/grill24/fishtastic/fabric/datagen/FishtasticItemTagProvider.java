@@ -239,7 +239,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.DEVILS_HOLE_PUPFISH.value())
                 .add(FishtasticItems.INDIAN_GLASSY_FISH.value())
-                .add(FishtasticItems.LARGETOOTH_SAWFISH.value());
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
+                .add(FishtasticItems.LIONFISH.value());
 
         // Taxonomic groups: real-world clades backing the "catch every species in this family"
         // explorer quests. Not derivable from fish_profile (which knows nothing about taxonomy),

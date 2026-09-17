@@ -1,5 +1,5 @@
 {
-  "lore": "Somehow, impossibly, a shrimp thrives in the Nether's boiling pools -- already cooked by the very heat it swims in. No angler has worked out why it doesn't simply dissolve, and the shrimp, for its part, doesn't seem to mind.",
+  "lore": "The unfortunate aftermath of a transdimensional crustacean event. It happens to the best of us.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "An ambush predator with a temper to match its teeth, the northern pike strikes hardest in the low light of dawn and dusk, closing the gap on unsuspecting prey before they ever see it coming.",
+  "lore": "The northern pike is a species of carnivorous freshwater fish belonging to genus Esox. It has an olive green color, and small pale spots on its flank. It is an ambush predator, and can stay still for long periods of time while waiting for prey.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

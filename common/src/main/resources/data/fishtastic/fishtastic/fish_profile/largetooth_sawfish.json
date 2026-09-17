@@ -1,7 +1,7 @@
 {
   "render_calibration": 0.84,
   "base_weight": 2,
-  "size": { "mean": 120.0, "std_dev": 20.0 },
+  "size": { "mean": 90.0, "std_dev": 15.0 },
   "zones": [
     "ocean",
     "river"

@@ -1,5 +1,5 @@
 {
-  "lore": "Colonies of garden eels root themselves in open sand, swaying in hypnotic unison to filter the daylight currents for passing food -- disturb the sand and the whole colony vanishes into its burrows at once.",
+  "lore": "Garden eels are benthic eels that live in burrows on the sea floor. They poke their long heads out of the burrows to feed on plankton.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

@@ -1,5 +1,5 @@
 {
-  "lore": "Generations spent in lightless caverns have cost the blind cavefish its eyes entirely, but sharpened every other sense to compensate. It startles at the smallest disturbance and all but vanishes in daylight.",
+  "lore": "The blind cavefish (Typhleotris madagascariensis) is endemic to underground waters in Madagascar. It lives in warm water in limestone caves and sinkholes.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,5 @@
     "lore_catches": 6
   }
 }
+
+

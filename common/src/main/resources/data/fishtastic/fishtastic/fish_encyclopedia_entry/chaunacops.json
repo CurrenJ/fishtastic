@@ -1,0 +1,11 @@
+{
+  "lore": "Chaunacops is a genus of deep sea anglerfish with relatively little recorded information. It belongs to the family Chaunacidae, the sea toads.",
+  "thresholds": {
+    "name_reveal_catches": 1,
+    "stats_catches": 1,
+    "types_catches": 2,
+    "spawn_conditions_catches": 1,
+    "lore_catches": 6
+  }
+}
+

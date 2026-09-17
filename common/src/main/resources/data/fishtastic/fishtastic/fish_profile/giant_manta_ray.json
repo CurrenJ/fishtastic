@@ -1,7 +1,7 @@
 {
   "render_calibration": 1.14,
   "base_weight": 4,
-  "size": { "mean": 75.0, "std_dev": 15.0 },
+  "size": { "mean": 58.0, "std_dev": 12.0 },
   "zones": [
     "ocean"
   ],

@@ -1,5 +1,5 @@
 {
-  "lore": "A cold-blooded specialist of mountain lakes, the arctic char thrives where most fish would freeze solid, feeding hardest at dawn and dusk when the snow falls thickest around the peaks.",
+  "lore": "The Arctic char is a cold-water fish in the family Salmonidae. It is native to alpine lakes and Arctic waters, and is the world's most northerly freshwater fish.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

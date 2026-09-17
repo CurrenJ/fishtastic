@@ -196,6 +196,66 @@ public enum FishTankShape implements TooltipProvider {
      */
     CREEPER(Fishtastic.id("creeper"), Fishtastic.id("standard"), "fishtank_creeper");
 
+    /**
+     * Shapes whose frame generator has no combined-face corner gate to begin with, so a diagonal
+     * corner post can never be missing for them — mirrors {@code TankShapeGeometryStrategies}'s
+     * {@code cornerFragment == null} entries in {@code tools/tank-shape-gen} exactly (that module
+     * has no Minecraft dependency, so this list can't be derived from it directly; keep the two in
+     * sync — {@code TankShapeConnectivitySafetyTest}'s guardrail test fails if they drift).
+     */
+    private static final java.util.Set<String> NO_DIAGONAL_CORNER_FRAGMENTS = java.util.Set.of(
+            "bramble", "tooth", "film", "arch", "mullion", "lattice");
+
+    /**
+     * Shapes whose datagen does not emit edge-diagonal frame-beam fragments (the edge-diagonal
+     * frame beam fix). Ornate/Shaggy/Creeper turned out to already use a plain 1px corner post
+     * identical in formula to {@code CornerTaperProfile.STANDARD} (proven by inspection: same
+     * {@code floorClosed?1:0}/{@code ceilingClosed?15:16} extent), so they were promoted out of this
+     * set and reuse the shared tapered generator directly. Tooth/film got bespoke support too: their
+     * near-cap "teeth" bands carry asymmetric per-row low/high pixels {@code CornerTaperProfile.Run}
+     * can't represent, so {@code CombFrameGeometryGenerator#generateEdgeFragment} reconstructs the
+     * actual band list directly instead of borrowing a uniform-width profile (see
+     * {@code CombGlassGeometryGenerator#addWaistGlassPanes} for the matching glass-side cap-band
+     * split). Lattice got bespoke support too: its cap-adjacent rows never narrow when their cap
+     * opens (unlike every tapered/shell profile's cap-adjacent row), so {@code
+     * LatticeFrameGeometryGenerator#generateEdgeFragment} uses that same constant width directly
+     * instead of borrowing {@code CornerTaperProfile#baseWidth()} — and needs no matching glass-fill
+     * fragment, since lattice's own glass already excludes the corner columns unconditionally.
+     * Mullion got bespoke support too: its beam is a plain 1px seal used uniformly on all 8 edges
+     * (mullion has no combined-face corner gate to begin with, so the usual "gap when a diagonal
+     * neighbor is missing" problem is universal there, not cap-band-specific), but only the
+     * EAST/SOUTH-horizontal edges ever collide with real glass — the wall-gated corner, not the
+     * always-present anchor corner — so {@code MullionGlassGeometryGenerator#generateEdgeGlassFillFragment}
+     * is a no-op for the other four edges. Arch got bespoke support too: its jamb is a plain
+     * rectangular post whose width only varies by height band (1px near the ceiling, 2px near the
+     * floor), so {@code ArchFrameGeometryGenerator#generateEdgeFragment} borrows the near-cap row's
+     * own width directly instead of a {@code CornerTaperProfile} — and because every one of arch's 8
+     * edges is an ordinary gated corner post (no always-present anchor side, unlike mullion),
+     * {@code ArchGlassGeometryGenerator} needed its own cap-band-forced {@code glassBands} (see
+     * {@code ArchTankSpans#glassBands}) to keep the base glass bake from extending into the beam's
+     * territory, plus a matching {@code generateEdgeGlassFillFragment} for both of an edge's end
+     * corners, not just one. Bramble has no uniform corner post at all, and stays permanently
+     * excluded. See docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup.
+     * Mirrors {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
+     * {@code tools/tank-shape-gen} exactly — keep the two in sync.
+     */
+    private static final java.util.Set<String> NO_EDGE_DIAGONAL_FRAGMENTS = java.util.Set.of(
+            "bramble");
+
+    /**
+     * Shapes whose datagen emits corner glass-fill fragments — the glass-side counterpart of
+     * {@link #NO_DIAGONAL_CORNER_FRAGMENTS}'s corner posts, needed only by the four shapes whose
+     * ceiling/floor is a frame ring around a glass pane instead of a solid slab (the pane now
+     * notches out any corner whose two faces are both open, to avoid overlapping/z-fighting the
+     * diagonal-aware corner post there — see {@code TaperedGlassGeometryGenerator#addHorizontalPaneBoxes}
+     * in {@code tools/tank-shape-gen}). An allowlist rather than an exclusion list, unlike the other
+     * two fragment sets, since this is the rare case (4 of 22 shapes) rather than the common one.
+     * Mirrors {@code TankShapeGeometryStrategies}'s {@code cornerGlassFillFragment != null} entries
+     * exactly — keep the two in sync.
+     */
+    private static final java.util.Set<String> CORNER_GLASS_FILL_FRAGMENTS = java.util.Set.of(
+            "skylight", "vitrine", "cupola", "hutch");
+
     private final Identifier id;
     private final Identifier connectionCollection;
     private final String modelPathPrefix;
@@ -239,6 +299,39 @@ public enum FishTankShape implements TooltipProvider {
      */
     public boolean requiresSandMaterial() {
         return requiresSandMaterial;
+    }
+
+    /**
+     * Whether this shape's datagen emitted diagonal-aware corner-post fragments (16 small
+     * per-corner/cap-state models under this shape's model path prefix, alongside the 64 base
+     * permutations) for the bake-time compositor to load and stitch in when
+     * {@link FishTankCompositeModelData#getDiagonalOverrideMask()} calls for one. See
+     * {@link #NO_DIAGONAL_CORNER_FRAGMENTS}.
+     */
+    public boolean hasDiagonalCornerFragments() {
+        return !NO_DIAGONAL_CORNER_FRAGMENTS.contains(getSerializedName());
+    }
+
+    /**
+     * Whether this shape's datagen emitted edge-diagonal frame-beam fragments (8 small
+     * per-edge models under this shape's model path prefix, alongside the 64 base permutations)
+     * for the bake-time compositor to load and stitch in when
+     * {@link FishTankCompositeModelData#getEdgeDiagonalOverrideMask()} calls for one. See
+     * {@link #NO_EDGE_DIAGONAL_FRAGMENTS}.
+     */
+    public boolean hasEdgeDiagonalFragments() {
+        return !NO_EDGE_DIAGONAL_FRAGMENTS.contains(getSerializedName());
+    }
+
+    /**
+     * Whether this shape's datagen emitted corner glass-fill fragments (4 small per-corner/cap-state
+     * glass models under this shape's model path prefix) for the bake-time compositor to load and
+     * stitch in when {@link FishTankCompositeModelData#getDiagonalGlassFillMask()} calls for one —
+     * restoring the base glass pane's notch as flush glass when the diagonal neighbor cell is
+     * filled (so no corner post renders there). See {@link #CORNER_GLASS_FILL_FRAGMENTS}.
+     */
+    public boolean hasCornerGlassFillFragments() {
+        return CORNER_GLASS_FILL_FRAGMENTS.contains(getSerializedName());
     }
 
     /**

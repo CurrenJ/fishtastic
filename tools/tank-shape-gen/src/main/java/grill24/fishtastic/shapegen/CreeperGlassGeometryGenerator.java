@@ -54,39 +54,51 @@ public final class CreeperGlassGeometryGenerator {
         JsonObject model = baseModel(textureId);
         JsonArray elements = new JsonArray();
 
-        List<Band> bands = glassBands(!openFaces.contains(TankFace.UP), !openFaces.contains(TankFace.DOWN));
+        boolean upOpen = openFaces.contains(TankFace.UP);
+        boolean downOpen = openFaces.contains(TankFace.DOWN);
+        List<Band> bands = glassBands(!upOpen, !downOpen);
 
+        // Within the 1px cap band, a corner that would otherwise flush to the boundary (its
+        // perpendicular face open) instead yields to that face's own edge-diagonal frame beam —
+        // see TaperedFrameGeometryGenerator#generateEdgeFragment and
+        // TaperedGlassGeometryGenerator#splitRunForCapBands's matching note. Creeper's corner post
+        // is the same plain 1px post as CornerTaperProfile.STANDARD, so the same fix applies here,
+        // hand-duplicated since creeper has its own glass generator.
         if (northClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(b.holeSpans, minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom, 0, span[1], b.yTo, 1, "north", "south"));
                 }
             }
         }
         if (southClosed) {
-            int minX = westClosed ? 1 : 0;
-            int maxX = eastClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minX = (westClosed || (capBand && !westClosed)) ? 1 : 0;
+                int maxX = (eastClosed || (capBand && !eastClosed)) ? 15 : 16;
                 for (int[] span : complement(b.holeSpans, minX, maxX)) {
                     elements.add(pane(span[0], b.yFrom, 15, span[1], b.yTo, 16, "north", "south"));
                 }
             }
         }
         if (westClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(b.holeSpans, minZ, maxZ)) {
                     elements.add(paneZAxis(0, b.yFrom, span[0], 1, b.yTo, span[1], "west", "east"));
                 }
             }
         }
         if (eastClosed) {
-            int minZ = northClosed ? 1 : 0;
-            int maxZ = southClosed ? 15 : 16;
             for (Band b : bands) {
+                boolean capBand = (downOpen && b.yFrom == 0) || (upOpen && b.yTo == 16);
+                int minZ = (northClosed || (capBand && !northClosed)) ? 1 : 0;
+                int maxZ = (southClosed || (capBand && !southClosed)) ? 15 : 16;
                 for (int[] span : complement(b.holeSpans, minZ, maxZ)) {
                     elements.add(paneZAxis(15, b.yFrom, span[0], 16, b.yTo, span[1], "west", "east"));
                 }
@@ -103,16 +115,28 @@ public final class CreeperGlassGeometryGenerator {
     /**
      * The glass's Y bands, top to bottom. The plain bands above/below the creeper face extend to
      * the block boundary (y=0 / y=16) when the adjacent cap is open, for the vertical seam; the
-     * creeper-face bands themselves never touch a cap so are unaffected by UP/DOWN.
+     * creeper-face bands themselves never touch a cap so are unaffected by UP/DOWN. The
+     * boundary-touching band is kept as its own separate 1px slice (rather than merged wider) so
+     * the cap-band-only corner fix above can target exactly that 1px slice.
      */
     private static List<Band> glassBands(boolean upClosed, boolean downClosed) {
         List<Band> bands = new ArrayList<>();
-        bands.add(new Band(downClosed ? 1 : 0, 5, List.of()));
+        if (downClosed) {
+            bands.add(new Band(1, 5, List.of()));
+        } else {
+            bands.add(new Band(0, 1, List.of()));
+            bands.add(new Band(1, 5, List.of()));
+        }
         bands.add(new Band(5, 6, Y56));
         bands.add(new Band(6, 8, Y68));
         bands.add(new Band(8, 9, Y89));
         bands.add(new Band(9, 11, Y911));
-        bands.add(new Band(11, upClosed ? 15 : 16, List.of()));
+        if (upClosed) {
+            bands.add(new Band(11, 15, List.of()));
+        } else {
+            bands.add(new Band(11, 15, List.of()));
+            bands.add(new Band(15, 16, List.of()));
+        }
         return bands;
     }
 

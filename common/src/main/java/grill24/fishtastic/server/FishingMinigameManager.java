@@ -370,11 +370,6 @@ public class FishingMinigameManager {
                     player.getName().getString(), timeTaken);
         }
 
-        List<ItemStack> rewards = new ArrayList<>();
-        List<ItemStack> questStacks = new ArrayList<>();
-        List<ItemStack> firstCatchItems = new ArrayList<>();
-        int trashCaught = 0;
-        int xpAwarded = 0;
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
         Registry<FishProfile> xpFishProfiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
@@ -382,61 +377,36 @@ public class FishingMinigameManager {
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
         boolean autoPileFish = (deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish())
                 || hasCharmEffectInInventory(player, CharmEffect::autoPileFish);
+
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
+        List<ServerFishingTarget> caughtTargets = new ArrayList<>();
         for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
             if (index >= 0 && index < session.targets.size()) {
-                ServerFishingTarget target = session.targets.get(index);
-                for (ItemStack rewardStack : target.rewardStacks()) {
-                    ItemStack reward = rewardStack.copy();
-                    if (!reward.isEmpty()) {
-                        stripQualityIfNotEligible(reward, xpFishProfiles);
-                        if (catchDb.recordCatch(catchDb.resolvePlayerKey(player), player.getName().getString(), reward)) {
-                            firstCatchItems.add(reward.copy());
-                        }
-                        questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
-                        // Snapshot count/tag before inventory.add() mutates reward down to its leftover
-                        // (usually 0) — reading these after the call under-counts trash almost every time.
-                        boolean isTrash = reward.is(FishtasticItemTags.TRASH);
-                        int caughtCount = reward.getCount();
-                        // Scored before inventory.add() mutates the stack's count down to its leftover.
-                        xpAwarded += FishingXpAward.forRewardStack(reward, xpFishProfiles);
-                        if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
-                            PileOfFishItem.fillOrCreatePiles(player, reward);
-                        } else {
-                            player.getInventory().add(reward);
-                        }
-                        if (!reward.isEmpty()) {
-                            // inventory.add() / addToFishPiles() leaves any leftover count in reward when full/partially full
-                            player.drop(reward, false);
-                        }
-                        rewards.add(reward);
-                        if (isTrash) {
-                            trashCaught += caughtCount;
-                        }
-                    }
-                }
+                caughtTargets.add(session.targets.get(index));
             } else {
                 Fishtastic.LOGGER.warn("Player {} reported invalid target index {}",
                         player.getName().getString(), index);
             }
         }
 
+        AwardResult result = awardTargets(player, caughtTargets, catchDb, xpFishProfiles, autoPileFish);
+
         // Fishtastic rods bypass vanilla's retrieve loot branch entirely (FishingHookMixin), so
         // this is the only xp a minigame catch ever grants. Orbs spawn at the player rather than
         // the bobber — the hook is already gone by the time the client reports results.
-        if (xpAwarded > 0) {
-            ExperienceOrb.award(level, player.position(), xpAwarded);
+        if (result.xpAwarded() > 0) {
+            ExperienceOrb.award(level, player.position(), result.xpAwarded());
         }
 
         // Record trash contributions first so the quest sync packet below (which snapshots
         // the cleanup goal total) reflects this session's catches instead of a stale total.
-        if (trashCaught > 0) {
-            CleanupGoalTracker.onTrashCatch(level.getServer(), player, trashCaught);
+        if (result.trashCaught() > 0) {
+            CleanupGoalTracker.onTrashCatch(level.getServer(), player, result.trashCaught());
         }
 
         // Batch quest tracking — only one sync packet for all catches in this session
-        if (!questStacks.isEmpty()) {
-            QuestTracker.onCatchBatch(level.getServer(), player, questStacks,
+        if (!result.questStacks().isEmpty()) {
+            QuestTracker.onCatchBatch(level.getServer(), player, result.questStacks(),
                     session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones,
                     session.hookBaitId);
         }
@@ -444,7 +414,7 @@ public class FishingMinigameManager {
         TutorialManager.onMinigameComplete(player);
 
         ItemStack baitDepletedItem = ItemStack.EMPTY;
-        if (!rewards.isEmpty()) {
+        if (!result.rewards().isEmpty()) {
             // The save/consume decision was already rolled once at cast time (see
             // ActiveSession#baitWillBeSaved) and told to the client in StartFishingMinigamePacket,
             // so it's applied here verbatim rather than re-rolled — otherwise the client's minigame
@@ -459,14 +429,160 @@ public class FishingMinigameManager {
         // Extra lightweight sync just for the one-shot banners above — QuestTracker's own
         // sync (if it fired) predates bait consumption/first-catch detection, so it can't
         // carry these fields.
-        if (!baitDepletedItem.isEmpty() || !firstCatchItems.isEmpty()) {
-            QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, firstCatchItems);
+        if (!baitDepletedItem.isEmpty() || !result.firstCatchItems().isEmpty()) {
+            QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, result.firstCatchItems());
         }
 
         activeSessions.remove(playerId);
 
         Fishtastic.LOGGER.info("Awarded {} items to player {} for session {} (took {} ticks)",
-                rewards.size(), player.getName().getString(), sessionId, timeTaken);
+                result.rewards().size(), player.getName().getString(), sessionId, timeTaken);
+    }
+
+    /**
+     * Grants every reward stack across {@code targets} to {@code player} — recording catches,
+     * scoring xp, piling/inventory-adding, and dropping overflow — exactly as a real minigame
+     * completion does. Factored out of {@link #handleMinigameComplete} so {@link #simulateFishingGames}
+     * (which has no client report of "which targets were caught" — it awards every target on every
+     * simulated cast) can share the same reward-granting behavior instead of drifting from it.
+     */
+    private AwardResult awardTargets(ServerPlayer player, List<ServerFishingTarget> targets,
+            FishCatchSavedData catchDb, Registry<FishProfile> xpFishProfiles, boolean autoPileFish) {
+        List<ItemStack> rewards = new ArrayList<>();
+        List<ItemStack> questStacks = new ArrayList<>();
+        List<ItemStack> firstCatchItems = new ArrayList<>();
+        int trashCaught = 0;
+        int xpAwarded = 0;
+
+        for (ServerFishingTarget target : targets) {
+            for (ItemStack rewardStack : target.rewardStacks()) {
+                ItemStack reward = rewardStack.copy();
+                if (!reward.isEmpty()) {
+                    stripQualityIfNotEligible(reward, xpFishProfiles);
+                    if (catchDb.recordCatch(catchDb.resolvePlayerKey(player), player.getName().getString(), reward)) {
+                        firstCatchItems.add(reward.copy());
+                    }
+                    questStacks.add(reward.copy()); // copy — inventory.add() mutates the stack in-place
+                    // Snapshot count/tag before inventory.add() mutates reward down to its leftover
+                    // (usually 0) — reading these after the call under-counts trash almost every time.
+                    boolean isTrash = reward.is(FishtasticItemTags.TRASH);
+                    int caughtCount = reward.getCount();
+                    // Scored before inventory.add() mutates the stack's count down to its leftover.
+                    xpAwarded += FishingXpAward.forRewardStack(reward, xpFishProfiles);
+                    if (autoPileFish && PileOfFishItem.canInsertInPile(reward)) {
+                        PileOfFishItem.fillOrCreatePiles(player, reward);
+                    } else {
+                        player.getInventory().add(reward);
+                    }
+                    if (!reward.isEmpty()) {
+                        // inventory.add() / addToFishPiles() leaves any leftover count in reward when full/partially full
+                        player.drop(reward, false);
+                    }
+                    rewards.add(reward);
+                    if (isTrash) {
+                        trashCaught += caughtCount;
+                    }
+                }
+            }
+        }
+        return new AwardResult(rewards, questStacks, firstCatchItems, xpAwarded, trashCaught);
+    }
+
+    private record AwardResult(List<ItemStack> rewards, List<ItemStack> questStacks,
+            List<ItemStack> firstCatchItems, int xpAwarded, int trashCaught) {}
+
+    /** Aggregate feedback for an admin bulk-simulation run — see {@link #simulateFishingGames}. */
+    public record SimulationResult(int gamesPlayed, List<ItemStack> rewards, int xpAwarded,
+            int trashCaught, int firstCatchCount) {}
+
+    /**
+     * Admin/dev bulk-grant tool (see {@code /fishtastic simulatefishing}): synchronously plays
+     * {@code gameCount} fishing casts using {@code player}'s currently equipped fishtastic rod,
+     * bait, hook, and charm — as if every target rolled on every cast were caught — and immediately
+     * grants every reward, xp, quest-progress update, and first-catch banner exactly as a real
+     * session would, minus the client-side minigame itself (there's no player input to simulate).
+     *
+     * <p>Environment (biome/time/weather/zone) is sampled once at the player's current position and
+     * reused for every simulated cast — it can't meaningfully change mid-call anyway. Bait depletion
+     * and hook/charm durability degrade once per simulated game exactly as a real cast would, so a
+     * large {@code gameCount} can run the player out of bait or break their gear partway through;
+     * later games in the same call are cast with whatever's left, same as {@link #generateTargets}
+     * or {@link #handleMinigameComplete} would produce for a player out of bait. A cast that rolls
+     * zero targets (possible if RNG produces none) is skipped and doesn't count toward
+     * {@link SimulationResult#gamesPlayed}.
+     *
+     * <p>Runs entirely inline in the calling command's tick, bypasses {@link #activeSessions}
+     * completely, and never touches the player's real fishing state (if any).
+     */
+    public SimulationResult simulateFishingGames(ServerPlayer player, int gameCount, float difficultyModifier) {
+        List<ItemStack> allRewards = new ArrayList<>();
+        List<ItemStack> allFirstCatches = new ArrayList<>();
+        int totalXp = 0;
+        int totalTrash = 0;
+        int gamesPlayed = 0;
+
+        FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
+        Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+
+        BlockPos originBlockPos = player.blockPosition();
+        net.minecraft.world.phys.Vec3 originPos = net.minecraft.world.phys.Vec3.atCenterOf(originBlockPos);
+        Holder<Biome> biome = level.getBiome(originBlockPos);
+        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, originBlockPos);
+        Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, originBlockPos.getY(), level.getSeaLevel());
+
+        for (int i = 0; i < gameCount; i++) {
+            ItemStack rod = findFishtasticRod(player);
+            ItemStack bait = CopperFishingRod.getBait(rod);
+            BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
+            ItemStack hookStack = CopperFishingRod.getHook(rod);
+            HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+            ItemStack charmStack = CopperFishingRod.getCharm(rod);
+            CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+
+            List<ServerFishingTarget> targets = generateTargetsForOrigin(
+                    player, originPos, null, 0.0f, difficultyModifier, baitEffect, hookEffect, charmEffect);
+            if (targets.isEmpty()) continue;
+
+            gamesPlayed++;
+
+            boolean autoPileFish = (charmEffect != null && charmEffect.autoPileFish())
+                    || hasCharmEffectInInventory(player, CharmEffect::autoPileFish);
+
+            AwardResult result = awardTargets(player, targets, catchDb, fishProfileRegistry, autoPileFish);
+
+            allRewards.addAll(result.rewards());
+            allFirstCatches.addAll(result.firstCatchItems());
+            totalXp += result.xpAwarded();
+            totalTrash += result.trashCaught();
+
+            if (result.xpAwarded() > 0) {
+                ExperienceOrb.award(level, player.position(), result.xpAwarded());
+            }
+            if (result.trashCaught() > 0) {
+                CleanupGoalTracker.onTrashCatch(level.getServer(), player, result.trashCaught());
+            }
+            if (!result.questStacks().isEmpty()) {
+                Identifier baitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
+                QuestTracker.onCatchBatch(level.getServer(), player, result.questStacks(), biome, timeOfDay, weather, zones, baitId);
+            }
+
+            if (!result.rewards().isEmpty()) {
+                if (!rollBaitWillBeSaved(player, charmEffect)) {
+                    consumeBait(player);
+                }
+                damageUpgrades(player);
+            }
+        }
+
+        if (!allFirstCatches.isEmpty()) {
+            QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, ItemStack.EMPTY, allFirstCatches);
+        }
+
+        Fishtastic.LOGGER.info("Simulated {} fishing games for player {}: {} rewards, {} xp, {} trash",
+                gamesPlayed, player.getName().getString(), allRewards.size(), totalXp, totalTrash);
+
+        return new SimulationResult(gamesPlayed, allRewards, totalXp, totalTrash, allFirstCatches.size());
     }
 
     public void tick() {
@@ -490,23 +606,38 @@ public class FishingMinigameManager {
     }
 
     private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
+        FishingHook hook = player.fishing;
+        if (hook == null) return new ArrayList<>();
+
+        IFishingHookExtension hookExt = (IFishingHookExtension) hook;
+        float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
+        return generateTargetsForOrigin(player, hook.position(), hook, hookExt.getLuck() + luckBonus,
+                difficultyModifier, baitEffect, hookEffect, charmEffect);
+    }
+
+    /**
+     * Core target-generation logic shared by the real hook-cast path ({@link #generateTargets}) and
+     * the admin bulk-simulation path ({@link #simulateFishingGames}), which has no live
+     * {@link FishingHook} to read a position/luck bonus from. {@code hook} may be null (simulation);
+     * when present it's threaded into the loot params exactly as the live path always has.
+     */
+    private List<ServerFishingTarget> generateTargetsForOrigin(ServerPlayer player, net.minecraft.world.phys.Vec3 originPos,
+            @Nullable FishingHook hook, float extraLuck, float difficultyModifier, @Nullable BaitEffect baitEffect,
+            @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
         List<ServerFishingTarget> targets = new ArrayList<>();
         RandomSource randomSource = player.getRandom();
 
-        FishingHook hook = player.fishing;
-        IFishingHookExtension hookExt = (IFishingHookExtension) hook;
-        if (hook == null) return targets;
-
-        float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
-        LootParams lootparams = new LootParams.Builder(player.level())
-                .withParameter(LootContextParams.ORIGIN, hook.position())
+        LootParams.Builder lootParamsBuilder = new LootParams.Builder(player.level())
+                .withParameter(LootContextParams.ORIGIN, originPos)
                 .withParameter(LootContextParams.TOOL, player.getUseItem())
-                .withParameter(LootContextParams.THIS_ENTITY, hook)
-                .withLuck(hookExt.getLuck() + player.getLuck() + luckBonus)
-                .create(LootContextParamSets.FISHING);
+                .withLuck(player.getLuck() + extraLuck);
+        if (hook != null) {
+            lootParamsBuilder.withParameter(LootContextParams.THIS_ENTITY, hook);
+        }
+        LootParams lootparams = lootParamsBuilder.create(LootContextParamSets.FISHING);
 
-        // Resolve environment context at hook position
-        BlockPos hookPos = BlockPos.containing(hook.position());
+        // Resolve environment context at the origin position
+        BlockPos hookPos = BlockPos.containing(originPos);
         EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
         Holder<Biome> biome = env.biome();
         FishProfile.TimeOfDay timeOfDay = env.timeOfDay();

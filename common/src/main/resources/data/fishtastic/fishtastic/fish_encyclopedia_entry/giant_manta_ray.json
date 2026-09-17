@@ -1,5 +1,5 @@
 {
-  "lore": "Enormous and silent, the giant manta ray glides through open water at dawn like a shadow cast by nothing, filtering the sunlit shallows for plankton with barely a ripple.",
+  "lore": "The giant oceanic manta ray is the largest species of ray in the world. It has dark black dorsal skin and a white ventral surface with gills, as well as a long thin tail. It has the largest brain of any fish.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+

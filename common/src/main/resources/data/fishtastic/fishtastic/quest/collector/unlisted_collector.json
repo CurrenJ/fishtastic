@@ -12,10 +12,11 @@
         "id": "fishtastic:fish_tank",
         "count": 8,
         "components": {
+          "fishtastic:fish_tank_shape": "ornate",
           "fishtastic:fish_tank_materials": {
-            "frame": "minecraft:oxidized_copper",
-            "sand": "minecraft:sand",
-            "glass": "fishtastic:green_clear_stained_glass"
+            "frame": "minecraft:dark_oak_log",
+            "sand": "minecraft:bamboo_block",
+            "glass": "fishtastic:red_borderless_stained_glass"
           }
         }
       }

@@ -1,5 +1,5 @@
 {
-  "lore": "A disc of color barely thicker than a coin, the discus is famously fussy about its water back home in the Amazon -- which makes its presence in the Nether's warped, fungal pools an open question no angler has answered. It startles at the faintest ripple and rarely lingers near the surface long enough to be seen twice.",
+  "lore": "The discus is a genus of cichlids native to the Amazon river basin. It has bright colors and oft intricate patterns, and is popular for its calm demeanor.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 2,
@@ -8,3 +8,4 @@
     "lore_catches": 15
   }
 }
+

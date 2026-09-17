@@ -1,5 +1,5 @@
 {
-  "lore": "Its flesh is so transparent that its spine and organs are visible through the skin. Glass catfish drift in loose, unhurried schools through slow cave pools, nearly invisible until the light catches them just right.",
+  "lore": "The glass catfish, also known as the ghost catfish or phantom catfish, is a small translucent-bodies glass catfish. It is endemic to rivers and streams in Thailand.",
   "thresholds": {
     "name_reveal_catches": 1,
     "stats_catches": 1,
@@ -8,3 +8,4 @@
     "lore_catches": 6
   }
 }
+
