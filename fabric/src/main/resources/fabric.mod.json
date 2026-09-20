@@ -47,6 +47,7 @@
   },
   "suggests": {
     "gelatinui": "*",
-    "jei": "*"
+    "jei": "*",
+    "coolcam": "*"
   }
 }

@@ -3,11 +3,15 @@ package grill24.fishtastic.client.util;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.client.renderer.TankFlockAdapter;
+import grill24.fishsim.core.FlockEngine;
+import grill24.fishtastic.fishtank.TankGroups;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -78,6 +82,51 @@ public final class ClientTankFlocks {
                 TankBubbleEmitter.emit(clientLevel, entry.getKey(), flock, eye);
             }
         }
+    }
+
+    /**
+     * True if {@code tankPos} has a fish at {@code fishIndex} — counting both its own local
+     * ("hover") fish and, if it's part of a multi-tank group, the group's shared swimmers.
+     */
+    public static boolean hasFish(Level level, BlockPos tankPos, int fishIndex) {
+        return fishIndex >= 0 && fishIndex < fishCount(level, tankPos);
+    }
+
+    /**
+     * Total followable fish "belonging" to this tank: its own local fish, plus — if it's part of
+     * a multi-tank group (see docs/fish-tank-group-scaling.md) — the group's shared swimmers,
+     * which live only on the group's anchor tank and would otherwise be invisible from every other
+     * member. 0 if the tank isn't warm/rendered or has no block entity.
+     */
+    public static int fishCount(Level level, BlockPos tankPos) {
+        if (!(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return 0;
+        TankFlockAdapter flock = FLOCKS.get(tankPos);
+        int local = flock == null ? 0 : flock.count();
+
+        TankGroups.Group group = ClientTankGroups.get(be, level).group();
+        if (!group.isMultiTank()) return local;
+        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
+        FlockEngine groupEngine = anchorFlock == null ? null : anchorFlock.groupEngine();
+        return local + (groupEngine == null ? 0 : groupEngine.count());
+    }
+
+    /**
+     * World-space position of one followable fish (see {@link #fishCount}), as of the flock's
+     * last render-frame interpolation — not re-derived for an arbitrary partial tick, so callers
+     * driving their own render loop (e.g. a third-party camera mod) get a position that is at
+     * most one frame stale.
+     */
+    public static @Nullable Vec3 worldPositionOf(Level level, BlockPos tankPos, int fishIndex) {
+        if (fishIndex < 0 || !(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return null;
+        TankFlockAdapter flock = FLOCKS.get(tankPos);
+        int local = flock == null ? 0 : flock.count();
+        if (fishIndex < local) return flock.localFishWorldPosition(tankPos, fishIndex);
+
+        TankGroups.Group group = ClientTankGroups.get(be, level).group();
+        if (!group.isMultiTank()) return null;
+        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
+        if (anchorFlock == null) return null;
+        return anchorFlock.groupFishWorldPosition(group.anchor(), fishIndex - local);
     }
 
     /** Drops all flocks — call on world join/disconnect so block positions never leak across worlds. */

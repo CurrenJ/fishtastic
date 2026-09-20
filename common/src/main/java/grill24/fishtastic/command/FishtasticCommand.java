@@ -41,7 +41,8 @@ public class FishtasticCommand {
                 .then(TokenBalanceCommand.build())
                 .then(NotificationVolumeCommand.build())
                 .then(TankWaterFillCommand.build())
-                .then(SimulateFishingCommand.build());
+                .then(SimulateFishingCommand.build())
+                .then(FollowFishStubCommand.build());
 
         // Production builds exclude the whole grill24.fishtastic.mcp package from the jar (dev-only
         // tooling) - never reference McpBridgeCommand outside this guard, or the missing class gets

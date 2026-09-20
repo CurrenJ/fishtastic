@@ -5,6 +5,8 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.env.DevEnvironmentCheck;
+import grill24.fishtastic.fabric.compat.coolcam.CoolCamFollowBridge;
+import grill24.fishtastic.fabric.compat.coolcam.FishtasticCoolCamCommands;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
@@ -48,6 +50,7 @@ import grill24.fishtastic.fabric.fishtank.FishTankModelFabric;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -122,6 +125,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
+
+        // Cool Cam camera-follow demo command — registered only when Cool Cam (an optional,
+        // Fabric-only dependency) is present. isModLoaded() is checked before this class ever
+        // touches Cool Cam's classes, so nothing here breaks a build without it installed.
+        if (CoolCamFollowBridge.isAvailable()) {
+            ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
+                    FishtasticCoolCamCommands.register(dispatcher));
+        }
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->

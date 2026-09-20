@@ -16,6 +16,8 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,6 +108,32 @@ public final class TankFlockAdapter {
 
     public long lastExtractTick() {
         return lastExtractTick;
+    }
+
+    /**
+     * World-space position of fish #{@code i} in this tank's own engine (the local/"hover" fish —
+     * see {@link #count()}), mirroring the offset {@code FishTankBlockEntityRenderer} draws it at.
+     */
+    public Vec3 localFishWorldPosition(BlockPos tankPos, int i) {
+        return new Vec3(
+            tankPos.getX() + 0.5 + engine.renderX[i],
+            tankPos.getY() + FishTankBlockEntityRenderer.ITEM_BASELINE_Y + engine.renderY[i],
+            tankPos.getZ() + 0.5 + engine.renderZ[i]
+        );
+    }
+
+    /**
+     * World-space position of fish #{@code i} in this (anchor) tank's shared {@link #groupEngine()},
+     * or {@code null} if this tank isn't currently a group anchor. Mirrors the offset
+     * {@code FishTankBlockEntityRenderer.submitGroupSwimmers} draws it at.
+     */
+    public @Nullable Vec3 groupFishWorldPosition(BlockPos anchorPos, int i) {
+        if (groupEngine == null) return null;
+        return new Vec3(
+            anchorPos.getX() + groupOffsetX + groupEngine.renderX[i],
+            anchorPos.getY() + groupOffsetY + groupEngine.renderY[i],
+            anchorPos.getZ() + groupOffsetZ + groupEngine.renderZ[i]
+        );
     }
 
     /** Marks this flock as having been extracted this client tick (drives eviction). */

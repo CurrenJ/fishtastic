@@ -50,6 +50,13 @@ dependencies {
     compileOnly("mezz.jei:jei-26.1.2-fabric-api:${rootProject.jei_version}") { transitive = false }
     localRuntime("mezz.jei:jei-26.1.2-fabric:${rootProject.jei_version}") { transitive = false }
 
+    // Cool Cam integration (camera-follow POI hooks) is optional at runtime — compile-only,
+    // plus a dev-time convenience jar so `runClient` can exercise it locally. Fabric-only:
+    // cool-cam has no NeoForge port, so this dependency only exists on this platform.
+    // Requires `./gradlew publishToMavenLocal` in the cool-cam repo first (see its build.gradle).
+    compileOnly("grill24.coolcam:cool-cam:${rootProject.coolcam_version}")
+    localRuntime("grill24.coolcam:cool-cam:${rootProject.coolcam_version}")
+
     // Shared fish tank shape geometry generators (plain Java, no Minecraft dep) — also consumed
     // by tools/tank-shape-previewer. See docs/fish-tanks.md, Phase 1.
     implementation project(':tools:tank-shape-gen')
