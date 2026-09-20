@@ -122,6 +122,15 @@ public final class FishCatchBackups {
     private static final String DATA_KEY = "data";
     private static final int TICK_CHECK_INTERVAL = 20;
 
+    // The file-name timestamp only has second resolution, so two backups created within the same
+    // second (e.g. a pre-command snapshot immediately followed by a manual one) tie on Entry::time
+    // alone; break the tie with the file's actual last-modified time, which is far finer-grained
+    // and reliably reflects real creation order.
+    private static final Comparator<Entry> NEWEST_FIRST = Comparator
+            .comparing(Entry::time)
+            .thenComparing(e -> lastModifiedInstant(e.path()))
+            .reversed();
+
     // Per-server-instance timer state. Singleplayer creates a fresh MinecraftServer per world, so
     // tracking the last-seen instance doubles as our "server started" detection.
     private static MinecraftServer trackedServer;
@@ -303,7 +312,7 @@ public final class FishCatchBackups {
         try (Stream<Path> files = Files.list(dir)) {
             return files.map(FishCatchBackups::parse)
                     .flatMap(Optional::stream)
-                    .sorted(Comparator.comparing(Entry::time).reversed())
+                    .sorted(NEWEST_FIRST)
                     .toList();
         } catch (IOException e) {
             Fishtastic.LOGGER.warn("Could not list fish catch backups in {}", dir, e);
@@ -489,8 +498,16 @@ public final class FishCatchBackups {
 
     /** Keep the newest {@code keep} entries of a pool; return the rest. */
     static List<Entry> pruneNewestN(List<Entry> pool, int keep) {
-        List<Entry> descending = pool.stream().sorted(Comparator.comparing(Entry::time).reversed()).toList();
+        List<Entry> descending = pool.stream().sorted(NEWEST_FIRST).toList();
         if (descending.size() <= keep) return List.of();
         return descending.subList(keep, descending.size());
+    }
+
+    private static Instant lastModifiedInstant(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toInstant();
+        } catch (IOException e) {
+            return Instant.EPOCH;
+        }
     }
 }

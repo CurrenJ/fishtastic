@@ -2,6 +2,8 @@ package grill24.fishtastic.fabric.compat.coolcam;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -36,6 +38,16 @@ public final class FishtasticCoolCamCommands {
         // in the autocomplete dropdown under "/fishtastic " (it only renders the tree synced from
         // the server at login) — typing the full command and submitting it still works, since
         // Fabric's client command execution path is checked before falling back to the server.
+        //
+        // Sharing that root is only safe because of the fallback branch below. Fabric's
+        // ClientCommandInternals tries this client dispatcher first for every "/fishtastic ..."
+        // input; if "fishtastic" matches but nothing under it does, Brigadier throws
+        // dispatcherUnknownArgument — a type Fabric does NOT treat as "not a client command", so
+        // it reports the error directly to chat instead of forwarding to the server. That broke
+        // every other /fishtastic subcommand (backup, quests, fishprofile, ...) the moment this
+        // command was registered. The greedy fallback below intercepts anything that isn't
+        // "followfish ..." and rethrows it as dispatcherUnknownCommand, which Fabric DOES treat as
+        // "not ours" and correctly passes through to the server.
         dispatcher.register(literal("fishtastic")
             .then(literal("followfish")
                 .executes(ctx -> followLookedAtTank(ctx.getSource(), 0))
@@ -46,7 +58,11 @@ public final class FishtasticCoolCamCommands {
                     CoolCamFollowBridge.stopFollowing();
                     ctx.getSource().sendFeedback(Component.literal("Stopped following."));
                     return 1;
-                }))));
+                })))
+            .then(argument("fishtasticFallthrough", StringArgumentType.greedyString())
+                .executes(ctx -> {
+                    throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().create();
+                })));
     }
 
     /** Resolves the fish tank block entity the player is currently looking at, or null with feedback sent. */

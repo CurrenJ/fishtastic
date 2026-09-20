@@ -1,6 +1,7 @@
 package grill24.fishtastic.compat.jei;
 
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.recipe.MarineCompostRecipe;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -13,6 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
+
+import java.util.List;
 
 /**
  * The dirt + fish -> marine compost slots are hardcoded here rather than read off the
@@ -38,7 +41,9 @@ public final class MarineCompostRecipeCategory extends AbstractRecipeCategory<Ma
 
         builder.addInputSlot(1, 19)
                 .setStandardSlotBackground()
-                .add(new SlotDisplay.TagSlotDisplay(ItemTags.FISHES));
+                .add(new SlotDisplay.Composite(List.of(
+                        new SlotDisplay.TagSlotDisplay(ItemTags.FISHES),
+                        new SlotDisplay.ItemSlotDisplay(FishtasticItems.PILE_OF_FISH))));
 
         builder.addOutputSlot(60, 10)
                 .setOutputSlotBackground()
