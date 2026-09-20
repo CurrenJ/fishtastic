@@ -523,4 +523,128 @@ public class FishCatchSavedData extends SavedData {
                 .sorted(order)
                 .toList();
     }
+
+    // -------------------------------------------------------------------------
+    // Backup / restore API (see FishCatchBackups)
+    // -------------------------------------------------------------------------
+
+    /**
+     * One row of {@link #summarizePlayers()} - the per-player headline numbers a backup listing or
+     * inspection shows so an admin can tell snapshots apart without diffing the raw NBT.
+     */
+    public record PlayerSummary(UUID key, String name, int totalCatches, int speciesDiscovered,
+                                int questsCompleted, int questsClaimed, int tokenBalance) {}
+
+    /** Every player key present in either catch history or quest state, with headline stats. */
+    public List<PlayerSummary> summarizePlayers() {
+        Set<UUID> keys = new LinkedHashSet<>(playerData.keySet());
+        keys.addAll(questStates.keySet());
+        List<PlayerSummary> out = new ArrayList<>();
+        for (UUID key : keys) {
+            PlayerCatchData pd = playerData.get(key);
+            PlayerQuestState qs = questStates.get(key);
+            int completed = 0, claimed = 0;
+            if (qs != null) {
+                for (PlayerQuestState.QuestProgress p : qs.getProgressSnapshot().values()) {
+                    if (p.completed()) completed++;
+                    if (p.claimed()) claimed++;
+                }
+            }
+            out.add(new PlayerSummary(key,
+                    pd != null ? pd.lastKnownName : displayNameForKey(key),
+                    pd != null ? pd.totalCatches() : 0,
+                    pd != null ? pd.perFish.size() : 0,
+                    completed, claimed,
+                    qs != null ? qs.getTokenBalance() : 0));
+        }
+        return out;
+    }
+
+    /** Human-readable name for a player key: last known name, or the sentinel/UUID string. */
+    public String displayNameForKey(UUID key) {
+        PlayerCatchData pd = playerData.get(key);
+        if (pd != null) return pd.lastKnownName;
+        if (SINGLEPLAYER_QUEST_UUID.equals(key)) return "<singleplayer owner>";
+        return key.toString();
+    }
+
+    /** Resolves a player key from a name recorded in catch history (case-insensitive). */
+    public Optional<UUID> findKeyByName(String name) {
+        return playerData.values().stream()
+                .filter(pd -> pd.lastKnownName.equalsIgnoreCase(name))
+                .map(pd -> pd.uuid)
+                .findFirst();
+    }
+
+    /** Whether {@code key} has any record (catch history, quest state, tutorial step, cleanup share). */
+    public boolean hasPlayer(UUID key) {
+        return playerData.containsKey(key) || questStates.containsKey(key)
+                || tutorialSteps.containsKey(key) || encyclopediaTutorialSteps.containsKey(key)
+                || cleanupGoal.contributions.containsKey(key);
+    }
+
+    /**
+     * Replaces every record in this instance with {@code source}'s - a whole-server restore. The
+     * live object is mutated in place (rather than swapped) because {@link #getOrCreate} callers
+     * across the server hold references to it.
+     */
+    public void replaceAllFrom(FishCatchSavedData source) {
+        playerData.clear();
+        source.playerData.forEach((k, v) -> playerData.put(k, copyOf(v)));
+        questStates.clear();
+        source.questStates.forEach((k, v) -> questStates.put(k, copyOf(v)));
+        tutorialSteps.clear();
+        tutorialSteps.putAll(source.tutorialSteps);
+        encyclopediaTutorialSteps.clear();
+        encyclopediaTutorialSteps.putAll(source.encyclopediaTutorialSteps);
+        cleanupGoal = copyOf(source.cleanupGoal);
+        setDirty();
+    }
+
+    /**
+     * Replaces only {@code key}'s records with {@code source}'s copy of them, leaving every other
+     * player untouched: catch history, quest state (tokens, purchases, encyclopedia reward claims),
+     * tutorial steps, and this player's share of the current cleanup goal (the goal total is
+     * recomputed from its contributions so it stays consistent). A key absent from {@code source}
+     * is simply removed - restoring "before this player existed".
+     */
+    public void replacePlayerFrom(FishCatchSavedData source, UUID key) {
+        PlayerCatchData pd = source.playerData.get(key);
+        if (pd != null) playerData.put(key, copyOf(pd)); else playerData.remove(key);
+
+        PlayerQuestState qs = source.questStates.get(key);
+        if (qs != null) questStates.put(key, copyOf(qs)); else questStates.remove(key);
+
+        TutorialStep ts = source.tutorialSteps.get(key);
+        if (ts != null) tutorialSteps.put(key, ts); else tutorialSteps.remove(key);
+
+        EncyclopediaTutorialStep ets = source.encyclopediaTutorialSteps.get(key);
+        if (ets != null) encyclopediaTutorialSteps.put(key, ets); else encyclopediaTutorialSteps.remove(key);
+
+        Integer share = source.cleanupGoal.contributions.get(key);
+        if (share != null) cleanupGoal.contributions.put(key, share); else cleanupGoal.contributions.remove(key);
+        cleanupGoal.totalContributed = cleanupGoal.contributions.values().stream().mapToInt(Integer::intValue).sum();
+
+        setDirty();
+    }
+
+    // Deep copies via codec round-trip: the nested types are mutable and have no copy constructors,
+    // and a restore must never alias the (discardable) decoded snapshot's objects.
+    private static PlayerCatchData copyOf(PlayerCatchData d) {
+        return roundTrip(PlayerCatchData.CODEC, d);
+    }
+
+    private static PlayerQuestState copyOf(PlayerQuestState s) {
+        return roundTrip(PlayerQuestState.CODEC, s);
+    }
+
+    private static CleanupGoalState copyOf(CleanupGoalState s) {
+        return roundTrip(CleanupGoalState.CODEC, s);
+    }
+
+    private static <T> T roundTrip(Codec<T> codec, T value) {
+        return codec.encodeStart(com.mojang.serialization.JavaOps.INSTANCE, value)
+                .flatMap(o -> codec.parse(com.mojang.serialization.JavaOps.INSTANCE, o))
+                .getOrThrow(msg -> new IllegalStateException("Failed to copy saved data: " + msg));
+    }
 }

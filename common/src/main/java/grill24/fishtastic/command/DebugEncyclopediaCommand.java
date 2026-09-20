@@ -5,6 +5,7 @@ import com.mojang.brigadier.context.CommandContext;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
+import grill24.fishtastic.server.FishCatchBackups;
 import grill24.fishtastic.server.FishCatchSavedData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -44,6 +45,7 @@ public class DebugEncyclopediaCommand {
         if (target == null) return 0;
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "encyclopedia_complete");
         Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
@@ -69,6 +71,7 @@ public class DebugEncyclopediaCommand {
         if (target == null) return 0;
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "encyclopedia_reset");
         Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 

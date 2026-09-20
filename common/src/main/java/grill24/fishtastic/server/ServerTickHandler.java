@@ -16,6 +16,13 @@ public class ServerTickHandler {
     public static void onServerTick(MinecraftServer server) {
         long currentDay = server.overworld().getGameTime() / 24000L;
 
+        // Scheduled fish catch data backups (server-start + interval)
+        try {
+            FishCatchBackups.tick(server);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Error ticking fish catch backups", e);
+        }
+
         // Daily quest reset check
         if (currentDay > lastResetDay) {
             lastResetDay = currentDay;

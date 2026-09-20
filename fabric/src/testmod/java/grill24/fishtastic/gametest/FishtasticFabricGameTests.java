@@ -171,6 +171,95 @@ public class FishtasticFabricGameTests {
         FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, helper::makeMockServerPlayerInLevel);
     }
 
+    // -------------------------------------------------------------------------
+    // Fish Catch Backup tests  (real file I/O in the test world's data dir)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void manualBackupRoundTrips(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.manualBackupRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void labelIsSanitisedIntoFileName(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.labelIsSanitisedIntoFileName(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void findRejectsTraversalAndUnknownNames(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.findRejectsTraversalAndUnknownNames(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void listIsNewestFirstAndIgnoresJunk(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.listIsNewestFirstAndIgnoresJunk(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void loadRejectsFileWithoutDataCompound(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.loadRejectsFileWithoutDataCompound(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void intervalBackupSkipsIdenticalContent(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.intervalBackupSkipsIdenticalContent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void restorePlayerOnlyTouchesThatPlayer(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.restorePlayerOnlyTouchesThatPlayer(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void restorePlayerAbsentFromBackupRemovesThem(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.restorePlayerAbsentFromBackupRemovesThem(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void restorePlayerRevertsCleanupContribution(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void restoreAllReplacesEverything(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.restoreAllReplacesEverything(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void restoreDoesNotAliasSnapshotObjects(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.restoreDoesNotAliasSnapshotObjects(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void summaryAndLookupApi(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.summaryAndLookupApi(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void preCommandHookWritesLabelledBackup(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.preCommandHookWritesLabelledBackup(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void preCommandPoolIsCapped(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.preCommandPoolIsCapped(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pruneDeletesAncientIntervalFilesOnDisk(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.pruneDeletesAncientIntervalFilesOnDisk(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void schedulerWritesStartThenInterval(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.schedulerWritesStartThenInterval(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void serverConfigWritesDefaultsAndReloads(GameTestHelper helper) throws Exception {
+        FishCatchBackupsGameTests.serverConfigWritesDefaultsAndReloads(helper);
+    }
+
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void cleanupGoalOnlyResetsOnCompletionNotOverTime(GameTestHelper helper) {
         FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, helper::makeMockServerPlayerInLevel);

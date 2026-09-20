@@ -208,6 +208,32 @@ QuestProgress
 ### Daily reset (implemented)
 `ServerTickHandler` checks `gameTime / 24000` once per tick; calls `FishCatchSavedData.resetDailyQuestsIfNeeded()` when the day advances.
 
+### Backups (implemented)
+`FishCatchBackups` snapshots the whole `FishCatchSavedData` (catch history, quest states, tokens, purchases, tutorial steps, cleanup goal) to `<world>/data/fishtastic_backups/<yyyyMMdd-HHmmss>-<kind>[-label].dat`, encoded from the live object via `FishCatchSavedData.CODEC` (not a copy of the on-disk `.dat`, which lags until autosave).
+
+Kinds and retention pools (tunable in `config/fishtastic-server.properties`):
+
+| Kind | Trigger | Retention |
+|---|---|---|
+| `start`, `auto` | server start; every `backups.intervalMinutes` (default 30) of real time, skipped when content is identical to the newest one | Tiered: all snapshots < 24 h, then one per 6 h to 7 d, one per day to 30 d, one per week to 180 d |
+| `pre-<command>` | automatically before `simulatefishing`, `quests reset/debug/progress`, `encyclopedia complete/reset`, `shapes debug unlockall` | newest `backups.preCommandKeep` (default 30) |
+| `manual`, `prerestore` | `/fishtastic backup create [label]`; safety snapshot every restore takes first | never pruned |
+
+Admin commands (op level 2):
+
+```
+/fishtastic backup create [label]
+/fishtastic backup list
+/fishtastic backup inspect <file> [player]
+/fishtastic backup restore <file> [confirm]                 # whole server
+/fishtastic backup restore <file> player <name> [confirm]   # one player only (catch data, quest state, tutorial steps, cleanup share)
+/fishtastic backup delete <file>
+/fishtastic backup prune
+/fishtastic backup reload                                   # re-read fishtastic-server.properties
+```
+
+Restores are two-step: the first run prints a before/after summary and arms a 60 s confirmation for that exact file + scope. A per-player restore resolves the name from the backup's own records, so offline players can be restored. Coverage: `FishCatchBackupsRetentionTest` / `FishCatchBackupsNamingTest` (JUnit, `:common:test`) and `FishCatchBackupsGameTests` (game tests, both loaders).
+
 ---
 
 ## Quest JSON Examples

@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import grill24.fishtastic.server.FishCatchBackups;
 import grill24.fishtastic.server.FishingMinigameManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -56,6 +57,7 @@ public class SimulateFishingCommand {
             return 0;
         }
 
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "simulatefishing");
         FishingMinigameManager.SimulationResult result =
                 FishingMinigameManager.get(level).simulateFishingGames(target, count, 1.0f);
 

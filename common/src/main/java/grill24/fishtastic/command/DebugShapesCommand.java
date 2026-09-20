@@ -7,6 +7,7 @@ import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.network.QuestSyncPacket;
+import grill24.fishtastic.server.FishCatchBackups;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.ChatFormatting;
@@ -52,6 +53,7 @@ public class DebugShapesCommand {
         MinecraftServer server = source.getServer();
         Registry<Quest> questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
+        FishCatchBackups.beforeDestructiveCommand(server, "shapes_unlockall");
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = server.overworld().getGameTime() / 24000L;
 

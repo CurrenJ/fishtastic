@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.CapstoneRewardGameTests;
+import grill24.fishtastic.gametest.FishCatchBackupsGameTests;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
 import grill24.fishtastic.gametest.LifetimeQuestProgressGameTests;
 import grill24.fishtastic.gametest.QuestLogVisibilityGameTests;
@@ -138,6 +139,41 @@ public class NeoForgeGameTestRegistration {
             helper -> FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "crossing_threshold_pays_out_tokens_proportionally", 200,
             helper -> FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        // ----- Fish Catch Backup tests -----
+        register(event, env, "manual_backup_round_trips", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.manualBackupRoundTrips(helper)));
+        register(event, env, "label_is_sanitised_into_file_name", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.labelIsSanitisedIntoFileName(helper)));
+        register(event, env, "find_rejects_traversal_and_unknown_names", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.findRejectsTraversalAndUnknownNames(helper)));
+        register(event, env, "list_is_newest_first_and_ignores_junk", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.listIsNewestFirstAndIgnoresJunk(helper)));
+        register(event, env, "load_rejects_file_without_data_compound", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.loadRejectsFileWithoutDataCompound(helper)));
+        register(event, env, "interval_backup_skips_identical_content", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.intervalBackupSkipsIdenticalContent(helper)));
+        register(event, env, "restore_player_only_touches_that_player", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.restorePlayerOnlyTouchesThatPlayer(helper)));
+        register(event, env, "restore_player_absent_from_backup_removes_them", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.restorePlayerAbsentFromBackupRemovesThem(helper)));
+        register(event, env, "restore_player_reverts_cleanup_contribution", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper))));
+        register(event, env, "restore_all_replaces_everything", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.restoreAllReplacesEverything(helper)));
+        register(event, env, "restore_does_not_alias_snapshot_objects", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.restoreDoesNotAliasSnapshotObjects(helper)));
+        register(event, env, "summary_and_lookup_api", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.summaryAndLookupApi(helper)));
+        register(event, env, "pre_command_hook_writes_labelled_backup", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.preCommandHookWritesLabelledBackup(helper)));
+        register(event, env, "pre_command_pool_is_capped", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.preCommandPoolIsCapped(helper)));
+        register(event, env, "prune_deletes_ancient_interval_files_on_disk", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.pruneDeletesAncientIntervalFilesOnDisk(helper)));
+        register(event, env, "scheduler_writes_start_then_interval", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.schedulerWritesStartThenInterval(helper)));
+        register(event, env, "server_config_writes_defaults_and_reloads", 200,
+            helper -> unchecked(() -> FishCatchBackupsGameTests.serverConfigWritesDefaultsAndReloads(helper)));
         register(event, env, "cleanup_goal_only_resets_on_completion_not_over_time", 200,
             helper -> FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "get_cleanup_goal_contributors_lists_all_contributors", 200,
@@ -604,6 +640,19 @@ public class NeoForgeGameTestRegistration {
 
         register(event, env, "advance_step_bait_load_transitions_to_waiting_for_cast", 200,
             helper -> TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+    }
+
+    /** Lets checked-exception test bodies (file I/O) sit in a Consumer; any exception fails the test. */
+    private interface ThrowingRunnable { void run() throws Exception; }
+
+    private static void unchecked(ThrowingRunnable body) {
+        try {
+            body.run();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void register(

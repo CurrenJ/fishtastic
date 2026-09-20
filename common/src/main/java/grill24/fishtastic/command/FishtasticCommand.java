@@ -42,6 +42,7 @@ public class FishtasticCommand {
                 .then(NotificationVolumeCommand.build())
                 .then(TankWaterFillCommand.build())
                 .then(SimulateFishingCommand.build())
+                .then(BackupCommand.build())
                 .then(FollowFishStubCommand.build());
 
         // Production builds exclude the whole grill24.fishtastic.mcp package from the jar (dev-only

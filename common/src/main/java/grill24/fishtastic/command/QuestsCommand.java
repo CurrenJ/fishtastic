@@ -10,6 +10,7 @@ import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.QuestSyncPacket;
+import grill24.fishtastic.server.FishCatchBackups;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.ChatFormatting;
@@ -91,6 +92,7 @@ public class QuestsCommand {
         if (target == null) return 0;
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_reset");
         data.resetPlayerProgress(target);
 
         QuestSyncPacket.sendToPlayer(target, data);
@@ -105,6 +107,7 @@ public class QuestsCommand {
     private static int executeResetAll(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack source = ctx.getSource();
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_reset_all");
         data.resetAllProgress();
 
         for (ServerPlayer online : source.getServer().getPlayerList().getPlayers()) {
@@ -158,6 +161,7 @@ public class QuestsCommand {
         }
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_debug");
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = source.getServer().overworld().getGameTime() / 24000L;
 
@@ -179,6 +183,7 @@ public class QuestsCommand {
 
         Registry<Quest> questRegistry = source.getServer().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_debug_all");
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = source.getServer().overworld().getGameTime() / 24000L;
 
@@ -232,6 +237,7 @@ public class QuestsCommand {
         }
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
+        FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_progress");
         PlayerQuestState state = data.getOrCreateQuestState(target);
         long currentDay = source.getServer().overworld().getGameTime() / 24000L;
 
