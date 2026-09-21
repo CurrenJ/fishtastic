@@ -53,6 +53,8 @@ public class FishtasticCommand {
             // Tuning tool for the catch celebration's timings — dev-only, and client-driven, so it
             // never reaches a dedicated server's command tree.
             command.then(CelebrationCommand.build());
+            // Live-tunes the leaderboard/mannequin fisherman hang pose — same dev-only, client-driven pattern.
+            command.then(PoseDebugCommand.build());
         }
 
         dispatcher.register(command);

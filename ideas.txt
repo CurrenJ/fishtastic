@@ -28,10 +28,7 @@ unlisted evasion movement - slide off screen fully - ignoring fishing bar, then 
 Quest idea: "Zen Garden: catch X fish with Calm Bait"
 cosmic bait ignores your current zone and picks from random zone
 Quest: catch something with every distinct type of bait (shows items like the completionist quests) - rewards and shop unlocks bait buddy?
-Lucky charm effect: treasure increase
-Bait pops off even when preservd with bait buddy
 
-Pile of fish + dirt should work
 Fish leaderboards show posed players
 sEA GLASS AS TANK floor decoration
 tire swing deco

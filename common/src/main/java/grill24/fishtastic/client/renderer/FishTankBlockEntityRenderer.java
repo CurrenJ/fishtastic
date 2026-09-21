@@ -10,6 +10,7 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.util.ClientTankFlocks;
+import grill24.fishtastic.client.util.FishermanPoseDebug;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
@@ -18,6 +19,7 @@ import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
@@ -54,6 +56,9 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractFurnaceBlock;
+import net.minecraft.world.phys.Vec2;
+
+import java.util.Optional;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.state.properties.ChestType;
@@ -507,6 +512,49 @@ public class FishTankBlockEntityRenderer
     record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {
         private static final ResolvedFishRender DEFAULT = new ResolvedFishRender(
                 FishAnimationConfig.HorizontalSwim.DEFAULT, FishProfile.DEFAULT_RENDER_CALIBRATION);
+    }
+
+    /**
+     * Same size-to-scale formula the tank uses to draw fish true-to-scale
+     * ({@code size/100 * per-species render_calibration}, see {@link ResolvedFishRender}) — for
+     * anything else (held items, GUI previews) that wants a caught fish to render at its recorded
+     * size. Returns {@code 1.0} (no scaling) for stacks with no recorded size.
+     */
+    public static float getHeldItemRenderScale(ItemStack stack, Level level) {
+        if (!ItemSizeHelper.hasSize(stack)) {
+            return 1.0f;
+        }
+        return (ItemSizeHelper.getSize(stack) / 100f) * resolveFishRender(stack, level).renderCalibration();
+    }
+
+    /**
+     * Roll (degrees) to lay a held fish's sprite head-down, tail-up, for the fisherman hang pose.
+     * Uses the exact drawn angle when a species has authored {@code head_uv}/{@code tail_uv}
+     * points ({@code atan2} between them), falling back to the tank's diagonal-texture convention
+     * otherwise (see {@link FishAnimationConfig}). Only meaningful for the swimming-shaped pose
+     * modes; other modes (floor/planted/belly-sit species) return 0 — the pose doesn't suit them.
+     */
+    public static float getHeldItemHangingRollDegrees(ItemStack stack, Level level) {
+        FishAnimationConfig animation = resolveFishRender(stack, level).animation();
+        return switch (animation) {
+            case FishAnimationConfig.HorizontalSwim hs -> hangingRoll(hs.headUv(), hs.tailUv(), hs.diagonalTexture());
+            case FishAnimationConfig.UprightFloat uf -> hangingRoll(uf.headUv(), uf.tailUv(), uf.diagonalTexture());
+            case FishAnimationConfig.UprightSit us -> hangingRoll(us.headUv(), us.tailUv(), us.diagonalTexture());
+            default -> 0f;
+        };
+    }
+
+    private static float hangingRoll(Optional<Vec2> head, Optional<Vec2> tail, boolean diagonalTexture) {
+        if (head.isPresent() && tail.isPresent()) {
+            Vec2 h = head.get();
+            Vec2 t = tail.get();
+            // Exact drawn angle, then rotated to point straight down instead of horizontal. Both
+            // the "-90" target and the axis this feeds into need eyeballing once actually visible.
+            float drawnAngleDeg = (float) Math.toDegrees(Math.atan2(h.y - t.y, h.x - t.x));
+            return drawnAngleDeg - 90f;
+        }
+        // Live-tunable via /fishtastic pose — see FishermanPoseDebug.
+        return diagonalTexture ? FishermanPoseDebug.rollDiagonalDegrees : FishermanPoseDebug.rollStraightDegrees;
     }
 
     static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {

@@ -59,6 +59,17 @@ public final class FishtasticGlintState {
             new IdentityHashMap<>();
 
     /**
+     * Maps an {@link ItemStackRenderState} identity to the true-to-recorded-size render scale for
+     * a dropped item entity (same formula as the fish tank — see
+     * {@code FishTankBlockEntityRenderer#getHeldItemRenderScale}). Populated at render-state
+     * extraction by {@code ItemEntityRendererMixin} (the only point where the {@code ItemStack} is
+     * still in scope) and consumed at submission in the same frame. Entries with no recorded size
+     * are never stored (a missing entry means "no scaling", i.e. scale 1.0). Entries are removed in
+     * {@code ItemStackRenderStateMixin} when the render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, Float> WORLD_ITEM_SCALE_MAP = new IdentityHashMap<>();
+
+    /**
      * Maps an {@link ItemStackRenderState} identity to "render this as a solid silhouette"
      * for the GUI item-button silhouette effect (fish encyclopedia "never caught" icons).
      * Populated by {@code ItemModelResolverMixin} when {@link #SILHOUETTE_REQUESTED} is set,

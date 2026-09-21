@@ -30,7 +30,8 @@ class FishAnimatorSquashTest {
 
     private static FishAnimationConfig.UprightSit upright(boolean diagonal, float pivotFraction,
                                                           float squash) {
-        return new FishAnimationConfig.UprightSit(0f, 8f, 0.004f, diagonal, pivotFraction, squash);
+        return new FishAnimationConfig.UprightSit(0f, 8f, 0.004f, diagonal, pivotFraction, squash,
+                java.util.Optional.empty(), java.util.Optional.empty());
     }
 
     /**
@@ -127,7 +128,8 @@ class FishAnimatorSquashTest {
     void everyDeformationPreservesVolume() {
         FishAnimationConfig.UprightSit crawler = upright(true, 0.34f, 0.2f);
         FishAnimationConfig.UprightFloat bell =
-                new FishAnimationConfig.UprightFloat(0.05f, 0.03f, 0.4f, true, 0.3f);
+                new FishAnimationConfig.UprightFloat(0.05f, 0.03f, 0.4f, true, 0.3f,
+                        java.util.Optional.empty(), java.util.Optional.empty());
         FishAnimationConfig.FloorSit flat = new FishAnimationConfig.FloorSit(0.03f, 8f, 0.004f, 0.2f);
 
         float crawlerBase = benthicPose(crawler, 0f).determinant();

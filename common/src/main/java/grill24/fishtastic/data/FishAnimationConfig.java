@@ -3,6 +3,9 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec2;
+
+import java.util.Optional;
 
 public sealed interface FishAnimationConfig
         permits FishAnimationConfig.HorizontalSwim, FishAnimationConfig.UprightFloat,
@@ -40,9 +43,12 @@ public sealed interface FishAnimationConfig
             float bobHertz,
             float wiggleScale,
             float surfFactor,
-            boolean diagonalTexture
+            boolean diagonalTexture,
+            Optional<Vec2> headUv,
+            Optional<Vec2> tailUv
     ) implements FishAnimationConfig {
-        public static final HorizontalSwim DEFAULT = new HorizontalSwim(0.125f, 0.08f, 0.5f, 0.12f, true);
+        public static final HorizontalSwim DEFAULT =
+                new HorizontalSwim(0.125f, 0.08f, 0.5f, 0.12f, true, Optional.empty(), Optional.empty());
 
         static final MapCodec<HorizontalSwim> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("bob_amplitude", 0.125f).forGetter(HorizontalSwim::bobAmplitude),
@@ -53,7 +59,12 @@ public sealed interface FishAnimationConfig
                 // (facing the top-right corner, like vanilla Cod/Salmon), so a +45° roll is needed
                 // to lay them horizontal. Set false for a texture already painted facing straight
                 // right, to render with no extra roll at all.
-                Codec.BOOL.optionalFieldOf("diagonal_texture", true ).forGetter(HorizontalSwim::diagonalTexture)
+                Codec.BOOL.optionalFieldOf("diagonal_texture", true ).forGetter(HorizontalSwim::diagonalTexture),
+                // Optional exact head/tail texture UV points ([0,1]x[0,1]), for consumers that want
+                // the real drawn angle instead of the diagonalTexture heuristic (e.g. the leaderboard
+                // podium's held-fish hang pose) — unused by this mode's own swim rendering.
+                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(HorizontalSwim::headUv),
+                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(HorizontalSwim::tailUv)
         ).apply(i, HorizontalSwim::new));
 
         @Override public String modeName() { return "horizontal_swim"; }
@@ -68,7 +79,9 @@ public sealed interface FishAnimationConfig
             float bobHertz,
             float spinRate,
             boolean diagonalTexture,
-            float pulseStretch
+            float pulseStretch,
+            Optional<Vec2> headUv,
+            Optional<Vec2> tailUv
     ) implements FishAnimationConfig {
         /**
          * How far the bell deforms at the peak of a pulse, as a fraction of the creature's height
@@ -82,7 +95,7 @@ public sealed interface FishAnimationConfig
         public static final float DEFAULT_PULSE_STRETCH = 0.10f;
 
         public static final UprightFloat DEFAULT =
-                new UprightFloat(0.05f, 0.03f, 0.4f, true, DEFAULT_PULSE_STRETCH);
+                new UprightFloat(0.05f, 0.03f, 0.4f, true, DEFAULT_PULSE_STRETCH, Optional.empty(), Optional.empty());
 
         static final MapCodec<UprightFloat> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("bob_amplitude",    0.05f).forGetter(UprightFloat::bobAmplitude),
@@ -92,7 +105,10 @@ public sealed interface FishAnimationConfig
                 // Cod/Salmon) so a -45° roll is needed to stand them upright. Set false for a texture
                 // that's already painted facing straight up, to render with no extra roll at all.
                 Codec.BOOL.optionalFieldOf("diagonal_texture",  true ).forGetter(UprightFloat::diagonalTexture),
-                Codec.FLOAT.optionalFieldOf("pulse_stretch", DEFAULT_PULSE_STRETCH).forGetter(UprightFloat::pulseStretch)
+                Codec.FLOAT.optionalFieldOf("pulse_stretch", DEFAULT_PULSE_STRETCH).forGetter(UprightFloat::pulseStretch),
+                // See HorizontalSwim.headUv/tailUv.
+                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(UprightFloat::headUv),
+                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(UprightFloat::tailUv)
         ).apply(i, UprightFloat::new));
 
         @Override public String modeName() { return "upright_float"; }
@@ -204,7 +220,9 @@ public sealed interface FishAnimationConfig
             float rotationHertz,
             boolean diagonalTexture,
             float pivotFraction,
-            float scuttleSquash
+            float scuttleSquash,
+            Optional<Vec2> headUv,
+            Optional<Vec2> tailUv
     ) implements FishAnimationConfig {
         /**
          * Distance from the item's centre down to the lowest <i>visible</i> pixel of its texture,
@@ -233,7 +251,8 @@ public sealed interface FishAnimationConfig
 
         // floorOffset is a small manual nudge on top of the measured pivot, like FloorSit's.
         public static final UprightSit DEFAULT =
-                new UprightSit(0.0f, 8.0f, 0.004f, true, DEFAULT_PIVOT_FRACTION, DEFAULT_SCUTTLE_SQUASH);
+                new UprightSit(0.0f, 8.0f, 0.004f, true, DEFAULT_PIVOT_FRACTION, DEFAULT_SCUTTLE_SQUASH,
+                        Optional.empty(), Optional.empty());
 
         static final MapCodec<UprightSit> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("floor_offset",       0.0f  ).forGetter(UprightSit::floorOffset),
@@ -242,7 +261,10 @@ public sealed interface FishAnimationConfig
                 // See UprightFloat.diagonalTexture: false for textures already painted facing straight up.
                 Codec.BOOL.optionalFieldOf("diagonal_texture",    true  ).forGetter(UprightSit::diagonalTexture),
                 Codec.FLOAT.optionalFieldOf("pivot_fraction", DEFAULT_PIVOT_FRACTION).forGetter(UprightSit::pivotFraction),
-                Codec.FLOAT.optionalFieldOf("scuttle_squash", DEFAULT_SCUTTLE_SQUASH).forGetter(UprightSit::scuttleSquash)
+                Codec.FLOAT.optionalFieldOf("scuttle_squash", DEFAULT_SCUTTLE_SQUASH).forGetter(UprightSit::scuttleSquash),
+                // See HorizontalSwim.headUv/tailUv.
+                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(UprightSit::headUv),
+                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(UprightSit::tailUv)
         ).apply(i, UprightSit::new));
 
         @Override public String modeName() { return "upright_sit"; }

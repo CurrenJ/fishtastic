@@ -6,11 +6,17 @@ import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.LeaderboardResponsePacket;
 import grill24.fishtastic.network.LeaderboardType;
 import grill24.fishtastic.network.RequestLeaderboardPacket;
+import grill24.fishtastic.util.FishQualityHelper;
+import grill24.fishtastic.util.ItemSizeHelper;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.components.HBox;
 import io.github.currenj.gelatinui.gui.components.ItemTabs;
 import io.github.currenj.gelatinui.gui.components.Label;
+import io.github.currenj.gelatinui.gui.components.ManualContainer;
+import io.github.currenj.gelatinui.gui.components.PlayerAvatarRenderer;
+import io.github.currenj.gelatinui.gui.components.PlayerModelRenderer;
+import io.github.currenj.gelatinui.gui.components.PlayerPoses;
 import io.github.currenj.gelatinui.gui.components.SpriteData;
 import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
 import io.github.currenj.gelatinui.gui.components.VBox;
@@ -74,9 +80,64 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int RANK_COLOR_BRONZE = 0xFFCD7F32;
     private static final int RANK_COLOR_DEFAULT = 0xFFAAAAAA;
 
+    // Podium — top 3 of a global leaderboard rendered as posed player models standing on
+    // rank-scaled pedestals, left-to-right in classic 2nd/1st/3rd order. Purely decorative: the
+    // scrollable row list below still lists every rank, including the top 3.
+    private static final int PODIUM_PLAYER_WIDTH_FIRST = 44;
+    private static final int PODIUM_PLAYER_HEIGHT_FIRST = 64;
+    private static final int PODIUM_PLAYER_WIDTH_OTHER = 36;
+    private static final int PODIUM_PLAYER_HEIGHT_OTHER = 54;
+    // Pedestals are built from stacked block item renders — ItemRenderer already draws block
+    // items as isometric 3D-perspective cubes (the same baked block model used in inventories),
+    // so a column of them reads as a rank-scaled pillar of real blocks rather than a flat sprite.
+    private static final float PODIUM_BLOCK_SCALE = 2.5f;
+    // With spacing(0), two block icons already stack perfectly edge-to-edge *as sprites* — no
+    // padding to close there. The gap instead comes from perspective: vanilla's block GUI display
+    // transform (models/block/block.json, verified against the 26.1.2 client jar: rotate 30°
+    // about X, scale 0.625) is linear, so it applies to the *offset between two stacked cubes'
+    // centers* the same way it applies to the cubes themselves. Two real cubes stacked in-world
+    // have centers exactly one cube-height apart; running that (0, 1, 0) offset through the same
+    // scale+rotation gives the correct on-screen center distance as a fraction of one block's
+    // rendered height: scale * cos(rotationX) (the Y-rotation component drops out — a rotation
+    // about Y never changes a vector's Y coordinate). Edge-to-edge (spacing 0) stacking instead
+    // puts centers a full block-box apart, so the overlap needed to correct that is 1 minus the
+    // true fraction. This lands at ~0.4587, matching (and explaining) the ~0.46 found by eye.
+    private static final float PODIUM_BLOCK_GUI_SCALE = 0.625f;
+    private static final float PODIUM_BLOCK_GUI_ROTATION_X_DEGREES = 30f;
+    private static final float PODIUM_BLOCK_VERTICAL_OVERLAP_FRACTION =
+            1f - PODIUM_BLOCK_GUI_SCALE * (float) Math.cos(Math.toRadians(PODIUM_BLOCK_GUI_ROTATION_X_DEGREES));
+    private static final float PODIUM_TOP_BLOCK_SIZE = 16f * PODIUM_BLOCK_SCALE;
+    // The same perspective compression that shrinks the *distance between* two stacked block
+    // centers to PODIUM_BLOCK_VERTICAL_OVERLAP_FRACTION also shrinks each block's own rendered
+    // cube within its (uncompressed) nominal bounding box, centred in it — so the topmost
+    // block's real top surface sits below the naive bounding-box top edge by half that same
+    // fraction of the block's own size (half, because the compression eats equally from both the
+    // top and bottom of the box around its centre).
+    private static final float PODIUM_TOP_BLOCK_SURFACE_DROP =
+            PODIUM_TOP_BLOCK_SIZE * PODIUM_BLOCK_VERTICAL_OVERLAP_FRACTION / 2f;
+    private static final Map<Integer, Item> PODIUM_BLOCK_ITEM = Map.of(
+            1, Items.GOLD_BLOCK,
+            2, Items.IRON_BLOCK,
+            3, Items.COPPER_BLOCK
+    );
+    private static final Map<Integer, Integer> PODIUM_BLOCK_COUNT = Map.of(
+            1, 3,
+            2, 2,
+            3, 1
+    );
+    // The player render's own bounding box leaves empty space below the feet (it's fit/centred
+    // within its render rect rather than flush to the bottom edge), so plain VBox spacing(0)
+    // between the player and the pedestal still shows a visible gap — the -6f is that part, tuned
+    // by eye. On top of that, the pedestal's own top-block surface sits PODIUM_TOP_BLOCK_SURFACE_DROP
+    // below its naive bounding-box top edge (see that constant's doc) — without subtracting it too,
+    // the player ends up standing on the block's bounding-box edge instead of its rendered surface.
+    private static final float PODIUM_PLAYER_PEDESTAL_OVERLAP = -6f - PODIUM_TOP_BLOCK_SURFACE_DROP;
+
     // Live element refs, one per tab, so a response for a given type can update its list in place
     // without rebuilding the other three tabs.
     private final Map<LeaderboardType, VBox> listWrappers = new EnumMap<>(LeaderboardType.class);
+    // Only populated for the two global tabs — personal tabs have no podium.
+    private final Map<LeaderboardType, HBox> podiumWrappers = new EnumMap<>(LeaderboardType.class);
 
     private ItemTabs tabs;
     private int activeTabIndex = 0;
@@ -91,6 +152,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void buildUI() {
         listWrappers.clear();
+        podiumWrappers.clear();
         tabs = null;
 
         tempContext = new MinecraftRenderContext(null, this.font);
@@ -167,6 +229,12 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         VBox wrapper = UI.vbox().spacing(6).padding(4).alignment(VBox.Alignment.CENTER);
         wrapper.addChild(label(translated(TAB_SUBTITLE_KEYS.get(type)), 0xFF88CCFF));
 
+        if (isGlobal(type)) {
+            HBox podium = UI.hbox().spacing(4).alignment(HBox.Alignment.BOTTOM);
+            podiumWrappers.put(type, podium);
+            wrapper.addChild(podium);
+        }
+
         VBox listWrapper = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
         listWrapper.addChild(label(translated("screen.fishtastic.leaderboard.loading"), 0xFF888888));
         wrapper.addChild(listWrapper);
@@ -204,6 +272,114 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
                 listWrapper.addChild(buildEntryRow(i + 1, entries.get(i), packet.leaderboardType(), selfUuid));
             }
         }
+
+        HBox podium = podiumWrappers.get(packet.leaderboardType());
+        if (podium != null) {
+            rebuildPodium(podium, entries, packet.leaderboardType());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Podium
+
+    private static boolean isGlobal(LeaderboardType type) {
+        return type == LeaderboardType.GLOBAL_CATCH_COUNT || type == LeaderboardType.GLOBAL_BEST_SIZE;
+    }
+
+    private void rebuildPodium(HBox podium, List<LeaderboardEntry> entries, LeaderboardType type) {
+        podium.clearChildren();
+        // Classic podium order: 2nd, 1st, 3rd, left to right.
+        int[] order = {1, 0, 2};
+        for (int rank : order) {
+            if (rank < entries.size()) {
+                podium.addChild(buildPodiumSlot(rank + 1, entries.get(rank), type));
+            }
+        }
+    }
+
+    private VBox buildPodiumSlot(int rank, LeaderboardEntry entry, LeaderboardType type) {
+        boolean isFirst = rank == 1;
+        int playerWidth = isFirst ? PODIUM_PLAYER_WIDTH_FIRST : PODIUM_PLAYER_WIDTH_OTHER;
+        int playerHeight = isFirst ? PODIUM_PLAYER_HEIGHT_FIRST : PODIUM_PLAYER_HEIGHT_OTHER;
+
+        VBox slot = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+
+        UUID uuid = entry.playerUuid().orElse(null);
+        String name = entry.playerName().orElse(null);
+        slot.addChild(label(name != null ? name : translated("screen.fishtastic.leaderboard.unknown_player"), rankColor(rank)));
+
+        // Player standing on the pedestal, positioned manually rather than via VBox: VBox couples
+        // layout order with paint order (same reason buildPedestal's own block stack needs a
+        // ManualContainer), and here the player must be positioned ABOVE the pedestal but PAINTED
+        // in front of it — the two blocks paint back-to-front by list order regardless of position,
+        // so the pedestal is added first (behind) and the player second (in front).
+        ManualContainer playerOnPedestal = UI.manualContainer();
+        ManualContainer pedestal = buildPedestal(rank, type);
+        Vector2f pedestalSize = pedestal.getSize();
+
+        float groupWidth = Math.max(playerWidth, pedestalSize.x);
+        float pedestalTop = playerHeight + PODIUM_PLAYER_PEDESTAL_OVERLAP;
+        float groupHeight = pedestalTop + pedestalSize.y;
+        playerOnPedestal.setSize(groupWidth, groupHeight);
+
+        playerOnPedestal.addChildAt(pedestal, groupWidth / 2f, pedestalTop + pedestalSize.y / 2f);
+        if (uuid != null) {
+            if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
+                PlayerAvatarRenderer avatar = UI.playerAvatar(playerWidth, playerHeight)
+                        .profile(PlayerHeadItems.resolvableProfile(uuid, name))
+                        .heldItem(catchStack(entry));
+                playerOnPedestal.addChildAt(avatar, groupWidth / 2f, playerHeight / 2f);
+            } else {
+                PlayerModelRenderer model = UI.playerModel(playerWidth, playerHeight)
+                        .profile(PlayerHeadItems.resolvableProfile(uuid, name))
+                        .pose(isFirst ? PlayerPoses.VICTORY : PlayerPoses.ARMS_CROSSED);
+                playerOnPedestal.addChildAt(model, groupWidth / 2f, playerHeight / 2f);
+            }
+        }
+        slot.addChild(playerOnPedestal);
+
+        return slot;
+    }
+
+    /** The fish this podium entry's held-item render shows off — their recorded biggest catch. */
+    private static ItemStack catchStack(LeaderboardEntry entry) {
+        return entry.fishType().map(loc -> {
+            Item item = BuiltInRegistries.ITEM.getOptional(loc).orElse(Items.COD);
+            ItemStack stack = new ItemStack(item);
+            ItemSizeHelper.setSize(stack, entry.size());
+            FishQualityHelper.setQuality(stack, entry.quality());
+            return stack;
+        }).orElse(ItemStack.EMPTY);
+    }
+
+    private ManualContainer buildPedestal(int rank, LeaderboardType type) {
+        // The Top Anglers (catch count) podium keeps a flat single-gold-block pedestal for every
+        // rank — only Best Size's rank-tiered gold/iron/copper stack varies in height.
+        Item blockItem = type == LeaderboardType.GLOBAL_CATCH_COUNT
+                ? Items.GOLD_BLOCK
+                : PODIUM_BLOCK_ITEM.getOrDefault(rank, Items.COPPER_BLOCK);
+        int blockCount = type == LeaderboardType.GLOBAL_CATCH_COUNT
+                ? 1
+                : PODIUM_BLOCK_COUNT.getOrDefault(rank, 1);
+
+        float blockSize = PODIUM_TOP_BLOCK_SIZE;
+        float spacing = -(blockSize * PODIUM_BLOCK_VERTICAL_OVERLAP_FRACTION);
+        float step = blockSize + spacing;
+        float totalHeight = blockSize + (blockCount - 1) * step;
+
+        ManualContainer pedestal = UI.manualContainer().maxChildren(blockCount);
+        pedestal.setSize(blockSize, totalHeight);
+
+        // VBox lays out AND paints in the same list order (first child = top position = painted
+        // first = behind), so the overlap from the negative spacing above showed the bottom block
+        // drawn in front of the one above it. A ManualContainer decouples position from paint
+        // order: positions are set explicitly below (top block at y=0, same as before), while
+        // children are added bottom-most first so the stack paints back-to-front, top in front.
+        for (int i = blockCount - 1; i >= 0; i--) {
+            float centerY = i * step + blockSize / 2f;
+            pedestal.addChildAt(UI.itemRenderer(new ItemStack(blockItem)).itemScale(PODIUM_BLOCK_SCALE), blockSize / 2f, centerY);
+        }
+        return pedestal;
     }
 
     // -------------------------------------------------------------------------

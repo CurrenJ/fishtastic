@@ -34,10 +34,17 @@ public final class PlayerHeadItems {
      */
     public static ItemStack headStack(UUID uuid, String name) {
         ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-        ResolvableProfile profile = (name != null && !name.isBlank())
+        head.set(DataComponents.PROFILE, resolvableProfile(uuid, name));
+        return head;
+    }
+
+    /**
+     * Same name-first resolution strategy as {@link #headStack}, exposed for callers that need the
+     * {@link ResolvableProfile} directly (e.g. to render a posed player model rather than an item).
+     */
+    public static ResolvableProfile resolvableProfile(UUID uuid, String name) {
+        return (name != null && !name.isBlank())
                 ? ResolvableProfile.createUnresolved(name)
                 : ResolvableProfile.createUnresolved(uuid);
-        head.set(DataComponents.PROFILE, profile);
-        return head;
     }
 }

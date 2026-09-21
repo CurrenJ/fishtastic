@@ -21,7 +21,7 @@ class FishAnimatorFloorLiftTest {
 
     private static FishAnimationConfig.UprightSit upright(float floorOffset, float pivotFraction) {
         return new FishAnimationConfig.UprightSit(floorOffset, 8f, 0.004f, true, pivotFraction,
-                FishAnimationConfig.UprightSit.DEFAULT_SCUTTLE_SQUASH);
+                FishAnimationConfig.UprightSit.DEFAULT_SCUTTLE_SQUASH, java.util.Optional.empty(), java.util.Optional.empty());
     }
 
     /**
