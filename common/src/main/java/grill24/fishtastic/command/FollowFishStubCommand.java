@@ -1,9 +1,11 @@
 package grill24.fishtastic.command;
 
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -36,7 +38,15 @@ public final class FollowFishStubCommand {
         return Commands.literal("followfish")
             .executes(FollowFishStubCommand::unavailable)
             .then(Commands.argument("index", integer(0)).executes(FollowFishStubCommand::unavailable))
-            .then(Commands.literal("closest").executes(FollowFishStubCommand::unavailable))
+            .then(Commands.literal("closest")
+                .executes(FollowFishStubCommand::unavailable)
+                .then(Commands.argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
+                    .executes(FollowFishStubCommand::unavailable)))
+            .then(Commands.literal("species")
+                .then(Commands.argument("species", IdentifierArgument.id())
+                    .executes(FollowFishStubCommand::unavailable)
+                    .then(Commands.argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
+                        .executes(FollowFishStubCommand::unavailable))))
             .then(Commands.literal("stop").executes(FollowFishStubCommand::unavailable));
     }
 

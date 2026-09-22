@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_quest_book": {
+    "has_fishopedia": {
       "conditions": {
         "items": [
           {
-            "items": "fishtastic:quest_book"
+            "items": "fishtastic:fishopedia"
           }
         ]
       },
@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "fishtastic:fishopedia"
+        "recipe": "fishtastic:leaderboards_book"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -21,12 +21,12 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_quest_book"
+      "has_fishopedia"
     ]
   ],
   "rewards": {
     "recipes": [
-      "fishtastic:fishopedia"
+      "fishtastic:leaderboards_book"
     ]
   }
 }

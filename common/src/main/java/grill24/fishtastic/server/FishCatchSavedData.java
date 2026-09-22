@@ -3,9 +3,11 @@ package grill24.fishtastic.server;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.network.RecentCatch;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -29,6 +31,12 @@ import java.util.function.Predicate;
  * Persistent server-side storage for all-time fish catch statistics.
  */
 public class FishCatchSavedData extends SavedData {
+
+    /**
+     * How many individual catches are remembered per player. Sized to exactly fill the leaderboard
+     * podium's tallest Fish Pile column (three block-fulls), the only consumer of this history.
+     */
+    public static final int MAX_RECENT_CATCHES = 3 * FishPileBlockEntity.MAX_FISH;
 
     // -------------------------------------------------------------------------
     // Public result record types
@@ -119,6 +127,8 @@ public class FishCatchSavedData extends SavedData {
         final UUID uuid;
         String lastKnownName;
         final Map<Identifier, FishTypeData> perFish = new HashMap<>();
+        /** Rolling history of individual catches, oldest first, capped at {@link #MAX_RECENT_CATCHES}. */
+        final List<RecentCatch> recentCatches = new ArrayList<>();
 
         PlayerCatchData(UUID uuid, String name) {
             this.uuid = uuid;
@@ -127,6 +137,10 @@ public class FishCatchSavedData extends SavedData {
 
         void record(Identifier fishType, float size, FishQuality.Quality quality) {
             perFish.computeIfAbsent(fishType, k -> new FishTypeData()).record(size, quality);
+            recentCatches.add(new RecentCatch(fishType, size, quality));
+            while (recentCatches.size() > MAX_RECENT_CATCHES) {
+                recentCatches.remove(0);
+            }
         }
 
         int totalCatches() {
@@ -137,10 +151,13 @@ public class FishCatchSavedData extends SavedData {
             instance.group(
                 UUIDUtil.STRING_CODEC.fieldOf("uuid").forGetter(d -> d.uuid),
                 Codec.STRING.fieldOf("name").forGetter(d -> d.lastKnownName),
-                Codec.unboundedMap(Identifier.CODEC, FishTypeData.CODEC).fieldOf("fish").forGetter(d -> new HashMap<>(d.perFish))
-            ).apply(instance, (uuid, name, fish) -> {
+                Codec.unboundedMap(Identifier.CODEC, FishTypeData.CODEC).fieldOf("fish").forGetter(d -> new HashMap<>(d.perFish)),
+                // Optional: worlds saved before the rolling history existed simply start empty.
+                RecentCatch.CODEC.listOf().optionalFieldOf("recent_catches", List.of()).forGetter(d -> List.copyOf(d.recentCatches))
+            ).apply(instance, (uuid, name, fish, recent) -> {
                 PlayerCatchData d = new PlayerCatchData(uuid, name);
                 d.perFish.putAll(fish);
+                d.recentCatches.addAll(recent);
                 return d;
             })
         );
@@ -316,6 +333,19 @@ public class FishCatchSavedData extends SavedData {
                 .map(pd -> new GlobalCatchCountEntry(pd.uuid, pd.lastKnownName, pd.totalCatches()))
                 .sorted(order)
                 .toList();
+    }
+
+    /**
+     * The player's most recent individual catches, newest first, at most {@code limit} of them.
+     * Empty for a player with no recorded history (including any catch made before this history
+     * was introduced).
+     */
+    public List<RecentCatch> getRecentCatches(UUID playerUuid, int limit) {
+        PlayerCatchData data = playerData.get(playerUuid);
+        if (data == null || data.recentCatches.isEmpty() || limit <= 0) return List.of();
+        List<RecentCatch> newestFirst = new ArrayList<>(data.recentCatches);
+        Collections.reverse(newestFirst);
+        return List.copyOf(newestFirst.subList(0, Math.min(limit, newestFirst.size())));
     }
 
     // -------------------------------------------------------------------------

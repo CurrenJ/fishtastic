@@ -92,6 +92,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.TROPHY_BAIT.value());
                     output.accept(FishtasticItems.HOOK.value());
                     output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
+                    output.accept(FishtasticItems.GOLDEN_HOOK.value());
                     output.accept(FishtasticItems.AMETHYST_CHARM.value());
                     output.accept(FishtasticItems.CRYSTAL_BALL_CHARM.value());
                     output.accept(FishtasticItems.FOUR_LEAF_CHARM.value());
@@ -108,6 +109,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.QUEST_TOKEN.value());
                     output.accept(FishtasticItems.FISHOPEDIA.value());
                     output.accept(FishtasticItems.QUEST_BOOK.value());
+                    output.accept(FishtasticItems.LEADERBOARDS_BOOK.value());
 
                     // Trash
                     output.accept(FishtasticItems.SEA_GLASS.value());

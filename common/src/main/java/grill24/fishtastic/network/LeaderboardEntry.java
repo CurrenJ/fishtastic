@@ -7,6 +7,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +23,9 @@ import java.util.UUID;
  *   <li>{@code size}       — meaningful for size leaderboards (0 otherwise)</li>
  *   <li>{@code catchCount} — meaningful for count leaderboards (0 otherwise)</li>
  *   <li>{@code quality}    — meaningful for size leaderboards (COMMON otherwise)</li>
+ *   <li>{@code recentCatches} — the player's latest individual catches, newest first. Only filled
+ *                             in for the GLOBAL catch-count podium (the top three rows), which
+ *                             renders them as a Fish Pile; empty everywhere else.</li>
  * </ul>
  */
 public record LeaderboardEntry(
@@ -30,7 +34,8 @@ public record LeaderboardEntry(
         Optional<String> playerName,
         float size,
         int catchCount,
-        FishQuality.Quality quality
+        FishQuality.Quality quality,
+        List<RecentCatch> recentCatches
 ) {
     private static final StreamCodec<ByteBuf, FishQuality.Quality> QUALITY_CODEC =
             ByteBufCodecs.VAR_INT.map(
@@ -51,25 +56,29 @@ public record LeaderboardEntry(
             LeaderboardEntry::catchCount,
             QUALITY_CODEC,
             LeaderboardEntry::quality,
+            RecentCatch.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            LeaderboardEntry::recentCatches,
             LeaderboardEntry::new
     );
 
     // ---- Convenience constructors ----
 
     public static LeaderboardEntry personalBestSize(Identifier fishType, float size, FishQuality.Quality quality) {
-        return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), size, 0, quality);
+        return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), size, 0, quality, List.of());
     }
 
     public static LeaderboardEntry globalBestSize(Identifier fishType, UUID playerUuid, String playerName,
                                                    float size, FishQuality.Quality quality) {
-        return new LeaderboardEntry(Optional.of(fishType), Optional.of(playerUuid), Optional.of(playerName), size, 0, quality);
+        return new LeaderboardEntry(Optional.of(fishType), Optional.of(playerUuid), Optional.of(playerName), size, 0, quality, List.of());
     }
 
     public static LeaderboardEntry personalCatchCount(Identifier fishType, int count) {
-        return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), 0f, count, FishQuality.Quality.COMMON);
+        return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), 0f, count, FishQuality.Quality.COMMON, List.of());
     }
 
-    public static LeaderboardEntry globalCatchCount(UUID playerUuid, String playerName, int count) {
-        return new LeaderboardEntry(Optional.empty(), Optional.of(playerUuid), Optional.of(playerName), 0f, count, FishQuality.Quality.COMMON);
+    public static LeaderboardEntry globalCatchCount(UUID playerUuid, String playerName, int count,
+                                                    List<RecentCatch> recentCatches) {
+        return new LeaderboardEntry(Optional.empty(), Optional.of(playerUuid), Optional.of(playerName), 0f, count,
+                FishQuality.Quality.COMMON, recentCatches);
     }
 }

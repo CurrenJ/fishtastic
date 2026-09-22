@@ -26,6 +26,11 @@
           "type": "minecraft:item",
           "name": "fishtastic:blazed_grub",
           "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "fishtastic:golden_hook",
+          "weight": 25
         }
       ]
     }

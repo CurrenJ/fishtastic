@@ -114,19 +114,42 @@ public final class ClientTankFlocks {
      * World-space position of one followable fish (see {@link #fishCount}), as of the flock's
      * last render-frame interpolation — not re-derived for an arbitrary partial tick, so callers
      * driving their own render loop (e.g. a third-party camera mod) get a position that is at
-     * most one frame stale.
+     * most one frame stale. Includes the cyclic bob the renderer adds on top of the flock's swim
+     * position (see {@link TankFlockAdapter#localFishWorldPosition}), so a camera tracking this
+     * position moves with the fish's sprite rather than with the smoothed point underneath it.
+     *
+     * @param gameTimeTicks {@code level.getGameTime() + partialTick} — the same clock the renderer
+     *                      poses non-swimming fish on, needed to reproduce their bob exactly
      */
-    public static @Nullable Vec3 worldPositionOf(Level level, BlockPos tankPos, int fishIndex) {
+    public static @Nullable Vec3 worldPositionOf(Level level, BlockPos tankPos, int fishIndex, float gameTimeTicks) {
         if (fishIndex < 0 || !(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return null;
         TankFlockAdapter flock = FLOCKS.get(tankPos);
         int local = flock == null ? 0 : flock.count();
-        if (fishIndex < local) return flock.localFishWorldPosition(tankPos, fishIndex);
+        if (fishIndex < local) return flock.localFishWorldPosition(tankPos, fishIndex, gameTimeTicks);
 
         TankGroups.Group group = ClientTankGroups.get(be, level).group();
         if (!group.isMultiTank()) return null;
         TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
         if (anchorFlock == null) return null;
-        return anchorFlock.groupFishWorldPosition(group.anchor(), fishIndex - local);
+        return anchorFlock.groupFishWorldPosition(group.anchor(), fishIndex - local, gameTimeTicks);
+    }
+
+    /**
+     * Opaque per-species id of one followable fish (see {@link #fishCount}) — the same id
+     * {@code FlockEngine} uses for species-aware separation/schooling (stable item-registry index
+     * for the client session). {@code -1} if there's no such fish.
+     */
+    public static int speciesIdOf(Level level, BlockPos tankPos, int fishIndex) {
+        if (fishIndex < 0 || !(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return -1;
+        TankFlockAdapter flock = FLOCKS.get(tankPos);
+        int local = flock == null ? 0 : flock.count();
+        if (fishIndex < local) return flock.fishSpecies(fishIndex, false);
+
+        TankGroups.Group group = ClientTankGroups.get(be, level).group();
+        if (!group.isMultiTank()) return -1;
+        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
+        if (anchorFlock == null) return -1;
+        return anchorFlock.fishSpecies(fishIndex - local, true);
     }
 
     /** Drops all flocks — call on world join/disconnect so block positions never leak across worlds. */

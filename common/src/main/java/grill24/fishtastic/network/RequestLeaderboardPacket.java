@@ -9,6 +9,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -68,6 +69,9 @@ public record RequestLeaderboardPacket(
         });
     }
 
+    /** Rows the leaderboard screen draws as a podium, and so the only ones needing catch history. */
+    private static final int PODIUM_SIZE = 3;
+
     private static List<LeaderboardEntry> buildEntries(RequestLeaderboardPacket packet,
                                                         FishCatchSavedData db,
                                                         ServerPlayer requester) {
@@ -98,11 +102,21 @@ public record RequestLeaderboardPacket(
                     .map(e -> LeaderboardEntry.personalCatchCount(e.fishType(), e.totalCatches()))
                     .toList();
 
-            case GLOBAL_CATCH_COUNT -> db.getGlobalCatchCounts(
-                    asc ? FishCatchSavedData.GLOBAL_CATCH_COUNT_ASC : FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC)
-                    .stream()
-                    .map(e -> LeaderboardEntry.globalCatchCount(e.playerUuid(), e.playerName(), e.totalCatches()))
-                    .toList();
+            case GLOBAL_CATCH_COUNT -> {
+                List<FishCatchSavedData.GlobalCatchCountEntry> counts = db.getGlobalCatchCounts(
+                        asc ? FishCatchSavedData.GLOBAL_CATCH_COUNT_ASC : FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC);
+                List<LeaderboardEntry> rows = new ArrayList<>(counts.size());
+                for (int i = 0; i < counts.size(); i++) {
+                    FishCatchSavedData.GlobalCatchCountEntry e = counts.get(i);
+                    // Only the three podium rows render a Fish Pile of real catches, so only they
+                    // carry the history - no point paying for it on a board of hundreds of rows.
+                    List<RecentCatch> recent = i < PODIUM_SIZE
+                            ? db.getRecentCatches(e.playerUuid(), FishCatchSavedData.MAX_RECENT_CATCHES)
+                            : List.of();
+                    rows.add(LeaderboardEntry.globalCatchCount(e.playerUuid(), e.playerName(), e.totalCatches(), recent));
+                }
+                yield List.copyOf(rows);
+            }
         };
     }
 }

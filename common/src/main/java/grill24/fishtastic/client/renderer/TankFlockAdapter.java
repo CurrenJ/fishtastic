@@ -21,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * The only class that knows both worlds (docs/fish-sim-engine-plan.md §1): it maps tank contents
@@ -112,12 +113,20 @@ public final class TankFlockAdapter {
 
     /**
      * World-space position of fish #{@code i} in this tank's own engine (the local/"hover" fish —
-     * see {@link #count()}), mirroring the offset {@code FishTankBlockEntityRenderer} draws it at.
+     * see {@link #count()}), mirroring the offset {@code FishTankBlockEntityRenderer} draws it at —
+     * including the cyclic vertical bob {@link FishAnimator#apply} adds at render time, which
+     * {@link #engine}'s own {@code renderY} never carries (that's the flock's swim/settle height;
+     * the bob is a per-frame pose detail layered on top of it purely for drawing). Omitting it here
+     * is what used to make a camera tracking this position visibly lag the sprite's actual bob.
+     *
+     * @param gameTimeTicks {@code level.getGameTime() + partialTick}, matching the {@code t} the
+     *                      renderer's non-swimmer poses animate on
      */
-    public Vec3 localFishWorldPosition(BlockPos tankPos, int i) {
+    public Vec3 localFishWorldPosition(BlockPos tankPos, int i, float gameTimeTicks) {
+        float yBob = animatedYBob(engine, anims[i], i, gameTimeTicks);
         return new Vec3(
             tankPos.getX() + 0.5 + engine.renderX[i],
-            tankPos.getY() + FishTankBlockEntityRenderer.ITEM_BASELINE_Y + engine.renderY[i],
+            tankPos.getY() + FishTankBlockEntityRenderer.ITEM_BASELINE_Y + engine.renderY[i] + yBob,
             tankPos.getZ() + 0.5 + engine.renderZ[i]
         );
     }
@@ -125,15 +134,41 @@ public final class TankFlockAdapter {
     /**
      * World-space position of fish #{@code i} in this (anchor) tank's shared {@link #groupEngine()},
      * or {@code null} if this tank isn't currently a group anchor. Mirrors the offset
-     * {@code FishTankBlockEntityRenderer.submitGroupSwimmers} draws it at.
+     * {@code FishTankBlockEntityRenderer.submitGroupSwimmers} draws it at, bob included — see
+     * {@link #localFishWorldPosition}.
      */
-    public @Nullable Vec3 groupFishWorldPosition(BlockPos anchorPos, int i) {
+    public @Nullable Vec3 groupFishWorldPosition(BlockPos anchorPos, int i, float gameTimeTicks) {
         if (groupEngine == null) return null;
+        float yBob = animatedYBob(groupEngine, groupAnims[i], i, gameTimeTicks);
         return new Vec3(
             anchorPos.getX() + groupOffsetX + groupEngine.renderX[i],
-            anchorPos.getY() + groupOffsetY + groupEngine.renderY[i],
+            anchorPos.getY() + groupOffsetY + groupEngine.renderY[i] + yBob,
             anchorPos.getZ() + groupOffsetZ + groupEngine.renderZ[i]
         );
+    }
+
+    /**
+     * Species id of fish #{@code i} in this tank's own engine, or the group engine's if
+     * {@code group} — see {@link #speciesId(ItemStack)}, the opaque per-item-type id the engine
+     * carries per fish. {@code -1} if there's no such fish (group not simulating here).
+     */
+    public int fishSpecies(int i, boolean group) {
+        if (group) return groupEngine == null ? -1 : groupEngine.species[i];
+        return engine.species[i];
+    }
+
+    /**
+     * The bob {@link FishAnimator#apply} adds on top of {@code eng.renderY[i]} purely for drawing —
+     * see {@link #localFishWorldPosition}. Uses its own {@link Random} seeded exactly as the
+     * renderer seeds {@code fishRandom} before posing this fish, so the draws that produce the bob
+     * come out identical; nothing about that instance is shared with the renderer's.
+     */
+    private static float animatedYBob(FlockEngine eng, FishAnimationConfig anim,
+                                       int i, float gameTimeTicks) {
+        Random random = new Random(eng.seeds[i]);
+        return eng.swimmers[i]
+                ? FishAnimator.yBob(anim, random, eng.renderPhase[i], eng.speedFactor(i))
+                : FishAnimator.yBob(anim, random, gameTimeTicks, 1f);
     }
 
     /** Marks this flock as having been extracted this client tick (drives eviction). */

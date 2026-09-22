@@ -2,9 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:quest_book"
+    "fishtastic:leaderboards_book"
   ],
   "result": {
-    "id": "fishtastic:fishopedia"
+    "id": "fishtastic:quest_book"
   }
 }

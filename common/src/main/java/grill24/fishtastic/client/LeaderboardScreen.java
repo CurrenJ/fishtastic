@@ -1,6 +1,8 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
+import grill24.fishtastic.client.util.FishPileIcons;
 import grill24.fishtastic.client.util.PlayerHeadItems;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.LeaderboardResponsePacket;
@@ -35,6 +37,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 import org.joml.Vector2f;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -120,6 +123,15 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
             2, Items.IRON_BLOCK,
             3, Items.COPPER_BLOCK
     );
+    /** How tall a Top Angler's pile of recent catches may get, in Fish Pile blocks. */
+    private static final int PODIUM_PILE_MAX_BLOCKS = 3;
+    /**
+     * Fish shown in the rank-1 Top Angler's pile — the full column. Ranks 2 and 3 show a fraction
+     * of this in proportion to their catch count against rank 1's, so the three piles read as a
+     * to-scale comparison of the podium's hauls rather than three identical full columns (which is
+     * what they became once every podium player's recorded history hit its own cap).
+     */
+    private static final int PODIUM_PILE_MAX_FISH = PODIUM_PILE_MAX_BLOCKS * FishPileBlockEntity.MAX_FISH;
     private static final Map<Integer, Integer> PODIUM_BLOCK_COUNT = Map.of(
             1, 3,
             2, 2,
@@ -288,16 +300,19 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     private void rebuildPodium(HBox podium, List<LeaderboardEntry> entries, LeaderboardType type) {
         podium.clearChildren();
+        // Rank 1's catch count is what the other two piles are measured against, so it's read once
+        // here (entries arrive sorted best-first) and handed to every slot.
+        int topCatchCount = entries.isEmpty() ? 0 : entries.get(0).catchCount();
         // Classic podium order: 2nd, 1st, 3rd, left to right.
         int[] order = {1, 0, 2};
         for (int rank : order) {
             if (rank < entries.size()) {
-                podium.addChild(buildPodiumSlot(rank + 1, entries.get(rank), type));
+                podium.addChild(buildPodiumSlot(rank + 1, entries.get(rank), type, topCatchCount));
             }
         }
     }
 
-    private VBox buildPodiumSlot(int rank, LeaderboardEntry entry, LeaderboardType type) {
+    private VBox buildPodiumSlot(int rank, LeaderboardEntry entry, LeaderboardType type, int topCatchCount) {
         boolean isFirst = rank == 1;
         int playerWidth = isFirst ? PODIUM_PLAYER_WIDTH_FIRST : PODIUM_PLAYER_WIDTH_OTHER;
         int playerHeight = isFirst ? PODIUM_PLAYER_HEIGHT_FIRST : PODIUM_PLAYER_HEIGHT_OTHER;
@@ -313,6 +328,14 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         // ManualContainer), and here the player must be positioned ABOVE the pedestal but PAINTED
         // in front of it — the two blocks paint back-to-front by list order regardless of position,
         // so the pedestal is added first (behind) and the player second (in front).
+        if (type == LeaderboardType.GLOBAL_CATCH_COUNT) {
+            // Top Anglers shows no player at all: an angler is represented by their haul — the
+            // Fish Pile block, stacked with the actual fish they most recently landed, sitting on
+            // the pedestal as one continuous column of blocks.
+            slot.addChild(buildBlockColumn(topAnglerColumn(entry, topCatchCount)));
+            return slot;
+        }
+
         ManualContainer playerOnPedestal = UI.manualContainer();
         ManualContainer pedestal = buildPedestal(rank, type);
         Vector2f pedestalSize = pedestal.getSize();
@@ -352,6 +375,36 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         }).orElse(ItemStack.EMPTY);
     }
 
+    /**
+     * The Top Anglers column, bottom block first: the flat single-gold-block pedestal every rank
+     * gets, topped by this player's recent catches piled up as Fish Pile blocks, as many of them as
+     * {@link #pileFishBudget} allows this rank. An entry with no recorded catch history (a world
+     * from before that history was kept) is just the pedestal.
+     */
+    private static List<ItemStack> topAnglerColumn(LeaderboardEntry entry, int topCatchCount) {
+        List<ItemStack> column = new ArrayList<>();
+        column.add(new ItemStack(Items.GOLD_BLOCK));
+        column.addAll(FishPileIcons.pileBlocks(entry.recentCatches(),
+                pileFishBudget(entry.catchCount(), topCatchCount)));
+        return column;
+    }
+
+    /**
+     * How many fish this podium entry's pile may show: its catch count as a fraction of rank 1's,
+     * scaled onto {@link #PODIUM_PILE_MAX_FISH}. Any player with at least one catch keeps at least
+     * one fish, so a trailing third place still reads as a pile rather than a bare pedestal.
+     *
+     * <p>The pile can still come up short of its budget — it only ever draws fish the server
+     * actually recorded, and that per-player history is itself capped at
+     * {@link grill24.fishtastic.server.FishCatchSavedData#MAX_RECENT_CATCHES}.
+     */
+    private static int pileFishBudget(int catchCount, int topCatchCount) {
+        if (catchCount <= 0) return 0;
+        if (topCatchCount <= 0) return PODIUM_PILE_MAX_FISH;
+        int budget = Math.round(PODIUM_PILE_MAX_FISH * (float) catchCount / (float) topCatchCount);
+        return Math.clamp(budget, 1, PODIUM_PILE_MAX_FISH);
+    }
+
     private ManualContainer buildPedestal(int rank, LeaderboardType type) {
         // The Top Anglers (catch count) podium keeps a flat single-gold-block pedestal for every
         // rank — only Best Size's rank-tiered gold/iron/copper stack varies in height.
@@ -361,6 +414,17 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         int blockCount = type == LeaderboardType.GLOBAL_CATCH_COUNT
                 ? 1
                 : PODIUM_BLOCK_COUNT.getOrDefault(rank, 1);
+
+        List<ItemStack> column = new ArrayList<>(blockCount);
+        for (int i = 0; i < blockCount; i++) {
+            column.add(new ItemStack(blockItem));
+        }
+        return buildBlockColumn(column);
+    }
+
+    /** Renders {@code column} (bottom block first) as one flush-stacked pillar of block icons. */
+    private ManualContainer buildBlockColumn(List<ItemStack> column) {
+        int blockCount = Math.max(column.size(), 1);
 
         float blockSize = PODIUM_TOP_BLOCK_SIZE;
         float spacing = -(blockSize * PODIUM_BLOCK_VERTICAL_OVERLAP_FRACTION);
@@ -375,9 +439,11 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         // drawn in front of the one above it. A ManualContainer decouples position from paint
         // order: positions are set explicitly below (top block at y=0, same as before), while
         // children are added bottom-most first so the stack paints back-to-front, top in front.
-        for (int i = blockCount - 1; i >= 0; i--) {
-            float centerY = i * step + blockSize / 2f;
-            pedestal.addChildAt(UI.itemRenderer(new ItemStack(blockItem)).itemScale(PODIUM_BLOCK_SCALE), blockSize / 2f, centerY);
+        // Iterated bottom block first (index 0) to keep that back-to-front paint order, while the
+        // positions run the other way: y grows downward, so the bottom block gets the largest y.
+        for (int i = 0; i < column.size(); i++) {
+            float centerY = (column.size() - 1 - i) * step + blockSize / 2f;
+            pedestal.addChildAt(UI.itemRenderer(column.get(i)).itemScale(PODIUM_BLOCK_SCALE), blockSize / 2f, centerY);
         }
         return pedestal;
     }

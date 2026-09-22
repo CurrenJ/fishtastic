@@ -34,7 +34,8 @@ public class FishPileBlockEntityRenderer implements BlockEntityRenderer<FishPile
     private static final float SCALE = FishPileBlockEntity.RENDER_SCALE;
     private static final float BASE_Y = FishPileBlockEntity.RENDER_BASE_Y;
     private static final float LAYER_HEIGHT = FishPileBlockEntity.RENDER_LAYER_HEIGHT;
-    private static final float JITTER_XZ = 0.18f;
+    /** Shared with {@link FishPileBlockItemModel}, so a pile icon jitters like the real block. */
+    static final float JITTER_XZ = 0.18f;
 
     public FishPileBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }

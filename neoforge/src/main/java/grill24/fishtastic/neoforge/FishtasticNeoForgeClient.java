@@ -192,6 +192,7 @@ public final class FishtasticNeoForgeClient {
         event.register(FishtasticKeyBinds.fishingMinigameImpulse);
         event.register(FishtasticKeyBinds.openQuestLog);
         event.register(FishtasticKeyBinds.openFishEncyclopedia);
+        event.register(FishtasticKeyBinds.openLeaderboards);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 

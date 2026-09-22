@@ -17,6 +17,7 @@ import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishopediaItem;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
+import grill24.fishtastic.item.LeaderboardsBookItem;
 import grill24.fishtastic.item.QuestBookItem;
 import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.item.TestItem;
@@ -81,6 +82,7 @@ public class FishtasticItems {
     // ----- Hook Items -----
     public static Holder<Item> HOOK;
     public static Holder<Item> OLD_COPPER_HOOK;
+    public static Holder<Item> GOLDEN_HOOK;
 
     // ----- Charm Items -----
     public static Holder<Item> AMETHYST_CHARM;
@@ -106,6 +108,7 @@ public class FishtasticItems {
     // ----- Menu-Opening Items -----
     public static Holder<Item> FISHOPEDIA;
     public static Holder<Item> QUEST_BOOK;
+    public static Holder<Item> LEADERBOARDS_BOOK;
 
     // ----- Trash Items -----
     public static Holder<Item> SEA_GLASS;
@@ -383,6 +386,10 @@ public class FishtasticItems {
         OLD_COPPER_HOOK = RegistrationApiSided.getInstance().registerItem("old_copper_hook",
                 loc -> new FishtasticFishItem(props(loc).durability(50)
                         .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.OLD_COPPER_HOOK)));
+        // Soft gold wears out fast — the treasure bonus is paid for in durability.
+        GOLDEN_HOOK = RegistrationApiSided.getInstance().registerItem("golden_hook",
+                loc -> new FishtasticFishItem(props(loc).durability(32)
+                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.GOLDEN_HOOK)));
 
         // Charm items — loaded into the rod's charm slot; affect fishing minigame physics
         AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm",
@@ -434,6 +441,8 @@ public class FishtasticItems {
                 loc -> new FishopediaItem(props(loc).stacksTo(1)));
         QUEST_BOOK = RegistrationApiSided.getInstance().registerItem("quest_book",
                 loc -> new QuestBookItem(props(loc).stacksTo(1)));
+        LEADERBOARDS_BOOK = RegistrationApiSided.getInstance().registerItem("leaderboards_book",
+                loc -> new LeaderboardsBookItem(props(loc).stacksTo(1)));
 
         // Trash items — caught instead of fish/treasure, feed the global cleanup goal
         SEA_GLASS = RegistrationApiSided.getInstance().registerItem("sea_glass", loc -> new Item(props(loc).stacksTo(64)));

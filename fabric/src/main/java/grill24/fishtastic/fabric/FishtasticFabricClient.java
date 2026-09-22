@@ -170,6 +170,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.fishingMinigameImpulse);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openQuestLog);
         KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openFishEncyclopedia);
+        KeyMappingHelper.registerKeyMapping(FishtasticKeyBinds.openLeaderboards);
 
         // Register block entity renderer
         BlockEntityRendererRegistry.register(

@@ -29,7 +29,6 @@
         }
       }
     },
-    { "id": "fishtastic:fishopedia", "count": 1 },
     { "id": "fishtastic:quest_book", "count": 1 }
   ] },
   "hidden": false,

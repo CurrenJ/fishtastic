@@ -361,6 +361,40 @@ public final class FishAnimator {
      */
     public static final float PLANTED_PIVOT_Y = 0.5f;
 
+    /**
+     * The vertical bob {@link #apply} would add on top of a fish's base render position, computed
+     * without touching a {@link PoseStack} — for a caller that needs to know where a fish's sprite
+     * actually is this frame rather than draw it (e.g. a third-party camera mod tracking it).
+     *
+     * <p>Mirrors the random-draw order of the three poses that bob at all ({@link
+     * FishAnimationConfig.HorizontalSwim}, {@link FishAnimationConfig.BellyDown}, {@link
+     * FishAnimationConfig.UprightFloat}) exactly, up through the draws that feed {@code yBob} — the
+     * only ones that matter here, since the caller's {@link Random} is its own instance seeded the
+     * same way and never shared with the one the renderer consumes further per frame.
+     *
+     * @param speedFactor as {@link #applySwimming}'s — only {@link FishAnimationConfig.HorizontalSwim}
+     *                    couples to it; pass {@code 1f} for every other pose (including a swimmer's
+     *                    own game-time fallback, which never applies).
+     */
+    public static float yBob(FishAnimationConfig config, Random random, float t, float speedFactor) {
+        return switch (config) {
+            case FishAnimationConfig.HorizontalSwim cfg -> {
+                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
+                yield getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
+            }
+            case FishAnimationConfig.BellyDown cfg -> {
+                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
+                yield getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
+            }
+            case FishAnimationConfig.UprightFloat cfg -> {
+                float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
+                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.01f);
+                yield (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
+            }
+            default -> 0f;
+        };
+    }
+
     // ── Shared animation helpers ──────────────────────────────────────────────
 
     private static float getBobbingHeight(Random random, float t, float amplitude, float hertz) {

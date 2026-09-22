@@ -1,6 +1,7 @@
 package grill24.fishtastic.fabric.compat.coolcam;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -8,13 +9,22 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
+
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
@@ -53,7 +63,23 @@ public final class FishtasticCoolCamCommands {
                 .executes(ctx -> followLookedAtTank(ctx.getSource(), 0))
                 .then(argument("index", integer(0))
                     .executes(ctx -> followLookedAtTank(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "index"))))
-                .then(literal("closest").executes(ctx -> followClosestInLookedAtTank(ctx.getSource())))
+                .then(literal("closest")
+                    .executes(ctx -> followClosestInLookedAtTank(ctx.getSource(),
+                            ClosestFishFollowTarget.DEFAULT_RETARGET_COOLDOWN_SECONDS, -1))
+                    .then(argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
+                        .executes(ctx -> followClosestInLookedAtTank(ctx.getSource(),
+                                FloatArgumentType.getFloat(ctx, "retargetCooldownSeconds"), -1))))
+                .then(literal("species")
+                    .then(argument("species", IdentifierArgument.id())
+                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                speciesInLookedAtTank(), builder))
+                        .executes(ctx -> followSpeciesInLookedAtTank(ctx.getSource(),
+                                ctx.getArgument("species", Identifier.class),
+                                ClosestFishFollowTarget.DEFAULT_RETARGET_COOLDOWN_SECONDS))
+                        .then(argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
+                            .executes(ctx -> followSpeciesInLookedAtTank(ctx.getSource(),
+                                    ctx.getArgument("species", Identifier.class),
+                                    FloatArgumentType.getFloat(ctx, "retargetCooldownSeconds"))))))
                 .then(literal("stop").executes(ctx -> {
                     CoolCamFollowBridge.stopFollowing();
                     ctx.getSource().sendFeedback(Component.literal("Stopped following."));
@@ -80,6 +106,29 @@ public final class FishtasticCoolCamCommands {
         return pos;
     }
 
+    /**
+     * Item ids of every distinct species currently in whatever tank the player is looking at (or
+     * none, if they aren't looking at one) — feeds tab-completion for {@code followfish species},
+     * so a player only ever sees fish that are actually in front of them rather than every fish
+     * item in the game.
+     */
+    private static Iterable<String> speciesInLookedAtTank() {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level == null || !(mc.hitResult instanceof BlockHitResult blockHit)) return Set.of();
+        BlockPos pos = blockHit.getBlockPos();
+        if (!(level.getBlockEntity(pos) instanceof FishTankBlockEntity)) return Set.of();
+
+        Set<String> ids = new LinkedHashSet<>();
+        int count = ClientTankFlocks.fishCount(level, pos);
+        for (int i = 0; i < count; i++) {
+            int species = ClientTankFlocks.speciesIdOf(level, pos, i);
+            Item item = BuiltInRegistries.ITEM.byId(species);
+            if (item != null) ids.add(BuiltInRegistries.ITEM.getKey(item).toString());
+        }
+        return ids;
+    }
+
     private static int followLookedAtTank(FabricClientCommandSource source, int fishIndex) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;
@@ -95,7 +144,8 @@ public final class FishtasticCoolCamCommands {
         CoolCamFollowBridge.lookAt(new FollowablePosition() {
             @Override
             public Vec3 position(float partialTick) {
-                Vec3 p = ClientTankFlocks.worldPositionOf(level, pos, fishIndex);
+                Vec3 p = ClientTankFlocks.worldPositionOf(level, pos, fishIndex,
+                        (float) (level.getGameTime() + partialTick));
                 return p != null ? p : Vec3.atCenterOf(pos);
             }
 
@@ -110,7 +160,7 @@ public final class FishtasticCoolCamCommands {
         return 1;
     }
 
-    private static int followClosestInLookedAtTank(FabricClientCommandSource source) {
+    private static int followClosestInLookedAtTank(FabricClientCommandSource source, float retargetCooldownSeconds, int speciesFilter) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;
         if (level == null) return 0;
@@ -122,8 +172,38 @@ public final class FishtasticCoolCamCommands {
             return 0;
         }
 
-        CoolCamFollowBridge.lookAt(new ClosestFishFollowTarget(pos, level));
+        CoolCamFollowBridge.lookAt(new ClosestFishFollowTarget(pos, level, retargetCooldownSeconds, speciesFilter));
         source.sendFeedback(Component.literal("Following closest fish in the tank at " + pos.toShortString() + "."));
+        return 1;
+    }
+
+    private static int followSpeciesInLookedAtTank(FabricClientCommandSource source, Identifier speciesId, float retargetCooldownSeconds) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level == null) return 0;
+
+        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(speciesId);
+        if (item.isEmpty()) {
+            source.sendError(Component.literal("Unknown item id: " + speciesId));
+            return 0;
+        }
+
+        BlockPos pos = lookedAtTank(source, level);
+        if (pos == null) return 0;
+
+        int species = BuiltInRegistries.ITEM.getId(item.get());
+        boolean present = false;
+        int count = ClientTankFlocks.fishCount(level, pos);
+        for (int i = 0; i < count && !present; i++) {
+            present = ClientTankFlocks.speciesIdOf(level, pos, i) == species;
+        }
+        if (!present) {
+            source.sendError(Component.literal("That tank has no " + speciesId + "."));
+            return 0;
+        }
+
+        CoolCamFollowBridge.lookAt(new ClosestFishFollowTarget(pos, level, retargetCooldownSeconds, species));
+        source.sendFeedback(Component.literal("Following closest " + speciesId + " in the tank at " + pos.toShortString() + "."));
         return 1;
     }
 }

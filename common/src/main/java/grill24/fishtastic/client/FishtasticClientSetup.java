@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.client.renderer.CosmeticStructureItemModel;
+import grill24.fishtastic.client.renderer.FishPileBlockItemModel;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
@@ -56,7 +57,11 @@ public final class FishtasticClientSetup {
                     Fishtastic.id("cosmetic_structure"),
                     CosmeticStructureItemModel.Unbaked.MAP_CODEC
             );
-            Fishtastic.LOGGER.info("Registered pile_of_fish_layers and cosmetic_structure item model types.");
+            idMapper.put(
+                    Fishtastic.id("fish_pile_block"),
+                    FishPileBlockItemModel.Unbaked.MAP_CODEC
+            );
+            Fishtastic.LOGGER.info("Registered pile_of_fish_layers, cosmetic_structure and fish_pile_block item model types.");
         } catch (ReflectiveOperationException e) {
             Fishtastic.LOGGER.error("Failed to register pile_of_fish_layers item model type!", e);
         }
