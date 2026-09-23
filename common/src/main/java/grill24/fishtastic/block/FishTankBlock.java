@@ -354,9 +354,6 @@ public class FishTankBlock extends Block implements EntityBlock {
                     FishTankBlockEntity target = addToGroupWithFallback(level, fishTank, toAdd, rotation);
                     if (target != null) {
                         itemStack.shrink(1);
-                        player.sendSystemMessage(
-                            Component.literal("Added item to fish tank")
-                        );
                         checkTankQuests(player, target, placedStack);
                         return InteractionResult.SUCCESS;
                     } else {
@@ -404,7 +401,6 @@ public class FishTankBlock extends Block implements EntityBlock {
             return InteractionResult.FAIL;
         }
         itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-        player.sendSystemMessage(Component.literal("Added item to fish tank"));
         checkTankQuests(player, target, placedStack);
         return InteractionResult.SUCCESS;
     }
@@ -497,7 +493,6 @@ public class FishTankBlock extends Block implements EntityBlock {
             player.sendSystemMessage(Component.literal("Pile of Fish is full"));
             return InteractionResult.FAIL;
         }
-        player.sendSystemMessage(Component.literal("Removed item from fish tank"));
         return InteractionResult.SUCCESS;
     }
 
