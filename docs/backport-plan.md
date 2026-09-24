@@ -1,6 +1,6 @@
 # Backport Plan: Fishtastic 2.0 → MC 1.21.1 and MC 1.20.1
 
-> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. Decisions D1–D7 settled; D8–D11 open (§10). S3 and S1 landed on `26.1.2` (A0.3 baseline below).
+> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. Decisions D1–D11 all settled (§10; D8–D11 on 2026-09-24). S3 and S1 landed on `26.1.2` (A0.3 baseline below).
 > **Pass 2 is written (2026-09-24): [`backport-pass2/`](backport-pass2/README.md).** It has one file per track, the A5 rendering design notes, and the tracked [checklist](backport-pass2/checklist.md) with the per-branch "ported through" markers. Pass 2 corrects a few pass 1 statements. They're marked *(pass 2)* inline below, and the full list is in `backport-pass2/README.md` §"What pass 2 changed in pass 1".
 > Work item IDs (`A1.3`, `B2.1`, …) are stable, and pass 2 uses them.
 > **Baseline (A0.3, frozen 2026-09-24):** branch `26.1.2` @ `298279e1` (Fishtastic 2.0.1 + seams S3 and S1, MC 26.1.2). Pass 1 surveyed `7076aeb6`, its parent before the seams.
@@ -345,10 +345,10 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Decided: not supported.** An accepted limitation, to be stated in the release notes. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
 | **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
-| **D8** | *(pass 2)* Sunset Postcard on the backports: full parity through tickTime mixins + rate sync, or a server-only rate (the sun visibly jumps)? | **Open.** Recommendation: full parity (about 60 lines + 2 mixins). See `backport-pass2/README.md`. |
-| **D9** | *(pass 2)* Land seams S5 (Java 17 calls) and S6 (`FishMoonPhase`, permission helper) on `26.1.2` before track A? | **Open.** Recommendation: yes. Each is under an hour and removes a permanent per-branch diff. |
-| **D10** | *(pass 2)* One shared gametest harness class for all loaders? | **Open.** Recommendation: yes. It removes ~2,100 duplicated lines and the 256/263 drift. |
-| **D11** | *(pass 2)* Architectury Loom 1.17 + Gradle 9.5 on the port branches (as potions-plus mc-1.21.1)? | **Open.** Recommendation: yes. The fallback is Loom 1.11 / Gradle 8.14 (the spike and the 1.20.1 source project). |
+| **D8** | *(pass 2)* Sunset Postcard on the backports: full parity through tickTime mixins + rate sync, or a server-only rate (the sun visibly jumps)? | **Decided 2026-09-24: full parity** (tickTime accumulator mixins + rate-sync payload, A2.8.c). |
+| **D9** | *(pass 2)* Land seams S5 (Java 17 calls) and S6 (`FishMoonPhase`, permission helper) on `26.1.2` before track A? | **Decided 2026-09-24: yes.** S5 and S6 land on `26.1.2` before A1; the baseline marker advances past `298279e1`. |
+| **D10** | *(pass 2)* One shared gametest harness class for all loaders? | **Decided 2026-09-24: yes** (A6.1, B6.1). |
+| **D11** | *(pass 2)* Architectury Loom 1.17 + Gradle 9.5 on the port branches (as potions-plus mc-1.21.1)? | **Decided 2026-09-24: yes.** Fallback Loom 1.11 / Gradle 8.14 only if 1.17 fails. |
 | **D6** | Versioning and release cadence | **Decided.** Goal set by the owner: identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. Decided: format `2.x.y+<mc>`. |
 
 ---

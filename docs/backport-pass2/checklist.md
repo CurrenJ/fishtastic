@@ -36,18 +36,18 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | S2 | Packet codec locality | [x] | (already true) | confirmed by the B3.1 inventory: one `STREAM_CODEC` field per type |
 | S3 | `fishsim` + `tank-shape-gen` at `--release 17` | [x] | `7b8945b5` | |
 | S4 | Rendering logic apart from output | [~] | | the swarm, animator and bubbles are already split. Remaining: the `ItemEffect` data/render split (A2.5). |
-| S5 | Java 17 library calls replaced (~45 sites) | [ ] | | **D9, awaiting decision** |
-| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` (+ optional `Ids.of`) | [ ] | | **D9, awaiting decision** |
+| S5 | Java 17 library calls replaced (~45 sites) | [ ] | | D9: do before A1 |
+| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` (+ optional `Ids.of`) | [ ] | | D9: do before A1 |
 
 ## Decisions
 
 | ID | Status |
 |---|---|
 | D1–D7 | settled (pass 1) |
-| D8 Sunset Postcard parity mechanism | **open** (recommendation: full parity) |
-| D9 Seams S5/S6 on 26.1.2 first | **open** (recommendation: yes) |
-| D10 Shared gametest harness | **open** (recommendation: yes) |
-| D11 Loom 1.17 / Gradle 9.5 on the port branches | **open** (recommendation: yes) |
+| D8 Sunset Postcard parity mechanism | **decided 2026-09-24: full parity** |
+| D9 Seams S5/S6 on 26.1.2 first | **decided 2026-09-24: yes** |
+| D10 Shared gametest harness | **decided 2026-09-24: yes** |
+| D11 Loom 1.17 / Gradle 9.5 on the port branches | **decided 2026-09-24: yes** |
 
 ---
 

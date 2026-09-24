@@ -59,9 +59,9 @@ These go back into `backport-plan.md` as corrections.
 
 **Estimates.** Track A: unchanged overall. A2 is smaller than pass 1 thought (registration, networking, `isClientSide`). A5.2 is bigger (Fabric FRAPI tank is new work, N3). N1 adds about a day. G-1.21.1 is smaller: 3 render-coupled commits, not 164 render-API hits spread across the history. Track B: unchanged, with B4.1 smaller (R5 retired) and B2 slightly bigger (N6).
 
-## New and proposed decisions
+## New decisions (all four accepted by the owner, 2026-09-24)
 
-| ID | Question | Recommendation |
+| ID | Question | Decision (was the recommendation) |
 |---|---|---|
 | **D8** | Sunset Postcard on 1.21.1/1.20.1 (N1): implement the tickTime accumulator + rate sync for full parity, or accept a server-only rate (the sun jumps back up to once a second while a charm is active)? | **Full parity** (accumulator on both sides + a `SetDayRatePayload`). About 60 lines plus two small mixins, and D1 says full parity. |
 | **D9** | Seams S5/S6 on `26.1.2` before track A starts in earnest? **S5**: replace the ~45 Java-21-only calls in common and platform code with Java 17 equivalents on 26.1.2. **S6**: add `FishMoonPhase` (N2) and a `gamemaster()` permission helper for the 20 `Commands.hasPermission(LEVEL_GAMEMASTERS)` sites on 26.1.2. | **Yes to both.** Each is under an hour on 26.1.2 and removes a permanent per-branch diff under lockstep. Neither changes behaviour. The baseline marker then advances past `298279e1` by those commits. |
