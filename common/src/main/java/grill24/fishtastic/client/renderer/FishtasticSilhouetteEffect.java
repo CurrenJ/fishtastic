@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
+import grill24.fishtastic.util.Ids;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
@@ -21,7 +22,7 @@ import java.nio.ByteBuffer;
  * caught this fish?), via {@link FishtasticGlintState#SILHOUETTE_REQUESTED}.
  */
 public final class FishtasticSilhouetteEffect {
-    private static final Identifier PIPELINE_ID = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_silhouette");
+    private static final Identifier PIPELINE_ID = Ids.of("fishtastic", "pipeline/gui_item_silhouette");
 
     /** Fill colour (opaque black) and overall opacity. */
     private static final float COLOR_R = 0.0f, COLOR_G = 0.0f, COLOR_B = 0.0f;

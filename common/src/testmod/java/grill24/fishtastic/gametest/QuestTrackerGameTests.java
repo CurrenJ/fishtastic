@@ -19,6 +19,7 @@ import grill24.fishtastic.server.QuestTracker;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.Utility;
+import grill24.fishtastic.util.Ids;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
@@ -29,7 +30,6 @@ import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -361,11 +361,11 @@ public final class QuestTrackerGameTests {
     private static Registry<Quest> buildRegistry(int dailyCount, int tutorialCount) {
         MappedRegistry<Quest> registry = new MappedRegistry<>(FishtasticRegistries.QUEST_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < dailyCount; i++) {
-            ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "daily_" + i));
+            ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Ids.of("fishtastic", "daily_" + i));
             registry.register(key, dailyQuest(), RegistrationInfo.BUILT_IN);
         }
         for (int i = 0; i < tutorialCount; i++) {
-            ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "tutorial_" + i));
+            ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Ids.of("fishtastic", "tutorial_" + i));
             registry.register(key, tutorialQuest(), RegistrationInfo.BUILT_IN);
         }
         return registry;

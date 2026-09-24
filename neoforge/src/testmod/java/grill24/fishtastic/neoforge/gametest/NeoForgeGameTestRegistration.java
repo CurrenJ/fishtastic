@@ -26,6 +26,7 @@ import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.StormCharmGameTests;
 import grill24.fishtastic.gametest.TutorialManagerGameTests;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.GameTestInstance;
@@ -56,7 +57,7 @@ public class NeoForgeGameTestRegistration {
 
     /** Structure used by all Fishtastic game tests — a 7×7×7 empty area. */
     private static final Identifier EMPTY_STRUCTURE =
-        Identifier.fromNamespaceAndPath(MOD_ID, "empty_testarea");
+        Ids.of(MOD_ID, "empty_testarea");
 
     @SubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
@@ -74,7 +75,7 @@ public class NeoForgeGameTestRegistration {
         }
 
         Holder<TestEnvironmentDefinition<?>> env = event.registerEnvironment(
-            Identifier.fromNamespaceAndPath(MOD_ID, "default"),
+            Ids.of(MOD_ID, "default"),
             new TestEnvironmentDefinition.AllOf(java.util.List.of())
         );
 
@@ -665,7 +666,7 @@ public class NeoForgeGameTestRegistration {
         TestData<Holder<TestEnvironmentDefinition<?>>> data =
             new TestData<>(env, EMPTY_STRUCTURE, maxTicks, 0, true);
         event.registerTest(
-            Identifier.fromNamespaceAndPath(MOD_ID, name),
+            Ids.of(MOD_ID, name),
             new ConsumerTestInstance(test, data)
         );
     }

@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric.datagen;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.recipe.MarineCompostRecipe;
+import grill24.fishtastic.util.Ids;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.core.Holder;
@@ -10,7 +11,6 @@ import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.*;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.DyeColor;
@@ -107,7 +107,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 // fish's quality must be copied onto the result (see MarineCompostRecipe). No datagen
                 // advancement is emitted here - it's hand-authored alongside the recipe JSON.
                 this.output.accept(
-                        ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath("fishtastic", "marine_compost")),
+                        ResourceKey.create(Registries.RECIPE, Ids.of("fishtastic", "marine_compost")),
                         new MarineCompostRecipe(CraftingBookCategory.MISC),
                         null);
             }

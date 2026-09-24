@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
+import grill24.fishtastic.util.Ids;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
@@ -19,7 +20,7 @@ import java.nio.ByteBuffer;
  */
 public final class FishtasticTextureOutlineEffect {
     private static final Identifier PIPELINE_ID =
-            Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_texture_black_outline");
+            Ids.of("fishtastic", "pipeline/gui_texture_black_outline");
 
     /** Solid black, no gradient fade, full opacity, one source texel thick. */
     private static final float COLOR_R = 0.0f, COLOR_G = 0.0f, COLOR_B = 0.0f;

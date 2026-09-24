@@ -3,6 +3,7 @@ package grill24.fishtastic.client.renderer;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModelResolver;
@@ -103,7 +104,7 @@ public class FishPileBlockItemModel implements ItemModel {
     }
 
     public record Unbaked() implements ItemModel.Unbaked {
-        private static final Identifier BLOCK_BLOCK_MODEL = Identifier.withDefaultNamespace("block/block");
+        private static final Identifier BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
         @Override

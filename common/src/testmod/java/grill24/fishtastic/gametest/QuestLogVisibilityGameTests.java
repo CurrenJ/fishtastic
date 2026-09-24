@@ -6,8 +6,8 @@ import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
@@ -33,7 +33,7 @@ public final class QuestLogVisibilityGameTests {
         Optional<ResourceKey<Quest>> prereq = prerequisite == null
                 ? Optional.empty()
                 : Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
-                        Identifier.parse(prerequisite)));
+                        Ids.parse(prerequisite)));
         return new Quest(QuestCategory.MASTERY, QuestDifficulty.BRONZE, objective, new QuestReward(0, List.of()),
                 prereq, hidden, "Test Quest", "");
     }

@@ -11,6 +11,7 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.FishCatchSavedData.PlayerSummary;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -43,7 +44,7 @@ public final class FishCatchBackupsGameTests {
 
     private FishCatchBackupsGameTests() {}
 
-    private static final Identifier BLUEGILL = Identifier.fromNamespaceAndPath("fishtastic", "bluegill");
+    private static final Identifier BLUEGILL = Ids.of("fishtastic", "bluegill");
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT);
 
     private static MinecraftServer server(GameTestHelper helper) {

@@ -1,6 +1,7 @@
 package grill24.fishtastic.fishtank;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
@@ -9,7 +10,7 @@ import net.minecraft.world.level.block.Block;
 import java.util.Objects;
 
 public record FishTankFrameType(TagKey<Block> blockTag) {
-    public static final FishTankFrameType DEFAULT = new FishTankFrameType(TagKey.create(Registries.BLOCK, Identifier.withDefaultNamespace("oak")));
+    public static final FishTankFrameType DEFAULT = new FishTankFrameType(TagKey.create(Registries.BLOCK, Ids.withDefaultNamespace("oak")));
 
     public FishTankFrameType {
         Objects.requireNonNull(blockTag);

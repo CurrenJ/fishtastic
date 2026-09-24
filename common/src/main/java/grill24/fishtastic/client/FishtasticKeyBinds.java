@@ -17,7 +17,7 @@ import net.minecraft.world.item.FishingRodItem;
  */
 public class FishtasticKeyBinds {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
-        net.minecraft.resources.Identifier.fromNamespaceAndPath("fishtastic", "fishtastic")
+        grill24.fishtastic.util.Ids.of("fishtastic", "fishtastic")
     );
 
     public static KeyMapping fishingMinigameImpulse;

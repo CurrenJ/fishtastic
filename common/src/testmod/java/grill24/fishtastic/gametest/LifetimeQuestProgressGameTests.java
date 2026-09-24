@@ -5,6 +5,7 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
@@ -49,8 +50,8 @@ public final class LifetimeQuestProgressGameTests {
         for (int i = 0; i < 7; i++) data.recordCatch(player, "tester", fish(Items.COD));
         for (int i = 0; i < 3; i++) data.recordCatch(player, "tester", fish(Items.SALMON));
 
-        Identifier cod = Identifier.withDefaultNamespace("cod");
-        Identifier salmon = Identifier.withDefaultNamespace("salmon");
+        Identifier cod = Ids.withDefaultNamespace("cod");
+        Identifier salmon = Ids.withDefaultNamespace("salmon");
 
         helper.assertTrue(data.getCatchCount(player, cod) == 7,
                 "Cod lifetime count must be 7, was " + data.getCatchCount(player, cod));
@@ -89,7 +90,7 @@ public final class LifetimeQuestProgressGameTests {
         UUID player = UUID.randomUUID();
         for (int i = 0; i < 50; i++) data.recordCatch(player, "tester", fish(Items.COD));
 
-        int lifetime = data.getCatchCount(player, Identifier.withDefaultNamespace("cod"));
+        int lifetime = data.getCatchCount(player, Ids.withDefaultNamespace("cod"));
 
         helper.assertTrue(lifetime >= 10, "Tier 1 (10) must be satisfied by 50 lifetime catches");
         helper.assertTrue(lifetime >= 25, "Tier 2 (25) must be satisfied by the same 50 lifetime catches");

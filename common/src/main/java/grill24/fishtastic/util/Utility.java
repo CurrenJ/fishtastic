@@ -6,7 +6,7 @@ import org.joml.Vector3f;
 
 public class Utility {
     public static Identifier ft(String id) {
-        return Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, id);
+        return Ids.of(Fishtastic.MOD_ID, id);
     }
 
     public static Vector3f interpolateColor(Vector3f colorStart, Vector3f colorEnd, float t) {

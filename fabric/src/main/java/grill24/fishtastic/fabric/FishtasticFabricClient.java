@@ -49,6 +49,7 @@ import grill24.fishtastic.fabric.fishtank.FishTankBlockStateModelFabric;
 import grill24.fishtastic.fabric.fishtank.FishTankModelFabric;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
+import grill24.fishtastic.util.Ids;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -67,7 +68,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -238,12 +238,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         });
 
         // Register tutorial overlay — must render BEFORE the minigame bar so the bar appears on top
-        HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "tutorial_overlay"), (graphics, deltaTracker) -> {
+        HudElementRegistry.addFirst(Ids.of(Fishtastic.MOD_ID, "tutorial_overlay"), (graphics, deltaTracker) -> {
             TutorialClientHandler.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // Register HUD render hook for the fishing minigame overlay
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "fishing_minigame"), (graphics, deltaTracker) -> {
+        HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "fishing_minigame"), (graphics, deltaTracker) -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.gameRenderer == null) return;
             ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
@@ -253,14 +253,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         });
 
         // Register HUD render hook for quest progress notifications (renders after fishing minigame)
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
+        HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
             QuestProgressNotificationManager.getInstance().render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Not registered at all in
         // production builds, which exclude grill24.fishtastic.mcp from the jar entirely.
         if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
-            HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "mcp_orbit_preview"), (graphics, deltaTracker) -> {
+            HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "mcp_orbit_preview"), (graphics, deltaTracker) -> {
                 McpOrbitPreviewOverlay.render(graphics);
             });
         }

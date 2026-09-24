@@ -4,10 +4,10 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.ContainerInput;
@@ -242,7 +242,7 @@ public final class TutorialManagerGameTests {
         ServerPlayer player = mockPlayer.get();
         setStep(helper, player, TutorialStep.QUEST_CLAIM);
 
-        TutorialManager.onQuestClaimed(player, Identifier.fromNamespaceAndPath("fishtastic", "daily/some_other_quest"));
+        TutorialManager.onQuestClaimed(player, Ids.of("fishtastic", "daily/some_other_quest"));
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.QUEST_CLAIM,
             "Claiming a non-tutorial quest must not advance the tutorial step"

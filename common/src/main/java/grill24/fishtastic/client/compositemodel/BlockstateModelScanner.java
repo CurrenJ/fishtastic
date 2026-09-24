@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
@@ -59,7 +60,7 @@ public final class BlockstateModelScanner {
         String path = extractFirstModelPath(json);
         if (path == null) return null;
         try {
-            return Identifier.parse(path);
+            return Ids.parse(path);
         } catch (Exception e) {
             return null;
         }

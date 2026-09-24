@@ -1,5 +1,6 @@
 package grill24.fishtastic.fabric.fishtank;
 
+import grill24.fishtastic.util.Ids;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
@@ -55,8 +56,8 @@ public final class FishTankModelFabric implements UnbakedModel {
     @Override
     public TextureSlots.Data textureSlots() {
         TextureSlots.Data.Builder builder = new TextureSlots.Data.Builder();
-        builder.addTexture("all", new Material(Identifier.withDefaultNamespace("block/oak_planks")));
-        builder.addTexture("particle", new Material(Identifier.withDefaultNamespace("block/oak_planks")));
+        builder.addTexture("all", new Material(Ids.withDefaultNamespace("block/oak_planks")));
+        builder.addTexture("particle", new Material(Ids.withDefaultNamespace("block/oak_planks")));
         return builder.build();
     }
 
@@ -67,7 +68,7 @@ public final class FishTankModelFabric implements UnbakedModel {
 
     @Override
     public @Nullable Identifier parent() {
-        return Identifier.withDefaultNamespace("block/block");
+        return Ids.withDefaultNamespace("block/block");
     }
 
     private static class FishTankItemGeometry implements UnbakedGeometry {

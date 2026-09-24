@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.tooltip;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -10,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class ClientRodGearTooltip implements ClientTooltipComponent {
     private static final Identifier SLOT_BACKGROUND_SPRITE =
-            Identifier.withDefaultNamespace("container/bundle/slot_background");
+            Ids.withDefaultNamespace("container/bundle/slot_background");
     private static final int SLOT_SIZE = 24;
     private static final int SLOT_GAP = 2;
     private static final int ICON_SIZE = 16;

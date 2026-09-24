@@ -29,6 +29,7 @@ import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.IFishingHookExtension;
 import grill24.fishtastic.util.MathUtil;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -157,41 +158,41 @@ public class FishingMinigameManager {
     // legendary pull is always a surprise. Frame is deliberately stocked with materials little/no
     // existing shop/quest tank uses.
     private static final List<Identifier> LEGENDARY_TANK_FRAMES = List.of(
-            Identifier.withDefaultNamespace("emerald_block"),
-            Identifier.withDefaultNamespace("netherite_block"),
-            Identifier.withDefaultNamespace("copper_block"),
-            Identifier.withDefaultNamespace("crying_obsidian"),
-            Identifier.withDefaultNamespace("sculk"),
-            Identifier.withDefaultNamespace("end_stone_bricks"),
-            Identifier.withDefaultNamespace("warped_planks"),
-            Identifier.withDefaultNamespace("crimson_planks"),
-            Identifier.withDefaultNamespace("lodestone"),
-            Identifier.withDefaultNamespace("sea_lantern"),
-            Identifier.withDefaultNamespace("obsidian"),
-            Identifier.withDefaultNamespace("ancient_debris"),
-            Identifier.withDefaultNamespace("respawn_anchor"),
-            Identifier.withDefaultNamespace("reinforced_deepslate"),
-            Identifier.withDefaultNamespace("chiseled_nether_bricks"),
-            Identifier.withDefaultNamespace("purpur_pillar"),
-            Identifier.withDefaultNamespace("exposed_copper"),
-            Identifier.withDefaultNamespace("chiseled_polished_blackstone"),
-            Identifier.withDefaultNamespace("budding_amethyst"),
-            Identifier.withDefaultNamespace("dripstone_block"),
-            Identifier.withDefaultNamespace("glowstone"),
-            Identifier.withDefaultNamespace("shroomlight"),
+            Ids.withDefaultNamespace("emerald_block"),
+            Ids.withDefaultNamespace("netherite_block"),
+            Ids.withDefaultNamespace("copper_block"),
+            Ids.withDefaultNamespace("crying_obsidian"),
+            Ids.withDefaultNamespace("sculk"),
+            Ids.withDefaultNamespace("end_stone_bricks"),
+            Ids.withDefaultNamespace("warped_planks"),
+            Ids.withDefaultNamespace("crimson_planks"),
+            Ids.withDefaultNamespace("lodestone"),
+            Ids.withDefaultNamespace("sea_lantern"),
+            Ids.withDefaultNamespace("obsidian"),
+            Ids.withDefaultNamespace("ancient_debris"),
+            Ids.withDefaultNamespace("respawn_anchor"),
+            Ids.withDefaultNamespace("reinforced_deepslate"),
+            Ids.withDefaultNamespace("chiseled_nether_bricks"),
+            Ids.withDefaultNamespace("purpur_pillar"),
+            Ids.withDefaultNamespace("exposed_copper"),
+            Ids.withDefaultNamespace("chiseled_polished_blackstone"),
+            Ids.withDefaultNamespace("budding_amethyst"),
+            Ids.withDefaultNamespace("dripstone_block"),
+            Ids.withDefaultNamespace("glowstone"),
+            Ids.withDefaultNamespace("shroomlight"),
             Fishtastic.id("cyan_clear_stained_glass"),
             Fishtastic.id("pink_clear_stained_glass"),
             Fishtastic.id("lime_clear_stained_glass")
     );
     private static final List<Identifier> LEGENDARY_TANK_SANDS = List.of(
-            Identifier.withDefaultNamespace("sand"),
-            Identifier.withDefaultNamespace("red_sand"),
-            Identifier.withDefaultNamespace("gravel"),
-            Identifier.withDefaultNamespace("soul_sand"),
-            Identifier.withDefaultNamespace("soul_soil"),
-            Identifier.withDefaultNamespace("snow_block"),
-            Identifier.withDefaultNamespace("glowstone"),
-            Identifier.withDefaultNamespace("shroomlight"),
+            Ids.withDefaultNamespace("sand"),
+            Ids.withDefaultNamespace("red_sand"),
+            Ids.withDefaultNamespace("gravel"),
+            Ids.withDefaultNamespace("soul_sand"),
+            Ids.withDefaultNamespace("soul_soil"),
+            Ids.withDefaultNamespace("snow_block"),
+            Ids.withDefaultNamespace("glowstone"),
+            Ids.withDefaultNamespace("shroomlight"),
             Fishtastic.id("cyan_clear_stained_glass"),
             Fishtastic.id("pink_clear_stained_glass"),
             Fishtastic.id("lime_clear_stained_glass")

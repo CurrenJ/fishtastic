@@ -1,5 +1,6 @@
 package grill24.fishtastic.mcp;
 
+import grill24.fishtastic.util.Ids;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -9,7 +10,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -282,7 +282,7 @@ public final class McpBridgeServer {
     }
 
     private static ServerLevel resolveLevel(MinecraftServer server, String dimensionId) {
-        ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, Identifier.parse(dimensionId));
+        ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, Ids.parse(dimensionId));
         ServerLevel level = server.getLevel(key);
         if (level == null) {
             throw new McpException("Unknown dimension: " + dimensionId);

@@ -12,6 +12,7 @@ import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishingTarget;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -33,7 +34,7 @@ public class TutorialManager {
 
     public static final ResourceKey<Quest> TUTORIAL_QUEST_KEY =
             ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
-                    Identifier.fromNamespaceAndPath("fishtastic", "tutorial/first_catch"));
+                    Ids.of("fishtastic", "tutorial/first_catch"));
 
     private static final Identifier TUTORIAL_QUEST_ID = TUTORIAL_QUEST_KEY.identifier();
 
@@ -44,7 +45,7 @@ public class TutorialManager {
      * re-fire the advancement criterion (already granted) and the tutorial would stay stuck.
      */
     public static final Identifier TUTORIAL_ROD_ADVANCEMENT_ID =
-            Identifier.fromNamespaceAndPath("fishtastic", "tutorial/craft_copper_fishing_rod");
+            Ids.of("fishtastic", "tutorial/craft_copper_fishing_rod");
     public static final String TUTORIAL_ROD_ADVANCEMENT_CRITERION = "crafted_copper_fishing_rod";
 
     // -------------------------------------------------------------------------

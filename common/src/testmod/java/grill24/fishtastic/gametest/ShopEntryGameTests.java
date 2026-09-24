@@ -6,6 +6,7 @@ import com.mojang.serialization.Lifecycle;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistrationInfo;
@@ -59,7 +60,7 @@ public final class ShopEntryGameTests {
     private static Registry<ShopEntry> buildRegistry(List<Float> weights) {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < weights.size(); i++) {
-            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "entry_" + i));
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "entry_" + i));
             registry.register(key, entry(weights.get(i)), RegistrationInfo.BUILT_IN);
         }
         return registry;
@@ -69,11 +70,11 @@ public final class ShopEntryGameTests {
     private static Registry<ShopEntry> buildRegistryWithCharms(int mainCount, int charmCount) {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < mainCount; i++) {
-            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "main_" + i));
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "main_" + i));
             registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
         }
         for (int i = 0; i < charmCount; i++) {
-            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "charm_" + i));
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "charm_" + i));
             registry.register(key, charmEntry(1.0f), RegistrationInfo.BUILT_IN);
         }
         return registry;
@@ -83,11 +84,11 @@ public final class ShopEntryGameTests {
     private static Registry<ShopEntry> buildRegistryWithTankShapes(int mainCount, int shapeCount) {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < mainCount; i++) {
-            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "main_" + i));
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "main_" + i));
             registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
         }
         for (int i = 0; i < shapeCount; i++) {
-            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "shape_" + i));
+            ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "shape_" + i));
             registry.register(key, tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
         }
         return registry;
@@ -144,7 +145,7 @@ public final class ShopEntryGameTests {
         for (int i = 0; i < 19; i++) weights.add(0.0001f);
         Registry<ShopEntry> registry = buildRegistry(weights);
         ResourceKey<ShopEntry> heavyKey = ResourceKey.create(
-            FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", "entry_0"));
+            FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "entry_0"));
 
         int trials = 100;
         int heavySelectedCount = 0;
@@ -273,15 +274,15 @@ public final class ShopEntryGameTests {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < 10; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Identifier.fromNamespaceAndPath("fishtastic", "main_" + i)), entry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "main_" + i)), entry(1.0f), RegistrationInfo.BUILT_IN);
         }
         for (int i = 0; i < 3; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Identifier.fromNamespaceAndPath("fishtastic", "charm_" + i)), charmEntry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "charm_" + i)), charmEntry(1.0f), RegistrationInfo.BUILT_IN);
         }
         for (int i = 0; i < 3; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Identifier.fromNamespaceAndPath("fishtastic", "shape_" + i)), tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "shape_" + i)), tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
         }
 
         int trials = 3000;

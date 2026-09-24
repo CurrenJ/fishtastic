@@ -6,6 +6,7 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.FishTankFrameType;
 import grill24.fishtastic.neoforge.FishtasticRegistriesNeoForge;
 import grill24.fishtastic.neoforge.blockentity.FishTankBlockEntityNeoForge;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -77,7 +78,7 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<SoundEvent> registerSoundEvent(String name) {
         return FishtasticRegistriesNeoForge.SOUND_EVENTS.register(name,
-                () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name)));
+                () -> SoundEvent.createVariableRangeEvent(Ids.of(Fishtastic.MOD_ID, name)));
     }
 
     @Override

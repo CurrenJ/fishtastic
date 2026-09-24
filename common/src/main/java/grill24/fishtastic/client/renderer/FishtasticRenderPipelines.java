@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.renderer;
 
+import grill24.fishtastic.util.Ids;
 import com.mojang.blaze3d.buffers.Std140SizeCalculator;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
@@ -49,7 +50,7 @@ public final class FishtasticRenderPipelines {
         );
 
         RenderPipeline pipeline = RenderPipeline.builder(snippet)
-                .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/tank_water_fill"))
+                .withLocation(Ids.of("fishtastic", "pipeline/tank_water_fill"))
                 .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                 .build();
         // Without this the quad is invisible under every shaderpack — see IrisCompat.
@@ -113,8 +114,8 @@ public final class FishtasticRenderPipelines {
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
                 .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withLocation(location)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_outline"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_item_outline"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
@@ -132,8 +133,8 @@ public final class FishtasticRenderPipelines {
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
                 .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withLocation(location)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_texture_outline"))
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_outline"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_texture_outline"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
@@ -148,8 +149,8 @@ public final class FishtasticRenderPipelines {
                 .withUniform("Globals", UniformType.UNIFORM_BUFFER)
                 .withUniform(LEGENDARY_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withLocation(location)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_legendary"))
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_outline_legendary"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_item_outline_legendary"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
@@ -196,7 +197,7 @@ public final class FishtasticRenderPipelines {
         );
 
         RenderPipeline pipeline = RenderPipeline.builder(snippet)
-                .withLocation(Identifier.fromNamespaceAndPath("fishtastic", "pipeline/world_item_outline"))
+                .withLocation(Ids.of("fishtastic", "pipeline/world_item_outline"))
                 .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                 .withCull(false)
                 .build();
@@ -223,7 +224,7 @@ public final class FishtasticRenderPipelines {
     public static RenderPipeline createOutlineBakePipeline(Identifier location) {
         return outlineBakeBuilderBase(location)
                 .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake"))
+                .withFragmentShader(Ids.of("fishtastic", "core/outline_bake"))
                 .build();
     }
 
@@ -232,7 +233,7 @@ public final class FishtasticRenderPipelines {
         return outlineBakeBuilderBase(location)
                 .withUniform("Globals", UniformType.UNIFORM_BUFFER)
                 .withUniform(LEGENDARY_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake_legendary"))
+                .withFragmentShader(Ids.of("fishtastic", "core/outline_bake_legendary"))
                 .build();
     }
 
@@ -244,7 +245,7 @@ public final class FishtasticRenderPipelines {
                 .withShaderDefine("FISHTASTIC_ATLAS_SLOT_PX", FishtasticItemOutlineAtlas.SLOT_PX)
                 .withShaderDefine("FISHTASTIC_ATLAS_RES", FishtasticItemOutlineAtlas.ITEM_RENDER_PX / 16)
                 .withSampler("Sampler0")
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/outline_bake"))
+                .withVertexShader(Ids.of("fishtastic", "core/outline_bake"))
                 .withColorTargetState(ColorTargetState.DEFAULT)
                 .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
                 .withCull(false)
@@ -258,8 +259,8 @@ public final class FishtasticRenderPipelines {
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
                 .withUniform(DEBUG_UV_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withLocation(location)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_outline_debug_uv"))
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_outline_debug_uv"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_item_outline_debug_uv"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
@@ -274,8 +275,8 @@ public final class FishtasticRenderPipelines {
                 .withUniform("Globals", UniformType.UNIFORM_BUFFER)
                 .withUniform(SILHOUETTE_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withLocation(location)
-                .withVertexShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_silhouette"))
-                .withFragmentShader(Identifier.fromNamespaceAndPath("fishtastic", "core/gui_item_silhouette"))
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_silhouette"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_item_silhouette"))
                 .withSampler("Sampler0")
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)

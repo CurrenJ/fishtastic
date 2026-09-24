@@ -12,6 +12,7 @@ import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.Identifier;
@@ -213,7 +214,7 @@ public class FishCatchSavedData extends SavedData {
     );
 
     public static final SavedDataType<FishCatchSavedData> TYPE = new SavedDataType<>(
-        Identifier.fromNamespaceAndPath("fishtastic", "fish_catches"),
+        Ids.of("fishtastic", "fish_catches"),
         FishCatchSavedData::new,
         CODEC,
         DataFixTypes.LEVEL

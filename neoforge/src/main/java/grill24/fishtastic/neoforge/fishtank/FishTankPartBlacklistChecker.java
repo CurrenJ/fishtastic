@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.fishtank;
 import com.electronwill.nightconfig.core.Config;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.neoforge.FishtasticConfig;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -76,7 +77,7 @@ public class FishTankPartBlacklistChecker {
                 if (pattern.startsWith("#")) {
                     // Tag reference
                     try {
-                        Identifier tagId = Identifier.parse(pattern.substring(1));
+                        Identifier tagId = Ids.parse(pattern.substring(1));
                         TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, tagId);
                         boolean inTag = StreamSupport.stream(BuiltInRegistries.BLOCK.getTagOrEmpty(tagKey).spliterator(), false)
                                 .anyMatch(holder -> holder.value() == block);
@@ -91,7 +92,7 @@ public class FishTankPartBlacklistChecker {
                 } else {
                     // Direct block ID
                     try {
-                        Identifier targetId = Identifier.parse(pattern);
+                        Identifier targetId = Ids.parse(pattern);
                         if (blockId.equals(targetId)) {
                             Fishtastic.LOGGER.debug("Block {} is blacklisted for {}", blockId, part.getConfigName());
                             return true;

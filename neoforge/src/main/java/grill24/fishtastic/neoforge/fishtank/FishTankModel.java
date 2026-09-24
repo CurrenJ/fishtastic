@@ -1,5 +1,6 @@
 package grill24.fishtastic.neoforge.fishtank;
 
+import grill24.fishtastic.util.Ids;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -61,8 +62,8 @@ public final class FishTankModel implements UnbakedModel {
     public TextureSlots.Data textureSlots() {
         // Provide a default "all" texture so the model has a particle sprite.
         TextureSlots.Data.Builder builder = new TextureSlots.Data.Builder();
-        builder.addTexture("all", new Material(Identifier.withDefaultNamespace("block/oak_planks")));
-        builder.addTexture("particle", new Material(Identifier.withDefaultNamespace("block/oak_planks")));
+        builder.addTexture("all", new Material(Ids.withDefaultNamespace("block/oak_planks")));
+        builder.addTexture("particle", new Material(Ids.withDefaultNamespace("block/oak_planks")));
         return builder.build();
     }
 
@@ -75,7 +76,7 @@ public final class FishTankModel implements UnbakedModel {
     @Override
     public @Nullable Identifier parent() {
         // Parent "block/block" gives standard block display transforms.
-        return Identifier.withDefaultNamespace("block/block");
+        return Ids.withDefaultNamespace("block/block");
     }
 
     @Override

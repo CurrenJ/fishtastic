@@ -12,6 +12,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.itemeffect.ItemEffect;
+import grill24.fishtastic.util.Ids;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 import net.minecraft.client.Minecraft;
@@ -64,9 +65,9 @@ import java.util.Map;
 public final class FishtasticItemOutlineAtlas {
 
     /** Identifier the composed outline atlas is registered under in the {@code TextureManager}. */
-    public static final Identifier TEXTURE_ID = Identifier.fromNamespaceAndPath("fishtastic", "item_outline_atlas");
+    public static final Identifier TEXTURE_ID = Ids.of("fishtastic", "item_outline_atlas");
     /** Identifier the item mask atlas is registered under (sampled by the bake shaders). */
-    public static final Identifier MASK_TEXTURE_ID = Identifier.fromNamespaceAndPath("fishtastic", "item_outline_mask_atlas");
+    public static final Identifier MASK_TEXTURE_ID = Ids.of("fishtastic", "item_outline_mask_atlas");
 
     /** The 16-px item tile is rendered at this many texels (4x resolution). */
     public static final int ITEM_RENDER_PX = 64;

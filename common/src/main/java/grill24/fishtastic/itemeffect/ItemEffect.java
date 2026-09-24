@@ -10,6 +10,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.client.renderer.FishtasticOutlineUboRegistry;
 import grill24.fishtastic.client.renderer.FishtasticRenderPipelines;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.OutputTarget;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
@@ -151,7 +152,7 @@ public class ItemEffect {
     public RenderPipeline getOrCreateOutlinePipeline() {
         if (outlinePipeline == null) {
             String texPath = effectIdentityKey();
-            Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/gui_item_outline_" + texPath);
+            Identifier pipelineId = Ids.of("fishtastic", "pipeline/gui_item_outline_" + texPath);
 
             String uboName;
             if (outlineDebugUv) {
@@ -186,7 +187,7 @@ public class ItemEffect {
     public RenderPipeline getOrCreateOutlineBakePipeline() {
         if (outlineBakePipeline == null) {
             String texPath = effectIdentityKey();
-            Identifier pipelineId = Identifier.fromNamespaceAndPath("fishtastic", "pipeline/outline_bake_" + texPath);
+            Identifier pipelineId = Ids.of("fishtastic", "pipeline/outline_bake_" + texPath);
 
             String uboName;
             if (outlinePinwheel) {

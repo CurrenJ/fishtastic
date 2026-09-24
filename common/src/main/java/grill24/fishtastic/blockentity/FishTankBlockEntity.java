@@ -20,6 +20,7 @@ import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.menu.FishTankBrowserMenu;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -548,7 +549,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Load frame block
         String frameBlockStr = input.getStringOr("FrameBlock", "");
         if (!frameBlockStr.isEmpty()) {
-            Identifier blockId = Identifier.tryParse(frameBlockStr);
+            Identifier blockId = Ids.tryParse(frameBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
@@ -564,7 +565,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Load sand block
         String sandBlockStr = input.getStringOr("SandBlock", "");
         if (!sandBlockStr.isEmpty()) {
-            Identifier blockId = Identifier.tryParse(sandBlockStr);
+            Identifier blockId = Ids.tryParse(sandBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
@@ -580,7 +581,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Load glass block
         String glassBlockStr = input.getStringOr("GlassBlock", "");
         if (!glassBlockStr.isEmpty()) {
-            Identifier blockId = Identifier.tryParse(glassBlockStr);
+            Identifier blockId = Ids.tryParse(glassBlockStr);
             if (blockId != null) {
                 Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                 if (b != null) {
@@ -673,7 +674,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             int gridZ = child.getIntOr("GridZ", -1);
             String blockStr = child.getStringOr("Block", "");
             if (CosmeticGridCell.isValid(gridX, gridZ) && !blockStr.isEmpty()) {
-                Identifier blockId = Identifier.tryParse(blockStr);
+                Identifier blockId = Ids.tryParse(blockStr);
                 if (blockId != null) {
                     Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                     if (b != null) {
@@ -708,7 +709,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             if (!CosmeticGridCell.isValid(gridX, gridZ) || structureIdStr.isEmpty()) {
                 return;
             }
-            Identifier structureId = Identifier.tryParse(structureIdStr);
+            Identifier structureId = Ids.tryParse(structureIdStr);
             if (structureId == null) {
                 Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
                 return;

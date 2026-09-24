@@ -2,9 +2,9 @@ package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.util.Ids;
 import io.github.currenj.gelatinui.gui.IUIElement;
 import io.github.currenj.gelatinui.gui.UIEvent;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FishSphereContainerTest {
 
     private static ResourceKey<FishProfile> fishKey(String path) {
-        return ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, Identifier.fromNamespaceAndPath("fishtastic", path));
+        return ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, Ids.of("fishtastic", path));
     }
 
     private static SilhouetteItemButton button() {

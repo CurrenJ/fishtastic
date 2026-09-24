@@ -2,6 +2,7 @@ package grill24.fishtastic.mcp.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -20,7 +21,7 @@ public final class McpOrbitPreviewOverlay {
     private McpOrbitPreviewOverlay() {}
 
     private static final Identifier TEXTURE_ID =
-            Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, "mcp_orbit_preview");
+            Ids.of(Fishtastic.MOD_ID, "mcp_orbit_preview");
 
     private static final long DISPLAY_MILLIS = 3000L;
     private static final long FADE_MILLIS = 400L;

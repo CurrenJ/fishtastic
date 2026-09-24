@@ -3,6 +3,7 @@ package grill24.fishtastic.client;
 import grill24.fishtastic.blockentity.OrganizerSortMode;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.network.SetOrganizerSortPacket;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -28,7 +29,7 @@ import net.minecraft.world.entity.player.Inventory;
  * same state back.
  */
 public class ElectricFishOrganizerScreen extends AbstractContainerScreen<ElectricFishOrganizerMenu> {
-    private static final Identifier TEXTURE = Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final Identifier TEXTURE = Ids.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final int ROWS = 6;
 
     private static final int SORT_BUTTON_SIZE = 12;

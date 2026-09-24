@@ -4,6 +4,7 @@ import com.electronwill.nightconfig.core.Config;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import grill24.fishtastic.neoforge.FishtasticConfig;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -70,7 +71,7 @@ public class BlockModelPathResolver {
                 // Replace placeholder with block name
                 String path = modelPath.replace("{name}", blockId.getPath());
                 try {
-                    Identifier location = Identifier.parse(path);
+                    Identifier location = Ids.parse(path);
                     overrides.add(location);
                     Fishtastic.LOGGER.debug("Found model path override for {}: {}", blockId, location);
                 } catch (Exception e) {
@@ -100,7 +101,7 @@ public class BlockModelPathResolver {
             if (blocks.startsWith("#")) {
                 // Tag reference
                 try {
-                    Identifier tagId = Identifier.parse(blocks.substring(1));
+                    Identifier tagId = Ids.parse(blocks.substring(1));
                     TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, tagId);
                     return StreamSupport.stream(BuiltInRegistries.BLOCK.getTagOrEmpty(tagKey).spliterator(), false)
                             .anyMatch(holder -> holder.value() == block);
@@ -110,7 +111,7 @@ public class BlockModelPathResolver {
             } else {
                 // Single block ID
                 try {
-                    Identifier targetId = Identifier.parse(blocks);
+                    Identifier targetId = Ids.parse(blocks);
                     return blockId.equals(targetId);
                 } catch (Exception e) {
                     Fishtastic.LOGGER.error("Invalid block ID in config: {}", blocks, e);

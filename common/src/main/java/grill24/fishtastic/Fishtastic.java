@@ -1,5 +1,6 @@
 package grill24.fishtastic;
 
+import grill24.fishtastic.util.Ids;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
@@ -9,6 +10,6 @@ public final class Fishtastic {
     public static Logger LOGGER = LogUtils.getLogger();
 
     public static Identifier id(String path) {
-        return Identifier.fromNamespaceAndPath(MOD_ID, path);
+        return Ids.of(MOD_ID, path);
     }
 }

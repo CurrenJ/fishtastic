@@ -20,6 +20,7 @@ import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
@@ -48,7 +49,6 @@ import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -120,7 +120,7 @@ public class FishTankBlockEntityRenderer
     // SKYLIGHT additionally gets a horizontal quad under its roof pane. See docs/fish-tanks.md for
     // the real geometry axis.
     private static final SpriteId WATER_STILL_SPRITE =
-            new SpriteId(TextureAtlas.LOCATION_BLOCKS, Identifier.fromNamespaceAndPath("minecraft", "block/water_still"));
+            new SpriteId(TextureAtlas.LOCATION_BLOCKS, Ids.of("minecraft", "block/water_still"));
     // Built from FishtasticRenderPipelines.TANK_WATER_FILL (depth write disabled) rather than
     // RenderTypes.entityTranslucent — see that pipeline's doc for why depth write breaks this.
     private static final RenderType WATER_FILL_RENDER_TYPE = RenderType.create(

@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.util.Ids;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.minecraft.client.renderer.item.properties.conditional.HasComponent;
@@ -92,7 +93,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
 
         // Debug tools — reuse a vanilla texture as a placeholder, no dedicated art needed
         generateFlatItemWithCustomTexture(itemModelGenerators, FishtasticItems.COSMETIC_CAPTURE_WAND.value(),
-                Identifier.fromNamespaceAndPath("minecraft", "item/stick"));
+                Ids.of("minecraft", "item/stick"));
 
         // ----- Copper / obsidian fishing rods (fishing rod style with _cast variant) -----
         itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());

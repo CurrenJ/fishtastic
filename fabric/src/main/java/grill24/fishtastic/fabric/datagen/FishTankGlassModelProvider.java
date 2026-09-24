@@ -6,11 +6,11 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankEdge;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
+import grill24.fishtastic.util.Ids;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.Identifier;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ public class FishTankGlassModelProvider implements DataProvider {
             FishTankShapeGeometryStrategies.Strategy strategy = FishTankShapeGeometryStrategies.forShape(shape);
             for (int i = 0; i < TankShapeGeometry.PERMUTATION_COUNT; i++) {
                 JsonObject model = strategy.glass().apply(i);
-                Path outputPath = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix() + "/fish_tank_glass_" + i));
+                Path outputPath = pathProvider.json(Ids.of(Fishtastic.MOD_ID, shape.modelPathPrefix() + "/fish_tank_glass_" + i));
                 futures.add(DataProvider.saveStable(cache, model, outputPath));
             }
 
@@ -61,7 +61,7 @@ public class FishTankGlassModelProvider implements DataProvider {
                 for (TankEdge edge : TankEdge.values()) {
                     for (TankCorner corner : edge.endCorners()) {
                         JsonObject fragment = strategy.edgeGlassFillFragment().apply(edge, corner);
-                        Path path = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix()
+                        Path path = pathProvider.json(Ids.of(Fishtastic.MOD_ID, shape.modelPathPrefix()
                                 + "/fish_tank_glass_fill_" + edge.name().toLowerCase() + "_" + corner.name().toLowerCase()));
                         futures.add(DataProvider.saveStable(cache, fragment, path));
                     }
@@ -78,7 +78,7 @@ public class FishTankGlassModelProvider implements DataProvider {
                 for (TankCorner corner : TankCorner.values()) {
                     for (int capState = 0; capState < 4; capState++) {
                         JsonObject fragment = strategy.cornerGlassFillFragment().apply(corner, capState);
-                        Path path = pathProvider.json(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, shape.modelPathPrefix()
+                        Path path = pathProvider.json(Ids.of(Fishtastic.MOD_ID, shape.modelPathPrefix()
                                 + "/fish_tank_glass_fill_corner_" + corner.name().toLowerCase() + "_" + capState));
                         futures.add(DataProvider.saveStable(cache, fragment, path));
                     }

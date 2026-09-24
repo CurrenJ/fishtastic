@@ -5,6 +5,7 @@ import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fabric.blockentity.FishTankBlockEntityFabric;
 import grill24.fishtastic.fishtank.FishTankFrameType;
+import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -58,7 +59,7 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc) {
         // Create the block
-        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
         Block block = blockFunc.apply(id);
         // Register the BlockItem for the block (must set item ID on properties)
         registerItem(name, loc -> itemFunc.apply(block, loc));
@@ -76,7 +77,7 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public <T> Holder<DataComponentType<T>> registerDataComponent(String name, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
         DataComponentType<T> componentType = builderOperator.apply(DataComponentType.<T>builder()).build();
-        ResourceKey<DataComponentType<?>> key = ResourceKey.create(BuiltInRegistries.DATA_COMPONENT_TYPE.key(), Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name));
+        ResourceKey<DataComponentType<?>> key = ResourceKey.create(BuiltInRegistries.DATA_COMPONENT_TYPE.key(), Ids.of(Fishtastic.MOD_ID, name));
         @SuppressWarnings("unchecked")
         Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, (ResourceKey<DataComponentType<?>>) key, componentType);
         return holder;
@@ -89,13 +90,13 @@ public class FabricRegistrationApi implements IRegistrationApi {
 
     @Override
     public Holder<SoundEvent> registerSoundEvent(String name) {
-        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
         return Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
     }
 
     @Override
     public Holder<SimpleParticleType> registerParticleType(String name) {
-        Identifier id = Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name);
+        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
         @SuppressWarnings("unchecked")
         Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
                 Registry.registerForHolder(BuiltInRegistries.PARTICLE_TYPE, id, new SimpleParticleType(false) {});
@@ -146,8 +147,8 @@ public class FabricRegistrationApi implements IRegistrationApi {
     }
 
     private static <T> Holder<T> register(Registry<T> registry, String name, Function<Identifier, ? extends T> func) {
-        T entry = func.apply(Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name));
-        ResourceKey<T> entryKey = ResourceKey.create(registry.key(), Identifier.fromNamespaceAndPath(Fishtastic.MOD_ID, name));
+        T entry = func.apply(Ids.of(Fishtastic.MOD_ID, name));
+        ResourceKey<T> entryKey = ResourceKey.create(registry.key(), Ids.of(Fishtastic.MOD_ID, name));
         return Registry.registerForHolder(registry, entryKey, entry);
     }
 

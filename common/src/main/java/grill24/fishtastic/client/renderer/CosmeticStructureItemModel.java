@@ -6,6 +6,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.util.Ids;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.Minecraft;
@@ -248,7 +249,7 @@ public class CosmeticStructureItemModel implements ItemModel {
     // ── Registration ──────────────────────────────────────────────────────────
 
     public record Unbaked() implements ItemModel.Unbaked {
-        private static final Identifier BLOCK_BLOCK_MODEL = Identifier.withDefaultNamespace("block/block");
+        private static final Identifier BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
         @Override

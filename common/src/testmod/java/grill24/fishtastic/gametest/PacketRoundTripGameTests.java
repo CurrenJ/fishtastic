@@ -16,6 +16,7 @@ import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.util.FishingTarget;
+import grill24.fishtastic.util.Ids;
 import io.netty.buffer.Unpooled;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -135,7 +136,7 @@ public final class PacketRoundTripGameTests {
     // -------------------------------------------------------------------------
 
     public static void purchaseShopEntryPacketRoundTrips(GameTestHelper helper) {
-        PurchaseShopEntryPacket original = new PurchaseShopEntryPacket(Identifier.fromNamespaceAndPath("fishtastic", "daily/some_entry"));
+        PurchaseShopEntryPacket original = new PurchaseShopEntryPacket(Ids.of("fishtastic", "daily/some_entry"));
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         PurchaseShopEntryPacket.STREAM_CODEC.encode(buf, original);
@@ -150,8 +151,8 @@ public final class PacketRoundTripGameTests {
     // -------------------------------------------------------------------------
 
     public static void questSyncPacketRoundTrips(GameTestHelper helper) {
-        Identifier questA = Identifier.fromNamespaceAndPath("fishtastic", "daily/quest_a");
-        Identifier questB = Identifier.fromNamespaceAndPath("fishtastic", "tutorial/first_catch");
+        Identifier questA = Ids.of("fishtastic", "daily/quest_a");
+        Identifier questB = Ids.of("fishtastic", "tutorial/first_catch");
 
         Map<Identifier, PlayerQuestState.QuestProgress> progress = new HashMap<>();
         progress.put(questA, new PlayerQuestState.QuestProgress(3, 7L, false, false, List.of()));
@@ -162,7 +163,7 @@ public final class PacketRoundTripGameTests {
         triggeringItems.put(questA, triggeringStack);
 
         Map<Identifier, Integer> purchaseCounts = new HashMap<>();
-        purchaseCounts.put(Identifier.fromNamespaceAndPath("fishtastic", "shop_entry_x"), 2);
+        purchaseCounts.put(Ids.of("fishtastic", "shop_entry_x"), 2);
 
         ItemStack baitStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 1);
         List<ItemStack> firstCatchItems = List.of(new ItemStack(FishtasticItems.BLUEGILL.value(), 1));
@@ -232,8 +233,8 @@ public final class PacketRoundTripGameTests {
     // -------------------------------------------------------------------------
 
     public static void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
-        Identifier bluegill = Identifier.fromNamespaceAndPath("fishtastic", "bluegill");
-        Identifier trout = Identifier.fromNamespaceAndPath("fishtastic", "trout");
+        Identifier bluegill = Ids.of("fishtastic", "bluegill");
+        Identifier trout = Ids.of("fishtastic", "trout");
 
         Map<Identifier, Integer> catchCounts = new HashMap<>();
         catchCounts.put(bluegill, 12);
