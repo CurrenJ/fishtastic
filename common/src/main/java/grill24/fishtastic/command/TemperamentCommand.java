@@ -29,7 +29,7 @@ public class TemperamentCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("temperament")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .requires(FishtasticPermissions.gamemaster())
                         .then(Commands.literal("info")
                                 .then(Commands.argument("id", IdentifierArgument.id())
                                         .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))

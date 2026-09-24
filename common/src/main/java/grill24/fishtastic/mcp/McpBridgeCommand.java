@@ -3,6 +3,7 @@ package grill24.fishtastic.mcp;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import grill24.fishtastic.command.FishtasticPermissions;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -29,7 +30,7 @@ public final class McpBridgeCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("mcp")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("start")
                         .executes(ctx -> start(ctx, DEFAULT_PORT))
                         .then(Commands.argument("port", IntegerArgumentType.integer(1, 65535))

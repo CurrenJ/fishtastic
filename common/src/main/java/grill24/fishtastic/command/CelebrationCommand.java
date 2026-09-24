@@ -33,7 +33,7 @@ public class CelebrationCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("celebration")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("hero")
                         .executes(ctx -> execute(ctx, CatchCelebration.Tier.HERO)))
                 .then(Commands.literal("discovery")

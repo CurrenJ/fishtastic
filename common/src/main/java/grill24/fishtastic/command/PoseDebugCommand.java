@@ -41,7 +41,7 @@ public class PoseDebugCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("pose")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("armx").then(Commands.argument("value", FloatArgumentType.floatArg())
                         .executes(ctx -> set(ctx, v -> FishermanPoseDebug.armXRot = v))))
                 .then(Commands.literal("army").then(Commands.argument("value", FloatArgumentType.floatArg())

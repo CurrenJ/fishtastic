@@ -26,7 +26,7 @@ public class TokenBalanceCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("tokens")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("give")
                         .then(Commands.argument("amount", IntegerArgumentType.integer())
                                 .executes(ctx -> executeGive(ctx, null,

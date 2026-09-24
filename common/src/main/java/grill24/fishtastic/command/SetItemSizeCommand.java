@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
 public class SetItemSizeCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("setitemsize")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
+                        .requires(FishtasticPermissions.gamemaster()) // Requires operator permission
                         .then(Commands.argument("size", FloatArgumentType.floatArg(0.01f, 1000.0f))
                                 .executes(SetItemSizeCommand::execute));
     }

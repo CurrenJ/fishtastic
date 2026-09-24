@@ -25,7 +25,7 @@ public class CleanupGoalCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("cleanupgoal")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("contribute")
                     .then(Commands.argument("amount", IntegerArgumentType.integer(1))
                         .executes(ctx -> executeContribute(ctx, null,

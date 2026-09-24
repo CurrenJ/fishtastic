@@ -27,7 +27,7 @@ public class DebugFishDataCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("fishcatchdata")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .requires(FishtasticPermissions.gamemaster())
                         .executes(ctx -> execute(ctx, null))
                         .then(Commands.argument("player", EntityArgument.player())
                                 .executes(ctx -> execute(ctx, EntityArgument.getPlayer(ctx, "player"))));

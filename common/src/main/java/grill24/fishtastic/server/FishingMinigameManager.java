@@ -12,6 +12,7 @@ import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.component.HookEffect;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.data.PhaseRule;
@@ -643,7 +644,7 @@ public class FishingMinigameManager {
         Holder<Biome> biome = env.biome();
         FishProfile.TimeOfDay timeOfDay = env.timeOfDay();
         FishProfile.WeatherCondition weather = env.weather();
-        net.minecraft.world.level.MoonPhase moonPhase = env.moonPhase();
+        FishMoonPhase moonPhase = env.moonPhase();
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
@@ -761,7 +762,7 @@ public class FishingMinigameManager {
      * multipliers in {@link FishProfile#computeEnvironmentMultiplier}.
      */
     private record EnvironmentContext(Holder<Biome> biome, FishProfile.TimeOfDay timeOfDay,
-            FishProfile.WeatherCondition weather, net.minecraft.world.level.MoonPhase moonPhase,
+            FishProfile.WeatherCondition weather, FishMoonPhase moonPhase,
             Set<FishProfile.Zone> zone) {}
 
     private EnvironmentContext resolveEnvironment(BlockPos hookPos, @Nullable CharmEffect charmEffect) {
@@ -770,7 +771,7 @@ public class FishingMinigameManager {
                 ? FishProfile.TimeOfDay.NIGHT
                 : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
-        net.minecraft.world.level.MoonPhase moonPhase = level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, hookPos);
+        FishMoonPhase moonPhase = FishMoonPhase.at(level, hookPos);
         Set<FishProfile.Zone> zone = FishProfile.Zone.resolve(biome, hookPos.getY(), level.getSeaLevel());
         return new EnvironmentContext(biome, timeOfDay, weather, moonPhase, zone);
     }
@@ -1008,7 +1009,7 @@ public class FishingMinigameManager {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
-            net.minecraft.world.level.MoonPhase moonPhase,
+            FishMoonPhase moonPhase,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect,

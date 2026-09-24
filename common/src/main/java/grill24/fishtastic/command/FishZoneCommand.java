@@ -33,7 +33,7 @@ public class FishZoneCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("fishzone")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .executes(FishZoneCommand::executeWhereAmI)
                 .then(Commands.literal("list")
                         .executes(FishZoneCommand::executeList));

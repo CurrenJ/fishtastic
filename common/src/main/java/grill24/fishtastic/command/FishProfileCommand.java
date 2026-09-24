@@ -23,7 +23,7 @@ public class FishProfileCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("fishprofile")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .requires(FishtasticPermissions.gamemaster())
                         .then(Commands.argument("id", IdentifierArgument.id())
                                 .suggests((ctx, builder) -> {
                                     Registry<FishProfile> registry = ctx.getSource().registryAccess()

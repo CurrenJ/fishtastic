@@ -11,6 +11,7 @@ import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
+import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.network.ClaimEncyclopediaRewardPacket;
@@ -862,7 +863,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         boolean isNight = getEffectiveTimeOfDay(mc) == FishProfile.TimeOfDay.NIGHT;
         boolean isClear = FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == FishProfile.WeatherCondition.CLEAR;
         if (!isNight || !isClear) return false;
-        return mc.level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.MOON_PHASE, mc.player.blockPosition()) == mw.phase();
+        return FishMoonPhase.at(mc.level, mc.player.blockPosition()) == mw.phase();
     }
 
     private static boolean isZoneMet(FishProfile.Zone zone) {

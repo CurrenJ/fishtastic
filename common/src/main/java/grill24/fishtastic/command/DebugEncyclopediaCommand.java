@@ -28,7 +28,7 @@ public class DebugEncyclopediaCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("encyclopedia")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("complete")
                         .executes(ctx -> executeReveal(ctx, null))
                         .then(Commands.argument("player", EntityArgument.player())

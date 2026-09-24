@@ -87,7 +87,7 @@ public class BackupCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("backup")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("create")
                         .executes(ctx -> executeCreate(ctx, null))
                         .then(Commands.argument("label", StringArgumentType.greedyString())

@@ -34,7 +34,7 @@ public class SimulateFishingCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("simulatefishing")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.argument("count", IntegerArgumentType.integer(1, MAX_GAMES))
                         .executes(ctx -> execute(ctx, null, IntegerArgumentType.getInteger(ctx, "count")))
                         .then(Commands.argument("player", EntityArgument.player())

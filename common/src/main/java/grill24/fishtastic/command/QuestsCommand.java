@@ -43,7 +43,7 @@ public class QuestsCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("quests")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("reset")
                         .then(Commands.literal("player")
                                 .executes(ctx -> executeResetPlayer(ctx, null))

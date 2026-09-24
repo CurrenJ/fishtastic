@@ -32,7 +32,7 @@ public class TestQuestNotifyCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("testquestnotify")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 // No args: default normal progress
                 .executes(ctx -> execute(ctx, 2, 3, 5, DEFAULT_NAME, false))
                 // "complete" sub: default completion

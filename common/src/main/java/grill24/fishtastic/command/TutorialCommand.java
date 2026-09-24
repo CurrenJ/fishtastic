@@ -20,7 +20,7 @@ public class TutorialCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("tutorial")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("status")
                     .executes(ctx -> executeStatus(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())

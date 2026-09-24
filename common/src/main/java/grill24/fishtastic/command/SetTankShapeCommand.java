@@ -25,7 +25,7 @@ import java.util.Locale;
 public class SetTankShapeCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("settankshape")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
+                        .requires(FishtasticPermissions.gamemaster()) // Requires operator permission
                         .then(Commands.argument("shape", StringArgumentType.word())
                                 .suggests((context, builder) -> {
                                     for (FishTankShape shape : FishTankShape.values()) {

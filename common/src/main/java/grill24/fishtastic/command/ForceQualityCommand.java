@@ -30,7 +30,7 @@ public class ForceQualityCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("forcequality")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("clear").executes(ForceQualityCommand::executeClear));
 
         // One literal per quality rather than a string argument, so the tier names autocomplete

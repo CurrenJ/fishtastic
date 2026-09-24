@@ -50,7 +50,7 @@ public class CosmeticCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("cosmetic")
-            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+            .requires(FishtasticPermissions.gamemaster())
             .then(Commands.literal("nudge")
                 .then(Commands.argument("x", FloatArgumentType.floatArg())
                     .then(Commands.argument("y", FloatArgumentType.floatArg())

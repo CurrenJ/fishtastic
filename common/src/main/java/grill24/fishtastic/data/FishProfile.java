@@ -13,7 +13,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.MoonPhase;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.Collections;
@@ -265,9 +264,9 @@ public record FishProfile(
         }
     }
 
-    public record MoonWeight(MoonPhase phase, float multiplier, ConditionTier tier) {
+    public record MoonWeight(FishMoonPhase phase, float multiplier, ConditionTier tier) {
         public static final Codec<MoonWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
-                MoonPhase.CODEC.fieldOf("phase").forGetter(MoonWeight::phase),
+                FishMoonPhase.CODEC.fieldOf("phase").forGetter(MoonWeight::phase),
                 Codec.FLOAT.fieldOf("multiplier").forGetter(MoonWeight::multiplier),
                 ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(MoonWeight::tier)
         ).apply(i, MoonWeight::new));
@@ -280,7 +279,7 @@ public record FishProfile(
      * stacking several flavor conditions nudges the weight instead of compounding it.
      */
     public float computeEnvironmentMultiplier(Holder<Biome> biome, TimeOfDay timeOfDay, WeatherCondition weather,
-                                               MoonPhase moonPhase) {
+                                               FishMoonPhase moonPhase) {
         boolean moonVisible = timeOfDay == TimeOfDay.NIGHT && weather == WeatherCondition.CLEAR;
 
         float primaryProduct = 1.0f;

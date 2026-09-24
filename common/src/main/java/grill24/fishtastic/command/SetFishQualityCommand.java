@@ -21,7 +21,7 @@ import java.util.Locale;
 public class SetFishQualityCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("setfishquality")
-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // Requires operator permission
+                        .requires(FishtasticPermissions.gamemaster()) // Requires operator permission
                         .then(Commands.argument("quality", StringArgumentType.word())
                                 .suggests((context, builder) -> {
                                     // Add suggestions for all quality levels

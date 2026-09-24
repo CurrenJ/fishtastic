@@ -37,7 +37,7 @@ public class DebugShapesCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("shapes")
-                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("debug")
                         .then(Commands.literal("unlockall")
                                 .executes(ctx -> executeUnlockAll(ctx, null))

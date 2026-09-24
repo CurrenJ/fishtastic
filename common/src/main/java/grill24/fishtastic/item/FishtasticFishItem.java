@@ -8,6 +8,7 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.HookEffect;
+import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
@@ -172,7 +173,7 @@ public class FishtasticFishItem extends Item {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
-            net.minecraft.world.level.MoonPhase moonPhase,
+            FishMoonPhase moonPhase,
             float qualityBias,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
@@ -207,7 +208,7 @@ public class FishtasticFishItem extends Item {
             Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay,
             FishProfile.WeatherCondition weather,
-            net.minecraft.world.level.MoonPhase moonPhase,
+            FishMoonPhase moonPhase,
             @Nullable BaitEffect baitEffect,
             @Nullable CharmEffect charmEffect
     ) {
