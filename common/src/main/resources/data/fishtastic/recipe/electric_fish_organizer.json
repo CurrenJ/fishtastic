@@ -2,9 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": "minecraft:copper_ingot",
-    "E": "fishtastic:electric_eel",
-    "P": "#minecraft:planks"
+    "C": {
+      "item": "minecraft:copper_ingot"
+    },
+    "E": {
+      "item": "fishtastic:electric_eel"
+    },
+    "P": {
+      "tag": "minecraft:planks"
+    }
   },
   "pattern": [
     "CPC",
@@ -12,6 +18,7 @@
     "CPC"
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:electric_fish_organizer"
   }
 }

@@ -2,9 +2,12 @@
   "type": "minecraft:crafting_shapeless",
   "category": "building",
   "ingredients": [
-    "minecraft:red_stained_glass"
+    {
+      "item": "minecraft:red_stained_glass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:red_borderless_stained_glass"
   }
 }

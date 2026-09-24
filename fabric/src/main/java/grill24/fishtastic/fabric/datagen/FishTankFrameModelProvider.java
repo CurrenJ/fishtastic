@@ -6,7 +6,7 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankEdge;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture;
 public class FishTankFrameModelProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public FishTankFrameModelProvider(FabricPackOutput output) {
+    public FishTankFrameModelProvider(FabricDataOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "models/block");
     }
 

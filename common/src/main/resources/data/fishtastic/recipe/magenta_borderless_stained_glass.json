@@ -2,9 +2,12 @@
   "type": "minecraft:crafting_shapeless",
   "category": "building",
   "ingredients": [
-    "minecraft:magenta_stained_glass"
+    {
+      "item": "minecraft:magenta_stained_glass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:magenta_borderless_stained_glass"
   }
 }

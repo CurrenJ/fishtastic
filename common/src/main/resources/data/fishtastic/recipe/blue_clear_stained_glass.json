@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "building",
   "ingredients": [
-    "minecraft:blue_stained_glass",
-    "minecraft:glass"
+    {
+      "item": "minecraft:blue_stained_glass"
+    },
+    {
+      "item": "minecraft:glass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:blue_clear_stained_glass"
   }
 }

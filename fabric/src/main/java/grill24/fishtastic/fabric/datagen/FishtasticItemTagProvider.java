@@ -7,11 +7,10 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.FishProfile;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
-import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagsProvider;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.tags.TagAppender;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.tags.ItemTags;
@@ -38,17 +37,17 @@ import java.util.stream.Stream;
  * Fabric implementation of the item tag data provider.
  * Generates item tags for Fishtastic items.
  */
-public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvider {
+public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider {
     private static final String FISH_PROFILE_RESOURCE_DIR = "data/fishtastic/fishtastic/fish_profile";
 
-    public FishtasticItemTagProvider(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+    public FishtasticItemTagProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
         super(output, registriesFuture);
     }
 
     @Override
     protected void addTags(HolderLookup.Provider provider) {
         // Fishing rods tag
-        valueLookupBuilder(FishtasticItemTags.FISHING_RODS)
+        getOrCreateTagBuilder(FishtasticItemTags.FISHING_RODS)
                 .add(FishtasticItems.COPPER_FISHING_ROD.value())
                 .add(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
@@ -59,13 +58,13 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         // rather than hand-listed - a hardcoded list previously drifted out of sync (missing
         // 12 fish) as new fish were added without updating it. See addZoneTags for the same
         // derive-don't-hardcode rationale.
-        TagAppender<Item, Item> fishTagBuilder = valueLookupBuilder(FishtasticItemTags.FISH);
+        FabricTagBuilder fishTagBuilder = getOrCreateTagBuilder(FishtasticItemTags.FISH);
         for (ResourceLocation id : fishProfiles.keySet()) {
             fishTagBuilder.add(itemForFishProfile(id));
         }
 
         // Fishing bait
-        valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
+        getOrCreateTagBuilder(FishtasticItemTags.FISHING_BAIT)
                 .add(FishtasticItems.WORMS.value())
                 .add(FishtasticItems.GUMMY_WORMS.value())
                 .add(FishtasticItems.BLAZED_GRUB.value())
@@ -75,28 +74,28 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.TROPHY_BAIT.value());
 
         // Super bait: premium all-purpose baits, shown as "Super Bait" in gold on the item name.
-        valueLookupBuilder(FishtasticItemTags.SUPER_BAIT)
+        getOrCreateTagBuilder(FishtasticItemTags.SUPER_BAIT)
                 .add(FishtasticItems.GUMMY_WORMS.value())
                 .add(FishtasticItems.BLAZED_GRUB.value());
 
         // Specialist bait: single-affinity baits with a downside, shown in light blue on the item name.
-        valueLookupBuilder(FishtasticItemTags.SPECIALIST_BAIT)
+        getOrCreateTagBuilder(FishtasticItemTags.SPECIALIST_BAIT)
                 .add(FishtasticItems.SMALL_FISH_BAIT.value())
                 .add(FishtasticItems.CALM_BAIT.value())
                 .add(FishtasticItems.FRENZY_BAIT.value())
                 .add(FishtasticItems.TROPHY_BAIT.value());
 
-        valueLookupBuilder(ItemTags.FISHING_ENCHANTABLE)
+        getOrCreateTagBuilder(ItemTags.FISHING_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
 
-        valueLookupBuilder(ItemTags.FISHES)
+        getOrCreateTagBuilder(ItemTags.FISHES)
                 .addTag(FishtasticItemTags.FISH);
 
-        valueLookupBuilder(ItemTags.DURABILITY_ENCHANTABLE)
+        getOrCreateTagBuilder(ItemTags.DURABILITY_ENCHANTABLE)
                 .addTag(FishtasticItemTags.FISHING_RODS);
 
         // Exotic fish: eligible when using blazed grub bait
-        valueLookupBuilder(FishtasticItemTags.EXOTIC_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.EXOTIC_FISH)
                 .add(FishtasticItems.GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
                 .add(FishtasticItems.NORTHERN_PIKE.value())
@@ -114,7 +113,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
-        valueLookupBuilder(FishtasticItemTags.UNLISTED_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.UNLISTED_FISH)
                 .add(FishtasticItems.MOLTEN_MOORISH_IDOL.value())
                 .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
@@ -125,7 +124,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         // Small fish: bait-affinity/encyclopedia cluster for small or delicate species.
         // Curated membership (not derivable from fish_profile), so listed here rather than
         // hand-edited JSON - same rationale as EXOTIC_FISH/UNLISTED_FISH above.
-        valueLookupBuilder(FishtasticItemTags.SMALL_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.SMALL_FISH)
                 .add(FishtasticItems.TRAPANIA_SCURRA.value())
                 .add(FishtasticItems.YELLOWLINE_GOBY.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
@@ -160,7 +159,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         // Calm fish: bait-affinity/encyclopedia cluster for docile, easy catches.
         // Curated membership (not derivable from fish_profile), same rationale as above.
-        valueLookupBuilder(FishtasticItemTags.CALM_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.CALM_FISH)
                 .add(FishtasticItems.BLUEGILL.value())
                 .add(FishtasticItems.FRIED_SHRIMP.value())
                 .add(FishtasticItems.SHRIMP.value())
@@ -181,7 +180,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         // Big fish: bait-affinity/encyclopedia cluster for trophy-scale catches.
         // Curated membership (not derivable from fish_profile), same rationale as above.
-        valueLookupBuilder(FishtasticItemTags.BIG_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.BIG_FISH)
                 .add(FishtasticItems.GLASS_SQUID.value())
                 .add(FishtasticItems.PORTUGUESE_MAN_O_WAR.value())
                 .add(FishtasticItems.ROYAL_GARDEN_EEL.value())
@@ -211,7 +210,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         // Steady fish: bait-affinity/encyclopedia cluster for mid-difficulty reef/river fish.
         // Curated membership (not derivable from fish_profile), same rationale as above.
-        valueLookupBuilder(FishtasticItemTags.STEADY_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.STEADY_FISH)
                 .add(FishtasticItems.JAPANESE_SPIDER_CRAB.value())
                 .add(FishtasticItems.LEAFY_SEA_DRAGON.value())
                 .add(FishtasticItems.LIZARDFISH.value())
@@ -225,7 +224,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
 
         // Frenzy fish: bait-affinity/encyclopedia cluster for aggressive/high-energy species.
         // Curated membership (not derivable from fish_profile), same rationale as above.
-        valueLookupBuilder(FishtasticItemTags.FRENZY_FISH)
+        getOrCreateTagBuilder(FishtasticItemTags.FRENZY_FISH)
                 .add(FishtasticItems.FROZEN_GIANT_MANTA_RAY.value())
                 .add(FishtasticItems.ACUTE_IASPIS.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
@@ -245,12 +244,12 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         // Taxonomic groups: real-world clades backing the "catch every species in this family"
         // explorer quests. Not derivable from fish_profile (which knows nothing about taxonomy),
         // so curated here - same rationale as EXOTIC_FISH/SMALL_FISH above.
-        valueLookupBuilder(FishtasticItemTags.CEPHALOPODS)
+        getOrCreateTagBuilder(FishtasticItemTags.CEPHALOPODS)
                 .add(FishtasticItems.COMMON_OCTOPUS.value())
                 .add(FishtasticItems.FLAPJACK_OCTOPUS.value())
                 .add(FishtasticItems.GLASS_SQUID.value());
 
-        valueLookupBuilder(FishtasticItemTags.SALMONIDS)
+        getOrCreateTagBuilder(FishtasticItemTags.SALMONIDS)
                 .add(FishtasticItems.ARCTIC_CHAR.value())
                 .add(FishtasticItems.BULL_TROUT.value())
                 .add(FishtasticItems.GOLDEN_TROUT.value())
@@ -258,13 +257,13 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.EUROPEAN_GRAYLING.value());
 
         // Ancient non-teleost ray-finned lineages that have changed little since the Mesozoic.
-        valueLookupBuilder(FishtasticItemTags.LIVING_FOSSILS)
+        getOrCreateTagBuilder(FishtasticItemTags.LIVING_FOSSILS)
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value());
 
         // Cypriniformes: carps, barbs, minnows and loaches.
-        valueLookupBuilder(FishtasticItemTags.CYPRINIFORMES)
+        getOrCreateTagBuilder(FishtasticItemTags.CYPRINIFORMES)
                 .add(FishtasticItems.GOLDEN_MAHSEER.value())
                 .add(FishtasticItems.GREENSTRIPE_BARB.value())
                 .add(FishtasticItems.BRIDLE_SHINER.value())
@@ -280,9 +279,9 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
      * or reassigned to a different zone.
      */
     private void addZoneTags(Map<ResourceLocation, FishProfile> fishProfiles) {
-        Map<FishProfile.Zone, TagAppender<Item, Item>> zoneBuilders = new EnumMap<>(FishProfile.Zone.class);
+        Map<FishProfile.Zone, FabricTagBuilder> zoneBuilders = new EnumMap<>(FishProfile.Zone.class);
         for (FishProfile.Zone zone : FishProfile.Zone.values()) {
-            zoneBuilders.put(zone, valueLookupBuilder(zoneTag(zone)));
+            zoneBuilders.put(zone, getOrCreateTagBuilder(zoneTag(zone)));
         }
 
         for (Map.Entry<ResourceLocation, FishProfile> entry : fishProfiles.entrySet()) {

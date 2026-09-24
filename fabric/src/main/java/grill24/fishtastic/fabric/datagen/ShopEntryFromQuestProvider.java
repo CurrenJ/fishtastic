@@ -12,7 +12,7 @@ import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.fishtank.FishTankShape;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -56,8 +56,8 @@ public class ShopEntryFromQuestProvider implements DataProvider {
 
     private final PackOutput.PathProvider pathProvider;
 
-    public ShopEntryFromQuestProvider(FabricPackOutput output) {
-        this.pathProvider = output.createRegistryElementsPathProvider(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+    public ShopEntryFromQuestProvider(FabricDataOutput output) {
+        this.pathProvider = FishtasticDataGenerator.registryElementsPathProvider(output, FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
     }
 
     @Override

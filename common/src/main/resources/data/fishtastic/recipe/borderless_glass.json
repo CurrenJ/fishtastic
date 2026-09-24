@@ -2,9 +2,12 @@
   "type": "minecraft:crafting_shapeless",
   "category": "building",
   "ingredients": [
-    "minecraft:glass"
+    {
+      "item": "minecraft:glass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:borderless_glass"
   }
 }

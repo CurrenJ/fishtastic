@@ -510,17 +510,6 @@
     {
       "state": {
         "Properties": {
-          "segment_amount": "1",
-          "facing": "west"
-        },
-        "Name": "minecraft:leaf_litter"
-      },
-      "offsetX": 0.51428574,
-      "offsetZ": -1.0285715
-    },
-    {
-      "state": {
-        "Properties": {
           "waterlogged": "false",
           "persistent": "false",
           "distance": "3"

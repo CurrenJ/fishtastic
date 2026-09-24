@@ -1,7 +1,10 @@
 {
   "type": "minecraft:stonecutting",
-  "ingredient": "fishtastic:plastic_litter",
+  "ingredient": {
+    "item": "fishtastic:plastic_litter"
+  },
   "result": {
+    "count": 1,
     "id": "minecraft:string"
   }
 }

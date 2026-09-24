@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "#fishtastic:fish",
-    "minecraft:crafting_table"
+    {
+      "tag": "fishtastic:fish"
+    },
+    {
+      "item": "minecraft:crafting_table"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:fish_tank_assembly"
   }
 }

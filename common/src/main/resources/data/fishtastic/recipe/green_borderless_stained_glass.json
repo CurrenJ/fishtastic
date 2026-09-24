@@ -2,9 +2,12 @@
   "type": "minecraft:crafting_shapeless",
   "category": "building",
   "ingredients": [
-    "minecraft:green_stained_glass"
+    {
+      "item": "minecraft:green_stained_glass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:green_borderless_stained_glass"
   }
 }

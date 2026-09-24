@@ -9,7 +9,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 and A2 done (G-A2 passed 2026-09-24); hook stage `unit`. |
+| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2 and A3 done (G-A3 passed 2026-09-24); hook stage `unit`. |
 | `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
@@ -88,14 +88,16 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | G-A2 | Gate | [x] | A2 commit | common compiles, 64 + 163/1 + 21,955 tests, both platforms compile, common refmap has all 7 server/client mixins. Server smoke run: both loaders boot through registration, then stop on 13 cosmetic structures that use post-1.21.1 blocks (A3, needs an owner decision). |
 
 ### A3: Datagen and resources (gate G-A3)
-| ID | Item | Status | Commit |
-|---|---|---|---|
-| A3.1 | Fabric datagen providers on the FAPI 0.116 APIs | [ ] | |
-| A3.2 | Regenerate recipes/advancements/loot/models, and review the diff against the expectation table | [ ] | |
-| A3.3 | Delete `assets/fishtastic/items/` (180); fix `copy_assets_to_common.py` `EXCLUDE` | [ ] | |
-| A3.4 | 0 × `Unable to load model` in the log | [ ] | |
-| A3.5 | Check the synthesized pack formats (34/48) | [ ] | |
-| — | Stray `data/fishtastic/{cosmetic_structure,item_effect}` checked on 26.1.2 | [ ] | |
+| ID | Item | Status | Commit | Notes |
+|---|---|---|---|---|
+| A3.1 | Fabric datagen providers on the FAPI 0.116 APIs | [x] | A3 commit | Tags use `getOrCreateTagBuilder` (the reference sources show `tag`, a genSources naming artifact; the jar has `getOrCreateTagBuilder`). Quest/shop providers need `FishtasticDataGenerator.registryElementsPathProvider`: 1.21.1 vanilla datagen writes registry elements without the `<ns>/` directory that FAPI/NeoForge load from. Rod and alert models carry `overrides`; the `minecraft:cast` and `fishtastic:has_alert` item properties still need client registration (A4/A5). |
+| A3.2 | Regenerate recipes/advancements/loot/models, and review the diff against the expectation table | [x] | A3 commit | Advancements, loot, tags, blockstates, `models/block`: 0 diffs. Recipes: 72 generated + hand-authored `deep_sea_bait` converted by hand (73 of 74; `marine_compost` unchanged). 5 reviewed by hand. `data/fishtastic/fishtastic/**` differs only by the cosmetics decision. |
+| A3.3 | Delete `assets/fishtastic/items/` (180); fix `copy_assets_to_common.py` `EXCLUDE` | [x] | A3 commit | `EXCLUDE` is now empty. |
+| A3.4 | 0 × `Unable to load model` in the log | [x] | A3 commit | 0 on Fabric `runClient`. The one model warning is the `fish_tank` blockstate (A5.2). |
+| A3.5 | Check the synthesized pack formats (34/48) | [x] | A3 commit | Not logged; both loaders synthesize from `getPackVersion` (FAPI `ModResourcePackUtil`, NeoForge `ResourcePackLoader`), which is 34/48 on 1.21.1. |
+| A3.c | Cosmetics decision (owner, 2026-09-24): regular lantern on the fence arches; drop the pale oak arch and the leaf litter cosmetic; drop leaf litter from `birch_tree` | [x] | A3 commit | Port-branch diff: `FENCE_ARCH_WOOD_TYPES` without `pale_oak`, no `COSMETIC_LEAF_LITTER`, 4 JSONs + 2 lang keys removed, 1 part out of `birch_tree`. |
+| — | Stray `data/fishtastic/{cosmetic_structure,item_effect}` checked on 26.1.2 | [x] | report only | Not leftovers: `CosmeticStructureProvider` and `ItemEffectProvider` write there (plain `createPathProvider`). Nothing reads them; the registry copies are hand-synced and the 4 item_effect copies have drifted. 26.1.2 fix: `createRegistryElementsPathProvider`, then delete the dirs. Not changed here. |
+| G-A3 | Gate | [x] | A3 commit | Datagen diff matches the table (see track A, A3 "Done"). Both servers reach `Done` with no errors; `ServerLevelTickTimeMixin` applies (`required`, `defaultRequire: 1`). |
 
 ### G-1.21.1: gelatin-ui (branch `mc/1.21.1`)
 | ID | Item | Status | Commit (gelatin) |

@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    "minecraft:copper_ingot",
-    "minecraft:string"
+    {
+      "item": "minecraft:copper_ingot"
+    },
+    {
+      "item": "minecraft:string"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:old_copper_hook"
   }
 }

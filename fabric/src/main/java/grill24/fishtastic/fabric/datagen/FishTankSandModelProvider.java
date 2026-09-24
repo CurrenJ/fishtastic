@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture;
 public class FishTankSandModelProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public FishTankSandModelProvider(FabricPackOutput output) {
+    public FishTankSandModelProvider(FabricDataOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "models/block");
     }
 

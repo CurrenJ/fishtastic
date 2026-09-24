@@ -43,7 +43,6 @@ public final class CreativeTabGameTests {
         expected.add(FishtasticItems.COSMETIC_PETALS.value());
         expected.add(FishtasticItems.COSMETIC_SPRUCE_GAZEBO.value());
         expected.add(FishtasticItems.COSMETIC_CATERPILLER.value());
-        expected.add(FishtasticItems.COSMETIC_LEAF_LITTER.value());
         expected.add(FishtasticItems.COSMETIC_CORAL_REEF_1.value());
         expected.add(FishtasticItems.COSMETIC_CORAL_REEF_2.value());
         expected.add(FishtasticItems.COSMETIC_OAK_TREE.value());

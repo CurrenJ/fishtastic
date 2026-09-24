@@ -2,6 +2,10 @@ package grill24.fishtastic.fabric.datagen;
 
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.minecraft.core.Registry;
+import net.minecraft.data.PackOutput;
+import net.minecraft.resources.ResourceKey;
 
 /**
  * Fabric implementation of the data generator entrypoint.
@@ -24,5 +28,13 @@ public class FishtasticDataGenerator implements DataGeneratorEntrypoint {
         pack.addProvider(ShopEntryFromQuestProvider::new);
         pack.addProvider(FishtasticRecipeProvider::new);
         pack.addProvider(FishtasticBlockLootTableProvider::new);
+    }
+
+    /**
+     * 26.1's {@code createRegistryElementsPathProvider}: {@code data/<ns>/<ns>/<path>/}. On 1.21.1 vanilla
+     * datagen leaves out the namespace directory, but Fabric API and NeoForge read modded registries from it.
+     */
+    static PackOutput.PathProvider registryElementsPathProvider(FabricDataOutput output, ResourceKey<? extends Registry<?>> key) {
+        return output.createPathProvider(PackOutput.Target.DATA_PACK, key.location().getNamespace() + "/" + key.location().getPath());
     }
 }

@@ -7,7 +7,7 @@ import grill24.fishtastic.shapegen.TankCorner;
 import grill24.fishtastic.shapegen.TankEdge;
 import grill24.fishtastic.shapegen.TankShapeGeometry;
 import grill24.fishtastic.util.Ids;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -37,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 public class FishTankGlassModelProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public FishTankGlassModelProvider(FabricPackOutput output) {
+    public FishTankGlassModelProvider(FabricDataOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "models/block");
     }
 

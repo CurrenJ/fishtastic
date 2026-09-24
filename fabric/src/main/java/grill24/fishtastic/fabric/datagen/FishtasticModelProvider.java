@@ -2,20 +2,22 @@ package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.util.Ids;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
-import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
-import net.minecraft.client.renderer.item.properties.conditional.HasComponent;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricModelProvider;
 import net.minecraft.core.Holder;
-import net.minecraft.client.data.models.BlockModelGenerators;
-import net.minecraft.client.data.models.ItemModelGenerators;
-import net.minecraft.client.data.models.model.ItemModelUtils;
-import net.minecraft.client.data.models.model.ModelLocationUtils;
-import net.minecraft.client.data.models.model.ModelTemplates;
-import net.minecraft.client.data.models.model.TextureMapping;
-import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.data.models.BlockModelGenerators;
+import net.minecraft.data.models.ItemModelGenerators;
+import net.minecraft.data.models.model.ModelLocationUtils;
+import net.minecraft.data.models.model.ModelTemplate;
+import net.minecraft.data.models.model.ModelTemplates;
+import net.minecraft.data.models.model.TextureMapping;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
@@ -26,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class FishtasticModelProvider extends FabricModelProvider {
-    public FishtasticModelProvider(FabricPackOutput output) {
+    public FishtasticModelProvider(FabricDataOutput output) {
         super(output);
     }
 
@@ -60,17 +62,14 @@ public class FishtasticModelProvider extends FabricModelProvider {
     }
 
     private static void generateModelsForGlassBlock(BlockModelGenerators blockModelGenerators, ResourceLocation modelLoc, ResourceLocation textureLoc, Holder<Block> block) {
-        // Create block model in glass/ subdirectory using Material for texture
-        ModelTemplates.CUBE_ALL.create(modelLoc, TextureMapping.cube(new Material(textureLoc)), blockModelGenerators.modelOutput);
+        // Create block model in glass/ subdirectory
+        ModelTemplates.CUBE_ALL.create(modelLoc, TextureMapping.cube(textureLoc), blockModelGenerators.modelOutput);
 
         // Create blockstate pointing to the model in glass subdirectory
-        blockModelGenerators.blockStateOutput.accept(
-            BlockModelGenerators.createSimpleBlock(block.value(),
-                BlockModelGenerators.plainVariant(modelLoc))
-        );
+        blockModelGenerators.blockStateOutput.accept(BlockModelGenerators.createSimpleBlock(block.value(), modelLoc));
 
         // Create item model in default directory (required by Minecraft's hardcoded item model lookup)
-        blockModelGenerators.registerSimpleItemModel(block.value(), modelLoc);
+        blockModelGenerators.delegateItemModel(block.value(), modelLoc);
     }
 
     @Override
@@ -96,8 +95,8 @@ public class FishtasticModelProvider extends FabricModelProvider {
                 Ids.of("minecraft", "item/stick"));
 
         // ----- Copper / obsidian fishing rods (fishing rod style with _cast variant) -----
-        itemModelGenerators.generateFishingRod(FishtasticItems.COPPER_FISHING_ROD.value());
-        itemModelGenerators.generateFishingRod(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
+        generateFishingRod(itemModelGenerators, FishtasticItems.COPPER_FISHING_ROD.value());
+        generateFishingRod(itemModelGenerators, FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
         // ----- Fish items (textures in item/fish/ subdirectory) -----
         generateFishItemModel(itemModelGenerators, FishtasticItems.GENERIC_FISH.value(), "generic_fish");
@@ -175,9 +174,17 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateTrashItemModel(itemModelGenerators, FishtasticItems.OLD_TIRE.value(), "old_tire");
         generateTrashItemModel(itemModelGenerators, FishtasticItems.PLASTIC_LITTER.value(), "plastic_litter");
 
-        // ----- Block items -----
-        // Fish tank: declare as custom model (uses custom block model / renderer)
-        itemModelGenerators.declareCustomModelItem(FishtasticBlocks.FISH_TANK.value().asItem());
+        // ----- Items drawn by a BlockEntityWithoutLevelRenderer (A5) -----
+        // 26.1's custom item model types (fish_tank_composite, fish_pile_block, cosmetic_structure,
+        // the chest select) don't exist on 1.21.1; these items render through builtin/entity instead.
+        generateBuiltinEntityItem(itemModelGenerators, FishtasticBlocks.FISH_TANK.value().asItem());
+        generateBuiltinEntityItem(itemModelGenerators, FishtasticBlocks.FISH_PILE.value().asItem());
+        generateBuiltinEntityItem(itemModelGenerators, FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+        BuiltInRegistries.ITEM.stream()
+                .filter(item -> item instanceof FishTankStructureCosmeticItem)
+                .forEach(item -> generateBuiltinEntityItem(itemModelGenerators, item));
+        generateItemWithParent(itemModelGenerators, FishtasticItems.COSMETIC_LIT_CAMPFIRE.value(),
+                Ids.withDefaultNamespace("block/campfire"));
 
         // ----- Menu-opening items — swap to the _alert texture whenever HAS_ALERT is present -----
         generateAlertConditionedItem(itemModelGenerators, FishtasticItems.FISHOPEDIA.value(), "fishopedia");
@@ -185,26 +192,56 @@ public class FishtasticModelProvider extends FabricModelProvider {
     }
 
     /**
-     * Generates a base + "_alert" flat item model pair and dispatches between them via
-     * {@link FishtasticDataComponents#HAS_ALERT}'s presence on the stack, mirroring the
-     * {@code minecraft:condition} pattern {@code generateFishingRod} uses for the rod's own
-     * cast-state model swap.
+     * Generates a base + "_alert" flat item model pair. The base model's {@code fishtastic:has_alert}
+     * override swaps to the alert one while {@link FishtasticDataComponents#HAS_ALERT} is on the stack,
+     * the same way the rods' {@code minecraft:cast} override swaps to their cast model.
      */
     private static void generateAlertConditionedItem(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
-        ResourceLocation baseModel = ModelTemplates.FLAT_ITEM.create(
-                ModelLocationUtils.getModelLocation(item),
-                TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName))),
-                itemModelGenerators.modelOutput);
         ResourceLocation alertModel = ModelTemplates.FLAT_ITEM.create(
                 ModelLocationUtils.getModelLocation(item, "_alert"),
-                TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName + "_alert"))),
-                itemModelGenerators.modelOutput);
+                TextureMapping.layer0(Fishtastic.id("item/" + textureName + "_alert")),
+                itemModelGenerators.output);
+        createWithOverride(itemModelGenerators, ModelTemplates.FLAT_ITEM, ModelLocationUtils.getModelLocation(item),
+                TextureMapping.layer0(Fishtastic.id("item/" + textureName)),
+                Fishtastic.id("has_alert"), alertModel);
+    }
 
-        itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.conditional(
-                new HasComponent(FishtasticDataComponents.HAS_ALERT.value(), false),
-                ItemModelUtils.plainModel(alertModel),
-                ItemModelUtils.plainModel(baseModel)
-        ));
+    /** The vanilla fishing rod's model pair: a {@code handheld_rod} base and {@code _cast}, switched by {@code minecraft:cast}. */
+    private static void generateFishingRod(ItemModelGenerators itemModelGenerators, Item item) {
+        ResourceLocation castModel = ModelTemplates.FLAT_HANDHELD_ROD_ITEM.create(
+                ModelLocationUtils.getModelLocation(item, "_cast"),
+                TextureMapping.layer0(TextureMapping.getItemTexture(item, "_cast")),
+                itemModelGenerators.output);
+        createWithOverride(itemModelGenerators, ModelTemplates.FLAT_HANDHELD_ROD_ITEM, ModelLocationUtils.getModelLocation(item),
+                TextureMapping.layer0(item),
+                Ids.withDefaultNamespace("cast"), castModel);
+    }
+
+    /** Writes {@code template} at {@code modelLoc} with one {@code overrides} entry: {@code predicate} = 1 selects {@code overrideModel}. */
+    private static void createWithOverride(ItemModelGenerators itemModelGenerators, ModelTemplate template, ResourceLocation modelLoc,
+                                           TextureMapping textures, ResourceLocation predicate, ResourceLocation overrideModel) {
+        template.create(modelLoc, textures, itemModelGenerators.output, (location, slots) -> {
+            JsonObject json = template.createBaseTemplate(location, slots);
+            JsonObject predicates = new JsonObject();
+            predicates.addProperty(predicate.toString(), 1);
+            JsonObject override = new JsonObject();
+            override.add("predicate", predicates);
+            override.addProperty("model", overrideModel.toString());
+            JsonArray overrides = new JsonArray();
+            overrides.add(override);
+            json.add("overrides", overrides);
+            return json;
+        });
+    }
+
+    private static void generateBuiltinEntityItem(ItemModelGenerators itemModelGenerators, Item item) {
+        generateItemWithParent(itemModelGenerators, item, Ids.withDefaultNamespace("builtin/entity"));
+    }
+
+    /** An item model that is only a {@code parent} reference. */
+    private static void generateItemWithParent(ItemModelGenerators itemModelGenerators, Item item, ResourceLocation parent) {
+        new ModelTemplate(Optional.of(parent), Optional.empty())
+                .create(ModelLocationUtils.getModelLocation(item), new TextureMapping(), itemModelGenerators.output);
     }
 
     /**
@@ -232,9 +269,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
      * Generate a flat item model with a custom texture path.
      */
     private static void generateFlatItemWithCustomTexture(ItemModelGenerators itemModelGenerators, Item item, ResourceLocation texturePath) {
-        ResourceLocation modelLoc = ModelLocationUtils.getModelLocation(item);
-        ResourceLocation createdModel = ModelTemplates.FLAT_ITEM.create(modelLoc, TextureMapping.layer0(new Material(texturePath)), itemModelGenerators.modelOutput);
-        itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.plainModel(createdModel));
+        ModelTemplates.FLAT_ITEM.create(ModelLocationUtils.getModelLocation(item), TextureMapping.layer0(texturePath), itemModelGenerators.output);
     }
 
     private static ResourceLocation getGlassTextureLoc(Holder<Block> block) {

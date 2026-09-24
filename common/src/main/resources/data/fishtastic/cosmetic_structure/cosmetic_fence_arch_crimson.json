@@ -23,7 +23,7 @@
     {
       "offsetY": 1.0,
       "state": {
-        "Name": "minecraft:exposed_copper_lantern",
+        "Name": "minecraft:lantern",
         "Properties": {
           "hanging": "true",
           "waterlogged": "false"

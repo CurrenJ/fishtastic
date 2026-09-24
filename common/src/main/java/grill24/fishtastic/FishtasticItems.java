@@ -123,7 +123,6 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_PETALS;
     public static Holder<Item> COSMETIC_SPRUCE_GAZEBO;
     public static Holder<Item> COSMETIC_CATERPILLER;
-    public static Holder<Item> COSMETIC_LEAF_LITTER;
     public static Holder<Item> COSMETIC_CORAL_REEF_1;
     public static Holder<Item> COSMETIC_CORAL_REEF_2;
     public static Holder<Item> COSMETIC_OAK_TREE;
@@ -135,7 +134,7 @@ public class FishtasticItems {
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
-            "oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "pale_oak", "mangrove", "cherry", "crimson", "warped"
+            "oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry", "crimson", "warped"
     );
     /** One {@link FishTankStructureCosmeticItem} per {@link #FENCE_ARCH_WOOD_TYPES} entry, keyed by wood name. */
     public static final Map<String, Holder<Item>> COSMETIC_FENCE_ARCH = new LinkedHashMap<>();
@@ -470,10 +469,6 @@ public class FishtasticItems {
         COSMETIC_CATERPILLER = RegistrationApiSided.getInstance().registerItem("cosmetic_caterpiller",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("caterpiller")),
-                        props(loc).stacksTo(1)));
-        COSMETIC_LEAF_LITTER = RegistrationApiSided.getInstance().registerItem("cosmetic_leaf_litter",
-                loc -> new FishTankStructureCosmeticItem(
-                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("leaf_litter")),
                         props(loc).stacksTo(1)));
         COSMETIC_CORAL_REEF_1 = RegistrationApiSided.getInstance().registerItem("cosmetic_coral_reef_1",
                 loc -> new FishTankStructureCosmeticItem(

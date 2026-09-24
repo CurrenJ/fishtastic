@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "minecraft:blaze_powder"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "item": "minecraft:blaze_powder"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:blazed_grub"
   }
 }

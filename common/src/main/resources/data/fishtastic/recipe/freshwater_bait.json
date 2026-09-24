@@ -2,11 +2,18 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "minecraft:brown_mushroom",
-    "minecraft:red_mushroom"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "item": "minecraft:brown_mushroom"
+    },
+    {
+      "item": "minecraft:red_mushroom"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:freshwater_bait"
   }
 }

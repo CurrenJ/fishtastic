@@ -3,7 +3,9 @@
   "category": "food",
   "cookingtime": 100,
   "experience": 0.35,
-  "ingredient": "#fishtastic:fish",
+  "ingredient": {
+    "tag": "fishtastic:fish"
+  },
   "result": {
     "id": "minecraft:cooked_cod"
   }

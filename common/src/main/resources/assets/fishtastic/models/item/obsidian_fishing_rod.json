@@ -1,5 +1,13 @@
 {
   "parent": "minecraft:item/handheld_rod",
+  "overrides": [
+    {
+      "model": "fishtastic:item/obsidian_fishing_rod_cast",
+      "predicate": {
+        "minecraft:cast": 1
+      }
+    }
+  ],
   "textures": {
     "layer0": "fishtastic:item/obsidian_fishing_rod"
   }

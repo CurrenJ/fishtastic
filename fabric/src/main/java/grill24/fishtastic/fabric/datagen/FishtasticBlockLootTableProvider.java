@@ -2,8 +2,8 @@ package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
-import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootSubProvider;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootTableProvider;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
@@ -11,7 +11,6 @@ import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 
 import java.util.concurrent.CompletableFuture;
@@ -25,9 +24,9 @@ import java.util.concurrent.CompletableFuture;
  *   <li>Clear Stained Glass (×16) – drops itself when broken</li>
  * </ul>
  */
-public class FishtasticBlockLootTableProvider extends FabricBlockLootSubProvider {
+public class FishtasticBlockLootTableProvider extends FabricBlockLootTableProvider {
 
-    public FishtasticBlockLootTableProvider(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+    public FishtasticBlockLootTableProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
         super(output, registriesFuture);
     }
 
@@ -55,7 +54,7 @@ public class FishtasticBlockLootTableProvider extends FabricBlockLootSubProvider
                                         .setRolls(ConstantValue.exactly(1.0F))
                                         .add(
                                                 LootItem.lootTableItem(block)
-                                                        .apply(CopyComponentsFunction.copyComponentsFromBlockEntity(LootContextParams.BLOCK_ENTITY)
+                                                        .apply(CopyComponentsFunction.copyComponents(CopyComponentsFunction.Source.BLOCK_ENTITY)
                                                                 .include(FishtasticDataComponents.FISH_TANK_MATERIALS.value())
                                                                 .include(FishtasticDataComponents.FISH_TANK_SHAPE.value()))
                                         )

@@ -14,12 +14,8 @@ dst_dir = "common/src/main/resources"
 # hand-committed in common. Overwriting these has previously deleted real
 # data. Fix the underlying datagen provider before removing an entry here.
 EXCLUDE = {
-    # declareCustomModelItem (FishtasticModelProvider) always stubs a generic
-    # "minecraft:model" reference here, clobbering the hand-authored
-    # "fishtastic:fish_tank_composite" custom item model type that drives the
-    # tank's dynamic frame/glass/sand inventory icon. Nothing to fix upstream -
-    # fabric-api's datagen helper has no way to express a custom model type.
-    "assets/fishtastic/items/fish_tank.json",
+    # Empty on 1.21.1: there is no assets/fishtastic/items/ tree (item models are
+    # models/item/*.json, all generated), so 26.1's fish_tank.json entry is gone.
 }
 
 skipped = []

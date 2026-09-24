@@ -90,8 +90,6 @@ neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankItemModel.ja
 neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModel.java
 neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModelData.java
 
-# A3: datagen providers, ported onto the FAPI 0.116 datagen APIs.
-fabric/src/main/java/grill24/fishtastic/fabric/datagen/**
 
 # A6.1: gametests, rewritten onto the shared vanilla-@GameTest harness (D10).
 common/src/testmod/java/**

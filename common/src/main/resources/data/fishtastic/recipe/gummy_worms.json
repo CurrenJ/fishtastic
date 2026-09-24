@@ -2,12 +2,21 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "minecraft:golden_carrot",
-    "minecraft:sugar",
-    "minecraft:diamond"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "item": "minecraft:golden_carrot"
+    },
+    {
+      "item": "minecraft:sugar"
+    },
+    {
+      "item": "minecraft:diamond"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:gummy_worms"
   }
 }

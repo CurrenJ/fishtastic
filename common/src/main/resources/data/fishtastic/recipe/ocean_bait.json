@@ -2,11 +2,18 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "minecraft:kelp",
-    "minecraft:seagrass"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "item": "minecraft:kelp"
+    },
+    {
+      "item": "minecraft:seagrass"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:ocean_bait"
   }
 }

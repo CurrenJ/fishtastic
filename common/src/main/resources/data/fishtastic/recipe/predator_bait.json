@@ -2,11 +2,18 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "#minecraft:meat",
-    "#minecraft:meat"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "tag": "minecraft:meat"
+    },
+    {
+      "tag": "minecraft:meat"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:predator_bait"
   }
 }

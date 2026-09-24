@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    "minecraft:iron_ingot",
-    "minecraft:string"
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
+      "item": "minecraft:string"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:hook"
   }
 }

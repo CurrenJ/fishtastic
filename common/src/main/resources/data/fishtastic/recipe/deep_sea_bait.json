@@ -2,11 +2,18 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "fishtastic:worms",
-    "minecraft:prismarine_shard",
-    "minecraft:prismarine_shard"
+    {
+      "item": "fishtastic:worms"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:deep_sea_bait"
   }
 }

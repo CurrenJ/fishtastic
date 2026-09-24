@@ -2,10 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "minecraft:book",
-    "#fishtastic:fish"
+    {
+      "item": "minecraft:book"
+    },
+    {
+      "tag": "fishtastic:fish"
+    }
   ],
   "result": {
+    "count": 1,
     "id": "fishtastic:quest_book"
   }
 }

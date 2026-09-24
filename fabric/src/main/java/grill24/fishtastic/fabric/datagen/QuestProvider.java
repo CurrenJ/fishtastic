@@ -9,7 +9,7 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -41,8 +41,8 @@ public class QuestProvider implements DataProvider {
 
     private final PackOutput.PathProvider pathProvider;
 
-    public QuestProvider(FabricPackOutput output) {
-        this.pathProvider = output.createRegistryElementsPathProvider(FishtasticRegistries.QUEST_REGISTRY_KEY);
+    public QuestProvider(FabricDataOutput output) {
+        this.pathProvider = FishtasticDataGenerator.registryElementsPathProvider(output, FishtasticRegistries.QUEST_REGISTRY_KEY);
     }
 
     @Override

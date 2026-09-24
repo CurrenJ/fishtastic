@@ -1,5 +1,13 @@
 {
   "parent": "minecraft:item/generated",
+  "overrides": [
+    {
+      "model": "fishtastic:item/quest_book_alert",
+      "predicate": {
+        "fishtastic:has_alert": 1
+      }
+    }
+  ],
   "textures": {
     "layer0": "fishtastic:item/quest_book"
   }

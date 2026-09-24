@@ -7,7 +7,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
-import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.minecraft.data.*;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.*;
@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 public class CosmeticStructureProvider implements DataProvider {
     private final PackOutput.PathProvider pathProvider;
 
-    public CosmeticStructureProvider(FabricPackOutput output) {
+    public CosmeticStructureProvider(FabricDataOutput output) {
         this.pathProvider = output.createPathProvider(PackOutput.Target.DATA_PACK, "cosmetic_structure");
     }
 
@@ -48,7 +48,6 @@ public class CosmeticStructureProvider implements DataProvider {
             case "jungle" -> BlockFamilies.JUNGLE_PLANKS;
             case "acacia" -> BlockFamilies.ACACIA_PLANKS;
             case "dark_oak" -> BlockFamilies.DARK_OAK_PLANKS;
-            case "pale_oak" -> BlockFamilies.PALE_OAK_PLANKS;
             case "mangrove" -> BlockFamilies.MANGROVE_PLANKS;
             case "cherry" -> BlockFamilies.CHERRY_PLANKS;
             case "crimson" -> BlockFamilies.CRIMSON_PLANKS;
@@ -57,7 +56,7 @@ public class CosmeticStructureProvider implements DataProvider {
         };
     }
 
-    /** A tiny fence arch, built from the given wood family's fence + an exposed copper lantern, spanning two grid cells. */
+    /** A tiny fence arch, built from the given wood family's fence + a lantern, spanning two grid cells. */
     private static CosmeticStructure fenceArch(BlockFamily blockFamily) {
         Block fence = blockFamily.get(BlockFamily.Variant.FENCE);
         return new CosmeticStructure(
@@ -68,7 +67,7 @@ public class CosmeticStructureProvider implements DataProvider {
                 ),
                 List.of(
                         new CosmeticStructure.StructurePart(
-                                Blocks.COPPER_LANTERN.exposed().defaultBlockState().setValue(LanternBlock.HANGING, true),
+                                Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true),
                                 0f, 1f, 0f),
                         new CosmeticStructure.StructurePart(fence.defaultBlockState(), 1f, 0f, 0f),
                         new CosmeticStructure.StructurePart(fence.defaultBlockState(), 1f, 1f, 0f),

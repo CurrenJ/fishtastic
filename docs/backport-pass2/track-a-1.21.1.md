@@ -309,6 +309,28 @@ Plus: **A3.4**. Start `runClient` once and grep `latest.log` for the 1.21.1 miss
 
 **A3.5:** the tree has **no `pack.mcmeta`** (both loaders synthesize one), so there's nothing to set. Confirm the synthesized format is 34/48 in the log.
 
+**Done 2026-09-24.** G-A3 green. `fabric:datagen/**` is off `port/excludes.txt`, all 12 providers compile on FAPI 0.116, and `:fabric:runDatagen` runs through the client entrypoint with its `// PORT A4/A5` lines still commented (nothing else in the client path blocked it). Diff of `common/src/main/resources` against `51a8d367`, ignoring CR/LF:
+- `assets/fishtastic/items/**`: 180 deleted. `copy_assets_to_common.py`'s `EXCLUDE` is empty.
+- `assets/fishtastic/models/item/**`: 37 changed or new. `copper_fishing_rod`/`obsidian_fishing_rod` gain a `minecraft:cast` override and `fishopedia`/`quest_book` a `fishtastic:has_alert` override (the `_cast`/`_alert` models were already there, unchanged). `fish_tank`, `fish_pile`, `cosmetic_treasure_chest` and the 29 structure cosmetics are `builtin/entity`. `cosmetic_lit_campfire` is a plain `minecraft:block/campfire` child. The other plain models, `pile_of_fish` included, are unchanged.
+- `models/block/**`, `blockstates/**`, `advancement/**`, `loot_table/**`, `tags/**`: **0 diffs.**
+- `recipe/**`: 72 generated recipes differ as expected (ingredient objects; shaped/shapeless/stonecutting results also gain `"count": 1`). Hand review: `copper_fishing_rod`, `electric_fish_organizer`, `predator_bait`, `coal`, `cooked_cod_from_fishtastic_fish_smelting`, `string`. `deep_sea_bait` is hand-authored on 26.1.2 (`07a8bc3a`, never in the provider), so it was converted by hand into the provider's format. `marine_compost` is unchanged.
+- `data/fishtastic/fishtastic/**`: byte-identical apart from the cosmetics decision (below). Quests and shop entries are regenerated identically.
+- Both servers reach `Done` with no errors (1,364 recipes and 1,480 advancements on each). The world loads, so `ServerLevelTickTimeMixin` is applied, and with `required: true` + `defaultRequire: 1` a failed injection would have crashed. Fabric `runClient`: 0 × `Unable to load model`. The only model warning is the `fish_tank` blockstate (26.1's custom blockstate model, A5.2).
+
+Cosmetics decision (owner, 2026-09-24), a permanent port-branch diff:
+- The 10 remaining fence arches use a hanging `minecraft:lantern` in place of `exposed_copper_lantern` (`CosmeticStructureProvider`; the generated arches are copied into `data/fishtastic/fishtastic/cosmetic_structure/`, as on 26.1.2).
+- The pale oak arch is gone: `FishtasticItems.FENCE_ARCH_WOOD_TYPES` has no `pale_oak`, and its structure (both dirs), shop entry and lang key are deleted.
+- The leaf litter cosmetic is gone: `COSMETIC_LEAF_LITTER` and its creative-tab and `CreativeTabGameTests` lines, the `leaf_litter` structure, its shop entry and lang key.
+- `birch_tree.json` loses its one `minecraft:leaf_litter` part (11 lines).
+
+Where A3 differs from the tables above:
+- **Tags:** the FAPI 0.116 builder method is `getOrCreateTagBuilder`. The `modding-guide` FAPI sources show a `tag(TagKey)` override, which is a genSources naming artifact (the remapped jar has `getOrCreateTagBuilder` returning `FabricTagBuilder`, and `tag` returning vanilla's `TagAppender`). When the sources and the jar disagree, check with `javap` on the Loom-remapped jar.
+- **R5 holds for loading, not for datagen.** Vanilla 1.21.1 `Registries.elementsDirPath` is the bare path (FAPI's `RegistryLoaderMixin` adds `<ns>/` only when loading), so `createRegistryElementsPathProvider` wrote `data/fishtastic/quest` and `shop_entry`. Port-only helper: `FishtasticDataGenerator.registryElementsPathProvider` (used by `QuestProvider` and `ShopEntryFromQuestProvider`).
+- **Cooking recipes:** 1.21.1 `SimpleCookingRecipeBuilder.smelting` derives the book category from the result. It matches all three explicit 26.1 values (coal MISC, glass BLOCKS, cooked cod FOOD), so the JSON is the same.
+- **Item-model predicates need client registration.** Vanilla registers `cast` only for `Items.FISHING_ROD`, and `fishtastic:has_alert` is new. Until `ItemProperties.register` calls land (A4/A5 client setup), the overrides never match (1.21.1 skips unknown properties), so the rods never show `_cast` and the books never show `_alert`.
+- **`builtin/entity` items render nothing until A5's BEWLRs**, and they have no display transforms yet (A5.3 decides those). `fish_pile_block` in the table is the name of 26.1's pile icon item model (`FishPileIcons`), not an item. The block's item is `fish_pile`.
+- **26.1.2 findings (report only, not changed there):** the "stray" `data/fishtastic/{cosmetic_structure,item_effect}` dirs are live datagen output, because `CosmeticStructureProvider` and `ItemEffectProvider` use a plain `createPathProvider`. Nothing reads them, so the registry copies are synced by hand, and the 4 `item_effect` copies have already drifted from the generator. Fix on 26.1.2: `createRegistryElementsPathProvider`, then delete both dirs. Also, `recipe/deep_sea_bait.json` should move into `FishtasticRecipeProvider`, so the backports stop hand-converting it.
+
 ---
 
 ## A4: GUI
