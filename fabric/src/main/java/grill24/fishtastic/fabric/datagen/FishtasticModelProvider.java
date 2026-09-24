@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -181,14 +182,22 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateItemWithParent(itemModelGenerators, FishtasticBlocks.FISH_TANK.value().asItem(),
                 Ids.of("fishtastic", "block/fish_tank"));
 
-        // ----- Items drawn by a BlockEntityWithoutLevelRenderer (A5.3) -----
-        // 26.1's custom item model types (fish_pile_block, cosmetic_structure, the chest select)
-        // don't exist on 1.21.1; these items render through builtin/entity instead.
+        // ----- Items drawn by a BlockEntityWithoutLevelRenderer (A5.3, client/renderer/FishtasticItemRenderers) -----
+        // 26.1's custom item model types (pile_of_fish_layers, fish_pile_block, cosmetic_structure,
+        // the chest select) don't exist on 1.21.1; these items render through builtin/entity instead.
+        // The Pile of Fish applies its own transforms (26.1's layers replace the display transform),
+        // the structures take block/block's (as 26.1's ItemModel does) through a builtin template,
+        // and the treasure chest is vanilla's chest item.
+        generateBuiltinEntityItem(itemModelGenerators, FishtasticItems.PILE_OF_FISH.value());
+        // The Fish Pile block's item has no client item on 26.1.2 either (it isn't obtainable).
         generateBuiltinEntityItem(itemModelGenerators, FishtasticBlocks.FISH_PILE.value().asItem());
-        generateBuiltinEntityItem(itemModelGenerators, FishtasticItems.COSMETIC_TREASURE_CHEST.value());
+        generateItemWithParent(itemModelGenerators, FishtasticItems.COSMETIC_TREASURE_CHEST.value(),
+                Ids.withDefaultNamespace("item/chest"));
+        ResourceLocation structureTemplate = Ids.of("fishtastic", "item/template_cosmetic_structure");
+        itemModelGenerators.output.accept(structureTemplate, () -> JsonParser.parseString(BUILTIN_BLOCK_ITEM_TEMPLATE));
         BuiltInRegistries.ITEM.stream()
                 .filter(item -> item instanceof FishTankStructureCosmeticItem)
-                .forEach(item -> generateBuiltinEntityItem(itemModelGenerators, item));
+                .forEach(item -> generateItemWithParent(itemModelGenerators, item, structureTemplate));
         generateItemWithParent(itemModelGenerators, FishtasticItems.COSMETIC_LIT_CAMPFIRE.value(),
                 Ids.withDefaultNamespace("block/campfire"));
 
@@ -239,6 +248,25 @@ public class FishtasticModelProvider extends FabricModelProvider {
             return json;
         });
     }
+
+    /**
+     * A {@code builtin/entity} item model with vanilla {@code block/block}'s lighting and display
+     * transforms, so its item renderer draws in the same framing as a block item.
+     */
+    private static final String BUILTIN_BLOCK_ITEM_TEMPLATE = """
+            {
+              "parent": "minecraft:builtin/entity",
+              "gui_light": "side",
+              "display": {
+                "gui": { "rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.625, 0.625, 0.625] },
+                "ground": { "rotation": [0, 0, 0], "translation": [0, 3, 0], "scale": [0.25, 0.25, 0.25] },
+                "fixed": { "rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [0.5, 0.5, 0.5] },
+                "thirdperson_righthand": { "rotation": [75, 45, 0], "translation": [0, 2.5, 0], "scale": [0.375, 0.375, 0.375] },
+                "firstperson_righthand": { "rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4] },
+                "firstperson_lefthand": { "rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4] }
+              }
+            }
+            """;
 
     private static void generateBuiltinEntityItem(ItemModelGenerators itemModelGenerators, Item item) {
         generateItemWithParent(itemModelGenerators, item, Ids.withDefaultNamespace("builtin/entity"));

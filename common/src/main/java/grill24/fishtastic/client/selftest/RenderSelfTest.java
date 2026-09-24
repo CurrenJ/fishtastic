@@ -73,7 +73,7 @@ public final class RenderSelfTest {
     private static final String WORLD_NAME = "fishtastic_render_selftest";
 
     /** Scenes in the order they run. */
-    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "fixes");
+    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "fixes");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -215,6 +215,7 @@ public final class RenderSelfTest {
             case "tank" -> queueTankScene();
             case "shapes" -> queueShapesScene();
             case "stress512" -> queueStressScene();
+            case "items" -> queueItemsScene();
             case "fixes" -> queueFixesScene();
             default -> throw new IllegalArgumentException(scene);
         }
@@ -404,6 +405,102 @@ public final class RenderSelfTest {
         });
         queue(100, mc -> screenshot(mc, "stress512", "group"));
         queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    /**
+     * A5.3: the builtin/entity items (26.1's custom item model types) in the hotbar, the inventory
+     * screen, item frames, on the ground and in hand; and the Shape Gallery, whose cells render
+     * tank items (A4 saw them blank).
+     */
+    private static void queueItemsScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 6;
+            run(s, "fill " + (x - 4) + " " + y + " " + (z - 1) + " " + (x + 4) + " " + (y + 3) + " " + (z + 4) + " minecraft:air");
+            run(s, "fill " + (x - 4) + " " + y + " " + (z + 3) + " " + (x + 4) + " " + (y + 2) + " " + (z + 3) + " minecraft:stone");
+            run(s, "setblock " + (x + 3) + " " + y + " " + (z - 2) + " fishtastic:fish_tank_assembly");
+            List<ItemStack> items = itemsSceneStacks();
+            for (int i = 0; i < 4; i++) {
+                run(s, "summon item_frame " + (x - 1 + i) + " " + (y + 1) + " " + (z + 2) + " {Facing:2b,Fixed:1b,Invulnerable:1b}");
+            }
+            for (var player : s.getPlayerList().getPlayers()) {
+                for (int i = 0; i < 9; i++) player.getInventory().setItem(i, items.get(i).copy());
+                player.getInventory().selected = 0;
+            }
+            ServerLevel level = s.overworld();
+            var frames = level.getEntitiesOfClass(net.minecraft.world.entity.decoration.ItemFrame.class,
+                    new net.minecraft.world.phys.AABB(x - 2, y, z + 1, x + 4, y + 3, z + 3));
+            for (int i = 0; i < frames.size() && i < 4; i++) frames.get(i).setItem(items.get(i + 1).copy(), false);
+            for (int i = 0; i < 4; i++) {
+                var entity = new net.minecraft.world.entity.item.ItemEntity(level, x - 1 + i + 0.5, y, z + 0.5, items.get(i).copy());
+                entity.setNeverPickUp();
+                entity.setUnlimitedLifetime();
+                entity.setDeltaMovement(0, 0, 0);
+                level.addFreshEntity(entity);
+            }
+        }));
+        queue(20, mc -> {
+            mc.options.hideGui = false;
+            mc.player.getInventory().selected = 0;
+            server(mc, s -> {
+                run(s, "gamemode creative @a");
+                run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 1.0, (double) origin.getY(), origin.getZ() + 3.0, 0f, 25f));
+            });
+        });
+        queue(40, mc -> screenshot(mc, "items", "world_and_hotbar"));
+        queue(1, mc -> mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player)));
+        queue(30, mc -> screenshot(mc, "items", "inventory"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            mc.player.getInventory().selected = 1;
+        });
+        queue(20, mc -> screenshot(mc, "items", "held_structure"));
+        queue(1, mc -> mc.player.getInventory().selected = 5);
+        queue(20, mc -> screenshot(mc, "items", "held_pile"));
+        // The Shape Gallery: an empty-hand click on a placed assembly, as in play.
+        queue(1, mc -> {
+            grill24.fishtastic.client.FishtasticClientConfig.setShapeGalleryOpen(true);
+            mc.player.getInventory().selected = 8;
+            mc.player.getInventory().setItem(8, ItemStack.EMPTY);
+            server(mc, s -> {
+                for (var player : s.getPlayerList().getPlayers()) player.getInventory().setItem(8, ItemStack.EMPTY);
+            });
+        });
+        queue(5, mc -> {
+            BlockPos assembly = new BlockPos(origin.getX() + 3, origin.getY(), origin.getZ() + 4);
+            mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(assembly), Direction.UP, assembly, false));
+        });
+        queue(40, mc -> {
+            screenshot(mc, "items", "shape_gallery");
+            check("items.assemblyOpen", mc.screen != null, "screen=" + mc.screen);
+        });
+        queue(1, mc -> mc.setScreen(null));
+    }
+
+    /** Pile of Fish (flat), a pile-block stack, structure cosmetics, the treasure chest and a tank. */
+    private static List<ItemStack> itemsSceneStacks() {
+        ItemStack legendary = fish("lionfish", 30f);
+        FishtasticItemData.set(legendary, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
+        List<ItemStack> contents = List.of(fish("bluegill", 25f), legendary, fish("discus", 28f), fish("betta", 20f));
+        ItemStack pile = new ItemStack(BuiltInRegistries.ITEM.get(Ids.of("fishtastic", "pile_of_fish")));
+        FishtasticItemData.setBundleContents(pile, new net.minecraft.world.item.component.BundleContents(contents));
+        ItemStack pileBlock = pile.copy();
+        pileBlock.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, grill24.fishtastic.client.util.FishPileIcons.PILE_BLOCK_MARKER);
+        return List.of(
+                pile,
+                item("cosmetic_castle_ruin"),
+                item("cosmetic_fence_arch_oak"),
+                item("cosmetic_treasure_chest"),
+                item("cosmetic_coral_reef_1"),
+                pileBlock,
+                item("cosmetic_dynamic_duo"),
+                item("fish_tank"),
+                item("cosmetic_birch_tree"));
+    }
+
+    private static ItemStack item(String id) {
+        return new ItemStack(BuiltInRegistries.ITEM.get(Ids.of("fishtastic", id)));
     }
 
     private static Block block(String id) {

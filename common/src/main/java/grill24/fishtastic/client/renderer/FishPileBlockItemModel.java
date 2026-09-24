@@ -1,29 +1,18 @@
 package grill24.fishtastic.client.renderer;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
-import grill24.fishtastic.util.Ids;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.item.ItemModel;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ResolvableModel;
-import net.minecraft.client.resources.model.ResolvedModel;
-import net.minecraft.client.resources.model.cuboid.ItemTransform;
-import net.minecraft.client.resources.model.cuboid.ItemTransforms;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
-import net.minecraft.world.item.component.BundleContents;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,19 +21,13 @@ import java.util.List;
  * transform so it reads as a real block rather than a flat icon.
  *
  * <p>Geometry is the same math {@link FishPileBlockEntityRenderer} draws in-world with (shared via
- * {@link FishPileBlockEntity}'s render constants), expressed as per-layer local transforms instead
- * of {@code PoseStack} pushes: a layer's final pose is its {@link ItemTransform} (here the block
- * model's, which ends on the standard {@code -0.5} cube-centering shift) followed by its local
- * transform, so a local transform maps fish-model space straight into block space {@code [0,1]³}.
- *
- * <p>Unlike {@link PileOfFishItemModel} — the flat, overlapping icon for the Pile of Fish
- * <em>item</em> — this model isn't bound to an item: it's selected per stack through the
- * {@code minecraft:item_model} component (see
- * {@link grill24.fishtastic.client.util.FishPileIcons}), so any fish-bearing bundle can be drawn
- * as a pile block. Contents render bottom-up in list order, matching the block's oldest-first
- * insertion order.
+ * {@link FishPileBlockEntity}'s render constants). 26.1.2 selects this per stack through the
+ * {@code minecraft:item_model} component; on 1.21.1 the Pile of Fish's item renderer
+ * ({@link FishtasticItemRenderers}) picks it for stacks marked by
+ * {@code FishPileIcons.PILE_BLOCK_MARKER}. Contents render bottom-up in list order, matching the
+ * block's oldest-first insertion order.
  */
-public class FishPileBlockItemModel implements ItemModel {
+public final class FishPileBlockItemModel {
     private static final float SCALE = FishPileBlockEntity.RENDER_SCALE;
     private static final float BASE_Y = FishPileBlockEntity.RENDER_BASE_Y;
     private static final float LAYER_HEIGHT = FishPileBlockEntity.RENDER_LAYER_HEIGHT;
@@ -52,76 +35,54 @@ public class FishPileBlockItemModel implements ItemModel {
     /** Fixed (rather than the in-world block-position hash) so one pile always looks the same. */
     private static final long JITTER_SEED = 1913L;
 
-    private final ItemTransforms blockTransforms;
+    /**
+     * Called with the pose in the Pile of Fish item's model space. That item's model has no
+     * display transform of its own (its flat icon, {@link PileOfFishItemModel}, applies its own),
+     * so this applies the vanilla block one — {@code block/block}'s, read off a plain block item.
+     */
+    static void render(ItemStack stack, ItemDisplayContext displayContext, PoseStack poseStack,
+                       MultiBufferSource buffers, int light, int overlay) {
+        List<ItemStack> fish = new ArrayList<>();
+        for (ItemStack content : FishtasticItemData.bundleContentsOrEmpty(stack).items()) {
+            if (fish.size() == FishPileBlockEntity.MAX_FISH) break;
+            fish.add(content);
+        }
+        if (fish.isEmpty()) return;
 
-    private FishPileBlockItemModel(ItemTransforms blockTransforms) {
-        this.blockTransforms = blockTransforms;
-    }
+        Minecraft mc = Minecraft.getInstance();
+        ItemRenderer itemRenderer = mc.getItemRenderer();
+        boolean leftHand = displayContext == ItemDisplayContext.FIRST_PERSON_LEFT_HAND
+                || displayContext == ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
 
-    @Override
-    public void update(ItemStackRenderState output, ItemStack item,
-                       ItemModelResolver resolver, ItemDisplayContext displayContext,
-                       @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
-        output.appendModelIdentityElement(this);
-        List<ItemStackTemplate> templates =
-                FishtasticItemData.bundleContentsOrEmpty(item).items();
-        int limit = Math.min(templates.size(), FishPileBlockEntity.MAX_FISH);
-        if (limit == 0) return;
+        poseStack.pushPose();
+        poseStack.translate(0.5f, 0.5f, 0.5f);
+        itemRenderer.getItemModelShaper().getItemModel(Items.STONE).getTransforms()
+                .getTransform(displayContext).apply(leftHand, poseStack);
+        poseStack.translate(-0.5f, -0.5f, -0.5f);
 
-        ItemTransform blockTransform = blockTransforms.getTransform(displayContext);
         RandomSource random = RandomSource.create(JITTER_SEED);
-        FishtasticItemStackRenderState access = (FishtasticItemStackRenderState) output;
-
-        for (int i = 0; i < limit; i++) {
+        for (int i = 0; i < fish.size(); i++) {
             float jitterX = (random.nextFloat() - 0.5f) * 2f * JITTER_XZ;
             float jitterZ = (random.nextFloat() - 0.5f) * 2f * JITTER_XZ;
             float rotation = random.nextFloat() * 360f;
 
-            ItemStack layerStack = templates.get(i).create();
+            ItemStack layerStack = fish.get(i);
             if (layerStack.isEmpty()) continue;
 
             // Applied to a fish item model's own [0,1]³ vertices right-to-left: centre the fish on
             // the origin, shrink it, lay it flat, spin it, then lift it onto its layer of the stack.
-            Matrix4f local = new Matrix4f()
-                    .translate(0.5f + jitterX, BASE_Y + i * LAYER_HEIGHT, 0.5f + jitterZ)
-                    .rotateY((float) Math.toRadians(rotation))
-                    .rotateX((float) Math.toRadians(90f))
-                    .scale(SCALE)
-                    .translate(-0.5f, -0.5f, -0.5f);
-
-            int before = access.fishtastic$getActiveLayerCount();
-            resolver.appendItemLayers(output, layerStack, displayContext, level, owner, seed + i);
-            int after = access.fishtastic$getActiveLayerCount();
-            for (int j = before; j < after; j++) {
-                ItemStackRenderState.LayerRenderState layer = access.fishtastic$getLayer(j);
-                // Block lighting, like the block this mimics: the fish are oriented in 3D here, so
-                // the flat front-on item lighting their own models ask for would flatten the stack.
-                layer.setUsesBlockLight(true);
-                layer.setItemTransform(blockTransform);
-                layer.setLocalTransform(local);
-            }
+            // (The fish's own render below starts with the centring translate(-0.5).)
+            poseStack.pushPose();
+            poseStack.translate(0.5f + jitterX, BASE_Y + i * LAYER_HEIGHT, 0.5f + jitterZ);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
+            poseStack.mulPose(Axis.XP.rotationDegrees(90f));
+            poseStack.scale(SCALE, SCALE, SCALE);
+            itemRenderer.render(layerStack, ItemDisplayContext.NONE, false, poseStack, buffers, light, overlay,
+                    itemRenderer.getModel(layerStack, mc.level, null, i));
+            poseStack.popPose();
         }
+        poseStack.popPose();
     }
 
-    public record Unbaked() implements ItemModel.Unbaked {
-        private static final ResourceLocation BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
-        public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
-
-        @Override
-        public MapCodec<Unbaked> type() {
-            return MAP_CODEC;
-        }
-
-        @Override
-        public void resolveDependencies(ResolvableModel.Resolver resolver) {
-            resolver.markDependency(BLOCK_BLOCK_MODEL);
-        }
-
-        @Override
-        public ItemModel bake(ItemModel.BakingContext context, Matrix4fc transformation) {
-            ModelBaker baker = context.blockModelBaker();
-            ResolvedModel blockBase = baker.getModel(BLOCK_BLOCK_MODEL);
-            return new FishPileBlockItemModel(blockBase.getTopTransforms());
-        }
-    }
+    private FishPileBlockItemModel() {}
 }

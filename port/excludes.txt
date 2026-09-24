@@ -6,9 +6,6 @@
 
 # A5: rendering (31 common files, plus the platform tank models).
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
-common/src/main/java/grill24/fishtastic/client/FishtasticClientSetup.java
-common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemModel.java
-common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockItemModel.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticBlackOutlineEffect.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticGlintState.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemOutlineAtlas.java
@@ -17,7 +14,6 @@ common/src/main/java/grill24/fishtastic/client/renderer/FishtasticOutlineUboRegi
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticSilhouetteEffect.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticTextureOutlineEffect.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticWorldOutlineRenderer.java
-common/src/main/java/grill24/fishtastic/client/renderer/PileOfFishItemModel.java
 common/src/main/java/grill24/fishtastic/mixin/GuiRendererExecuteDrawMixin.java
 common/src/main/java/grill24/fishtastic/mixin/GuiRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/HumanoidModelMixin.java
@@ -36,7 +32,6 @@ common/src/main/java/grill24/fishtastic/mixin/RenderTypeMixin.java
 common/src/main/java/grill24/fishtastic/client/renderer/RenderBuffersHelper.java
 common/src/main/java/grill24/fishtastic/mixin/RenderBuffersMixin.java
 common/src/main/java/grill24/fishtastic/mixin/accessor/BufferSourceAccessor.java
-common/src/main/java/grill24/fishtastic/client/util/FishPileIcons.java
 common/src/main/java/grill24/fishtastic/client/renderer/IrisCompat.java
 common/src/main/java/grill24/fishtastic/mixin/FishingHookRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/LevelRendererMixin.java

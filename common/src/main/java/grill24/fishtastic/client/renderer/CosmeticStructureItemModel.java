@@ -1,131 +1,76 @@
 package grill24.fishtastic.client.renderer;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
-import grill24.fishtastic.util.Ids;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.renderer.item.ItemModel;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ResolvableModel;
-import net.minecraft.client.resources.model.ResolvedModel;
-import net.minecraft.client.resources.model.cuboid.ItemTransform;
-import net.minecraft.client.resources.model.cuboid.ItemTransforms;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.ItemOwner;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
 import org.joml.Quaternionf;
-import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Renders a {@link FishTankStructureCosmeticItem}'s icon as a shrunk 3D replica of its whole
- * {@link CosmeticStructure} — every part's real authored {@link BlockState} quads, positioned with
- * the same grid-cell spacing math {@link FishTankBlockEntityRenderer#renderStructureCosmetics} uses
+ * {@link CosmeticStructure} — every part's real authored {@link BlockState}, positioned with the
+ * same grid-cell spacing math {@link FishTankBlockEntityRenderer#renderStructureCosmetics} uses
  * in-tank, plus one outer fit scale so the assembly lands inside a normal item slot's camera framing.
  * <p>
- * Reusing each part's own vanilla item model (the way {@link PileOfFishItemModel} composites nested
- * item stacks) was deliberately avoided: vanilla item models for connectable blocks like fences are
- * simplified, state-blind "post only" icons, which would lose the connector-arm geometry that's the
- * entire visual point of a structure like {@code cosmetic_fence_arch}.
+ * Reusing each part's own vanilla item model was deliberately avoided: vanilla item models for
+ * connectable blocks like fences are simplified, state-blind "post only" icons, which would lose
+ * the connector-arm geometry that's the entire visual point of a structure like {@code cosmetic_fence_arch}.
+ * <p>
+ * 26.1.2 builds this as an {@code ItemModel} that copies each part's baked quads and tint colours
+ * into render-state layers. On 1.21.1 the item's {@code builtin/entity} renderer
+ * ({@link FishtasticItemRenderers}) draws each part with {@code BlockRenderDispatcher.renderSingleBlock},
+ * which applies the block colours itself and draws block-entity blocks (the chest) through their
+ * own item renderer, so neither 26.1.2's tint extraction nor its special-model fallback is needed.
+ * The display transform is {@code block/block}'s, from the item model (datagen).
  */
-public class CosmeticStructureItemModel implements ItemModel {
-
-    /** Fixed so repeated bakes of the same state produce identical quads (matches vanilla's model-seed convention). */
-    private static final long MODEL_SEED = 42L;
+public final class CosmeticStructureItemModel {
 
     /** Target world-space span (in block units) the assembly's longest axis is scaled to fit. */
     private static final float TARGET_SPAN = 1.0f;
 
-    /**
-     * Blocks whose rendering goes through a {@code SpecialModelRenderer} rather than baked quads
-     * (chest, banner, shulker box, bed, skull, ...). Raw quad extraction doesn't work for these —
-     * they're rendered by delegating to that block's own item, mirroring how
-     * {@link FishTankBlockEntityRenderer#renderStructureCosmetics} already special-cases
-     * {@link Blocks#CHEST} with its own {@code ChestModel}. Extend this set as structures adopt more
-     * such blocks.
-     */
-    private static final Set<Block> SPECIAL_MODEL_BLOCKS = Set.of(Blocks.CHEST);
+    private record PartIcon(BlockState state, Matrix4f localTransform) {}
 
-    private final ItemTransforms sharedBlockTransforms;
-    private final Map<ResourceKey<CosmeticStructure>, PreparedIcon> cache = new HashMap<>();
+    private static final Map<ResourceKey<CosmeticStructure>, List<PartIcon>> CACHE = new HashMap<>();
+    /** The registries {@link #CACHE} was built from; a different world (or a /reload) clears it. */
+    private static @Nullable RegistryAccess cachedFor;
 
-    private CosmeticStructureItemModel(ItemTransforms sharedBlockTransforms) {
-        this.sharedBlockTransforms = sharedBlockTransforms;
-    }
+    /** Called with the pose in the item's model space, like any {@code builtin/entity} renderer. */
+    static void render(ItemStack stack, ItemDisplayContext displayContext, PoseStack poseStack,
+                       MultiBufferSource buffers, int light, int overlay) {
+        if (!(stack.getItem() instanceof FishTankStructureCosmeticItem cosmeticItem)) return;
+        Minecraft mc = Minecraft.getInstance();
+        ClientLevel level = mc.level;
+        if (level == null) return;
 
-    @Override
-    public void update(
-            ItemStackRenderState output,
-            ItemStack item,
-            ItemModelResolver resolver,
-            ItemDisplayContext displayContext,
-            @Nullable ClientLevel level,
-            @Nullable ItemOwner owner,
-            int seed) {
-        output.appendModelIdentityElement(this);
-        if (!(item.getItem() instanceof FishTankStructureCosmeticItem cosmeticItem)) {
-            return;
+        if (cachedFor != level.registryAccess()) {
+            CACHE.clear();
+            cachedFor = level.registryAccess();
         }
-        ResourceKey<CosmeticStructure> structureId = cosmeticItem.getStructureId();
-        output.appendModelIdentityElement(structureId);
+        List<PartIcon> parts = CACHE.computeIfAbsent(cosmeticItem.getStructureId(), id -> prepare(id, level));
+        if (parts == null) return;
 
-        ClientLevel effectiveLevel = level != null ? level : Minecraft.getInstance().level;
-        if (effectiveLevel == null) return;
-
-        PreparedIcon icon = cache.computeIfAbsent(structureId, id -> prepare(id, effectiveLevel));
-        if (icon == null) return;
-
-        ItemTransform sharedTransform = sharedBlockTransforms.getTransform(displayContext);
-        FishtasticItemStackRenderState access = (FishtasticItemStackRenderState) output;
-
-        for (PartIcon part : icon.parts()) {
-            if (part.specialFallbackItem() != null) {
-                int before = access.fishtastic$getActiveLayerCount();
-                resolver.appendItemLayers(output, new ItemStack(part.specialFallbackItem()), displayContext, level, owner, seed);
-                int after = access.fishtastic$getActiveLayerCount();
-                for (int i = before; i < after; i++) {
-                    ItemStackRenderState.LayerRenderState layer = access.fishtastic$getLayer(i);
-                    layer.setItemTransform(sharedTransform);
-                    layer.setLocalTransform(part.localTransform());
-                }
-            } else {
-                ItemStackRenderState.LayerRenderState layer = output.newLayer();
-                layer.setUsesBlockLight(true);
-                layer.setItemTransform(sharedTransform);
-                layer.setLocalTransform(part.localTransform());
-                layer.prepareQuadList().addAll(part.quads());
-                if (!part.tints().isEmpty()) {
-                    layer.tintLayers().addAll(part.tints());
-                }
-            }
+        for (PartIcon part : parts) {
+            poseStack.pushPose();
+            poseStack.mulPose(part.localTransform());
+            mc.getBlockRenderer().renderSingleBlock(part.state(), poseStack, buffers, light, overlay);
+            poseStack.popPose();
         }
     }
 
@@ -133,12 +78,8 @@ public class CosmeticStructureItemModel implements ItemModel {
 
     private record PartPlacement(BlockState state, float x, float y, float z) {}
 
-    private record PartIcon(@Nullable List<BakedQuad> quads, IntList tints, @Nullable Item specialFallbackItem, Matrix4f localTransform) {}
-
-    private record PreparedIcon(List<PartIcon> parts) {}
-
     @Nullable
-    private static PreparedIcon prepare(ResourceKey<CosmeticStructure> structureId, ClientLevel level) {
+    private static List<PartIcon> prepare(ResourceKey<CosmeticStructure> structureId, ClientLevel level) {
         CosmeticStructure structure = level.registryAccess()
                 .registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
                 .getOptional(structureId)
@@ -198,75 +139,10 @@ public class CosmeticStructureItemModel implements ItemModel {
                     .translate(placement.x(), placement.y(), placement.z())
                     .scale(scale)
                     .translate(-0.5f, 0f, -0.5f);
-
-            Block block = placement.state().getBlock();
-            if (SPECIAL_MODEL_BLOCKS.contains(block)) {
-                parts.add(new PartIcon(null, IntList.of(), block.asItem(), local));
-            } else {
-                parts.add(new PartIcon(extractQuads(placement.state()), extractTints(placement.state()), null, local));
-            }
+            parts.add(new PartIcon(placement.state(), local));
         }
-        return new PreparedIcon(parts);
+        return parts;
     }
 
-    /**
-     * Pulls every {@link BakedQuad} for the given state's real block model, including all 6
-     * directional buckets — unlike in-world chunk rendering, a floating item icon has no neighbor
-     * blocks to cull faces against, so nothing should be omitted.
-     */
-    private static List<BakedQuad> extractQuads(BlockState state) {
-        BlockStateModel model = Minecraft.getInstance().getModelManager().getBlockStateModelSet().get(state);
-        List<BlockStateModelPart> modelParts = new ArrayList<>();
-        model.collectParts(RandomSource.create(MODEL_SEED), modelParts);
-
-        List<BakedQuad> quads = new ArrayList<>();
-        for (BlockStateModelPart part : modelParts) {
-            quads.addAll(part.getQuads(null));
-            for (Direction direction : Direction.values()) {
-                quads.addAll(part.getQuads(direction));
-            }
-        }
-        return quads;
-    }
-
-    /**
-     * Resolves the same per-block-state tint colors vanilla's {@code BlockStateModelWrapper} would
-     * bake into a {@code BlockModelRenderState} — without these, tint-indexed quads (grass, leaves,
-     * leaf litter, vines, ...) fall back to plain white and their deliberately-grayscale textures
-     * render unmultiplied.
-     */
-    private static IntList extractTints(BlockState state) {
-        List<BlockTintSource> tintSources = Minecraft.getInstance().getBlockColors().getTintSources(state);
-        if (tintSources.isEmpty()) return IntList.of();
-
-        IntList tints = new IntArrayList(tintSources.size());
-        for (BlockTintSource tintSource : tintSources) {
-            tints.add(tintSource.color(state));
-        }
-        return tints;
-    }
-
-    // ── Registration ──────────────────────────────────────────────────────────
-
-    public record Unbaked() implements ItemModel.Unbaked {
-        private static final ResourceLocation BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
-        public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
-
-        @Override
-        public MapCodec<Unbaked> type() {
-            return MAP_CODEC;
-        }
-
-        @Override
-        public void resolveDependencies(ResolvableModel.Resolver resolver) {
-            resolver.markDependency(BLOCK_BLOCK_MODEL);
-        }
-
-        @Override
-        public ItemModel bake(ItemModel.BakingContext context, Matrix4fc transformation) {
-            ModelBaker baker = context.blockModelBaker();
-            ResolvedModel blockBase = baker.getModel(BLOCK_BLOCK_MODEL);
-            return new CosmeticStructureItemModel(blockBase.getTopTransforms());
-        }
-    }
+    private CosmeticStructureItemModel() {}
 }

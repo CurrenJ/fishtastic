@@ -115,8 +115,8 @@ public final class FishtasticNeoForgeClient {
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
-        // PORT A5.3: client item models.
-//        modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
+        // PORT-ONLY: the builtin/entity items (26.1's custom item model types, A5.3).
+        modEventBus.addListener(FishtasticItemRendererNeoForge::register);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerShaders);
@@ -218,17 +218,6 @@ public final class FishtasticNeoForgeClient {
         // NeoForge 21.1 still honours the deprecated setRenderLayer for models with no render_type.
         event.enqueueWork(() -> FishtasticBlockRenderLayers.register(net.minecraft.client.renderer.ItemBlockRenderTypes::setRenderLayer));
     }
-
-    // PORT A5.3: client item models.
-//    public static void onClientSetup(final FMLClientSetupEvent event) {
-//        // Register custom item model types
-//        FishtasticClientSetup.registerItemModelTypes();
-//        grill24.fishtastic.neoforge.fishtank.FishTankItemModel.register();
-
-//        // TODO MC-26.1: ItemProperties.register is removed in 26.1
-//        // The fishing rod "cast" property must now be defined via data-driven item models
-//        Fishtastic.LOGGER.info("Fishtastic client setup complete.");
-//    }
 
     public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
         event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);

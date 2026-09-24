@@ -1,7 +1,3 @@
 {
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "fishtastic:item/pile_of_fish"
-  }
+  "parent": "minecraft:builtin/entity"
 }
-

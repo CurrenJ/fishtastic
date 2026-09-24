@@ -37,6 +37,7 @@ import grill24.fishtastic.client.particle.TankBubblePopParticle;
 import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
+import grill24.fishtastic.client.renderer.FishtasticItemRenderers;
 import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.client.util.ClientTankFlocks;
@@ -62,6 +63,7 @@ import net.minecraft.server.packs.PackType;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -119,9 +121,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // FishTankGeometry).
         ModelLoadingPlugin.register(FishTankModelFabric.PLUGIN);
 
-        // PORT A5.3: item model types.
-//        // Register custom item model types
-//        FishtasticClientSetup.registerItemModelTypes();
+        // PORT-ONLY: the items 26.1 draws with custom item model types (fish piles, structure
+        // cosmetics, the treasure chest) are builtin/entity items drawn by FishtasticItemRenderers.
+        for (net.minecraft.world.item.Item item : FishtasticItemRenderers.items()) {
+            BuiltinItemRendererRegistry.INSTANCE.register(item, FishtasticItemRenderers::render);
+        }
 
         // Register the Fish Tank Assembly menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
