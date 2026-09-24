@@ -73,7 +73,7 @@ public final class RenderSelfTest {
     private static final String WORLD_NAME = "fishtastic_render_selftest";
 
     /** Scenes in the order they run. */
-    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "fixes");
+    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "fixes");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -216,6 +216,7 @@ public final class RenderSelfTest {
             case "shapes" -> queueShapesScene();
             case "stress512" -> queueStressScene();
             case "items" -> queueItemsScene();
+            case "held" -> queueHeldScene();
             case "fixes" -> queueFixesScene();
             default -> throw new IllegalArgumentException(scene);
         }
@@ -476,6 +477,63 @@ public final class RenderSelfTest {
             check("items.assemblyOpen", mc.screen != null, "screen=" + mc.screen);
         });
         queue(1, mc -> mc.setScreen(null));
+    }
+
+    /**
+     * A5.6: the fishing line leaves the Fishtastic rod's hand (FishingHookRendererMixin), a held
+     * fish renders at its recorded size in third person (ItemInHandLayerMixin), and the
+     * leaderboard's podium puppet holds its catch in the fisherman pose (HumanoidModelMixin).
+     */
+    private static void queueHeldScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, s -> {
+                run(s, "gamemode survival @a");
+                run(s, "fill " + (origin.getX() - 3) + " " + (origin.getY() - 1) + " " + (origin.getZ() - 12) + " "
+                        + (origin.getX() + 3) + " " + (origin.getY() - 1) + " " + (origin.getZ() - 6) + " minecraft:water");
+                run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 0.5, (double) origin.getY(), origin.getZ() - 3.5, 180f, 20f));
+                for (var player : s.getPlayerList().getPlayers()) {
+                    player.getInventory().setItem(0, item("copper_fishing_rod"));
+                    player.getInventory().setItem(1, fish("giant_manta_ray", 300f));
+                    player.getInventory().setItem(2, fish("bluegill", 12f));
+                    player.getInventory().selected = 0;
+                }
+            });
+        });
+        queue(20, mc -> {
+            mc.player.getInventory().selected = 0;
+            mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        });
+        queue(40, mc -> screenshot(mc, "held", "rod_cast_first_person"));
+        queue(1, mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+        queue(20, mc -> screenshot(mc, "held", "rod_cast_third_person"));
+        queue(1, mc -> {
+            mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND); // reel in
+            mc.player.getInventory().selected = 1;
+        });
+        queue(20, mc -> screenshot(mc, "held", "large_fish_third_person"));
+        queue(1, mc -> mc.player.getInventory().selected = 2);
+        queue(20, mc -> screenshot(mc, "held", "small_fish_third_person"));
+        // The fisherman hang pose: the podium puppet's code path, forced onto the player by the
+        // debug toggle (the same check), holding the large fish.
+        queue(1, mc -> {
+            grill24.fishtastic.client.util.FishermanPoseDebug.enabledInWorld = true;
+            mc.player.getInventory().selected = 1;
+        });
+        queue(20, mc -> screenshot(mc, "held", "fisherman_pose"));
+        queue(1, mc -> {
+            grill24.fishtastic.client.util.FishermanPoseDebug.enabledInWorld = false;
+            mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+            boolean puppetClassResolves;
+            try {
+                Class.forName("io.github.currenj.gelatinui.gui.components.PlayerAvatarRenderer$Puppet");
+                puppetClassResolves = true;
+            } catch (ClassNotFoundException e) {
+                puppetClassResolves = false;
+            }
+            check("held.gelatinPuppetClass", puppetClassResolves, "(FishermanPoseDebug matches the podium puppet by this name)");
+        });
     }
 
     /** Pile of Fish (flat), a pile-block stack, structure cosmetics, the treasure chest and a tank. */

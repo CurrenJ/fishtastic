@@ -5,11 +5,11 @@ import com.mojang.math.Axis;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.FishermanPoseDebug;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
-import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,15 +21,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Any held item carrying a recorded {@code ItemSize} (i.e. any caught fish) renders at its true
  * size — the same {@code size/100 * per-species render_calibration} formula the fish tank uses to
  * draw fish true-to-scale (see {@link FishTankBlockEntityRenderer#getHeldItemRenderScale}) —
- * instead of vanilla's fixed item-model scale. Applies to every {@link ArmedEntityRenderState}
- * (players and mobs alike), since {@code ItemInHandLayer#submitArmWithItem} is the one place both
- * converge before the item model is actually submitted.
+ * instead of vanilla's fixed item-model scale. Applies to every entity that draws held items
+ * through {@link ItemInHandLayer} (players and mobs alike), since {@code renderArmWithItem} is the
+ * one place both converge before the item is drawn.
  * <p>
- * Brackets the existing {@code item.submit(...)} call with a push/scale/pop rather than replacing
- * it, so vanilla's own arm-relative positioning (already applied to {@code poseStack} earlier in
- * the method) is preserved — the fish just grows or shrinks around that same anchor point.
+ * Brackets the existing {@code ItemInHandRenderer.renderItem(...)} call with a push/scale/pop
+ * rather than replacing it, so vanilla's own arm-relative positioning (already applied to
+ * {@code poseStack} earlier in the method) is preserved — the fish just grows or shrinks around
+ * that same anchor point.
  * <p>
- * For decorative {@code Mannequin} puppets (and real players when {@code HumanoidModelMixin}'s
+ * For the leaderboard's podium puppet (and real players when {@code HumanoidModelMixin}'s
  * {@link FishermanPoseDebug#enabledInWorld} debug toggle is on — see its doc), the same bracket
  * also rolls the item so it hangs head-down —
  * {@link FishTankBlockEntityRenderer#getHeldItemHangingRollDegrees} — and then translates it by
@@ -40,31 +41,33 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * automatically grows/shrinks with the fish's size and rotates with the roll — no per-size or
  * per-orientation retuning needed. Real players/mobs keep vanilla's normal item orientation and
  * position; only the scale applies universally.
+ * <p>
+ * 26.1.2 wraps {@code ItemStackRenderState.submit} inside {@code submitArmWithItem}; 1.21.1 draws
+ * the item immediately with {@code ItemInHandRenderer.renderItem} inside {@code renderArmWithItem}.
  */
 @Mixin(ItemInHandLayer.class)
 public abstract class ItemInHandLayerMixin {
-    private static final String SUBMIT_TARGET =
-            "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V";
+    private static final String RENDER_ITEM_TARGET =
+            "Lnet/minecraft/client/renderer/ItemInHandRenderer;renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;ZLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V";
 
-    // Fish items use plain vanilla `minecraft:item/generated` with no custom display overrides
-    // (verified against assets/minecraft/models/item/generated.json in the 26.1.2 client jar),
-    // whose baked-in "fixed" transform (used by the tank renderer) scales 1.0 but whose
+    // Fish items use plain vanilla `minecraft:item/generated` with no custom display overrides,
+    // whose "fixed" transform (used by the tank renderer) scales 1.0 but whose
     // "thirdperson_righthand"/"thirdperson_lefthand" transform scales 0.55 — a held item is
     // already shrunk to 55% before our multiplier runs. Compensate so a held fish ends up the
     // same absolute size as the same fish drawn in a tank, not 55% of it.
     private static final float THIRD_PERSON_HAND_TRANSFORM_SCALE = 0.55f;
     private static final float THIRD_PERSON_HAND_COMPENSATION = 1.0f / THIRD_PERSON_HAND_TRANSFORM_SCALE;
 
-    @Inject(method = "submitArmWithItem", at = @At(value = "INVOKE", target = SUBMIT_TARGET))
+    @Inject(method = "renderArmWithItem", at = @At(value = "INVOKE", target = RENDER_ITEM_TARGET))
     private void fishtastic$pushSizeScale(
-            ArmedEntityRenderState state, ItemStackRenderState item, ItemStack itemStack, HumanoidArm arm,
-            PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, CallbackInfo ci) {
+            LivingEntity entity, ItemStack itemStack, ItemDisplayContext displayContext, HumanoidArm arm,
+            PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
         float scale = fishtastic$scaleFor(itemStack);
         if (scale != 1.0f) {
             poseStack.pushPose();
             poseStack.scale(scale, scale, scale);
 
-            if (FishermanPoseDebug.shouldPose(state.entityType)) {
+            if (FishermanPoseDebug.shouldPose(entity)) {
                 Level level = Minecraft.getInstance().level;
                 if (level != null) {
                     float roll = FishTankBlockEntityRenderer.getHeldItemHangingRollDegrees(itemStack, level);
@@ -77,10 +80,10 @@ public abstract class ItemInHandLayerMixin {
         }
     }
 
-    @Inject(method = "submitArmWithItem", at = @At(value = "INVOKE", target = SUBMIT_TARGET, shift = At.Shift.AFTER))
+    @Inject(method = "renderArmWithItem", at = @At(value = "INVOKE", target = RENDER_ITEM_TARGET, shift = At.Shift.AFTER))
     private void fishtastic$popSizeScale(
-            ArmedEntityRenderState state, ItemStackRenderState item, ItemStack itemStack, HumanoidArm arm,
-            PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, CallbackInfo ci) {
+            LivingEntity entity, ItemStack itemStack, ItemDisplayContext displayContext, HumanoidArm arm,
+            PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
         if (fishtastic$scaleFor(itemStack) != 1.0f) {
             poseStack.popPose();
         }

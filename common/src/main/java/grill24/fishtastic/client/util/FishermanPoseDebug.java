@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.util;
 
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Live-tunable values for the leaderboard/mannequin "gripping the fish by the tail" hang pose
@@ -54,6 +55,18 @@ public final class FishermanPoseDebug {
         // No mannequins before 1.21.9; 26.1.2 also matches EntityType.MANNEQUIN here.
         return enabledInWorld && entityType == EntityType.PLAYER;
     }
+
+    /**
+     * PORT-ONLY: {@link #shouldPose(EntityType)} plus the leaderboard's podium puppet. On 26.1.2
+     * the puppet is a {@code MANNEQUIN}, which that check matches; gelatin-ui's 1.21.1 puppet is a
+     * {@code RemotePlayer} subclass private to its {@code PlayerAvatarRenderer}, recognised here by
+     * class name because gelatin-ui is an optional dependency.
+     */
+    public static boolean shouldPose(LivingEntity entity) {
+        return GELATIN_PUPPET_CLASS.equals(entity.getClass().getName()) || shouldPose(entity.getType());
+    }
+
+    private static final String GELATIN_PUPPET_CLASS = "io.github.currenj.gelatinui.gui.components.PlayerAvatarRenderer$Puppet";
 
     public static String describe() {
         return String.format(

@@ -16,12 +16,9 @@ common/src/main/java/grill24/fishtastic/client/renderer/FishtasticTextureOutline
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticWorldOutlineRenderer.java
 common/src/main/java/grill24/fishtastic/mixin/GuiRendererExecuteDrawMixin.java
 common/src/main/java/grill24/fishtastic/mixin/GuiRendererMixin.java
-common/src/main/java/grill24/fishtastic/mixin/HumanoidModelMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemEntityRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemFeatureRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemFrameRendererMixin.java
-common/src/main/java/grill24/fishtastic/mixin/ItemInHandLayerMixin.java
-common/src/main/java/grill24/fishtastic/mixin/ItemInHandRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemModelResolverMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemStackRenderStateMixin.java
 common/src/main/java/grill24/fishtastic/mixin/RenderTypeMixin.java
@@ -33,7 +30,6 @@ common/src/main/java/grill24/fishtastic/client/renderer/RenderBuffersHelper.java
 common/src/main/java/grill24/fishtastic/mixin/RenderBuffersMixin.java
 common/src/main/java/grill24/fishtastic/mixin/accessor/BufferSourceAccessor.java
 common/src/main/java/grill24/fishtastic/client/renderer/IrisCompat.java
-common/src/main/java/grill24/fishtastic/mixin/FishingHookRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/LevelRendererMixin.java
 
 
