@@ -139,6 +139,13 @@ loom {
     }
 
     runs {
+        // Fixed window size, so the self-test's evidence screenshots are comparable between the
+        // two loaders and with docs/port-evidence/1.21.1 (the guiscale scene resizes to 1920x1080
+        // and restores this). Flagged at G1; see docs/backport-pass2/track-a5-rendering-1.21.1.md.
+        client {
+            programArgs "--width", "1600", "--height", "900"
+        }
+
         data {
             // Despite NeoForge's userdev config.json listing the run template under
             // the key "serverData", Architectury Loom 1.14.476 internally re-keys it
