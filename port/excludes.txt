@@ -4,36 +4,6 @@
 # Grouped by the phase that brings the files back. Stand-ins for what kept code needs from
 # excluded classes live in <module>/src/portstub/java.
 
-# A4: GUI (needs gelatin 1.0.31+1.21.1, G-1.21.1). 26 main + 1 test, plus JEI (4).
-common/src/main/java/grill24/fishtastic/client/ElectricFishOrganizerScreen.java
-common/src/main/java/grill24/fishtastic/client/EncyclopediaTutorialClientHandler.java
-common/src/main/java/grill24/fishtastic/client/FishEncyclopediaScreen.java
-common/src/main/java/grill24/fishtastic/client/FishTankAssemblyScreen.java
-common/src/main/java/grill24/fishtastic/client/FishTankBrowserScreen.java
-common/src/main/java/grill24/fishtastic/client/LeaderboardScreen.java
-common/src/main/java/grill24/fishtastic/client/QuestLogScreen.java
-common/src/main/java/grill24/fishtastic/client/QuestProgressNotification.java
-common/src/main/java/grill24/fishtastic/client/QuestProgressNotificationManager.java
-common/src/main/java/grill24/fishtastic/client/TutorialClientHandler.java
-common/src/main/java/grill24/fishtastic/client/ZoneIconRectangle.java
-common/src/main/java/grill24/fishtastic/client/FishSphereContainer.java
-common/src/main/java/grill24/fishtastic/client/FreeformContainer.java
-common/src/main/java/grill24/fishtastic/client/SelectableItemButton.java
-common/src/main/java/grill24/fishtastic/client/ShapeGalleryPanel.java
-common/src/main/java/grill24/fishtastic/client/SilhouetteItemButton.java
-common/src/main/java/grill24/fishtastic/client/ThinProgressBar.java
-common/src/main/java/grill24/fishtastic/client/effects/CoinArcEffect.java
-common/src/main/java/grill24/fishtastic/client/effects/DropOffEffect.java
-common/src/main/java/grill24/fishtastic/client/effects/PendulumSwingEffect.java
-common/src/main/java/grill24/fishtastic/client/tooltip/ClientFishTankMaterialsTooltip.java
-common/src/main/java/grill24/fishtastic/client/tooltip/ClientRodGearTooltip.java
-common/src/main/java/grill24/fishtastic/compat/GelatinMenus.java
-common/src/main/java/grill24/fishtastic/compat/GelatinScreens.java
-common/src/main/java/grill24/fishtastic/util/FishingMinigameAnimation.java
-common/src/main/java/grill24/fishtastic/mixin/GuiGraphicsMixin.java
-common/src/main/java/grill24/fishtastic/compat/jei/**
-common/src/test/java/grill24/fishtastic/client/FishSphereContainerTest.java
-
 # A5: rendering (31 common files, plus the platform tank models).
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
 common/src/main/java/grill24/fishtastic/client/FishtasticClientSetup.java

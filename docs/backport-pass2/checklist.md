@@ -9,9 +9,9 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2 and A3 done (G-A3 passed 2026-09-24); hook stage `unit`. |
+| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); hook stage `unit`. |
 | `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
-| gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
+| gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
 
 **Rule:** a marker only moves forward, and only when the branch builds and its current gate passes. Once G3 is reached, D6 (lockstep) applies: a 26.1.2 release isn't cut until both markers equal its commit.
@@ -102,21 +102,21 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### G-1.21.1: gelatin-ui (branch `mc/1.21.1`)
 | ID | Item | Status | Commit (gelatin) |
 |---|---|---|---|
-| G1.1 | Worktree + branch from `origin/main` (`6ff90c8`) | [ ] | |
-| G1.2 | Cherry-pick the 30 non-render commits (skip `9e93297`) | [ ] | |
-| G1.3 | `4cb61bc`, `f78bc6b`, `4f22fdc` render-line fixes | [ ] | |
-| G1.4 | Posed player on `RemotePlayer` (`d407ee6`) | [ ] | |
-| G1.5 | `HiResItems` as a no-op (`36c7307`, `5ae6aa4`) | [ ] | |
-| G-G1 | Gate + `publishToMavenLocal 1.0.31+1.21.1` | [ ] | |
+| G1.1 | Worktree + branch from `origin/main` (`6ff90c8`) | [x] | worktree `D:\GitHub\gelatin-ui-worktrees\mc-1.21.1` |
+| G1.2 | Cherry-pick the 27 non-render commits (skip `9e93297`) | [x] | `f5f7415`..`77982a5` (27 picks, one per `26.1.2` commit) |
+| G1.3 | `4cb61bc`, `f78bc6b`, `4f22fdc` render-line fixes | [x] | `f50fa3e`, `058d57c`, `52b2856` |
+| G1.4 | Posed player on `RemotePlayer` (`d407ee6`) | [x] | `4b6f482` |
+| G1.5 | `HiResItems` as a no-op (`36c7307`, `5ae6aa4`) | [x] | `f99d8ae`, `024b771` |
+| G-G1 | Gate + `publishToMavenLocal 1.0.31+1.21.1` | [x] | `20c9f68` (tip; 34 commits) |
 
 ### A4: GUI (gate G-A4)
-| ID | Item | Status | Commit |
-|---|---|---|---|
-| A4.1 | Switch to gelatin `1.0.31+1.21.1` | [ ] | |
-| A4.2 | `GuiGraphicsExtractor` → `GuiGraphics`, 62 `pose()` sites, blit/text/item calls (14 files) | [ ] | |
-| A4.3 | Input records → raw signatures; `KeyMapping.Category`; Fabric HUD/tooltip/keybinding API names | [ ] | |
-| A4.4 | JEI 19.18 compat (4 files) | [ ] | |
-| G-A4 | Gate: 78 unit tests; every screen opens on both loaders | [ ] | |
+| ID | Item | Status | Commit | Notes |
+|---|---|---|---|---|
+| A4.1 | Switch to gelatin `1.0.31+1.21.1` | [x] | A4 commit | `gelatinui_version`, resolving from mavenLocal. |
+| A4.2 | `GuiGraphicsExtractor` → `GuiGraphics`, 62 `pose()` sites, blit/text/item calls (14 files) | [x] | A4 commit | Plus `extractBackground` → `renderBg` and `extractImage`/`getHeight` → `renderImage`/`getHeight()` — different names *and* parameter orders from 26.1. The 11-arg `blit` also swaps (w,h) before (u,v). |
+| A4.3 | Input records → raw signatures; `KeyMapping.Category`; Fabric HUD/tooltip/keybinding API names | [x] | A4 commit | `KeyMapping.Category` landed in A2 instead: `FishtasticKeyBinds.CATEGORY` is already the plain string `KeyMapping.Category.register` derives on 26.1. FAPI 0.116.7 has only `HudRenderCallback` (confirmed: no `HudElementRegistry`/`VanillaHudElements` in the sources), so the three HUD layers share one callback in the 26.1 registration order — and vanilla's toasts, rendered after `Gui.render`, now cover them. |
+| A4.4 | JEI 19.18 compat (4 files) | [x] | A4 commit | No `AbstractRecipeCategory`, so both categories implement `IRecipeCategory` with their own blank drawable. |
+| G-A4 | Gate: 78 unit tests; every screen opens on both loaders | [x] | A4 commit | 78/78; every screen opened through its real path on both loaders, and both item predicates verified against their override models (see track A, A4 "Done"). Server smoke clean on both loaders too. |
 
 ### A5: Rendering (design notes: `track-a5-rendering-1.21.1.md`)
 | ID | Item | Status | Commit |

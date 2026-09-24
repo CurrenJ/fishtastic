@@ -10,13 +10,12 @@ import grill24.fishtastic.network.SetAssemblyShapePacket;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
@@ -201,13 +200,13 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
      * on it — including on the backing between cells — are inside the UI.
      */
     @Override
-    protected boolean hasClickedOutside(double mx, double my, int xo, int yo) {
+    protected boolean hasClickedOutside(double mx, double my, int xo, int yo, int button) {
         if (galleryOpen
                 && mx >= galleryLeft() && mx < galleryLeft() + ShapeGalleryPanel.WIDTH
                 && my >= galleryTop() && my < galleryTop() + ShapeGalleryPanel.HEIGHT) {
             return false;
         }
-        return super.hasClickedOutside(mx, my, xo, yo);
+        return super.hasClickedOutside(mx, my, xo, yo, button);
     }
 
     private static boolean isQuestClaimed(ResourceKey<Quest> quest) {
@@ -236,8 +235,8 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
      * (gelatin dispatches {@code onMouseMove} after this pass).
      */
     @Override
-    protected void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractContent(graphics, mouseX, mouseY, partialTick);
+    protected void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.renderContent(graphics, mouseX, mouseY, partialTick);
         if (gallery == null) {
             return;
         }
@@ -254,7 +253,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
             lines.add(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip",
                     questDisplayName(hovered)).withStyle(ChatFormatting.GRAY));
         }
-        graphics.setTooltipForNextFrame(this.font, lines, Optional.empty(), mouseX, mouseY);
+        graphics.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
     }
 
     /**
@@ -263,14 +262,14 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
      * container screen) since this menu doesn't need custom label styling.
      */
     @Override
-    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        graphics.text(this.font, this.title, this.titleLabelX, this.titleLabelY, -12566464, false);
-        graphics.text(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, -12566464, false);
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, -12566464, false);
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, -12566464, false);
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, ATLAS_SIZE, ATLAS_SIZE);
+    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        super.renderBg(graphics, partialTick, mouseX, mouseY);
+        graphics.blit(TEXTURE, leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, ATLAS_SIZE, ATLAS_SIZE);
     }
 }

@@ -8,7 +8,7 @@ import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.entity.player.Player;
@@ -178,7 +178,7 @@ public class TutorialClientHandler {
     // -------------------------------------------------------------------------
 
     /** Called from HUD hooks — renders in-world and minigame steps. */
-    public static void render(GuiGraphicsExtractor graphics, float partialTick) {
+    public static void render(GuiGraphics graphics, float partialTick) {
         if (!currentStep.hasOverlay()) return;
         if (isScreenStep()) return;  // rendered on top of screen via renderScreenOverlay()
 
@@ -204,7 +204,7 @@ public class TutorialClientHandler {
      * the auto-advance timer fires, then opens something else, e.g. the Fish Encyclopedia) would
      * bleed the box onto whatever they open next.
      */
-    public static void renderScreenOverlay(GuiGraphicsExtractor graphics, float partialTick) {
+    public static void renderScreenOverlay(GuiGraphics graphics, float partialTick) {
         if (!isScreenStep()) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -215,21 +215,21 @@ public class TutorialClientHandler {
         // Screen render hooks hand us Screen.render's "partial tick" param, which on this MC version is actually
         // deltaTracker.getGameTimeDeltaTicks() (a frame-to-frame tick delta) — not the 0-1 interpolation fraction
         // our slide animation needs. Pull the real interpolation fraction directly instead.
-        float realPartialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        float realPartialTick = mc.getTimer().getGameTimeDeltaPartialTick(false);
         renderTextBox(graphics, mc, sw, sh, realPartialTick);
     }
 
-    private static void renderDarkOverlay(GuiGraphicsExtractor graphics, int sw, int sh) {
+    private static void renderDarkOverlay(GuiGraphics graphics, int sw, int sh) {
         graphics.fill(0, 0, sw, sh, 0xA6000000);
     }
 
-    private static void renderStepHighlight(GuiGraphicsExtractor graphics, Minecraft mc, int sw, int sh) {
+    private static void renderStepHighlight(GuiGraphics graphics, Minecraft mc, int sw, int sh) {
         if (currentStep == TutorialStep.BAIT_LOAD) {
             highlightHotbar(graphics, mc, sw, sh);
         }
     }
 
-    private static void highlightHotbar(GuiGraphicsExtractor graphics, Minecraft mc, int sw, int sh) {
+    private static void highlightHotbar(GuiGraphics graphics, Minecraft mc, int sw, int sh) {
         int hotbarX = sw / 2 - 91;
         int hotbarY = sh - 22;
         int hotbarW = 182;
@@ -242,7 +242,7 @@ public class TutorialClientHandler {
         graphics.fill(hotbarX + hotbarW + pad - 2, hotbarY - pad, hotbarX + hotbarW + pad, hotbarY + hotbarH + pad, borderColor);
     }
 
-    private static void renderTextBox(GuiGraphicsExtractor graphics, Minecraft mc, int sw, int sh, float partialTick) {
+    private static void renderTextBox(GuiGraphics graphics, Minecraft mc, int sw, int sh, float partialTick) {
         Component title = getTitle(currentStep);
         Component body = getBody(currentStep);
         Component hint = getHint(currentStep);
@@ -293,8 +293,8 @@ public class TutorialClientHandler {
         float slideX = sideLayout ? -(boxX + boxWidth) * eased : 0;
         float slideY = sideLayout ? 0 : topLeftLayout ? -(boxY + boxH + 8) * eased : (sh - boxY + 8) * eased;
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(slideX, slideY);
+        graphics.pose().pushPose();
+        graphics.pose().translate(slideX, slideY, 0);
 
         // Background
         graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxH, 0xD0101820);
@@ -309,14 +309,14 @@ public class TutorialClientHandler {
 
         // Title (word-wrapped)
         for (net.minecraft.util.FormattedCharSequence line : titleLines) {
-            graphics.text(font, line, tx, ty, 0xFFFFFFFF);
+            graphics.drawString(font, line, tx, ty, 0xFFFFFFFF);
             ty += lineH;
         }
         ty += 4;
 
         // Body (word-wrapped)
         for (net.minecraft.util.FormattedCharSequence line : bodyLines) {
-            graphics.text(font, line, tx, ty, 0xFFAAAAAA);
+            graphics.drawString(font, line, tx, ty, 0xFFAAAAAA);
             ty += lineH;
         }
 
@@ -324,12 +324,12 @@ public class TutorialClientHandler {
         if (!hintLines.isEmpty()) {
             ty += 4;
             for (net.minecraft.util.FormattedCharSequence line : hintLines) {
-                graphics.text(font, line, tx, ty, 0xFF888888);
+                graphics.drawString(font, line, tx, ty, 0xFF888888);
                 ty += lineH;
             }
         }
 
-        graphics.pose().popMatrix();
+        graphics.pose().popPose();
     }
 
     // -------------------------------------------------------------------------
@@ -397,7 +397,9 @@ public class TutorialClientHandler {
 
     private static int countRodsWithBaitLoaded(Player player) {
         int count = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        // 1.21.1's Inventory container is exactly the 26.1 getNonEquipmentItems() list.
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
             if (stack.getItem() instanceof FishtasticFishingRodItem
                     && !FishtasticFishingRodItem.getBait(stack).isEmpty()) {
                 count++;

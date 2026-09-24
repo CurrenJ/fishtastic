@@ -183,7 +183,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            FishtasticItemData.setHeadProfile(playerHead, ResolvableProfile.createResolved(mc.player.getGameProfile()));
+            FishtasticItemData.setHeadProfile(playerHead, new ResolvableProfile(mc.player.getGameProfile()));
         }
 
         ItemTabs itemTabs = UI.itemTabs();

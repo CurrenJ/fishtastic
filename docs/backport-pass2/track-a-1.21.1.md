@@ -366,6 +366,81 @@ The GUI shader effects (`FishtasticSilhouetteEffect`, `FishtasticBlackOutlineEff
 - In game, on both loaders: open every screen (Encyclopedia, Quest Log, Leaderboards, Tank Browser, Assembly, Organizer, Shape Gallery), the tutorial overlay and the notification toasts. Use each screen's main interaction once. This can run unattended with the spike's marker-file self-test pattern, extended to open each screen by id and dump a screenshot.
 - `port/excludes.txt` has only A5 rows left.
 
+**Done 2026-09-24.** G-A4 green. `gw :common:test` is **78 passed, 0 failures** (`FishSphereContainerTest` is back in), and `port/excludes.txt` holds only the A5 rows and the A6.1 testmod rows.
+
+**In-game, both loaders, unattended.** The rendering spike's marker-file self-test pattern (`client/spike/OutlineSpikeSelfTest`) was re-added temporarily as `client/selftest/GuiSelfTest` — it creates a flat creative world, drives every GUI through its *real* open path, and screenshots each one — and deleted before this commit. Nothing is opened with `mc.setScreen`: the gelatin screens are opened by the in-game commands that open them, and the menu screens by right-clicking a placed block with an empty hand.
+
+| Screen | Opened by | Fabric | NeoForge |
+|---|---|---|---|
+| Quest Log | `/gelatin quest_log` | ✓ | ✓ |
+| Fish Encyclopedia (+ its tutorial overlay) | `/gelatin fish_encyclopedia` | ✓ | ✓ |
+| Leaderboards | bare `/fishtastic` | ✓ | ✓ |
+| Tank Browser | empty-hand click on a placed `fishtastic:fish_tank` | ✓ | ✓ |
+| Assembly + Shape Gallery | empty-hand click on `fishtastic:fish_tank_assembly` | ✓ | ✓ |
+| Organizer | empty-hand click on `fishtastic:electric_fish_organizer` | ✓ | ✓ |
+| World tutorial overlay | `TutorialClientHandler.PACKET_HANDLER` with `QUEST_INTRO` | ✓ | ✓ |
+| Quest progress toasts | `/fishtastic testquestnotify`, then a *fresh* already-completed banner | ✓ | ✓ |
+
+**The toasts needed vanilla's tutorial hints turned off before they could be photographed, and that is itself the finding.** On 1.21.1 vanilla renders its toasts in `GameRenderer.render` *after* `Gui.render` (`GameRenderer.java:1138-1143`), and Fabric's `HudRenderCallback` is injected at `Gui.render`'s `@At("TAIL")` (`fapi InGameHudMixin`). So **any vanilla toast is drawn over any mod HUD element**, and on a fresh world the movement-hint toast lands exactly on top of a quest notification — both are top-right. The notification was never missing: a temporary probe on its `render` showed it entering on every frame with `phase=HOLD`, `x` easing 603 → 455, `w=138 h=38` in a 534-wide GUI. With the hints off (`options.tutorialStep = NONE`, `Tutorial.stop()`, `getToasts().clear()` — `stop()` alone is not enough, the step instance is recreated from the option) the corner clears and the banners render, identically on both loaders (two banners stacked in priority order in one pass, and the `Complete!` badge in another). The banner's name and target come from the quest registry (`Bluegill Beginner`, 3/10), not from the probe command's arguments — `TestQuestNotifyCommand` only uses its name/count arguments in its chat message. See "Found on 1.21.1" below.
+
+All seven screens render identically on the two loaders, and match 26.1.2's layout apart from the A5 gaps below. The **Shape Gallery is a panel, not a screen** — `ShapeGalleryPanel` is only ever constructed by `FishTankAssemblyScreen:113` — so it is captured in that screen's screenshot, forced open with `FishtasticClientConfig.setShapeGalleryOpen(true)` (the value is read at screen-construction time, and a previous run may have persisted `false`).
+
+**Item properties (both loaders).** Both predicates A4 registers resolve to their override models, checked through `ItemRenderer#getModel`:
+
+| Predicate | Registered | Value with the flag | Value without | Resolved model changes |
+|---|---|---|---|---|
+| `fishtastic:has_alert` on `fishopedia` | ✓ | 1.0 | 0.0 | ✓ |
+| `fishtastic:has_alert` on `quest_book` | ✓ | 1.0 | 0.0 | ✓ |
+| `minecraft:cast` on `copper_fishing_rod` | ✓ | 1.0 while fishing | 0.0 with a null entity | ✓ |
+
+The rod is cast through the real use path (`mc.gameMode.useItem`), so the client's `player.fishing` is set by the bobber's add-entity packet, exactly as in play; the idle/cast pair of screenshots shows visibly different hotbar icons. **Gotcha for A5:** assert model identity through `ItemRenderer#getModel(stack, level, entity, seed)`, not `ModelManager#getModel(ModelResourceLocation.inventory(<model path>))` — an override's baked model is not registered under the override target's own path, so a map lookup compared against it is always false even when the override works.
+
+**Expected gaps visible in the screenshots (all A5, none an A4 defect):**
+- **Shape Gallery cells are blank.** `ShapeGalleryPanel.previewStack` (client/ShapeGalleryPanel.java:203) renders a `fish_tank` `ItemStack`, and the tank's item model is `builtin/entity` on 1.21.1 — the platform tank item models are A5.2/A5.3 and are still on `port/excludes.txt`. The class's own comment ("the per-platform fish tank item model already renders the preview") describes the 26.1 arrangement. The selection highlight still draws, so the panel is functional.
+- **The encyclopedia does not silhouette uncaught species.** `SilhouetteItemButton` sets `FishtasticGlintState.SILHOUETTE_REQUESTED` and nothing reads it until A5.4c, so every species renders in full colour. This is the most user-visible consequence of the GUI-shader stub: the encyclopedia spoils every species until A5.4c lands.
+- **The tank block/item render as the missing model.** Fabric logs 2 WARN (`Exception loading blockstate definition: 'fishtastic:fish_tank'`), NeoForge 1 ERROR (`Model loader 'fishtastic:fish_tank' not found`). This is 26.1's custom blockstate/tank model, which A5.2 replaces.
+
+**Server smoke (both loaders, beyond the gate).** `:fabric:runServer` reaches `Done (0.700s)` and `:neoforge:runServer` `Done (0.952s)`, each with **0 ERROR lines and no mixin apply failures**. `runClient` on Fabric reaches the title screen and runs the self-test with **0 ERROR lines**. The NeoForge client's only errors are the JEI ones below and the tank model loader line.
+
+**Found on 1.21.1, HUD layer order — a real behavioural difference from 26.1.2 (report only, not fixed here).** On 26.1.2 the three HUD layers are registered with `HudElementRegistry.addFirst`/`addLast`, which resolves each one against vanilla's *layers*, including `minecraft:toast`; the quest notification therefore draws above vanilla's toasts. 1.21.1's Fabric API has only `HudRenderCallback` — there is no `HudElementRegistry` or `VanillaHudElements` anywhere in the 0.116.7 sources, which confirms the A4 row above — and it fires at `Gui.render` TAIL, while vanilla renders toasts afterwards in `GameRenderer.render`. The consequence is that **every vanilla toast covers the quest notifications, the tutorial overlay and the minigame bar**, and since advancement and recipe-unlock toasts fire constantly in normal play this is hit routinely, not only on a fresh world. Options: accept it as a documented cost of the port, or add one small `@Inject` mixin at `GameRenderer.render` after the `"toasts"` section that draws the three layers (a new mixin, but the only way on this FAPI version to sit above vanilla's toast layer). Not decided here; the same choice will face `port/1.20.1`.
+
+**Found in the toast check, pre-existing on 26.1.2 (report only, not fixed here).** `QuestProgressNotification.updateProgress(newEvent)` — the in-place path `enqueue` takes when a quest's banner is already on screen — never reassigns the stored `event`. It sets only `barTargetFraction`, resets the hold timer, and (when the new event completes) plays the completion sound and arms `completeFlashTimer`. So for an in-place update the banner's counter keeps the *first* event's numbers, and the `Complete!` badge — gated on `event.completed()` — never draws; only the bar animates, and the completion sound plays anyway. Reproduced on both loaders with `/fishtastic testquestnotify` then `/fishtastic testquestnotify complete`: the second logged `active=1` (in-place) and the banner still read `3 / 10` 25 ticks later. Nothing on this path is version-sensitive, so it is a 26.1.2 behaviour rather than a port difference; the badge renders correctly when a *fresh* already-completed banner arrives, which is what the screenshot uses. Worth a look on 26.1.2 — the fix is to assign `this.event = newEvent` (and recompute the name/target) in `updateProgress`.
+
+**Found on NeoForge, JEI 19.18 (report only, not fixed here).** Every one of the five gelatin screens logs, twice per open:
+
+```
+Received invalid gui properties for screen: class grill24.fishtastic.client.QuestLogScreen
+guiXSize must be greater than 1 and less than 1000000000: 0
+guiYSize must be greater than 1 and less than 1000000000: 0
+screenWidth must be greater than 1 and less than 1000000000: 0
+```
+
+`FishtasticJeiPlugin.fullScreenGui` captures `screen.width`/`screen.height` when JEI asks for the properties, and JEI 19 asks before the screen has been sized, so it is handed zeros. **The handler is byte-identical on 26.1.2**, so this is a latent bug there too — JEI 29 either does not ask that early or does not validate. Impact is two ERROR lines per screen open plus JEI falling back on overlay placement; the screens themselves render correctly. Fix belongs on 26.1.2 (return `screen.width`/`screen.height` lazily from the getters instead of capturing locals), then it flows down — fixing it only here would be a permanent port-only diff for no user-visible gain.
+
+**Where A4 differs from the API map:**
+- **`GuiGraphicsMixin` is the ancestor's body, byte for byte** — `git diff 44064cc5:<file> HEAD:<file>` is empty. The 26.1 16-px-slot rescale hack is gone, as planned: on 1.21.1 `renderItem` already works in model space. The class moves to A5.4 with the rest of the GUI-outline hook.
+- **The GUI shader effects are stubbed as a whole, not just an `apply()`.** The new portstub `client/renderer/FishtasticGlintState` keeps `SILHOUETTE_REQUESTED` / `BLACK_OUTLINE_REQUESTED` so `SilhouetteItemButton` and the organizer's call sites are unchanged; the two outline blits are commented out with `// PORT A5.4c` in `ZoneIconRectangle` and `FishingMinigameAnimation#renderZoneIcon`.
+- **`extractBackground` → `renderBg(GuiGraphics, float, int, int)`** — a different name *and* a different parameter order. `ElectricFishOrganizerScreen` extends `AbstractContainerScreen` rather than `GelatinUIScreen`, and 1.21.1 leaves `renderBg` abstract, so its override has no `super` call.
+- **`extractImage(Font,x,y,w,h,GuiGraphics)` → `renderImage(Font,x,y,GuiGraphics)`**: 1.21.1 gives no tooltip width, so the two tooltip classes lost their horizontal centering and start at the tooltip's left edge, the way vanilla's own `ClientBundleTooltip` does. `getHeight(Font)` → `getHeight()`.
+- **Input and misc renames:** `setTooltipForNextFrame(font, lines, Optional.empty(), x, y)` → `renderTooltip(Font, List, Optional, int, int)`, which draws immediately and so must be called last; `KeyEvent` → `keyPressed(int,int,int)`; `hasClickedOutside` gains a button argument; `ResolvableProfile.createResolved(gp)` → `new ResolvableProfile(gp)`; `mc.getDeltaTracker()` → `mc.getTimer()`; `Inventory#getNonEquipmentItems()` → `getContainerSize()` / `getItem(i)`; the 1.21.1 `AbstractContainerScreen` constructor takes no size arguments, so `imageWidth`/`imageHeight` are set in the constructor body.
+- **`blit`.** The 11-arg 1.21.1 overload is `(loc, x, y, w, h, u, v, uW, vH, texW, texH)` — `(width, height)` **before** `(u, v)`, the opposite of 26.1's, so those sites are an argument swap, not just a dropped pipeline argument. The 9-arg overload is a drop-in.
+- **Fabric.** `ClientTooltipComponentCallback` → `TooltipComponentCallback`; `HudElementRegistry.addFirst/addLast` → one `HudRenderCallback`, so the tutorial, the minigame bar and the quest notifications are drawn from a single callback in the 26.1 registration order (tutorial, bar, notifications) — the relative order those registrations existed to express. `ScreenEvents.afterExtract` → `afterRender`.
+- **Neither client entrypoint imported `FishtasticClientSetup`** — the import sat inside the A5 comment block — but A4's menu-screen registrations need its menu-type accessors, so the import moved out, marked as needed by A4 and A5.
+- **JEI 19.18.** There is no `AbstractRecipeCategory`, so both categories implement `IRecipeCategory` and hold their own blank drawable; `IRecipeType` → `RecipeType`; `addInputSlot`/`addOutputSlot` → `addSlot(RecipeIngredientRole.*, x, y)`; `add(SlotDisplay.Composite)` → `addIngredients(Ingredient.of(ItemTags.FISHES))` plus `addItemStack(pile)` in the same slot; `CRAFTING_STATION` → `CATALYST`.
+- **The `KeyMapping.Category` row landed in A2, not A4.** `FishtasticKeyBinds.CATEGORY` was already the plain string that 26.1's `KeyMapping.Category.register` derives.
+
+**New port-only helpers:**
+
+| Helper | Why |
+|---|---|
+| `client/FishtasticItemProperties` | The two predicates the generated models test, with a per-loader `Registrar` lambda: vanilla's `ItemProperties.register` is private, and each loader widens it differently (Fabric API's transitively-applied AW makes it public taking `ClampedItemPropertyFunction`; NeoForge patches it public with `ItemPropertyFunction`). The `cast` function is vanilla's own body, copied. |
+| portstub `client/FishtasticClientSetup` | The three menu-type accessors only, copied verbatim, so A4's screen registrations compile. Deleted in A5, which brings the real class (item model types) back. |
+| portstub `client/renderer/FishtasticGlintState` | A5.4c's flags, so the GUI call sites stay as they are. |
+| portstub `client/util/FishPileIcons` | `pileBlocks(..)` returns an empty list — the `pile_of_fish` stacks it builds are `builtin/entity` and render nothing until A5.3 anyway. |
+| `@BeforeAll` in `test:client/FishSphereContainerTest` | 1.21.1's `ItemStack.<clinit>` reads `BuiltInRegistries.ITEM`, so the test bootstraps the registry first. |
+
+**Hook stage stays `unit`.** A4 adds no automated check the hook does not already run: its automated half is `:common:test`, which `unit` covers (with tank-shape-gen). The in-game screen checks are driven temporarily and cannot be hooked, and the next stage (`full`) is A6.1's gametests, which cannot run until the testmod trees come off `port/excludes.txt`.
+
 ---
 
 ## G-1.21.1: gelatin-ui catch-up

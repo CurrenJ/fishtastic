@@ -5,11 +5,10 @@ import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.network.SetOrganizerSortPacket;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -44,7 +43,10 @@ public class ElectricFishOrganizerScreen extends AbstractContainerScreen<Electri
     private boolean lastKnownSortAscending = true;
 
     public ElectricFishOrganizerScreen(ElectricFishOrganizerMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, 176, 114 + ROWS * 18);
+        super(menu, inventory, title);
+        // 1.21.1's AbstractContainerScreen takes no size arguments; the fields are set here.
+        this.imageWidth = 176;
+        this.imageHeight = 114 + ROWS * 18;
         this.inventoryLabelY = this.imageHeight - 94;
     }
 
@@ -146,11 +148,12 @@ public class ElectricFishOrganizerScreen extends AbstractContainerScreen<Electri
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        // No super call: 1.21.1's AbstractContainerScreen leaves renderBg abstract, and this screen
+        // extends it directly rather than GelatinUIScreen.
         int xo = (this.width - this.imageWidth) / 2;
         int yo = (this.height - this.imageHeight) / 2;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, xo, yo, 0.0F, 0.0F, this.imageWidth, ROWS * 18 + 17, 256, 256);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, xo, yo + ROWS * 18 + 17, 0.0F, 126.0F, this.imageWidth, 96, 256, 256);
+        graphics.blit(TEXTURE, xo, yo, 0.0F, 0.0F, this.imageWidth, ROWS * 18 + 17, 256, 256);
+        graphics.blit(TEXTURE, xo, yo + ROWS * 18 + 17, 0.0F, 126.0F, this.imageWidth, 96, 256, 256);
     }
 }

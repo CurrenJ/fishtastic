@@ -18,7 +18,7 @@ import java.util.List;
  * texture, used on the fish encyclopedia home screen for never-caught fish.
  *
  * <p>This renders through the real itemstack renderer ({@code super.renderSelf}, which calls
- * {@code GuiGraphicsExtractor.item(...)}) rather than re-deriving the icon some other way. The
+ * {@code GuiGraphics.item(...)}) rather than re-deriving the icon some other way. The
  * silhouette swap happens via a Mixin pipeline ({@code gui_item_silhouette.fsh}, wired through
  * {@code GuiRendererMixin}/{@code ItemModelResolverMixin}/{@code FishtasticGlintState}) that
  * intercepts the GUI item blit and replaces it with a shader sampling the same already-baked
@@ -29,7 +29,7 @@ import java.util.List;
  * instead of an edge-detect one).
  *
  * <p>{@link FishtasticGlintState#SILHOUETTE_REQUESTED} is a thread-local set immediately before
- * the render call and cleared immediately after: {@code graphics.item(...)} synchronously
+ * the render call and cleared immediately after: {@code graphics.renderItem(...)} synchronously
  * resolves the item model within that same call, and {@code ItemModelResolverMixin} reads the
  * flag at that exact moment to tag the resulting render state. This mirrors the existing
  * {@code ACTIVE_EFFECT} thread-local pattern used for the glint render path.
@@ -116,15 +116,15 @@ public class SilhouetteItemButton extends ItemButton {
             float centerX = size.x - REWARD_PIP_SIZE + REWARD_PIP_OFFSET_X + REWARD_PIP_SIZE / 2f;
             float centerY = REWARD_PIP_OFFSET_Y + REWARD_PIP_SIZE / 2f;
             var pose = mcContext.getGraphics().pose();
-            pose.pushMatrix();
-            pose.translate(centerX, centerY);
-            pose.scale(pipScale, pipScale);
+            pose.pushPose();
+            pose.translate(centerX, centerY, 0);
+            pose.scale(pipScale, pipScale, pipScale);
             context.drawTexture(REWARD_PIP_TEXTURE,
                     -REWARD_PIP_SIZE / 2f, -REWARD_PIP_SIZE / 2f,
                     REWARD_PIP_SIZE, REWARD_PIP_SIZE,
                     0f, 0f, REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX,
                     REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX);
-            pose.popMatrix();
+            pose.popPose();
         }
     }
 

@@ -6,7 +6,7 @@ import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.util.FormattedCharSequence;
@@ -54,7 +54,7 @@ public class EncyclopediaTutorialClientHandler {
      * written for — a player who closes the encyclopedia before advancing this step would
      * otherwise see the panel bleed onto whatever screen they open next.
      */
-    public static void render(GuiGraphicsExtractor graphics, float partialTick) {
+    public static void render(GuiGraphics graphics, float partialTick) {
         if (!currentStep.hasOverlay()) return;
         Minecraft mc = Minecraft.getInstance();
         if (!(mc.screen instanceof FishEncyclopediaScreen)) return;
@@ -87,12 +87,12 @@ public class EncyclopediaTutorialClientHandler {
         int tx = boxX + innerPad;
         int ty = boxY + innerPad;
         for (FormattedCharSequence line : titleLines) {
-            graphics.text(font, line, tx, ty, 0xFFFFFFFF);
+            graphics.drawString(font, line, tx, ty, 0xFFFFFFFF);
             ty += lineH;
         }
         ty += 4;
         for (FormattedCharSequence line : bodyLines) {
-            graphics.text(font, line, tx, ty, 0xFFAAAAAA);
+            graphics.drawString(font, line, tx, ty, 0xFFAAAAAA);
             ty += lineH;
         }
     }

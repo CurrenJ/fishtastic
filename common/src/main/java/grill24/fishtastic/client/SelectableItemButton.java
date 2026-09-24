@@ -32,9 +32,9 @@ public class SelectableItemButton extends ItemButton {
     protected void renderSelf(IRenderContext context) {
         if (selected && context instanceof MinecraftRenderContext mcContext) {
             var graphics = mcContext.getGraphics();
-            graphics.pose().pushMatrix();
+            graphics.pose().pushPose();
             ((IGuiGraphicsExtension) graphics).fishtastic$renderItem(SELECTION_STACK, 0, 0);
-            graphics.pose().popMatrix();
+            graphics.pose().popPose();
         }
         super.renderSelf(context);
     }

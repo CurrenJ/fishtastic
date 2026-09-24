@@ -4,8 +4,9 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 // PORT A5: import grill24.fishtastic.client.CosmeticCaptureClientState;
-// PORT A4: import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
+import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
+import grill24.fishtastic.client.FishtasticItemProperties;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
@@ -20,7 +21,8 @@ import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 // PORT A5: import grill24.fishtastic.client.CosmeticTransformLoader;
-// PORT A5: import grill24.fishtastic.client.FishtasticClientSetup;
+// A4 needs this class for its menu-type accessors; A5 adds the item model types.
+import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TankCosmeticTooltip;
 // PORT A5.5: import grill24.fishtastic.client.particle.LavaBubbleParticle;
@@ -36,8 +38,8 @@ import grill24.fishtastic.client.TankCosmeticTooltip;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.util.ClientTickHandler;
 // PORT A5.1: import grill24.fishtastic.client.util.ClientTankFlocks;
-// PORT A4: import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
-// PORT A4: import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
+import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
+import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.RodGearTooltip;
 // PORT A5.2f: import grill24.fishtastic.fabric.fishtank.BlockstateModelRedirectPlugin;
@@ -60,9 +62,10 @@ import net.minecraft.server.packs.PackType;
 // PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
 // PORT A5.5: import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
-// PORT A4: import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
-// PORT A4: import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -70,22 +73,21 @@ import static grill24.fishtastic.util.Utility.ft;
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        // PORT A4: client tooltip components.
-//        // Register visual tooltip renderer for rod bait/hook/charm slots
-//        ClientTooltipComponentCallback.EVENT.register(component -> {
-//            if (component instanceof RodGearTooltip tooltip) {
-//                return new ClientRodGearTooltip(tooltip.bait(), tooltip.hook(), tooltip.charm());
-//            }
-//            return null;
-//        });
+        // Register visual tooltip renderer for rod bait/hook/charm slots
+        TooltipComponentCallback.EVENT.register(component -> {
+            if (component instanceof RodGearTooltip tooltip) {
+                return new ClientRodGearTooltip(tooltip.bait(), tooltip.hook(), tooltip.charm());
+            }
+            return null;
+        });
 
-//        // Register visual tooltip renderer for fish tank frame/glass/sand material slots
-//        ClientTooltipComponentCallback.EVENT.register(component -> {
-//            if (component instanceof FishTankMaterialsTooltip tooltip) {
-//                return new ClientFishTankMaterialsTooltip(tooltip.frame(), tooltip.glass(), tooltip.sand());
-//            }
-//            return null;
-//        });
+        // Register visual tooltip renderer for fish tank frame/glass/sand material slots
+        TooltipComponentCallback.EVENT.register(component -> {
+            if (component instanceof FishTankMaterialsTooltip tooltip) {
+                return new ClientFishTankMaterialsTooltip(tooltip.frame(), tooltip.glass(), tooltip.sand());
+            }
+            return null;
+        });
 
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
         ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> TankCosmeticTooltip.append(stack, lines));
@@ -109,18 +111,17 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 //        FishtasticClientSetup.registerItemModelTypes();
 //        grill24.fishtastic.fabric.fishtank.FishTankItemModelFabric.register();
 
-        // PORT A4: menu screens.
-//        // Register the Fish Tank Assembly menu screen
-//        net.minecraft.client.gui.screens.MenuScreens.register(
-//                FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
+        // Register the Fish Tank Assembly menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
 
-//        // Register the Electric Fish Organizer menu screen
-//        net.minecraft.client.gui.screens.MenuScreens.register(
-//                FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
+        // Register the Electric Fish Organizer menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
 
-//        // Register the Fish Tank Browser menu screen
-//        net.minecraft.client.gui.screens.MenuScreens.register(
-//                FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
+        // Register the Fish Tank Browser menu screen
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
@@ -131,13 +132,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
                         packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount()));
 
-        // PORT A4: tutorial overlay.
-//        // Register tutorial sync packet client handler
-//        TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
+        // Register tutorial sync packet client handler
+        TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
-        // PORT A4: encyclopedia tutorial.
-//        // Register encyclopedia tutorial sync packet client handler
-//        EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+        // Register encyclopedia tutorial sync packet client handler
+        EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -156,9 +155,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
 
-        // PORT A4: quest toasts.
-//        // Install quest progress notification system
-//        QuestProgressNotificationManager.getInstance().install();
+        // Install quest progress notification system
+        QuestProgressNotificationManager.getInstance().install();
 
         // Initialize and register key bindings
         FishtasticKeyBinds.init();
@@ -203,9 +201,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             QuestClientCache.reset();
-            // PORT A4: tutorial overlays.
-//            TutorialClientHandler.reset();
-//            EncyclopediaTutorialClientHandler.reset();
+            TutorialClientHandler.reset();
+            EncyclopediaTutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
             // PORT A5: cosmetic capture gizmos.
@@ -223,50 +220,47 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 ClientTickHandler.tick(1.0f);
                 // PORT A5.1: client flocks.
 //                ClientTankFlocks.tickAll();
-                // PORT A4: tutorial overlay.
-//                TutorialClientHandler.tick();
+                TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
-                // PORT A4: quest toasts.
-//                // Tick quest progress notifications
-//                QuestProgressNotificationManager.getInstance().tick();
+                // Tick quest progress notifications
+                QuestProgressNotificationManager.getInstance().tick();
                 // PORT A5: cosmetic capture gizmos.
 //                // Draw the cosmetic-capture wand selection preview, if a session is active
 //                CosmeticCaptureClientState.tickGizmos();
             }
         });
 
-        // PORT A4: HUD and screen overlays (Fabric HUD API names change too).
-//        // Register tutorial overlay — must render BEFORE the minigame bar so the bar appears on top
-//        HudElementRegistry.addFirst(Ids.of(Fishtastic.MOD_ID, "tutorial_overlay"), (graphics, deltaTracker) -> {
-//            TutorialClientHandler.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
-//        });
+        // PORT-ONLY: 1.21.1's Fabric API has one HUD hook (HudRenderCallback) rather than 26.1's
+        // ordered HudElementRegistry, so all three layers are drawn from a single callback in the
+        // order they were registered there: tutorial, then the minigame bar over it, then the
+        // quest notifications on top. That relative order is what those registrations existed for.
+        HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
+            float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
+            TutorialClientHandler.render(graphics, partialTick);
 
-//        // Register HUD render hook for the fishing minigame overlay
-//        HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "fishing_minigame"), (graphics, deltaTracker) -> {
-//            Minecraft mc = Minecraft.getInstance();
-//            if (mc.gameRenderer == null) return;
-//            ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
-//            if (animation != null && animation.isActive()) {
-//                animation.render(mc, graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
-//            }
-//        });
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.gameRenderer != null) {
+                ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
+                if (animation != null && animation.isActive()) {
+                    animation.render(mc, graphics, partialTick);
+                }
+            }
 
-//        // Register HUD render hook for quest progress notifications (renders after fishing minigame)
-//        HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {
-//            QuestProgressNotificationManager.getInstance().render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
-//        });
+            QuestProgressNotificationManager.getInstance().render(graphics, partialTick);
+        });
 
-//        // Render tutorial text on top of the quest/shop screen (fires after the screen itself renders)
-//        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-//            ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
-//                TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
-//                EncyclopediaTutorialClientHandler.render(graphics, tickProgress);
-//            });
-//        });
+        // Render tutorial text on top of the quest/shop screen (fires after the screen itself renders)
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            ScreenEvents.afterRender(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
+                TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
+                EncyclopediaTutorialClientHandler.render(graphics, tickProgress);
+            });
+        });
 
-        // TODO MC-26.1: ItemProperties.register is removed in 26.1
-        // The fishing rod "cast" property must now be defined via data-driven item models
+        // PORT-ONLY: the rod cast and book has_alert predicates the item models test (Fabric API's
+        // transitive access widener makes vanilla's ItemProperties.register public).
+        FishtasticItemProperties.register(ItemProperties::register);
 
         // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
         // ColorProviderRegistry.BLOCK is removed; use BlockColorRegistry with BlockTintSource instead

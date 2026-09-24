@@ -10,8 +10,7 @@ import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
@@ -358,7 +357,7 @@ public class QuestProgressNotification {
 
     // ---- Render ----
 
-    public void render(Minecraft mc, GuiGraphicsExtractor graphics, float partialTick) {
+    public void render(Minecraft mc, GuiGraphics graphics, float partialTick) {
         if (phase == Phase.DONE) return;
 
         int fontHeight = mc.font.lineHeight;
@@ -370,15 +369,15 @@ public class QuestProgressNotification {
 
         // Apply uniform scale to the entire notification
         var pose = graphics.pose();
-        pose.pushMatrix();
-        pose.translate(panelX, panelY);
-        pose.scale(SCALE, SCALE);
+        pose.pushPose();
+        pose.translate(panelX, panelY, 0);
+        pose.scale(SCALE, SCALE, SCALE);
 
         // Background panel (local coords: 0,0 = panel top-left). bgVariant was chosen in the
         // constructor so that its scaled width already matches panelWidth — no nine-slicing
         // needed, and x/y scale stay equal so the art is never stretched unevenly.
-        graphics.blit(RenderPipelines.GUI_TEXTURED, bgVariant.texture(), 0, 0, 0f, 0f,
-                panelWidth, panelHeight, bgVariant.contentWidth(), PANEL_BG_TEXTURE_CONTENT_HEIGHT,
+        graphics.blit(bgVariant.texture(), 0, 0,
+                panelWidth, panelHeight, 0f, 0f, bgVariant.contentWidth(), PANEL_BG_TEXTURE_CONTENT_HEIGHT,
                 bgVariant.fileSize(), bgVariant.fileSize());
 
         MinecraftRenderContext ctx = new MinecraftRenderContext(graphics, mc.font);
@@ -392,12 +391,12 @@ public class QuestProgressNotification {
             // outer 0.5 scale makes the item invisible.
             int iconX = PADDING;
             int iconY = PADDING + (fontHeight - ITEM_SIZE) / 2;
-            graphics.fakeItem(targetItem, iconX, iconY);
+            graphics.renderFakeItem(targetItem, iconX, iconY);
             textX = PADDING + ITEM_SIZE + ITEM_TEXT_GAP;
         }
 
         // Quest name
-        graphics.text(mc.font, displayName, textX, textY, 0xFFFFFFFF, false);
+        graphics.drawString(mc.font, displayName, textX, textY, 0xFFFFFFFF, false);
 
         // "Complete!" badge
         if (event.completed() && showProgress) {
@@ -409,13 +408,13 @@ public class QuestProgressNotification {
             String completeText = "Complete!";
             int completeWidth = mc.font.width(completeText);
             int completeX = panelWidth - PADDING - completeWidth;
-            pose.pushMatrix();
-            pose.translate(completeX + completeWidth / 2f, textY + fontHeight / 2f);
-            pose.scale(flashScale, flashScale);
-            graphics.text(mc.font, completeText,
+            pose.pushPose();
+            pose.translate(completeX + completeWidth / 2f, textY + fontHeight / 2f, 0);
+            pose.scale(flashScale, flashScale, flashScale);
+            graphics.drawString(mc.font, completeText,
                     (int) (-completeWidth / 2f), (int) (-fontHeight / 2f),
                     0xFF55FF55, false);
-            pose.popMatrix();
+            pose.popPose();
         }
 
         // Progress bar + count label
@@ -430,10 +429,10 @@ public class QuestProgressNotification {
             int barWidth = (int) progressBar.getSize().x;
             int countX = barX + barWidth + BAR_COUNT_GAP;
             int countY = barY + (barHeight - fontHeight) / 2;
-            graphics.text(mc.font, countText, countX, countY, countColor, false);
+            graphics.drawString(mc.font, countText, countX, countY, countColor, false);
         }
 
-        pose.popMatrix();
+        pose.popPose();
     }
 
     // ---- Accessors ----

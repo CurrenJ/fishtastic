@@ -3,7 +3,7 @@ package grill24.fishtastic.client;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -301,7 +301,7 @@ public class QuestProgressNotificationManager {
     }
 
     /** Render all active notifications, stacked vertically top to bottom. Called from the platform HUD pipeline. */
-    public void render(GuiGraphicsExtractor graphics, float partialTick) {
+    public void render(GuiGraphics graphics, float partialTick) {
         if (active.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;

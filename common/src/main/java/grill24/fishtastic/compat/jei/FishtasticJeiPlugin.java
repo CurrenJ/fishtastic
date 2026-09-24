@@ -13,7 +13,7 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.gui.handlers.IGuiProperties;
 import mezz.jei.api.helpers.IGuiHelper;
-import mezz.jei.api.recipe.types.IRecipeType;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
@@ -39,8 +39,8 @@ public class FishtasticJeiPlugin implements IModPlugin {
      * static ingredient list), so JEI can't derive a display for it from the vanilla
      * crafting category automatically — it needs this dedicated category.
      */
-    public static final IRecipeType<MarineCompostRecipe> MARINE_COMPOSTING =
-            IRecipeType.create(Fishtastic.MOD_ID, "marine_composting", MarineCompostRecipe.class);
+    public static final RecipeType<MarineCompostRecipe> MARINE_COMPOSTING =
+            RecipeType.create(Fishtastic.MOD_ID, "marine_composting", MarineCompostRecipe.class);
 
     /**
      * {@code MarineCompostBlockEntity} ripens compost into worms purely by ticking (see its
@@ -48,8 +48,8 @@ public class FishtasticJeiPlugin implements IModPlugin {
      * this type is backed by the synthetic {@link MarineCompostRipeningRecipe} instead of a
      * real {@code Recipe} subclass.
      */
-    public static final IRecipeType<MarineCompostRipeningRecipe> MARINE_COMPOST_RIPENING =
-            IRecipeType.create(Fishtastic.MOD_ID, "marine_compost_ripening", MarineCompostRipeningRecipe.class);
+    public static final RecipeType<MarineCompostRipeningRecipe> MARINE_COMPOST_RIPENING =
+            RecipeType.create(Fishtastic.MOD_ID, "marine_compost_ripening", MarineCompostRipeningRecipe.class);
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -154,10 +154,10 @@ public class FishtasticJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
-        registration.addCraftingStation(MARINE_COMPOSTING, Items.CRAFTING_TABLE);
+        registration.addRecipeCatalyst(Items.CRAFTING_TABLE, MARINE_COMPOSTING);
 
         // Lets players looking up the marine compost item itself find "recipes it makes" ->
         // this category, in addition to it also surfacing under worms' "how do I make this".
-        registration.addCraftingStation(MARINE_COMPOST_RIPENING, FishtasticBlocks.MARINE_COMPOST.value());
+        registration.addRecipeCatalyst(FishtasticBlocks.MARINE_COMPOST.value(), MARINE_COMPOST_RIPENING);
     }
 }

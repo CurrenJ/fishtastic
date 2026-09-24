@@ -38,8 +38,7 @@ import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -213,19 +212,19 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         // Escape deselects the active fish (back to disc) before closing the screen.
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE && selectedFishKey != null && !closing) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && selectedFishKey != null && !closing) {
             goBackToDisc();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public void extractTransparentBackground(GuiGraphicsExtractor graphics) {
+    public void renderTransparentBackground(GuiGraphics graphics) {
         if (!closingScreen) {
-            super.extractTransparentBackground(graphics);
+            super.renderTransparentBackground(graphics);
             return;
         }
         float elapsed = (System.nanoTime() - closingAtNanos) / 1_000_000_000f;

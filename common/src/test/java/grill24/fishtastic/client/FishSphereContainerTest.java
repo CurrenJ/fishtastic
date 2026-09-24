@@ -8,6 +8,7 @@ import io.github.currenj.gelatinui.gui.UIEvent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.AbstractMap;
@@ -24,6 +25,18 @@ import static org.junit.jupiter.api.Assertions.*;
  * follows. No Minecraft client instance, GL context, or render call is ever touched.
  */
 public class FishSphereContainerTest {
+
+    /**
+     * PORT-ONLY (1.21.1): {@code ItemStack}'s static initializer reads {@code BuiltInRegistries.ITEM}
+     * (it builds the item codecs from the registry), so any test that touches an ItemStack needs the
+     * registries bootstrapped first. 26.1's ItemStack has no such dependency, so the 26.1 test needs
+     * no bootstrap.
+     */
+    @BeforeAll
+    static void bootstrapRegistries() {
+        net.minecraft.SharedConstants.tryDetectVersion();
+        net.minecraft.server.Bootstrap.bootStrap();
+    }
 
     private static ResourceKey<FishProfile> fishKey(String path) {
         return ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, Ids.of("fishtastic", path));
