@@ -1,6 +1,7 @@
 package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
@@ -326,7 +327,7 @@ public final class FishingMinigameManagerGameTests {
     private static ItemStack rodWithBaitEffect(BaitEffect effect) {
         ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
         ItemStack bait = new ItemStack(FishtasticItems.WORMS.value());
-        bait.set(FishtasticDataComponents.BAIT_EFFECT.value(), effect);
+        FishtasticItemData.set(bait, FishtasticDataComponents.BAIT_EFFECT, effect);
         CopperFishingRod.setBait(rod, bait);
         return rod;
     }

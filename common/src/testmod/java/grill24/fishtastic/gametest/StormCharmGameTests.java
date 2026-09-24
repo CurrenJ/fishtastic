@@ -1,5 +1,6 @@
 package grill24.fishtastic.gametest;
 
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.FishProfile;
@@ -41,11 +42,11 @@ public final class StormCharmGameTests {
     public static void stormCharmCarriesNoCharmEffect(GameTestHelper helper) {
         ItemStack storm = new ItemStack(FishtasticItems.STORM_CHARM.value());
         helper.assertTrue(
-                storm.get(grill24.fishtastic.FishtasticDataComponents.CHARM_EFFECT.value()) == null,
+                FishtasticItemData.get(storm, grill24.fishtastic.FishtasticDataComponents.CHARM_EFFECT) == null,
                 "Storm Charm must carry no CharmEffect — it fires and is consumed instead");
         helper.assertTrue(
-                new ItemStack(FishtasticItems.LUNA_CHARM.value())
-                        .get(grill24.fishtastic.FishtasticDataComponents.CHARM_EFFECT.value()) != null,
+                FishtasticItemData.get(new ItemStack(FishtasticItems.LUNA_CHARM.value()),
+                        grill24.fishtastic.FishtasticDataComponents.CHARM_EFFECT) != null,
                 "Luna Charm must still carry one, as the control for this test");
         helper.succeed();
     }

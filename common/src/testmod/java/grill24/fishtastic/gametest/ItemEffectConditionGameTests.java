@@ -1,6 +1,7 @@
 package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
@@ -50,7 +51,7 @@ public final class ItemEffectConditionGameTests {
      * regardless of its value.
      */
     public static void componentConditionMatchesPresenceOnly(GameTestHelper helper) {
-        Identifier itemSizeId = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(FishtasticDataComponents.ITEM_SIZE.value());
+        Identifier itemSizeId = FishtasticItemData.id(FishtasticDataComponents.ITEM_SIZE);
         ComponentCondition condition = new ComponentCondition(itemSizeId);
 
         ItemStack withoutComponent = new ItemStack(FishtasticItems.BLUEGILL.value());
@@ -58,7 +59,7 @@ public final class ItemEffectConditionGameTests {
             "Stack without the component must not match");
 
         ItemStack withComponent = new ItemStack(FishtasticItems.BLUEGILL.value());
-        withComponent.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(50f));
+        FishtasticItemData.set(withComponent, FishtasticDataComponents.ITEM_SIZE, new ItemSize(50f));
         helper.assertTrue(condition.matches(withComponent),
             "Stack with the component present must match, regardless of its value");
         helper.succeed();
@@ -69,12 +70,12 @@ public final class ItemEffectConditionGameTests {
      * encoded value — FishQuality's "quality" field is a good real-world fixture.
      */
     public static void componentValueConditionMatchesFieldValue(GameTestHelper helper) {
-        Identifier qualityId = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(FishtasticDataComponents.FISH_QUALITY.value());
+        Identifier qualityId = FishtasticItemData.id(FishtasticDataComponents.FISH_QUALITY);
         ComponentValueCondition matchingCondition = new ComponentValueCondition(qualityId, "quality", "rare");
         ComponentValueCondition nonMatchingCondition = new ComponentValueCondition(qualityId, "quality", "legendary");
 
         ItemStack stack = new ItemStack(FishtasticItems.BLUEGILL.value());
-        stack.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.RARE));
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.RARE));
 
         helper.assertTrue(matchingCondition.matches(stack),
             "Condition targeting the stack's actual quality value must match");

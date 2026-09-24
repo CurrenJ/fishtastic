@@ -1,6 +1,7 @@
 package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.FishQuality;
@@ -83,8 +84,8 @@ public final class ItemComponentGameTests {
      */
     public static void itemSizeComponentKey(GameTestHelper helper) {
         ItemStack stack = new ItemStack(FishtasticItems.BLUEGILL.value());
-        stack.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(123.4f));
-        ItemSize component = stack.get(FishtasticDataComponents.ITEM_SIZE.value());
+        FishtasticItemData.set(stack, FishtasticDataComponents.ITEM_SIZE, new ItemSize(123.4f));
+        ItemSize component = FishtasticItemData.get(stack, FishtasticDataComponents.ITEM_SIZE);
         helper.assertTrue(component != null, "Component must be present after set");
         helper.assertTrue(component.size() == 123.4f, "Component value must be 123.4, got " + component.size());
         helper.succeed();
@@ -198,9 +199,9 @@ public final class ItemComponentGameTests {
      */
     public static void baitEffectComponentRoundTrip(GameTestHelper helper) {
         ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
-        rod.set(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.GUMMY_WORMS);
+        FishtasticItemData.set(rod, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.GUMMY_WORMS);
 
-        BaitEffect read = rod.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect read = FishtasticItemData.get(rod, FishtasticDataComponents.BAIT_EFFECT);
         helper.assertTrue(read != null, "BaitEffect component must be present after set");
         helper.assertTrue(read.luckBonus() == BaitEffect.GUMMY_WORMS.luckBonus(),
             "luckBonus must survive component round-trip");
@@ -244,9 +245,9 @@ public final class ItemComponentGameTests {
     public static void baitEffectTrashChanceComponentRoundTrip(GameTestHelper helper) {
         BaitEffect custom = new BaitEffect(0f, 0.2f, 0.33f, 0, 1.0f, 0f, Optional.empty(), java.util.List.of());
         ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
-        rod.set(FishtasticDataComponents.BAIT_EFFECT.value(), custom);
+        FishtasticItemData.set(rod, FishtasticDataComponents.BAIT_EFFECT, custom);
 
-        BaitEffect read = rod.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect read = FishtasticItemData.get(rod, FishtasticDataComponents.BAIT_EFFECT);
         helper.assertTrue(read != null, "BaitEffect component must be present after set");
         helper.assertTrue(read.trashChance() == 0.33f,
             "trashChance must survive component round-trip, got " + read.trashChance());

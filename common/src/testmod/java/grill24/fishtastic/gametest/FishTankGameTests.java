@@ -2,6 +2,7 @@ package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.TankCapacity;
@@ -436,12 +437,12 @@ public final class FishTankGameTests {
         ItemStack drop = drops.getFirst();
         helper.assertTrue(drop.is(FishtasticBlocks.FISH_TANK.value().asItem()),
             "Drop must be a fish tank item, got " + drop);
-        helper.assertTrue(drop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()) == FishTankShape.ORNATE,
+        helper.assertTrue(FishtasticItemData.get(drop, FishtasticDataComponents.FISH_TANK_SHAPE) == FishTankShape.ORNATE,
             "Drop must carry the tank's ORNATE shape, got "
-                + drop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()));
-        helper.assertTrue(materials.equals(drop.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value())),
+                + FishtasticItemData.get(drop, FishtasticDataComponents.FISH_TANK_SHAPE));
+        helper.assertTrue(materials.equals(FishtasticItemData.get(drop, FishtasticDataComponents.FISH_TANK_MATERIALS)),
             "Drop must carry the tank's materials, got "
-                + drop.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value()));
+                + FishtasticItemData.get(drop, FishtasticDataComponents.FISH_TANK_MATERIALS));
         helper.succeed();
     }
 

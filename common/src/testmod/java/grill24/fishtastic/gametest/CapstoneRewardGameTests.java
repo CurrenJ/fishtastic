@@ -2,6 +2,7 @@ package grill24.fishtastic.gametest;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestReward;
@@ -122,7 +123,7 @@ public final class CapstoneRewardGameTests {
             // correspond to one of them.
             ItemStack fromShop = entry.reward().getFirst().toItemStack();
             FishTankShape expectedShape = entry.isTankShape()
-                    ? fromShop.get(FishtasticDataComponents.FISH_TANK_SHAPE.value())
+                    ? FishtasticItemData.get(fromShop, FishtasticDataComponents.FISH_TANK_SHAPE)
                     : null;
 
             for (ResourceKey<Quest> questKey : entry.unlockQuests()) {
@@ -143,11 +144,11 @@ public final class CapstoneRewardGameTests {
                         ? granted.stream()
                                 .map(QuestReward.RewardItem::toStack)
                                 .filter(stack -> stack.is(fromShop.getItem()))
-                                .map(stack -> stack.get(FishtasticDataComponents.FISH_TANK_SHAPE.value()))
+                                .map(stack -> FishtasticItemData.get(stack, FishtasticDataComponents.FISH_TANK_SHAPE))
                                 .anyMatch(shape -> shape == expectedShape)
                         : granted.stream()
                                 .map(QuestReward.RewardItem::toStack)
-                                .anyMatch(fromQuest -> ItemStack.isSameItemSameComponents(fromQuest, fromShop));
+                                .anyMatch(fromQuest -> FishtasticItemData.isSameItemSameData(fromQuest, fromShop));
                 if (!matched) {
                     failures.add(e.getKey().identifier() + ": sells " + fromShop + " but unlock quest "
                             + questKey.identifier() + " grants none of " + granted.stream()
@@ -205,7 +206,7 @@ public final class CapstoneRewardGameTests {
                 if (!stack.is(net.minecraft.world.item.Items.AIR)
                         && stack.getItem() == grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().asItem()) {
                     FishTankMaterials materials =
-                            stack.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value());
+                            FishtasticItemData.get(stack, FishtasticDataComponents.FISH_TANK_MATERIALS);
                     if (materials == null) {
                         failures.add(e.getKey().identifier() + ": grants a fish tank with no materials component");
                     } else {

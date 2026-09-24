@@ -1,6 +1,7 @@
 package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
@@ -51,15 +52,15 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(actual.getItem() == expected.getItem(), label + ": item must round-trip, expected " + expected.getItem() + " got " + actual.getItem());
         helper.assertTrue(actual.getCount() == expected.getCount(), label + ": count must round-trip, expected " + expected.getCount() + " got " + actual.getCount());
 
-        FishQuality expectedQuality = expected.get(FishtasticDataComponents.FISH_QUALITY.value());
-        FishQuality actualQuality = actual.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality expectedQuality = FishtasticItemData.get(expected, FishtasticDataComponents.FISH_QUALITY);
+        FishQuality actualQuality = FishtasticItemData.get(actual, FishtasticDataComponents.FISH_QUALITY);
         helper.assertTrue(
             (expectedQuality == null) == (actualQuality == null) && (expectedQuality == null || expectedQuality.equals(actualQuality)),
             label + ": FISH_QUALITY component must round-trip"
         );
 
-        ItemSize expectedSize = expected.get(FishtasticDataComponents.ITEM_SIZE.value());
-        ItemSize actualSize = actual.get(FishtasticDataComponents.ITEM_SIZE.value());
+        ItemSize expectedSize = FishtasticItemData.get(expected, FishtasticDataComponents.ITEM_SIZE);
+        ItemSize actualSize = FishtasticItemData.get(actual, FishtasticDataComponents.ITEM_SIZE);
         helper.assertTrue(
             (expectedSize == null) == (actualSize == null) && (expectedSize == null || expectedSize.equals(actualSize)),
             label + ": ITEM_SIZE component must round-trip"
@@ -72,8 +73,8 @@ public final class PacketRoundTripGameTests {
 
     public static void startFishingMinigamePacketRoundTrips(GameTestHelper helper) {
         ItemStack rewardFish = new ItemStack(FishtasticItems.BLUEGILL.value());
-        rewardFish.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.RARE));
-        rewardFish.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(18.5f));
+        FishtasticItemData.set(rewardFish, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.RARE));
+        FishtasticItemData.set(rewardFish, FishtasticDataComponents.ITEM_SIZE, new ItemSize(18.5f));
 
         PhaseRule phase = new PhaseRule(
             0f,
