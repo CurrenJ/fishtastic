@@ -2,6 +2,7 @@ package grill24.fishtastic.tutorial;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
@@ -192,8 +193,8 @@ public class TutorialManager {
      */
     public static StartFishingMinigamePacket.TargetData buildTutorialTarget(ServerPlayer player) {
         ItemStack fish = new ItemStack(FishtasticItems.BLUEGILL.value());
-        fish.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.COMMON));
-        fish.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(12.0f));
+        FishtasticItemData.set(fish, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.COMMON));
+        FishtasticItemData.set(fish, FishtasticDataComponents.ITEM_SIZE, new ItemSize(12.0f));
 
         List<PhaseRule> phases = List.of(new PhaseRule(
                 0f,

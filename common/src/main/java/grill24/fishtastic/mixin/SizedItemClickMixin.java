@@ -1,6 +1,7 @@
 package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import net.minecraft.core.component.DataComponents;
@@ -59,7 +60,7 @@ public class SizedItemClickMixin {
         return !s.isEmpty()
                 && s.getItem().canFitInsideContainerItems()
                 && (s.is(FishtasticItemTags.FISH)
-                    || s.has(FishtasticDataComponents.ITEM_SIZE.value()));
+                    || FishtasticItemData.has(s, FishtasticDataComponents.ITEM_SIZE));
     }
 }
 

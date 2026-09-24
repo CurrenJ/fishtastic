@@ -2,6 +2,7 @@ package grill24.fishtastic.item;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
@@ -87,13 +88,13 @@ public class FishtasticFishItem extends Item {
     @Override
     public Component getName(ItemStack stack) {
         Component base = super.getName(stack);
-        if (stack.get(FishtasticDataComponents.BAIT_EFFECT.value()) != null) {
+        if (FishtasticItemData.get(stack, FishtasticDataComponents.BAIT_EFFECT) != null) {
             return Component.empty().append(base).append(Component.translatable(baitNameSuffixKey(stack)).withStyle(baitLabelColor(stack)));
         }
-        if (stack.get(FishtasticDataComponents.CHARM_EFFECT.value()) != null) {
+        if (FishtasticItemData.get(stack, FishtasticDataComponents.CHARM_EFFECT) != null) {
             return Component.empty().append(base).append(Component.translatable("item.fishtastic.charm_name_suffix").withStyle(ChatFormatting.GRAY));
         }
-        if (stack.get(FishtasticDataComponents.HOOK_EFFECT.value()) != null) {
+        if (FishtasticItemData.get(stack, FishtasticDataComponents.HOOK_EFFECT) != null) {
             return Component.empty().append(base).append(Component.translatable("item.fishtastic.hook_name_suffix").withStyle(ChatFormatting.GRAY));
         }
         return base;
@@ -129,11 +130,11 @@ public class FishtasticFishItem extends Item {
         if (baitEffect != null) {
             baitEffect.tooltipLines().forEach(builder);
         }
-        HookEffect hookEffect = stack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+        HookEffect hookEffect = FishtasticItemData.get(stack, FishtasticDataComponents.HOOK_EFFECT);
         if (hookEffect != null) {
             hookEffect.tooltipLines().forEach(builder);
         }
-        CharmEffect charmEffect = stack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        CharmEffect charmEffect = FishtasticItemData.get(stack, FishtasticDataComponents.CHARM_EFFECT);
         if (charmEffect != null) {
             charmEffect.tooltipLines().forEach(builder);
         }

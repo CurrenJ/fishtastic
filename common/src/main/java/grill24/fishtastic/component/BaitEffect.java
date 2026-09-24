@@ -3,6 +3,7 @@ package grill24.fishtastic.component;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.util.Utility;
 import io.netty.buffer.ByteBuf;
@@ -198,9 +199,9 @@ public record BaitEffect(
     @Nullable
     public static BaitEffect fromStack(ItemStack stack) {
         if (stack.isEmpty()) return null;
-        BaitEffect base = stack.get(FishtasticDataComponents.BAIT_EFFECT.value());
+        BaitEffect base = FishtasticItemData.get(stack, FishtasticDataComponents.BAIT_EFFECT);
         if (base == null) return null;
-        FishQuality fishQuality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality fishQuality = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_QUALITY);
         return fishQuality != null ? base.scaledByQuality(fishQuality.quality()) : base;
     }
 

@@ -2,6 +2,7 @@ package grill24.fishtastic.server;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
@@ -77,7 +78,7 @@ public final class FishingXpAward {
      * the rarity term — a legendary common fish and a common rare fish stay distinguishable.
      */
     private static float qualityMultiplier(ItemStack stack) {
-        FishQuality quality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality quality = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_QUALITY);
         if (quality == null) {
             return 1.0f;
         }

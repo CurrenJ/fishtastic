@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.fishtank.FishTankShape;
 import net.minecraft.commands.CommandSourceStack;
@@ -68,7 +69,7 @@ public class SetTankShapeCommand {
                 return 0;
             }
 
-            heldItem.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
+            FishtasticItemData.set(heldItem, FishtasticDataComponents.FISH_TANK_SHAPE, shape);
 
             FishTankShape finalShape = shape;
             source.sendSuccess(() -> Component.literal("Set fish tank shape to " + finalShape.getSerializedName()), true);

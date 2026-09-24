@@ -1,6 +1,7 @@
 package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
@@ -40,7 +41,7 @@ public class PileOfFishItem extends BundleItem {
         return !stack.isEmpty()
                 && stack.getItem().canFitInsideContainerItems()
                 && (stack.is(FishtasticItemTags.FISH)
-                    || stack.has(FishtasticDataComponents.ITEM_SIZE.value()));
+                    || FishtasticItemData.has(stack, FishtasticDataComponents.ITEM_SIZE));
     }
 
     // --- Fish tank interaction ---

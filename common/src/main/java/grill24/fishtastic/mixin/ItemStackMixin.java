@@ -1,6 +1,7 @@
 package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -31,19 +32,19 @@ public abstract class ItemStackMixin {
             List<Component> tooltipLines = cir.getReturnValue();
 
             // Append item size information to the tooltip.
-            ItemSize sizeProvider = itemStack.get(FishtasticDataComponents.ITEM_SIZE.value());
+            ItemSize sizeProvider = FishtasticItemData.get(itemStack, FishtasticDataComponents.ITEM_SIZE);
             if (sizeProvider != null) {
                 sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
 
             // Append fish quality information to the tooltip.
-            FishQuality qualityProvider = itemStack.get(FishtasticDataComponents.FISH_QUALITY.value());
+            FishQuality qualityProvider = FishtasticItemData.get(itemStack, FishtasticDataComponents.FISH_QUALITY);
             if (qualityProvider != null) {
                 qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
 
             // Append the fish tank's shape name to the tooltip.
-            FishTankShape shape = itemStack.get(FishtasticDataComponents.FISH_TANK_SHAPE.value());
+            FishTankShape shape = FishtasticItemData.get(itemStack, FishtasticDataComponents.FISH_TANK_SHAPE);
             if (shape != null) {
                 shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }

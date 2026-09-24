@@ -4,6 +4,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -201,8 +202,8 @@ public class ShapeGalleryPanel {
     /** A fish tank stack carrying the two components the item model renders from. */
     private static ItemStack previewStack(FishTankShape shape, FishTankMaterials materials) {
         ItemStack stack = new ItemStack(FishtasticBlocks.FISH_TANK.value());
-        stack.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), materials);
-        stack.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_TANK_MATERIALS, materials);
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_TANK_SHAPE, shape);
         return stack;
     }
 }

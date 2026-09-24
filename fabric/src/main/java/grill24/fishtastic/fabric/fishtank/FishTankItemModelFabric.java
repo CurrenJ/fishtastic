@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric.fishtank;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.component.FishTankMaterials;
@@ -71,8 +72,8 @@ public class FishTankItemModelFabric implements ItemModel {
     @Override
     public void update(ItemStackRenderState output, ItemStack item, ItemModelResolver resolver,
                         ItemDisplayContext displayContext, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
-        FishTankShape shape = item.getOrDefault(FishtasticDataComponents.FISH_TANK_SHAPE.value(), FishTankShape.STANDARD);
-        FishTankMaterials materials = item.getOrDefault(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), FishTankMaterials.defaultMaterials());
+        FishTankShape shape = FishtasticItemData.getOrDefault(item, FishtasticDataComponents.FISH_TANK_SHAPE, FishTankShape.STANDARD);
+        FishTankMaterials materials = FishtasticItemData.getOrDefault(item, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials());
         output.appendModelIdentityElement(this);
         output.appendModelIdentityElement(materials);
         output.appendModelIdentityElement(shape);

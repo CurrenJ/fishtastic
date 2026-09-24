@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
@@ -61,7 +62,7 @@ public class FishingMinigameClientHandler {
 
         // Apply charm input-force bonus if the player has one equipped
         if (!charm.isEmpty()) {
-            CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
+            CharmEffect charmEffect = FishtasticItemData.get(charm, FishtasticDataComponents.CHARM_EFFECT);
             if (charmEffect != null) {
                 animation.setInputForceMultiplier(charmEffect.inputForceMultiplier());
             }

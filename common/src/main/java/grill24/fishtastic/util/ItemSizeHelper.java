@@ -1,6 +1,7 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.ItemSize;
 import net.minecraft.world.item.ItemStack;
 
@@ -16,7 +17,7 @@ public class ItemSizeHelper {
      */
     public static ItemStack setSize(ItemStack stack, float size) {
         if (!stack.isEmpty() && size > 0) {
-            stack.set(FishtasticDataComponents.ITEM_SIZE.value(), new ItemSize(size));
+            FishtasticItemData.set(stack, FishtasticDataComponents.ITEM_SIZE, new ItemSize(size));
         }
         return stack;
     }
@@ -30,7 +31,7 @@ public class ItemSizeHelper {
         if (stack.isEmpty()) {
             return 0.0f;
         }
-        ItemSize itemSize = stack.get(FishtasticDataComponents.ITEM_SIZE.value());
+        ItemSize itemSize = FishtasticItemData.get(stack, FishtasticDataComponents.ITEM_SIZE);
         return itemSize != null ? itemSize.size() : 0.0f;
     }
 
@@ -40,7 +41,7 @@ public class ItemSizeHelper {
      * @return true if the stack has size data, false otherwise
      */
     public static boolean hasSize(ItemStack stack) {
-        return !stack.isEmpty() && stack.has(FishtasticDataComponents.ITEM_SIZE.value());
+        return !stack.isEmpty() && FishtasticItemData.has(stack, FishtasticDataComponents.ITEM_SIZE);
     }
 
     /**
@@ -50,7 +51,7 @@ public class ItemSizeHelper {
      */
     public static ItemStack removeSize(ItemStack stack) {
         if (!stack.isEmpty()) {
-            stack.remove(FishtasticDataComponents.ITEM_SIZE.value());
+            FishtasticItemData.remove(stack, FishtasticDataComponents.ITEM_SIZE);
         }
         return stack;
     }

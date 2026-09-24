@@ -2,6 +2,7 @@ package grill24.fishtastic.menu;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
@@ -214,8 +215,8 @@ public class FishTankAssemblyMenu extends GelatinMenu {
                 && isValidMaterial(glassItem.getBlock(), "glass")) {
             FishTankMaterials materials = new FishTankMaterials(frameItem.getBlock(), sandBlock, glassItem.getBlock());
             result = new ItemStack(FishtasticBlocks.FISH_TANK.value());
-            result.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), materials);
-            result.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), getShape());
+            FishtasticItemData.set(result, FishtasticDataComponents.FISH_TANK_MATERIALS, materials);
+            FishtasticItemData.set(result, FishtasticDataComponents.FISH_TANK_SHAPE, getShape());
         }
         resultContainer.setItem(0, result);
         broadcastChanges();

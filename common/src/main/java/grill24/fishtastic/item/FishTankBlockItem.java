@@ -1,6 +1,7 @@
 package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
 import grill24.fishtastic.component.FishTankMaterials;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -23,7 +24,7 @@ public class FishTankBlockItem extends BlockItem {
 
     @Override
     public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
-        FishTankMaterials materials = stack.get(FishtasticDataComponents.FISH_TANK_MATERIALS.value());
+        FishTankMaterials materials = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_TANK_MATERIALS);
         return materials == null ? Optional.empty() : Optional.of(FishTankMaterialsTooltip.of(materials));
     }
 }

@@ -2,6 +2,7 @@ package grill24.fishtastic.item;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
@@ -67,11 +68,11 @@ public class FishopediaItem extends Item {
         if (!(entity instanceof ServerPlayer player)) return;
 
         boolean alert = hasUnclaimedReward(level.getServer(), player);
-        if (stack.has(FishtasticDataComponents.HAS_ALERT.value()) != alert) {
+        if (FishtasticItemData.has(stack, FishtasticDataComponents.HAS_ALERT) != alert) {
             if (alert) {
-                stack.set(FishtasticDataComponents.HAS_ALERT.value(), Unit.INSTANCE);
+                FishtasticItemData.set(stack, FishtasticDataComponents.HAS_ALERT, Unit.INSTANCE);
             } else {
-                stack.remove(FishtasticDataComponents.HAS_ALERT.value());
+                FishtasticItemData.remove(stack, FishtasticDataComponents.HAS_ALERT);
             }
         }
     }

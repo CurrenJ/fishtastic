@@ -4,6 +4,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
@@ -240,7 +241,7 @@ public class FishingMinigameManager {
         ItemStack bait = CopperFishingRod.getBait(rod);
         BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
         ItemStack hookStack = CopperFishingRod.getHook(rod);
-        HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+        HookEffect hookEffect = hookStack.isEmpty() ? null : FishtasticItemData.get(hookStack, FishtasticDataComponents.HOOK_EFFECT);
         ItemStack charmStack = CopperFishingRod.getCharm(rod);
 
         // A Storm Charm sitting in the charm slot fires on the cast and is consumed. It carries no
@@ -254,7 +255,7 @@ public class FishingMinigameManager {
             charmStack = CopperFishingRod.getCharm(rod);
         }
 
-        CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        CharmEffect charmEffect = charmStack.isEmpty() ? null : FishtasticItemData.get(charmStack, FishtasticDataComponents.CHARM_EFFECT);
 
         // Decided now, once, rather than at completion — see ActiveSession#baitWillBeSaved.
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, charmEffect);
@@ -336,7 +337,7 @@ public class FishingMinigameManager {
 
         ItemStack tutorialRod = findFishtasticRod(player);
         ItemStack tutorialCharmStack = tutorialRod.isEmpty() ? ItemStack.EMPTY : CopperFishingRod.getCharm(tutorialRod);
-        CharmEffect tutorialCharmEffect = tutorialCharmStack.isEmpty() ? null : tutorialCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        CharmEffect tutorialCharmEffect = tutorialCharmStack.isEmpty() ? null : FishtasticItemData.get(tutorialCharmStack, FishtasticDataComponents.CHARM_EFFECT);
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, tutorialCharmEffect);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
@@ -374,7 +375,7 @@ public class FishingMinigameManager {
         Registry<FishProfile> xpFishProfiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
-        CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : deliveryCharmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : FishtasticItemData.get(deliveryCharmStack, FishtasticDataComponents.CHARM_EFFECT);
         boolean autoPileFish = (deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish())
                 || hasCharmEffectInInventory(player, CharmEffect::autoPileFish);
 
@@ -536,9 +537,9 @@ public class FishingMinigameManager {
             ItemStack bait = CopperFishingRod.getBait(rod);
             BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
             ItemStack hookStack = CopperFishingRod.getHook(rod);
-            HookEffect hookEffect = hookStack.isEmpty() ? null : hookStack.get(FishtasticDataComponents.HOOK_EFFECT.value());
+            HookEffect hookEffect = hookStack.isEmpty() ? null : FishtasticItemData.get(hookStack, FishtasticDataComponents.HOOK_EFFECT);
             ItemStack charmStack = CopperFishingRod.getCharm(rod);
-            CharmEffect charmEffect = charmStack.isEmpty() ? null : charmStack.get(FishtasticDataComponents.CHARM_EFFECT.value());
+            CharmEffect charmEffect = charmStack.isEmpty() ? null : FishtasticItemData.get(charmStack, FishtasticDataComponents.CHARM_EFFECT);
 
             List<ServerFishingTarget> targets = generateTargetsForOrigin(
                     player, originPos, null, 0.0f, difficultyModifier, baitEffect, hookEffect, charmEffect);
@@ -904,7 +905,7 @@ public class FishingMinigameManager {
         for (int n = 0; n < numRewards; n++) {
             for (ItemStack stack : lootTable.getRandomItems(lootParams)) {
                 ItemStack reward = stack.copy();
-                reward.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
+                FishtasticItemData.set(reward, FishtasticDataComponents.FISH_QUALITY, new FishQuality(quality));
                 rewardStacks.add(reward);
             }
         }
@@ -926,9 +927,9 @@ public class FishingMinigameManager {
         FishTankShape shape = shapes[randomSource.nextInt(shapes.length)];
 
         ItemStack tank = new ItemStack(FishtasticBlocks.FISH_TANK.value(), LEGENDARY_TANK_COUNT);
-        tank.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), new FishTankMaterials(frame, sand, glass));
-        tank.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
-        tank.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(FishQuality.Quality.LEGENDARY));
+        FishtasticItemData.set(tank, FishtasticDataComponents.FISH_TANK_MATERIALS, new FishTankMaterials(frame, sand, glass));
+        FishtasticItemData.set(tank, FishtasticDataComponents.FISH_TANK_SHAPE, shape);
+        FishtasticItemData.set(tank, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
         return tank;
     }
 
@@ -1047,7 +1048,7 @@ public class FishingMinigameManager {
     private static int findCharmSlotInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
         Inventory inventory = player.getInventory();
         for (int i = 0; i < inventory.getContainerSize(); i++) {
-            CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
+            CharmEffect effect = FishtasticItemData.get(inventory.getItem(i), FishtasticDataComponents.CHARM_EFFECT);
             if (effect != null && predicate.test(effect)) {
                 return i;
             }
@@ -1065,7 +1066,7 @@ public class FishingMinigameManager {
         Inventory inventory = player.getInventory();
         float total = 0.0f;
         for (int i = 0; i < inventory.getContainerSize() && total < cap; i++) {
-            CharmEffect effect = inventory.getItem(i).get(FishtasticDataComponents.CHARM_EFFECT.value());
+            CharmEffect effect = FishtasticItemData.get(inventory.getItem(i), FishtasticDataComponents.CHARM_EFFECT);
             if (effect != null) {
                 total += (float) extractor.applyAsDouble(effect);
             }
@@ -1135,7 +1136,7 @@ public class FishingMinigameManager {
     private static float inventoryBaitSaveChance(ServerPlayer player) {
         int slot = findCharmSlotInInventory(player, effect -> effect.baitSaveChance() > 0.0f);
         if (slot < 0) return 0.0f;
-        CharmEffect effect = player.getInventory().getItem(slot).get(FishtasticDataComponents.CHARM_EFFECT.value());
+        CharmEffect effect = FishtasticItemData.get(player.getInventory().getItem(slot), FishtasticDataComponents.CHARM_EFFECT);
         return effect == null ? 0.0f : effect.baitSaveChance();
     }
 

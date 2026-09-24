@@ -1,6 +1,7 @@
 package grill24.fishtastic.item;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.client.tooltip.RodGearTooltip;
@@ -233,7 +234,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         if (!hook.isEmpty()) {
             builder.accept(Component.literal(hook.getHoverName().getString())
                     .withStyle(ChatFormatting.YELLOW, ChatFormatting.UNDERLINE));
-            HookEffect hookEffect = hook.get(FishtasticDataComponents.HOOK_EFFECT.value());
+            HookEffect hookEffect = FishtasticItemData.get(hook, FishtasticDataComponents.HOOK_EFFECT);
             if (hookEffect != null) {
                 hookEffect.tooltipLines().forEach(builder);
             }
@@ -244,7 +245,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         if (!charm.isEmpty()) {
             builder.accept(Component.literal(charm.getHoverName().getString())
                     .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.UNDERLINE));
-            CharmEffect charmEffect = charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
+            CharmEffect charmEffect = FishtasticItemData.get(charm, FishtasticDataComponents.CHARM_EFFECT);
             if (charmEffect != null) {
                 charmEffect.tooltipLines().forEach(builder);
             }
@@ -272,27 +273,27 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
     }
 
     public static ItemStack getBait(ItemStack rod) {
-        return rod.getOrDefault(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY).copyStack();
+        return FishtasticItemData.getOrDefault(rod, FishtasticDataComponents.ROD_BAIT_CONTENTS, RodBaitContents.EMPTY).copyStack();
     }
 
     public static void setBait(ItemStack rod, ItemStack bait) {
-        rod.set(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), new RodBaitContents(bait));
+        FishtasticItemData.set(rod, FishtasticDataComponents.ROD_BAIT_CONTENTS, new RodBaitContents(bait));
     }
 
     public static ItemStack getHook(ItemStack rod) {
-        return rod.getOrDefault(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY).copyStack();
+        return FishtasticItemData.getOrDefault(rod, FishtasticDataComponents.ROD_HOOK_CONTENTS, RodHookContents.EMPTY).copyStack();
     }
 
     public static void setHook(ItemStack rod, ItemStack hook) {
-        rod.set(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), new RodHookContents(hook));
+        FishtasticItemData.set(rod, FishtasticDataComponents.ROD_HOOK_CONTENTS, new RodHookContents(hook));
     }
 
     public static ItemStack getCharm(ItemStack rod) {
-        return rod.getOrDefault(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY).copyStack();
+        return FishtasticItemData.getOrDefault(rod, FishtasticDataComponents.ROD_CHARM_CONTENTS, RodCharmContents.EMPTY).copyStack();
     }
 
     public static void setCharm(ItemStack rod, ItemStack charm) {
-        rod.set(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), new RodCharmContents(charm));
+        FishtasticItemData.set(rod, FishtasticDataComponents.ROD_CHARM_CONTENTS, new RodCharmContents(charm));
     }
 
     private static void broadcastContainerChanges(Player player) {

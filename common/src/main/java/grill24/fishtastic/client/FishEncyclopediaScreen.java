@@ -3,6 +3,7 @@ package grill24.fishtastic.client;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
@@ -844,7 +845,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) return null;
         ItemStack charm = CopperFishingRod.getCharm(rod);
         if (charm.isEmpty()) return null;
-        return charm.get(FishtasticDataComponents.CHARM_EFFECT.value());
+        return FishtasticItemData.get(charm, FishtasticDataComponents.CHARM_EFFECT);
     }
 
     private static boolean isWeatherWeightMet(FishProfile.WeatherWeight ww) {

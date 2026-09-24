@@ -1,6 +1,7 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.MovementParams;
@@ -1013,9 +1014,9 @@ public class FishingTarget {
                 case TREASURE -> FishtasticItems.REWARD_CHEST;
             });
             if (showRarityOutline && !rewardItems.isEmpty()) {
-                FishQuality quality = rewardItems.get(0).get(FishtasticDataComponents.FISH_QUALITY.value());
+                FishQuality quality = FishtasticItemData.get(rewardItems.get(0), FishtasticDataComponents.FISH_QUALITY);
                 if (quality != null) {
-                    display.set(FishtasticDataComponents.FISH_QUALITY.value(), quality);
+                    FishtasticItemData.set(display, FishtasticDataComponents.FISH_QUALITY, quality);
                 }
             }
             return display;

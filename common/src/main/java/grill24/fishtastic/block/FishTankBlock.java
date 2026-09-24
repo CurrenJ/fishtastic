@@ -2,6 +2,7 @@ package grill24.fishtastic.block;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockTags;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.data.TankCapacity;
@@ -81,8 +82,8 @@ public class FishTankBlock extends Block implements EntityBlock {
         // FishTankBlockEntity#saveCustomOnly.
         ItemStack stack = super.getCloneItemStack(level, pos, state, includeData);
         if (level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
-            stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS.value(), fishTank.getMaterials());
-            stack.set(grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE.value(), fishTank.getShape());
+            FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS, fishTank.getMaterials());
+            FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE, fishTank.getShape());
         }
         return stack;
     }

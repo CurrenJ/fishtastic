@@ -1,6 +1,7 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ public class FishQualityHelper {
      */
     public static void setQuality(ItemStack stack, FishQuality.Quality quality) {
         if (!stack.isEmpty()) {
-            stack.set(FishtasticDataComponents.FISH_QUALITY.value(), new FishQuality(quality));
+            FishtasticItemData.set(stack, FishtasticDataComponents.FISH_QUALITY, new FishQuality(quality));
         }
     }
 
@@ -32,7 +33,7 @@ public class FishQualityHelper {
             return null;
         }
 
-        FishQuality fishQuality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality fishQuality = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_QUALITY);
         return fishQuality != null ? fishQuality.quality() : null;
     }
 
@@ -61,7 +62,7 @@ public class FishQualityHelper {
      * @return True if the stack has a quality component
      */
     public static boolean hasQuality(ItemStack stack) {
-        return !stack.isEmpty() && stack.has(FishtasticDataComponents.FISH_QUALITY.value());
+        return !stack.isEmpty() && FishtasticItemData.has(stack, FishtasticDataComponents.FISH_QUALITY);
     }
 
     /**
@@ -70,7 +71,7 @@ public class FishQualityHelper {
      */
     public static void removeQuality(ItemStack stack) {
         if (!stack.isEmpty()) {
-            stack.remove(FishtasticDataComponents.FISH_QUALITY.value());
+            FishtasticItemData.remove(stack, FishtasticDataComponents.FISH_QUALITY);
         }
     }
 
@@ -80,7 +81,7 @@ public class FishQualityHelper {
      * @return True if the fish should have visual effects
      */
     public static boolean shouldRenderEffect(ItemStack stack) {
-        FishQuality fishQuality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality fishQuality = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_QUALITY);
         return fishQuality != null && fishQuality.shouldRenderEffect();
     }
 
@@ -90,7 +91,7 @@ public class FishQualityHelper {
      * @return Effect intensity (0.0 to 1.0), or 0.0 if no quality set
      */
     public static float getEffectIntensity(ItemStack stack) {
-        FishQuality fishQuality = stack.get(FishtasticDataComponents.FISH_QUALITY.value());
+        FishQuality fishQuality = FishtasticItemData.get(stack, FishtasticDataComponents.FISH_QUALITY);
         return fishQuality != null ? fishQuality.getEffectIntensity() : 0.0f;
     }
 }
