@@ -1,8 +1,8 @@
 # Backport Plan: Fishtastic 2.0 → MC 1.21.1 and MC 1.20.1
 
-> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. All decisions D1–D7 settled (§10). S3 and S1 landed on `26.1.2` (A0.3 baseline below). Next: pass 2 (§12).
-> **Pass 2** will turn each phase below into a step-by-step implementation plan. Work item IDs
-> (`A1.3`, `B2.1`, …) are stable so pass 2 can refer to them.
+> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. Decisions D1–D7 settled; D8–D11 open (§10). S3 and S1 landed on `26.1.2` (A0.3 baseline below).
+> **Pass 2 is written (2026-09-24): [`backport-pass2/`](backport-pass2/README.md).** It has one file per track, the A5 rendering design notes, and the tracked [checklist](backport-pass2/checklist.md) with the per-branch "ported through" markers. Pass 2 corrects a few pass 1 statements. They're marked *(pass 2)* inline below, and the full list is in `backport-pass2/README.md` §"What pass 2 changed in pass 1".
+> Work item IDs (`A1.3`, `B2.1`, …) are stable, and pass 2 uses them.
 > **Baseline (A0.3, frozen 2026-09-24):** branch `26.1.2` @ `298279e1` (Fishtastic 2.0.1 + seams S3 and S1, MC 26.1.2). Pass 1 surveyed `7076aeb6`, its parent before the seams.
 
 ---
@@ -182,7 +182,7 @@ Approach: create `mc-1.21.1` from `26.1.2` HEAD. Restore the 1.21.1 build scaffo
 
 ### A2: Core and server logic (gate: `:common` compiles with client rendering excluded, unit tests pass)
 Mostly mechanical. The migration commit (`06329830`) covers most of the patterns:
-- **A2.1** `Identifier` → `ResourceLocation` and the other 1.21.11 "rename shuffle" names (e.g. `Util` package moves). `Level#isClientSide()` → the field. Undo the permission-overhaul changes in commands. Undo `Item.Properties#setId` and `BlockBehaviour.Properties#setId` (1.21.2).
+- **A2.1** `Identifier` → `ResourceLocation` and the other 1.21.11 "rename shuffle" names (e.g. `Util` package moves). ~~`Level#isClientSide()` → the field.~~ *(pass 2: the method exists on 1.21.1 too, so there's no change.)* Undo the permission-overhaul changes in commands. Undo `Item.Properties#setId` and `BlockBehaviour.Properties#setId` (1.21.2).
 - **A2.2** Registration through `IRegistrationApi` on both loaders. Datapack registries (8 of them) through `DataPackRegistryEvent` on NeoForge and `DynamicRegistries` on Fabric. The folder layout (`data/<ns>/fishtastic/<registry>`) matches 1.21.1 already.
 - **A2.3** Block entities: `ValueInput`/`ValueOutput` → `load`/`saveAdditional(CompoundTag, HolderLookup.Provider)`. BE removal handling (1.21.5). Container and inventory BEs.
 - **A2.4** `SavedData`: `SavedDataType` + codec → `SavedData.Factory` + codec-through-`NbtOps` (`FishCatchSavedData`, backups, quest state, leaderboards). Check the tiered-backup and restore commands.
@@ -241,7 +241,7 @@ Because 1.20.1 inherits the 1.21.1 renderer (§5), **this one spike de-risks bot
 Each item is a re-implementation on the immediate-mode API, not a port.
 - **A5.1 Fish tank BER** (`FishTankBlockEntityRenderer`, 1k lines, plus `TankFlockAdapter`, `FishAnimator`, `TankBubbleEmitter`). The render-state extraction and submit pipeline goes back to direct `render(BE, partialTick, PoseStack, MultiBufferSource, …)`. Keep the fishsim-driven animation logic. Only the output side changes.
 - **A5.2 Fish tank dynamic block models** (fabric `FishTank*Fabric` ×5, neoforge `FishTank*` ×8). `BlockStateModel` goes back to `BakedModel` + FRAPI `emitBlockQuads` on Fabric and to `IDynamicBakedModel` + `ModelData` on NeoForge. The shared `client/compositemodel` utilities should mostly survive. Re-check `docs/fish-tank-rendering.md` for pitfalls that are specific to 26.1.
-- **A5.3 Custom item rendering.** `CosmeticStructureItemModel`, `FishPileBlockItemModel`, `PileOfFishItemModel` and the fish-tank item model become BEWLR (`BlockEntityWithoutLevelRenderer`) or baked-model overrides. Replace the item-size scaling hooks (`ItemStackRenderState`/`ItemModelResolver` mixins) with `ItemRenderer`-level hooks. The `44064cc5` `ItemRendererMixin` shows the 1.21.1 approach.
+- **A5.3 Custom item rendering.** `CosmeticStructureItemModel`, `FishPileBlockItemModel`, `PileOfFishItemModel` and the fish-tank item model become BEWLR (`BlockEntityWithoutLevelRenderer`) or baked-model overrides. Replace the item-size scaling hooks (`ItemStackRenderState`/`ItemModelResolver` mixins) with `ItemRenderer`-level hooks. *(pass 2: those two mixins are the glint side channel, not size scaling. Size scaling lives in the tank BER, `HumanoidModelMixin` and the held-item mixins; see A5.3/A5.6.)* The `44064cc5` `ItemRendererMixin` shows the 1.21.1 approach.
 - **A5.4 Item effects: glint, GUI outline, world outline** (`docs/item-effect-rendering.md`). This is the highest-risk item. `RenderPipeline` + UBO params go back to a `ShaderInstance` per effect with uniforms. The GUI outline path goes back to hooking `GuiGraphics.renderItem`, not the `GuiRenderer` render-state pipeline. `FishtasticItemOutlineAtlas` needs a check against the 1.21.1 texture and atlas API. Port the 12 shader files to GLSL 150 core with JSON program definitions, and register them (NeoForge `RegisterShadersEvent`, Fabric `CoreShaderRegistrationCallback`).
 - **A5.5 Particles** (9 classes). `SingleQuadParticle` and the 26.1 render types go back to `TextureSheetParticle` and `ParticleRenderType`.
 - **A5.6 Entity and held-item hooks.** Fishing line and bobber (`FishingHookRendererMixin`), fisherman pose (`HumanoidModelMixin`), and held item (`ItemInHandLayerMixin`, `ItemInHandRendererMixin`). Move from render-state fields to direct entity access.
@@ -326,7 +326,7 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 - **B5.1** `ResourceLocation.fromNamespaceAndPath` → `new ResourceLocation(...)`. `SavedData.Factory` → `computeIfAbsent(load, create, name)`. BE NBT without `HolderLookup.Provider`.
 - **B5.2** Rendering: the `VertexConsumer` builder API (1.21 `addVertex`/`setColor` → 1.20.1 `vertex().color()…endVertex()`) in the BER, the outline renderers and the particles. Check shader and `RenderType` state names.
 - **B5.3** Loader API differences: Forge events versus NeoForge events (event bus names, `IDynamicBakedModel`, `ModelData`, client setup), Forge `ForgeConfigSpec`, and Forge menu opening.
-- **B5.4** Fishing: 1.20.1 hardcoded enchantment helpers (`getFishingLuckBonus(stack)`) and loot context params.
+- **B5.4** ~~Fishing: 1.20.1 hardcoded enchantment helpers (`getFishingLuckBonus(stack)`) and loot context params.~~ *(pass 2: dropped. The tree never calls `EnchantmentHelper`; luck and lure come in through `FishingHook`.)*
 - **B5.5** Creative tabs, `Item.Properties` (no `component(...)`), and the `FoodProperties` builder if any fish item uses it.
 
 ### B6: Gametests, verification, release (gate G3)
@@ -345,6 +345,10 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Decided: not supported.** An accepted limitation, to be stated in the release notes. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
 | **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
+| **D8** | *(pass 2)* Sunset Postcard on the backports: full parity through tickTime mixins + rate sync, or a server-only rate (the sun visibly jumps)? | **Open.** Recommendation: full parity (about 60 lines + 2 mixins). See `backport-pass2/README.md`. |
+| **D9** | *(pass 2)* Land seams S5 (Java 17 calls) and S6 (`FishMoonPhase`, permission helper) on `26.1.2` before track A? | **Open.** Recommendation: yes. Each is under an hour and removes a permanent per-branch diff. |
+| **D10** | *(pass 2)* One shared gametest harness class for all loaders? | **Open.** Recommendation: yes. It removes ~2,100 duplicated lines and the 256/263 drift. |
+| **D11** | *(pass 2)* Architectury Loom 1.17 + Gradle 9.5 on the port branches (as potions-plus mc-1.21.1)? | **Open.** Recommendation: yes. The fallback is Loom 1.11 / Gradle 8.14 (the spike and the 1.20.1 source project). |
 | **D6** | Versioning and release cadence | **Decided.** Goal set by the owner: identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. Decided: format `2.x.y+<mc>`. |
 
 ---
@@ -357,15 +361,20 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | R2 | The **tank dynamic model** relies on 26.1 `BlockStateModel` semantics, including the fragment-loader contract and diagonal connections. | The 1.21.1 ancestor had a working `BakedModel` tank (simpler at the time). `docs/fish-tank-rendering.md` lists the per-platform pitfalls. |
 | R3 | gelatin-ui catch-up is larger than expected, because the 34 commits include render-state-coupled features. | Start P1 immediately. It's the only item on the critical path from day one. |
 | R4 | **Visual regressions** can't be caught headlessly. Swarm feel, render calibration, squash-and-stretch and bubbles were all accepted in game on 26.1.2. | Keep fishsim byte-identical (S3), so behaviour stays the same and only presentation can drift. Use the `:fishsim` headless export and viewer to check behaviour parity. Only presentation needs the owner's in-game check. |
-| R5 | Datapack registry folder layout on 1.20.1 differs by loader. | Verify it in B4.1 before regenerating data. |
+| R5 | ~~Datapack registry folder layout on 1.20.1 differs by loader.~~ | **Retired by pass 2.** Every loader we ship namespace-prefixes modded registry directories (NeoForge 21.1, Forge 47, and Fabric API 0.116 and 0.92), so `data/fishtastic/fishtastic/<registry>/` works unchanged everywhere. |
 | R6 | Gametests on 26.1 rely on the 1.21.5 test-instance overhaul, so the harnesses aren't a direct port. | Budget A6.1 and B6.1 as rewrites of the harness. The test *bodies* in `common/src/testmod` mostly survive. |
 | R7 | Long-term maintenance: three live branches, and (per D6) every feature and fix must land on all three together. | Seams (§8), a shared fishsim, and data JSON kept version-neutral where possible. Keep a per-branch "ported through `<26.1.2 commit>`" marker so forward-port ranges are explicit. |
 | Q5 | Is it worth a shared multi-version layer (for example, only for `data/`, `server/` and `network/`) after both ports exist? | **More important given D6** (lockstep updates). Pass 2 should keep the non-rendering layers as close to identical across branches as it can, so that this stays possible. Decide after G3, once the real diffs are known. |
 | Q6 | JEI API drift between 29.x, 19.x and 15.x for the 2 recipe categories. | Small (10 files). Worst case, drop JEI compat on 1.20.1. |
+| R8 | *(pass 2)* **Runtime tank baking is racy on 1.21.1.** 26.1 bakes tank geometry on meshing threads. 1.21.1's `ModelBakery` caches are plain `HashMap`s, and loading is lazy. | A5.2 design: resolve all 5,088 fragments in `resolveParents` during reload, and bake at runtime only through `BlockModel#bake` (FaceBakery), with a throwing `ModelBaker`. A 512-tank stress test is in the A5 gate. |
+| R9 | *(pass 2)* **The Fabric FRAPI tank model is new code on 1.21.1.** The ancestor only had the NeoForge one, and the spike didn't cover it. | Budgeted as new work (A5.2f). Same data flow as NeoForge. Check under Sodium 0.6's built-in FRAPI in the Iris run. |
+| R10 | *(pass 2)* **Sunset Postcard has no clock-rate API on 1.21.1 or 1.20.1.** | A2.8.c: fractional tickTime accumulator on server and client + a rate-sync payload (D8). |
 
 ---
 
 ## 12. What pass 2 must produce
+
+> **Done 2026-09-24:** [`backport-pass2/`](backport-pass2/README.md). Track A (`track-a-1.21.1.md`, with A5 in `track-a5-rendering-1.21.1.md`), track B (`track-b-1.20.1.md`), and the tracked [`checklist.md`](backport-pass2/checklist.md). Reference sources for all three MC versions are extracted under `D:\GitHub\modding-guide\resources\` (see `README-sources.txt` there).
 
 For each phase (A0–A7, B0–B6, G-1.21.1, G-1.20.1, S1–S4):
 1. The exact file list it touches, grouped by the 26.1 API it replaces and the target-version API it lands on, **with the target-version signatures checked against that worktree's decompiled sources**, not from memory.
