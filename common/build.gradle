@@ -9,6 +9,37 @@ loom {
 // Creates modTestImplementation & co., so the test source set gets remapped mod dependencies too.
 loom.createRemapConfigurations(sourceSets.test)
 
+// PORT-ONLY (A6.1): NeoForge's two gametest annotations as a compile-only artifact. NeoForge 21.1
+// requires @GameTestHolder + @PrefixGameTestTemplate(false) on the class that *declares* the tests,
+// and the one shared harness (src/testmod) is compiled for both loaders - so Fabric's compile has
+// to resolve them as well. They are never shipped and never on a runtime classpath: at runtime the
+// annotation must be NeoForge's own class, or its lookup by Class would miss the shadowing copy and
+// quietly disable the holder. See docs/backport-pass2/track-a-1.21.1.md, "A6.1 as built".
+sourceSets {
+    neoforgeGametestAnnotations {
+        java.srcDirs = ['src/neoforge-gametest-annotations/java']
+    }
+}
+
+configurations {
+    // Consumed by the fabric/neoforge testmod compile classpaths (testmodCompileOnly).
+    neoforgeGametestAnnotationsApi {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+}
+
+// A jar, not the source set's output: only an archive task (or a File/Provider) is a valid
+// artifact notation, and a jar is the form the testmod compile classpaths consume cleanly.
+tasks.register('neoforgeGametestAnnotationsJar', Jar) {
+    archiveClassifier = 'neoforge-gametest-annotations'
+    from sourceSets.neoforgeGametestAnnotations.output
+}
+
+artifacts {
+    neoforgeGametestAnnotationsApi tasks.named('neoforgeGametestAnnotationsJar')
+}
+
 dependencies {
     // We depend on Fabric Loader here to use the Fabric @Environment annotations,
     // which get remapped to the correct annotations on each platform.

@@ -66,6 +66,10 @@ dependencies {
 
     // Testmod: access the compiled main classes.
     testmodImplementation sourceSets.main.output
+    testmodImplementation sourceSets.main.output
+    // A6.1: compile-only NeoForge gametest annotations, so the shared harness in
+    // common/src/testmod can carry the holder NeoForge 21.1 requires. Never a runtime dependency.
+    testmodCompileOnly project(path: ':common', configuration: 'neoforgeGametestAnnotationsApi')
 }
 
 processResources {
@@ -168,18 +172,11 @@ loom {
             forgeTemplate("gameTestServer")
             source sourceSets.testmod
             name "Game Test Server"
-            // PROVISIONAL - the NeoForge gametest half is not finished. Emptied because the shared
-            // harness (A6.1) carries vanilla @GameTest and cannot carry NeoForge's @GameTestHolder:
-            // GameTestHooks.getTemplateNamespace then falls back to "minecraft", so a fishtastic-only
-            // filter drops every test and the server dies with "No test functions were given!".
-            // Emptying it stops that, but does NOT make the run work: prefixGameTestTemplate
-            // defaults to true without the annotation, so the class name is prefixed onto the raw
-            // template and "fishtasticgametests.fishtastic:empty" is not a valid id.
-            // NeoForge 21.1 needs @GameTestHolder + @PrefixGameTestTemplate(false) on the class that
-            // declares the tests, which a class compiled for both loaders cannot carry. Restore
-            // "-Dneoforge.enabledGameTestNamespaces=fishtastic" when that is resolved - see
-            // docs/backport-pass2/track-a-1.21.1.md, "A6.1 as built".
-            vmArg "-Dneoforge.enabledGameTestNamespaces="
+            // The shared harness carries @GameTestHolder("fishtastic") (compiled against the
+            // compile-only stubs in common/src/neoforge-gametest-annotations), so its tests resolve
+            // to this namespace and the filter keeps them - and keeps anything else out.
+            // See "A6.1 as built" in docs/backport-pass2/track-a-1.21.1.md.
+            vmArg "-Dneoforge.enabledGameTestNamespaces=fishtastic"
             runDir "build/gametest"
         }
     }

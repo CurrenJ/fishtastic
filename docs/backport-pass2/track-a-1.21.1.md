@@ -487,7 +487,7 @@ The 6 test names that only the Fabric harness had (`crossShapeNeighborsInSameFam
 
 The 25 shared test-body files in `common/src/testmod` port like main code (A2 renames, plus the `ContainerInput`/`GameRules`/`ItemUseAnimation` rows).
 
-#### A6.1 as built (2026-09-25): Fabric green at 263, the NeoForge half is blocked
+#### A6.1 as built (2026-09-25): one shared harness, green on both loaders at 263
 
 Two of the table's premises did not hold. Both were found by running, not by reading.
 
@@ -551,26 +551,51 @@ carrying them - is **ruled out**: `GameTestRegistry.register(Class)` and
 `RegisterGameTestsEvent.register(Class)` both use `getDeclaredMethods()`, so a subclass registers
 zero tests.
 
-Three ways out, none yet taken (raised for the owner):
+**Resolved 2026-09-25 - the owner chose (b), and two further findings followed.** The shared harness
+carries the two NeoForge annotations, compiled against **PORT-ONLY stubs**:
+`common/src/neoforge-gametest-annotations/java` holds verbatim-shaped copies of `GameTestHolder` and
+`PrefixGameTestTemplate`, published as a jar by `common/build.gradle`'s
+`neoforgeGametestAnnotationsApi`, which both testmod source sets take as `testmodCompileOnly`. At
+runtime NeoForge's own annotation classes are the ones loaded, and on Fabric the annotation types are
+simply absent, so the JVM omits them - which is why the stubs must never reach a runtime classpath: a
+second copy of the class would shadow NeoForge's and make its own lookup miss.
 
-- **(a) Generated per-platform harness class.** The same generator emits
-  `neoforge/src/testmod/.../FishtasticNeoForgeGameTests.java`, identical wrappers plus
-  `@GameTestHolder("fishtastic")` and `@PrefixGameTestTemplate(false)`. Works, keeps the `fishtastic`
-  namespace filter and the shared bodies, and cannot drift because both files come from one script -
-  but it restores ~1,400 generated lines of near-duplicate wrappers, which is most of what D10 set
-  out to delete.
-- **(b) Compile the two NeoForge annotations into `common`** (a compile-only stub source set, the
-  `portstub` pattern), so the one shared class can carry them; they are inert on Fabric, where the
-  annotation types are absent at runtime. No duplication, but it puts a loader's API across the
-  line that `common` deliberately does not cross, and risks shadowing NeoForge's own classes.
-- **(c) Ship the structure under the id NeoForge computes** (`template = "empty"` plus a second
-  file named for the prefixed path). No duplication, but it claims `data/minecraft/...` for our own
-  file and leans on NeoForge's prefixing behaviour staying put.
+That fixed registration, and **the next failure was informative rather than discouraging**: NeoForge
+went from 0 tests to **263 running**, then crashed on
+`ResourceLocationException: ... fishtastic:fishtastic:empty`. NeoForge builds the template id as
+`getTemplateNamespace(method) + ":" + gameTest.template()` - it wants a **bare path** and takes the
+namespace from the holder - while Fabric parses the template verbatim as a ResourceLocation, so the
+same bare path lands in `minecraft:` there. The template is therefore now the bare `fishtastic_empty`,
+and the all-air 8x8x8 ships twice: `data/fishtastic/structure/fishtastic_empty.nbt` (what NeoForge
+resolves) and `data/minecraft/structure/fishtastic_empty.nbt` (what Fabric resolves). Both sit in
+src/testmod/resources, which only the testmod source sets read, so neither ships and the mod-prefixed
+name cannot collide with a vanilla or datapack id. `@PrefixGameTestTemplate(false)` was confirmed
+working on the way: without it on a throwaway diagnostic class, NeoForge resolved
+`fishtastic:neoforgemockplayerdiagnostic.fishtastic_empty`.
 
-**Recommendation: (a)**, the fallback the A6.1 plan pre-approved, with the duplication generated
-rather than written - and the track doc recording that the "one shared annotated class" of D10 is
-really "one shared body set plus two generated thin harnesses" on this branch. Awaiting the owner's
-choice before adding the second generated class.
+**The last 50 failures were a port bug of A6.1's own making, found with a temporary diagnostic.** All
+50 carried one message, `Cannot invoke "ServerGamePacketListenerImpl.latency()" because
+"arg.connection" is null`, and the gametest framework logs no stack with it, so a throwaway
+NeoForge-only test reproduced it inside a try/catch and printed the trace:
+
+    ClientboundPlayerInfoUpdatePacket$Entry.<init>
+      <- ClientboundPlayerInfoUpdatePacket.<init>
+      <- ServerPlayerGameMode.changeGameModeForPlayer
+      <- ServerPlayer.setGameMode
+      <- NeoForgeTestPlayers.makeMockServerPlayerInLevel
+
+That is A6.1's own edit to `NeoForgeTestPlayers`: 26.1 overrides `ServerPlayer#gameMode()`, and
+replacing it with `setGameMode(GameType.CREATIVE)` looked equivalent but is not - on 1.21.1
+`setGameMode` goes through `ServerPlayerGameMode#changeGameModeForPlayer`, which broadcasts a
+player-info packet whose entry constructor reads `player.connection.latency()`, and a mock player has
+no connection until it has joined. `NeoForgeTestPlayers` now overrides `isSpectator()`/`isCreative()`
+exactly as vanilla's own `GameTestHelper.makeMockServerPlayerInLevel` does, which is also what keeps
+the two loaders behaving the same here. **For the 1.20.1 branch: `setGameMode` on a pre-join player is
+a trap.**
+
+**Verified on both loaders:** `:fabric:runGametest` and `:neoforge:runGametest` each report
+**263 tests, 0 failures** (262 shared + the Sunset Postcard test). `port/excludes.txt` is empty, so
+A6.1 is done; A6.2's green bar and the hook stage are what remain.
 
 **Un-blocks with A6.1:** the six Fabric-only tests (`crossShapeNeighborsInSameFamilyConnect`,
 `giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish`, `newShapesConnectToEachOther`,

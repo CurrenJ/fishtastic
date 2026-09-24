@@ -72,6 +72,10 @@ dependencies {
 
     // Testmod: access the compiled main classes (fabric-api comes from the extendsFrom above).
     testmodImplementation sourceSets.main.output
+    testmodImplementation sourceSets.main.output
+    // A6.1: compile-only NeoForge gametest annotations, so the shared harness in
+    // common/src/testmod can carry the holder NeoForge 21.1 requires. Never a runtime dependency.
+    testmodCompileOnly project(path: ':common', configuration: 'neoforgeGametestAnnotationsApi')
 }
 
 processResources {

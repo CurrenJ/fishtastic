@@ -7,7 +7,6 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
-import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.network.registration.NetworkRegistry;
 
 import java.util.UUID;
@@ -30,9 +29,23 @@ public final class NeoForgeTestPlayers {
         CommonListenerCookie cookie = CommonListenerCookie.createInitial(
             new GameProfile(UUID.randomUUID(), "test-mock-player"), false);
         ServerPlayer player = new ServerPlayer(
-            helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
-        // 1.21.1 has no overridable ServerPlayer#gameMode(); the mode is set after construction.
-        player.setGameMode(GameType.CREATIVE);
+            helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation()) {
+            // Overridden rather than calling setGameMode: 1.21.1's ServerPlayer#setGameMode goes
+            // through ServerPlayerGameMode#changeGameModeForPlayer, which broadcasts a
+            // ClientboundPlayerInfoUpdatePacket - and building that entry reads
+            // player.connection.latency(), while a mock player has no connection until it has
+            // joined. Vanilla's own mock player (GameTestHelper#makeMockServerPlayerInLevel) does
+            // exactly this, so the two loaders behave the same.
+            @Override
+            public boolean isSpectator() {
+                return false;
+            }
+
+            @Override
+            public boolean isCreative() {
+                return true;
+            }
+        };
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
         new EmbeddedChannel(connection);
         NetworkRegistry.configureMockConnection(connection);
