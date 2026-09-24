@@ -320,10 +320,42 @@ scene takes ten ticks apart, and 3a/3b (the world outline on dropped item entiti
 frames) in `outline-ground`, `outline-frames_a` and `outline-frames_close`. Criterion 4 — all of
 it under a shaderpack — is the Iris item below.
 
-Still open before G1 ticks, and why the row above stays `[ ]`:
+### G1: the Iris item, and the gate closed (2026-09-25)
 
-- **Iris on NeoForge.** The jars are staged rather than resolved (`build/iris-mods/`,
-  `run/mods/`) because the Modrinth maven endpoint 404s (see the `ad751bed` message); the
-  scenes are `tank` and `outline`, which is where a shaderpack would bite.
-- **`gw :common:test`** for the 78-test row.
-- **fishsim headless export** on this branch against a `26.1.2` baseline (byte-identical, R4).
+**Iris, both loaders.** The staged jars (Iris 1.8.8 + Sodium 0.6.13, `build/iris-mods/`) went into
+both `run/mods/`; `run/config/iris.properties` (`enableShaders=true`,
+`shaderPack=ComplementaryReimagined_r5.9.3.zip`) and the pack in `run/shaderpacks/` were already
+staged. The marker held the two scenes a pack would bite on, `tank` and `outline`, and both clients
+ran unattended from the fixed 1600x900 window: **15 checks each, 0 FAIL on each** (those two scenes'
+subset of the 34), 0 `Unable to load model`, 0 exceptions, 14 shots per loader. Both logged Iris +
+Sodium loading and `Using shaderpack: ComplementaryReimagined_r5.9.3.zip`, then `Creating pipeline
+for dimension minecraft:overworld`.
+
+The checks assert mechanism, not pixels, so "the pack was live" is proved by differencing: each
+committed Iris shot against its committed non-Iris base shot of the same scene. `tank-outside`
+differs on 100.00% of its pixels (mean |delta| 38.89), `outline-ground` on 98.79% (53.50) and
+`outline-encyclopedia` on 97.28% (6.87) — a pack re-lighting the whole frame, not a stray pixel. The
+two loaders' Iris shots are near-identical to each other (38.89 vs 38.91), cross-loader parity for
+free. Evidence: `selftest-{neoforge,fabric}-iris-{outside,ground,encyclopedia}.png`, 3 per loader,
+13 MB for the six. Those six take `docs/port-evidence/1.21.1/` from 28 MB to **41 MB over 65 files**
+— G1's curated 26 + 3 per loader, plus the 7 per-checkpoint shots A5.1–A5.6 committed alongside
+them. **Flagged for the owner, not decided here: this is real repo weight and the set can be
+trimmed.** Iris's only complaints are Complementary's own: it resolves three uniforms 1.21.1
+has no source for (`BIOME_PALE_GARDEN`, `BIOME_SULFUR_CAVES`, `endFlashIntensity`) and drops them.
+**The jars were unstaged from both `run/mods/` afterwards** — A6's gametests must not load Iris.
+
+**`:common:test` 78/78.** Run with `--rerun`: the plain invocation came back a Gradle `UP-TO-DATE`
+cache hit, and a cached count is not a gate. Fresh execution: 78 tests, 0 skipped, 0 failures, 0
+errors.
+
+**fishsim parity vs `26.1.2`.** A detached worktree at `7839f271` and the branch each ran
+`:fishsim:runHeadless` with the same args (`--domain L --fish 12 --seed 42 --ticks 3000`; the arg
+names are the README's, the `3000` is the recorded run's value where the README's example says
+6000). The baseline needs a **Java 25 Gradle JVM** — 26.1.2's Loom refuses to set up Minecraft under
+21 — so it ran with `-Dorg.gradle.java.home` pointed at the JDK 25 Gradle had provisioned for the
+port's own toolchain, which is the same JVM the port's `JavaExec` runs the export on. All five
+artefacts (`-metrics.csv`, `-strip.png`, the two `-trajectory-*.png`, the `.gif`) are
+**byte-identical**, the same SHA-256 on both sides: R4 holds. `git diff --stat 26.1.2 -- fishsim/`
+is empty, so the result is expected rather than a coincidence — which is exactly why the row exists.
+
+**G1 ticks:** every row of the table above is green on both loaders.
