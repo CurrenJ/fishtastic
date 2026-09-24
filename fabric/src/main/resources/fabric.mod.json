@@ -40,14 +40,13 @@
   ],
   "accessWidener": "fishtastic.accesswidener",
   "depends": {
-    "fabricloader": ">=0.19.1",
+    "fabricloader": ">=0.17.2",
     "minecraft": "${mod_fabric_minecraft_version}",
-    "java": ">=25",
+    "java": ">=21",
     "fabric-api": "*"
   },
   "suggests": {
     "gelatinui": "*",
-    "jei": "*",
-    "coolcam": "*"
+    "jei": "*"
   }
 }

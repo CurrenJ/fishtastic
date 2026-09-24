@@ -3,8 +3,6 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
-import grill24.fishtastic.env.DevEnvironmentCheck;
-import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
@@ -247,13 +245,6 @@ public final class FishtasticNeoForgeClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
-        // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
-        // release its texture while the player sits in a menu, which is when the HUD isn't drawing.
-        // Production builds exclude grill24.fishtastic.mcp from the jar (dev-only tooling).
-        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
-            McpOrbitPreviewOverlay.tick();
-        }
-
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
@@ -286,10 +277,5 @@ public final class FishtasticNeoForgeClient {
         }
         // Render quest progress notifications (after fishing minigame)
         QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
-        // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Production builds exclude
-        // grill24.fishtastic.mcp from the jar entirely, hence the guard.
-        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
-            McpOrbitPreviewOverlay.render(event.getGuiGraphics());
-        }
     }
 }

@@ -1,5 +1,5 @@
 plugins {
-    id 'dev.architectury.loom-no-remap' version '1.14-SNAPSHOT' apply false
+    id 'dev.architectury.loom' version '1.17-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.5-SNAPSHOT'
     id 'com.gradleup.shadow' version '8.3.6' apply false
     id 'net.darkhax.curseforgegradle' version '1.1.26' apply false
@@ -30,7 +30,7 @@ subprojects {
         return
     }
 
-    apply plugin: 'dev.architectury.loom-no-remap'
+    apply plugin: 'dev.architectury.loom'
     apply plugin: 'architectury-plugin'
     apply plugin: 'maven-publish'
 
@@ -49,9 +49,22 @@ subprojects {
         maven { url = 'https://maven.blamejared.com/' } // JEI
     }
 
+    loom {
+        silentMojangMappingsLicense()
+        mixin {
+            // 1.21.1 is obfuscated, so mixins need a refmap. Newer Architectury Loom turns the legacy
+            // mixin annotation processor off by default, which silently stops refmap generation: every
+            // mixin works in dev and is dropped in production. Keep it on.
+            useLegacyMixinAp = true
+            // One name per module. A shared name lets shadowJar overwrite one module's refmap with
+            // another's without any build error (backport pass 2, N8).
+            defaultRefmapName = "fishtastic-${project.name}-refmap.json"
+        }
+    }
+
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
-        // loom-no-remap: MC 26.1+ is unobfuscated — no mappings dependency needed
+        mappings loom.officialMojangMappings()
     }
 
     java {
@@ -59,16 +72,20 @@ subprojects {
         // If you remove this line, sources will not be generated.
         withSourcesJar()
 
-        // Mojang ships Java 25 to end users in 26.1, so mods should target Java 25.
-        toolchain.languageVersion = JavaLanguageVersion.of(25)
+        // MC 1.21.1 runs on Java 21.
+        toolchain.languageVersion = JavaLanguageVersion.of(21)
     }
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
+        it.options.release = 21
     }
 
     // Checks that keep the backport seams in place (S5 Java 17 calls, S6c id construction).
     apply from: rootProject.file('gradle/backport-guards.gradle')
+
+    // Port scaffolding: port/excludes.txt and src/portstub/java (deleted at G2).
+    apply from: rootProject.file('gradle/port-excludes.gradle')
 
     // Configure Maven publishing.
     publishing {
@@ -120,7 +137,8 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
             ?: (file('CHANGELOG.md').exists() ? file('CHANGELOG.md').text : 'No changelog provided.')
 
     // ── Fabric ──
-    def fabricJar = project(':fabric').tasks.named('shadowJar').get().archiveFile
+    // remapJar, not shadowJar: on the remapping Loom, shadowJar is the named-mappings dev jar.
+    def fabricJar = project(':fabric').tasks.named('remapJar').get().archiveFile
     def fabricUpload = upload(projectId, fabricJar)
     fabricUpload.changelog = changelogText
     fabricUpload.changelogType = 'markdown'
@@ -130,7 +148,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
 
     // ── NeoForge ──
-    def neoJar = project(':neoforge').tasks.named('shadowJar').get().archiveFile
+    def neoJar = project(':neoforge').tasks.named('remapJar').get().archiveFile
     def neoUpload = upload(projectId, neoJar)
     neoUpload.changelog = changelogText
     neoUpload.changelogType = 'markdown'

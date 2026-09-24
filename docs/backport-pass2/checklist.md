@@ -9,7 +9,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 not started. |
+| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 done (G-A1 passed 2026-09-24); hook stage `compile`. |
 | `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
@@ -61,14 +61,14 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ## Track A: `port/1.21.1`
 
 ### A1: Scaffolding (gate G-A1, then hook stage → `compile`)
-| ID | Item | Status | Commit |
-|---|---|---|---|
-| A1.1 | Gradle 9.5, Loom 1.17 remap, mojmap, toolchain 21, refmap names | [ ] | |
-| A1.2 | `gradle.properties` versions, mod metadata ranges | [ ] | |
-| A1.3 | Delete cool-cam and `mcp/**` and their call sites | [ ] | |
-| A1.4 | Artifact names `2.0.1+1.21.1` (already the format; verify) | [ ] | |
-| A1.5 | Jar-level refmap check (N8) | [ ] | |
-| G-A1 | Gate: fishsim 163+1, tank-shape-gen 21,955, both jars build, the probe loads on both loaders | [ ] | |
+| ID | Item | Status | Commit | Notes |
+|---|---|---|---|---|
+| A1.1 | Gradle 9.5, Loom 1.17 remap, mojmap, toolchain 21, refmap names | [x] | A1 commit | Loom 1.17.493. Refmaps `fishtastic-<module>-refmap.json`; the common config's `refmap` key is injected Fabric-side only (see track A, A1 "Done"). |
+| A1.2 | `gradle.properties` versions, mod metadata ranges | [x] | A1 commit | gelatin 1.0.16 until G-1.21.1. |
+| A1.3 | Delete cool-cam and `mcp/**` and their call sites | [x] | A1 commit | 23 files; call sites in both entrypoints, both client entrypoints, `FishtasticCommand`. |
+| A1.4 | Artifact names `2.0.1+1.21.1` (already the format; verify) | [x] | A1 commit | Verified. `publishCurseForge` now uploads `remapJar` (shadowJar is the named dev jar on the remapping Loom). |
+| A1.5 | Jar-level refmap check (N8) | [~] | A1 commit | Wiring verified: the Fabric jar's `fishtastic.mixins.json` names `fishtastic-common-refmap.json`. No refmap files yet (no mixins compile at A1); re-check both files are in the Fabric jar at G-A2. |
+| G-A1 | Gate: fishsim 163+1, tank-shape-gen 21,955, both jars build, the probe loads on both loaders | [x] | A1 commit | All green 2026-09-24. Both servers reach `Done` with the probe line; the only errors are 26.1.2 data (string ingredients, unregistered items), which A2/A3 fix. |
 
 ### A2: Core and server (gate G-A2, then hook stage → `unit`)
 | ID | Item | Status | Commit |

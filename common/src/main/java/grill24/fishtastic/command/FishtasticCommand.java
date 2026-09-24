@@ -6,7 +6,6 @@ import com.mojang.brigadier.context.CommandContext;
 import grill24.fishtastic.compat.CompatUtil;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.env.DevEnvironmentCheck;
-import grill24.fishtastic.mcp.McpBridgeCommand;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -45,11 +44,7 @@ public class FishtasticCommand {
                 .then(BackupCommand.build())
                 .then(FollowFishStubCommand.build());
 
-        // Production builds exclude the whole grill24.fishtastic.mcp package from the jar (dev-only
-        // tooling) - never reference McpBridgeCommand outside this guard, or the missing class gets
-        // resolved and the server fails to start.
         if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
-            command.then(McpBridgeCommand.build());
             // Tuning tool for the catch celebration's timings — dev-only, and client-driven, so it
             // never reaches a dedicated server's command tree.
             command.then(CelebrationCommand.build());

@@ -1,0 +1,109 @@
+// Port scaffolding for the backport branches (docs/backport-pass2/track-a-1.21.1.md, "The compile
+// strategy"). Applied to common, fabric and neoforge. Deleted at G2, together with
+// port/excludes.txt and every src/portstub/java directory.
+//
+// port/excludes.txt: one repo-relative Ant pattern per line, starting with a Java source directory,
+// e.g. `common/src/main/java/grill24/fishtastic/client/renderer/**`. Blank lines and `#` comments
+// are ignored. Matching files are left out of compilation in every source set that has that
+// directory, including fabric/neoforge testmod, which also compiles common/src/testmod/java.
+//
+// src/portstub/java (in any of the three modules) is an extra srcDir of `main`. It holds temporary
+// stand-ins for excluded classes: same package, name and the members kept code still uses.
+//
+// Resources: a mixin config entry or a fabric.mod.json entrypoint whose class only exists in
+// excluded files (no stub) is stripped from the processed copy, so a config never names a class
+// that wasn't compiled. Classes found nowhere (other mods' classes) are left alone.
+
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+def excludesFile = rootProject.file('port/excludes.txt')
+def rootPath = rootProject.projectDir.canonicalFile.toPath()
+
+def readPatterns = {
+    if (!excludesFile.exists()) return []
+    excludesFile.readLines().collect { it.trim() }.findAll { it && !it.startsWith('#') }
+}
+
+// Every Java source directory of the three Loom modules: <module>/src/<set>/java.
+def allSrcDirs = {
+    ['common', 'fabric', 'neoforge'].collectMany { m ->
+        def src = rootProject.file("$m/src")
+        (src.listFiles() ?: []).collect { new File(it, 'java') }.findAll { it.isDirectory() }
+    }.collect { it.canonicalFile }
+}
+
+// The set of excluded source files under one srcDir.
+def excludedIn = { File srcDir, List<String> patterns ->
+    def rel = rootPath.relativize(srcDir.toPath()).toString().replace('\\', '/') + '/'
+    def local = patterns.findAll { it.startsWith(rel) }.collect { it.substring(rel.length()) }
+    if (local.isEmpty()) return [] as Set
+    project.fileTree(srcDir) { include local }.files.collect { it.canonicalFile } as Set
+}
+
+def excludedFiles = null
+def excluded = { File f ->
+    if (excludedFiles == null) {
+        def patterns = readPatterns()
+        excludedFiles = allSrcDirs().collectMany { excludedIn(it, patterns) } as Set
+    }
+    excludedFiles.contains(f.canonicalFile)
+}
+
+// 'kept' if some non-excluded source file defines the class, 'excluded' if only excluded files do,
+// 'unknown' if no source file does (a class from a dependency).
+def classStatus = { String className ->
+    def rel = className.replaceAll(/\$.*$/, '').replace('.', '/') + '.java'
+    def found = false
+    for (dir in allSrcDirs()) {
+        def f = new File(dir, rel)
+        if (f.isFile()) {
+            if (!excluded(f)) return 'kept'
+            found = true
+        }
+    }
+    found ? 'excluded' : 'unknown'
+}
+
+pluginManager.withPlugin('java') {
+    sourceSets.named('main') { it.java.srcDir('src/portstub/java') }
+
+    sourceSets.configureEach { ss ->
+        ss.java.exclude { FileTreeElement e -> !e.directory && excluded(e.file) }
+    }
+
+    tasks.withType(ProcessResources).configureEach { task ->
+        if (excludesFile.exists()) task.inputs.file(excludesFile)
+        task.inputs.files(allSrcDirs()).withPropertyName('portSourceDirs')
+
+        task.doLast {
+            def dest = task.destinationDir
+            def slurper = new JsonSlurper()
+
+            (dest.listFiles() ?: []).findAll { it.name.endsWith('.mixins.json') }.each { file ->
+                def json = slurper.parse(file)
+                def changed = false
+                ['mixins', 'client', 'server'].each { key ->
+                    if (!(json[key] instanceof List)) return
+                    def kept = json[key].findAll { classStatus("${json['package']}.${it}") != 'excluded' }
+                    if (kept.size() != json[key].size()) { json[key] = kept; changed = true }
+                }
+                if (changed) file.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
+            }
+
+            def modJson = new File(dest, 'fabric.mod.json')
+            if (modJson.exists() && modJson.text.contains('"entrypoints"')) {
+                def json = slurper.parse(modJson)
+                def changed = false
+                json.entrypoints?.each { name, List list ->
+                    def kept = list.findAll { entry ->
+                        def value = entry instanceof Map ? entry.value : entry
+                        classStatus(value.toString().split('::')[0]) != 'excluded'
+                    }
+                    if (kept.size() != list.size()) { json.entrypoints[name] = kept; changed = true }
+                }
+                if (changed) modJson.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
+            }
+        }
+    }
+}

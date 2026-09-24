@@ -1,9 +1,9 @@
 {
   "required": true,
   "package": "grill24.fishtastic.fabric.mixin",
-  "compatibilityLevel": "JAVA_25",
+  "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
-  "refmap": "fishtastic.refmap.json",
+  "refmap": "fishtastic-fabric-refmap.json",
   "client": [
   ],
   "mixins": [

@@ -10,7 +10,7 @@ import java.util.Properties;
 
 /**
  * Lightweight client-only visual toggles, stored as a plain properties file in the mod's config
- * directory. Same convention as {@link grill24.fishtastic.mcp.McpConfig}: hand-edit the file and
+ * directory. Same convention as the retired MCP bridge's config: hand-edit the file and
  * restart the game to apply changes — values are cached after first read, not polled live. Settings
  * with a setter here can also be changed in-game (via command or GUI), which updates the cache and
  * rewrites the file so the change applies immediately and survives a restart.

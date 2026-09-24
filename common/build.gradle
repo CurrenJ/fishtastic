@@ -6,20 +6,23 @@ loom {
     accessWidenerPath = file("src/main/resources/fishtastic.accesswidener")
 }
 
+// Creates modTestImplementation & co., so the test source set gets remapped mod dependencies too.
+loom.createRemapConfigurations(sourceSets.test)
+
 dependencies {
     // We depend on Fabric Loader here to use the Fabric @Environment annotations,
     // which get remapped to the correct annotations on each platform.
     // Do NOT use other classes from Fabric Loader.
-    implementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
-    // Architectury injectables (annotations only, no runtime API needed for 26.1)
-    implementation "dev.architectury:architectury-injectables:1.0.13"
+    // Architectury injectables (annotations only, no runtime API)
+    modImplementation "dev.architectury:architectury-injectables:1.0.13"
 
-    compileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+    modCompileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
 
     // JEI integration is optional at runtime (see grill24.fishtastic.compat.jei) — only
     // needed on the compile classpath so the plugin class can reference the JEI API.
-    compileOnly("mezz.jei:jei-26.1.2-common-api:${rootProject.jei_version}")
+    compileOnly("mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}")
 
     // The Minecraft-free flocking engine (docs/fish-sim-engine-plan.md). Each platform bundles it
     // into the shipped jar via its own shadowBundle dependency — this line only provides the
@@ -29,7 +32,8 @@ dependencies {
     // Unit testing — gelatinui is compileOnly above (provided by the platform jar at
     // runtime), but JUnit tests run outside any platform, so the test source set needs
     // its own real dependency on it to construct UIElement/UIContainer instances.
-    testImplementation("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+    // modTestImplementation (not testImplementation) so Loom remaps the published jar to named.
+    modTestImplementation("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -38,3 +42,8 @@ dependencies {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
+
+// common is never consumed as a jar: each platform takes the named classes (namedElements) and the
+// transformProduction* output. remapJar's named -> intermediary remap is unneeded here and fails on
+// vanilla's Container/RecipeInput bridge-method ambiguity (potions-plus mc-1.21.1), so it's off.
+tasks.named('remapJar') { enabled = false }

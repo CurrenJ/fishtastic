@@ -37,7 +37,7 @@ side = "BOTH"
 [[dependencies.fishtastic]]
 modId = "jei"
 type = "optional"
-versionRange = "[29.2.0.0,)"
+versionRange = "[19.18,)"
 ordering = "NONE"
 side = "CLIENT"
 
