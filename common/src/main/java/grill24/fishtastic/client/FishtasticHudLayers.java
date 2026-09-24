@@ -17,15 +17,49 @@ import net.minecraft.client.gui.GuiGraphics;
  */
 public final class FishtasticHudLayers {
 
+    /**
+     * Self-test instrumentation ({@code client/selftest/RenderSelfTest}): the number of frames
+     * {@link #renderAfterToasts} has drawn. At most one of the two paths can run in a frame -- the
+     * mixin's guard is the negation of {@link #drawnInHudPass()} -- so a rising count while no
+     * screen is open is proof that the layers went out in the toast pass, and a flat one while a
+     * screen is open is proof the mixin kept out of it. It sits on {@link #renderAfterToasts} and
+     * not on {@link #render} because Fabric's HUD hook calls {@link #render} directly: counting
+     * there would count both paths on Fabric and only the toast pass on NeoForge, whose HUD event
+     * is split pre/post and calls the two layer methods separately.
+     */
+    public static int toastPassFrames;
+
+    /**
+     * Self-test instrumentation: the number of times the loaders' HUD hooks asked
+     * {@link #drawnInHudPass()} and got a yes, i.e. frames that drew the layers in the HUD pass
+     * rather than the toast pass. NeoForge asks twice a frame (its HUD event is split pre/post),
+     * Fabric once, so only "a rising count" means anything, not the exact number.
+     */
+    public static int hudPassCalls;
+
     /** Whether the loaders' HUD hooks should draw the layers this frame (a screen is open). */
     public static boolean drawnInHudPass() {
-        return Minecraft.getInstance().screen != null;
+        if (Minecraft.getInstance().screen == null) {
+            return false;
+        }
+        hudPassCalls++;
+        return true;
     }
 
     /** All three layers, in order (the 26.1 registration order: tutorial, bar, notifications). */
     public static void render(GuiGraphics graphics, float partialTick) {
         renderTutorial(graphics, partialTick);
         renderMinigameAndNotifications(graphics, partialTick);
+    }
+
+    /**
+     * The toast-pass entry point. Only {@code mixin/GameRendererMixin} calls this, after vanilla's
+     * {@code ToastComponent}; the loaders' HUD hooks call {@link #render}, or the two layer methods
+     * directly on NeoForge (its HUD event is split pre/post).
+     */
+    public static void renderAfterToasts(GuiGraphics graphics, float partialTick) {
+        toastPassFrames++;
+        render(graphics, partialTick);
     }
 
     public static void renderTutorial(GuiGraphics graphics, float partialTick) {

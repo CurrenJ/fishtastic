@@ -51,7 +51,7 @@ public class GameRendererMixin implements IGameRendererExtension {
         if (FishtasticHudLayers.drawnInHudPass() || this.minecraft.options.hideGui || this.minecraft.level == null) {
             return;
         }
-        FishtasticHudLayers.render(guiGraphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+        FishtasticHudLayers.renderAfterToasts(guiGraphics, deltaTracker.getGameTimeDeltaPartialTick(false));
     }
 
     /**

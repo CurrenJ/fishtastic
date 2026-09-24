@@ -1,18 +1,8 @@
 # Java sources left out of compilation on this port branch (see gradle/port-excludes.gradle).
 # One repo-relative Ant pattern per line, starting with a source directory. Each phase deletes
 # its lines; at G2 this file is empty and is deleted (docs/backport-pass2/track-a-1.21.1.md).
-# Grouped by the phase that brings the files back. Stand-ins for what kept code needs from
-# excluded classes live in <module>/src/portstub/java.
-
-# A5: rendering (31 common files, plus the platform tank models).
-common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
-# A5, found by the A2 compile (render-only code the pass 2 import scan didn't flag):
-# A5.5 particles, A5.4a glint render-type registration, A5 cosmetic render transforms,
-# A5.3 fish pile item icons, A5.1 client flocks and tank bubbles, A5.7 IrisCompat and
-# LevelRendererMixin, A5.6 fishing-line hand (FishingHookRendererMixin).
-common/src/main/java/grill24/fishtastic/client/renderer/IrisCompat.java
-common/src/main/java/grill24/fishtastic/mixin/LevelRendererMixin.java
-
+# Grouped by the phase that brings the files back. A5 (rendering) took the last of its lines;
+# no src/portstub/java stand-in is in use any more either.
 
 # A6.1: gametests, rewritten onto the shared vanilla-@GameTest harness (D10).
 common/src/testmod/java/**

@@ -231,6 +231,10 @@ This means if we baked the default model (oak planks) first through `bakeTopGeom
 
 The particle material has the same problem — `ResolvedModel.resolveParticleMaterial` also uses a cached slot. The fix is to call the static `ResolvedModel.resolveParticleMaterial(slots, baker, model)` overload (NeoForge adds this as `ResolvedModelExtension`) or the equivalent direct call on Fabric, which bypasses the instance cache.
 
+### 1.21.1: nothing to port
+
+`ResolvedModel`, `ModelDiscovery.ModelWrapper`, `ResolvedModelExtension` and the caches above are 26.1 APIs; 1.21.1's model loader has no equivalent, so the bug doesn't exist there and no part of this section crosses over. The shared port-only `client/compositemodel/FishTankGeometry` (`docs/backport-pass2/track-a5-rendering-1.21.1.md`, A5.2) is already shaped like the fix: it builds a `BlockModel` whose parent is the fragment, puts the material's texture in the `all`/`particle` slots, and calls `BlockModel#bake` on it with a baker that throws if it is ever used. That is `FaceBakery` over the fragment's resolved quads — fresh per (fragment, material) pair, no cache to bypass — and the particle sprite falls out of the same bake.
+
 ---
 
 ## Testing Blockstate Redirects

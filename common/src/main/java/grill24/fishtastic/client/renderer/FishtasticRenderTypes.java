@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.function.Function;
 
 /**
@@ -45,6 +46,17 @@ public final class FishtasticRenderTypes extends RenderType {
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(true));
 
+    // Without this the quad is invisible under every shaderpack — see IrisCompat.
+    //
+    // ENTITIES_TRANSLUCENT, not BLOCK_TRANSLUCENT. The latter is the intuitive choice (this is a
+    // block entity's translucent surface) but it routes the quad into the pack's water/block
+    // program, which computes its own water colour, normals and waves and largely discards the
+    // incoming albedo — the fill rendered as a flat dark grey sheet with no texture detail and no
+    // tint. The entity program applies ordinary translucent shading and preserves both.
+    static {
+        IrisCompat.assignPipeline(TANK_WATER_FILL, "ENTITIES_TRANSLUCENT", "SHADOW_TRANSLUCENT");
+    }
+
     /**
      * In-world quality outlines (item entities, item frames, tank fish, first-person held items):
      * one textured quad sampling {@link FishtasticItemOutlineAtlas}. Entity-translucent shading
@@ -71,6 +83,37 @@ public final class FishtasticRenderTypes extends RenderType {
                     .setOverlayState(OVERLAY)
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(true));
+
+    // Without this the outline is invisible under every shaderpack — see IrisCompat.
+    // No shadow program: a translucent cosmetic overlay must not write to the shadow map.
+    static {
+        IrisCompat.assignPipeline(ITEM_OUTLINE, "ENTITIES_TRANSLUCENT", null);
+    }
+
+    /**
+     * PORT-ONLY: the cosmetic-capture wand's selection boxes (see
+     * {@code client.CosmeticCaptureClientState}). Vanilla's {@code RenderType.lines()} with a 2 px
+     * line width, which is what 26.1's {@code GizmoStyle.stroke(…, 2f)} asks for: 1.21.1 has no
+     * {@code Gizmos}, so the preview is drawn with the vanilla debug primitives, and the
+     * {@link LineStateShard} is the only place the width can be requested. Everything else (depth
+     * write, view-offset layering, the item-entity target) is vanilla's own line type.
+     */
+    public static final RenderType GIZMO_LINES = create(
+            "fishtastic_gizmo_lines",
+            DefaultVertexFormat.POSITION_COLOR_NORMAL,
+            VertexFormat.Mode.LINES,
+            1536,
+            false,
+            false,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_LINES_SHADER)
+                    .setLineState(new LineStateShard(OptionalDouble.of(2.0)))
+                    .setLayeringState(VIEW_OFFSET_Z_LAYERING)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setOutputState(ITEM_ENTITY_TARGET)
+                    .setWriteMaskState(COLOR_DEPTH_WRITE)
+                    .setCullState(NO_CULL)
+                    .createCompositeState(false));
 
     // ── Quality glints (the 1.21.1 ancestor's ItemEffect.RenderTypeFactory) ──────────────
     // One family per ItemEffect texture, standing in for vanilla's glint(), entityGlint(),

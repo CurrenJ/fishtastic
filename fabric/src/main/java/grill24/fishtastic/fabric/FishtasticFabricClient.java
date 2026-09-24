@@ -3,7 +3,7 @@ package grill24.fishtastic.fabric;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
-// PORT A5: import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -68,7 +68,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -163,9 +166,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
                         packet.claimedRewardKeys()));
 
-        // PORT A5: cosmetic capture gizmos.
-//        // Register cosmetic capture wand session sync packet client handler
-//        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
+        // Register cosmetic capture wand session sync packet client handler
+        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
 
         // Register notification volume sync packet client handler
         grill24.fishtastic.network.NotificationVolumeSyncPacket.registerClientHandler(
@@ -222,8 +224,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             EncyclopediaTutorialClientHandler.reset();
             FishEncyclopediaClientCache.reset();
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
-            // PORT A5: cosmetic capture gizmos.
-//            CosmeticCaptureClientState.reset();
+            CosmeticCaptureClientState.reset();
             ClientTankFlocks.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
@@ -243,10 +244,18 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 FishtasticKeyBinds.handleKeyPress(client);
                 // Tick quest progress notifications
                 QuestProgressNotificationManager.getInstance().tick();
-                // PORT A5: cosmetic capture gizmos.
-//                // Draw the cosmetic-capture wand selection preview, if a session is active
-//                CosmeticCaptureClientState.tickGizmos();
             }
+        });
+
+        // Draw the cosmetic-capture wand selection preview, if a session is active. PORT-ONLY:
+        // 1.21.1 has no per-tick gizmo collection (26.1's Gizmos), so this is a world-render pass.
+        WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+            PoseStack pose = context.matrixStack();
+            MultiBufferSource consumers = context.consumers();
+            if (pose == null || consumers == null) {
+                return;
+            }
+            CosmeticCaptureClientState.render(pose, consumers, context.camera().getPosition());
         });
 
         // PORT-ONLY: 1.21.1's Fabric API has one HUD hook (HudRenderCallback) rather than 26.1's

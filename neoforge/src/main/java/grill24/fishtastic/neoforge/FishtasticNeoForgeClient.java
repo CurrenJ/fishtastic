@@ -2,7 +2,7 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
-// PORT A5: import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -71,6 +71,7 @@ import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactori
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -99,9 +100,8 @@ public final class FishtasticNeoForgeClient {
                 FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
                         packet.claimedRewardKeys()));
 
-        // PORT A5: cosmetic capture gizmos.
-//        // Register cosmetic capture wand session sync packet client handler
-//        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
+        // Register cosmetic capture wand session sync packet client handler
+        CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
 
         // Register notification volume sync packet client handler
         grill24.fishtastic.network.NotificationVolumeSyncPacket.registerClientHandler(
@@ -142,6 +142,8 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onScreenRenderPost);
         // Register HUD render hook for the fishing minigame overlay
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
+        // Draw the cosmetic-capture wand selection preview (PORT-ONLY: a world-render pass here)
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderLevelStage);
     }
 
     /**
@@ -237,8 +239,7 @@ public final class FishtasticNeoForgeClient {
         EncyclopediaTutorialClientHandler.reset();
         FishEncyclopediaClientCache.reset();
         grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
-        // PORT A5: cosmetic capture gizmos.
-//        CosmeticCaptureClientState.reset();
+        CosmeticCaptureClientState.reset();
         ClientTankFlocks.clear();
     }
 
@@ -265,10 +266,19 @@ public final class FishtasticNeoForgeClient {
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications
             QuestProgressNotificationManager.getInstance().tick();
-            // PORT A5: cosmetic capture gizmos.
-//            // Draw the cosmetic-capture wand selection preview, if a session is active
-//            CosmeticCaptureClientState.tickGizmos();
         }
+    }
+
+    /**
+     * Draws the cosmetic-capture wand selection preview, if a session is active. PORT-ONLY: 1.21.1
+     * has no per-tick gizmo collection (26.1's Gizmos), so this is a world-render pass.
+     */
+    public static void onRenderLevelStage(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
+            return;
+        }
+        CosmeticCaptureClientState.render(event.getPoseStack(),
+                Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
     }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {

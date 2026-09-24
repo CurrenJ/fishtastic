@@ -3,6 +3,15 @@
 This document describes how Fishtastic attaches custom visual effects to quality-tier items.
 The primary goal of this doc is **long-term maintainability**: the vanilla rendering pipeline changes significantly between MC versions, so every non-obvious implementation decision below is explained with its constraint and the alternatives that were rejected. Future readers adapting this to a new MC version should be able to understand *why* the code looks the way it does and what to look for when a vanilla API changes.
 
+> **1.21.1 / 1.20.1 (backport).** Everything below describes the 26.1.2 renderer. The 1.21.1 port keeps the
+> *decisions* — the baked outline atlas, the atlas-as-texture GUI outline, quality glints as swapped foil
+> buffers — and replaces the machinery: `RenderPipeline` → `RenderType` + `CompositeState`,
+> `SubmitNodeCollector` / `FeatureRenderDispatcher` → immediate-mode `MultiBufferSource`, the `GpuBuffer`
+> UBOs (`FishtasticOutlineUboRegistry`) → per-draw `ShaderInstance` uniforms, and the `ItemModelResolver` /
+> `ItemStackRenderState` mixins → the ancestor's `ItemRendererMixin` thread-local. The port's own account,
+> file by file, is `docs/backport-pass2/track-a5-rendering-1.21.1.md` (A5.0 and A5.4); the sections below
+> name the 26.1.2 classes the 1.21.1 ones stand in for.
+
 ---
 
 ## Overview
