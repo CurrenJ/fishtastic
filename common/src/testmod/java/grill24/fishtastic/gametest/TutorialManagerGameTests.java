@@ -10,7 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -46,7 +46,7 @@ public final class TutorialManagerGameTests {
 
     private static int countItem(ServerPlayer player, Item item) {
         int total = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(item)) total += stack.getCount();
         }
         return total;
@@ -292,7 +292,7 @@ public final class TutorialManagerGameTests {
         ServerPlayer player = mockPlayer.get();
         CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
 
-        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.QUICK_MOVE, player);
+        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ClickType.QUICK_MOVE, player);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -307,7 +307,7 @@ public final class TutorialManagerGameTests {
         ServerPlayer player = mockPlayer.get();
         CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
 
-        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.PICKUP, player);
+        menu.clicked(CraftingMenu.RESULT_SLOT, 0, ClickType.PICKUP, player);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -327,7 +327,7 @@ public final class TutorialManagerGameTests {
         menu.setCarried(new ItemStack(FishtasticItems.WORMS.value(), 8));
 
         int rodMenuSlot = 36; // hotbar slot 0 in InventoryMenu's slot layout (9 + 27 main inv slots offset)
-        menu.clicked(rodMenuSlot, 0, ContainerInput.PICKUP, player);
+        menu.clicked(rodMenuSlot, 0, ClickType.PICKUP, player);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST,

@@ -1,73 +1,79 @@
 package grill24.fishtastic.gametest;
 
-import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 /**
- * Fabric test registration class.
- * Listed under the "fabric-gametest" entrypoint in the testmod's fabric.mod.json.
+ * The shared gametest harness: every Fishtastic game test, annotated with <b>vanilla</b>
+ * {@code net.minecraft.gametest.framework.GameTest} so one class serves both loaders
+ * (decision D10, docs/backport-pass2/track-a-1.21.1.md A6.1). Each method delegates to a
+ * platform-agnostic body in a sibling class; those bodies touch no loader API.
  *
- * Each method carries Fabric's {@code @GameTest} annotation and delegates to the
- * shared static test implementations in the sibling classes. This keeps all actual
- * logic platform-agnostic and avoids duplication when NeoForge tests are added.
+ * <p>Registered on Fabric by the {@code fabric-gametest} entrypoint (Fabric derives the mod id
+ * from the entrypoint and uses {@code template} verbatim - see its {@code TestFunctionsMixin}),
+ * and on NeoForge by {@code RegisterGameTestsEvent.register(FishtasticGameTests.class)}.
  *
- * Structure: "fabric-gametest-api-v1:empty" (8×8×8 of air). Tests build their
- * own environment inside the structure bounds using {@code GameTestHelper.setBlock()}.
+ * <p>The structure is {@code fishtastic:empty}, an empty 8x8x8 supplied by this testmod at
+ * {@code data/fishtastic/structure/empty.nbt}. Tests build their own environment inside the
+ * bounds with {@code GameTestHelper.setBlock()}.
  *
- * Run via: {@code ./gradlew :fabric:runGametest}
+ * <p>Tests that need a player take a supplier and are handed
+ * {@link FishtasticTestSupport#playerSupplier}: the two loaders cannot share vanilla's
+ * {@code makeMockServerPlayerInLevel}, because NeoForge's mock connection skips the
+ * configuration handshake that registers its payload channels.
  */
-public class FishtasticFabricGameTests {
+public class FishtasticGameTests {
 
     // -------------------------------------------------------------------------
     // Marine Compost tests  (max 6100 ticks — conversion takes up to 6000)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void aerationCapAtFive(GameTestHelper helper) {
         MarineCompostGameTests.aerationCapAtFive(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 6100)
     public void conversionTakesBaseTicks(GameTestHelper helper) {
         MarineCompostGameTests.conversionTakesBaseTicks(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 5000)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 5000)
     public void aerationReducesConversionTime(GameTestHelper helper) {
         MarineCompostGameTests.aerationReducesConversionTime(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 6100)
     public void commonFishYield(GameTestHelper helper) {
         MarineCompostGameTests.commonFishYield(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 6100)
     public void rareFishYield(GameTestHelper helper) {
         MarineCompostGameTests.rareFishYield(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 6100)
     public void legendaryFishYield(GameTestHelper helper) {
         MarineCompostGameTests.legendaryFishYield(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 5000)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 5000)
     public void aerationAddsToYield(GameTestHelper helper) {
         MarineCompostGameTests.aerationAddsToYield(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 6100)
     public void noQualityDefaultsToCommonYield(GameTestHelper helper) {
         MarineCompostGameTests.noQualityDefaultsToCommonYield(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void aerationCooldownBlocksTooEarlyAttempt(GameTestHelper helper) {
         MarineCompostGameTests.aerationCooldownBlocksTooEarlyAttempt(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void aerationCooldownAllowsAfterCooldown(GameTestHelper helper) {
         MarineCompostGameTests.aerationCooldownAllowsAfterCooldown(helper);
     }
@@ -76,290 +82,290 @@ public class FishtasticFabricGameTests {
     // Fish Catch Data tests  (pure in-memory, no world state needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void recordingNonFishIsIgnored(GameTestHelper helper) {
         FishCatchDataGameTests.recordingNonFishIsIgnored(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void recordingZeroSizeIsIgnored(GameTestHelper helper) {
         FishCatchDataGameTests.recordingZeroSizeIsIgnored(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void catchCountIncrements(GameTestHelper helper) {
         FishCatchDataGameTests.catchCountIncrements(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void bestSizeOnlyUpdatesOnImprovement(GameTestHelper helper) {
         FishCatchDataGameTests.bestSizeOnlyUpdatesOnImprovement(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void smallerCatchDoesNotOverrideBest(GameTestHelper helper) {
         FishCatchDataGameTests.smallerCatchDoesNotOverrideBest(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void personalLeaderboardsAreIsolatedByUuid(GameTestHelper helper) {
         FishCatchDataGameTests.personalLeaderboardsAreIsolatedByUuid(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalBestSizeTracksHighestAcrossPlayers(GameTestHelper helper) {
         FishCatchDataGameTests.globalBestSizeTracksHighestAcrossPlayers(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalCatchCountSumsAllFishTypes(GameTestHelper helper) {
         FishCatchDataGameTests.globalCatchCountSumsAllFishTypes(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void personalBestSizeSortOrder(GameTestHelper helper) {
         FishCatchDataGameTests.personalBestSizeSortOrder(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void unknownPlayerReturnsEmpty(GameTestHelper helper) {
         FishCatchDataGameTests.unknownPlayerReturnsEmpty(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalBestSizeTracksIndependentlyPerFishType(GameTestHelper helper) {
         FishCatchDataGameTests.globalBestSizeTracksIndependentlyPerFishType(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalBestSizeTieKeepsSingleEntry(GameTestHelper helper) {
         FishCatchDataGameTests.globalBestSizeTieKeepsSingleEntry(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalCatchCountRanksMultiplePlayers(GameTestHelper helper) {
         FishCatchDataGameTests.globalCatchCountRanksMultiplePlayers(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void personalCatchCountSortOrder(GameTestHelper helper) {
         FishCatchDataGameTests.personalCatchCountSortOrder(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void globalBestSizeSortOrder(GameTestHelper helper) {
         FishCatchDataGameTests.globalBestSizeSortOrder(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void recordTrashContributionAccumulatesTotal(GameTestHelper helper) {
-        FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.recordTrashContributionAccumulatesTotal(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void recordTrashContributionCanCrossMultipleThresholdsAtOnce(GameTestHelper helper) {
-        FishCatchDataGameTests.recordTrashContributionCanCrossMultipleThresholdsAtOnce(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.recordTrashContributionCanCrossMultipleThresholdsAtOnce(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void recordTrashContributionIgnoresNonPositiveAmounts(GameTestHelper helper) {
-        FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.recordTrashContributionIgnoresNonPositiveAmounts(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void crossingThresholdPaysOutTokensProportionally(GameTestHelper helper) {
-        FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.crossingThresholdPaysOutTokensProportionally(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // Fish Catch Backup tests  (real file I/O in the test world's data dir)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void manualBackupRoundTrips(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.manualBackupRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void labelIsSanitisedIntoFileName(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.labelIsSanitisedIntoFileName(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void findRejectsTraversalAndUnknownNames(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.findRejectsTraversalAndUnknownNames(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void listIsNewestFirstAndIgnoresJunk(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.listIsNewestFirstAndIgnoresJunk(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void loadRejectsFileWithoutDataCompound(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.loadRejectsFileWithoutDataCompound(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void intervalBackupSkipsIdenticalContent(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.intervalBackupSkipsIdenticalContent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void restorePlayerOnlyTouchesThatPlayer(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.restorePlayerOnlyTouchesThatPlayer(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void restorePlayerAbsentFromBackupRemovesThem(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.restorePlayerAbsentFromBackupRemovesThem(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void restorePlayerRevertsCleanupContribution(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void restoreAllReplacesEverything(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.restoreAllReplacesEverything(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void restoreDoesNotAliasSnapshotObjects(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.restoreDoesNotAliasSnapshotObjects(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void summaryAndLookupApi(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.summaryAndLookupApi(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void preCommandHookWritesLabelledBackup(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.preCommandHookWritesLabelledBackup(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void preCommandPoolIsCapped(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.preCommandPoolIsCapped(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void pruneDeletesAncientIntervalFilesOnDisk(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.pruneDeletesAncientIntervalFilesOnDisk(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void schedulerWritesStartThenInterval(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.schedulerWritesStartThenInterval(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void serverConfigWritesDefaultsAndReloads(GameTestHelper helper) throws Exception {
         FishCatchBackupsGameTests.serverConfigWritesDefaultsAndReloads(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void cleanupGoalOnlyResetsOnCompletionNotOverTime(GameTestHelper helper) {
-        FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.cleanupGoalOnlyResetsOnCompletionNotOverTime(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getCleanupGoalContributorsListsAllContributors(GameTestHelper helper) {
-        FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, helper::makeMockServerPlayerInLevel);
+        FishCatchDataGameTests.getCleanupGoalContributorsListsAllContributors(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // Item Component tests  (pure in-memory)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemSizeSetAndGet(GameTestHelper helper) {
         ItemComponentGameTests.itemSizeSetAndGet(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemSizeRemove(GameTestHelper helper) {
         ItemComponentGameTests.itemSizeRemove(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemSizeWithSizeCopies(GameTestHelper helper) {
         ItemComponentGameTests.itemSizeWithSizeCopies(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemSizeIgnoresEmptyStack(GameTestHelper helper) {
         ItemComponentGameTests.itemSizeIgnoresEmptyStack(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemSizeComponentKey(GameTestHelper helper) {
         ItemComponentGameTests.itemSizeComponentKey(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fishQualityAllTiers(GameTestHelper helper) {
         ItemComponentGameTests.fishQualityAllTiers(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fishQualityShouldRenderEffect(GameTestHelper helper) {
         ItemComponentGameTests.fishQualityShouldRenderEffect(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fishQualityEffectIntensity(GameTestHelper helper) {
         ItemComponentGameTests.fishQualityEffectIntensity(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fishQualityNullWhenAbsent(GameTestHelper helper) {
         ItemComponentGameTests.fishQualityNullWhenAbsent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectWormsPreset(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectWormsPreset(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectBlazedGrubExclusivePool(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectBlazedGrubExclusivePool(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectComponentRoundTrip(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectComponentRoundTrip(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectNoBaitDefaults(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectNoBaitDefaults(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectTrashChancePresets(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectTrashChancePresets(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void baitEffectTrashChanceComponentRoundTrip(GameTestHelper helper) {
         ItemComponentGameTests.baitEffectTrashChanceComponentRoundTrip(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void rodBaitContentsEmptyIsEmpty(GameTestHelper helper) {
         ItemComponentGameTests.rodBaitContentsEmptyIsEmpty(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void rodBaitContentsNonEmptyStackIsNotEmpty(GameTestHelper helper) {
         ItemComponentGameTests.rodBaitContentsNonEmptyStackIsNotEmpty(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void rodBaitContentsCopyStackIsDistinct(GameTestHelper helper) {
         ItemComponentGameTests.rodBaitContentsCopyStackIsDistinct(helper);
     }
@@ -368,57 +374,57 @@ public class FishtasticFabricGameTests {
     // MathUtil / Utility tests  (pure logic, zero Minecraft world dependency)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lerpFloatBoundaries(GameTestHelper helper) {
         MathUtilGameTests.lerpFloatBoundaries(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lerpDoubleBoundaries(GameTestHelper helper) {
         MathUtilGameTests.lerpDoubleBoundaries(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void clampFloatBounds(GameTestHelper helper) {
         MathUtilGameTests.clampFloatBounds(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void clampDoubleBounds(GameTestHelper helper) {
         MathUtilGameTests.clampDoubleBounds(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void clampIntBounds(GameTestHelper helper) {
         MathUtilGameTests.clampIntBounds(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void easeInOutQuadShape(GameTestHelper helper) {
         MathUtilGameTests.easeInOutQuadShape(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void easeOutCubicShape(GameTestHelper helper) {
         MathUtilGameTests.easeOutCubicShape(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void easedLerpIdentityMatchesPlainLerp(GameTestHelper helper) {
         MathUtilGameTests.easedLerpIdentityMatchesPlainLerp(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void easedLerpAppliesEasingFunction(GameTestHelper helper) {
         MathUtilGameTests.easedLerpAppliesEasingFunction(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void utilityFtCreatesNamespacedIdentifier(GameTestHelper helper) {
         MathUtilGameTests.utilityFtCreatesNamespacedIdentifier(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void utilityInterpolateColorBoundaries(GameTestHelper helper) {
         MathUtilGameTests.utilityInterpolateColorBoundaries(helper);
     }
@@ -427,32 +433,32 @@ public class FishtasticFabricGameTests {
     // FishingTarget tests  (pure logic, zero Minecraft world dependency)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void highOverlapEventuallyCatches(GameTestHelper helper) {
         FishingTargetGameTests.highOverlapEventuallyCatches(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void zeroOverlapEventuallyFails(GameTestHelper helper) {
         FishingTargetGameTests.zeroOverlapEventuallyFails(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void pickRandomBoundaryRolls(GameTestHelper helper) {
         FishingTargetGameTests.pickRandomBoundaryRolls(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void allMovementPatternsTickWithoutThrowing(GameTestHelper helper) {
         FishingTargetGameTests.allMovementPatternsTickWithoutThrowing(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void collectionAnimationLifecycle(GameTestHelper helper) {
         FishingTargetGameTests.collectionAnimationLifecycle(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void failAnimationLifecycle(GameTestHelper helper) {
         FishingTargetGameTests.failAnimationLifecycle(helper);
     }
@@ -461,72 +467,72 @@ public class FishtasticFabricGameTests {
     // PlayerQuestState tests  (pure in-memory, no world state needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getProgressDefaultsForUntouchedQuest(GameTestHelper helper) {
         PlayerQuestStateGameTests.getProgressDefaultsForUntouchedQuest(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void incrementCountRaisesCountAndFlipsCompleted(GameTestHelper helper) {
         PlayerQuestStateGameTests.incrementCountRaisesCountAndFlipsCompleted(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void canClaimTrueOnlyBetweenCompletionAndClaim(GameTestHelper helper) {
         PlayerQuestStateGameTests.canClaimTrueOnlyBetweenCompletionAndClaim(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void claimAddsTokensWithoutResettingCount(GameTestHelper helper) {
         PlayerQuestStateGameTests.claimAddsTokensWithoutResettingCount(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void resetDailyIfNeededOnlyOnNewDay(GameTestHelper helper) {
         PlayerQuestStateGameTests.resetDailyIfNeededOnlyOnNewDay(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void purchaseFailsWhenBalanceTooLow(GameTestHelper helper) {
         PlayerQuestStateGameTests.purchaseFailsWhenBalanceTooLow(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void purchaseFailsWhenMaxPurchasesReached(GameTestHelper helper) {
         PlayerQuestStateGameTests.purchaseFailsWhenMaxPurchasesReached(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void purchaseZeroMaxPurchasesIsUnlimited(GameTestHelper helper) {
         PlayerQuestStateGameTests.purchaseZeroMaxPurchasesIsUnlimited(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void purchaseSucceedsDeductsAndIncrementsCount(GameTestHelper helper) {
         PlayerQuestStateGameTests.purchaseSucceedsDeductsAndIncrementsCount(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void resetDailyPurchasesIfNeededOnlyOnNewDay(GameTestHelper helper) {
         PlayerQuestStateGameTests.resetDailyPurchasesIfNeededOnlyOnNewDay(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void snapshotsReflectMutations(GameTestHelper helper) {
         PlayerQuestStateGameTests.snapshotsReflectMutations(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getLifetimeTankPlacementsDefaultsToZero(GameTestHelper helper) {
         PlayerQuestStateGameTests.getLifetimeTankPlacementsDefaultsToZero(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void incrementLifetimeTankPlacementsIncrementsByOnePerCall(GameTestHelper helper) {
         PlayerQuestStateGameTests.incrementLifetimeTankPlacementsIncrementsByOnePerCall(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeTankPlacementsPersistThroughCodecRoundTrip(GameTestHelper helper) {
         PlayerQuestStateGameTests.lifetimeTankPlacementsPersistThroughCodecRoundTrip(helper);
     }
@@ -535,27 +541,27 @@ public class FishtasticFabricGameTests {
     // ItemEffect condition tests  (pure ItemStack + registry logic, no datapack needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemTagConditionMatchesRealTag(GameTestHelper helper) {
         ItemEffectConditionGameTests.itemTagConditionMatchesRealTag(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void componentConditionMatchesPresenceOnly(GameTestHelper helper) {
         ItemEffectConditionGameTests.componentConditionMatchesPresenceOnly(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void componentValueConditionMatchesFieldValue(GameTestHelper helper) {
         ItemEffectConditionGameTests.componentValueConditionMatchesFieldValue(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void andConditionSemantics(GameTestHelper helper) {
         ItemEffectConditionGameTests.andConditionSemantics(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void itemEffectMatchesRespectsEnabledAndConditions(GameTestHelper helper) {
         ItemEffectConditionGameTests.itemEffectMatchesRespectsEnabledAndConditions(helper);
     }
@@ -564,82 +570,82 @@ public class FishtasticFabricGameTests {
     // Fish Tank tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void addItemIntoEmptyTankSucceeds(GameTestHelper helper) {
         FishTankGameTests.addItemIntoEmptyTankSucceeds(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void addItemMergesIntoExistingStackBeforeNewSlot(GameTestHelper helper) {
         FishTankGameTests.addItemMergesIntoExistingStackBeforeNewSlot(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void addItemFailsOnceSwarmCapReached(GameTestHelper helper) {
         FishTankGameTests.addItemFailsOnceSwarmCapReached(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void extractItemRemovesLastSlotLifoOrder(GameTestHelper helper) {
         FishTankGameTests.extractItemRemovesLastSlotLifoOrder(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void firstItemRotationReflectsSlotZeroInsert(GameTestHelper helper) {
         FishTankGameTests.firstItemRotationReflectsSlotZeroInsert(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void cosmeticsRoundTrip(GameTestHelper helper) {
         FishTankGameTests.cosmeticsRoundTrip(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void sameShapeNeighborsConnect(GameTestHelper helper) {
         FishTankGameTests.sameShapeNeighborsConnect(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void crossShapeNeighborsInSameFamilyConnect(GameTestHelper helper) {
         FishTankGameTests.crossShapeNeighborsInSameFamilyConnect(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void standardAndReinforcedNeighborsConnect(GameTestHelper helper) {
         FishTankGameTests.standardAndReinforcedNeighborsConnect(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void newShapesConnectToStandard(GameTestHelper helper) {
         FishTankGameTests.newShapesConnectToStandard(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void newShapesConnectToEachOther(GameTestHelper helper) {
         FishTankGameTests.newShapesConnectToEachOther(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(GameTestHelper helper) {
         FishTankGameTests.honeycombSealedFaceIsBlockedEvenWhenGroupedViaAnotherPath(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void honeycombSealedIsolatedPairFormSeparateGroups(GameTestHelper helper) {
         FishTankGameTests.honeycombSealedIsolatedPairFormSeparateGroups(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void brokenTankDropCarriesShapeAndMaterials(GameTestHelper helper) {
         FishTankGameTests.brokenTankDropCarriesShapeAndMaterials(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void brokenTankDropRestoresShapeWhenReplaced(GameTestHelper helper) {
         FishTankGameTests.brokenTankDropRestoresShapeWhenReplaced(helper);
     }
@@ -648,341 +654,349 @@ public class FishtasticFabricGameTests {
     // TutorialManager tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void craftingRodFromDefaultStepGrantsWormsAndAdvances(GameTestHelper helper) {
-        TutorialManagerGameTests.craftingRodFromDefaultStepGrantsWormsAndAdvances(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.craftingRodFromDefaultStepGrantsWormsAndAdvances(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void craftingRodAgainAfterAdvancingIsNoOp(GameTestHelper helper) {
-        TutorialManagerGameTests.craftingRodAgainAfterAdvancingIsNoOp(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.craftingRodAgainAfterAdvancingIsNoOp(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void onBaitLoadedOnlyAdvancesFromBaitLoadStep(GameTestHelper helper) {
-        TutorialManagerGameTests.onBaitLoadedOnlyAdvancesFromBaitLoadStep(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.onBaitLoadedOnlyAdvancesFromBaitLoadStep(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void onHookCastOnlyAdvancesFromCastableSteps(GameTestHelper helper) {
-        TutorialManagerGameTests.onHookCastOnlyAdvancesFromCastableSteps(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.onHookCastOnlyAdvancesFromCastableSteps(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void advanceStepNoOpWhenFromStepDoesNotMatchCurrent(GameTestHelper helper) {
-        TutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tutorialWalksFullDocumentedChainToCompletion(GameTestHelper helper) {
-        TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.tutorialWalksFullDocumentedChainToCompletion(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper) {
-        TutorialManagerGameTests.craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.craftingRodViaShiftClickFromResultSlotAdvancesToBaitLoad(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(GameTestHelper helper) {
-        TutorialManagerGameTests.craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.craftingRodViaSimpleClickFromResultSlotAdvancesToBaitLoad(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(GameTestHelper helper) {
-        TutorialManagerGameTests.loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.loadingBaitViaLeftClickInInventoryScreenAdvancesToWaitingForCast(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void revokingRodAdvancementAllowsReTriggeringAfterReset(GameTestHelper helper) {
-        TutorialManagerGameTests.revokingRodAdvancementAllowsReTriggeringAfterReset(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.revokingRodAdvancementAllowsReTriggeringAfterReset(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(GameTestHelper helper) {
-        TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // EncyclopediaTutorialManager tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void openingEncyclopediaFromNotStartedStartsIntro(GameTestHelper helper) {
-        EncyclopediaTutorialManagerGameTests.openingEncyclopediaFromNotStartedStartsIntro(helper, helper::makeMockServerPlayerInLevel);
+        EncyclopediaTutorialManagerGameTests.openingEncyclopediaFromNotStartedStartsIntro(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void reopeningEncyclopediaWhileInProgressIsIdempotent(GameTestHelper helper) {
-        EncyclopediaTutorialManagerGameTests.reopeningEncyclopediaWhileInProgressIsIdempotent(helper, helper::makeMockServerPlayerInLevel);
+        EncyclopediaTutorialManagerGameTests.reopeningEncyclopediaWhileInProgressIsIdempotent(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void openingEncyclopediaAfterCompleteDoesNotRestart(GameTestHelper helper) {
-        EncyclopediaTutorialManagerGameTests.openingEncyclopediaAfterCompleteDoesNotRestart(helper, helper::makeMockServerPlayerInLevel);
+        EncyclopediaTutorialManagerGameTests.openingEncyclopediaAfterCompleteDoesNotRestart(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void encyclopediaAdvanceStepNoOpWhenFromStepDoesNotMatchCurrent(GameTestHelper helper) {
-        EncyclopediaTutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, helper::makeMockServerPlayerInLevel);
+        EncyclopediaTutorialManagerGameTests.advanceStepNoOpWhenFromStepDoesNotMatchCurrent(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void encyclopediaTutorialWalksFullChainToCompletion(GameTestHelper helper) {
-        EncyclopediaTutorialManagerGameTests.encyclopediaTutorialWalksFullChainToCompletion(helper, helper::makeMockServerPlayerInLevel);
+        EncyclopediaTutorialManagerGameTests.encyclopediaTutorialWalksFullChainToCompletion(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // QuestTracker tests  (pure matching logic + throwaway registry, no player needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void targetSpeciesGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.targetSpeciesGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void targetSpeciesTagGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.targetSpeciesTagGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void minQualityIsOrdinalFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void biomeConditionGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.biomeConditionGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void timeConditionGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.timeConditionGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void weatherConditionGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.weatherConditionGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void zoneConditionGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.zoneConditionGatesMatchWhenPresent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void minSizeIsFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minSizeIsFloor(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void minSessionCatchesDoesNotAffectPerStackMatching(GameTestHelper helper) {
         QuestTrackerGameTests.minSessionCatchesDoesNotAffectPerStackMatching(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void allConditionsMustMatchTogether(GameTestHelper helper) {
         QuestTrackerGameTests.allConditionsMustMatchTogether(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailiesIsStablePerDay(GameTestHelper helper) {
         QuestTrackerGameTests.getActiveDailiesIsStablePerDay(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailiesNeverExceedsCapAndExcludesNonDaily(GameTestHelper helper) {
         QuestTrackerGameTests.getActiveDailiesNeverExceedsCapAndExcludesNonDaily(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
         QuestTrackerGameTests.getActiveDailiesCapsAtRegistrySizeWhenSmallerThanCount(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent(GameTestHelper helper) {
         QuestTrackerGameTests.tankSnapshotConditionLifetimeDefaultsToFalseWhenAbsent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tankSnapshotConditionLifetimeRoundTripsThroughCodec(GameTestHelper helper) {
         QuestTrackerGameTests.tankSnapshotConditionLifetimeRoundTripsThroughCodec(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tankKeeperSilverCompletesAndUnlocksToothShape(GameTestHelper helper) {
-        QuestTrackerGameTests.tankKeeperSilverCompletesAndUnlocksToothShape(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.tankKeeperSilverCompletesAndUnlocksToothShape(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tankKeeperGoldCompletesAndUnlocksFilmShape(GameTestHelper helper) {
-        QuestTrackerGameTests.tankKeeperGoldCompletesAndUnlocksFilmShape(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.tankKeeperGoldCompletesAndUnlocksFilmShape(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(GameTestHelper helper) {
-        QuestTrackerGameTests.lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.lifetimeTankPlacementCounterIsCumulativeAcrossDifferentTanks(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeTankPlacementCounterIgnoresNonFishItems(GameTestHelper helper) {
-        QuestTrackerGameTests.lifetimeTankPlacementCounterIgnoresNonFishItems(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.lifetimeTankPlacementCounterIgnoresNonFishItems(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void tankStarterCompletesWhenAnyFishIsDisplayedInATank(GameTestHelper helper) {
-        QuestTrackerGameTests.tankStarterCompletesWhenAnyFishIsDisplayedInATank(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.tankStarterCompletesWhenAnyFishIsDisplayedInATank(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(GameTestHelper helper) {
-        QuestTrackerGameTests.goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.goldenShowcaseRequiresLegendaryQualityAndGoldFrameTogether(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(GameTestHelper helper) {
-        QuestTrackerGameTests.blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(helper, helper::makeMockServerPlayerInLevel);
+        QuestTrackerGameTests.blueToTheGillsCountsMatchingSpeciesLiveAndCannotRegressOnceComplete(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // Quest content validation  (runs against the live quest/fish_profile/biome registries)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void everyTargetSpeciesQuestIsSatisfiable(GameTestHelper helper) {
         QuestSatisfiabilityGameTests.everyTargetSpeciesQuestIsSatisfiable(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void everyPrerequisiteResolves(GameTestHelper helper) {
         QuestSatisfiabilityGameTests.everyPrerequisiteResolves(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void noPrerequisiteCycles(GameTestHelper helper) {
         QuestSatisfiabilityGameTests.noPrerequisiteCycles(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void nonHiddenQuestIsAlwaysListed(GameTestHelper helper) {
         QuestLogVisibilityGameTests.nonHiddenQuestIsAlwaysListed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void hiddenSecretStaysOutUntilCompleted(GameTestHelper helper) {
         QuestLogVisibilityGameTests.hiddenSecretStaysOutUntilCompleted(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void hiddenChainQuestAppearsOncePrerequisiteClaimed(GameTestHelper helper) {
         QuestLogVisibilityGameTests.hiddenChainQuestAppearsOncePrerequisiteClaimed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void completedChainQuestIsListedEvenIfPrerequisiteUnclaimed(GameTestHelper helper) {
         QuestLogVisibilityGameTests.completedChainQuestIsListedEvenIfPrerequisiteUnclaimed(helper);
     }
 
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void gatedEntriesAreAbsentUntilTheirQuestIsClaimed(GameTestHelper helper) {
         CapstoneRewardGameTests.gatedEntriesAreAbsentUntilTheirQuestIsClaimed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void gatedEntriesCanAppearOnceTheirQuestIsClaimed(GameTestHelper helper) {
         CapstoneRewardGameTests.gatedEntriesCanAppearOnceTheirQuestIsClaimed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lockedEntriesDoNotConsumeShopSlots(GameTestHelper helper) {
         CapstoneRewardGameTests.lockedEntriesDoNotConsumeShopSlots(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void gatedEntryIsEarnableViaEveryUnlockQuest(GameTestHelper helper) {
         CapstoneRewardGameTests.gatedEntryIsEarnableViaEveryUnlockQuest(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void unlockGatesNeverPointAtDailyQuests(GameTestHelper helper) {
         CapstoneRewardGameTests.unlockGatesNeverPointAtDailyQuests(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void capstoneTanksCarryTheirMaterialsComponent(GameTestHelper helper) {
         CapstoneRewardGameTests.capstoneTanksCarryTheirMaterialsComponent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void displayCountClampsOvershootToTheTarget(GameTestHelper helper) {
         PlayerQuestStateGameTests.displayCountClampsOvershootToTheTarget(helper);
     }
 
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void stormCharmIsSlottableIntoTheRod(GameTestHelper helper) {
         StormCharmGameTests.stormCharmIsSlottableIntoTheRod(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void stormCharmCarriesNoCharmEffect(GameTestHelper helper) {
         StormCharmGameTests.stormCharmCarriesNoCharmEffect(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void stormCharmStacksUnlikeRodCharms(GameTestHelper helper) {
         StormCharmGameTests.stormCharmStacksUnlikeRodCharms(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void summonedStormIsReadAsThunderByQuestConditions(GameTestHelper helper) {
         StormCharmGameTests.summonedStormIsReadAsThunderByQuestConditions(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handUseChargesUpAndIsFreeToCancel(GameTestHelper helper) {
         StormCharmGameTests.handUseChargesUpAndIsFreeToCancel(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void stormDurationIsWithinVanillaThunderRange(GameTestHelper helper) {
         StormCharmGameTests.stormDurationIsWithinVanillaThunderRange(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    // Hand-added, not produced by the A6.1 generator: it covers the Sunset Postcard day-time rate,
+    // whose gametest A2.8.c deferred to this harness. It needs its own timeout because it measures
+    // day time across 200 server ticks.
+    @GameTest(template = "fishtastic:empty", timeoutTicks = 600)
+    public void dayTimeAdvancesAtTheAppliedRate(GameTestHelper helper) {
+        StormCharmGameTests.dayTimeAdvancesAtTheAppliedRate(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic:empty")
     public void dailyPoolIsLargerThanTheDrawAndActuallyRotates(GameTestHelper helper) {
         QuestSatisfiabilityGameTests.dailyPoolIsLargerThanTheDrawAndActuallyRotates(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeQuestsCarryNoUnreplayableConditions(GameTestHelper helper) {
         QuestSatisfiabilityGameTests.lifetimeQuestsCarryNoUnreplayableConditions(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void catchCountMatchingScopesToTheRequestedSpecies(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.catchCountMatchingScopesToTheRequestedSpecies(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeCountsAreIsolatedPerPlayer(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.lifetimeCountsAreIsolatedPerPlayer(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void oneLifetimeTotalSatisfiesEveryTierItHasPassed(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.oneLifetimeTotalSatisfiesEveryTierItHasPassed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void nonFishCatchesDoNotAdvanceLifetimeChains(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.nonFishCatchesDoNotAdvanceLifetimeChains(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void lifetimeCompatibilityRejectsEnvironmentalConditions(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.lifetimeCompatibilityRejectsEnvironmentalConditions(helper);
     }
@@ -991,32 +1005,32 @@ public class FishtasticFabricGameTests {
     // Packet round-trip tests  (pure StreamCodec encode/decode, no player needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void startFishingMinigamePacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.startFishingMinigamePacketRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void purchaseShopEntryPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.purchaseShopEntryPacketRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void questSyncPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.questSyncPacketRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void questSyncPacketCleanupGoalMilestoneRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.questSyncPacketCleanupGoalMilestoneRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.fishEncyclopediaSyncPacketRoundTrips(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void requestFishEncyclopediaPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.requestFishEncyclopediaPacketRoundTrips(helper);
     }
@@ -1025,17 +1039,17 @@ public class FishtasticFabricGameTests {
     // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void emptyObjectDecodesToAllDefaults(GameTestHelper helper) {
         FishEncyclopediaEntryGameTests.emptyObjectDecodesToAllDefaults(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void partialThresholdsFillRemainingDefaults(GameTestHelper helper) {
         FishEncyclopediaEntryGameTests.partialThresholdsFillRemainingDefaults(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void fullEntryRoundTripsThroughJson(GameTestHelper helper) {
         FishEncyclopediaEntryGameTests.fullEntryRoundTripsThroughJson(helper);
     }
@@ -1044,37 +1058,37 @@ public class FishtasticFabricGameTests {
     // FishEncyclopediaClientCache / FishEncyclopediaClientHelper tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void cacheStartsEmpty(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.cacheStartsEmpty(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void updatePopulatesCatchCountsByFishType(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.updatePopulatesCatchCountsByFishType(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void updateIndexesBestSizesByFishType(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.updateIndexesBestSizesByFishType(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void updateReplacesPriorContentsRatherThanMerging(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.updateReplacesPriorContentsRatherThanMerging(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void resetClearsAllMaps(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.resetClearsAllMaps(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getEncyclopediaEntryFallsBackToDefaultForUnregisteredFish(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.getEncyclopediaEntryFallsBackToDefaultForUnregisteredFish(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getAllFishProfilesSortedMatchesRegistryEntrySet(GameTestHelper helper) {
         FishEncyclopediaClientGameTests.getAllFishProfilesSortedMatchesRegistryEntrySet(helper);
     }
@@ -1083,333 +1097,333 @@ public class FishtasticFabricGameTests {
     // FishingMinigameManager tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void startSessionEndToEndReturnsValidSessionId(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.startSessionEndToEndReturnsValidSessionId(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.startSessionEndToEndReturnsValidSessionId(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void startSessionWhenAlreadyActiveReturnsNegativeOneUnlessCancelled(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.startSessionWhenAlreadyActiveReturnsNegativeOneUnlessCancelled(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.startSessionWhenAlreadyActiveReturnsNegativeOneUnlessCancelled(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void cancelSessionRemovesActiveSession(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.cancelSessionRemovesActiveSession(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.cancelSessionRemovesActiveSession(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteAwardsOnlyRewardsForValidIndicesAndIgnoresOthers(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteAwardsOnlyRewardsForValidIndicesAndIgnoresOthers(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteAwardsOnlyRewardsForValidIndicesAndIgnoresOthers(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteIsNoOpForUnknownOrMismatchedSession(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteIsNoOpForUnknownOrMismatchedSession(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteIsNoOpForUnknownOrMismatchedSession(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteSessionIsSingleUseEvenWhenIndicesAreInvalid(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteSessionIsSingleUseEvenWhenIndicesAreInvalid(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteSessionIsSingleUseEvenWhenIndicesAreInvalid(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteConsumesBaitOnlyWhenRewardsWereActuallyAwarded(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void trashChanceOneAlwaysAwardsTrashItems(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.trashChanceOneAlwaysAwardsTrashItems(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(GameTestHelper helper) {
-        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, helper::makeMockServerPlayerInLevel);
+        FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopIsStablePerDay(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopIsStablePerDay(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopNeverExceedsCap(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverExceedsCap(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopCapsAtRegistrySizeWhenSmallerThanCount(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopWeightBiasesSelectionTowardHeavierEntries(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopWeightBiasesSelectionTowardHeavierEntries(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopHandlesNonPositiveWeightWithoutError(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopHandlesNonPositiveWeightWithoutError(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void shopEntryCodecDefaultsWeightToOneWhenAbsent(GameTestHelper helper) {
         ShopEntryGameTests.shopEntryCodecDefaultsWeightToOneWhenAbsent(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopCharmReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopCharmReplacementRateMatchesConfiguredChance(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopNeverReplacesWithoutACharmPool(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverReplacesWithoutACharmPool(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopHandlesEmptyMainPoolWithCharmsOnly(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopTankShapeReplacementRateMatchesConfiguredChance(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopNeverReplacesWithoutATankShapePool(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverReplacesWithoutATankShapePool(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopHandlesEmptyMainPoolWithTankShapesOnly(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopCharmAndTankShapeReplacementsCanCoexist(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void grantRewardsDropsLeftoverWhenInventoryIsFull(GameTestHelper helper) {
-        ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+        ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void grantRewardsDeliversNormallyWhenInventoryHasSpace(GameTestHelper helper) {
-        ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, helper::makeMockServerPlayerInLevel);
+        ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // RemoveTankEntryPacket.giveOrDrop — fish tank browser GUI removal delivery
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void giveOrDropDropsFishWhenInventoryIsFull(GameTestHelper helper) {
-        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFull(helper, helper::makeMockServerPlayerInLevel);
+        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFull(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(GameTestHelper helper) {
-        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(helper, helper::makeMockServerPlayerInLevel);
+        RemoveTankEntryPacketGameTests.giveOrDropDropsFishWhenInventoryIsFullInCreativeMode(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void giveOrDropDeliversFishNormallyWhenInventoryHasSpace(GameTestHelper helper) {
-        RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, helper::makeMockServerPlayerInLevel);
+        RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void giveOrDropPilesASecondFishIntoTheExistingPile(GameTestHelper helper) {
-        RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, helper::makeMockServerPlayerInLevel);
+        RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish(GameTestHelper helper) {
-        RemoveTankEntryPacketGameTests.giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish(helper, helper::makeMockServerPlayerInLevel);
+        RemoveTankEntryPacketGameTests.giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // Creative tab tests
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void decorationsTabContainsExactlyCosmeticStructuresAndDecorations(GameTestHelper helper) {
         CreativeTabGameTests.decorationsTabContainsExactlyCosmeticStructuresAndDecorations(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void mainTabNoLongerContainsMovedCosmetics(GameTestHelper helper) {
         CreativeTabGameTests.mainTabNoLongerContainsMovedCosmetics(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void advanceStepBaitLoadTransitionsToWaitingForCast(GameTestHelper helper) {
-        TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, helper::makeMockServerPlayerInLevel);
+        TutorialManagerGameTests.advanceStepBaitLoadTransitionsToWaitingForCast(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
     // Catch celebration tests  (pure timeline logic, zero rendering)
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void legendaryResolvesToHeroTier(GameTestHelper helper) {
         CatchCelebrationGameTests.legendaryResolvesToHeroTier(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void ordinaryCatchResolvesToNone(GameTestHelper helper) {
         CatchCelebrationGameTests.ordinaryCatchResolvesToNone(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void undiscoveredResolvesToDiscoveryTier(GameTestHelper helper) {
         CatchCelebrationGameTests.undiscoveredResolvesToDiscoveryTier(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void legendaryOutranksDiscovery(GameTestHelper helper) {
         CatchCelebrationGameTests.legendaryOutranksDiscovery(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void emptyRewardsResolveToNone(GameTestHelper helper) {
         CatchCelebrationGameTests.emptyRewardsResolveToNone(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void heroStackPicksHighestQuality(GameTestHelper helper) {
         CatchCelebrationGameTests.heroStackPicksHighestQuality(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void heroStackPicksNewSpeciesOnDiscovery(GameTestHelper helper) {
         CatchCelebrationGameTests.heroStackPicksNewSpeciesOnDiscovery(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void phaseBoundariesFollowTimings(GameTestHelper helper) {
         CatchCelebrationGameTests.phaseBoundariesFollowTimings(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void clockClampsAtTotal(GameTestHelper helper) {
         CatchCelebrationGameTests.clockClampsAtTotal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void timeScaleFreezesThenRampsBack(GameTestHelper helper) {
         CatchCelebrationGameTests.timeScaleFreezesThenRampsBack(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void discoveryHasNoSlowMotionHold(GameTestHelper helper) {
         CatchCelebrationGameTests.discoveryHasNoSlowMotionHold(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void heroScaleGrowsToPeakThenReturnsToNormal(GameTestHelper helper) {
         CatchCelebrationGameTests.heroScaleGrowsToPeakThenReturnsToNormal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void settleReleasesIntoPhysics(GameTestHelper helper) {
         CatchCelebrationGameTests.settleReleasesIntoPhysics(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void settleFinishesOnceItemLeavesScreen(GameTestHelper helper) {
         CatchCelebrationGameTests.settleFinishesOnceItemLeavesScreen(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void settlePhysicsDeceleratesUnderGravity(GameTestHelper helper) {
         CatchCelebrationGameTests.settlePhysicsDeceleratesUnderGravity(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void settleRotationComesFromPhysics(GameTestHelper helper) {
         CatchCelebrationGameTests.settleRotationComesFromPhysics(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void silhouetteDropsAtReveal(GameTestHelper helper) {
         CatchCelebrationGameTests.silhouetteDropsAtReveal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void revealSwapHappensWhileEdgeOn(GameTestHelper helper) {
         CatchCelebrationGameTests.revealSwapHappensWhileEdgeOn(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void heroIsUnsqueezedOutsideTheTurn(GameTestHelper helper) {
         CatchCelebrationGameTests.heroIsUnsqueezedOutsideTheTurn(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void sparkleBurstFiresOnceAtReveal(GameTestHelper helper) {
         CatchCelebrationGameTests.sparkleBurstFiresOnceAtReveal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void skipJumpsToSettle(GameTestHelper helper) {
         CatchCelebrationGameTests.skipJumpsToSettle(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void skipIgnoredBeforeReveal(GameTestHelper helper) {
         CatchCelebrationGameTests.skipIgnoredBeforeReveal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void skipAfterRevealKeepsBurstConsumed(GameTestHelper helper) {
         CatchCelebrationGameTests.skipAfterRevealKeepsBurstConsumed(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void skipDoesNotRewind(GameTestHelper helper) {
         CatchCelebrationGameTests.skipDoesNotRewind(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void gameplaySuppressedUntilFinished(GameTestHelper helper) {
         CatchCelebrationGameTests.gameplaySuppressedUntilFinished(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void shakeDecaysThenRebuildsIntoTheReveal(GameTestHelper helper) {
         CatchCelebrationGameTests.shakeDecaysThenRebuildsIntoTheReveal(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void celebrationNoneTierIsRejected(GameTestHelper helper) {
         CatchCelebrationGameTests.noneTierIsRejected(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void applyQualityAndSizeSetsBothComponents(GameTestHelper helper) {
         CatchCelebrationGameTests.applyQualityAndSizeSetsBothComponents(helper);
     }
 
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    @GameTest(template = "fishtastic:empty")
     public void applyQualityAndSizeOverwritesExistingQuality(GameTestHelper helper) {
         CatchCelebrationGameTests.applyQualityAndSizeOverwritesExistingQuality(helper);
     }

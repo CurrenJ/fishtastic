@@ -487,6 +487,102 @@ The 6 test names that only the Fabric harness had (`crossShapeNeighborsInSameFam
 
 The 25 shared test-body files in `common/src/testmod` port like main code (A2 renames, plus the `ContainerInput`/`GameRules`/`ItemUseAnimation` rows).
 
+#### A6.1 as built (2026-09-25): Fabric green at 263, the NeoForge half is blocked
+
+Two of the table's premises did not hold. Both were found by running, not by reading.
+
+**The shared bodies needed less than Appendix A implies, but more than static inspection said.**
+`git diff 26.1.2 -- common/src/testmod` is only the A2 rename sweep (82 lines across 15 files; 10
+files untouched), and the A2 `sed` had already done the `Identifier` work. Static inspection of the
+25 files concluded "20 sites in 4 files, nothing else". The compiler, once the trees were actually
+un-excluded, said **576 errors**. What it really wanted was ~30 sites in 9 files:
+`Inventory#getNonEquipmentItems` -> the `items` field (14 sites),
+`GameTestHelper#getBlockEntity(BlockPos, Class)` -> the one-arg form (5),
+`Registry#getValue` -> `get` / `getHolderOrThrow`, `lookupOrThrow` -> `registryOrThrow`,
+`ContainerInput` -> `ClickType`, the `GameRules.ADVANCE_WEATHER` family ->
+`RULE_WEATHER_CYCLE` + `getBoolean`/`getRule(...).set(...)`, `ItemUseAnimation` -> `UseAnim`,
+`ServerLevel#getWeatherData` (absent on 1.21.1; the level data is a `ServerLevelData`),
+and `ServerPlayer#gameMode()` (not overridable on 1.21.1; `setGameMode` after construction).
+Appendix A's per-file lists overstate the work: several of its hits are `BlockState#getValue`,
+`Map.Entry#getValue`, or a method *name*. **576 -> 2 -> 0 errors over three compile passes.**
+
+**One shared class again, and Fabric runs the whole suite.** `FishtasticGameTests` (262 wrappers
+generated from the old Fabric harness by `build/a61-gen-shared-harness.py`, which asserts 262 in /
+262 out, plus the hand-added Sunset Postcard wrapper) carries vanilla
+`@GameTest(template = "fishtastic:empty")`. The table's premise is right
+even though the old harness was stale: `net.fabricmc.fabric.api.gametest.v1.GameTest` **does not
+exist** in fabric-gametest-api-v1 2.0.5, and that module's own javadoc points at vanilla's
+annotation. `:fabric:runGametest` reports **263 tests, 0 failures** (all `classname="fishtastic:empty"`;
+the older report's extra `minecraft:always_pass` entry was the Fabric API's own and no longer
+appears). Fabric's `TestFunctionsMixin` uses a non-empty `template()` **verbatim** and derives the
+mod id from the entrypoint, so no holder is needed there.
+
+Supporting pieces: `FishtasticTestSupport` is the mock-player seam, installed per platform, because
+the loaders cannot share vanilla's `makeMockServerPlayerInLevel` - NeoForge's mock connection skips
+the configuration handshake that registers its payload channels. `NeoForgeTestPlayers` is therefore
+**still needed**, answering the table's "if it's still needed". A new
+`common/src/testmod/resources/data/fishtastic/structure/empty.nbt` (8x8x8, `DataVersion 3955` - the
+deleted provider hard-coded 4189, "matches MC 26.1.2") carries **explicit tag types**, because
+`StructureTemplate.load` asks for `getList("size", 3)` and `getList("palette"|"blocks"|"entities", 10)`
+while a bare `new ListTag()` carries element type 0. Both platforms' `testmod` source sets now also
+register `common/src/testmod/resources` as a resource dir; previously only `java` was wired, so the
+structure would not have been on the classpath at all.
+
+**The NeoForge half is blocked on an API fact the design did not account for.** The 26.1
+registration could not be trimmed: `TestData`, `GameTestInstance` and `TestEnvironmentDefinition`
+**do not exist in NeoForge 21.1.209**, and `RegisterGameTestsEvent` exposes only `register(Class)`
+and `register(Method)`. It was replaced with the annotation-driven path, which then failed twice in
+sequence:
+
+1. `Enabled Gametest Namespaces: [fishtastic]` -> `IllegalArgumentException: No test functions were
+   given!`, and the JVM then **hangs** rather than exiting - the very hang the hook's `full` stage
+   sidesteps by never running this task. `GameTestHooks.getTemplateNamespace` falls back to
+   `"minecraft"` without a `@GameTestHolder`, so a fishtastic-only filter drops every test.
+2. With the filter emptied: `ResourceLocationException: Non [a-z0-9/._-] character in path of
+   location: minecraft:fishtasticgametests.fishtastic:empty`. `prefixGameTestTemplate` defaults to
+   **true** when the annotation is absent, so NeoForge prefixes the class simple name onto the raw
+   template (`fishtasticgametests.` + `fishtastic:empty`) and the result is not a valid id.
+
+Both are one thing: **NeoForge 21.1 requires `@GameTestHolder` and `@PrefixGameTestTemplate` on the
+class that *declares* the test methods**, and a class compiled for both loaders cannot carry
+`net.neoforged` annotations (`common/build.gradle` has no NeoForge dependency at all, and
+`fabric/build.gradle` compiles the same file). The obvious escape - a thin NeoForge subclass
+carrying them - is **ruled out**: `GameTestRegistry.register(Class)` and
+`RegisterGameTestsEvent.register(Class)` both use `getDeclaredMethods()`, so a subclass registers
+zero tests.
+
+Three ways out, none yet taken (raised for the owner):
+
+- **(a) Generated per-platform harness class.** The same generator emits
+  `neoforge/src/testmod/.../FishtasticNeoForgeGameTests.java`, identical wrappers plus
+  `@GameTestHolder("fishtastic")` and `@PrefixGameTestTemplate(false)`. Works, keeps the `fishtastic`
+  namespace filter and the shared bodies, and cannot drift because both files come from one script -
+  but it restores ~1,400 generated lines of near-duplicate wrappers, which is most of what D10 set
+  out to delete.
+- **(b) Compile the two NeoForge annotations into `common`** (a compile-only stub source set, the
+  `portstub` pattern), so the one shared class can carry them; they are inert on Fabric, where the
+  annotation types are absent at runtime. No duplication, but it puts a loader's API across the
+  line that `common` deliberately does not cross, and risks shadowing NeoForge's own classes.
+- **(c) Ship the structure under the id NeoForge computes** (`template = "empty"` plus a second
+  file named for the prefixed path). No duplication, but it claims `data/minecraft/...` for our own
+  file and leans on NeoForge's prefixing behaviour staying put.
+
+**Recommendation: (a)**, the fallback the A6.1 plan pre-approved, with the duplication generated
+rather than written - and the track doc recording that the "one shared annotated class" of D10 is
+really "one shared body set plus two generated thin harnesses" on this branch. Awaiting the owner's
+choice before adding the second generated class.
+
+**Un-blocks with A6.1:** the six Fabric-only tests (`crossShapeNeighborsInSameFamilyConnect`,
+`giveOrDropThroughRealMenuAfterPickupWhileOpenDoesNotLoseTheFish`, `newShapesConnectToEachOther`,
+`newShapesConnectToStandard`, `sameShapeNeighborsConnect`, `standardAndReinforcedNeighborsConnect`)
+are in the shared class, so they run on both loaders once the NeoForge half lands. The **Sunset
+Postcard gametest** A2.8.c deferred is written: `dayTimeAdvancesAtTheAppliedRate` in
+`StormCharmGameTests` parks day time at the dawn window start with a Sunset Postcard in a mock
+player's inventory, reads the live rate from `SunsetExtensionHandler.currentRate()` rather than
+hard-coding 0.5 (the shipped charm's `sunset_extension_seconds` of 60 against a 100-second window
+gives 0.625), and asserts day time advanced by `rate x 200` +/- 1 for the accumulator's remainder.
+It passes in the Fabric run (263 tests, 0 failures).
+
 ### A6.2: Green bar (G2)
 
 | Check | Command | Expected |

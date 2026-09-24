@@ -42,7 +42,7 @@ public final class RemoveTankEntryPacketGameTests {
     }
 
     private static void fillInventoryCompletely(ServerPlayer player, net.minecraft.world.item.Item fillerItem) {
-        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+        for (int i = 0; i < player.getInventory().items.size(); i++) {
             player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
         }
     }
@@ -82,7 +82,7 @@ public final class RemoveTankEntryPacketGameTests {
 
         int pilesInInventory = 0;
         int looseInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(FishtasticItems.PILE_OF_FISH.value())) pilesInInventory++;
             if (stack.is(Items.COD)) looseInInventory++;
         }
@@ -121,7 +121,7 @@ public final class RemoveTankEntryPacketGameTests {
 
         int pilesInInventory = 0;
         int looseInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(FishtasticItems.PILE_OF_FISH.value())) pilesInInventory++;
             if (stack.is(Items.COD)) looseInInventory++;
         }
@@ -146,7 +146,7 @@ public final class RemoveTankEntryPacketGameTests {
         RemoveTankEntryPacket.giveOrDrop(player, sizedFish());
 
         int pilesInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(FishtasticItems.PILE_OF_FISH.value())) pilesInInventory++;
         }
         helper.assertTrue(pilesInInventory == 1,
@@ -168,7 +168,7 @@ public final class RemoveTankEntryPacketGameTests {
         RemoveTankEntryPacket.giveOrDrop(player, sizedFish());
 
         int pilesInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(FishtasticItems.PILE_OF_FISH.value())) pilesInInventory++;
         }
         helper.assertTrue(pilesInInventory == 1,
@@ -212,7 +212,7 @@ public final class RemoveTankEntryPacketGameTests {
             GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK.value());
-        FishTankBlockEntity tank = helper.getBlockEntity(TANK_POS, FishTankBlockEntity.class);
+        FishTankBlockEntity tank = helper.<FishTankBlockEntity>getBlockEntity(TANK_POS);
         ItemStack fishInTank = sizedFish();
         helper.assertTrue(tank.addItem(fishInTank), "Setup: inserting the test fish into the tank must succeed");
 
@@ -243,7 +243,7 @@ public final class RemoveTankEntryPacketGameTests {
         helper.assertTrue(dropped.isRemoved(), "Setup: the real pickup must actually succeed (entity discarded)");
 
         int freeSlots = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.isEmpty()) freeSlots++;
         }
         helper.assertTrue(freeSlots == 0,
@@ -264,7 +264,7 @@ public final class RemoveTankEntryPacketGameTests {
 
         int pilesInInventory = 0;
         int looseInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(FishtasticItems.PILE_OF_FISH.value())) pilesInInventory++;
             if (stack.is(fishInTank.getItem())) looseInInventory++;
         }

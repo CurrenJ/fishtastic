@@ -5,10 +5,15 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.StormCharmItem;
+import grill24.fishtastic.server.SunsetExtensionHandler;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.storage.ServerLevelData;
+
+import java.util.function.Supplier;
 
 /**
  * Covers the Storm Charm — a single-use consumable that summons a real thunderstorm rather than a
@@ -70,16 +75,19 @@ public final class StormCharmGameTests {
         ServerLevel level = helper.getLevel();
         var server = level.getServer();
 
-        int clearTime = level.getWeatherData().getClearWeatherTime();
-        int rainTime = level.getWeatherData().getRainTime();
+        // 1.21.1 has no ServerLevel#getWeatherData(), and ServerLevel.serverLevelData is private;
+        // the level data object is a ServerLevelData at runtime.
+        ServerLevelData data = (ServerLevelData) level.getLevelData();
+        int clearTime = data.getClearWeatherTime();
+        int rainTime = data.getRainTime();
         boolean wasRaining = level.isRaining();
         boolean wasThundering = level.isThundering();
         // NeoForge's GameTestServer hard-disables ADVANCE_WEATHER for every test run (deterministic
         // worlds), which trySummonStorm correctly treats as "refuse rather than leave a permanent
         // storm" — force it on for this test only, restoring it after, or the guard rejects the
         // storm and the assertions below fail for reasons unrelated to the charm itself.
-        boolean wasAdvancingWeather = level.getGameRules().get(GameRules.ADVANCE_WEATHER);
-        level.getGameRules().set(GameRules.ADVANCE_WEATHER, true, server);
+        boolean wasAdvancingWeather = level.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE);
+        level.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(true, server);
         try {
             StormCharmItem.trySummonStorm(level, helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
 
@@ -91,10 +99,10 @@ public final class StormCharmGameTests {
                             == FishProfile.WeatherCondition.THUNDER,
                     "A summoned storm must be reported as THUNDER by the same call quest tracking uses");
         } finally {
-            server.setWeatherParameters(clearTime, rainTime, wasRaining, wasThundering);
+            level.setWeatherParameters(clearTime, rainTime, wasRaining, wasThundering);
             level.setRainLevel(wasRaining ? 1.0f : 0.0f);
             level.setThunderLevel(wasThundering ? 1.0f : 0.0f);
-            level.getGameRules().set(GameRules.ADVANCE_WEATHER, wasAdvancingWeather, server);
+            level.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(wasAdvancingWeather, server);
         }
         helper.succeed();
     }
@@ -111,7 +119,7 @@ public final class StormCharmGameTests {
         helper.assertTrue(storm.getUseDuration(player) == StormCharmItem.CHARGE_TICKS,
                 "Storm Charm must charge for " + StormCharmItem.CHARGE_TICKS + " ticks, was "
                         + storm.getUseDuration(player));
-        helper.assertTrue(storm.getUseAnimation() != net.minecraft.world.item.ItemUseAnimation.NONE,
+        helper.assertTrue(storm.getUseAnimation() != net.minecraft.world.item.UseAnim.NONE,
                 "A charge-up needs a visible use animation");
 
         // Abandoning the charge partway must be a no-op on both the item and the weather.
@@ -134,5 +142,51 @@ public final class StormCharmGameTests {
                 "Storm duration should sit inside vanilla's 3000-15000 tick thunder range, was "
                         + StormCharmItem.STORM_DURATION_TICKS);
         helper.succeed();
+    }
+
+    /**
+     * The Sunset Postcard Charm slows the day-time rate while it sits in a player's inventory
+     * during the dawn and dusk windows (A2.8.c). 1.21.1 has no world clocks, so
+     * {@code ServerLevelTickTimeMixin} applies the rate through a fractional accumulator that
+     * advances day time by its whole part each tick; this measures that the accumulator genuinely
+     * moves day time at the applied rate.
+     *
+     * <p>The rate is derived from data - the charm's {@code sunset_extension_seconds} against the
+     * window's length at rate 1.0, with a floor - so the assertion reads the live rate rather than
+     * hard-coding one, and tolerates the accumulator's single-tick remainder.
+     */
+    public static void dayTimeAdvancesAtTheAppliedRate(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = mockPlayer.get();
+        ItemStack charm = new ItemStack(FishtasticItems.SUNSET_POSTCARD_CHARM.value());
+        player.getInventory().add(charm);
+
+        // Park day time at the start of the dawn window, where the handler applies a slowed rate.
+        long dayTimeBefore = level.getDayTime();
+        level.setDayTime(FishProfile.TimeOfDay.DAWN_START_TICK);
+
+        // Let a server tick recompute the rate now that the charm is in the player's inventory.
+        helper.runAfterDelay(2L, () -> {
+            float rate = SunsetExtensionHandler.currentRate();
+            boolean slowed = rate < 1.0f;
+            long before = level.getDayTime();
+            int span = 200;
+
+            helper.runAfterDelay(span, () -> {
+                long advanced = level.getDayTime() - before;
+                long expected = Math.round(rate * span);
+
+                // Restore first, so a failed assertion cannot leave the world slowed for other tests.
+                player.getInventory().removeItem(charm);
+                level.setDayTime(dayTimeBefore);
+
+                helper.assertTrue(slowed,
+                        "A Sunset Postcard during the dawn window must slow day time, but the rate was " + rate);
+                helper.assertTrue(Math.abs(advanced - expected) <= 1,
+                        "Day time must advance at the applied rate: over " + span + " ticks at rate " + rate
+                                + " expected " + expected + " (+/-1 for the accumulator's remainder), got " + advanced);
+                helper.succeed();
+            });
+        });
     }
 }

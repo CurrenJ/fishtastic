@@ -42,7 +42,7 @@ public final class FishTankGameTests {
     private static FishTankBlockEntity placeFishTank(GameTestHelper helper) {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK.value());
-        return helper.getBlockEntity(TANK_POS, FishTankBlockEntity.class);
+        return helper.<FishTankBlockEntity>getBlockEntity(TANK_POS);
     }
 
     /** Places a second tank immediately east of {@link #TANK_POS}, for connection-gating tests. */
@@ -52,7 +52,7 @@ public final class FishTankGameTests {
 
     private static FishTankBlockEntity placeFishTankAt(GameTestHelper helper, BlockPos pos) {
         helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
-        return helper.getBlockEntity(pos, FishTankBlockEntity.class);
+        return helper.<FishTankBlockEntity>getBlockEntity(pos);
     }
 
     // -------------------------------------------------------------------------

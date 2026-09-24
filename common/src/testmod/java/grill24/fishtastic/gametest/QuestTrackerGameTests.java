@@ -109,7 +109,7 @@ public final class QuestTrackerGameTests {
     }
 
     private static Holder<Biome> biome(GameTestHelper helper, ResourceKey<Biome> key) {
-        return helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME).get(key).orElseThrow();
+        return helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(key);
     }
 
     // -------------------------------------------------------------------------
@@ -389,7 +389,7 @@ public final class QuestTrackerGameTests {
         helper.assertTrue(active.size() == 4, "With 10 daily quests, exactly ACTIVE_DAILY_COUNT (4) must be selected, got " + active.size());
         for (ResourceKey<Quest> key : active) {
             helper.assertTrue(
-                registry.getValue(key).category() == QuestCategory.DAILY,
+                registry.get(key).category() == QuestCategory.DAILY,
                 "getActiveDailies must never select a non-DAILY quest"
             );
         }
@@ -450,7 +450,7 @@ public final class QuestTrackerGameTests {
     private static FishTankBlockEntity placeFishTank(GameTestHelper helper, BlockPos pos) {
         helper.setBlock(pos.below(), Blocks.STONE);
         helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
-        return helper.getBlockEntity(pos, FishTankBlockEntity.class);
+        return helper.<FishTankBlockEntity>getBlockEntity(pos);
     }
 
     private static ItemStack fishStack() {
@@ -481,7 +481,7 @@ public final class QuestTrackerGameTests {
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest(questPath);
         Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
-        Quest quest = quests.getValue(questKey);
+        Quest quest = quests.get(questKey);
         helper.assertTrue(quest != null, "Quest " + questPath + " must be registered");
         int target = quest.objective().effectiveTargetCount(server.registryAccess());
 
@@ -575,7 +575,7 @@ public final class QuestTrackerGameTests {
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("explorer/tank_starter");
         Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
-        Quest quest = quests.getValue(questKey);
+        Quest quest = quests.get(questKey);
         helper.assertTrue(quest != null, "Quest explorer/tank_starter must be registered");
 
         FishTankBlockEntity tank = placeFishTank(helper, LIFETIME_TANK_POS_A);
@@ -601,7 +601,7 @@ public final class QuestTrackerGameTests {
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("challenge/golden_showcase");
         Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
-        Quest quest = quests.getValue(questKey);
+        Quest quest = quests.get(questKey);
         helper.assertTrue(quest != null, "Quest challenge/golden_showcase must be registered");
         PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
 
@@ -646,7 +646,7 @@ public final class QuestTrackerGameTests {
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("explorer/blue_to_the_gills");
         Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
-        Quest quest = quests.getValue(questKey);
+        Quest quest = quests.get(questKey);
         helper.assertTrue(quest != null, "Quest explorer/blue_to_the_gills must be registered");
         int target = quest.objective().effectiveTargetCount(server.registryAccess());
 

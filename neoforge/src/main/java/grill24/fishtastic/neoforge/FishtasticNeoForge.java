@@ -115,11 +115,5 @@ public final class FishtasticNeoForge {
 
         // Register config
         FishtasticConfig.register(container);
-
-        // Generate game test structure files (./gradlew :neoforge:runData)
-        modEventBus.addListener((net.neoforged.neoforge.data.event.GatherDataEvent event) -> {
-            event.getGenerator().addProvider(event.includeServer(),
-                new grill24.fishtastic.neoforge.datagen.GameTestStructureProvider(event.getGenerator().getPackOutput()));
-        });
     }
 }

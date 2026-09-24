@@ -30,12 +30,9 @@ public final class NeoForgeTestPlayers {
         CommonListenerCookie cookie = CommonListenerCookie.createInitial(
             new GameProfile(UUID.randomUUID(), "test-mock-player"), false);
         ServerPlayer player = new ServerPlayer(
-            helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation()) {
-            @Override
-            public GameType gameMode() {
-                return GameType.CREATIVE;
-            }
-        };
+            helper.getLevel().getServer(), helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
+        // 1.21.1 has no overridable ServerPlayer#gameMode(); the mode is set after construction.
+        player.setGameMode(GameType.CREATIVE);
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
         new EmbeddedChannel(connection);
         NetworkRegistry.configureMockConnection(connection);

@@ -336,7 +336,7 @@ public final class ShopEntryGameTests {
 
     /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
     private static void fillInventoryCompletely(ServerPlayer player, net.minecraft.world.item.Item fillerItem) {
-        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+        for (int i = 0; i < player.getInventory().items.size(); i++) {
             player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
         }
     }
@@ -381,7 +381,7 @@ public final class ShopEntryGameTests {
         PurchaseShopEntryPacket.grantRewards(player, entry);
 
         int diamondsInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(Items.DIAMOND)) diamondsInInventory += stack.getCount();
         }
         helper.assertTrue(diamondsInInventory == 0,
@@ -408,7 +408,7 @@ public final class ShopEntryGameTests {
         PurchaseShopEntryPacket.grantRewards(player, entry);
 
         int diamondsInInventory = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(Items.DIAMOND)) diamondsInInventory += stack.getCount();
         }
         helper.assertTrue(diamondsInInventory == 3,

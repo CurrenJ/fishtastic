@@ -55,9 +55,9 @@ public final class QuestSatisfiabilityGameTests {
      */
     public static void everyTargetSpeciesQuestIsSatisfiable(GameTestHelper helper) {
         RegistryAccess registries = helper.getLevel().registryAccess();
-        Registry<Quest> quests = registries.lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
-        Registry<FishProfile> profiles = registries.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        Registry<Biome> biomes = registries.lookupOrThrow(Registries.BIOME);
+        Registry<Quest> quests = registries.registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<FishProfile> profiles = registries.registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<Biome> biomes = registries.registryOrThrow(Registries.BIOME);
         int seaLevel = helper.getLevel().getSeaLevel();
 
         List<String> failures = new ArrayList<>();
@@ -96,7 +96,7 @@ public final class QuestSatisfiabilityGameTests {
             boolean anyBiomeWorks = false;
             boolean anyWeatherCapableBiomeWorks = false;
 
-            for (Holder<Biome> biome : biomes.listElements().toList()) {
+            for (Holder<Biome> biome : biomes.holders().toList()) {
                 if (objective.biomeCondition().isPresent() && !biome.is(objective.biomeCondition().get())) continue;
 
                 boolean zoneMatches = false;

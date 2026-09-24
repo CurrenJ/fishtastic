@@ -30,6 +30,7 @@ sourceSets {
         runtimeClasspath += main.runtimeClasspath
         // Platform-agnostic GameTest logic lives in common/ so Fabric can share it too.
         java.srcDir(project(':common').file('src/testmod/java'))
+        resources.srcDir(project(':common').file('src/testmod/resources'))
     }
 }
 
@@ -167,7 +168,18 @@ loom {
             forgeTemplate("gameTestServer")
             source sourceSets.testmod
             name "Game Test Server"
-            vmArg "-Dneoforge.enabledGameTestNamespaces=fishtastic"
+            // PROVISIONAL - the NeoForge gametest half is not finished. Emptied because the shared
+            // harness (A6.1) carries vanilla @GameTest and cannot carry NeoForge's @GameTestHolder:
+            // GameTestHooks.getTemplateNamespace then falls back to "minecraft", so a fishtastic-only
+            // filter drops every test and the server dies with "No test functions were given!".
+            // Emptying it stops that, but does NOT make the run work: prefixGameTestTemplate
+            // defaults to true without the annotation, so the class name is prefixed onto the raw
+            // template and "fishtasticgametests.fishtastic:empty" is not a valid id.
+            // NeoForge 21.1 needs @GameTestHolder + @PrefixGameTestTemplate(false) on the class that
+            // declares the tests, which a class compiled for both loaders cannot carry. Restore
+            // "-Dneoforge.enabledGameTestNamespaces=fishtastic" when that is resolved - see
+            // docs/backport-pass2/track-a-1.21.1.md, "A6.1 as built".
+            vmArg "-Dneoforge.enabledGameTestNamespaces="
             runDir "build/gametest"
         }
     }

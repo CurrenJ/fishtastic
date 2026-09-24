@@ -28,6 +28,7 @@ sourceSets {
     testmod {
         // Platform-agnostic GameTest logic lives in common/ so NeoForge can share it too.
         java.srcDir(project(':common').file('src/testmod/java'))
+        resources.srcDir(project(':common').file('src/testmod/resources'))
     }
 }
 

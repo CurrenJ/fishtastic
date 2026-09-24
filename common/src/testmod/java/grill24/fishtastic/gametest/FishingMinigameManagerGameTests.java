@@ -49,7 +49,7 @@ public final class FishingMinigameManagerGameTests {
 
     private static int countItem(ServerPlayer player, Item item) {
         int total = 0;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             if (stack.is(item)) total += stack.getCount();
         }
         return total;
@@ -82,7 +82,7 @@ public final class FishingMinigameManagerGameTests {
 
     /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
     private static void fillInventoryCompletely(ServerPlayer player, Item fillerItem) {
-        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+        for (int i = 0; i < player.getInventory().items.size(); i++) {
             player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
         }
     }
@@ -350,7 +350,7 @@ public final class FishingMinigameManagerGameTests {
         manager.handleMinigameComplete(player, sessionId, List.of(0, 1, 2, 3));
 
         boolean awardedAnyTrash = false;
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+        for (ItemStack stack : player.getInventory().items) {
             helper.assertTrue(!stack.is(ItemTags.FISHES),
                 "trashChance=1.0 must never award a fish item, got " + stack.getItem());
             if (stack.is(FishtasticItemTags.TRASH)) awardedAnyTrash = true;

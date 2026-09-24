@@ -4,7 +4,6 @@
 # Grouped by the phase that brings the files back. A5 (rendering) took the last of its lines;
 # no src/portstub/java stand-in is in use any more either.
 
-# A6.1: gametests, rewritten onto the shared vanilla-@GameTest harness (D10).
-common/src/testmod/java/**
-fabric/src/testmod/java/**
-neoforge/src/testmod/java/**
+# A6.1 returned the gametests on the shared vanilla-@GameTest harness (D10), so nothing is
+# excluded any more. The file stays empty until G2 deletes it, so a new phase has an obvious
+# place to add its lines.
