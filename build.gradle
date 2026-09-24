@@ -67,8 +67,8 @@ subprojects {
         it.options.encoding = 'UTF-8'
     }
 
-    // Fails on Java 21-only library calls, which the 1.20.1 backport can't compile (seam S5).
-    apply from: rootProject.file('gradle/java17-api-guard.gradle')
+    // Checks that keep the backport seams in place (S5 Java 17 calls, S6c id construction).
+    apply from: rootProject.file('gradle/backport-guards.gradle')
 
     // Configure Maven publishing.
     publishing {
