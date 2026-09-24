@@ -9,8 +9,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`63c8716a`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6 seams. A1 not started. |
-| `port/1.20.1` | **`63c8716a`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
+| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 not started. |
+| `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
 
@@ -27,6 +27,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | `c321593a` | S6: `FishMoonPhase` + `FishtasticPermissions.gamemaster()` | included via rebase | inherits |
 | `f2085c7b` | Book recipes datagen-owned again (`runDatagen` clean) | included via rebase | inherits |
 | `63c8716a` | NeoForge gametest discovery fixed (Loom mod group named `main`; 257 tests run) | included via rebase | inherits |
+| `c8129cf3` | S6c: resource id construction routed through `util/Ids` (135 calls, 43 files) | included via rebase | inherits |
+| `51a8d367` | S6c guard: `idConstructionGuard`; guard script renamed to `gradle/backport-guards.gradle` | included via rebase | inherits |
 
 ---
 
@@ -41,7 +43,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | S3 | `fishsim` + `tank-shape-gen` at `--release 17` | [x] | `7b8945b5` | |
 | S4 | Rendering logic apart from output | [~] | | the swarm, animator and bubbles are already split. Remaining: the `ItemEffect` data/render split (A2.5). |
 | S5 | Java 17 library calls replaced | [x] | `552fed58`, guard `b7e24911` | 19 `getFirst` + 7 `Math.clamp` + 1 `SequencedMap` local (the other N7 hits were Java 8 `Comparator#reversed` / `Deque` calls). `java17ApiGuard` keeps it that way. |
-| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` | [x] | `c321593a` | 21 `requires` sites (20 commands + `mcp/McpBridgeCommand`). `Ids.of` not done (owner decision pending). |
+| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` | [x] | `c321593a` | 21 `requires` sites (20 commands + `mcp/McpBridgeCommand`). |
+| S6c | `util/Ids` for resource id construction | [x] | `c8129cf3`, guard `51a8d367` | 135 calls in 43 files (`of` 77, `withDefaultNamespace` 45, `parse` 8, `tryParse` 5). `idConstructionGuard` keeps it that way. Backports change only the 4 `Ids` bodies; A2.1's `Identifier` type rename (100 files) still happens. |
 
 ## Decisions
 
@@ -71,7 +74,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | A2.0 | `port/excludes.txt` (62 files) + `portstub` (12 stubs) | [ ] | |
-| A2.1 | `Identifier` (106), registry access (35 + 13), permissions (1 line in `FishtasticPermissions`, S6), `setId` (4) | [ ] | |
+| A2.1 | `Identifier` type rename (100 files; `Ids` bodies keep their factory names), registry access (35 + 13), permissions (1 line in `FishtasticPermissions`, S6), `setId` (4) | [ ] | |
 | A2.2 | Registration: BE types, `@EventBusSubscriber` bus | [ ] | |
 | A2.3 | BEs (6), blocks (5), items (8): 1.21.1 signatures | [ ] | |
 | A2.4 | `FishCatchSavedData` → `SavedData.Factory` | [ ] | |
@@ -193,7 +196,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### B5: Remaining API deltas
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B5.1 | `ResourceLocation` constructors, BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [ ] | |
+| B5.1 | `ResourceLocation` construction (the 4 `util/Ids` bodies only, S6c), BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [ ] | |
 | B5.2 | Vertex builder (6 sites), shaders, BER bounds on the BE | [ ] | |
 | B5.3 | Forge wiring: `RegistryObjectHolder`, event buses, config, models, `initializeClient`, overlays, menu screens | [ ] | |
 | B5.4 | `[-]` Fishing enchantment helpers: dropped, the tree doesn't call `EnchantmentHelper` | [-] | |

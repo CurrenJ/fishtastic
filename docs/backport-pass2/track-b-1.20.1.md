@@ -41,7 +41,7 @@ The same exclusion-list + stub mechanism as track A (`port/excludes.txt`, `commo
 
 ### B1.2: Java 17 source audit (no-op: done by S5 on 26.1.2)
 
-**Nothing to port.** Seam S5 (`552fed58`) replaced the Java 21-only calls on `26.1.2`, so `port/1.21.1` and this branch inherit Java 17-clean sources. The guard `java17ApiGuard` (`b7e24911`, `gradle/java17-api-guard.gradle`) fails the build if any come back. It runs before `:common:test` and every `runGametest`. On 1.20.1 the Java 17 toolchain is the final check. B1.2 only has to confirm that `:common:java17ApiGuard` passes and that the tree compiles with toolchain 17.
+**Nothing to port.** Seam S5 (`552fed58`) replaced the Java 21-only calls on `26.1.2`, so `port/1.21.1` and this branch inherit Java 17-clean sources. The guard `java17ApiGuard` (`b7e24911`, now in `gradle/backport-guards.gradle` since `51a8d367`) fails the build if any come back. It runs before `:common:test` and every `runGametest`. On 1.20.1 the Java 17 toolchain is the final check. B1.2 only has to confirm that `:common:java17ApiGuard` passes and that the tree compiles with toolchain 17.
 
 What S5 actually found, which corrects pass 2's N7 estimate of ~45 sites in 21 files: 19 `List#getFirst()` → `get(0)`, 7 `Math.clamp` → `Mth.clamp`, and one `SequencedMap` local → `Map` (in `RenderBuffersMixin`). All 13 `reversed()` hits were `Comparator#reversed` (Java 8), and the `addFirst`/`addLast`/`removeFirst` hits were on `Deque`s or MC/Fabric API methods. `BufferSourceAccessor` still declares `SequencedMap`, because Mixin matches the field's exact descriptor. On 1.20.1 the field is `Map<RenderType, BufferBuilder>`, so the B5.2 render rewrite changes that accessor anyway. (Pattern matching for `switch` and record patterns: 0 uses. `Stream#toList` (Java 16) and `HexFormat` (Java 17) are fine.)
 
@@ -240,7 +240,7 @@ BLOCK_POS (×4), UUID (UUIDUtil.STREAM_CODEC ×3)
 ### B5.1: Core
 | 1.21.1 | 1.20.1 (lands on) | Scope |
 |---|---|---|
-| `ResourceLocation.fromNamespaceAndPath(ns, p)` / `withDefaultNamespace(p)` / `parse(s)` | `new ResourceLocation(ns, p)` / `new ResourceLocation(p)` / `new ResourceLocation(s)` (MC20 `ResourceLocation.java:37,45`). `tryParse` exists (`:54`). | all 106 `ResourceLocation` files. A `util/Ids.of(ns, p)` helper on **every branch** would make this a no-op (another S6-style seam, and the cheapest one). |
+| `util/Ids` bodies (S6c): `ResourceLocation.fromNamespaceAndPath(ns, p)` / `withDefaultNamespace(p)` / `parse(s)` / `tryParse(s)` | Change the 4 bodies in `util/Ids` to the `new ResourceLocation(...)` forms: `new ResourceLocation(ns, p)` / `new ResourceLocation("minecraft", p)` / `new ResourceLocation(s)` (MC20 `ResourceLocation.java:37,45`). `tryParse` exists (`:54`). | `util/Ids` only (1 file). `idConstructionGuard` keeps every other site on `Ids`. |
 | `loadAdditional/saveAdditional(CompoundTag, Provider)`, `getUpdateTag(Provider)` | `load(CompoundTag)`, `saveAdditional(CompoundTag)`, `getUpdateTag()` (MC20 `BlockEntity.java:53,56,157`). Codec reads use `NbtOps.INSTANCE` directly (no registry context). | the 6 BE files |
 | `SavedData.Factory` + `computeIfAbsent(factory, name)`, `save(tag, provider)` | `computeIfAbsent(FishCatchSavedData::load, FishCatchSavedData::new, name)` (MC20 `DimensionDataStorage.java:38`), `save(CompoundTag)` (MC20 `SavedData.java:15`) | `server/FishCatchSavedData` |
 | `Item#use` → `InteractionResultHolder` | same (MC20 `Item.java:135`) | none |
@@ -320,7 +320,7 @@ Publish `1.0.31+1.20.1`. **Gate:** gelatin builds on JDK 17, its tests pass, and
 
 | Bucket | Files | Mechanical? |
 |---|---|---|
-| `ResourceLocation` construction | 106 | yes (or zero with an `Ids.of` seam) |
+| `ResourceLocation` construction | 1 (`util/Ids`) | no-op at the call sites: S6c landed on 26.1.2 |
 | `StreamCodec` → `BufCodec` | 49 | yes (a sed after the shim exists) |
 | Payload interface | 23 payloads + 2 registrars | the payloads are mechanical, the registrars are rewrites |
 | `FishtasticDataComponents` + facade + `ComponentKey` | 3 (+1 test) | new code, small |

@@ -1,6 +1,6 @@
 # Backport pass 2: implementation plan
 
-> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `63c8716a` (A0.3, moved forward from `298279e1` after seams S5/S6 landed).
+> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `51a8d367` (A0.3, moved forward from `298279e1` after seams S5/S6 landed, then from `63c8716a` after S6c).
 > **Parent:** [`../backport-plan.md`](../backport-plan.md) (pass 1: strategy, decisions D1–D7, phase outline).
 > Work-item IDs (`A2.3`, `B2.1`, …) are the pass 1 IDs. Pass 2 adds sub-steps (`A2.3.b`) where a phase needs them.
 

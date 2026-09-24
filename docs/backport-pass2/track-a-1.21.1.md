@@ -1,7 +1,7 @@
 # Track A: 26.1.2 → 1.21.1 (pass 2)
 
 > Parent: [`README.md`](README.md). Rendering (A5) is in [`track-a5-rendering-1.21.1.md`](track-a5-rendering-1.21.1.md).
-> Baseline `26.1.2` @ `63c8716a` (was `298279e1` before seams S5/S6). Branch `port/1.21.1`, worktree `D:\GitHub\fishtastic-worktrees\mc-1.21.1`.
+> Baseline `26.1.2` @ `51a8d367` (was `298279e1` before seams S5/S6, `63c8716a` before S6c). Branch `port/1.21.1`, worktree `D:\GitHub\fishtastic-worktrees\mc-1.21.1`.
 
 **Conventions.**
 - Paths are relative to `common/src/main/java/grill24/fishtastic/` unless prefixed: `fabric:` = `fabric/src/main/java/grill24/fishtastic/fabric/`, `neoforge:` = `neoforge/src/main/java/grill24/fishtastic/neoforge/`, `testmod:` = `common/src/testmod/java/grill24/fishtastic/`, `test:` = `common/src/test/java/grill24/fishtastic/`.
@@ -116,7 +116,7 @@ Replace A1's everything-list with the 62-file list above, create the boundary st
 
 | 26.1 API | 1.21.1 API (lands on) | Files |
 |---|---|---|
-| `net.minecraft.resources.Identifier` (+ `fromNamespaceAndPath`, `parse`, `withDefaultNamespace`, `tryParse`) | `ResourceLocation`, with the same four statics (MC `ResourceLocation.java:48,52,56,61`) | **106** files (list in appendix A). A word-boundary `sed`, then fix comments by hand. |
+| `net.minecraft.resources.Identifier` (+ `fromNamespaceAndPath`, `parse`, `withDefaultNamespace`, `tryParse`) | `ResourceLocation`, with the same four statics (MC `ResourceLocation.java:48,52,56,61`) | **100** files at `51a8d367` (appendix A lists the 106 from the pass 2 survey; S6c removed the only reference from some). A word-boundary `sed`, then fix comments by hand. **Type-only:** since S6c every construction goes through `util/Ids`, and its four bodies keep the same factory names on `ResourceLocation`, so no call site changes. |
 | `commands.arguments.IdentifierArgument` | `ResourceLocationArgument` | `command/FishProfileCommand`, `command/FollowFishStubCommand`, `command/TemperamentCommand` |
 | `registryAccess().lookupOrThrow(K)` returning `Registry<T>` (1.21.2 rename) | `registryOrThrow(K)` returning `Registry<T>` (MC `RegistryAccess.java:26`). Note: `HolderLookup.Provider.lookupOrThrow` **still exists** on 1.21.1 but returns `HolderLookup.RegistryLookup<T>` (`HolderLookup.java:34`). A missed rename therefore fails to compile at the assignment instead of silently binding. | 35 files (appendix A) |
 | `Registry#getValue(id / key)` | `Registry#get(ResourceLocation)` / `get(ResourceKey)` returning `T` (MC `Registry.java:70,73`) | 13 files (appendix A) |
