@@ -1,6 +1,6 @@
 # Backport Plan: Fishtastic 2.0 → MC 1.21.1 and MC 1.20.1
 
-> **Status:** Pass 1, the broad-strokes outline (2026-09-24). Nothing is implemented yet.
+> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. D1, D2, D3 and D5 decided (§10). Next: S3 and S1 on `26.1.2`.
 > **Pass 2** will turn each phase below into a step-by-step implementation plan. Work item IDs
 > (`A1.3`, `B2.1`, …) are stable so pass 2 can refer to them.
 > **Baseline:** branch `26.1.2` @ `7076aeb6` (Fishtastic 2.0.1, MC 26.1.2).
@@ -80,7 +80,7 @@ The 1.21.1 ancestor's mixin set (`ItemRendererMixin`, `GuiGraphicsMixin`, `Level
 |---|---|---|---|---|
 | gelatin-ui | 1.0.31 | exists at 1.0.16 (`main`) | **doesn't exist** | Critical path. See §7. |
 | JEI (optional compat) | 29.33.0.87 | 19.x (potions-plus uses 19.18.10.218) | 15.x | The API has shifted between majors, but only 10 compat files use it. |
-| cool-cam (optional, Fabric only) | 0.1.0+26.1.2 | none | none | **Drop the compat on backports.** Exclude `fabric/compat/coolcam`. |
+| cool-cam (optional, Fabric only) | 0.1.0+26.1.2 | none | none | **Keep the compat** (D1). Needs a cool-cam build per MC version, or a soft dependency. See O1. |
 | Iris (optional, `IrisCompat`) | yes | yes | yes | Check which API the reflection targets on each version. |
 | Architectury | injectables 1.0.13 only (no runtime API) | same | same | Keep it this way. `@ExpectPlatform` via injectables worked on the 1.21.1 ancestor. |
 | Fabric API | 0.155.2+26.1.2 | 0.116.x+1.21.1 | 0.92.x+1.20.1 | |
@@ -96,7 +96,7 @@ The 1.21.1 ancestor's mixin set (`ItemRendererMixin`, `GuiGraphicsMixin`, `Level
 | Mixin compat level | `JAVA_25` | `JAVA_21` | `JAVA_17` |
 | Loom | `dev.architectury.loom-no-remap` 1.14 | `dev.architectury.loom` (remapping) + `loom.officialMojangMappings()` | same as 1.21.1, on an older loom line that supports 1.20.1 |
 | Names | unobfuscated official | mojmap (so most class names match 26.1 apart from the 1.21.11 rename shuffle) | mojmap |
-| Loaders | Fabric + NeoForge | Fabric + NeoForge (+ Forge? see D2) | Fabric + Forge |
+| Loaders | Fabric + NeoForge | Fabric + NeoForge (no Forge, D2) | Fabric + Forge |
 | Access widener header | `official` namespace | `named` | `named` |
 | Resource pack / data pack format | current | 34 / 48 | 15 / 15 |
 | Data folder names | singular (`recipe`, `loot_table`, `tags/item`) | singular (**same as now**) | **plural** (`recipes`, `loot_tables`, `advancements`, `tags/items`, `tags/blocks`) |
@@ -170,14 +170,14 @@ The 1.20.1 release lands later. To limit that, we start the long-lead 1.20.1 wor
 Approach: create `mc-1.21.1` from `26.1.2` HEAD. Restore the 1.21.1 build scaffolding from `44064cc5` and potions-plus. Then get it compiling **in layers**: temporarily exclude the client-rendering packages from the source sets, so the server and common game logic compile, test and datagen first. Then add the client subsystems back one at a time.
 
 ### A0: Decisions and scope (before any code)
-- **A0.1** Settle decisions D1 to D6 (§10).
-- **A0.2** Draw up the backport **cut list**: things that don't ship on backports. Candidates: `mcp/` (the retired MCP bridge, 14 files), `examples/`, `TestItem`, the cool-cam compat package, and dev-only debug commands. Removing them before porting means fewer files to port.
-- **A0.3** Freeze the feature baseline: pick the commit on `26.1.2` that 1.21.1 targets. Record it so later forward-port diffs have a fixed base.
+- **A0.1** ~~Settle decisions D1 to D6 (§10).~~ D1, D2, D3 and D5 settled 2026-09-24. D4 and D6 still open.
+- **A0.2** Cut list (decided, D1): **only `mcp/`** (the retired MCP bridge). Everything else ships on every version: `examples/`, `TestItem`, all debug, authoring and admin commands, and the leaderboard podium (which means porting gelatin-ui's posed-player rendering). The cool-cam compat is kept too, pending how its dependency is provided (open item O1, §10).
+- **A0.3** Freeze the feature baseline: the `26.1.2` commit that lands S1 and S3 (D5). `port/1.21.1` rebases onto it. Record it so later forward-port diffs have a fixed base.
 
 ### A1: Build scaffolding (gate: an empty mod loads on both loaders)
 - **A1.1** Switch the root, common, fabric and neoforge Gradle files from `loom-no-remap` to the remapping Architectury Loom with mojmap. Use the Java 21 toolchain, `JAVA_21` mixin configs, and the `named` access-widener header. Reference: `44064cc5` and potions-plus `mc-1.21.1`.
 - **A1.2** Change `gradle.properties` versions: MC 1.21.1, NeoForge 21.1.x, Fabric API 0.116.x, JEI 19.x, gelatin-ui 1.21.1 line. Update the mod metadata version ranges.
-- **A1.3** Remove cool-cam from the build. Keep `fishsim` and `tools/*` as plain-Java modules. They compile unchanged on Java 21, but the target should come down (see §8 S3).
+- **A1.3** Wire cool-cam per O1. Keep `fishsim` and `tools/*` as plain-Java modules. They compile unchanged on Java 21, but the target should come down (see §8 S3).
 - **A1.4** Check `publishCurseForge` and `build-all.ps1`, and make the artifacts carry the version suffix `2.0.x+1.21.1`.
 
 ### A2: Core and server logic (gate: `:common` compiles with client rendering excluded, unit tests pass)
@@ -323,13 +323,14 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 
 | ID | Decision | Recommendation |
 |---|---|---|
-| **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Full gameplay parity.** Drop only the dev tooling (MCP bridge, examples, TestItem, cool-cam compat). |
-| **D2** | Loaders per version | 1.21.1: **Fabric + NeoForge** (Forge 1.21.1 has little uptake; potions-plus added it, but it's optional). 1.20.1: **Fabric + Forge**. |
-| **D3** | Sequential or parallel | **Sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
+| **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Decided: full parity on all three versions.** Cut only `mcp/`. Everything else, including dev and debug tooling, the podium and cool-cam compat, ships everywhere. |
+| **D2** | Loaders per version | **Decided:** 1.21.1 is **Fabric + NeoForge**, with no Forge. 1.20.1 is **Fabric + Forge**. |
+| **D3** | Sequential or parallel | **Decided: sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Not supported**: document it. Custom NBT → component migration would need a DFU fixer for our own data. |
-| **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Yes for S3** (cheap, and fishsim stays one shared source). **S1 is worth it if 1.20.1 is a real target.** S2 and S4 when convenient. |
+| **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
 | **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
-| **D6** | Versioning and release cadence | Same mod version across MC versions (`2.0.x+<mc>`). Backports release on the owner's cadence and may trail the primary by some features. |
+| **D6** | Versioning and release cadence | **Goal set by the owner:** identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. The version-string format is still to confirm. |
+| **O1** | cool-cam compat on backports (D1 keeps it) | cool-cam (owner's mod) exists only for 26.1.2. Either backport cool-cam too, or keep the compat as a soft dependency that is inert when cool-cam is absent, and ship it once cool-cam has a build for that version. |
 
 ---
 
@@ -343,8 +344,8 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | R4 | **Visual regressions** can't be caught headlessly. Swarm feel, render calibration, squash-and-stretch and bubbles were all accepted in game on 26.1.2. | Keep fishsim byte-identical (S3), so behaviour stays the same and only presentation can drift. Use the `:fishsim` headless export and viewer to check behaviour parity. Only presentation needs the owner's in-game check. |
 | R5 | Datapack registry folder layout on 1.20.1 differs by loader. | Verify it in B4.1 before regenerating data. |
 | R6 | Gametests on 26.1 rely on the 1.21.5 test-instance overhaul, so the harnesses aren't a direct port. | Budget A6.1 and B6.1 as rewrites of the harness. The test *bodies* in `common/src/testmod` mostly survive. |
-| R7 | Long-term maintenance: three live branches, every feature forward-ported by hand. | Seams (§8), a shared fishsim, and data JSON kept version-neutral where possible. Keep a per-branch "ported through `<26.1.2 commit>`" marker so forward-port ranges are explicit. |
-| Q5 | Is it worth a shared multi-version layer (for example, only for `data/`, `server/` and `network/`) after both ports exist? | Look at this after G3, once the real diffs are known. |
+| R7 | Long-term maintenance: three live branches, and (per D6) every feature and fix must land on all three together. | Seams (§8), a shared fishsim, and data JSON kept version-neutral where possible. Keep a per-branch "ported through `<26.1.2 commit>`" marker so forward-port ranges are explicit. |
+| Q5 | Is it worth a shared multi-version layer (for example, only for `data/`, `server/` and `network/`) after both ports exist? | **More important given D6** (lockstep updates). Pass 2 should keep the non-rendering layers as close to identical across branches as it can, so that this stays possible. Decide after G3, once the real diffs are known. |
 | Q6 | JEI API drift between 29.x, 19.x and 15.x for the 2 recipe categories. | Small (10 files). Worst case, drop JEI compat on 1.20.1. |
 
 ---
