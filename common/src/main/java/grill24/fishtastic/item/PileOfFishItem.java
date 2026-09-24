@@ -190,7 +190,7 @@ public class PileOfFishItem extends BundleItem {
             if (contents == null || contents.items().isEmpty()) {
                 return null;
             }
-            Item species = contents.items().getFirst().item().value();
+            Item species = contents.items().get(0).item().value();
             for (ItemStackTemplate template : contents.items()) {
                 if (template.item().value() != species) {
                     return null;
@@ -251,7 +251,7 @@ public class PileOfFishItem extends BundleItem {
                 if (leftover == null) {
                     slot.set(ItemStack.EMPTY);
                 } else if (leftoverSize == 1) {
-                    slot.set(leftover.items().getFirst().create());
+                    slot.set(leftover.items().get(0).create());
                 } else {
                     FishtasticItemData.setBundleContents(slotStack, leftover);
                 }
@@ -300,7 +300,7 @@ public class PileOfFishItem extends BundleItem {
                     self.shrink(1);
                 } else if (leftover.items().size() == 1) {
                     // Only 1 item left — decompose pile into that item
-                    ItemStack singleItem = leftover.items().getFirst().create();
+                    ItemStack singleItem = leftover.items().get(0).create();
                     self.shrink(1);
                     player.containerMenu.setCarried(singleItem);
                 } else {
@@ -344,7 +344,7 @@ public class PileOfFishItem extends BundleItem {
                 self.shrink(1);
             } else if (updatedContents.items().size() == 1) {
                 // Only 1 item left — decompose pile into that item
-                ItemStack singleItem = updatedContents.items().getFirst().create();
+                ItemStack singleItem = updatedContents.items().get(0).create();
                 self.shrink(1);
                 player.containerMenu.setCarried(singleItem);
             } else {
@@ -387,7 +387,7 @@ public class PileOfFishItem extends BundleItem {
                     carriedItem.set(ItemStack.EMPTY);
                 } else if (leftover.items().size() == 1) {
                     // Only 1 item left — decompose pile into that item
-                    ItemStack singleItem = leftover.items().getFirst().create();
+                    ItemStack singleItem = leftover.items().get(0).create();
                     other.shrink(1);
                     carriedItem.set(singleItem);
                 } else {
@@ -430,7 +430,7 @@ public class PileOfFishItem extends BundleItem {
                 self.shrink(1);
             } else if (updatedContents.items().size() == 1) {
                 // Only 1 item left — decompose pile into that item
-                ItemStack singleItem = updatedContents.items().getFirst().create();
+                ItemStack singleItem = updatedContents.items().get(0).create();
                 self.shrink(1);
                 slot.setByPlayer(singleItem);
             } else {
@@ -459,7 +459,7 @@ public class PileOfFishItem extends BundleItem {
         }
         if (contents.items().size() == 1) {
             // Pile has exactly 1 item — replace the pile with that item
-            ItemStack singleItem = contents.items().getFirst().create();
+            ItemStack singleItem = contents.items().get(0).create();
             if (entity instanceof Player player) {
                 for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                     if (player.getInventory().getItem(i) == stack) {

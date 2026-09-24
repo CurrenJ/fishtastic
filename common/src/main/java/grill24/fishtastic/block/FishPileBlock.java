@@ -359,7 +359,7 @@ public class FishPileBlock extends Block implements EntityBlock {
         if (remaining.isEmpty()) {
             itemStack.shrink(1);
         } else if (remaining.items().size() == 1) {
-            player.setItemInHand(hand, remaining.items().getFirst().create());
+            player.setItemInHand(hand, remaining.items().get(0).create());
         } else {
             FishtasticItemData.setBundleContents(itemStack, remaining);
         }

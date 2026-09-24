@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.TextureTransform;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.system.MemoryStack;
 
@@ -85,14 +86,14 @@ public class ItemEffect {
         this.priority = priority;
         this.enabled = enabled;
         this.outlineColor = outlineColor;
-        this.outlineFalloff = Math.clamp(outlineFalloff, 0.0f, 1.0f);
+        this.outlineFalloff = Mth.clamp(outlineFalloff, 0.0f, 1.0f);
         this.outlineWidth = outlineWidth;
-        this.outlineOpacity = Math.clamp(outlineOpacity, 0.0f, 1.0f);
+        this.outlineOpacity = Mth.clamp(outlineOpacity, 0.0f, 1.0f);
         this.outlinePinwheel = outlinePinwheel;
         this.outlineDebugUv = outlineDebugUv;
         this.outlineAnimSpeed = outlineAnimSpeed;
         this.outlineNumBlades = outlineNumBlades;
-        this.outlineBladeFill = Math.clamp(outlineBladeFill, 0.0f, 1.0f);
+        this.outlineBladeFill = Mth.clamp(outlineBladeFill, 0.0f, 1.0f);
         Fishtastic.LOGGER.debug("ItemEffect created: texture={}, conditions={}, priority={}, enabled={}, outlineColor={}, outlineFalloff={}, outlineWidth={}, outlineOpacity={}, outlinePinwheel={}, outlineDebugUv={}", texture, conditions, priority, enabled, outlineColor, outlineFalloff, outlineWidth, outlineOpacity, outlinePinwheel, outlineDebugUv);
     }
 

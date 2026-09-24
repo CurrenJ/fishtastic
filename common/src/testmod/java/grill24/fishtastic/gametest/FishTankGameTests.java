@@ -434,7 +434,7 @@ public final class FishTankGameTests {
             helper.getBlockState(TANK_POS), helper.getLevel(), helper.absolutePos(TANK_POS), tank);
         helper.assertTrue(drops.size() == 1, "Breaking a tank must drop exactly one item, got " + drops.size());
 
-        ItemStack drop = drops.getFirst();
+        ItemStack drop = drops.get(0);
         helper.assertTrue(drop.is(FishtasticBlocks.FISH_TANK.value().asItem()),
             "Drop must be a fish tank item, got " + drop);
         helper.assertTrue(FishtasticItemData.get(drop, FishtasticDataComponents.FISH_TANK_SHAPE) == FishTankShape.ORNATE,
@@ -459,7 +459,7 @@ public final class FishTankGameTests {
         original.setMaterials(materials);
 
         ItemStack drop = Block.getDrops(
-            helper.getBlockState(TANK_POS), helper.getLevel(), helper.absolutePos(TANK_POS), original).getFirst();
+            helper.getBlockState(TANK_POS), helper.getLevel(), helper.absolutePos(TANK_POS), original).get(0);
 
         // Re-place from the dropped stack: a fresh tank starts STANDARD, then takes the stack's
         // components exactly as BlockItem#place does.

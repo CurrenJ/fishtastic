@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
+import net.minecraft.util.Mth;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -79,12 +80,12 @@ public final class FishtasticClientConfig {
 
     /** Notification banner sound volume, as a 0.0-1.0 float suitable for sound playback. */
     public static float getNotificationVolumeFraction() {
-        return Math.clamp(getNotificationVolume(), 0, 100) / 100.0f;
+        return Mth.clamp(getNotificationVolume(), 0, 100) / 100.0f;
     }
 
     /** Persists a new notification volume (0-100) to the properties file and caches it. */
     public static void setNotificationVolume(int volume) {
-        notificationVolume = Math.clamp(volume, 0, 100);
+        notificationVolume = Mth.clamp(volume, 0, 100);
         persist();
     }
 

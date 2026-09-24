@@ -103,7 +103,7 @@ public class MarineCompostRecipe extends CustomRecipe {
             if (remaining.isEmpty()) {
                 result.set(i, ItemStack.EMPTY);
             } else if (remaining.items().size() == 1) {
-                result.set(i, remaining.items().getFirst().create());
+                result.set(i, remaining.items().get(0).create());
             } else {
                 ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
                 FishtasticItemData.setBundleContents(newPile, remaining);
@@ -127,7 +127,7 @@ public class MarineCompostRecipe extends CustomRecipe {
         BundleContents contents = FishtasticItemData.bundleContents(stack);
         if (contents == null || contents.items().isEmpty()) return null;
 
-        ItemStack top = contents.items().getFirst().create();
+        ItemStack top = contents.items().get(0).create();
         return top.is(ItemTags.FISHES) ? top : null;
     }
 

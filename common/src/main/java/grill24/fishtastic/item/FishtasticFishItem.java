@@ -197,7 +197,7 @@ public class FishtasticFishItem extends Item {
             }
         }
 
-        return new ItemStack(fishItems.getFirst());
+        return new ItemStack(fishItems.get(0));
     }
 
     public static int getFishingLootWeight(

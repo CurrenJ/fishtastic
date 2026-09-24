@@ -41,6 +41,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.player.Inventory;
@@ -662,7 +663,7 @@ public class FishingMinigameManager {
                 + (hookEffect != null ? hookEffect.trashChanceDelta() : 0.0f)
                 + (charmEffect != null ? charmEffect.trashChanceDelta() : 0.0f));
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
-        int targetCount = (int) Math.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
+        int targetCount = (int) Mth.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
         Registry<Temperament> temperamentRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
@@ -708,7 +709,7 @@ public class FishingMinigameManager {
 
             if (rewardStacks.isEmpty()) continue;
 
-            ItemStack reward = rewardStacks.getFirst();
+            ItemStack reward = rewardStacks.get(0);
             // Driven by which roll produced this target, not the reward's own tags — Common-tier
             // treasure can itself roll bulk trash items (#fishtastic:trash), which would otherwise
             // misclassify as a TRASH target (generic-fish icon) instead of TREASURE (chest icon).

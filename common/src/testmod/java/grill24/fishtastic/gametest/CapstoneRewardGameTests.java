@@ -121,7 +121,7 @@ public final class CapstoneRewardGameTests {
 
             // "Among", not "the first": a quest may hand out several things, and only has to
             // correspond to one of them.
-            ItemStack fromShop = entry.reward().getFirst().toItemStack();
+            ItemStack fromShop = entry.reward().get(0).toItemStack();
             FishTankShape expectedShape = entry.isTankShape()
                     ? FishtasticItemData.get(fromShop, FishtasticDataComponents.FISH_TANK_SHAPE)
                     : null;

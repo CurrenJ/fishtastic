@@ -120,7 +120,7 @@ public class FishingMinigameClientHandler {
                 || targetData.rewardStacks().isEmpty()) {
             return 1.0f;
         }
-        ItemStack reward = targetData.rewardStacks().getFirst();
+        ItemStack reward = targetData.rewardStacks().get(0);
         float multiplier = 1.0f;
         for (BaitEffect.FishGroupAffinity affinity : baitEffect.fishGroupAffinities()) {
             if (reward.is(affinity.group())) {

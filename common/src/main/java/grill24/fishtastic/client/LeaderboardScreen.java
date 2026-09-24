@@ -30,6 +30,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -402,7 +403,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         if (catchCount <= 0) return 0;
         if (topCatchCount <= 0) return PODIUM_PILE_MAX_FISH;
         int budget = Math.round(PODIUM_PILE_MAX_FISH * (float) catchCount / (float) topCatchCount);
-        return Math.clamp(budget, 1, PODIUM_PILE_MAX_FISH);
+        return Mth.clamp(budget, 1, PODIUM_PILE_MAX_FISH);
     }
 
     private ManualContainer buildPedestal(int rank, LeaderboardType type) {

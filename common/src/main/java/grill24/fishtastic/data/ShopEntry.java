@@ -228,7 +228,7 @@ public record ShopEntry(
         Set<Integer> spentSlotIndices = new HashSet<>();
 
         if (!slots.isEmpty() && !charmKeys.isEmpty() && random.nextFloat() < CHARM_REPLACE_CHANCE) {
-            ResourceKey<ShopEntry> charm = weightedDrawWithoutReplacement(registry, charmKeys, random, 1).getFirst();
+            ResourceKey<ShopEntry> charm = weightedDrawWithoutReplacement(registry, charmKeys, random, 1).get(0);
             int index = random.nextInt(slots.size());
             slots.set(index, charm);
             spentSlotIndices.add(index);
@@ -241,7 +241,7 @@ public record ShopEntry(
                     .toList();
             if (!availableIndices.isEmpty()) {
                 ResourceKey<ShopEntry> tankShape =
-                        weightedDrawWithoutReplacement(registry, tankShapeKeys, random, 1).getFirst();
+                        weightedDrawWithoutReplacement(registry, tankShapeKeys, random, 1).get(0);
                 slots.set(availableIndices.get(random.nextInt(availableIndices.size())), tankShape);
             }
         }

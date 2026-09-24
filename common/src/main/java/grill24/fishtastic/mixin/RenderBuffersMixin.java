@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
-import java.util.SequencedMap;
+import java.util.Map;
 
 /**
  * Mixin to RenderBuffers to:
@@ -62,7 +62,7 @@ public class RenderBuffersMixin implements RenderBuffersHelper {
             return;
         }
 
-        SequencedMap<RenderType, ByteBufferBuilder> fixedBuffers = accessor.fishtastic$getFixedBuffers();
+        Map<RenderType, ByteBufferBuilder> fixedBuffers = accessor.fishtastic$getFixedBuffers();
         int added = 0;
 
         for (RenderType renderType : renderTypes) {

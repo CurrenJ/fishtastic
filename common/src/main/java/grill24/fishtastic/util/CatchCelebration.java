@@ -213,7 +213,7 @@ public class CatchCelebration {
             }
         }
 
-        ItemStack best = rewards.getFirst();
+        ItemStack best = rewards.get(0);
         FishQuality.Quality bestQuality = FishQualityHelper.getQuality(best);
         for (ItemStack stack : rewards) {
             FishQuality.Quality quality = FishQualityHelper.getQuality(stack);
