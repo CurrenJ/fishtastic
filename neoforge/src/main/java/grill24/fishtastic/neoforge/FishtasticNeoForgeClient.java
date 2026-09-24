@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
+import grill24.fishtastic.client.FishtasticHudLayers;
 import grill24.fishtastic.client.FishtasticItemProperties;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -271,7 +272,9 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
-        TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
+        if (!FishtasticHudLayers.drawnInHudPass()) return;
+        FishtasticHudLayers.renderTutorial(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
@@ -280,13 +283,9 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void onRenderGui(RenderGuiEvent.Post event) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.gameRenderer == null) return;
-        ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
-        if (animation != null && animation.isActive()) {
-            animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
-        }
-        // Render quest progress notifications (after fishing minigame)
-        QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
+        if (!FishtasticHudLayers.drawnInHudPass()) return;
+        // The fishing minigame, then the quest progress notifications over it
+        FishtasticHudLayers.renderMinigameAndNotifications(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 }

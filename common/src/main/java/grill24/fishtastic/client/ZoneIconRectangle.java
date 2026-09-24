@@ -1,6 +1,6 @@
 package grill24.fishtastic.client;
 
-// PORT A5.4c: import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
+import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
 import io.github.currenj.gelatinui.gui.IRenderContext;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
@@ -39,9 +39,8 @@ public class ZoneIconRectangle extends UIElement<ZoneIconRectangle> {
         int h = (int) Math.ceil(size.y);
 
         // Outline first, icon over it — matches the minigame's submission order.
-        // PORT A5.4c: the black-outline pass needs the texture-outline shader effect.
-//        graphics.blit(FishtasticTextureOutlineEffect.getOrCreatePipeline(), texture,
-//                0, 0, 0f, 0f, w, h, texturePx, texturePx, texturePx, texturePx);
+        FishtasticTextureOutlineEffect.blit(graphics, texture,
+                0, 0, w, h, 0f, 0f, texturePx, texturePx, texturePx, texturePx);
         graphics.blit(texture,
                 0, 0, w, h, 0f, 0f, texturePx, texturePx, texturePx, texturePx);
     }

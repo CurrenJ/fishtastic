@@ -1,10 +1,13 @@
 package grill24.fishtastic.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
+import grill24.fishtastic.client.FishtasticHudLayers;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
@@ -32,7 +35,24 @@ public class GameRendererMixin implements IGameRendererExtension {
         }
     }
 
-    // The render call is now hooked via HUD events in FishtasticFabricClient / FishtasticNeoForgeClient.
+    // The render call is now hooked via HUD events in FishtasticFabricClient / FishtasticNeoForgeClient,
+    // and, while no screen is open, after vanilla's toasts below (FishtasticHudLayers).
+
+    /**
+     * PORT-ONLY (owner decision 2026-09-24): Fishtastic's HUD layers after vanilla's toasts, so a
+     * toast can't cover a quest notification. Only while no screen is open; with one open they're
+     * drawn in the HUD pass, under it (see {@link FishtasticHudLayers}).
+     */
+    @Inject(method = "render(Lnet/minecraft/client/DeltaTracker;Z)V", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/components/toasts/ToastComponent;render(Lnet/minecraft/client/gui/GuiGraphics;)V",
+            shift = At.Shift.AFTER))
+    private void fishtastic$renderHudLayersAboveToasts(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci,
+                                                        @Local GuiGraphics guiGraphics) {
+        if (FishtasticHudLayers.drawnInHudPass() || this.minecraft.options.hideGui || this.minecraft.level == null) {
+            return;
+        }
+        FishtasticHudLayers.render(guiGraphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+    }
 
     /**
      * Bakes queued items into the world-outline atlas at the head of the frame, before any

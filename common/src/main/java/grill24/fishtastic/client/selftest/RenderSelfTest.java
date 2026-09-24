@@ -9,6 +9,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.FishTankMaterials;
@@ -73,7 +74,8 @@ public final class RenderSelfTest {
     private static final String WORLD_NAME = "fishtastic_render_selftest";
 
     /** Scenes in the order they run. */
-    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "fixes");
+    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
+            "guiscale", "fixes");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -217,6 +219,9 @@ public final class RenderSelfTest {
             case "stress512" -> queueStressScene();
             case "items" -> queueItemsScene();
             case "held" -> queueHeldScene();
+            case "outline" -> queueOutlineScene();
+            case "fabulous" -> queueFabulousScene();
+            case "guiscale" -> queueGuiScaleScene();
             case "fixes" -> queueFixesScene();
             default -> throw new IllegalArgumentException(scene);
         }
@@ -535,6 +540,154 @@ public final class RenderSelfTest {
             check("held.gelatinPuppetClass", puppetClassResolves, "(FishermanPoseDebug matches the podium puppet by this name)");
         });
     }
+
+    private static final String[] QUALITIES = {"uncommon", "rare", "epic", "legendary"};
+
+    private static ItemStack qualityFish(String quality) {
+        ItemStack stack = fish("parrotfish", 30f);
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_QUALITY,
+                new FishQuality(FishQuality.Quality.valueOf(quality.toUpperCase(java.util.Locale.ROOT))));
+        return stack;
+    }
+
+    /**
+     * A5.4 = the rendering spike's criteria on production code: quality glint on a held item;
+     * static and animated (legendary) GUI outlines in the hotbar and a container; world outlines
+     * on dropped items and in item frames; plus the encyclopedia's never-caught silhouettes. The
+     * common-quality fish in hotbar slot 5 is the no-outline control. Atlases are dumped 10 ticks
+     * apart (only the legendary slot should differ).
+     */
+    private static void queueOutlineScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 14;
+            run(s, "fill " + (x - 5) + " " + y + " " + (z - 3) + " " + (x + 5) + " " + (y + 3) + " " + (z + 4) + " minecraft:air");
+            run(s, "fill " + (x - 4) + " " + y + " " + (z + 4) + " " + (x + 4) + " " + (y + 2) + " " + (z + 4) + " minecraft:stone");
+            ServerLevel level = s.overworld();
+            for (int i = 0; i < QUALITIES.length; i++) {
+                run(s, "summon item_frame " + (x - 2 + i) + " " + (y + 1) + " " + (z + 3) + " {Facing:2b,Fixed:1b,Invulnerable:1b}");
+                var entity = new net.minecraft.world.entity.item.ItemEntity(level, x - 1.05 + 0.7 * i, y, z + 0.9, qualityFish(QUALITIES[i]));
+                entity.setNeverPickUp();
+                entity.setUnlimitedLifetime();
+                entity.setDeltaMovement(0, 0, 0);
+                level.addFreshEntity(entity);
+            }
+            for (var player : s.getPlayerList().getPlayers()) {
+                for (int i = 0; i < 9; i++) player.getInventory().setItem(i, ItemStack.EMPTY);
+                for (int i = 0; i < QUALITIES.length; i++) player.getInventory().setItem(i, qualityFish(QUALITIES[i]));
+                player.getInventory().setItem(4, fish("parrotfish", 30f));
+                player.getInventory().selected = 3;
+            }
+        }));
+        queue(5, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 14;
+            var frames = s.overworld().getEntitiesOfClass(net.minecraft.world.entity.decoration.ItemFrame.class,
+                    new net.minecraft.world.phys.AABB(x - 3, y, z + 2, x + 3, y + 3, z + 4));
+            frames.sort(java.util.Comparator.comparingDouble(net.minecraft.world.entity.Entity::getX));
+            for (int i = 0; i < frames.size() && i < QUALITIES.length; i++) frames.get(i).setItem(qualityFish(QUALITIES[i]), false);
+        }));
+        queue(5, mc -> {
+            mc.options.hideGui = false;
+            mc.player.getInventory().selected = 3;
+            server(mc, s -> {
+                run(s, "gamemode creative @a");
+                run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 10.5, 0f, 5f));
+            });
+        });
+        queue(60, mc -> {
+            screenshot(mc, "outline", "frames_a");
+            dump(mc, FishtasticItemOutlineAtlas.getInstance().outlineTarget(), "outline", "atlas_outline_a");
+            dump(mc, FishtasticItemOutlineAtlas.getInstance().maskTarget(), "outline", "atlas_mask_a");
+        });
+        queue(10, mc -> {
+            screenshot(mc, "outline", "frames_b");
+            dump(mc, FishtasticItemOutlineAtlas.getInstance().outlineTarget(), "outline", "atlas_outline_b");
+            server(mc, s -> run(s, "execute as @a at @s run tp @s ~ ~ ~ 0 60"));
+        });
+        queue(20, mc -> screenshot(mc, "outline", "ground"));
+        queue(1, mc -> server(mc, s -> run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                origin.getX() + 0.5, origin.getY() - 0.4, origin.getZ() + 15.4, 0f, 0f))));
+        queue(20, mc -> screenshot(mc, "outline", "frames_close"));
+        queue(1, mc -> mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player)));
+        queue(30, mc -> screenshot(mc, "outline", "inventory"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            mc.player.connection.sendCommand("gelatin fish_encyclopedia");
+        });
+        queue(40, mc -> {
+            screenshot(mc, "outline", "encyclopedia");
+            check("outline.encyclopediaOpen", mc.screen != null, "screen=" + mc.screen);
+        });
+        queue(1, mc -> mc.setScreen(null));
+    }
+
+    /**
+     * G1: Fabulous graphics (the item-entity target and the translucency chain). Runs the outline
+     * and tank scenes' subjects under Fabulous: world outlines (ITEM_OUTLINE draws into the
+     * item-entity target, spike finding F4), the tank's glass and water fill, and glass blocks.
+     * Expects the outline and tank scenes to have run first; restores the graphics mode after.
+     */
+    private static void queueFabulousScene() {
+        queue(1, mc -> {
+            savedGraphics = mc.options.graphicsMode().get();
+            mc.options.graphicsMode().set(net.minecraft.client.GraphicsStatus.FABULOUS);
+            mc.levelRenderer.allChanged();
+            mc.options.hideGui = false;
+            server(mc, s -> run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                    origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 12.5, 0f, 35f)));
+        });
+        queue(60, mc -> {
+            check("fabulous.active", net.minecraft.client.Minecraft.useShaderTransparency(), "graphics=" + mc.options.graphicsMode().get());
+            screenshot(mc, "fabulous", "outlines");
+        });
+        queue(1, mc -> server(mc, s -> run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                origin.getX() + 0.5, origin.getY() - 0.4, origin.getZ() + 15.4, 0f, 0f))));
+        queue(20, mc -> screenshot(mc, "fabulous", "frames_close"));
+        queue(1, mc -> camera(mc, origin.getX() + 1.0, origin.getY() + 2.2, origin.getZ() - 0.6, 180f, 12f));
+        queue(40, mc -> screenshot(mc, "fabulous", "tanks"));
+        queue(1, mc -> server(mc, s -> run(s, "gamemode creative @a")));
+        queue(1, mc -> {
+            mc.options.graphicsMode().set(savedGraphics);
+            mc.levelRenderer.allChanged();
+        });
+        queue(20, mc -> check("fabulous.restored", mc.options.graphicsMode().get() == savedGraphics, ""));
+    }
+
+    /**
+     * G1: GUI outlines at GUI scales 1, 2 and 4 (the spike only ran scale 3): the hotbar from the
+     * outline scene, which must have run first. Restores the scale after.
+     */
+    private static void queueGuiScaleScene() {
+        queue(1, mc -> {
+            savedGuiScale = mc.options.guiScale().get();
+            savedWindowWidth = mc.getWindow().getWidth();
+            savedWindowHeight = mc.getWindow().getHeight();
+            // Scale 4 needs a window at least 1280x960 (Window.calculateScale caps the scale at
+            // width/320 and height/240); the dev runs open smaller ones.
+            org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().getWindow(), 1920, 1080);
+        });
+        for (int scale : new int[]{1, 2, 4}) {
+            queue(1, mc -> {
+                mc.options.hideGui = false;
+                mc.options.guiScale().set(scale);
+                mc.resizeDisplay();
+            });
+            queue(20, mc -> {
+                check("guiscale." + scale, mc.getWindow().getGuiScale() == scale, "actual=" + mc.getWindow().getGuiScale());
+                screenshot(mc, "guiscale", "scale" + scale);
+            });
+        }
+        queue(1, mc -> {
+            mc.options.guiScale().set(savedGuiScale);
+            org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().getWindow(), savedWindowWidth, savedWindowHeight);
+            mc.resizeDisplay();
+        });
+    }
+
+    private static net.minecraft.client.GraphicsStatus savedGraphics;
+    private static int savedGuiScale;
+    private static int savedWindowWidth;
+    private static int savedWindowHeight;
 
     /** Pile of Fish (flat), a pile-block stack, structure cosmetics, the treasure chest and a tank. */
     private static List<ItemStack> itemsSceneStacks() {

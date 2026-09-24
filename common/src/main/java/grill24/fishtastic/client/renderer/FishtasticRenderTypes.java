@@ -2,8 +2,13 @@ package grill24.fishtastic.client.renderer;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.Util;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.List;
+import java.util.function.Function;
 
 /**
  * Every render type Fishtastic defines. 1.21.1 has no {@code RenderPipeline}: a render type is a
@@ -39,6 +44,91 @@ public final class FishtasticRenderTypes extends RenderType {
                     .setOverlayState(OVERLAY)
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(true));
+
+    /**
+     * In-world quality outlines (item entities, item frames, tank fish, first-person held items):
+     * one textured quad sampling {@link FishtasticItemOutlineAtlas}. Entity-translucent shading
+     * with NEAREST sampling (the texture shard sets the filter each time it binds; the GUI path
+     * samples the same texture LINEAR), no cull (visible from behind the item too) and no depth
+     * write (a translucent overlay must not occlude the item or anything behind it). Drawn into
+     * the item-entity target like vanilla's {@code itemEntityTranslucentCull}, so it composites
+     * correctly under Fabulous graphics (spike finding F4).
+     */
+    public static final RenderType ITEM_OUTLINE = create(
+            "fishtastic_item_outline",
+            DefaultVertexFormat.NEW_ENTITY,
+            VertexFormat.Mode.QUADS,
+            TRANSIENT_BUFFER_SIZE,
+            true,
+            true,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                    .setTextureState(new TextureStateShard(FishtasticItemOutlineAtlas.TEXTURE_ID, false, false))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setOutputState(ITEM_ENTITY_TARGET)
+                    .setCullState(NO_CULL)
+                    .setLightmapState(LIGHTMAP)
+                    .setOverlayState(OVERLAY)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(true));
+
+    // ── Quality glints (the 1.21.1 ancestor's ItemEffect.RenderTypeFactory) ──────────────
+    // One family per ItemEffect texture, standing in for vanilla's glint(), entityGlint(),
+    // entityGlintDirect() and glintTranslucent() when ItemRendererMixin swaps the foil buffer.
+    // Registered with RenderBuffers as fixed buffers (RenderBuffersMixin) so they draw after the
+    // item, like vanilla's glints.
+
+    private static final Function<ResourceLocation, RenderType> QUALITY_GLOW = Util.memoize(
+            texture -> glint("quality_glow_", texture, GLINT_TEXTURING, MAIN_TARGET));
+    private static final Function<ResourceLocation, RenderType> ENTITY_QUALITY_GLOW = Util.memoize(
+            texture -> glint("entity_quality_glow_", texture, ENTITY_GLINT_TEXTURING, ITEM_ENTITY_TARGET));
+    private static final Function<ResourceLocation, RenderType> ENTITY_QUALITY_GLOW_DIRECT = Util.memoize(
+            texture -> glint("entity_quality_glow_direct_", texture, ENTITY_GLINT_TEXTURING, MAIN_TARGET));
+    private static final Function<ResourceLocation, RenderType> QUALITY_GLOW_TRANSLUCENT = Util.memoize(
+            texture -> glint("quality_glow_translucent_", texture, GLINT_TEXTURING, ITEM_ENTITY_TARGET));
+
+    public static RenderType qualityGlow(ResourceLocation texture) {
+        return QUALITY_GLOW.apply(texture);
+    }
+
+    public static RenderType entityQualityGlow(ResourceLocation texture) {
+        return ENTITY_QUALITY_GLOW.apply(texture);
+    }
+
+    public static RenderType entityQualityGlowDirect(ResourceLocation texture) {
+        return ENTITY_QUALITY_GLOW_DIRECT.apply(texture);
+    }
+
+    public static RenderType qualityGlowTranslucent(ResourceLocation texture) {
+        return QUALITY_GLOW_TRANSLUCENT.apply(texture);
+    }
+
+    /** Every glint render type for {@code texture}, for the fixed-buffer registration. */
+    public static List<RenderType> qualityGlows(ResourceLocation texture) {
+        return List.of(qualityGlow(texture), entityQualityGlow(texture), entityQualityGlowDirect(texture),
+                qualityGlowTranslucent(texture));
+    }
+
+    private static RenderType glint(String prefix, ResourceLocation texture, TexturingStateShard texturing,
+                                    OutputStateShard output) {
+        return create(
+                prefix + texture.getNamespace() + "_" + texture.getPath().replace('/', '_'),
+                DefaultVertexFormat.POSITION_TEX,
+                VertexFormat.Mode.QUADS,
+                TRANSIENT_BUFFER_SIZE,
+                false,
+                false,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_GLINT_SHADER)
+                        .setTextureState(new TextureStateShard(texture, true, false))
+                        .setWriteMaskState(COLOR_WRITE)
+                        .setCullState(NO_CULL)
+                        .setDepthTestState(EQUAL_DEPTH_TEST)
+                        .setTransparencyState(GLINT_TRANSPARENCY)
+                        .setTexturingState(texturing)
+                        .setOutputState(output)
+                        .createCompositeState(false));
+    }
 
     private FishtasticRenderTypes(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
             boolean affectsCrumbling, boolean sortOnUpload, Runnable setupState, Runnable clearState) {

@@ -7,7 +7,7 @@ import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
-// PORT A5.4c: import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
+import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
 import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.component.FishQuality;
@@ -940,10 +940,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         int half = ZONE_ICON_TEXTURE_PX / 2;
 
         // Outline first, icon over it — matches the item path's submission order.
-        // PORT A5.4c: the black-outline pass needs the texture-outline shader effect.
-//        guiGraphics.blit(FishtasticTextureOutlineEffect.getOrCreatePipeline(), texture,
-//                -half, -half, 0f, 0f,
-//                ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX);
+        FishtasticTextureOutlineEffect.blit(guiGraphics, texture,
+                -half, -half, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, 0f, 0f,
+                ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX);
         guiGraphics.blit(texture,
                 -half, -half, 0f, 0f,
                 ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX, ZONE_ICON_TEXTURE_PX);

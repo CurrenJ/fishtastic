@@ -7,6 +7,7 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
+import grill24.fishtastic.client.FishtasticHudLayers;
 import grill24.fishtastic.client.FishtasticItemProperties;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -252,19 +253,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // ordered HudElementRegistry, so all three layers are drawn from a single callback in the
         // order they were registered there: tutorial, then the minigame bar over it, then the
         // quest notifications on top. That relative order is what those registrations existed for.
+        // With no screen open they're drawn after vanilla's toasts instead (FishtasticHudLayers).
         HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
-            float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
-            TutorialClientHandler.render(graphics, partialTick);
-
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.gameRenderer != null) {
-                ItemActivationAnimation animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
-                if (animation != null && animation.isActive()) {
-                    animation.render(mc, graphics, partialTick);
-                }
+            if (FishtasticHudLayers.drawnInHudPass()) {
+                FishtasticHudLayers.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }
-
-            QuestProgressNotificationManager.getInstance().render(graphics, partialTick);
         });
 
         // Render tutorial text on top of the quest/shop screen (fires after the screen itself renders)
