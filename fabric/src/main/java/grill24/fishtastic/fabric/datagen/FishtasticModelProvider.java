@@ -174,10 +174,16 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateTrashItemModel(itemModelGenerators, FishtasticItems.OLD_TIRE.value(), "old_tire");
         generateTrashItemModel(itemModelGenerators, FishtasticItems.PLASTIC_LITTER.value(), "plastic_litter");
 
-        // ----- Items drawn by a BlockEntityWithoutLevelRenderer (A5) -----
-        // 26.1's custom item model types (fish_tank_composite, fish_pile_block, cosmetic_structure,
-        // the chest select) don't exist on 1.21.1; these items render through builtin/entity instead.
-        generateBuiltinEntityItem(itemModelGenerators, FishtasticBlocks.FISH_TANK.value().asItem());
+        // ----- The fish tank item: the tank block model, whose per-stack materials the loaders'
+        // tank models resolve (A5.2; 26.1's fish_tank_composite item model type doesn't exist on 1.21.1).
+        // Fabric resolves this id to its own tank model before the JSON is read; NeoForge bakes the
+        // block model's "fishtastic:fish_tank" loader through this parent.
+        generateItemWithParent(itemModelGenerators, FishtasticBlocks.FISH_TANK.value().asItem(),
+                Ids.of("fishtastic", "block/fish_tank"));
+
+        // ----- Items drawn by a BlockEntityWithoutLevelRenderer (A5.3) -----
+        // 26.1's custom item model types (fish_pile_block, cosmetic_structure, the chest select)
+        // don't exist on 1.21.1; these items render through builtin/entity instead.
         generateBuiltinEntityItem(itemModelGenerators, FishtasticBlocks.FISH_PILE.value().asItem());
         generateBuiltinEntityItem(itemModelGenerators, FishtasticItems.COSMETIC_TREASURE_CHEST.value());
         BuiltInRegistries.ITEM.stream()

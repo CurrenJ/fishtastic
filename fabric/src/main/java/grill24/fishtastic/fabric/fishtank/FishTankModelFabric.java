@@ -1,101 +1,51 @@
 package grill24.fishtastic.fabric.fishtank;
 
+import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
+import grill24.fishtastic.client.compositemodel.FishTankGeometry;
 import grill24.fishtastic.util.Ids;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonObject;
-import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
-import net.minecraft.client.renderer.block.dispatch.ModelState;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ModelDebugName;
-import net.minecraft.client.resources.model.ResolvedModel;
-import net.minecraft.client.resources.model.ResolvableModel;
+import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
-import net.minecraft.client.resources.model.cuboid.ItemTransforms;
-import net.minecraft.client.resources.model.geometry.QuadCollection;
-import net.minecraft.client.resources.model.geometry.UnbakedGeometry;
-import net.minecraft.client.resources.model.sprite.Material;
-import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.minecraft.resources.ResourceLocation;
-import org.jspecify.annotations.Nullable;
 
-import static grill24.fishtastic.util.Utility.ft;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
 
 /**
- * Custom {@link UnbakedModel} for the Fish Tank item form on Fabric.
- * <p>
- * Loaded via {@link UnbakedModelDeserializer} from the JSON
- * {@code assets/fishtastic/models/block/fish_tank.json} ({@code "fabric:type": "fishtastic:fish_tank"}).
- * <p>
- * During baking, produces a default composite of frame_0 + sand_0 + glass_0 for the item display.
- * Also declares all 192 base sub-model dependencies so the model bakery loads them.
+ * The fish tank's unbaked model on Fabric 1.21.1 (new code: 26.1.2's Fabric tank is a
+ * {@code CustomUnbakedBlockStateModel}, which this Fabric API doesn't have). {@link #PLUGIN}
+ * resolves both {@code fishtastic:block/fish_tank} (the blockstate's model) and
+ * {@code fishtastic:item/fish_tank} to it: the item can't simply name the block model as its
+ * parent, because a vanilla {@code BlockModel}'s parent must be a {@code BlockModel}.
+ * All loading happens in {@link FishTankGeometry#bake}.
  */
 public final class FishTankModelFabric implements UnbakedModel {
+    private static final ResourceLocation BLOCK_MODEL = Ids.of("fishtastic", "block/fish_tank");
+    private static final ResourceLocation ITEM_MODEL = Ids.of("fishtastic", "item/fish_tank");
 
-    private static final String FRAME_PREFIX = "block/fishtankbase/fish_tank_frame_";
-    private static final String SAND_PREFIX  = "block/fishtankbase/fish_tank_sand_";
-    private static final String GLASS_PREFIX = "block/fishtankbase/fish_tank_glass_";
-    private static final int PERMUTATION_COUNT = 64;
-
-    private FishTankModelFabric() {}
-
-    @Override
-    public @Nullable Boolean ambientOcclusion() {
-        return true;
-    }
+    public static final ModelLoadingPlugin PLUGIN = context -> {
+        FishTankModelFabric model = new FishTankModelFabric();
+        context.resolveModel().register(resolver ->
+                resolver.id().equals(BLOCK_MODEL) || resolver.id().equals(ITEM_MODEL) ? model : null);
+    };
 
     @Override
-    public UnbakedModel.@Nullable GuiLight guiLight() {
-        return null;
+    public Collection<ResourceLocation> getDependencies() {
+        // Fragments are fetched from the baker in bake(); nothing to preload.
+        return List.of();
     }
 
     @Override
-    public @Nullable ItemTransforms transforms() {
-        return null;
+    public void resolveParents(Function<ResourceLocation, UnbakedModel> modelGetter) {
     }
 
     @Override
-    public TextureSlots.Data textureSlots() {
-        TextureSlots.Data.Builder builder = new TextureSlots.Data.Builder();
-        builder.addTexture("all", new Material(Ids.withDefaultNamespace("block/oak_planks")));
-        builder.addTexture("particle", new Material(Ids.withDefaultNamespace("block/oak_planks")));
-        return builder.build();
-    }
-
-    @Override
-    public @Nullable UnbakedGeometry geometry() {
-        return new FishTankItemGeometry();
-    }
-
-    @Override
-    public @Nullable ResourceLocation parent() {
-        return Ids.withDefaultNamespace("block/block");
-    }
-
-    private static class FishTankItemGeometry implements UnbakedGeometry {
-        @Override
-        public QuadCollection bake(TextureSlots textureSlots, ModelBaker baker,
-                                   ModelState state, ModelDebugName debugName) {
-            QuadCollection.Builder compositeBuilder = new QuadCollection.Builder();
-            bakeAndAdd(compositeBuilder, baker, ft(FRAME_PREFIX + "0"), state);
-            bakeAndAdd(compositeBuilder, baker, ft(SAND_PREFIX + "0"), state);
-            bakeAndAdd(compositeBuilder, baker, ft(GLASS_PREFIX + "0"), state);
-            return compositeBuilder.build();
-        }
-
-        private void bakeAndAdd(QuadCollection.Builder builder, ModelBaker baker,
-                                ResourceLocation modelId, ModelState state) {
-            ResolvedModel model = baker.getModel(modelId);
-            QuadCollection quads = model.bakeTopGeometry(model.getTopTextureSlots(), baker, state);
-            builder.addAll(quads);
-        }
-    }
-
-    public enum Loader implements UnbakedModelDeserializer {
-        INSTANCE;
-
-        @Override
-        public UnbakedModel deserialize(JsonObject jsonObject, JsonDeserializationContext context) {
-            return new FishTankModelFabric();
-        }
+    public BakedModel bake(ModelBaker baker, Function<Material, TextureAtlasSprite> spriteGetter, ModelState modelState) {
+        return new FishTankBakedModelFabric(FishTankGeometry.bake(baker, spriteGetter, BlockModelPathResolver::getModelLocations));
     }
 }

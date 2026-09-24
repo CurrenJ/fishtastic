@@ -6,6 +6,7 @@ import grill24.fishtastic.FishtasticParticleTypes;
 // PORT A5: import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
+import grill24.fishtastic.client.FishtasticBlockRenderLayers;
 import grill24.fishtastic.client.FishtasticItemProperties;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -43,13 +44,12 @@ import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.RodGearTooltip;
-// PORT A5.2f: import grill24.fishtastic.fabric.fishtank.BlockstateModelRedirectPlugin;
-// PORT A5.2f: import grill24.fishtastic.fabric.fishtank.FishTankBlockStateModelFabric;
-// PORT A5.2f: import grill24.fishtastic.fabric.fishtank.FishTankModelFabric;
+import grill24.fishtastic.fabric.fishtank.FishTankModelFabric;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import grill24.fishtastic.util.Ids;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -59,9 +59,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.server.packs.PackType;
-// PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
-// PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
-// PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
@@ -116,19 +114,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             }
         });
 
-        // PORT A5.2f/A5.3: tank models, item model types.
-//        // Build blockstate → model path redirect map before baking starts
-//        PreparableModelLoadingPlugin.register(BlockstateModelRedirectPlugin.LOADER, BlockstateModelRedirectPlugin.PLUGIN);
+        // The fish tank's block and item model (26.1.2 registers a blockstate model type and an item
+        // model type instead; the blockstate redirect scan runs inside the tank's own bake, see
+        // FishTankGeometry).
+        ModelLoadingPlugin.register(FishTankModelFabric.PLUGIN);
 
-//        // Register custom block state model type for fish tank
-//        CustomUnbakedBlockStateModel.register(ft("fish_tank"), FishTankBlockStateModelFabric.CODEC);
-
-//        // Register custom model loader for the fish tank item model
-//        UnbakedModelDeserializer.register(ft("fish_tank"), FishTankModelFabric.Loader.INSTANCE);
-
+        // PORT A5.3: item model types.
 //        // Register custom item model types
 //        FishtasticClientSetup.registerItemModelTypes();
-//        grill24.fishtastic.fabric.fishtank.FishTankItemModelFabric.register();
 
         // Register the Fish Tank Assembly menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
@@ -281,6 +274,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // PORT-ONLY: the rod cast and book has_alert predicates the item models test (Fabric API's
         // transitive access widener makes vanilla's ItemProperties.register public).
         FishtasticItemProperties.register(ItemProperties::register);
+
+        // PORT-ONLY: the see-through blocks' chunk layers (26.1 derives them from texture alpha).
+        FishtasticBlockRenderLayers.register(BlockRenderLayerMap.INSTANCE::putBlock);
 
         // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
         // ColorProviderRegistry.BLOCK is removed; use BlockColorRegistry with BlockTintSource instead

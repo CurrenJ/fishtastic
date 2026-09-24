@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 // PORT A5: import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
+import grill24.fishtastic.client.FishtasticBlockRenderLayers;
 import grill24.fishtastic.client.FishtasticItemProperties;
 import grill24.fishtastic.client.QuestClientCache;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
@@ -42,13 +43,11 @@ import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.compat.GelatinScreensCompat;
 import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.TankCosmeticTooltip;
-// PORT A5.2: import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.RodGearTooltip;
-// PORT A5.2: import grill24.fishtastic.neoforge.fishtank.FishTankBlockStateModel;
-// PORT A5.2: import grill24.fishtastic.neoforge.fishtank.FishTankModel;
+import grill24.fishtastic.neoforge.fishtank.FishTankModel;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
 import net.minecraft.client.Minecraft;
@@ -66,10 +65,8 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
-// PORT A5.2: import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-// PORT A5.2: import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
@@ -117,9 +114,7 @@ public final class FishtasticNeoForgeClient {
         QuestProgressNotificationManager.getInstance().install();
 
         modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
-        // PORT A5.2: tank models.
-//        modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
-//        modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
         // PORT A5.3: client item models.
 //        modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
@@ -148,18 +143,16 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
     }
 
-    // PORT A5/A5.2: model loaders, blockstate models, reload listeners.
-//    public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
-//        event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE);
-//        Fishtastic.LOGGER.info("Fishtastic model loaders registered.");
-//    }
-
-//    public static void registerBlockStateModels(RegisterBlockStateModels event) {
-//        // Register the custom block state model type for the fish tank.
-//        // Referenced in blockstates/fish_tank.json as "type": "fishtastic:fish_tank"
-//        event.registerModel(ft("fish_tank"), FishTankBlockStateModel.CODEC);
-//        Fishtastic.LOGGER.info("Fishtastic block state models registered.");
-//    }
+    /**
+     * The tank's model geometry, referenced from {@code models/block/fish_tank.json} as
+     * {@code "loader": "fishtastic:fish_tank"}. (26.1.2 registers a blockstate-level model type
+     * instead; 1.21.1 only has model-level loaders, and the blockstate redirect scan that 26.1.2
+     * runs as a reload listener happens inside the tank's own bake, see FishTankGeometry.)
+     */
+    public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
+        event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE);
+        Fishtastic.LOGGER.info("Fishtastic model loaders registered.");
+    }
 
     public static void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(CosmeticTransformLoader.INSTANCE);
@@ -221,6 +214,9 @@ public final class FishtasticNeoForgeClient {
     /** PORT-ONLY: the rod {@code cast} and book {@code has_alert} predicates the item models test. */
     public static void registerItemProperties(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> FishtasticItemProperties.register(ItemProperties::register));
+        // PORT-ONLY: the see-through blocks' chunk layers (26.1 derives them from texture alpha).
+        // NeoForge 21.1 still honours the deprecated setRenderLayer for models with no render_type.
+        event.enqueueWork(() -> FishtasticBlockRenderLayers.register(net.minecraft.client.renderer.ItemBlockRenderTypes::setRenderLayer));
     }
 
     // PORT A5.3: client item models.

@@ -1,416 +1,134 @@
 package grill24.fishtastic.neoforge.fishtank;
 
-import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
+import grill24.fishtastic.client.compositemodel.FishTankGeometry;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
-import grill24.fishtastic.fishtank.FishTankShape;
-import grill24.fishtastic.fishtank.TankDiagonal;
-import grill24.fishtastic.fishtank.TankEdgeDiagonal;
-import net.minecraft.client.renderer.block.BlockAndTintGetter;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
-import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ResolvedModel;
-import net.minecraft.client.resources.model.SimpleModelWrapper;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.client.resources.model.geometry.QuadCollection;
-import net.minecraft.client.resources.model.sprite.Material;
-import net.minecraft.client.resources.model.sprite.TextureSlots;
-import net.neoforged.neoforge.client.extensions.ResolvedModelExtension;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.ItemOverrides;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
-import net.neoforged.neoforge.model.data.ModelData;
-import org.jspecify.annotations.Nullable;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
+import net.neoforged.neoforge.client.model.IDynamicBakedModel;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.common.util.TriState;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Runtime block state model for the Fish Tank that dynamically composites
- * frame, sand, and glass sub-models with retextured faces based on per-block-entity
- * {@link FishTankCompositeModelData}.
- * <p>
- * Implements {@link DynamicBlockStateModel} so that {@code collectParts} receives
- * world context (level + position), from which it reads the block entity's
- * {@link ModelData} to determine the correct sub-model textures and permutation.
+ * Runtime model for the Fish Tank on NeoForge 1.21.1: composites the frame, sand and glass
+ * layers for the block entity's {@link FishTankCompositeModelData} (read from {@link ModelData}),
+ * through the shared {@link FishTankGeometry}.
+ *
+ * <p>Each layer goes to its material block's own chunk layer (glass is usually translucent,
+ * frame and sand solid). 26.1.2 derives the same from its quads' material flags.
  */
-public class FishTankBakedModel implements DynamicBlockStateModel {
+public class FishTankBakedModel implements IDynamicBakedModel {
+    private final FishTankGeometry geometry;
+    private final ItemOverrides itemOverrides;
+    private final Map<Block, RenderType> chunkLayers = new ConcurrentHashMap<>();
 
-    // ── Resolved sub-models (pre-loaded at bake time) ─────────────────────
-
-    private final ModelBaker baker;
-    private final Map<FishTankShape, ResolvedModel[]> frameModels;   // shape -> [0..63]
-    private final Map<FishTankShape, ResolvedModel[]> sandModels;    // shape -> [0..63]
-    private final Map<FishTankShape, ResolvedModel[]> glassModels;   // shape -> [0..63]
-    // Diagonal-aware corner post fragments, [diagonal.ordinal() * 4 + capState]; absent for shapes
-    // whose frame generator has no combined-face corner gate (see FishTankShape#hasDiagonalCornerFragments).
-    private final Map<FishTankShape, ResolvedModel[]> cornerFragmentModels;
-    // Corner glass-fill fragments (the corner plug's z-fight followup fix), indexed by
-    // [diagonal.ordinal() * 4 + capState]; only present for the four shapes whose ceiling/floor is
-    // a glass-paned ring (see FishTankShape#hasCornerGlassFillFragments).
-    private final Map<FishTankShape, ResolvedModel[]> cornerGlassFillModels;
-    // Edge-diagonal frame beam fragments, indexed by [edge.ordinal()]; absent for shapes with no
-    // taper/plate abstraction to borrow edge geometry from (see FishTankShape#hasEdgeDiagonalFragments).
-    private final Map<FishTankShape, ResolvedModel[]> edgeFragmentModels;
-    // Edge-diagonal glass-fill fragments (the beam's z-fight followup fix), indexed by
-    // [edge.ordinal() * TankDiagonal.values().length + corner.ordinal()]; same absence condition
-    // as edgeFragmentModels.
-    private final Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels;
-
-    // ── Default (fallback) model ──────────────────────────────────────────
-
-    private final List<BlockStateModelPart> defaultParts;
-    private final Material.Baked defaultParticleMaterial;
-    @BakedQuad.MaterialFlags
-    private final int defaultMaterialFlags;
-
-    // ── Cache of per-configuration composite parts ────────────────────────
-
-    private final ConcurrentHashMap<CacheKey, CachedModel> modelCache = new ConcurrentHashMap<>();
-
-    // ── Synchronisation lock for lazy baking (baker may not be thread-safe) ─
-    private final Object bakeLock = new Object();
-
-    // ── Cache key record ──────────────────────────────────────────────────
-
-    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides, Set<TankEdgeDiagonal> edgeDiagonalOverrides) {}
-
-    private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial,
-                                @BakedQuad.MaterialFlags int materialFlags) {}
-
-    // ── Constructor ───────────────────────────────────────────────────────
-
-    public FishTankBakedModel(ModelBaker baker,
-                              Map<FishTankShape, ResolvedModel[]> frameModels,
-                              Map<FishTankShape, ResolvedModel[]> sandModels,
-                              Map<FishTankShape, ResolvedModel[]> glassModels,
-                              Map<FishTankShape, ResolvedModel[]> cornerFragmentModels,
-                              Map<FishTankShape, ResolvedModel[]> cornerGlassFillModels,
-                              Map<FishTankShape, ResolvedModel[]> edgeFragmentModels,
-                              Map<FishTankShape, ResolvedModel[]> edgeGlassFillModels) {
-        this.baker = baker;
-        this.frameModels = frameModels;
-        this.sandModels = sandModels;
-        this.glassModels = glassModels;
-        this.cornerFragmentModels = cornerFragmentModels;
-        this.cornerGlassFillModels = cornerGlassFillModels;
-        this.edgeFragmentModels = edgeFragmentModels;
-        this.edgeGlassFillModels = edgeGlassFillModels;
-
-        // Pre-bake the default model (permutation 0, default textures).
-        FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
-        CachedModel defaultModel = generateCompositeModel(defaultData);
-
-        if (defaultModel != null) {
-            CacheKey defaultKey = new CacheKey(
-                    defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
-                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask(),
-                    defaultData.getEdgeDiagonalOverrideMask());
-            modelCache.put(defaultKey, defaultModel);
-            this.defaultParts = defaultModel.parts();
-            this.defaultParticleMaterial = defaultModel.particleMaterial();
-            this.defaultMaterialFlags = defaultModel.materialFlags();
-        } else {
-            // Should never happen with DEFAULT (vanilla oak_planks / sand / blue glass),
-            // but guard against a broken baking environment at startup.
-            Fishtastic.LOGGER.error("Fish Tank: failed to pre-generate default model — rendering will fall back to missing.");
-            ResolvedModel fallbackModel = frameModels.get(FishTankShape.STANDARD)[0];
-            TextureSlots fallbackSlots = fallbackModel.getTopTextureSlots();
-            this.defaultParticleMaterial = fallbackModel.resolveParticleMaterial(fallbackSlots, baker);
-            this.defaultMaterialFlags = 0;
-            this.defaultParts = List.of(baker.missingBlockModelPart());
-        }
+    FishTankBakedModel(FishTankGeometry geometry) {
+        this.geometry = geometry;
+        this.itemOverrides = new FishTankItemModel(this);
     }
 
-    // ── DynamicBlockStateModel ────────────────────────────────────────────
+    FishTankGeometry geometry() {
+        return geometry;
+    }
 
-    @Override
-    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state,
-                             RandomSource random, List<BlockStateModelPart> parts) {
-
-        // Read the block entity's model data.
-        ModelData modelData = level.getModelData(pos);
+    private static FishTankCompositeModelData data(ModelData modelData) {
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
+        return data != null ? data : FishTankCompositeModelData.DEFAULT;
+    }
 
-        if (data == null) {
-            data = FishTankCompositeModelData.DEFAULT;
-        }
+    /** The chunk layer {@code block} itself renders in, from its own model's render types. */
+    RenderType chunkLayer(Block block) {
+        return chunkLayers.computeIfAbsent(block, b -> {
+            BlockState state = b.defaultBlockState();
+            ChunkRenderTypeSet types = Minecraft.getInstance().getBlockRenderer().getBlockModel(state)
+                    .getRenderTypes(state, RandomSource.create(42L), ModelData.EMPTY);
+            if (types.contains(RenderType.translucent())) return RenderType.translucent();
+            if (types.contains(RenderType.cutoutMipped())) return RenderType.cutoutMipped();
+            if (types.contains(RenderType.cutout())) return RenderType.cutout();
+            return RenderType.solid();
+        });
+    }
 
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
-
-        // Fast path: check cache without locking.
-        CachedModel cached = modelCache.get(key);
-        if (cached == null) {
-            // Slow path: generate the model under a lock.
-            final FishTankCompositeModelData finalData = data;
-            synchronized (bakeLock) {
-                cached = modelCache.get(key);
-                if (cached == null) {
-                    CachedModel generated = generateCompositeModel(finalData);
-                    if (generated != null) {
-                        // Only cache successful generations — a null result means texture lookup
-                        // failed (e.g. unresolved mod block). Allow retry on the next chunk re-mesh.
-                        modelCache.put(key, generated);
-                        cached = generated;
-                    } else {
-                        Fishtastic.LOGGER.warn(
-                                "[FishTankBakedModel] Could not generate model for key shape={} {}/{}/{} perm={}; "
-                                        + "using default fallback this frame.",
-                                key.shape(),
-                                BuiltInRegistries.BLOCK.getKey(key.frame()),
-                                BuiltInRegistries.BLOCK.getKey(key.sand()),
-                                BuiltInRegistries.BLOCK.getKey(key.glass()),
-                                key.permutation());
-                        cached = new CachedModel(defaultParts, defaultParticleMaterial, defaultMaterialFlags);
-                        // Intentionally NOT stored in modelCache so the next remesh retries.
-                    }
-                }
+    @Override
+    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand,
+                                    ModelData extraData, @Nullable RenderType renderType) {
+        FishTankGeometry.Composite composite = geometry.composite(data(extraData));
+        List<BakedQuad> quads = new ArrayList<>();
+        for (FishTankGeometry.LayerQuads layer : composite.layers()) {
+            if (renderType == null || chunkLayer(layer.source()) == renderType) {
+                quads.addAll(layer.get(side));
             }
         }
-
-        parts.addAll(cached.parts());
+        return quads;
     }
 
     @Override
-    @Deprecated
-    public void collectParts(RandomSource random, List<BlockStateModelPart> parts) {
-        // Fallback without world context — use the default model.
-        parts.addAll(defaultParts);
-    }
-
-    @Override
-    public Material.Baked particleMaterial() {
-        return defaultParticleMaterial;
-    }
-
-    @Override
-    public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
-        ModelData modelData = level.getModelData(pos);
-        FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
-        if (data == null) return defaultParticleMaterial;
-
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
-        CachedModel cached = modelCache.get(key);
-        return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
-    }
-
-    @Override
-    @BakedQuad.MaterialFlags
-    public int materialFlags() {
-        return defaultMaterialFlags;
-    }
-
-    @Override
-    @BakedQuad.MaterialFlags
-    public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state) {
-        ModelData modelData = level.getModelData(pos);
-        FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
-        if (data == null) return defaultMaterialFlags;
-
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
-        CachedModel cached = modelCache.get(key);
-        return cached != null ? cached.materialFlags() : defaultMaterialFlags;
-    }
-
-    @Override
-    @Nullable
-    public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state,
-                                    RandomSource random) {
-        ModelData modelData = level.getModelData(pos);
-        FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
-        if (data == null) data = FishTankCompositeModelData.DEFAULT;
-        return new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    @Nullable
-    private Material getBlockTexture(Block block) {
-        return CompositeTextureHelper.resolveBlockTexture(block, baker, BlockModelPathResolver.getModelLocations(block));
-    }
-
-    // ── Model generation ──────────────────────────────────────────────────
-
-    /**
-     * Generates a composite model for the given fish tank configuration.
-     *
-     * @return the freshly baked {@link CachedModel}, or {@code null} if any
-     *         texture could not be resolved or any geometry bake failed.
-     */
-    @Nullable
-    private CachedModel generateCompositeModel(FishTankCompositeModelData data) {
-        int perm = data.getPermutationIndex();
-
-        try {
-            ResolvedModel[] frameModelsForShape = frameModels.get(data.shape());
-            ResolvedModel[] sandModelsForShape  = sandModels.get(data.shape());
-            ResolvedModel[] glassModelsForShape = glassModels.get(data.shape());
-            if (frameModelsForShape == null || sandModelsForShape == null || glassModelsForShape == null) {
-                Fishtastic.LOGGER.warn("Fish Tank: no models loaded for shape={} — skipping cache.", data.shape());
-                return null;
-            }
-
-            Material frameTex = getBlockTexture(data.frameBlock());
-            Material sandTex  = getBlockTexture(data.sandBlock());
-            Material glassTex = getBlockTexture(data.glassBlock());
-
-            if (frameTex == null || sandTex == null || glassTex == null) {
-                Fishtastic.LOGGER.warn(
-                        "Fish Tank: could not resolve texture(s) for frame={} sand={} glass={} — skipping cache.",
-                        frameTex == null ? BuiltInRegistries.BLOCK.getKey(data.frameBlock()) : "ok",
-                        sandTex  == null ? BuiltInRegistries.BLOCK.getKey(data.sandBlock())  : "ok",
-                        glassTex == null ? BuiltInRegistries.BLOCK.getKey(data.glassBlock()) : "ok");
-                return null;
-            }
-
-            TextureSlots frameSlots = CompositeTextureHelper.overrideAllTexture(frameTex, frameModelsForShape[perm]);
-            TextureSlots sandSlots  = CompositeTextureHelper.overrideAllTexture(sandTex,  sandModelsForShape[perm]);
-            TextureSlots glassSlots = CompositeTextureHelper.overrideAllTexture(glassTex, glassModelsForShape[perm]);
-
-            QuadCollection frameQuads = bakeGeometry(frameModelsForShape[perm], frameSlots);
-            QuadCollection sandQuads  = bakeGeometry(sandModelsForShape[perm],  sandSlots);
-            QuadCollection glassQuads = bakeGeometry(glassModelsForShape[perm], glassSlots);
-
-            if (frameQuads == null || sandQuads == null || glassQuads == null) {
-                return null;
-            }
-
-            QuadCollection.Builder compositeBuilder = new QuadCollection.Builder();
-            compositeBuilder.addAll(frameQuads);
-            compositeBuilder.addAll(sandQuads);
-            compositeBuilder.addAll(glassQuads);
-            int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
-
-            // Diagonal-aware corner posts: composite a small fragment back in for each corner whose
-            // orthogonal faces are both open but its diagonal neighbor cell is empty (see
-            // FishTankCompositeModelData#getDiagonalOverrideMask). Absent for shapes with no
-            // combined-face corner gate to begin with.
-            ResolvedModel[] cornerFragmentsForShape = cornerFragmentModels.get(data.shape());
-            Set<TankDiagonal> diagonalOverrides = data.getDiagonalOverrideMask();
-            if (cornerFragmentsForShape != null && !diagonalOverrides.isEmpty()) {
-                boolean ceilingClosed = !data.openFaces().contains(net.minecraft.core.Direction.UP);
-                boolean floorClosed = !data.openFaces().contains(net.minecraft.core.Direction.DOWN);
-                int capState = (ceilingClosed ? 2 : 0) | (floorClosed ? 1 : 0);
-                for (TankDiagonal diagonal : diagonalOverrides) {
-                    ResolvedModel fragmentModel = cornerFragmentsForShape[diagonal.ordinal() * 4 + capState];
-                    QuadCollection fragmentQuads = bakeGeometry(fragmentModel, frameSlots);
-                    if (fragmentQuads != null) {
-                        compositeBuilder.addAll(fragmentQuads);
-                        flags |= fragmentQuads.materialFlags();
-                    }
-                }
-            }
-
-            // Corner glass fill: restore the small notch the base glass bake carves out of an
-            // eligible corner's pane, when that corner's post does NOT render (its diagonal cell is
-            // filled instead — see FishTankCompositeModelData#getDiagonalGlassFillMask, the inverse
-            // of the post's own override mask). Only present for the four shapes whose ceiling/floor
-            // is a glass-paned ring.
-            ResolvedModel[] cornerGlassFillForShape = cornerGlassFillModels.get(data.shape());
-            Set<TankDiagonal> diagonalGlassFills = data.getDiagonalGlassFillMask();
-            if (cornerGlassFillForShape != null && !diagonalGlassFills.isEmpty()) {
-                boolean ceilingClosed = !data.openFaces().contains(net.minecraft.core.Direction.UP);
-                boolean floorClosed = !data.openFaces().contains(net.minecraft.core.Direction.DOWN);
-                int capState = (ceilingClosed ? 2 : 0) | (floorClosed ? 1 : 0);
-                for (TankDiagonal diagonal : diagonalGlassFills) {
-                    ResolvedModel fillModel = cornerGlassFillForShape[diagonal.ordinal() * 4 + capState];
-                    QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
-                    if (fillQuads != null) {
-                        compositeBuilder.addAll(fillQuads);
-                        flags |= fillQuads.materialFlags();
-                    }
-                }
-            }
-
-            // Edge-diagonal frame beams: composite a small fragment back in for each edge whose
-            // horizontal and vertical faces are both open but its edge-diagonal neighbor cell is
-            // empty (see FishTankCompositeModelData#getEdgeDiagonalOverrideMask). Absent for
-            // shapes with no taper/plate abstraction to borrow edge geometry from.
-            ResolvedModel[] edgeFragmentsForShape = edgeFragmentModels.get(data.shape());
-            Set<TankEdgeDiagonal> edgeDiagonalOverrides = data.getEdgeDiagonalOverrideMask();
-            if (edgeFragmentsForShape != null && !edgeDiagonalOverrides.isEmpty()) {
-                for (TankEdgeDiagonal edge : edgeDiagonalOverrides) {
-                    ResolvedModel fragmentModel = edgeFragmentsForShape[edge.ordinal()];
-                    QuadCollection fragmentQuads = bakeGeometry(fragmentModel, frameSlots);
-                    if (fragmentQuads != null) {
-                        compositeBuilder.addAll(fragmentQuads);
-                        flags |= fragmentQuads.materialFlags();
-                    }
-                }
-            }
-
-            // Edge-diagonal glass fill: restore the small flush glass sliver the base glass bake
-            // omits at an eligible edge's cap band, when that edge's beam does NOT render (its
-            // edge-diagonal cell is filled — see FishTankCompositeModelData#getEdgeDiagonalGlassFillMask,
-            // the inverse of the beam's own override mask). Each of the edge's two end corners is
-            // independently gated on its "wall" face actually being closed — a corner cell only has
-            // glass to restore at all when that perpendicular wall exists.
-            ResolvedModel[] edgeGlassFillForShape = edgeGlassFillModels.get(data.shape());
-            Set<TankEdgeDiagonal> edgeDiagonalGlassFills = data.getEdgeDiagonalGlassFillMask();
-            if (edgeGlassFillForShape != null && !edgeDiagonalGlassFills.isEmpty()) {
-                for (TankEdgeDiagonal edge : edgeDiagonalGlassFills) {
-                    for (TankDiagonal corner : edge.endDiagonals()) {
-                        if (data.openFaces().contains(edge.wallFace(corner))) continue; // wall open — no pane to restore
-                        ResolvedModel fillModel = edgeGlassFillForShape[edge.ordinal() * TankDiagonal.values().length + corner.ordinal()];
-                        QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
-                        if (fillQuads != null) {
-                            compositeBuilder.addAll(fillQuads);
-                            flags |= fillQuads.materialFlags();
-                        }
-                    }
-                }
-            }
-
-            QuadCollection composite = compositeBuilder.build();
-
-            Material.Baked particleMat = ResolvedModel.resolveParticleMaterial(frameSlots, baker, frameModelsForShape[perm]);
-
-            // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
-            // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
-            BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);
-
-            return new CachedModel(List.of(part), particleMat, flags);
-
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Fish Tank: error generating composite model for {}", data, e);
-            return null;
+    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
+        List<RenderType> types = new ArrayList<>();
+        for (FishTankGeometry.LayerQuads layer : geometry.composite(data(data)).layers()) {
+            types.add(chunkLayer(layer.source()));
         }
+        return ChunkRenderTypeSet.of(types);
     }
 
-    /**
-     * Bakes the geometry of {@code model} using the supplied {@link TextureSlots}.
-     *
-     * <p>Bypasses {@link ResolvedModel#bakeTopGeometry} intentionally — {@code ModelWrapper}
-     * has internal caches keyed by {@code ModelState} only, completely ignoring
-     * {@code TextureSlots}. Calling {@code model.getTopGeometry().bake()} directly always
-     * produces fresh quads using the {@code TextureSlots} we actually want.
-     */
-    @Nullable
-    private QuadCollection bakeGeometry(ResolvedModel model, TextureSlots slots) {
-        try {
-            return model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model,
-                    ResolvedModelExtension.findTopAdditionalProperties(model));
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Fish Tank: error baking geometry for model {}", model.debugName(), e);
-            return null;
-        }
+    @Override
+    public TriState useAmbientOcclusion(BlockState state, ModelData data, RenderType renderType) {
+        // The tank shell is assembled from many noOcclusion() blocks; vanilla AO compounds at the
+        // internal seams and darkens large tanks (26.1.2 disables it on the model part too).
+        return TriState.FALSE;
+    }
+
+    @Override
+    public boolean useAmbientOcclusion() {
+        return false;
+    }
+
+    @Override
+    public boolean isGui3d() {
+        return true;
+    }
+
+    @Override
+    public boolean usesBlockLight() {
+        return true;
+    }
+
+    @Override
+    public boolean isCustomRenderer() {
+        return false;
+    }
+
+    @Override
+    public TextureAtlasSprite getParticleIcon() {
+        return geometry.composite(null).particle();
+    }
+
+    @Override
+    public TextureAtlasSprite getParticleIcon(ModelData data) {
+        return geometry.composite(data(data)).particle();
+    }
+
+    @Override
+    public ItemTransforms getTransforms() {
+        return geometry.blockItemTransforms();
+    }
+
+    @Override
+    public ItemOverrides getOverrides() {
+        return itemOverrides;
     }
 }

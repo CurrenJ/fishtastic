@@ -7,7 +7,6 @@
 # A5: rendering (31 common files, plus the platform tank models).
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
 common/src/main/java/grill24/fishtastic/client/FishtasticClientSetup.java
-common/src/main/java/grill24/fishtastic/client/compositemodel/CompositeTextureHelper.java
 common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemModel.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockItemModel.java
 common/src/main/java/grill24/fishtastic/client/renderer/FishtasticBlackOutlineEffect.java
@@ -30,7 +29,6 @@ common/src/main/java/grill24/fishtastic/mixin/ItemInHandRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemModelResolverMixin.java
 common/src/main/java/grill24/fishtastic/mixin/ItemStackRenderStateMixin.java
 common/src/main/java/grill24/fishtastic/mixin/RenderTypeMixin.java
-fabric/src/main/java/grill24/fishtastic/fabric/fishtank/**
 # A5, found by the A2 compile (render-only code the pass 2 import scan didn't flag):
 # A5.5 particles, A5.4a glint render-type registration, A5 cosmetic render transforms,
 # A5.3 fish pile item icons, A5.1 client flocks and tank bubbles, A5.7 IrisCompat and
@@ -42,13 +40,6 @@ common/src/main/java/grill24/fishtastic/client/util/FishPileIcons.java
 common/src/main/java/grill24/fishtastic/client/renderer/IrisCompat.java
 common/src/main/java/grill24/fishtastic/mixin/FishingHookRendererMixin.java
 common/src/main/java/grill24/fishtastic/mixin/LevelRendererMixin.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/BlockModelPathResolver.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/BlockstateModelReloadListener.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankBakedModel.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankBlockStateModel.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankItemModel.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModel.java
-neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModelData.java
 
 
 # A6.1: gametests, rewritten onto the shared vanilla-@GameTest harness (D10).

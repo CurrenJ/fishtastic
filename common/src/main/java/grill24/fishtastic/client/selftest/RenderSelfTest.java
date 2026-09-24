@@ -11,12 +11,16 @@ import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.fishtank.FishTankShape;
+import net.minecraft.world.level.block.Block;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.Ids;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.tutorial.TutorialSteps;
 import net.minecraft.core.BlockPos;
@@ -69,7 +73,7 @@ public final class RenderSelfTest {
     private static final String WORLD_NAME = "fishtastic_render_selftest";
 
     /** Scenes in the order they run. */
-    private static final List<String> ALL_SCENES = List.of("tank", "fixes");
+    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "fixes");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -81,6 +85,7 @@ public final class RenderSelfTest {
     private static int wait;
     private static BlockPos origin;
     private static TutorialSteps savedTutorialStep;
+    private static boolean savedPauseOnLostFocus;
 
     private record Step(int delayTicks, Consumer<Minecraft> action) {}
 
@@ -92,9 +97,14 @@ public final class RenderSelfTest {
             if (!armed) return;
             loader = loaderName;
             scenes = readScenes(marker);
+            // Unattended: a focus change must not pause the game (the integrated server would stop
+            // running the scene commands). Restored in finish().
+            savedPauseOnLostFocus = mc.options.pauseOnLostFocus;
+            mc.options.pauseOnLostFocus = false;
             Fishtastic.LOGGER.info("[selftest] armed on {}: scenes {}", loader, scenes);
         }
         if (!armed) return;
+        if (mc.screen instanceof PauseScreen) mc.setScreen(null);
 
         if (!worldRequested) {
             if (mc.screen instanceof TitleScreen && ++titleTicks > 40) {
@@ -191,6 +201,7 @@ public final class RenderSelfTest {
 
     private static void finish(Minecraft mc) {
         mc.options.tutorialStep = savedTutorialStep;
+        mc.options.pauseOnLostFocus = savedPauseOnLostFocus;
         mc.options.hideGui = false;
         mc.options.save();
         Fishtastic.LOGGER.info("[selftest] complete, stopping");
@@ -202,6 +213,8 @@ public final class RenderSelfTest {
     private static void queueScene(String scene) {
         switch (scene) {
             case "tank" -> queueTankScene();
+            case "shapes" -> queueShapesScene();
+            case "stress512" -> queueStressScene();
             case "fixes" -> queueFixesScene();
             default -> throw new IllegalArgumentException(scene);
         }
@@ -220,6 +233,9 @@ public final class RenderSelfTest {
             for (int dx = -1; dx <= 1; dx++) run(s, "setblock " + (x + dx) + " " + y + " " + z + " fishtastic:fish_tank");
             run(s, "setblock " + (x + 3) + " " + y + " " + z + " fishtastic:fish_tank");
             run(s, "setblock " + (x + 3) + " " + y + " " + (z + 2) + " fishtastic:fish_pile");
+            // Standalone see-through blocks, for their chunk layers (FishtasticBlockRenderLayers).
+            run(s, "setblock " + (x + 3) + " " + (y + 1) + " " + z + " fishtastic:blue_clear_stained_glass");
+            run(s, "setblock " + (x - 1) + " " + (y + 1) + " " + z + " fishtastic:clear_glass");
         }));
         queue(5, mc -> server(mc, s -> {
             ServerLevel level = s.overworld();
@@ -268,6 +284,134 @@ public final class RenderSelfTest {
         queue(1, mc -> camera(mc, origin.getX() + 5.2, origin.getY() + 1.8, origin.getZ() - 0.5, 150f, 45f));
         queue(30, mc -> screenshot(mc, "tank", "lone_and_pile"));
         queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    /** Frame, sand and glass for the three material sets of the shapes scene. */
+    private static final String[][] MATERIAL_SETS = {
+            {"minecraft:oak_planks", "minecraft:sand", "fishtastic:blue_clear_stained_glass"},
+            {"minecraft:stone_bricks", "minecraft:gravel", "minecraft:glass"},
+            // Waxed copper is the blockstate-redirect case (docs/fish-tank-rendering.md).
+            {"minecraft:waxed_copper_block", "minecraft:red_sand", "fishtastic:pink_borderless_stained_glass"},
+    };
+
+    /**
+     * A5.2: every {@link FishTankShape} in each of three material sets (two rows of ten per set),
+     * an L-shaped group (diagonal corner fragments), a vertical L (edge fragments), a live
+     * material change (re-mesh), and tank items with different shapes and materials in the hotbar.
+     */
+    private static void queueShapesScene() {
+        FishTankShape[] shapes = FishTankShape.values();
+        queue(1, mc -> server(mc, s -> {
+            int x0 = origin.getX() - 10, y = origin.getY(), z0 = origin.getZ() - 20;
+            run(s, "fill " + (x0 - 2) + " " + y + " " + (z0 - 16) + " " + (x0 + 22) + " " + (y + 3) + " " + (z0 + 8) + " minecraft:air");
+            for (int set = 0; set < MATERIAL_SETS.length; set++) {
+                for (int i = 0; i < shapes.length; i++) {
+                    run(s, "setblock " + (x0 + 2 * (i % 10)) + " " + y + " " + (z0 - 6 * set - 2 * (i / 10)) + " fishtastic:fish_tank");
+                }
+            }
+            // L-group (corner fragments) and vertical L (edge fragments), default materials.
+            int lx = x0 + 2, lz = z0 + 5;
+            run(s, "setblock " + lx + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + (lx + 1) + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + lx + " " + y + " " + (lz - 1) + " fishtastic:fish_tank");
+            int vx = x0 + 8;
+            run(s, "setblock " + vx + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + (vx + 1) + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + vx + " " + (y + 1) + " " + lz + " fishtastic:fish_tank");
+        }));
+        queue(5, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x0 = origin.getX() - 10, y = origin.getY(), z0 = origin.getZ() - 20;
+            for (int set = 0; set < MATERIAL_SETS.length; set++) {
+                FishTankMaterials materials = materials(MATERIAL_SETS[set]);
+                for (int i = 0; i < shapes.length; i++) {
+                    FishTankBlockEntity tank = tank(level, new BlockPos(x0 + 2 * (i % 10), y, z0 - 6 * set - 2 * (i / 10)));
+                    if (tank == null) continue;
+                    tank.setShape(shapes[i]);
+                    tank.setMaterials(materials);
+                }
+            }
+            FishTankBlockEntity corner = tank(level, new BlockPos(x0 + 2, y, z0 + 5));
+            check("shapes.lGroup.openFaces", corner != null && corner.getOpenFaces().contains(Direction.EAST)
+                    && corner.getOpenFaces().contains(Direction.NORTH), "corner=" + (corner == null ? null : corner.getOpenFaces()));
+            FishTankBlockEntity base = tank(level, new BlockPos(x0 + 8, y, z0 + 5));
+            check("shapes.verticalL.openFaces", base != null && base.getOpenFaces().contains(Direction.EAST)
+                    && base.getOpenFaces().contains(Direction.UP), "base=" + (base == null ? null : base.getOpenFaces()));
+            // Tank items: different shapes and materials, for the item model (and later the gallery).
+            for (int i = 0; i < 9; i++) {
+                ItemStack item = new ItemStack(BuiltInRegistries.ITEM.get(Ids.of("fishtastic", "fish_tank")));
+                FishtasticItemData.set(item, FishtasticDataComponents.FISH_TANK_SHAPE, shapes[(i * 2) % shapes.length]);
+                FishtasticItemData.set(item, FishtasticDataComponents.FISH_TANK_MATERIALS, materials(MATERIAL_SETS[i % MATERIAL_SETS.length]));
+                for (var player : s.getPlayerList().getPlayers()) player.getInventory().setItem(i, item.copy());
+            }
+        }));
+        for (int set = 0; set < MATERIAL_SETS.length; set++) {
+            int row = set;
+            queue(5, mc -> {
+                mc.options.hideGui = true;
+                camera(mc, origin.getX() - 1.0, origin.getY() + 4.0, origin.getZ() - 20 - 6 * row + 7.5, 180f, 25f);
+            });
+            queue(60, mc -> screenshot(mc, "shapes", "set" + row));
+        }
+        queue(1, mc -> camera(mc, origin.getX() - 3.0, origin.getY() + 3.0, origin.getZ() - 11.0, 180f, 30f));
+        queue(60, mc -> screenshot(mc, "shapes", "groups"));
+        queue(1, mc -> server(mc, s -> {
+            FishTankBlockEntity corner = tank(s.overworld(), new BlockPos(origin.getX() - 8, origin.getY(), origin.getZ() - 15));
+            if (corner != null) corner.setMaterials(materials(new String[]{"minecraft:diamond_block", "minecraft:red_sand", "minecraft:glass"}));
+        }));
+        queue(40, mc -> screenshot(mc, "shapes", "groups_rematerialed"));
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, s -> run(s, "gamemode creative @a"));
+        });
+        queue(40, mc -> screenshot(mc, "shapes", "hotbar"));
+    }
+
+    /**
+     * A5.2 stress: an 8x8x8 group (the 512-tank cap) whose tanks cycle through 64 frame/glass
+     * combinations the model has never baked, so the chunk-meshing threads bake them all at once
+     * and concurrently. Watch the log for exceptions and missing-texture quads.
+     */
+    private static void queueStressScene() {
+        String[] frames = {"stone_bricks", "oak_planks", "spruce_planks", "birch_planks", "dark_oak_planks", "bricks",
+                "deepslate_tiles", "polished_andesite", "quartz_block", "mud_bricks", "cherry_planks", "bamboo_planks",
+                "crimson_planks", "warped_planks", "prismarine_bricks", "waxed_copper_block"};
+        String[] glasses = {"fishtastic:blue_clear_stained_glass", "minecraft:glass", "fishtastic:clear_glass",
+                "minecraft:red_stained_glass"};
+        queue(1, mc -> server(mc, s -> {
+            int x0 = origin.getX() + 12, y = origin.getY(), z0 = origin.getZ() - 12;
+            run(s, "fill " + x0 + " " + y + " " + z0 + " " + (x0 + 7) + " " + (y + 7) + " " + (z0 + 7) + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x0 = origin.getX() + 12, y = origin.getY(), z0 = origin.getZ() - 12, placed = 0;
+            for (int i = 0; i < 512; i++) {
+                FishTankBlockEntity tank = tank(level, new BlockPos(x0 + i % 8, y + (i / 8) % 8, z0 + i / 64));
+                if (tank == null) continue;
+                placed++;
+                tank.setMaterials(new FishTankMaterials(block("minecraft:" + frames[i % 16]), block("minecraft:sand"),
+                        block(glasses[(i / 16) % 4])));
+            }
+            FishTankBlockEntity centre = tank(level, new BlockPos(x0 + 3, y + 3, z0 + 3));
+            check("stress512.placed", placed == 512, "placed=" + placed);
+            check("stress512.centreOpenFaces", centre != null && centre.getOpenFaces().size() == 6,
+                    "centre=" + (centre == null ? null : centre.getOpenFaces()));
+        }));
+        queue(5, mc -> {
+            mc.options.hideGui = true;
+            // Minecraft yaw: 0 faces +Z, 90 faces -X, 180 faces -Z; -138 looks north-east at the group.
+            camera(mc, origin.getX() + 8.0, origin.getY() + 11.0, origin.getZ() + 1.0, -138f, 35f);
+        });
+        queue(100, mc -> screenshot(mc, "stress512", "group"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    private static Block block(String id) {
+        return BuiltInRegistries.BLOCK.get(Ids.parse(id));
+    }
+
+    private static FishTankMaterials materials(String[] set) {
+        return new FishTankMaterials(block(set[0]), block(set[1]), block(set[2]));
     }
 
     /**

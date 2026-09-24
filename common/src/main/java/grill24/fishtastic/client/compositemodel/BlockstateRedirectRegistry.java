@@ -10,8 +10,8 @@ import java.util.Map;
  * actual model path declared in its blockstate JSON, populated each resource reload by the
  * platform-specific adapter before model baking begins.
  *
- * <p>Fabric: populated by {@code BlockstateModelRedirectPlugin} via {@code PreparableModelLoadingPlugin}.
- * <p>NeoForge: populated by {@code BlockstateModelReloadListener} via {@code AddClientReloadListenersEvent}.
+ * <p>On 1.21.1 both loaders populate it from {@link FishTankGeometry#bake}, at the start of the
+ * tank model's bake (26.1.2 uses a Fabric model-loading plugin and a NeoForge reload listener).
  */
 public final class BlockstateRedirectRegistry {
     private static volatile Map<ResourceLocation, ResourceLocation> redirects = Map.of();

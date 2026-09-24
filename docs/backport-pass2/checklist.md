@@ -125,8 +125,9 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | A5.0 | `FishtasticShaders` seam, `FishtasticRenderTypes` | [x] | A5 checkpoint 1 | `RenderType.create` is `private` in vanilla, not reachable by subclassing: one AW line (NeoForge's AT and FAPI's AW already widen it at runtime). The seam ships the two bake programs with F2's per-program uniform lists. |
 | A5.5 | Particles (10 classes) | [x] | A5 checkpoint 1 | 9 files (`util/SparkleParticle` already compiled). `TextureSheetParticle` + `setSprite`; providers pick from `level.getRandom()` (1.21.1 passes no `RandomSource`). |
 | A5.1 | Tank BER + pile BER, `TankFlockAdapter` | [x] | A5 checkpoint 1 | Also `ClientTankFlocks`, `TankBubbleEmitter`, `CosmeticTransformLoader`. A fresh snapshot per frame, as 26.1.2. No culling override (26.1.2 has none). NeoForge dev needed `:fishsim` in the Loom `main` mod group. |
-| A5.2 | Tank model: NeoForge `IDynamicBakedModel` | [ ] | | |
-| A5.2f | Tank model: **Fabric FRAPI (new code, N3)** | [ ] | | |
+| A5.2 | Tank model: NeoForge `IDynamicBakedModel` | [x] | A5 checkpoint 2 | Shared port-only `client/compositemodel/FishTankGeometry` loads the 5,048 fragments and every block's texture once per reload (the bakery is only safe in the bake phase); meshing threads only run `FaceBakery`. `"loader"` model + vanilla blockstate; item via `ItemOverrides`, one render pass per layer. |
+| A5.2f | Tank model: **Fabric FRAPI (new code, N3)** | [x] | A5 checkpoint 2 | `UnbakedModel` resolved for both `block/fish_tank` and `item/fish_tank` by a `ModelLoadingPlugin` (a `BlockModel` can't have a custom parent); `emitBlockQuads`/`emitItemQuads` with per-layer blend modes. |
+| A5.2x | See-through blocks' chunk layers (found by A5.2) | [x] | A5 checkpoint 2 | 26.1 derives layers from texture alpha; 1.21.1 draws everything solid unless told. `client/FishtasticBlockRenderLayers`: the 32 stained glass blocks translucent, `clear_glass`/`borderless_glass` cutout (checked against the textures). They were opaque in the world on both loaders since A2. |
 | A5.3 | BEWLR items, item properties (`cast`, `has_alert`, `pile_size`), treasure chest | [ ] | | |
 | A5.6 | Fishing line hand, pose, held-item scale hooks | [ ] | | |
 | A5.4a | Glint (ancestor `ItemRendererMixin`, `RenderBuffersMixin`) | [ ] | | |

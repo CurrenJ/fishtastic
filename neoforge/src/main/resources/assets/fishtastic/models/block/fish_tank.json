@@ -1,3 +1,4 @@
 {
+  "parent": "minecraft:block/block",
   "loader": "fishtastic:fish_tank"
 }

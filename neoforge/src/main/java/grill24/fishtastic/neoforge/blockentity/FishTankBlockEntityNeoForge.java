@@ -2,14 +2,16 @@ package grill24.fishtastic.neoforge.blockentity;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-// PORT A5.2: import grill24.fishtastic.fishtank.FishTankCompositeModelData;
-// PORT A5.2: import grill24.fishtastic.neoforge.fishtank.FishTankModelData;
+import grill24.fishtastic.fishtank.FishTankCompositeModelData;
+import grill24.fishtastic.neoforge.fishtank.FishTankModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * NeoForge-specific extension of FishTankBlockEntity that provides ModelData for rendering.
@@ -20,15 +22,14 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
         super(blockPos, blockState);
     }
 
-    // PORT A5.2: the tank model's ModelData (net.neoforged.neoforge.client.model.data.ModelData on 1.21.1).
-//    @Override
-//    @NotNull
-//    public ModelData getModelData() {
-//        FishTankCompositeModelData data = new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces(), getFilledDiagonals(), getFilledEdgeDiagonals());
-//        return ModelData.builder()
-//                .with(FishTankModelData.DATA_PROPERTY, data)
-//                .build();
-//    }
+    @Override
+    @NotNull
+    public ModelData getModelData() {
+        FishTankCompositeModelData data = new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces(), getFilledDiagonals(), getFilledEdgeDiagonals());
+        return ModelData.builder()
+                .with(FishTankModelData.DATA_PROPERTY, data)
+                .build();
+    }
 
     @Override
     public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet, HolderLookup.Provider registries) {

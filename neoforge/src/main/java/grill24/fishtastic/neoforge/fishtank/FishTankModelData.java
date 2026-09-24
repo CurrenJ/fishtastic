@@ -1,7 +1,7 @@
 package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
-import net.neoforged.neoforge.model.data.ModelProperty;
+import net.neoforged.neoforge.client.model.data.ModelProperty;
 
 /**
  * Holds the NeoForge {@link ModelProperty} key used to attach {@link FishTankCompositeModelData}
