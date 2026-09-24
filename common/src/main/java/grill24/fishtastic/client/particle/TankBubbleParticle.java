@@ -3,22 +3,23 @@ package grill24.fishtastic.client.particle;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * Rises from a cosmetic chest decoration to the tank's glass ceiling and pops there.
  * Unlike vanilla's {@code BubbleParticle}, survival isn't tied to {@code FluidTags.WATER} —
  * the tank interior has no real water fluid blocks, only a target world Y to ascend to.
  */
-public class TankBubbleParticle extends SingleQuadParticle {
+public class TankBubbleParticle extends TextureSheetParticle {
     private final double popY;
 
     private TankBubbleParticle(ClientLevel level, double x, double y, double z, double popY, TextureAtlasSprite sprite) {
-        super(level, x, y, z, sprite);
+        super(level, x, y, z);
+        this.setSprite(sprite);
         this.popY = popY;
         // Purely a visual effect — must pass through the tank's own ceiling/wall geometry on the
         // way up to the connected stack's true top, so it shouldn't collide with block shapes.
@@ -51,8 +52,8 @@ public class TankBubbleParticle extends SingleQuadParticle {
     }
 
     @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -65,11 +66,11 @@ public class TankBubbleParticle extends SingleQuadParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
+                double xAux, double yAux, double zAux) {
             // yAux is repurposed to carry the absolute world Y this bubble should ascend to before
             // popping (the tank's ceiling-underside) — these bubbles don't need an externally
             // supplied initial velocity the way vanilla's BubbleParticle does.
-            return new TankBubbleParticle(level, x, y, z, yAux, this.sprites.get(random));
+            return new TankBubbleParticle(level, x, y, z, yAux, this.sprites.get(level.getRandom()));
         }
     }
 }

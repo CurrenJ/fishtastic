@@ -13,6 +13,7 @@ import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Block;
 
 import java.io.IOException;
@@ -56,12 +57,14 @@ public final class CosmeticTransformLoader implements PreparableReloadListener {
 
     @Override
     public CompletableFuture<Void> reload(
-            SharedState state,
-            Executor backgroundExecutor,
             PreparationBarrier barrier,
+            ResourceManager resourceManager,
+            ProfilerFiller preparationsProfiler,
+            ProfilerFiller reloadProfiler,
+            Executor backgroundExecutor,
             Executor gameExecutor) {
         return CompletableFuture
-            .supplyAsync(() -> load(state.resourceManager()), backgroundExecutor)
+            .supplyAsync(() -> load(resourceManager), backgroundExecutor)
             .thenCompose(barrier::wait)
             .thenAcceptAsync(CosmeticTransforms::replaceAll, gameExecutor);
     }

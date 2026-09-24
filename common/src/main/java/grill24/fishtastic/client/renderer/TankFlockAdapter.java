@@ -13,7 +13,6 @@ import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
 import grill24.fishtastic.util.ItemSizeHelper;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -27,10 +26,9 @@ import java.util.Random;
 /**
  * The only class that knows both worlds (docs/fish-sim-engine-plan.md §1): it maps tank contents
  * down to Minecraft-free {@link FishSpec}s for the {@link FlockEngine}, and holds everything the
- * engine deliberately lost in the extraction — the {@link ItemStack}s themselves, their animation
- * configs, and the per-fish {@link ItemStackRenderState}s (still one per fish: {@code submit}
- * defers to the end of the frame, so a single shared state would render every fish as the last
- * one submitted).
+ * engine deliberately lost in the extraction — the {@link ItemStack}s themselves and their
+ * animation configs. (1.21.1 draws each fish immediately with {@code ItemRenderer.renderStatic},
+ * so there is no per-fish render state to keep, unlike 26.1's deferred {@code submit}.)
  *
  * <p>Replaces the pre-extraction {@code TankFlockSimulation}'s MC-facing half. A per-tank adapter
  * is held in {@code ClientTankFlocks} (registry keyed by {@code BlockPos}, 20 Hz tick, 30 s
@@ -61,8 +59,6 @@ public final class TankFlockAdapter {
      * didn't move and leave their positions alone.
      */
     private int[] slots = new int[0];
-    // One render state per fish (persistent, reused across frames) — see the class javadoc.
-    ItemStackRenderState[] itemRenderStates = new ItemStackRenderState[0];
 
     // ── Group state (multi-tank preview) ────────────────────────────────────
     private List<BlockPos> cachedMembers = List.of();
@@ -79,7 +75,6 @@ public final class TankFlockAdapter {
     /** Group-engine fish identity: the owning tank's packed position plus its container slot. */
     private long[] groupKeyPos = new long[0];
     private int[] groupKeySlot = new int[0];
-    ItemStackRenderState[] groupRenderStates = new ItemStackRenderState[0];
     float groupOffsetX, groupOffsetY, groupOffsetZ;
 
     private int count;
@@ -234,7 +229,7 @@ public final class TankFlockAdapter {
 
     /**
      * Writes interpolated world-space offsets for this frame's {@code partialTick} into the
-     * engine's render scratch. Called from {@code extractRenderState} every frame — read-only
+     * engine's render scratch. Called from the renderer's {@code snapshot} every frame — read-only
      * with respect to simulation time.
      */
     void interpolate(float partialTick) {
@@ -482,8 +477,6 @@ public final class TankFlockAdapter {
         groupAnims = swimAnims.toArray(new FishAnimationConfig[0]);
         groupKeyPos = newKeyPos;
         groupKeySlot = newKeySlot;
-        groupRenderStates = new ItemStackRenderState[n];
-        for (int i = 0; i < n; i++) groupRenderStates[i] = new ItemStackRenderState();
         groupOffsetX = group.offsetX();
         groupOffsetY = group.offsetY();
         groupOffsetZ = group.offsetZ();
@@ -647,8 +640,6 @@ public final class TankFlockAdapter {
         if (stacks.length == n) return;
         stacks = new ItemStack[n];
         anims = new FishAnimationConfig[n];
-        itemRenderStates = new ItemStackRenderState[n];
-        for (int i = 0; i < n; i++) itemRenderStates[i] = new ItemStackRenderState();
     }
 
     private static float renderedLength(ItemStack stack, float calibration) {

@@ -1,4 +1,19 @@
-#version 330
+#version 150
+
+// 1.21.1 port of the 26.1.2 shader of the same name. Differences: GLSL 150, plain uniforms instead
+// of the OutlineParams / Globals UBOs, and the atlas geometry baked in as #defines (26.1.2 injects
+// them through the RenderPipeline). Must stay in step with FishtasticItemOutlineAtlas.
+#define FISHTASTIC_ATLAS_RES 4
+#define FISHTASTIC_ATLAS_SLOT_PX 96
+
+uniform vec4  OutlineColor;
+uniform float OutlineFalloff;
+uniform float OutlineOpacity;
+uniform float OutlineWidth;
+uniform float AnimSpeed;
+uniform int   NumBlades;
+uniform float BladeFill;
+uniform float GameTime;
 
 // Bakes the animated legendary (pinwheel) outline ring into an atlas slot's padding.
 // Ported from world_item_outline_legendary.fsh — see outline_bake.fsh for why the outline
@@ -14,32 +29,9 @@
 // caller skip the per-slot clear and batch every slot into one draw. This matters most here —
 // discarding would leave the previous frame's blades painted in the slot forever.
 
-layout(std140) uniform Globals {
-    ivec3 CameraPosition;
-    vec3  CameraPositionFract;
-    vec2  ScreenSize;
-    float GlintAlpha;
-    float GameTime;
-    int   MenuBlurRadius;
-    int   UseRgss;
-};
-
-layout(std140) uniform LegendaryOutlineParams {
-    vec4  color;        // outline tint (RGB; W unused)
-    float falloff;      // 0 = solid, 1 = full gradient fade at outer edge
-    float opacity;      // overall opacity multiplier
-    float width;        // outline thickness in item pixels; fractional values allowed
-    float animSpeed;    // full rotations per in-game day (default 150)
-    int   numBlades;    // pinwheel blade count (default 3)
-    float bladeFill;    // fraction of each sector that is filled (default 0.65)
-    float _reserved0;
-    float _reserved1;
-};
-
 uniform sampler2D Sampler0;   // mask atlas: item sprite, transparent padding
 
 in vec2 texCoord0;
-in vec4 vertexColor;
 
 out vec4 fragColor;
 
@@ -60,9 +52,9 @@ void main() {
     vec2 texSize = vec2(textureSize(Sampler0, 0));
     vec2 step = 1.0 / texSize;
 
-    float falloffStrength = falloff;
+    float falloffStrength = OutlineFalloff;
 
-    int radius = clamp(int(ceil(width * float(FISHTASTIC_ATLAS_RES))), 1, 16);
+    int radius = clamp(int(ceil(OutlineWidth * float(FISHTASTIC_ATLAS_RES))), 1, 16);
 
     float slotW    = float(FISHTASTIC_ATLAS_SLOT_PX) * step.x;
     float uSlotMin = floor(texCoord0.x / slotW) * slotW;
@@ -94,7 +86,7 @@ void main() {
     // ---- Pinwheel effect ----
 
     // GameTime: 0->1 per in-game day (24 000 ticks ~ 1200 real seconds).
-    float rotation = mod(GameTime * animSpeed, 1.0) * 2.0 * PI;
+    float rotation = mod(GameTime * AnimSpeed, 1.0) * 2.0 * PI;
 
     float uCenter = (uSlotMin + uSlotMax) * 0.5;
     float vCenter = (vSlotMin + vSlotMax) * 0.5;
@@ -104,24 +96,24 @@ void main() {
     // Counter-clockwise spin: subtract the rotation offset.
     float rotatedAngle = mod(angle - rotation + 4.0 * PI, 2.0 * PI);
 
-    float sectorSize  = 2.0 * PI / float(numBlades);
+    float sectorSize  = 2.0 * PI / float(NumBlades);
     float posInSector = mod(rotatedAngle, sectorSize) / sectorSize;  // 0..1
 
-    if (posInSector >= bladeFill) {
+    if (posInSector >= BladeFill) {
         fragColor = vec4(0.0);
         return;
     }
 
     // Sweep brightness: full at the leading edge, 50 % at the trailing edge.
-    float sweepT     = posInSector / bladeFill;
+    float sweepT     = posInSector / BladeFill;
     float brightness = 1.0 - 0.5 * sweepT * sweepT;
 
     // Subtle iridescent shimmer: mostly preserves the item-defined colour,
     // with a small rainbow tint that drifts slowly over time.
     float hue         = fract(angle / (2.0 * PI) + mod(GameTime * 15.0, 1.0));
     vec3  rainbow     = hsvToRgb(vec3(hue, 0.7, 1.0));
-    vec3  blendedColor = mix(color.rgb, rainbow, 0.2) * brightness;
+    vec3  blendedColor = mix(OutlineColor.rgb, rainbow, 0.2) * brightness;
 
     float t = (minDist - 1.0) / float(max(radius - 1, 1));
-    fragColor = vec4(blendedColor, opacity * (1.0 - falloffStrength * t));
+    fragColor = vec4(blendedColor, OutlineOpacity * (1.0 - falloffStrength * t));
 }

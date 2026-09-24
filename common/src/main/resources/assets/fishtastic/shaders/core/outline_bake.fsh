@@ -1,4 +1,18 @@
-#version 330
+#version 150
+
+// 1.21.1 port of the 26.1.2 shader of the same name. Differences: GLSL 150, plain uniforms instead
+// of the OutlineParams / Globals UBOs, and the atlas geometry baked in as #defines (26.1.2 injects
+// them through the RenderPipeline). Must stay in step with FishtasticItemOutlineAtlas.
+#define FISHTASTIC_ATLAS_RES 4
+#define FISHTASTIC_ATLAS_SLOT_PX 96
+
+uniform vec4  OutlineColor;
+uniform float OutlineFalloff;
+uniform float OutlineOpacity;
+uniform float OutlineWidth;
+// The pinwheel uniforms (AnimSpeed, NumBlades, BladeFill, GameTime) live only in
+// outline_bake_legendary: an unread uniform is compiled out, and ShaderInstance then warns that
+// the JSON's entry "could not be found" (spike finding F2).
 
 // Bakes the basic quality outline ring into an atlas slot's padding.
 //
@@ -20,22 +34,9 @@
 //    caller skip the per-slot clear entirely and batch every slot into one draw. Discarding would
 //    leave last frame's pinwheel blades behind.
 
-layout(std140) uniform BasicOutlineParams {
-    vec4  color;        // outline tint (RGB; W unused)
-    float falloff;      // 0 = solid, 1 = full gradient fade at outer edge
-    float opacity;      // overall opacity multiplier
-    float width;        // outline thickness in item pixels; fractional values allowed
-    float animSpeed;    // unused for basic outline
-    int   numBlades;    // unused for basic outline
-    float bladeFill;    // unused for basic outline
-    float _reserved0;
-    float _reserved1;
-};
-
 uniform sampler2D Sampler0;   // mask atlas: item sprite, transparent padding
 
 in vec2 texCoord0;
-in vec4 vertexColor;
 
 out vec4 fragColor;
 
@@ -49,10 +50,10 @@ void main() {
     vec2 texSize = vec2(textureSize(Sampler0, 0));
     vec2 step = 1.0 / texSize;
 
-    float falloffStrength = falloff;
+    float falloffStrength = OutlineFalloff;
 
     // radius in atlas texels: width is fractional item pixels, RES converts to texels.
-    int radius = clamp(int(ceil(width * float(FISHTASTIC_ATLAS_RES))), 1, 16);
+    int radius = clamp(int(ceil(OutlineWidth * float(FISHTASTIC_ATLAS_RES))), 1, 16);
 
     // Atlas-slot UV bounds to prevent neighbour bleed. Grid is anchored at V=1,
     // matching FishtasticItemOutlineAtlas slot UV conventions.
@@ -84,5 +85,5 @@ void main() {
     }
 
     float t = (minDist - 1.0) / float(max(radius - 1, 1));
-    fragColor = vec4(color.rgb, opacity * (1.0 - falloffStrength * t));
+    fragColor = vec4(OutlineColor.rgb, OutlineOpacity * (1.0 - falloffStrength * t));
 }

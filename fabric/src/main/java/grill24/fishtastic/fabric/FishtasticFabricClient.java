@@ -20,24 +20,25 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-// PORT A5: import grill24.fishtastic.client.CosmeticTransformLoader;
+import grill24.fishtastic.client.CosmeticTransformLoader;
 // A4 needs this class for its menu-type accessors; A5 adds the item model types.
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.TankCosmeticTooltip;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaBubbleParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaSplashParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaWakeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniFlameParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniSmokeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankBubbleParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankBubblePopParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
-// PORT A5.3: import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
+import grill24.fishtastic.client.particle.LavaBubbleParticle;
+import grill24.fishtastic.client.particle.LavaSplashParticle;
+import grill24.fishtastic.client.particle.LavaWakeParticle;
+import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
+import grill24.fishtastic.client.particle.MiniFlameParticle;
+import grill24.fishtastic.client.particle.MiniSmokeParticle;
+import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.particle.TankBubblePopParticle;
+import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
+import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
+import grill24.fishtastic.client.renderer.FishtasticShaders;
 import grill24.fishtastic.client.util.ClientTickHandler;
-// PORT A5.1: import grill24.fishtastic.client.util.ClientTankFlocks;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
@@ -55,16 +56,19 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-// PORT A5: import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.server.packs.PackType;
 // PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
 // PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
 // PORT A5.2f: import net.fabricmc.fabric.api.client.model.loading.v1.UnbakedModelDeserializer;
-// PORT A5.5: import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
@@ -92,10 +96,25 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
         ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> TankCosmeticTooltip.append(stack, lines));
 
-        // PORT A5: cosmetic transforms.
-//        // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json
-//        ResourceLoader.get(PackType.CLIENT_RESOURCES)
-//            .registerReloadListener(CosmeticTransformLoader.ID, CosmeticTransformLoader.INSTANCE);
+        // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json. PORT-ONLY:
+        // Fabric API 0.116 takes an IdentifiableResourceReloadListener (26.1's ResourceLoader takes
+        // the id separately), so the shared loader is wrapped with its id here.
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new IdentifiableResourceReloadListener() {
+            @Override
+            public ResourceLocation getFabricId() {
+                return CosmeticTransformLoader.ID;
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<Void> reload(PreparationBarrier barrier,
+                    net.minecraft.server.packs.resources.ResourceManager manager,
+                    net.minecraft.util.profiling.ProfilerFiller preparationsProfiler,
+                    net.minecraft.util.profiling.ProfilerFiller reloadProfiler,
+                    java.util.concurrent.Executor backgroundExecutor, java.util.concurrent.Executor gameExecutor) {
+                return CosmeticTransformLoader.INSTANCE.reload(barrier, manager, preparationsProfiler,
+                        reloadProfiler, backgroundExecutor, gameExecutor);
+            }
+        });
 
         // PORT A5.2f/A5.3: tank models, item model types.
 //        // Build blockstate → model path redirect map before baking starts
@@ -125,6 +144,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
+
+        // PORT-ONLY: Fishtastic's core shader programs (26.1 builds RenderPipelines instead).
+        CoreShaderRegistrationCallback.EVENT.register(context -> FishtasticShaders.registerAll(context::register));
 
         // Register quest sync packet client handler
         QuestSyncPacket.registerClientHandler(packet ->
@@ -165,38 +187,35 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.openFishEncyclopedia);
         KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.openLeaderboards);
 
-        // PORT A5.1/A5.3: block entity renderers.
-//        // Register block entity renderer
-//        BlockEntityRendererRegistry.register(
-//            (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
-//            FishTankBlockEntityRenderer::new
-//        );
-//        BlockEntityRendererRegistry.register(
-//            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
-//            FishPileBlockEntityRenderer::new
-//        );
+        // Register block entity renderer
+        BlockEntityRendererRegistry.register(
+            (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
+            FishTankBlockEntityRenderer::new
+        );
+        BlockEntityRendererRegistry.register(
+            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
+            FishPileBlockEntityRenderer::new
+        );
 
-        // PORT A5.5: particles.
-//        // Register tank bubble particle provider
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
+        // Register tank bubble particle provider
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
 
-//        // Register lava fishing bite-cycle particle providers
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
-//        ParticleProviderRegistry.getInstance().register(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
+        // Register lava fishing bite-cycle particle providers
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
+        ParticleFactoryRegistry.getInstance().register(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
 
         // Clear caches on world join
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             ItemEffectManager.clearCache();
-            // PORT A5.1: client flocks.
-//            ClientTankFlocks.clear();
+            ClientTankFlocks.clear();
         });
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -207,19 +226,20 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
             // PORT A5: cosmetic capture gizmos.
 //            CosmeticCaptureClientState.reset();
-            // PORT A5.1: client flocks.
-//            ClientTankFlocks.clear();
+            ClientTankFlocks.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) ItemEffectManager.clearCache();
         });
 
+        // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
+        ClientTickEvents.END_CLIENT_TICK.register(client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
-                // PORT A5.1: client flocks.
-//                ClientTankFlocks.tickAll();
+                ClientTankFlocks.tickAll();
                 TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);

@@ -127,10 +127,14 @@ loom {
     // The group must be named "main": Loom always adds a default "main" group (main
     // classes only), and a second group for the same mod makes FML pick one of the two
     // ("Found 2 mod files for modid fishtastic, selecting main"), dropping testmod again.
+    // :fishsim is in the group too (port-only): FML 4 loads the mod's dev classes into their own
+    // module, which cannot see a plain project jar on the classpath, so without this every tank
+    // render dies with NoClassDefFoundError: grill24/fishsim/... The shipped jar shadows fishsim in.
     mods {
         main {
             sourceSet sourceSets.main
             sourceSet sourceSets.testmod
+            sourceSet("main", project(':fishsim'))
         }
     }
 

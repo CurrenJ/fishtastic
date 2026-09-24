@@ -3,22 +3,23 @@ package grill24.fishtastic.client.particle;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.util.RandomSource;
 
 /**
  * Lava-toned replica of vanilla {@code BubbleParticle}. Vanilla's version hardcodes a
  * {@code FluidTags.WATER} survival check and would otherwise despawn the instant it's spawned
  * in lava — this swaps that check to {@code FluidTags.LAVA} so it behaves correctly there.
  */
-public class LavaBubbleParticle extends SingleQuadParticle {
+public class LavaBubbleParticle extends TextureSheetParticle {
     public LavaBubbleParticle(ClientLevel level, double x, double y, double z, double xa, double ya, double za, TextureAtlasSprite sprite) {
-        super(level, x, y, z, sprite);
+        super(level, x, y, z);
+        this.setSprite(sprite);
         this.setSize(0.02F, 0.02F);
         this.quadSize = this.quadSize * (this.random.nextFloat() * 0.6F + 0.2F);
         this.xd = xa * 0.2F + (this.random.nextFloat() * 2.0F - 1.0F) * 0.02F;
@@ -47,8 +48,8 @@ public class LavaBubbleParticle extends SingleQuadParticle {
     }
 
     @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -61,8 +62,8 @@ public class LavaBubbleParticle extends SingleQuadParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return new LavaBubbleParticle(level, x, y, z, xAux, yAux, zAux, this.sprite.get(random));
+                double xAux, double yAux, double zAux) {
+            return new LavaBubbleParticle(level, x, y, z, xAux, yAux, zAux, this.sprite.get(level.getRandom()));
         }
     }
 }

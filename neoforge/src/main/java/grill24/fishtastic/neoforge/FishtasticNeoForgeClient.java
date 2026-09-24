@@ -23,21 +23,24 @@ import grill24.fishtastic.FishtasticParticleTypes;
 // A4 needs this class for its menu-type accessors; A5 adds the item model types.
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaBubbleParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaSplashParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.LavaWakeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniFlameParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.MiniSmokeParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankBubbleParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankBubblePopParticle;
-// PORT A5.5: import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
-// PORT A5.3: import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
+import grill24.fishtastic.client.particle.LavaBubbleParticle;
+import grill24.fishtastic.client.particle.LavaSplashParticle;
+import grill24.fishtastic.client.particle.LavaWakeParticle;
+import grill24.fishtastic.client.particle.MiniCampfireSmokeParticle;
+import grill24.fishtastic.client.particle.MiniFlameParticle;
+import grill24.fishtastic.client.particle.MiniSmokeParticle;
+import grill24.fishtastic.client.particle.TankBubbleParticle;
+import grill24.fishtastic.client.particle.TankBubblePopParticle;
+import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
+import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
+import grill24.fishtastic.client.renderer.FishtasticShaders;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import grill24.fishtastic.client.util.ClientTickHandler;
-// PORT A5.1: import grill24.fishtastic.client.util.ClientTankFlocks;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.compat.GelatinScreensCompat;
-// PORT A5: import grill24.fishtastic.client.CosmeticTransformLoader;
+import grill24.fishtastic.client.CosmeticTransformLoader;
 import grill24.fishtastic.client.TankCosmeticTooltip;
 // PORT A5.2: import grill24.fishtastic.neoforge.fishtank.BlockstateModelReloadListener;
 import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
@@ -58,7 +61,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-// PORT A5: import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
@@ -113,17 +116,15 @@ public final class FishtasticNeoForgeClient {
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
-        // PORT A5: cosmetic transforms, blockstate redirects.
-//        modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
         // PORT A5.2: tank models.
 //        modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
 //        modEventBus.addListener(FishtasticNeoForgeClient::registerBlockStateModels);
         // PORT A5.3: client item models.
 //        modEventBus.addListener(FishtasticNeoForgeClient::onClientSetup);
-        // PORT A5.1/A5.3: block entity renderers.
-//        modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
-        // PORT A5.5: particles.
-//        modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerShaders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
         modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
@@ -160,42 +161,46 @@ public final class FishtasticNeoForgeClient {
 //        Fishtastic.LOGGER.info("Fishtastic block state models registered.");
 //    }
 
-//    public static void registerClientReloadListeners(AddClientReloadListenersEvent event) {
-//        ResourceLocation key = ft("blockstate_redirect");
-//        event.addListener(key, BlockstateModelReloadListener.INSTANCE);
-//        // Must complete before model baking so the redirect map is ready when FishTankBakedModel resolves textures.
-//        event.addDependency(key, VanillaClientListeners.MODELS);
+    public static void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(CosmeticTransformLoader.INSTANCE);
+    }
 
-//        event.addListener(ft("cosmetic_transforms"), CosmeticTransformLoader.INSTANCE);
-//    }
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(
+            (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
+            FishTankBlockEntityRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
+            FishPileBlockEntityRenderer::new
+        );
+        Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
+    }
 
-    // PORT A5.1/A5.3/A5.5: block entity renderers, particles.
-//    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-//        event.registerBlockEntityRenderer(
-//            (BlockEntityType<FishTankBlockEntity>) FishtasticBlockEntityTypes.FISH_TANK.value(),
-//            FishTankBlockEntityRenderer::new
-//        );
-//        event.registerBlockEntityRenderer(
-//            (BlockEntityType<FishPileBlockEntity>) FishtasticBlockEntityTypes.FISH_PILE.value(),
-//            FishPileBlockEntityRenderer::new
-//        );
-//        Fishtastic.LOGGER.info("Fishtastic block entity renderers registered.");
-//    }
+    public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
+        event.registerSpriteSet(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
+        Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
+    }
 
-//    public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
-//        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE.value(), TankBubbleParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.TINY_BUBBLE.value(), TankMicroBubbleParticle.TinyProvider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.SMALL_BUBBLE.value(), TankMicroBubbleParticle.SmallProvider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.MEDIUM_BUBBLE.value(), TankMicroBubbleParticle.MediumProvider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.TANK_BUBBLE_POP.value(), TankBubblePopParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.MINI_SMOKE.value(), MiniSmokeParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.MINI_FLAME.value(), MiniFlameParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.MINI_CAMPFIRE_SMOKE.value(), MiniCampfireSmokeParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.LAVA_WAKE.value(), LavaWakeParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.LAVA_BUBBLE.value(), LavaBubbleParticle.Provider::new);
-//        event.registerSpriteSet(FishtasticParticleTypes.LAVA_SPLASH.value(), LavaSplashParticle.Provider::new);
-//        Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
-//    }
+    /** PORT-ONLY: Fishtastic's core shader programs (26.1 builds RenderPipelines instead). */
+    public static void registerShaders(RegisterShadersEvent event) {
+        try {
+            FishtasticShaders.registerAll((id, format, onLoad) ->
+                    event.registerShader(new ShaderInstance(event.getResourceProvider(), id, format), onLoad));
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Failed to load Fishtastic shaders", e);
+        }
+    }
 
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         FishtasticKeyBinds.init();
@@ -237,8 +242,7 @@ public final class FishtasticNeoForgeClient {
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         ItemEffectManager.clearCache();
-        // PORT A5.1: client flocks.
-//        ClientTankFlocks.clear();
+        ClientTankFlocks.clear();
     }
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
@@ -249,8 +253,7 @@ public final class FishtasticNeoForgeClient {
         grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
         // PORT A5: cosmetic capture gizmos.
 //        CosmeticCaptureClientState.reset();
-        // PORT A5.1: client flocks.
-//        ClientTankFlocks.clear();
+        ClientTankFlocks.clear();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -266,10 +269,11 @@ public final class FishtasticNeoForgeClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
+        // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
+        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
-            // PORT A5.1: client flocks.
-//            ClientTankFlocks.tickAll();
+            ClientTankFlocks.tickAll();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);

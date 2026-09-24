@@ -7,7 +7,6 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.particle.WaterDropParticle;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * Lava-toned replica of vanilla {@code SplashParticle} (the "tease" burst spawned while a fish
@@ -15,7 +14,8 @@ import net.minecraft.util.RandomSource;
  */
 public class LavaSplashParticle extends WaterDropParticle {
     public LavaSplashParticle(ClientLevel level, double x, double y, double z, double xa, double ya, double za, TextureAtlasSprite sprite) {
-        super(level, x, y, z, sprite);
+        super(level, x, y, z);
+        this.setSprite(sprite);
         this.gravity = 0.04F;
         if (ya == 0.0 && (xa != 0.0 || za != 0.0)) {
             this.xd = xa;
@@ -34,8 +34,8 @@ public class LavaSplashParticle extends WaterDropParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return new LavaSplashParticle(level, x, y, z, xAux, yAux, zAux, this.sprite.get(random));
+                double xAux, double yAux, double zAux) {
+            return new LavaSplashParticle(level, x, y, z, xAux, yAux, zAux, this.sprite.get(level.getRandom()));
         }
     }
 }

@@ -4,12 +4,11 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.client.particle.RisingParticle;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.util.RandomSource;
+import net.minecraft.util.Mth;
 
 /**
  * A scaled-down replica of vanilla {@code FlameParticle} for miniature fish tank furnace cosmetics.
@@ -19,12 +18,13 @@ import net.minecraft.util.RandomSource;
  */
 public class MiniFlameParticle extends RisingParticle {
     private MiniFlameParticle(ClientLevel level, double x, double y, double z, double xd, double yd, double zd, TextureAtlasSprite sprite) {
-        super(level, x, y, z, xd, yd, zd, sprite);
+        super(level, x, y, z, xd, yd, zd);
+        this.setSprite(sprite);
     }
 
     @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     @Override
@@ -39,9 +39,13 @@ public class MiniFlameParticle extends RisingParticle {
         return this.quadSize * (1.0F - s * s * 0.5F);
     }
 
+    // Vanilla FlameParticle's block-light ramp (26.1's LightCoordsUtil.addSmoothBlockEmission).
     @Override
-    public int getLightCoords(float a) {
-        return LightCoordsUtil.addSmoothBlockEmission(super.getLightCoords(a), (this.age + a) / this.lifetime);
+    public int getLightColor(float a) {
+        float s = Mth.clamp((this.age + a) / this.lifetime, 0.0F, 1.0F);
+        int light = super.getLightColor(a);
+        int block = Math.min(240, (light & 0xFF) + (int) (s * 15.0F * 16.0F));
+        return block | (light >> 16 & 0xFF) << 16;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -56,8 +60,8 @@ public class MiniFlameParticle extends RisingParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            Particle particle = new MiniFlameParticle(level, x, y, z, xAux, yAux, zAux, this.sprites.get(random));
+                double xAux, double yAux, double zAux) {
+            Particle particle = new MiniFlameParticle(level, x, y, z, xAux, yAux, zAux, this.sprites.get(level.getRandom()));
             particle.scale(SCALE);
             return particle;
         }

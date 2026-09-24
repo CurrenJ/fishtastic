@@ -25,27 +25,19 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.model.object.chest.ChestModel;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.block.BlockModelRenderState;
-import net.minecraft.client.renderer.block.BlockModelResolver;
-import net.minecraft.client.renderer.block.model.BlockDisplayContext;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.blockentity.state.ChestRenderState;
-import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.sprite.SpriteGetter;
-import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -61,8 +53,6 @@ import net.minecraft.world.phys.Vec2;
 import java.util.Optional;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
-import net.minecraft.world.level.block.state.properties.ChestType;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -71,27 +61,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public class FishTankBlockEntityRenderer
-        implements BlockEntityRenderer<FishTankBlockEntity, FishTankRenderState> {
+public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTankBlockEntity> {
 
-    private static final BlockDisplayContext BLOCK_DISPLAY_CONTEXT = BlockDisplayContext.create();
+    private final BlockRenderDispatcher blockRenderer;
+    private final ItemRenderer itemRenderer;
+    // The chest cosmetic's parts, baked from vanilla's chest layer and posed the way ChestRenderer
+    // poses them (1.21.1 has no ChestModel class).
+    private final ModelPart chestLid;
+    private final ModelPart chestBottom;
+    private final ModelPart chestLock;
 
-    private final BlockModelResolver blockModelResolver;
-    private final ChestModel chestModel;
-    private final SpriteGetter chestSprites;
-
-    private static final SpriteId CHEST_SPRITE = Sheets.chooseSprite(ChestRenderState.ChestMaterialType.REGULAR, ChestType.SINGLE);
+    private static final Material CHEST_MATERIAL = Sheets.CHEST_LOCATION;
 
     public FishTankBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
-        this.blockModelResolver = context.blockModelResolver();
-        this.chestModel = new ChestModel(context.bakeLayer(ModelLayers.CHEST));
-        this.chestSprites = context.sprites();
+        this.blockRenderer = context.getBlockRenderDispatcher();
+        this.itemRenderer = context.getItemRenderer();
+        ModelPart chest = context.bakeLayer(ModelLayers.CHEST);
+        this.chestBottom = chest.getChild("bottom");
+        this.chestLid = chest.getChild("lid");
+        this.chestLock = chest.getChild("lock");
     }
 
     // Reused across frames — the old code allocated a fresh Random per fish per frame (see Task 1
     // of docs/fish-simulation-handoff.md). The Random is safe to share because FishAnimator consumes
-    // it synchronously; the ItemStackRenderState is NOT (its submit defers to the end of the frame,
-    // so a shared one would render every fish as the last fish), so those live per-fish on the flock.
+    // it synchronously, and on 1.21.1 each fish is drawn immediately.
     private final Random fishRandom = new Random();
 
     private static final Vector3f SAND_BASE_Y_OFFSET =
@@ -119,17 +112,11 @@ public class FishTankBlockEntityRenderer
     // corner posts stay 1px, the decoration sits on top of the glass rather than reshaping it.
     // SKYLIGHT additionally gets a horizontal quad under its roof pane. See docs/fish-tanks.md for
     // the real geometry axis.
-    private static final SpriteId WATER_STILL_SPRITE =
-            new SpriteId(TextureAtlas.LOCATION_BLOCKS, Ids.of("minecraft", "block/water_still"));
-    // Built from FishtasticRenderPipelines.TANK_WATER_FILL (depth write disabled) rather than
-    // RenderTypes.entityTranslucent — see that pipeline's doc for why depth write breaks this.
-    private static final RenderType WATER_FILL_RENDER_TYPE = RenderType.create(
-            "fishtastic_tank_water_fill",
-            RenderSetup.builder(FishtasticRenderPipelines.TANK_WATER_FILL)
-                    .withTexture("Sampler0", TextureAtlas.LOCATION_BLOCKS)
-                    .useLightmap()
-                    .useOverlay()
-                    .createRenderSetup());
+    private static final Material WATER_STILL_SPRITE =
+            new Material(TextureAtlas.LOCATION_BLOCKS, Ids.of("minecraft", "block/water_still"));
+    // FishtasticRenderTypes.TANK_WATER_FILL (depth write disabled) rather than
+    // RenderType.entityTranslucent — see that render type's doc for why depth write breaks this.
+    private static final RenderType WATER_FILL_RENDER_TYPE = FishtasticRenderTypes.TANK_WATER_FILL;
     // Exact interior bounds of the glass panes in fish_tank_glass_0.json (elements span 1-15 on
     // every axis but depth): matching these precisely, rather than the floor grid's WALL_THICKNESS
     // convention (which starts 1px higher), is what was leaving a sliver of bare frame visible.
@@ -270,22 +257,18 @@ public class FishTankBlockEntityRenderer
 
     // ── BlockEntityRenderer ───────────────────────────────────────────────────
 
-    @Override
-    public FishTankRenderState createRenderState() {
-        return new FishTankRenderState();
-    }
-
-    @Override
-    public void extractRenderState(
-            FishTankBlockEntity blockEntity,
-            FishTankRenderState state,
-            float partialTick,
-            Vec3 cameraPos,
-            ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
-        BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumblingOverlay);
-
+    /**
+     * 26.1.2's {@code extractRenderState}, kept byte-for-byte below its first lines: snapshots the
+     * block entity into a fresh {@link FishTankRenderState}. A fresh one per frame, as 26.1.2's
+     * dispatcher allocates, so every frame-to-frame behaviour matches. Returns null when there is
+     * no level to read.
+     */
+    private static FishTankRenderState snapshot(FishTankBlockEntity blockEntity, float partialTick, int lightCoords) {
         Level level = blockEntity.getLevel();
-        if (level == null) return;
+        if (level == null) return null;
+
+        FishTankRenderState state = new FishTankRenderState();
+        state.lightCoords = lightCoords;
 
         state.hasOpenDownFace = blockEntity.getOpenFaces().contains(Direction.DOWN);
         state.openFaces = blockEntity.getOpenFaces();
@@ -308,25 +291,25 @@ public class FishTankBlockEntityRenderer
         // interpolates — it never advances simulation time (that happens in ClientTankFlocks.tickAll()).
         state.flock = ClientTankFlocks.getOrCreate(blockEntity, blockPosHash);
         state.flock.interpolate(partialTick);
+        return state;
     }
 
     @Override
-    public void submit(
-            FishTankRenderState state,
-            PoseStack poseStack,
-            SubmitNodeCollector nodes,
-            CameraRenderState camera) {
+    public void render(FishTankBlockEntity blockEntity, float partialTick, PoseStack poseStack,
+            MultiBufferSource buffers, int packedLight, int packedOverlay) {
+        FishTankRenderState state = snapshot(blockEntity, partialTick, packedLight);
+        if (state == null) return;
+        Level level = blockEntity.getLevel();
 
-        renderCosmetics(state, poseStack, nodes);
-        renderTankWaterFill(state, poseStack, nodes);
+        renderCosmetics(state, poseStack, buffers);
+        renderTankWaterFill(state, poseStack, buffers);
 
         TankFlockAdapter flock = state.flock;
         if (flock == null) return;
 
         float t = state.gameTimeTicks;
-        ItemModelResolver resolver = Minecraft.getInstance().getItemModelResolver();
 
-        submitGroupSwimmers(state, poseStack, nodes, flock, resolver, t);
+        submitGroupSwimmers(state, poseStack, buffers, flock, level, t);
 
         if (flock.count() == 0) return;
         FlockEngine eng = flock.engine();
@@ -393,14 +376,9 @@ public class FishTankBlockEntityRenderer
 
             poseStack.scale(scale, scale, scale);
 
-            ItemStackRenderState fishRender = flock.itemRenderStates[i];
-            resolver.updateForTopItem(fishRender, flock.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
-
-            FishtasticWorldOutlineRenderer.capture(fishRender, flock.stacks[i]);
-            FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
-            FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
-
-            fishRender.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+            // The quality outline comes with it: the world-outline hook lives in ItemRenderer.render.
+            itemRenderer.renderStatic(flock.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
+                    OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
 
             poseStack.popPose();
         }
@@ -417,7 +395,7 @@ public class FishTankBlockEntityRenderer
      * block's light coords.
      */
     private void submitGroupSwimmers(FishTankRenderState state, PoseStack poseStack,
-            SubmitNodeCollector nodes, TankFlockAdapter flock, ItemModelResolver resolver, float t) {
+            MultiBufferSource buffers, TankFlockAdapter flock, Level level, float t) {
         FlockEngine eng = flock.groupEngine();
         if (eng == null || eng.count() == 0) return;
 
@@ -466,14 +444,8 @@ public class FishTankBlockEntityRenderer
 
             poseStack.scale(scale, scale, scale);
 
-            ItemStackRenderState fishRender = flock.groupRenderStates[i];
-            resolver.updateForTopItem(fishRender, flock.groupStacks[i], ItemDisplayContext.FIXED, null, null, 0);
-
-            FishtasticWorldOutlineRenderer.capture(fishRender, flock.groupStacks[i]);
-            FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
-            FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
-
-            fishRender.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+            itemRenderer.renderStatic(flock.groupStacks[i], ItemDisplayContext.FIXED, state.lightCoords,
+                    OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
 
             poseStack.popPose();
         }
@@ -601,10 +573,10 @@ public class FishTankBlockEntityRenderer
      * continuous surface rather than leaving a gap at the seam. SKYLIGHT additionally gets a
      * horizontal quad under its roof pane when the ceiling is closed.
      */
-    private void renderTankWaterFill(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+    private void renderTankWaterFill(FishTankRenderState state, PoseStack poseStack, MultiBufferSource buffers) {
         if (!FishtasticClientConfig.isTankWaterFillEnabled()) return;
 
-        TextureAtlasSprite sprite = chestSprites.get(WATER_STILL_SPRITE);
+        TextureAtlasSprite sprite = WATER_STILL_SPRITE.sprite();
         RenderType renderType = WATER_FILL_RENDER_TYPE;
         float u0 = sprite.getU0();
         float u1 = sprite.getU1();
@@ -624,12 +596,11 @@ public class FishTankBlockEntityRenderer
         boolean skylightTop = state.shape == FishTankShape.SKYLIGHT && ceilingClosed;
         int skylightInset = profile[profile.length - 1]; // floor-adjacent row width, matching the skylight pane's inset
 
-        // ONE submission for the whole tank, not one per quad. submitCustomGeometry takes a
-        // capturing lambda, so a per-quad call allocated one closure per run per face per frame —
-        // up to 37 for a RAMPART tank, which at 20 visible tanks was ~43k allocations/sec of pure
-        // young-gen churn. Emitting every face and run inside a single closure makes it one
-        // allocation per tank per frame instead.
-        nodes.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
+        // Every face and run goes into one buffer fetched once per tank (26.1.2 emits them from a
+        // single submitCustomGeometry closure for the same reason: one allocation per tank per frame).
+        VertexConsumer buffer = buffers.getBuffer(renderType);
+        PoseStack.Pose pose = poseStack.last();
+        {
             for (Direction face : WATER_FILL_FACES) {
                 if (state.openFaces.contains(face)) continue;
 
@@ -656,7 +627,7 @@ public class FishTankBlockEntityRenderer
                 float zHi = southOpen ? 1f : 1f - skylightInset / 16f;
                 addSkylightWaterFillQuad(buffer, pose, xLo, xHi, zLo, zHi, u0, u1, v0, v1, light);
             }
-        });
+        }
     }
 
     /** Horizontal water quad just under SKYLIGHT's roof glass, matching that pane's footprint. */
@@ -703,12 +674,10 @@ public class FishTankBlockEntityRenderer
                 .setNormal(pose, nx, ny, nz);
     }
 
-    private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
-        renderStructureCosmetics(state, poseStack, nodes);
+    private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, MultiBufferSource buffers) {
+        renderStructureCosmetics(state, poseStack, buffers);
 
         if (state.cosmetics.isEmpty()) return;
-
-        BlockModelRenderState blockModelState = new BlockModelRenderState();
 
         for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : state.cosmetics.entrySet()) {
             CosmeticGridCell cell = entry.getKey();
@@ -742,7 +711,7 @@ public class FishTankBlockEntityRenderer
             if (cosmetic.block() == Blocks.CHEST) {
                 long seed = cellSeed(state.blockPosHash, cell);
                 float openness = chestOpenness(chestCycle(seed), state.gameTimeTicks);
-                nodes.submitModel(chestModel, openness, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
+                renderChest(openness, poseStack, buffers, state.lightCoords);
             } else if (cosmetic.block() == Blocks.KELP && cosmetic.height() > 1) {
                 for (int seg = 0; seg < cosmetic.height(); seg++) {
                     poseStack.pushPose();
@@ -750,13 +719,11 @@ public class FishTankBlockEntityRenderer
                     net.minecraft.world.level.block.state.BlockState segState = seg < cosmetic.height() - 1
                             ? Blocks.KELP_PLANT.defaultBlockState()
                             : Blocks.KELP.defaultBlockState();
-                    blockModelResolver.update(blockModelState, segState, BLOCK_DISPLAY_CONTEXT);
-                    blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+                    blockRenderer.renderSingleBlock(segState, poseStack, buffers, state.lightCoords, OverlayTexture.NO_OVERLAY);
                     poseStack.popPose();
                 }
             } else {
-                blockModelResolver.update(blockModelState, cosmetic.blockState(), BLOCK_DISPLAY_CONTEXT);
-                blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+                blockRenderer.renderSingleBlock(cosmetic.blockState(), poseStack, buffers, state.lightCoords, OverlayTexture.NO_OVERLAY);
             }
 
             poseStack.popPose();
@@ -771,10 +738,8 @@ public class FishTankBlockEntityRenderer
      * the rotated state — reading the authored state's facing would rotate the rest of the structure
      * correctly while leaving the chest's lid pointing the original way.
      */
-    private void renderStructureCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+    private void renderStructureCosmetics(FishTankRenderState state, PoseStack poseStack, MultiBufferSource buffers) {
         if (state.structureCosmetics.isEmpty()) return;
-
-        BlockModelRenderState blockModelState = new BlockModelRenderState();
 
         for (Map.Entry<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> entry : state.structureCosmetics.entrySet()) {
             CosmeticGridCell anchor = entry.getKey();
@@ -805,15 +770,28 @@ public class FishTankBlockEntityRenderer
                 poseStack.translate(-0.5f, 0f, -0.5f);
 
                 if (partState.getBlock() == Blocks.CHEST) {
-                    nodes.submitModel(chestModel, 0f, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
+                    renderChest(0f, poseStack, buffers, state.lightCoords);
                 } else {
-                    blockModelResolver.update(blockModelState, partState, BLOCK_DISPLAY_CONTEXT);
-                    blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+                    blockRenderer.renderSingleBlock(partState, poseStack, buffers, state.lightCoords, OverlayTexture.NO_OVERLAY);
                 }
 
                 poseStack.popPose();
             }
         }
+    }
+
+    /**
+     * Draws a single chest the way vanilla's {@code ChestRenderer} does, lid opened by
+     * {@code openness} (0 = closed, 1 = open; already eased). 26.1.2 hands the same openness to
+     * {@code ChestModel} through {@code submitModel}.
+     */
+    private void renderChest(float openness, PoseStack poseStack, MultiBufferSource buffers, int light) {
+        VertexConsumer consumer = CHEST_MATERIAL.buffer(buffers, RenderType::entityCutout);
+        chestLid.xRot = -(openness * ((float) Math.PI / 2F));
+        chestLock.xRot = chestLid.xRot;
+        chestLid.render(poseStack, consumer, light, OverlayTexture.NO_OVERLAY);
+        chestLock.render(poseStack, consumer, light, OverlayTexture.NO_OVERLAY);
+        chestBottom.render(poseStack, consumer, light, OverlayTexture.NO_OVERLAY);
     }
 
     // ── Chest hinge-open cycle + bubble particles ───────────────────────────────

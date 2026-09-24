@@ -4,10 +4,10 @@ import grill24.fishtastic.FishtasticParticleTypes;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * The pop a vanilla-style tank bubble plays when it dies. Vanilla's own {@code BubbleParticle}
@@ -16,7 +16,7 @@ import net.minecraft.util.RandomSource;
  * ({@code xAux} carries the dying bubble's quad size). Sits still and plays out in 4 ticks, no
  * physics, like everything else inside the glass.
  */
-public class TankBubblePopParticle extends SingleQuadParticle {
+public class TankBubblePopParticle extends TextureSheetParticle {
     /** Pop ring drawn a little wider than the bubble it replaces, as vanilla's reads. */
     private static final float POP_SCALE = 1.4F;
     private static final int POP_LIFETIME = 4;
@@ -24,7 +24,7 @@ public class TankBubblePopParticle extends SingleQuadParticle {
     private final SpriteSet sprites;
 
     private TankBubblePopParticle(ClientLevel level, double x, double y, double z, float bubbleQuadSize, SpriteSet sprites) {
-        super(level, x, y, z, sprites.first());
+        super(level, x, y, z);
         this.sprites = sprites;
         this.hasPhysics = false;
         this.lifetime = POP_LIFETIME;
@@ -50,8 +50,8 @@ public class TankBubblePopParticle extends SingleQuadParticle {
     }
 
     @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -63,7 +63,7 @@ public class TankBubblePopParticle extends SingleQuadParticle {
 
         @Override
         public Particle createParticle(SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
+                double xAux, double yAux, double zAux) {
             return new TankBubblePopParticle(level, x, y, z, (float) xAux, this.sprites);
         }
     }

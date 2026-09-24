@@ -210,6 +210,38 @@ Files: `mixin/{FishingHookRendererMixin,HumanoidModelMixin,ItemInHandLayerMixin,
 
 ---
 
+## As built
+
+Written as each checkpoint lands. Where this section and the design above disagree, this section is what the code does.
+
+**Owner decisions taken at the start of A5 (2026-09-24):**
+- **HUD layers go above vanilla's toasts.** One `@Inject` in `GameRenderer.render` after its `"toasts"` section draws the three Fishtastic HUD layers (A4's finding: FAPI 0.116's `HudRenderCallback` fires at `Gui.render` TAIL and vanilla's toasts cover it). Lands with A5.7; 1.20.1 gets the same.
+- **Tooltip slot rows stay left-aligned** (1.21.1's `renderImage` gets no tooltip width; vanilla's bundle tooltip does the same).
+- **gelatin's true X/Y rotation stays.** FlipEffect X flips and SpinEffect Y spins differ in kind from 26.1's cosine squash; that's accepted, to be looked at in A6.3.
+- **The two 26.1.2 bugs from A4 were fixed on 26.1.2 first** (`7839f271`) and cherry-picked (`e33f5792`). The A4 note's suggested JEI fix (read the size lazily in the getters) would not have worked: JEI validates the properties as soon as `apply` returns and then compares each frame's fresh object against the cached one, so a lazy cached object would track the screen and compare equal forever. The fix returns `null` (allowed by `IScreenHandler`'s `@Nullable`, not logged) until the screen has a size.
+
+**Added during A5 (not in the design):**
+- `client/CosmeticCaptureClientState` draws its wand-selection boxes with 26.1's `Gizmos`, which 1.21.1 doesn't have. It needs a world-render line-box hook. Scheduled with A5.7.
+- **The self-test harness is committed** as `client/selftest/RenderSelfTest` (A4's was deleted and can't be recovered). It's inert unless `<run dir>/fishtastic_render_selftest` exists; each line of that file names a scene. It logs `[selftest] CHECK <name>: PASS|FAIL` for what it can assert itself and writes `run/screenshots/selftest-<loader>-<scene>-<shot>.png`. It's dev tooling: delete it at A7 if it shouldn't ship.
+
+**A5.0 (checkpoint 1).**
+- `FishtasticRenderTypes extends RenderType` holds `TANK_WATER_FILL`. **Correction:** the shards are `protected` and reachable by subclassing, but vanilla's `RenderType.create` is `private` (the 7-arg overload) and package-private (the 5-arg one) in the 1.21.1 jar (javap). The reference sources show it public because they carry FAPI's access wideners. So `fishtastic.accesswidener` gets one line for the 7-arg `create`. At runtime NeoForge's own AT and FAPI's transitive AW already make it public; the line is for common's compile.
+- `FishtasticShaders` is the spike's seam, registering `outline_bake` and `outline_bake_legendary`. The shader sources are the spike's, with **F2 applied**: the basic program neither declares nor lists the four pinwheel-only uniforms, and no "could not find uniform" warning is logged on either loader. The self-test checks both programs load (`shaders.loaded`). `FishtasticRenderPipelines` is deleted; the A5.4 files still reference it and are rewritten there.
+
+**A5.5 (checkpoint 1).** Nine particle classes (`util/SparkleParticle` already compiled in A2). `SingleQuadParticle` → `TextureSheetParticle` (or the 1.21.1 `RisingParticle`/`WaterDropParticle`/`BaseAshSmokeParticle`), and the sprite goes through `setSprite` after `super` because 1.21.1's constructors don't take one. `getLayer() → OPAQUE` becomes `getRenderType() → PARTICLE_SHEET_OPAQUE`. 1.21.1's `ParticleProvider.createParticle` has no `RandomSource`, so sprites are picked with `level.getRandom()`. `MiniFlameParticle.getLightCoords` becomes `getLightColor` with vanilla `FlameParticle`'s body (26.1's `LightCoordsUtil.addSmoothBlockEmission`). Fabric's registry is `ParticleFactoryRegistry` on 0.116.
+
+**A5.1 (checkpoint 1).**
+- `render` calls a static `snapshot(be, partialTick, light)`, which is 26.1.2's `extractRenderState` body, and then runs 26.1.2's `submit` body against a `MultiBufferSource`. **A fresh snapshot per frame**, not a per-BE cache: 26.1.2's `BlockEntityRenderDispatcher` calls `createRenderState()` every frame (`BlockEntityRenderDispatcher.java:87`), so allocating per frame keeps every frame-to-frame behaviour identical. `FishTankRenderState`/`FishPileRenderState` lose their vanilla base class and gain a `lightCoords` field.
+- Fish: `ItemRenderer.renderStatic(stack, FIXED, light, NO_OVERLAY, pose, buffers, level, 0)`. The explicit outline calls are gone (A5.4's hook sits in `ItemRenderer.render`). `TankFlockAdapter` loses its `ItemStackRenderState[]` arrays.
+- Chest cosmetic: `bakeLayer(ModelLayers.CHEST)` children `bottom`/`lid`/`lock`, posed like `ChestRenderer` (`lid.xRot = -(openness·π/2)`; 26.1's `ChestModel.setupAnim` is the same formula), textured from `Sheets.CHEST_LOCATION` with `entityCutout`. Block cosmetics: `BlockRenderDispatcher.renderSingleBlock`.
+- **Culling: no override.** The design proposed a group AABB on NeoForge, but 26.1.2 has no culling hook either, and its BER javadoc accepts the artifact ("fish vanish when the anchor is frustum-culled"). Both 1.21.1 loaders default to the unit cube (NeoForge `IBlockEntityRendererExtension.getRenderBoundingBox`), which is the same behaviour. Changing it would be a presentation difference from 26.1.2, so it's left for 26.1.2 to decide first.
+- `ClientTankFlocks`, `TankBubbleEmitter` and `CosmeticTransformLoader` came off the exclude list with it. The loader's `reload` takes 1.21.1's six-argument signature. On Fabric it's registered through `ResourceManagerHelper` wrapped in an `IdentifiableResourceReloadListener`; on NeoForge through `RegisterClientReloadListenersEvent`.
+- **NeoForge dev runtime needed `:fishsim` in the Loom `main` mod group** (`sourceSet("main", project(':fishsim'))`). Without it, the first tank render died with `NoClassDefFoundError: grill24/fishsim/domain/FlockDomain`: FML 4 loads the mod's dev classes into their own module, which can't see a plain project jar. The shipped jar already shadows fishsim in. Fabric was unaffected.
+- **Verified** with the `tank` scene on both loaders: 12 fish added to a 3-tank group whose middle tank reports open faces `[west, east]`, a chest, a lit campfire, the `dynamic_duo` lit-furnace structure, a lone tank with starfish/garden eel/plaice, and a fish pile. The tank body is still the missing model (A5.2) and hides the contents from outside, so the evidence is taken from inside the tanks, where the missing-model cube's back faces are culled: fish, water fill, bubbles and particles all draw, with no exceptions on either loader. The outside comparison with 26.1.2 comes once A5.2 lands.
+- **26.1.2 finding (report only):** `FishTankRenderState.chestLastBubbleSpawnTick` is documented as persisting across frames to stop a chest's bubble being released twice in one game tick. But the state is new every frame (see above), so the check never fires, and on a stream tick every rendered frame releases a bubble. The port keeps that behaviour for parity. A fix belongs on 26.1.2 (keep the map on the block entity, as the furnace and campfire throttles already do).
+
+---
+
 ## A5 gate (G1 + render parity)
 
 | Check | How | Expected |

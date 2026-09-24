@@ -3,11 +3,11 @@ package grill24.fishtastic.client.particle;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * A bubble shed by a simulated fish (docs/fish-tank-bubbles.md). Three sizes share this class: the
@@ -23,7 +23,7 @@ import net.minecraft.util.RandomSource;
  * the emitting fish's velocity, so a trail streams off a moving fish), {@code yAux} the absolute
  * world Y to pop at.
  */
-public class TankMicroBubbleParticle extends SingleQuadParticle {
+public class TankMicroBubbleParticle extends TextureSheetParticle {
     /**
      * Per-size tuning; {@code sizeMin..sizeMax} is the random multiplier on {@code quadSize}, and
      * {@code shrinkTicks} how many final ticks the bubble spends scaling down to nothing (0 = pop
@@ -46,7 +46,8 @@ public class TankMicroBubbleParticle extends SingleQuadParticle {
 
     private TankMicroBubbleParticle(ClientLevel level, double x, double y, double z,
             double driftX, double popY, double driftZ, TextureAtlasSprite sprite, Profile profile) {
-        super(level, x, y, z, sprite);
+        super(level, x, y, z);
+        this.setSprite(sprite);
         this.popY = popY;
         this.shrinkTicks = profile.shrinkTicks();
         this.hasPhysics = false;
@@ -94,13 +95,13 @@ public class TankMicroBubbleParticle extends SingleQuadParticle {
     }
 
     @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     private static Particle create(SpriteSet sprites, Profile profile, ClientLevel level,
-            double x, double y, double z, double xAux, double yAux, double zAux, RandomSource random) {
-        return new TankMicroBubbleParticle(level, x, y, z, xAux, yAux, zAux, sprites.get(random), profile);
+            double x, double y, double z, double xAux, double yAux, double zAux) {
+        return new TankMicroBubbleParticle(level, x, y, z, xAux, yAux, zAux, sprites.get(level.getRandom()), profile);
     }
 
     public static class TinyProvider implements ParticleProvider<SimpleParticleType> {
@@ -112,8 +113,8 @@ public class TankMicroBubbleParticle extends SingleQuadParticle {
 
         @Override
         public Particle createParticle(SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return create(sprites, TINY, level, x, y, z, xAux, yAux, zAux, random);
+                double xAux, double yAux, double zAux) {
+            return create(sprites, TINY, level, x, y, z, xAux, yAux, zAux);
         }
     }
 
@@ -126,8 +127,8 @@ public class TankMicroBubbleParticle extends SingleQuadParticle {
 
         @Override
         public Particle createParticle(SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return create(sprites, MEDIUM, level, x, y, z, xAux, yAux, zAux, random);
+                double xAux, double yAux, double zAux) {
+            return create(sprites, MEDIUM, level, x, y, z, xAux, yAux, zAux);
         }
     }
 
@@ -140,8 +141,8 @@ public class TankMicroBubbleParticle extends SingleQuadParticle {
 
         @Override
         public Particle createParticle(SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return create(sprites, SMALL, level, x, y, z, xAux, yAux, zAux, random);
+                double xAux, double yAux, double zAux) {
+            return create(sprites, SMALL, level, x, y, z, xAux, yAux, zAux);
         }
     }
 }

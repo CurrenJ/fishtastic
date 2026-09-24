@@ -9,3 +9,7 @@ accessible class net/minecraft/world/inventory/MenuType$MenuSupplier
 accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
 
 
+# FishtasticRenderTypes builds its render types with RenderType.create, which is private in vanilla
+# 1.21.1 (NeoForge's AT and Fabric API's transitive AW both make it public at runtime; this makes it
+# visible to common's compile). The shards it uses are protected and reached by subclassing.
+accessible method net/minecraft/client/renderer/RenderType create (Ljava/lang/String;Lcom/mojang/blaze3d/vertex/VertexFormat;Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;IZZLnet/minecraft/client/renderer/RenderType$CompositeState;)Lnet/minecraft/client/renderer/RenderType$CompositeRenderType;

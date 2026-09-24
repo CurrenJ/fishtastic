@@ -6,7 +6,6 @@ import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * A scaled-down replica of vanilla {@code SmokeParticle} for miniature fish tank furnace cosmetics.
@@ -30,7 +29,7 @@ public class MiniSmokeParticle extends BaseAshSmokeParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
+                double xAux, double yAux, double zAux) {
             return new MiniSmokeParticle(level, x, y, z, xAux, yAux, zAux, this.sprites);
         }
     }

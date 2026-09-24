@@ -9,7 +9,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`33986055`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); hook stage `unit`. |
+| `port/1.21.1` | **`33986055`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); A5 in progress; hook stage `unit`. Also carries `26.1.2` `7839f271` (cherry-picked as `e33f5792`); the marker moves past it at G1. |
 | `port/1.20.1` | **`33986055`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
@@ -119,20 +119,21 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | G-A4 | Gate: 78 unit tests; every screen opens on both loaders | [x] | A4 commit | 78/78; every screen opened through its real path on both loaders, and both item predicates verified against their override models (see track A, A4 "Done"). Server smoke clean on both loaders too. |
 
 ### A5: Rendering (design notes: `track-a5-rendering-1.21.1.md`)
-| ID | Item | Status | Commit |
-|---|---|---|---|
-| A5.0 | `FishtasticShaders` seam, `FishtasticRenderTypes` | [ ] | |
-| A5.5 | Particles (10 classes) | [ ] | |
-| A5.1 | Tank BER + pile BER, `TankFlockAdapter` | [ ] | |
-| A5.2 | Tank model: NeoForge `IDynamicBakedModel` | [ ] | |
-| A5.2f | Tank model: **Fabric FRAPI (new code, N3)** | [ ] | |
-| A5.3 | BEWLR items, item properties (`cast`, `has_alert`, `pile_size`), treasure chest | [ ] | |
-| A5.6 | Fishing line hand, pose, held-item scale hooks | [ ] | |
-| A5.4a | Glint (ancestor `ItemRendererMixin`, `RenderBuffersMixin`) | [ ] | |
-| A5.4b | Outline atlas + GUI outline + world outline (spike code; findings F2–F5) | [ ] | |
-| A5.4c | GUI shader effects (silhouette, black outline, texture outline) | [ ] | |
-| A5.7 | `IrisCompat` no-op; `LevelRendererMixin` deleted | [ ] | |
-| G1 | Spike criteria on production code, both loaders, + Fabulous, GUI scales 1/2/4, Iris on NeoForge, 512-tank stress | [ ] | |
+| ID | Item | Status | Commit | Notes |
+|---|---|---|---|---|
+| — | `26.1.2` `7839f271`: in-place quest banner update, JEI zero-size gui properties (the two A4 findings, fixed on 26.1.2 first) | [x] | `e33f5792` | Verified on the port by the self-test's `fixes` scene: the in-place banner reads `5 / 10` with `Complete!`; JEI logs 0 `Received invalid gui properties` on NeoForge (was 2 per open). |
+| A5.0 | `FishtasticShaders` seam, `FishtasticRenderTypes` | [x] | A5 checkpoint 1 | `RenderType.create` is `private` in vanilla, not reachable by subclassing: one AW line (NeoForge's AT and FAPI's AW already widen it at runtime). The seam ships the two bake programs with F2's per-program uniform lists. |
+| A5.5 | Particles (10 classes) | [x] | A5 checkpoint 1 | 9 files (`util/SparkleParticle` already compiled). `TextureSheetParticle` + `setSprite`; providers pick from `level.getRandom()` (1.21.1 passes no `RandomSource`). |
+| A5.1 | Tank BER + pile BER, `TankFlockAdapter` | [x] | A5 checkpoint 1 | Also `ClientTankFlocks`, `TankBubbleEmitter`, `CosmeticTransformLoader`. A fresh snapshot per frame, as 26.1.2. No culling override (26.1.2 has none). NeoForge dev needed `:fishsim` in the Loom `main` mod group. |
+| A5.2 | Tank model: NeoForge `IDynamicBakedModel` | [ ] | | |
+| A5.2f | Tank model: **Fabric FRAPI (new code, N3)** | [ ] | | |
+| A5.3 | BEWLR items, item properties (`cast`, `has_alert`, `pile_size`), treasure chest | [ ] | | |
+| A5.6 | Fishing line hand, pose, held-item scale hooks | [ ] | | |
+| A5.4a | Glint (ancestor `ItemRendererMixin`, `RenderBuffersMixin`) | [ ] | | |
+| A5.4b | Outline atlas + GUI outline + world outline (spike code; findings F2–F5) | [ ] | | |
+| A5.4c | GUI shader effects (silhouette, black outline, texture outline) | [ ] | | |
+| A5.7 | `IrisCompat` no-op; `LevelRendererMixin` deleted; HUD layers above vanilla toasts (owner decision 2026-09-24); cosmetic-capture gizmos | [ ] | | The last two were not in the A5 design: see its "Added during A5". |
+| G1 | Spike criteria on production code, both loaders, + Fabulous, GUI scales 1/2/4, Iris on NeoForge, 512-tank stress | [ ] | | |
 
 ### A6: Gametests and verification (gate G2, then hook stage → `full`)
 | ID | Item | Status | Commit |

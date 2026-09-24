@@ -3,11 +3,11 @@ package grill24.fishtastic.client.particle;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.RandomSource;
 
 /**
  * A scaled-down replica of vanilla {@code CampfireSmokeParticle} — the soft, slow-rising puff that
@@ -17,11 +17,12 @@ import net.minecraft.util.RandomSource;
  * miniature fish tank cosmetic, the same way {@link MiniSmokeParticle} shrinks ordinary ash smoke for
  * furnace-family cosmetics.
  */
-public class MiniCampfireSmokeParticle extends SingleQuadParticle {
+public class MiniCampfireSmokeParticle extends TextureSheetParticle {
     private static final float SCALE = 0.6F;
 
     private MiniCampfireSmokeParticle(ClientLevel level, double x, double y, double z, double xa, double ya, double za, TextureAtlasSprite sprite) {
-        super(level, x, y, z, sprite);
+        super(level, x, y, z);
+        this.setSprite(sprite);
         this.scale(SCALE);
         this.setSize(0.05F, 0.05F);
         this.lifetime = this.random.nextInt(30) + 40;
@@ -55,8 +56,8 @@ public class MiniCampfireSmokeParticle extends SingleQuadParticle {
     // — translucent particles and translucent block geometry aren't reliably cross-sorted against each
     // other, so the glass can draw over the particle regardless of true depth.
     @Override
-    protected SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.OPAQUE;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -69,8 +70,8 @@ public class MiniCampfireSmokeParticle extends SingleQuadParticle {
         @Override
         public Particle createParticle(
                 SimpleParticleType options, ClientLevel level, double x, double y, double z,
-                double xAux, double yAux, double zAux, RandomSource random) {
-            return new MiniCampfireSmokeParticle(level, x, y, z, xAux, yAux, zAux, this.sprites.get(random));
+                double xAux, double yAux, double zAux) {
+            return new MiniCampfireSmokeParticle(level, x, y, z, xAux, yAux, zAux, this.sprites.get(level.getRandom()));
         }
     }
 }
