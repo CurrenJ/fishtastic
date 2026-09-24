@@ -1,6 +1,6 @@
 # Backport Plan: Fishtastic 2.0 → MC 1.21.1 and MC 1.20.1
 
-> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. D1, D2, D3 and D5 decided (§10). Next: S3 and S1 on `26.1.2`.
+> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. All decisions D1–D7 settled (§10). Next: S3 and S1 on `26.1.2`.
 > **Pass 2** will turn each phase below into a step-by-step implementation plan. Work item IDs
 > (`A1.3`, `B2.1`, …) are stable so pass 2 can refer to them.
 > **Baseline:** branch `26.1.2` @ `7076aeb6` (Fishtastic 2.0.1, MC 26.1.2).
@@ -170,7 +170,7 @@ The 1.20.1 release lands later. To limit that, we start the long-lead 1.20.1 wor
 Approach: create `mc-1.21.1` from `26.1.2` HEAD. Restore the 1.21.1 build scaffolding from `44064cc5` and potions-plus. Then get it compiling **in layers**: temporarily exclude the client-rendering packages from the source sets, so the server and common game logic compile, test and datagen first. Then add the client subsystems back one at a time.
 
 ### A0: Decisions and scope (before any code)
-- **A0.1** ~~Settle decisions D1 to D6 (§10).~~ D1, D2, D3 and D5 settled 2026-09-24. D4 and D6 still open.
+- **A0.1** ~~Settle decisions D1 to D6 (§10).~~ All settled 2026-09-24.
 - **A0.2** Cut list (decided, D1): **`mcp/`** (the retired MCP bridge) and the **cool-cam compat** (`fabric/compat/coolcam`, used only to capture promo videos on 26.1.2). Everything else ships on every version: `examples/`, `TestItem`, all debug, authoring and admin commands, and the leaderboard podium (which means porting gelatin-ui's posed-player rendering).
 - **A0.3** Freeze the feature baseline: the `26.1.2` commit that lands S1 and S3 (D5). `port/1.21.1` rebases onto it. Record it so later forward-port diffs have a fixed base.
 
@@ -284,7 +284,7 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 
 ### B0: Decisions
 - **B0.1** Loader set (D2): Fabric + **Forge 47.x**. NeoForge 1.20.1 (47.1) loads Forge mods, so a separate NeoForge 1.20.1 jar isn't needed.
-- **B0.2** Whether to support world upgrades from 1.20.1 to 1.21.1 (NBT → component migration). Vanilla's datafixers won't move custom NBT into custom components. Recommendation: **not supported** (see D4).
+- **B0.2** Whether to support world upgrades from 1.20.1 to 1.21.1 (NBT → component migration). Vanilla's datafixers won't move custom NBT into custom components. Decided: **not supported** (D4).
 
 ### B1: Build scaffolding (gate: an empty mod loads on Fabric and Forge)
 - **B1.1** Java 17 toolchain, `JAVA_17` mixins, a Loom line that supports 1.20.1, and the `neoforge/` module becomes `forge/` (Architectury `forge()` platform, `mods.toml` instead of `neoforge.mods.toml`). Fabric API 0.92.x and JEI 15.x.
@@ -326,10 +326,10 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Decided: full parity on all three versions.** Cut only `mcp/` and the cool-cam compat (promo-video tooling, 26.1.2 only). Everything else, including dev and debug tooling and the podium, ships everywhere. |
 | **D2** | Loaders per version | **Decided:** 1.21.1 is **Fabric + NeoForge**, with no Forge. 1.20.1 is **Fabric + Forge**. |
 | **D3** | Sequential or parallel | **Decided: sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
-| **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Not supported**: document it. Custom NBT → component migration would need a DFU fixer for our own data. |
+| **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Decided: not supported.** An accepted limitation, to be stated in the release notes. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
 | **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
-| **D6** | Versioning and release cadence | **Goal set by the owner:** identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. The version-string format is still to confirm. |
+| **D6** | Versioning and release cadence | **Decided.** Goal set by the owner: identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. Decided: format `2.x.y+<mc>`. |
 
 ---
 
