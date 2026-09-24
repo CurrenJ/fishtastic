@@ -2,6 +2,7 @@ package grill24.fishtastic.blockentity;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
@@ -13,7 +14,6 @@ import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
@@ -176,7 +176,7 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
                 availableSlots.add(i);
             } else if (stack.getItem() instanceof PileOfFishItem) {
                 availableSlots.add(i);
-                BundleContents contents = stack.get(DataComponents.BUNDLE_CONTENTS);
+                BundleContents contents = FishtasticItemData.bundleContents(stack);
                 if (contents != null) {
                     for (ItemStackTemplate template : contents.items()) {
                         allFish.add(template.create());
@@ -287,7 +287,7 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
 
     private static ItemStack pileFrom(BundleContents.Mutable contents) {
         ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-        pile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        FishtasticItemData.setBundleContents(pile, contents.toImmutable());
         return pile;
     }
 

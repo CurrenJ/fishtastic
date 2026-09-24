@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.renderer;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.item.ItemModel;
@@ -11,7 +12,6 @@ import net.minecraft.client.resources.model.ResolvableModel;
 import net.minecraft.client.resources.model.ResolvedModel;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.client.resources.model.cuboid.ItemTransforms;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ItemOwner;
@@ -63,7 +63,7 @@ public class FishPileBlockItemModel implements ItemModel {
                        @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
         output.appendModelIdentityElement(this);
         List<ItemStackTemplate> templates =
-                item.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY).items();
+                FishtasticItemData.bundleContentsOrEmpty(item).items();
         int limit = Math.min(templates.size(), FishPileBlockEntity.MAX_FISH);
         if (limit == 0) return;
 

@@ -5,7 +5,6 @@ import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
@@ -80,10 +79,10 @@ public class PileOfFishItem extends BundleItem {
     public static void combineExtractedFish(Player player, InteractionHand hand, ItemStack heldStack, ItemStack extracted) {
         if (heldStack.getItem() instanceof PileOfFishItem) {
             BundleContents.Mutable contents = new BundleContents.Mutable(
-                    heldStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+                    FishtasticItemData.bundleContentsOrEmpty(heldStack));
             contents.tryInsert(extracted);
             if (extracted.isEmpty()) {
-                heldStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+                FishtasticItemData.setBundleContents(heldStack, contents.toImmutable());
             }
             return;
         }
@@ -95,7 +94,7 @@ public class PileOfFishItem extends BundleItem {
         contents.tryInsert(extracted);
         contents.tryInsert(heldStack.copyWithCount(1));
         ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-        newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        FishtasticItemData.setBundleContents(newPile, contents.toImmutable());
         if (heldStack.getCount() == 1) {
             player.setItemInHand(hand, newPile);
         } else {
@@ -126,9 +125,9 @@ public class PileOfFishItem extends BundleItem {
             ItemStack slotStack = inventory.getItem(i);
             if (slotStack.is(FishtasticItems.PILE_OF_FISH.value())) {
                 BundleContents.Mutable contents = new BundleContents.Mutable(
-                        slotStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+                        FishtasticItemData.bundleContentsOrEmpty(slotStack));
                 contents.tryInsert(reward);
-                slotStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+                FishtasticItemData.setBundleContents(slotStack, contents.toImmutable());
             }
         }
         while (!reward.isEmpty()) {
@@ -148,7 +147,7 @@ public class PileOfFishItem extends BundleItem {
             }
 
             ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-            newPile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            FishtasticItemData.setBundleContents(newPile, contents.toImmutable());
             inventory.add(newPile);
             if (!newPile.isEmpty()) {
                 player.drop(newPile, false);
@@ -187,7 +186,7 @@ public class PileOfFishItem extends BundleItem {
     @Nullable
     private static Item getQuickCollectSpecies(ItemStack stack) {
         if (stack.getItem() instanceof PileOfFishItem) {
-            BundleContents contents = stack.get(DataComponents.BUNDLE_CONTENTS);
+            BundleContents contents = FishtasticItemData.bundleContents(stack);
             if (contents == null || contents.items().isEmpty()) {
                 return null;
             }
@@ -219,7 +218,7 @@ public class PileOfFishItem extends BundleItem {
 
         boolean wasPile = carried.getItem() instanceof PileOfFishItem;
         BundleContents.Mutable acc = wasPile
-                ? new BundleContents.Mutable(carried.get(DataComponents.BUNDLE_CONTENTS))
+                ? new BundleContents.Mutable(FishtasticItemData.bundleContents(carried))
                 : new BundleContents.Mutable(BundleContents.EMPTY);
         if (!wasPile) {
             acc.tryInsert(carried.copy());
@@ -239,7 +238,7 @@ public class PileOfFishItem extends BundleItem {
             }
 
             if (slotStack.getItem() instanceof PileOfFishItem) {
-                BundleContents slotContents = slotStack.get(DataComponents.BUNDLE_CONTENTS);
+                BundleContents slotContents = FishtasticItemData.bundleContents(slotStack);
                 if (slotContents == null) {
                     continue;
                 }
@@ -254,7 +253,7 @@ public class PileOfFishItem extends BundleItem {
                 } else if (leftoverSize == 1) {
                     slot.set(leftover.items().getFirst().create());
                 } else {
-                    slotStack.set(DataComponents.BUNDLE_CONTENTS, leftover);
+                    FishtasticItemData.setBundleContents(slotStack, leftover);
                 }
                 collectedAny = true;
             } else if (acc.tryTransfer(slot, player) > 0) {
@@ -267,7 +266,7 @@ public class PileOfFishItem extends BundleItem {
         }
 
         ItemStack pile = wasPile ? carried : new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-        pile.set(DataComponents.BUNDLE_CONTENTS, acc.toImmutable());
+        FishtasticItemData.setBundleContents(pile, acc.toImmutable());
         menu.setCarried(pile);
         playInsertSound(player);
         menu.broadcastChanges();
@@ -278,7 +277,7 @@ public class PileOfFishItem extends BundleItem {
 
     @Override
     public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player) {
-        BundleContents initialContents = self.get(DataComponents.BUNDLE_CONTENTS);
+        BundleContents initialContents = FishtasticItemData.bundleContents(self);
         if (initialContents == null) {
             return false;
         }
@@ -289,12 +288,12 @@ public class PileOfFishItem extends BundleItem {
         if (clickAction == ClickAction.PRIMARY && !other.isEmpty()) {
             // Pile-on-pile merge: cursor pile (self) dumps into slot pile (other)
             if (other.getItem() instanceof PileOfFishItem) {
-                BundleContents otherContents = other.get(DataComponents.BUNDLE_CONTENTS);
+                BundleContents otherContents = FishtasticItemData.bundleContents(other);
                 if (otherContents == null) return false;
 
                 BundleContents.Mutable otherMutable = new BundleContents.Mutable(otherContents);
                 BundleContents leftover = mergeContents(initialContents, otherMutable);
-                other.set(DataComponents.BUNDLE_CONTENTS, otherMutable.toImmutable());
+                FishtasticItemData.setBundleContents(other, otherMutable.toImmutable());
 
                 if (leftover == null) {
                     // Everything merged — destroy cursor pile
@@ -306,7 +305,7 @@ public class PileOfFishItem extends BundleItem {
                     player.containerMenu.setCarried(singleItem);
                 } else {
                     // Some items didn't fit — update cursor pile with leftovers
-                    self.set(DataComponents.BUNDLE_CONTENTS, leftover);
+                    FishtasticItemData.setBundleContents(self, leftover);
                 }
                 playInsertSound(player);
                 broadcastChangesOnContainerMenu(player);
@@ -324,7 +323,7 @@ public class PileOfFishItem extends BundleItem {
                 playInsertFailSound(player);
             }
 
-            self.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            FishtasticItemData.setBundleContents(self, contents.toImmutable());
             broadcastChangesOnContainerMenu(player);
             return true;
         } else if (clickAction == ClickAction.SECONDARY && other.isEmpty()) {
@@ -349,7 +348,7 @@ public class PileOfFishItem extends BundleItem {
                 self.shrink(1);
                 player.containerMenu.setCarried(singleItem);
             } else {
-                self.set(DataComponents.BUNDLE_CONTENTS, updatedContents);
+                FishtasticItemData.setBundleContents(self, updatedContents);
             }
             broadcastChangesOnContainerMenu(player);
             return true;
@@ -366,7 +365,7 @@ public class PileOfFishItem extends BundleItem {
             return false;
         }
 
-        BundleContents initialContents = self.get(DataComponents.BUNDLE_CONTENTS);
+        BundleContents initialContents = FishtasticItemData.bundleContents(self);
         if (initialContents == null) {
             return false;
         }
@@ -376,11 +375,11 @@ public class PileOfFishItem extends BundleItem {
         if (clickAction == ClickAction.PRIMARY && !other.isEmpty()) {
             // Pile-on-pile merge: cursor pile (other) dumps into slot pile (self)
             if (other.getItem() instanceof PileOfFishItem) {
-                BundleContents otherContents = other.get(DataComponents.BUNDLE_CONTENTS);
+                BundleContents otherContents = FishtasticItemData.bundleContents(other);
                 if (otherContents == null) return false;
 
                 BundleContents leftover = mergeContents(otherContents, contents);
-                self.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+                FishtasticItemData.setBundleContents(self, contents.toImmutable());
 
                 if (leftover == null) {
                     // Everything merged — destroy cursor pile
@@ -393,7 +392,7 @@ public class PileOfFishItem extends BundleItem {
                     carriedItem.set(singleItem);
                 } else {
                     // Some items didn't fit — update cursor pile with leftovers
-                    other.set(DataComponents.BUNDLE_CONTENTS, leftover);
+                    FishtasticItemData.setBundleContents(other, leftover);
                 }
                 playInsertSound(player);
                 broadcastChangesOnContainerMenu(player);
@@ -403,7 +402,7 @@ public class PileOfFishItem extends BundleItem {
             // Gate: only allow fish / sized items
             if (!canInsertInPile(other)) {
                 playInsertFailSound(player);
-                self.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+                FishtasticItemData.setBundleContents(self, contents.toImmutable());
                 broadcastChangesOnContainerMenu(player);
                 return true; // consume click
             }
@@ -413,7 +412,7 @@ public class PileOfFishItem extends BundleItem {
                 playInsertFailSound(player);
             }
 
-            self.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+            FishtasticItemData.setBundleContents(self, contents.toImmutable());
             broadcastChangesOnContainerMenu(player);
             return true;
         } else if (clickAction == ClickAction.SECONDARY && other.isEmpty()) {
@@ -435,7 +434,7 @@ public class PileOfFishItem extends BundleItem {
                 self.shrink(1);
                 slot.setByPlayer(singleItem);
             } else {
-                self.set(DataComponents.BUNDLE_CONTENTS, updatedContents);
+                FishtasticItemData.setBundleContents(self, updatedContents);
             }
             broadcastChangesOnContainerMenu(player);
             return true;
@@ -453,7 +452,7 @@ public class PileOfFishItem extends BundleItem {
      */
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
-        BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(stack);
         if (contents.isEmpty()) {
             stack.shrink(1);
             return;

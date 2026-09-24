@@ -4,7 +4,6 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
@@ -44,7 +43,7 @@ public class SizedItemClickMixin {
             return;
         }
 
-        pile.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        FishtasticItemData.setBundleContents(pile, contents.toImmutable());
         self.shrink(addedSelf);
         if (self.isEmpty()) slot.setByPlayer(pile);
         if (other.isEmpty()) carriedItem.set(ItemStack.EMPTY);

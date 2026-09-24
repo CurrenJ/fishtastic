@@ -1,13 +1,13 @@
 package grill24.fishtastic.client.renderer;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.FishtasticItemData;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.resources.model.ResolvableModel;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -54,8 +54,7 @@ public class PileOfFishItemModel implements ItemModel {
                        ItemModelResolver resolver, ItemDisplayContext displayContext,
                        @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
         output.appendModelIdentityElement(this);
-        BundleContents contents = item.getOrDefault(
-                DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(item);
         List<ItemStackTemplate> templates = contents.items();
         int limit = Math.min(templates.size(), MAX_LAYERS);
 

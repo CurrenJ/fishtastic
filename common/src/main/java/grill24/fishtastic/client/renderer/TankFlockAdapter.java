@@ -5,6 +5,7 @@ import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.client.util.TankFloors;
@@ -264,7 +265,7 @@ public final class TankFlockAdapter {
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE && !changed; slot++) {
                 ItemStack s = be.getItem(slot);
                 if (!s.isEmpty()) {
-                    changed = idx >= count || !ItemStack.isSameItemSameComponents(s, stacks[idx]);
+                    changed = idx >= count || !FishtasticItemData.isSameItemSameData(s, stacks[idx]);
                     idx++;
                 }
             }
@@ -363,7 +364,7 @@ public final class TankFlockAdapter {
         int limit = Math.min(prevCount, Math.min(prevSlots.length, prevStacks.length));
         for (int i = 0; i < limit; i++) {
             if (prevSlots[i] == slot && prevStacks[i] != null
-                    && ItemStack.isSameItemSameComponents(prevStacks[i], stack)) {
+                    && FishtasticItemData.isSameItemSameData(prevStacks[i], stack)) {
                 return i;
             }
         }
@@ -569,7 +570,7 @@ public final class TankFlockAdapter {
         int limit = Math.min(groupStacks.length, Math.min(groupKeyPos.length, groupKeySlot.length));
         for (int i = 0; i < limit; i++) {
             if (groupKeyPos[i] == posKey && groupKeySlot[i] == slot
-                    && ItemStack.isSameItemSameComponents(groupStacks[i], stack)) {
+                    && FishtasticItemData.isSameItemSameData(groupStacks[i], stack)) {
                 return i;
             }
         }
@@ -592,7 +593,7 @@ public final class TankFlockAdapter {
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
-            if (idx >= snapshot.length || !ItemStack.isSameItemSameComponents(s, snapshot[idx])) return true;
+            if (idx >= snapshot.length || !FishtasticItemData.isSameItemSameData(s, snapshot[idx])) return true;
             idx++;
         }
         return idx != snapshot.length;
@@ -605,7 +606,7 @@ public final class TankFlockAdapter {
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
                 ItemStack s = member.getItem(slot);
                 if (s.isEmpty()) continue;
-                if (idx >= groupSnapshot.length || !ItemStack.isSameItemSameComponents(s, groupSnapshot[idx])) return true;
+                if (idx >= groupSnapshot.length || !FishtasticItemData.isSameItemSameData(s, groupSnapshot[idx])) return true;
                 idx++;
             }
         }

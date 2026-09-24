@@ -31,7 +31,6 @@ import grill24.fishtastic.util.MathUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -1154,7 +1153,7 @@ public class FishingMinigameManager {
      */
     private static void playBreakEffect(ServerPlayer player, ItemStack stack) {
         ServerLevel serverLevel = (ServerLevel) player.level();
-        Holder<SoundEvent> breakSound = stack.get(DataComponents.BREAK_SOUND);
+        Holder<SoundEvent> breakSound = FishtasticItemData.breakSound(stack);
         if (breakSound != null) {
             serverLevel.playSound(null, player.blockPosition(), breakSound.value(), SoundSource.PLAYERS,
                     0.8F, 0.8F + serverLevel.getRandom().nextFloat() * 0.4F);

@@ -1,6 +1,6 @@
 package grill24.fishtastic.client.util;
 
-import net.minecraft.core.component.DataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
@@ -34,7 +34,7 @@ public final class PlayerHeadItems {
      */
     public static ItemStack headStack(UUID uuid, String name) {
         ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-        head.set(DataComponents.PROFILE, resolvableProfile(uuid, name));
+        FishtasticItemData.setHeadProfile(head, resolvableProfile(uuid, name));
         return head;
     }
 

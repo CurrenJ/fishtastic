@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.client.util.FishPileIcons;
 import grill24.fishtastic.client.util.PlayerHeadItems;
@@ -25,7 +26,6 @@ import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -182,7 +182,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            playerHead.set(DataComponents.PROFILE, ResolvableProfile.createResolved(mc.player.getGameProfile()));
+            FishtasticItemData.setHeadProfile(playerHead, ResolvableProfile.createResolved(mc.player.getGameProfile()));
         }
 
         ItemTabs itemTabs = UI.itemTabs();

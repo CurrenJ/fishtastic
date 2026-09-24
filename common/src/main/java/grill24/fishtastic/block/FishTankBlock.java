@@ -21,7 +21,6 @@ import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.server.QuestTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
@@ -386,7 +385,7 @@ public class FishTankBlock extends Block implements EntityBlock {
     /** Pops just the top fish off a held Pile of Fish and adds it to the tank as display content. */
     private InteractionResult popPileTopIntoTank(Player player, BlockPos blockPos, ItemStack itemStack, FishTankBlockEntity fishTank) {
         BundleContents.Mutable contents = new BundleContents.Mutable(
-                itemStack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY));
+                FishtasticItemData.bundleContentsOrEmpty(itemStack));
         ItemStack popped = contents.removeOne();
         if (popped == null) {
             player.sendSystemMessage(Component.literal("Pile of Fish is empty"));
@@ -401,7 +400,7 @@ public class FishTankBlock extends Block implements EntityBlock {
             player.sendSystemMessage(Component.literal("Fish tank is full"));
             return InteractionResult.FAIL;
         }
-        itemStack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
+        FishtasticItemData.setBundleContents(itemStack, contents.toImmutable());
         checkTankQuests(player, target, placedStack);
         return InteractionResult.SUCCESS;
     }

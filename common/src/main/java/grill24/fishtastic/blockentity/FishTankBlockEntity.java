@@ -5,6 +5,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.TankCapacity;
@@ -857,7 +858,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Try to merge with existing stacks first
         for (int i = 0; i < items.size(); i++) {
             ItemStack existing = items.get(i);
-            if (!existing.isEmpty() && ItemStack.isSameItemSameComponents(existing, stack)) {
+            if (!existing.isEmpty() && FishtasticItemData.isSameItemSameData(existing, stack)) {
                 int maxStackSize = Math.min(getMaxStackSize(), stack.getMaxStackSize());
                 int canAdd = maxStackSize - existing.getCount();
                 if (canAdd > 0) {

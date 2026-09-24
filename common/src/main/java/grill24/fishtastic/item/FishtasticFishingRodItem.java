@@ -141,7 +141,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         if (!slot.allowModification(player)) return false;
 
         ItemStack current = getSlotItem(rod, type);
-        if (!current.isEmpty() && !ItemStack.isSameItemSameComponents(current, other)) {
+        if (!current.isEmpty() && !FishtasticItemData.isSameItemSameData(current, other)) {
             // Different item already loaded — reject unless it's a hook/charm (single-item slots)
             if (type == SlotType.HOOK || type == SlotType.CHARM) {
                 player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
@@ -178,7 +178,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         if (!slot.allowModification(player)) return false;
 
         ItemStack current = getSlotItem(rod, type);
-        if (!current.isEmpty() && !ItemStack.isSameItemSameComponents(current, other)) {
+        if (!current.isEmpty() && !FishtasticItemData.isSameItemSameData(current, other)) {
             player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
             return true;
         }

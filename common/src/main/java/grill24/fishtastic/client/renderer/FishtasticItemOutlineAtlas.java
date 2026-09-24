@@ -10,6 +10,7 @@ import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
@@ -97,7 +98,7 @@ public final class FishtasticItemOutlineAtlas {
         public boolean equals(@Nullable ItemStack a, @Nullable ItemStack b) {
             if (a == b) return true;
             if (a == null || b == null) return false;
-            return ItemStack.isSameItemSameComponents(a, b);
+            return FishtasticItemData.isSameItemSameData(a, b);
         }
     };
 

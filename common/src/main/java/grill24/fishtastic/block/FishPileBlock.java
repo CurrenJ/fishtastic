@@ -1,11 +1,11 @@
 package grill24.fishtastic.block;
 
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.item.PileOfFishItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -309,7 +309,7 @@ public class FishPileBlock extends Block implements EntityBlock {
             return null;
         }
         if (isPileItem) {
-            BundleContents contents = itemStack.get(DataComponents.BUNDLE_CONTENTS);
+            BundleContents contents = FishtasticItemData.bundleContents(itemStack);
             if (contents == null || contents.items().isEmpty()) {
                 return null;
             }
@@ -345,7 +345,7 @@ public class FishPileBlock extends Block implements EntityBlock {
      * left). Returns whether a fish was actually moved.
      */
     private static boolean takeOneFromPileItem(Player player, InteractionHand hand, ItemStack itemStack, FishPileBlockEntity pile) {
-        BundleContents contents = itemStack.get(DataComponents.BUNDLE_CONTENTS);
+        BundleContents contents = FishtasticItemData.bundleContents(itemStack);
         if (contents == null || contents.items().isEmpty()) {
             return false;
         }
@@ -361,7 +361,7 @@ public class FishPileBlock extends Block implements EntityBlock {
         } else if (remaining.items().size() == 1) {
             player.setItemInHand(hand, remaining.items().getFirst().create());
         } else {
-            itemStack.set(DataComponents.BUNDLE_CONTENTS, remaining);
+            FishtasticItemData.setBundleContents(itemStack, remaining);
         }
         return true;
     }

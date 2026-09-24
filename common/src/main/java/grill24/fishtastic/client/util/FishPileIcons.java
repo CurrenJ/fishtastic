@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.util;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.client.renderer.FishPileBlockItemModel;
@@ -49,7 +50,7 @@ public final class FishPileIcons {
             List<ItemStackTemplate> blockContents = oldestFirst.subList(from, to).stream()
                     .map(ItemStackTemplate::fromNonEmptyStack)
                     .toList();
-            pile.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(blockContents));
+            FishtasticItemData.setBundleContents(pile, new BundleContents(blockContents));
             pile.set(DataComponents.ITEM_MODEL, PILE_BLOCK_ITEM_MODEL);
             piles.add(pile);
         }

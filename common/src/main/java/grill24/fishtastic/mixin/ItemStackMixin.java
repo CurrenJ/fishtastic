@@ -6,9 +6,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -26,8 +24,7 @@ public abstract class ItemStackMixin {
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
-        TooltipDisplay tooltipDisplay = itemStack.get(DataComponents.TOOLTIP_DISPLAY);
-        boolean tooltipHidden = tooltipDisplay != null && tooltipDisplay.hideTooltip();
+        boolean tooltipHidden = FishtasticItemData.isTooltipHidden(itemStack);
         if (player == null || player.isCreative() || !tooltipHidden) {
             List<Component> tooltipLines = cir.getReturnValue();
 

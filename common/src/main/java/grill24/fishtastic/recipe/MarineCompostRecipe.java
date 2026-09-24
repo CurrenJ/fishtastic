@@ -2,12 +2,12 @@ package grill24.fishtastic.recipe;
 
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.util.FishQualityHelper;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.tags.ItemTags;
@@ -96,7 +96,7 @@ public class MarineCompostRecipe extends CustomRecipe {
             ItemStack stack = input.getItem(i);
             if (pileTopFish(stack) == null) continue;
 
-            BundleContents.Mutable contents = new BundleContents.Mutable(stack.get(DataComponents.BUNDLE_CONTENTS));
+            BundleContents.Mutable contents = new BundleContents.Mutable(FishtasticItemData.bundleContents(stack));
             contents.removeOne();
             BundleContents remaining = contents.toImmutable();
 
@@ -106,7 +106,7 @@ public class MarineCompostRecipe extends CustomRecipe {
                 result.set(i, remaining.items().getFirst().create());
             } else {
                 ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-                newPile.set(DataComponents.BUNDLE_CONTENTS, remaining);
+                FishtasticItemData.setBundleContents(newPile, remaining);
                 result.set(i, newPile);
             }
             break;
@@ -124,7 +124,7 @@ public class MarineCompostRecipe extends CustomRecipe {
     private static ItemStack pileTopFish(ItemStack stack) {
         if (!(stack.getItem() instanceof PileOfFishItem)) return null;
 
-        BundleContents contents = stack.get(DataComponents.BUNDLE_CONTENTS);
+        BundleContents contents = FishtasticItemData.bundleContents(stack);
         if (contents == null || contents.items().isEmpty()) return null;
 
         ItemStack top = contents.items().getFirst().create();
