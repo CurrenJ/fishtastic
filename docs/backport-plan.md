@@ -1,9 +1,9 @@
 # Backport Plan: Fishtastic 2.0 → MC 1.21.1 and MC 1.20.1
 
-> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. All decisions D1–D7 settled (§10). Next: S3 and S1 on `26.1.2`.
+> **Status:** Pass 1, the broad-strokes outline (2026-09-24). A-SPIKE passed. All decisions D1–D7 settled (§10). S3 and S1 landed on `26.1.2` (A0.3 baseline below). Next: pass 2 (§12).
 > **Pass 2** will turn each phase below into a step-by-step implementation plan. Work item IDs
 > (`A1.3`, `B2.1`, …) are stable so pass 2 can refer to them.
-> **Baseline:** branch `26.1.2` @ `7076aeb6` (Fishtastic 2.0.1, MC 26.1.2).
+> **Baseline (A0.3, frozen 2026-09-24):** branch `26.1.2` @ `298279e1` (Fishtastic 2.0.1 + seams S3 and S1, MC 26.1.2). Pass 1 surveyed `7076aeb6`, its parent before the seams.
 
 ---
 
@@ -172,7 +172,7 @@ Approach: create `mc-1.21.1` from `26.1.2` HEAD. Restore the 1.21.1 build scaffo
 ### A0: Decisions and scope (before any code)
 - **A0.1** ~~Settle decisions D1 to D6 (§10).~~ All settled 2026-09-24.
 - **A0.2** Cut list (decided, D1): **`mcp/`** (the retired MCP bridge) and the **cool-cam compat** (`fabric/compat/coolcam`, used only to capture promo videos on 26.1.2). Everything else ships on every version: `examples/`, `TestItem`, all debug, authoring and admin commands, and the leaderboard podium (which means porting gelatin-ui's posed-player rendering).
-- **A0.3** Freeze the feature baseline: the `26.1.2` commit that lands S1 and S3 (D5). `port/1.21.1` rebases onto it. Record it so later forward-port diffs have a fixed base.
+- **A0.3** ~~Freeze the feature baseline: the `26.1.2` commit that lands S1 and S3 (D5).~~ Done 2026-09-24: **`298279e1`** on `26.1.2`. `port/1.21.1` is rebased onto it. Forward-port ranges start from this commit ("ported through `298279e1`").
 
 ### A1: Build scaffolding (gate: an empty mod loads on both loaders)
 - **A1.1** Switch the root, common, fabric and neoforge Gradle files from `loom-no-remap` to the remapping Architectury Loom with mojmap. Use the Java 21 toolchain, `JAVA_21` mixin configs, and the `named` access-widener header. Reference: `44064cc5` and potions-plus `mc-1.21.1`.
@@ -272,8 +272,24 @@ Each item is a re-implementation on the immediate-mode API, not a port.
 Small refactors on the **primary** branch before the backport branches split. Each one shrinks the permanent diff between branches, and so the cost of every future forward-port. Decision D5 is whether to do these.
 
 - **S1: Item data accessor.** Route every `stack.get/set/has(FishtasticDataComponents.X)` and the vanilla `DataComponents.*` reads the mod depends on through the existing helpers (`FishQualityHelper`, `ItemSizeHelper`, …) or a thin `FishtasticItemData` facade. On 1.20.1, only that facade gets an NBT implementation.
+  **Done 2026-09-24** (`a697edc8`..`298279e1`, 4 commits). `common/.../FishtasticItemData` is now the only place that calls `ItemStack#get/getOrDefault/has/set/remove`, `applyComponents` or `isSameItemSameComponents` (154 call sites in 47 files, including the shared gametests and the platform tank item models). Its shape:
+  - **Fishtastic components:** generic `get/getOrDefault/has/set/remove(stack, FishtasticDataComponents.X)`. Call sites pass the field itself, not `.value()`. For B2.1, the 1.20.1 `FishtasticDataComponents` fields become `ComponentKey<T>` (codec + NBT name) with the same names, and the facade's parameter type changes. Callers don't change.
+  - **Vanilla data:** `bundleContents`/`bundleContentsOrEmpty`/`setBundleContents`, `setHeadProfile`, `isTooltipHidden`, `breakSound`, `isSameItemSameData`.
+  - **By id and patch:** `hasById`/`encodeById` (item-effect conditions), `id(component)`, `applyPatch`/`patchValue` (quest and shop rewards, tank-shape unlocks).
+  - `FishQualityHelper` and `ItemSizeHelper` keep their API and sit on top of the facade.
+
+  **Left in place as inherently version-specific (pass 2 must plan each):**
+  1. Component type registration: `FishtasticDataComponents.registerDataComponents`, `IRegistrationApi.registerDataComponent`, the Fabric and NeoForge registration APIs, and the `DATA_COMPONENT_TYPES` DeferredRegister. Plus the `CODEC`/`STREAM_CODEC` on the 9 component records and `HAS_ALERT`'s unit codec.
+  2. `Item.Properties.component(...)` defaults in `FishtasticItems`: 26 of them (rod contents, bait/hook/charm effects, and the pile's `BUNDLE_CONTENTS`). On 1.20.1 these become default-NBT (`getDefaultInstance`) or facade fallbacks.
+  3. The fish tank BE's implicit-component hooks (`FishTankBlockEntity.collectImplicitComponents`/`applyImplicitComponents`, which take `DataComponentMap.Builder`/`DataComponentGetter`). On 1.20.1 this is `BlockEntityTag`.
+  4. Tooltip providers: `addToTooltip(..., DataComponentGetter)` on `ItemSize`, `FishQuality` and `FishTankShape` (the 1.21.5 `TooltipProvider` signature). They're called from `ItemStackMixin`.
+  5. Reward data format: `QuestReward.RewardItem` and `ShopEntry.ShopReward` carry a `DataComponentPatch` (field + codec). On 1.20.1 that's an NBT `CompoundTag`, and `applyPatch`/`patchValue` change parameter type with it.
+  6. Fabric datagen: `DailyQuestFamily` (patch builder), `FishtasticBlockLootTableProvider` (`CopyComponentsFunction.include`), `FishtasticModelProvider` (`HasComponent` item-model condition).
+  7. Client: `FishPileIcons` sets `DataComponents.ITEM_MODEL` (1.21.2+ client items). A5 replaces it.
+  8. Facade signatures that name types missing on older versions: `BundleContents` (plus `BundleContents.Mutable`, used directly in 11 files for the pile logic; 1.20.1 needs a small `BundleContents` port), `ResolvableProfile` (`setHeadProfile`, and `PlayerHeadItems.resolvableProfile` for the podium), `TooltipDisplay` (1.21.1 `HIDE_TOOLTIP`, 1.20.1 `HideFlags`), and `BREAK_SOUND` (1.21.5+; older versions use `SoundEvents.ITEM_BREAK`).
 - **S2: Packet codec locality.** Each payload keeps its codec definition in one place (it mostly does now), so the 1.20.1 buffer shim swaps one layer.
 - **S3: Pin `fishsim` and `tools:tank-shape-gen` to `--release 17`** and replace the handful of Java 21 library calls there. These modules ship in the mod jar and feed datagen. Kept at 17, they are **one shared source across all three versions**: no branch-specific fishsim, and fishsim fixes merge cleanly everywhere.
+  **Done 2026-09-24** (`7b8945b5`). `options.release = 17` is set on every JavaCompile task (main and test) in both modules. The toolchains are unchanged (25 and 21), and the class files are major version 61. The compiler found only 8 Java 21 calls, all `List.getFirst()/getLast()`. Behaviour is byte-identical: same test counts (fishsim 163 + 1 skipped, tank-shape-gen 21,955 including the STANDARD gate), and a headless fishsim export (L, 12 fish, seed 42, 3000 ticks) produces identical CSV, PNGs and GIF.
 - **S4: Keep rendering logic apart from rendering output.** Where it's cheap (swarm, animation, bubble emission), keep the "compute what to draw" code apart from the "emit vertices" code, so the backport rewrites only the output code.
 
 ---
@@ -288,7 +304,7 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 
 ### B1: Build scaffolding (gate: an empty mod loads on Fabric and Forge)
 - **B1.1** Java 17 toolchain, `JAVA_17` mixins, a Loom line that supports 1.20.1, and the `neoforge/` module becomes `forge/` (Architectury `forge()` platform, `mods.toml` instead of `neoforge.mods.toml`). Fabric API 0.92.x and JEI 15.x.
-- **B1.2** Java 17 source audit: about 48 `getFirst`/`getLast`/`reversed`/`removeFirst`/`Math.clamp` sites in common and platform code. With S3 done, `fishsim` and `tank-shape-gen` need nothing.
+- **B1.2** Java 17 source audit: about 48 `getFirst`/`getLast`/`reversed`/`removeFirst`/`Math.clamp` sites in common and platform code. S3 is done, so `fishsim` and `tank-shape-gen` need nothing (they are `--release 17` on every branch).
 
 ### B2: Item data: components → NBT
 - **B2.1** 1.20.1 shim (P5): a `ComponentKey<T>` that pairs a `Codec<T>` with an NBT key under the item's tag, with `get`/`set`/`has`/`remove` helpers that look like the component API. Call sites through S1 stay the same.
