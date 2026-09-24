@@ -17,6 +17,9 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = 'UTF-8'
+    // Backport seam S3 (docs/backport-plan.md §8): one shared source for MC 26.1.2, 1.21.1 and
+    // 1.20.1 (Java 17). The toolchain stays on 25; --release pins the language level and API.
+    it.options.release = 17
 }
 
 repositories {

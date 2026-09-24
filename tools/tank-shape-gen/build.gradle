@@ -1,3 +1,10 @@
+// Backport seam S3 (docs/backport-plan.md §8): fabric datagen consumes this module on every MC
+// version, down to 1.20.1 (Java 17), so it stays one shared source. The toolchain (21, from the
+// root tools/* block) is unchanged; --release pins the language level and API.
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+}
+
 dependencies {
     api 'com.google.code.gson:gson:2.11.0'
 

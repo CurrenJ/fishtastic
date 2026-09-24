@@ -81,11 +81,11 @@ public final class ArchTankSpans {
 
     /** The jamb width of the row nearest the floor ({@code ROWS}' last entry) — the edge-diagonal
      * frame beam's width for a {@code DOWN} edge (see {@code ArchFrameGeometryGenerator#generateEdgeFragment}). */
-    public static final int NEAR_FLOOR_JAMB_WIDTH = ROWS.getLast().jambWidth();
+    public static final int NEAR_FLOOR_JAMB_WIDTH = ROWS.get(ROWS.size() - 1).jambWidth();
 
     /** The jamb width of the row nearest the ceiling ({@code ROWS}' first entry) — the edge-diagonal
      * frame beam's width for an {@code UP} edge. */
-    public static final int NEAR_CEILING_JAMB_WIDTH = ROWS.getFirst().jambWidth();
+    public static final int NEAR_CEILING_JAMB_WIDTH = ROWS.get(0).jambWidth();
 
     private ArchTankSpans() {}
 
@@ -174,8 +174,8 @@ public final class ArchTankSpans {
 
         List<int[]> merged = new ArrayList<>();
         for (int[] span : spans) {
-            if (!merged.isEmpty() && span[0] <= merged.getLast()[1]) {
-                merged.getLast()[1] = Math.max(merged.getLast()[1], span[1]);
+            if (!merged.isEmpty() && span[0] <= merged.get(merged.size() - 1)[1]) {
+                merged.get(merged.size() - 1)[1] = Math.max(merged.get(merged.size() - 1)[1], span[1]);
             } else {
                 merged.add(new int[]{span[0], span[1]});
             }
@@ -187,7 +187,7 @@ public final class ArchTankSpans {
     private static List<Band> mergeAdjacent(List<Band> bands) {
         List<Band> merged = new ArrayList<>();
         for (Band band : bands) {
-            Band previous = merged.isEmpty() ? null : merged.getLast();
+            Band previous = merged.isEmpty() ? null : merged.get(merged.size() - 1);
             if (previous != null && previous.yFrom() == band.yTo() && sameSpans(previous.spans(), band.spans())) {
                 merged.set(merged.size() - 1, new Band(band.yFrom(), previous.yTo(), previous.spans()));
             } else {

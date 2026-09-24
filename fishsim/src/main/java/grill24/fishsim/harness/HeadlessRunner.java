@@ -146,8 +146,8 @@ public final class HeadlessRunner {
     }
 
     private static BufferedImage strip(java.util.List<BufferedImage> frames) {
-        int w = frames.getFirst().getWidth();
-        int h = frames.getFirst().getHeight();
+        int w = frames.get(0).getWidth();
+        int h = frames.get(0).getHeight();
         BufferedImage out = new BufferedImage(w * frames.size(), h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = out.createGraphics();
         try {
