@@ -9,7 +9,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`33986055`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); A5 done (A5.0-A5.7; gate G1 pending); hook stage `unit`. Also carries `26.1.2` `7839f271` (cherry-picked as `e33f5792`); the marker moves past it at G1. |
+| `port/1.21.1` | **`33986055`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); A5 done (A5.0-A5.7); G1 in progress (base half green 2026-09-24 — Iris, `:common:test` and fishsim parity still open); hook stage `unit`. Also carries `26.1.2` `7839f271` (cherry-picked as `e33f5792`); the marker moves past it at G1. |
 | `port/1.20.1` | **`33986055`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
@@ -134,7 +134,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | A5.4b | Outline atlas + GUI outline + world outline (spike code; findings F2–F5) | [x] | A5 checkpoint 5 | Two `TextureTarget`s, LRU slots, bake at `GameRenderer.render` HEAD; the GUI ring is blitted from that atlas through `GuiGraphicsMixin` (1.21.1 has no vanilla GUI item atlas to sample), and the world outline draws after `ItemRenderer.render`'s `-0.5` translate, over `ITEM_ENTITY_TARGET` (F4, Fabulous). |
 | A5.4c | GUI shader effects (silhouette, black outline, texture outline) | [x] | A5 checkpoint 5 | Two `ShaderInstance` programs (`gui_item_silhouette`, `gui_texture_outline`) with plain uniforms per draw. The black gear ring needs no program of its own: `FishtasticOutlineStyle.BLACK`, baked into the same atlas. **Deviation:** `outline_debug_uv` is not ported — its codec field parses, nothing reads it, no shipped effect sets it. |
 | A5.7 | `IrisCompat` no-op; `LevelRendererMixin` deleted; HUD layers above vanilla toasts (owner decision 2026-09-24); cosmetic-capture gizmos | [x] | A5 checkpoints 5–6 | All three port-only items back and the three `port/excludes.txt` lines dropped. The gizmos are a world-render pass on both loaders; the HUD layers draw after vanilla's toasts through a `GameRendererMixin` inject, only while no screen is open. **A4's premise for that decision was wrong** — 26.1.2's toasts cover its HUD too (see track A5, A5.7). |
-| G1 | Spike criteria on production code, both loaders, + Fabulous, GUI scales 1/2/4, Iris on NeoForge, 512-tank stress | [ ] | | |
+| G1 | Spike criteria on production code, both loaders, + Fabulous, GUI scales 1/2/4, Iris on NeoForge, 512-tank stress | [ ] | | **Base half green 2026-09-24** (all 11 scenes, fixed 1600x900 window): NeoForge 21.1.209 34 checks / Fabric API 0.116.7 34 checks, 0 FAIL on each, 0 `Unable to load model`, 0 exceptions; 46 shots per loader. 26 curated shots per loader under `docs/port-evidence/1.21.1/`. Still open: Iris on NeoForge, `:common:test`, fishsim parity against `26.1.2`. |
 
 ### A6: Gametests and verification (gate G2, then hook stage → `full`)
 | ID | Item | Status | Commit |

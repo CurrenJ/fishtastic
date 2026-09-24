@@ -301,3 +301,29 @@ Written as each checkpoint lands. Where this section and the design above disagr
 | Spike criteria 1–4 on production code, both loaders | self-test harness (marker file `run/fishtastic_render_selftest`: stage scenes, dump framebuffers with alpha, quit) | pass. Evidence PNGs committed under `docs/port-evidence/1.21.1/` |
 | New checks: Fabulous, GUI scales 1/2/4, Iris on NeoForge, the 512-tank stress case | same harness | pass |
 | Behaviour parity | fishsim headless export | byte-identical to 26.1.2 (R4). Presentation differences are for the owner's A6.3 look. |
+
+### G1: the base half, as recorded (2026-09-24)
+
+The harness run for the gate, `run/fishtastic_render_selftest` holding all 11 scenes and both
+loaders launched from the fixed 1600x900 window (`ad751bed`): **NeoForge 21.1.209 and Fabric API
+0.116.7, 34 checks each**, 0 FAIL on each, 0 `Unable to load model`, 0 exceptions, and 46 shots
+per loader. Evidence: 26 curated shots per loader in `docs/port-evidence/1.21.1/`, one per claim
+in the table above.
+
+All 34 are state assertions rather than pixel comparisons: the shots carry the visual claim, the
+checks carry the mechanism (the composite model assembling, a group's faces resolving, the three
+GUI scales taking effect, the toast-pass counter's two readings). The spike's own criteria 1–3b are
+read off the shots instead — 1 (a custom quality glint on a held item) in `held`/`items`, 2a (the
+static GUI outline) in `outline-inventory` and `items-inventory`, 2b (the animated pinwheel) by
+comparing the two atlas dumps `outline-atlas_outline_a` and `outline-atlas_outline_b`, which the
+scene takes ten ticks apart, and 3a/3b (the world outline on dropped item entities and on item
+frames) in `outline-ground`, `outline-frames_a` and `outline-frames_close`. Criterion 4 — all of
+it under a shaderpack — is the Iris item below.
+
+Still open before G1 ticks, and why the row above stays `[ ]`:
+
+- **Iris on NeoForge.** The jars are staged rather than resolved (`build/iris-mods/`,
+  `run/mods/`) because the Modrinth maven endpoint 404s (see the `ad751bed` message); the
+  scenes are `tank` and `outline`, which is where a shaderpack would bite.
+- **`gw :common:test`** for the 78-test row.
+- **fishsim headless export** on this branch against a `26.1.2` baseline (byte-identical, R4).
