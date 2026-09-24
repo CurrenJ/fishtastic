@@ -285,19 +285,29 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
             // -----------------------------------------------------------------
 
             private void buildBookRecipes(HolderGetter<Item> items) {
-                // Fishopedia: a book gilded with gold to bind the encyclopedia
-                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FISHOPEDIA.value())
-                        .requires(Items.BOOK)
-                        .requires(Items.GOLD_INGOT)
-                        .unlockedBy("has_book", has(Items.BOOK))
-                        .save(this.output);
-
                 // Quest Book: a book pressed with any fish to bind the quest log
                 ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.QUEST_BOOK.value())
                         .requires(Items.BOOK)
                         .requires(grill24.fishtastic.FishtasticItemTags.FISH)
                         .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                         .save(this.output);
+
+                // Once a Quest Book exists, the three books cycle into each other one at a time:
+                // Quest Book -> Fishopedia -> Leaderboards Book -> Quest Book.
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.FISHOPEDIA.value())
+                        .requires(FishtasticItems.QUEST_BOOK.value())
+                        .unlockedBy("has_quest_book", has(FishtasticItems.QUEST_BOOK.value()))
+                        .save(this.output);
+
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.LEADERBOARDS_BOOK.value())
+                        .requires(FishtasticItems.FISHOPEDIA.value())
+                        .unlockedBy("has_fishopedia", has(FishtasticItems.FISHOPEDIA.value()))
+                        .save(this.output);
+
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.QUEST_BOOK.value())
+                        .requires(FishtasticItems.LEADERBOARDS_BOOK.value())
+                        .unlockedBy("has_leaderboards_book", has(FishtasticItems.LEADERBOARDS_BOOK.value()))
+                        .save(this.output, "quest_book_from_leaderboards_book");
             }
 
         };
