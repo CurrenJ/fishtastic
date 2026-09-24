@@ -22,6 +22,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -110,10 +111,17 @@ public class FishtasticJeiPlugin implements IModPlugin {
         registration.addGuiScreenHandler(LeaderboardScreen.class, FishtasticJeiPlugin::fullScreenGui);
     }
 
-    /** {@link IGuiProperties} claiming the whole screen, leaving JEI nowhere to draw. */
-    private static IGuiProperties fullScreenGui(Screen screen) {
+    /**
+     * {@link IGuiProperties} claiming the whole screen, leaving JEI nowhere to draw. Null while
+     * the screen hasn't been sized yet: JEI can ask before {@code Screen.init}, validates what it
+     * gets immediately and logs an error for zero sizes, and re-asks every frame anyway.
+     */
+    private static @Nullable IGuiProperties fullScreenGui(Screen screen) {
         int width = screen.width;
         int height = screen.height;
+        if (width <= 0 || height <= 0) {
+            return null;
+        }
         return new IGuiProperties() {
             @Override
             public Class<? extends Screen> screenClass() {
