@@ -124,3 +124,6 @@ debug/**
 CLAUDE.md
 .claude/
 /wiki/
+
+# per-worktree JDK for the pre-commit hook (machine-specific)
+/scripts/git-hooks/local-java-home

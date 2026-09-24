@@ -1,20 +1,80 @@
 #!/bin/sh
-# Blocks the commit if the common unit tests or either loader's game tests fail.
+# Backport-branch pre-commit hook. Checks scale with how far the port has got.
+#
+# Stage: the first word of scripts/git-hooks/port-stage (tracked, raised as gates pass):
+#   none     - no checks (A1 scaffolding, before anything compiles)
+#   compile  - compile every module                                  (A1 gate onwards)
+#   unit     - compile + common and tank-shape-gen unit tests        (A2 gate onwards)
+#   full     - unit + Fabric game tests, as on the primary branch    (A6.1 onwards)
+#
+# JDK: ~/.gradle/gradle.properties pins the primary branch's JDK. If the untracked,
+# gitignored file scripts/git-hooks/local-java-home exists, its first line is passed to
+# Gradle as org.gradle.java.home (e.g. C:\Program Files\Java\jdk-21).
+
+HOOK_DIR="scripts/git-hooks"
+STAGE=$(head -n 1 "$HOOK_DIR/port-stage" 2>/dev/null | tr -d '\015' | awk '{print $1}')
+STAGE=${STAGE:-full}
+
+GRADLE_ARGS=""
+if [ -f "$HOOK_DIR/local-java-home" ]; then
+    JAVA_HOME_OVERRIDE=$(head -n 1 "$HOOK_DIR/local-java-home" | tr -d '\015')
+    GRADLE_ARGS="-Dorg.gradle.java.home=$JAVA_HOME_OVERRIDE"
+fi
+
+gradle() {
+    if [ -n "$GRADLE_ARGS" ]; then
+        ./gradlew "$GRADLE_ARGS" "$@"
+    else
+        ./gradlew "$@"
+    fi
+}
+
+echo ""
+echo "=== Pre-commit: port stage '$STAGE' ==="
+
+case "$STAGE" in
+    none)
+        echo "Checks skipped (port stage 'none')."
+        exit 0
+        ;;
+    compile|unit|full) ;;
+    *)
+        echo "COMMIT BLOCKED: unknown port stage '$STAGE' in $HOOK_DIR/port-stage."
+        exit 1
+        ;;
+esac
+
+if [ "$STAGE" = "compile" ]; then
+    if ! gradle classes testClasses; then
+        echo ""
+        echo "COMMIT BLOCKED: compilation failed."
+        exit 1
+    fi
+    echo ""
+    echo "Compiled (port stage 'compile'; tests not run)."
+    exit 0
+fi
 
 echo ""
 echo "=== Pre-commit: running unit tests ==="
 
-if ! ./gradlew :common:test :tools:tank-shape-gen:test; then
+if ! gradle :common:test :tools:tank-shape-gen:test; then
     echo ""
     echo "COMMIT BLOCKED: unit tests failed."
     exit 1
+fi
+
+if [ "$STAGE" = "unit" ]; then
+    echo ""
+    echo "Unit tests passed (port stage 'unit'; game tests not run)."
+    exit 0
 fi
 
 echo ""
 echo "=== Pre-commit: running game tests ==="
 
 echo "--- Fabric ---"
-if ! ./gradlew :fabric:runGametest; then
+if ! gradle :fabric:runGametest; then
     echo ""
     echo "COMMIT BLOCKED: Fabric game tests failed."
     exit 1

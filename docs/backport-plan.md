@@ -115,14 +115,16 @@ Created: `D:\GitHub\fishtastic-worktrees\` (empty for now). This is the same con
 ```
 D:\GitHub\fishtastic                     ← branch 26.1.2 (primary; stays the source of truth)
 D:\GitHub\fishtastic-worktrees\
-    mc-1.21.1\                           ← git worktree, branch 1.21.1
-    mc-1.20.1\                           ← git worktree, branch 1.20.1 (created later, branched off 1.21.1)
+    mc-1.21.1\                           ← git worktree, branch port/1.21.1
+    mc-1.20.1\                           ← git worktree, branch port/1.20.1 (created later, branched off port/1.21.1)
     build-all.ps1                        ← adapted from apt-ores: build every version, collect jars into dist\
     dist\  logs\
 ```
 
-- Branch names follow the existing `26.1.2` pattern (`1.21.1`, `1.20.1`). Feature branches follow the existing `feature/<mc>/<name>` pattern.
-- Git hooks come from the tracked `scripts/git-hooks` (`core.hooksPath`), so each branch runs its **own** pre-commit script. The Fabric `runGametest` step has to exist on each branch before committing gets comfortable. The existing NeoForge-hang caveat carries over.
+- Backport branches are `port/1.21.1` and `port/1.20.1` (the primary stays `26.1.2`). Feature branches follow the existing `feature/<mc>/<name>` pattern.
+- Git hooks come from the tracked `scripts/git-hooks` (`core.hooksPath`), so each branch runs its **own** pre-commit script. The existing NeoForge-hang caveat carries over.
+- **Hook policy on port branches.** The port branch's `pre-commit` reads a tracked stage from `scripts/git-hooks/port-stage` and raises its checks as gates pass: `none` (A1, before anything compiles) → `compile` (A1 gate) → `unit` (A2 gate: `:common:test`, `:tools:tank-shape-gen:test`) → `full` (A6.1: plus Fabric gametests, as on the primary). Raising the stage is part of each gate's commit. No `--no-verify`.
+- **JDK per worktree.** `~/.gradle/gradle.properties` pins JDK 25 for the primary. Each port worktree has an untracked, gitignored `scripts/git-hooks/local-java-home` (JDK 21 for `port/1.21.1`, JDK 17 for `port/1.20.1`) that the hook passes to Gradle as `org.gradle.java.home`. Manual Gradle runs in a port worktree need the same `-Dorg.gradle.java.home=…`.
 - `.github/workflows/*` hard-code JDK 25. Each backport branch needs its own JDK and version matrix.
 - The 1.21.1 and 1.20.1 worktrees each need `genSources`, which gives local decompiled vanilla to check against, like the 26.1.2 source the guide already has.
 
@@ -205,6 +207,11 @@ Mostly mechanical. The migration commit (`06329830`) covers most of the patterns
 
 ### A-SPIKE: Rendering feasibility spike (do this first, in parallel with A1 and A2)
 
+> **Result (2026-09-24): PASS.** Every exit criterion passed on Fabric and NeoForge, and under Iris + Complementary
+> Reimagined on Fabric. The combined bake-atlas design works, and D7 is resolved: **no degraded GUI outline is needed.**
+> The full report, evidence and findings are in `docs/spike-1.21.1-rendering.md` on branch `spike/1.21.1-rendering` (commit `d3ded9da`).
+> Still open from the spike: Fabulous graphics, Iris on NeoForge, and the Fabric FRAPI tank model.
+
 **This is the biggest unknown in the whole backport.** Do it before committing to the A-track schedule. It needs only the A1 scaffold, and can even run in a throwaway 1.21.1 dev environment.
 
 Why this is the biggest unknown, and not just the biggest job: every hook the quality-effect system uses is a 26.1-era API. All 11 steps of the migration checklist in `docs/item-effect-rendering.md` point at code that **doesn't exist in 1.21.1**:
@@ -244,7 +251,7 @@ Each item is a re-implementation on the immediate-mode API, not a port.
 - **A6.1** Port the shared testmod suites (25 files) and both platform harnesses from 26.1 data-driven test instances to 1.21.1 `@GameTest` registration. Carry over the structure providers.
 - **A6.2** Green on: build, unit tests, Fabric gametests, NeoForge gametests (backgrounded, because of the hang caveat), and datagen producing no diff.
 - **A6.3** In-game playtest on both loaders, by the owner, against a checklist taken from the 2.0 feature list: minigame, all rods, bait, hooks and charms, tanks (every shape and cosmetic, swarm behaviour, bubbles), quests, shop, encyclopedia, leaderboards, compost, organizer and backups.
-- **A6.4 → G2.** Cut the `1.20.1` branch from here.
+- **A6.4 → G2.** Cut the `port/1.20.1` branch from here.
 
 ### A7: Release 1.21.1
 - **A7.1** Changelog, CurseForge publish (the `publishCurseForge` game-version tags), and a CI workflow on JDK 21.
@@ -273,7 +280,7 @@ Small refactors on the **primary** branch before the backport branches split. Ea
 
 ## 9. Phase plan: 1.21.1 → 1.20.1 (track B)
 
-Approach: create `mc-1.20.1` from the `1.21.1` branch at G2. Rendering carries over nearly as-is. The work is in the data, networking and loader layers.
+Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carries over nearly as-is. The work is in the data, networking and loader layers.
 
 ### B0: Decisions
 - **B0.1** Loader set (D2): Fabric + **Forge 47.x**. NeoForge 1.20.1 (47.1) loads Forge mods, so a separate NeoForge 1.20.1 jar isn't needed.
@@ -321,7 +328,7 @@ Approach: create `mc-1.20.1` from the `1.21.1` branch at G2. Rendering carries o
 | **D3** | Sequential or parallel | **Sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Not supported**: document it. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Yes for S3** (cheap, and fishsim stays one shared source). **S1 is worth it if 1.20.1 is a real target.** S2 and S4 when convenient. |
-| **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | Decide at the spike exit, not before. Leaning towards simplified-if-needed, since glint and world outlines carry most of the quality feel. |
+| **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
 | **D6** | Versioning and release cadence | Same mod version across MC versions (`2.0.x+<mc>`). Backports release on the owner's cadence and may trail the primary by some features. |
 
 ---
@@ -330,7 +337,7 @@ Approach: create `mc-1.20.1` from the `1.21.1` branch at G2. Rendering carries o
 
 | # | Risk or question | Mitigation |
 |---|---|---|
-| R1 | **The biggest what-if.** The item-effect rendering (quality outlines, pinwheel shader, outline atlas) is built on 26.1-only GPU and GUI abstractions (`RenderPipeline`, `GpuBuffer` UBOs, `GuiItemAtlas`, `GuiRenderer`, the submit pipeline). All 11 migration-checklist hook points are missing in 1.21.1, and the GUI outline's *source texture* (vanilla's GUI item atlas) doesn't exist before 1.21.6. | **A-SPIKE**, run first: combine GUI and world outlines on the Fishtastic-owned bake atlas. Fallback: D7, a degraded GUI outline on backports. |
+| R1 | **(Mitigated by A-SPIKE, 2026-09-24.)** **The biggest what-if.** The item-effect rendering (quality outlines, pinwheel shader, outline atlas) is built on 26.1-only GPU and GUI abstractions (`RenderPipeline`, `GpuBuffer` UBOs, `GuiItemAtlas`, `GuiRenderer`, the submit pipeline). All 11 migration-checklist hook points are missing in 1.21.1, and the GUI outline's *source texture* (vanilla's GUI item atlas) doesn't exist before 1.21.6. | **A-SPIKE**, run first: combine GUI and world outlines on the Fishtastic-owned bake atlas. Fallback: D7, a degraded GUI outline on backports. |
 | R2 | The **tank dynamic model** relies on 26.1 `BlockStateModel` semantics, including the fragment-loader contract and diagonal connections. | The 1.21.1 ancestor had a working `BakedModel` tank (simpler at the time). `docs/fish-tank-rendering.md` lists the per-platform pitfalls. |
 | R3 | gelatin-ui catch-up is larger than expected, because the 34 commits include render-state-coupled features. | Start P1 immediately. It's the only item on the critical path from day one. |
 | R4 | **Visual regressions** can't be caught headlessly. Swarm feel, render calibration, squash-and-stretch and bubbles were all accepted in game on 26.1.2. | Keep fishsim byte-identical (S3), so behaviour stays the same and only presentation can drift. Use the `:fishsim` headless export and viewer to check behaviour parity. Only presentation needs the owner's in-game check. |
