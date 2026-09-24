@@ -51,7 +51,8 @@ public final class FishermanPoseDebug {
       * than in either mixin, since calling one mixin's members from another isn't reliable (mixin
       * classes get merged into their targets and aren't dependably invokable as themselves). */
     public static boolean shouldPose(EntityType<?> entityType) {
-        return entityType == EntityType.MANNEQUIN || (enabledInWorld && entityType == EntityType.PLAYER);
+        // No mannequins before 1.21.9; 26.1.2 also matches EntityType.MANNEQUIN here.
+        return enabledInWorld && entityType == EntityType.PLAYER;
     }
 
     public static String describe() {

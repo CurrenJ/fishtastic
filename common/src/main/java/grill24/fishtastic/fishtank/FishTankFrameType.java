@@ -3,7 +3,7 @@ package grill24.fishtastic.fishtank;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
@@ -19,7 +19,7 @@ public record FishTankFrameType(TagKey<Block> blockTag) {
     /**
      * Returns the fish tank frame type's registry name.
      */
-    public Identifier getRegistryName() {
+    public ResourceLocation getRegistryName() {
         return RegistrationApiSided.getInstance().fishTankFrameTypes().getKey(this);
     }
 

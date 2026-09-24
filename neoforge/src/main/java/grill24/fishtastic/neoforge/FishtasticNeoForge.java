@@ -101,6 +101,7 @@ public final class FishtasticNeoForge {
             if (event.getPlayer() == null) return;
             QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(event.getPlayer());
+            grill24.fishtastic.server.SunsetExtensionHandler.onPlayerJoin(event.getPlayer());
         });
 
         // Register network packets
@@ -116,8 +117,8 @@ public final class FishtasticNeoForge {
         FishtasticConfig.register(container);
 
         // Generate game test structure files (./gradlew :neoforge:runData)
-        modEventBus.addListener((net.neoforged.neoforge.data.event.GatherDataEvent.Server event) -> {
-            event.getGenerator().addProvider(true,
+        modEventBus.addListener((net.neoforged.neoforge.data.event.GatherDataEvent event) -> {
+            event.getGenerator().addProvider(event.includeServer(),
                 new grill24.fishtastic.neoforge.datagen.GameTestStructureProvider(event.getGenerator().getPackOutput()));
         });
     }

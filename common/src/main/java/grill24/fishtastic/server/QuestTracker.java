@@ -17,7 +17,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -46,13 +46,13 @@ public class QuestTracker {
     public static void onCatch(MinecraftServer server, ServerPlayer player,
             ItemStack caughtStack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
-            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
+            Set<FishProfile.Zone> zones, ResourceLocation usedBaitId) {
 
         if (caughtStack.isEmpty()) return;
 
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }
@@ -63,7 +63,7 @@ public class QuestTracker {
         long currentDay = server.overworld().getGameTime() / 24000L;
         Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
 
-        Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        Map<ResourceLocation, ItemStack> triggeringItems = new HashMap<>();
 
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
             ResourceKey<Quest> questKey = entry.getKey();
@@ -99,7 +99,7 @@ public class QuestTracker {
                 } else if (quest.objective().distinctBaitTag().isPresent()) {
                     state.incrementDistinctSpecies(questKey, targetCount, currentDay, usedBaitId);
                 } else if (quest.objective().distinctSpecies()) {
-                    Identifier caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
+                    ResourceLocation caughtId = BuiltInRegistries.ITEM.getKey(caughtStack.getItem());
                     state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
                 } else {
                     state.incrementCount(questKey, targetCount, currentDay);
@@ -113,7 +113,7 @@ public class QuestTracker {
                 boolean justCompleted = newCount >= targetCount
                         && oldCount < targetCount;
                 if ((crossedInterval || justCompleted) && isVisibleForNotification(quest, state, justCompleted)) {
-                    triggeringItems.put(questKey.identifier(), caughtStack.copy());
+                    triggeringItems.put(questKey.location(), caughtStack.copy());
                 }
             }
         }
@@ -137,11 +137,11 @@ public class QuestTracker {
     public static void onCatchBatch(MinecraftServer server, ServerPlayer player,
             List<ItemStack> caughtStacks, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
-            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
+            Set<FishProfile.Zone> zones, ResourceLocation usedBaitId) {
 
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }
@@ -152,7 +152,7 @@ public class QuestTracker {
         long currentDay = server.overworld().getGameTime() / 24000L;
         Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
 
-        Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        Map<ResourceLocation, ItemStack> triggeringItems = new HashMap<>();
         List<ItemStack> nonEmptyStacks = caughtStacks.stream().filter(s -> !s.isEmpty()).toList();
 
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
@@ -200,7 +200,7 @@ public class QuestTracker {
                 // Completionist-style objectives credit each newly-seen species once, ignoring
                 // minSessionCatches — a batch just offers however many distinct species it contains.
                 for (ItemStack stack : matchingStacks) {
-                    Identifier caughtId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                    ResourceLocation caughtId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                     state.incrementDistinctSpecies(questKey, targetCount, currentDay, caughtId);
                 }
             } else {
@@ -230,7 +230,7 @@ public class QuestTracker {
             boolean justCompleted = newCount >= targetCount
                     && oldCount < targetCount;
             if ((crossedInterval || justCompleted) && isVisibleForNotification(quest, state, justCompleted)) {
-                triggeringItems.put(questKey.identifier(), matchingStacks.get(matchingStacks.size() - 1).copy());
+                triggeringItems.put(questKey.location(), matchingStacks.get(matchingStacks.size() - 1).copy());
             }
         }
 
@@ -255,11 +255,11 @@ public class QuestTracker {
     private static int lifetimeProgress(MinecraftServer server, FishCatchSavedData catchData,
             UUID playerKey, QuestObjective objective) {
         if (objective.targetSpecies().isPresent()) {
-            return catchData.getCatchCount(playerKey, objective.targetSpecies().get().identifier());
+            return catchData.getCatchCount(playerKey, objective.targetSpecies().get().location());
         }
 
         Registry<net.minecraft.world.item.Item> items =
-                server.registryAccess().lookupOrThrow(BuiltInRegistries.ITEM.key());
+                server.registryAccess().registryOrThrow(BuiltInRegistries.ITEM.key());
         Optional<TagKey<net.minecraft.world.item.Item>> includeTag = objective.targetSpeciesTag();
         Optional<TagKey<net.minecraft.world.item.Item>> excludeTag = objective.excludeSpeciesTag();
         if (includeTag.isEmpty() && excludeTag.isEmpty()) {
@@ -305,7 +305,7 @@ public class QuestTracker {
      */
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
-            Set<FishProfile.Zone> zones, Identifier usedBaitId) {
+            Set<FishProfile.Zone> zones, ResourceLocation usedBaitId) {
         if (obj.distinctBaitTag().isPresent()) {
             if (usedBaitId == null) return false;
             boolean baitMatches = BuiltInRegistries.ITEM.getOptional(usedBaitId)
@@ -375,7 +375,7 @@ public class QuestTracker {
             ItemStack placedStack) {
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }
@@ -390,7 +390,7 @@ public class QuestTracker {
         long currentDay = server.overworld().getGameTime() / 24000L;
         Set<ResourceKey<Quest>> activeDailies = getActiveDailies(questRegistry, currentDay);
 
-        Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        Map<ResourceLocation, ItemStack> triggeringItems = new HashMap<>();
         boolean anyChange = false;
 
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
@@ -422,7 +422,7 @@ public class QuestTracker {
 
             boolean justCompleted = matched >= targetCount && oldCount < targetCount;
             if (justCompleted && isVisibleForNotification(quest, state, true)) {
-                triggeringItems.put(questKey.identifier(), tank.getFirstItem().copy());
+                triggeringItems.put(questKey.location(), tank.getFirstItem().copy());
             }
         }
 
@@ -538,7 +538,7 @@ public class QuestTracker {
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : questRegistry.entrySet()) {
             if (entry.getValue().category() != QuestCategory.DAILY) continue;
             ResourceKey<Quest> key = entry.getKey();
-            String path = key.identifier().getPath();
+            String path = key.location().getPath();
             QuestDifficulty tier = tierSuffixOf(path).orElseGet(entry.getValue()::difficulty);
             families.computeIfAbsent(familyOf(path), f -> new EnumMap<>(QuestDifficulty.class)).put(tier, key);
         }

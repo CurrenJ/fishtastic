@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
@@ -7,7 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -39,14 +40,14 @@ public record StartFishingMinigamePacket(
         boolean isTutorial,
         List<ItemStack> topWeightedFishPreviews,
         Set<FishProfile.Zone> zones,
-        Set<Identifier> undiscoveredSpecies,
+        Set<ResourceLocation> undiscoveredSpecies,
         boolean baitWillBeSaved
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.START_FISHING_MINIGAME_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, StartFishingMinigamePacket> STREAM_CODEC = StreamCodec.composite(
+    public static final StreamCodec<RegistryFriendlyByteBuf, StartFishingMinigamePacket> STREAM_CODEC = StreamCodecs.composite(
             ByteBufCodecs.VAR_INT,
             StartFishingMinigamePacket::sessionId,
             TargetData.STREAM_CODEC.apply(ByteBufCodecs.list()),
@@ -60,7 +61,7 @@ public record StartFishingMinigamePacket(
                     Enum::ordinal
             ).apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::zones,
-            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
+            ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::undiscoveredSpecies,
             ByteBufCodecs.BOOL,
             StartFishingMinigamePacket::baitWillBeSaved,

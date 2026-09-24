@@ -5,7 +5,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
  * physical pixels in the atlas, source texels here.
  */
 public final class FishtasticTextureOutlineEffect {
-    private static final Identifier PIPELINE_ID =
+    private static final ResourceLocation PIPELINE_ID =
             Ids.of("fishtastic", "pipeline/gui_texture_black_outline");
 
     /** Solid black, no gradient fade, full opacity, one source texel thick. */

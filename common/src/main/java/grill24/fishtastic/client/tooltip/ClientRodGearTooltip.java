@@ -6,18 +6,18 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class ClientRodGearTooltip implements ClientTooltipComponent {
-    private static final Identifier SLOT_BACKGROUND_SPRITE =
+    private static final ResourceLocation SLOT_BACKGROUND_SPRITE =
             Ids.withDefaultNamespace("container/bundle/slot_background");
     private static final int SLOT_SIZE = 24;
     private static final int SLOT_GAP = 2;
     private static final int ICON_SIZE = 16;
 
     // Drawn in place of the item icon when a slot is empty, in bait/hook/charm order.
-    private static final Identifier[] GHOST_TEXTURES = new Identifier[] {
+    private static final ResourceLocation[] GHOST_TEXTURES = new ResourceLocation[] {
             Fishtastic.id("textures/item/bait/worms_ghost.png"),
             Fishtastic.id("textures/item/hook/hook_ghost.png"),
             Fishtastic.id("textures/item/charm/charm_ghost.png")
@@ -52,7 +52,7 @@ public class ClientRodGearTooltip implements ClientTooltipComponent {
                 graphics.item(stack, iconX, iconY, 0);
                 graphics.itemDecorations(font, stack, iconX, iconY);
             } else {
-                Identifier ghost = GHOST_TEXTURES[i];
+                ResourceLocation ghost = GHOST_TEXTURES[i];
                 if (ghost != null) {
                     graphics.blit(RenderPipelines.GUI_TEXTURED, ghost, iconX, iconY, 0, 0,
                             ICON_SIZE, ICON_SIZE, 32, 32, 32, 32);

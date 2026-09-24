@@ -16,7 +16,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -137,7 +137,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * for us — it isn't updated until the results reach the server, which happens after this
      * animation has already hidden.
      */
-    private final Set<Identifier> celebratedSpecies = new HashSet<>();
+    private final Set<ResourceLocation> celebratedSpecies = new HashSet<>();
 
     /**
      * Species in this session the player had never caught when they cast, sent by the server with
@@ -146,7 +146,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * {@code FishEncyclopediaScreen} — so consulting it during normal fishing reports every species
      * as never-caught and makes every catch look like a first discovery.
      */
-    private Set<Identifier> undiscoveredSpecies = Set.of();
+    private Set<ResourceLocation> undiscoveredSpecies = Set.of();
 
     /**
      * Ceiling on how long a celebration may hold the minigame frozen, in ticks — comfortably past
@@ -421,7 +421,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /** True if this stack is a species the player has never caught and hasn't already celebrated this cast. */
     private boolean isUncelebratedNewSpecies(ItemStack stack) {
-        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return !celebratedSpecies.contains(id) && undiscoveredSpecies.contains(id);
     }
 
@@ -537,7 +537,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     /** Called once at minigame start with the species the player had never caught when they cast. */
-    public void setUndiscoveredSpecies(@Nullable Set<Identifier> species) {
+    public void setUndiscoveredSpecies(@Nullable Set<ResourceLocation> species) {
         this.undiscoveredSpecies = (species == null) ? Set.of() : Set.copyOf(species);
     }
 
@@ -917,7 +917,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         int index = 0;
         for (FishProfile.Zone zone : currentZones) {
-            Identifier texture = ZoneIconTextures.get(zone);
+            ResourceLocation texture = ZoneIconTextures.get(zone);
             if (texture == null) continue;
 
             float slideY = -sidePanelDisplacement(partialTick, GEAR_STAGGER_DELAY_TICKS * index) * screenHeight;
@@ -930,7 +930,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * Draws one zone icon centered at ({@code x}, {@code y}) as a direct texture blit plus a black
      * outline pass. Blitted rather than item-rendered for the reason given on {@link #renderItem}.
      */
-    private static void renderZoneIcon(GuiGraphicsExtractor guiGraphics, Identifier texture, float x, float y) {
+    private static void renderZoneIcon(GuiGraphicsExtractor guiGraphics, ResourceLocation texture, float x, float y) {
         guiGraphics.pose().pushMatrix();
         guiGraphics.pose().translate(x, y);
 
@@ -1213,8 +1213,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * @param texHeight Full texture height (px)
      * @param texture   Standalone texture to blit — a full resource path, not an item-model reference
      */
-    public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, Identifier texture, Vector2f localPivot) {
-        public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, Identifier texture) {
+    public record GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ResourceLocation texture, Vector2f localPivot) {
+        public GuiTextureItem(int u, int v, int uw, int vh, int texWidth, int texHeight, ResourceLocation texture) {
             this(u, v, uw, vh, texWidth, texHeight, texture, calculateLocalPivot(u, v, uw, vh, texWidth, texHeight));
         }
 

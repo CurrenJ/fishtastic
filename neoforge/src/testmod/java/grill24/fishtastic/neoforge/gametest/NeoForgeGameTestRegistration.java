@@ -34,7 +34,7 @@ import net.minecraft.gametest.framework.TestData;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
@@ -56,7 +56,7 @@ import static grill24.fishtastic.Fishtastic.MOD_ID;
 public class NeoForgeGameTestRegistration {
 
     /** Structure used by all Fishtastic game tests — a 7×7×7 empty area. */
-    private static final Identifier EMPTY_STRUCTURE =
+    private static final ResourceLocation EMPTY_STRUCTURE =
         Ids.of(MOD_ID, "empty_testarea");
 
     @SubscribeEvent

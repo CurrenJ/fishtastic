@@ -6,7 +6,7 @@ import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
@@ -25,24 +25,24 @@ public final class FishEncyclopediaClientHelper {
      * stay stable for existing fish as new ones are appended.
      */
     public static List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> getAllFishProfilesSorted(RegistryAccess registryAccess) {
-        Registry<FishProfile> registry = registryAccess.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> registry = registryAccess.registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         return new ArrayList<>(registry.entrySet());
     }
 
     public static FishEncyclopediaEntry getEncyclopediaEntry(RegistryAccess registryAccess, ResourceKey<FishProfile> fishKey) {
         Registry<FishEncyclopediaEntry> registry;
         try {
-            registry = registryAccess.lookupOrThrow(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY);
+            registry = registryAccess.registryOrThrow(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY);
         } catch (Exception e) {
             return FishEncyclopediaEntry.DEFAULT;
         }
         ResourceKey<FishEncyclopediaEntry> entryKey = ResourceKey.create(
-                FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.identifier());
+                FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.location());
         return registry.getOptional(entryKey).orElse(FishEncyclopediaEntry.DEFAULT);
     }
 
     /** Whether this fish has at least one unlocked-but-unclaimed reward; drives the green pip. */
-    public static boolean fishHasUnclaimedReward(RegistryAccess registryAccess, ResourceKey<FishProfile> fishKey, Identifier fishId) {
+    public static boolean fishHasUnclaimedReward(RegistryAccess registryAccess, ResourceKey<FishProfile> fishKey, ResourceLocation fishId) {
         FishEncyclopediaEntry.UnlockThresholds thresholds = getEncyclopediaEntry(registryAccess, fishKey).thresholds();
         int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
         for (EncyclopediaRewardSection section : EncyclopediaRewardSection.values()) {

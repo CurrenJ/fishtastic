@@ -31,6 +31,6 @@ public class ElectricFishOrganizerBlock extends Block implements EntityBlock {
         if (level.getBlockEntity(pos) instanceof ElectricFishOrganizerBlockEntity organizer) {
             player.openMenu(organizer);
         }
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 }

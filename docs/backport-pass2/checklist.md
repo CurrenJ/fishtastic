@@ -9,7 +9,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 done (G-A1 passed 2026-09-24); hook stage `compile`. |
+| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1 and A2 done (G-A2 passed 2026-09-24); hook stage `unit`. |
 | `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
@@ -71,21 +71,21 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | G-A1 | Gate: fishsim 163+1, tank-shape-gen 21,955, both jars build, the probe loads on both loaders | [x] | A1 commit | All green 2026-09-24. Both servers reach `Done` with the probe line; the only errors are 26.1.2 data (string ingredients, unregistered items), which A2/A3 fix. |
 
 ### A2: Core and server (gate G-A2, then hook stage → `unit`)
-| ID | Item | Status | Commit |
-|---|---|---|---|
-| A2.0 | `port/excludes.txt` (62 files) + `portstub` (12 stubs) | [ ] | |
-| A2.1 | `Identifier` type rename (100 files; `Ids` bodies keep their factory names), registry access (35 + 13), permissions (1 line in `FishtasticPermissions`, S6), `setId` (4) | [ ] | |
-| A2.2 | Registration: BE types, `@EventBusSubscriber` bus | [ ] | |
-| A2.3 | BEs (6), blocks (5), items (8): 1.21.1 signatures | [ ] | |
-| A2.4 | `FishCatchSavedData` → `SavedData.Factory` | [ ] | |
-| A2.5 | Components: `TooltipDisplay`, `TooltipProvider`, `ItemStackTemplate`, `BREAK_SOUND`, `ResolvableProfile`; `ItemEffect` split | [ ] | |
-| A2.6 | Networking: Fabric `playS2C/playC2S`; `SetDayRatePayload` | [ ] | |
-| A2.7 | `MarineCompostRecipe` + serializer | [ ] | |
-| A2.8 | `FishingHookMixin` descriptors; `FishMoonPhase.at` (1 line, S6); `getDayTime` | [ ] | |
-| A2.8.c | Sunset Postcard: tickTime accumulator mixins + rate sync (D8) | [ ] | |
-| A2.9 | Commands, config, menus back in | [ ] | |
-| A2.10 | Unit tests: 64 of 78 (FishSphereContainerTest waits for A4) | [ ] | |
-| G-A2 | Gate | [ ] | |
+| ID | Item | Status | Commit | Notes |
+|---|---|---|---|---|
+| A2.0 | `port/excludes.txt` (62 files) + `portstub` (12 stubs) | [x] | A2 commit | The 62, plus render-only files the import scan missed (particles, glint render-type registration, `FishPileIcons`, `ClientTankFlocks`, `TankBubbleEmitter`, `IrisCompat`, `CosmeticTransformLoader`, `FishingHookRendererMixin`, `LevelRendererMixin`), Fabric datagen (A3) and the testmods (A6.1). 6 stubs, not 12 (see track A, A2 "Done"). |
+| A2.1 | `Identifier` type rename (100 files; `Ids` bodies keep their factory names), registry access (35 + 13), permissions (1 line in `FishtasticPermissions`, S6), `setId` (4) | [x] | A2 commit | Plus `ResourceKey#identifier()` → `location()`. |
+| A2.2 | Registration: BE types, `@EventBusSubscriber` bus | [~] | A2 commit | NeoForge `BlockEntityType.Builder`. The `bus = MOD` change is in the testmod, which waits for A6.1. |
+| A2.3 | BEs (6), blocks (5), items (8): 1.21.1 signatures | [x] | A2 commit | `util/BlockEntityNbt`, `util/InteractionResults`. Plan correction: `PASS` → `SKIP_DEFAULT_BLOCK_INTERACTION`. |
+| A2.4 | `FishCatchSavedData` → `SavedData.Factory` | [x] | A2 commit | File is `data/fishtastic_fish_catches.dat` (1.21.1 storage takes flat names). |
+| A2.5 | Components: `TooltipDisplay`, `TooltipProvider`, `ItemStackTemplate`, `BREAK_SOUND`, `ResolvableProfile`; `ItemEffect` split | [x] | A2 commit | `ItemEffect` is data-only here; its render half is A5.4's `ItemEffectRenderData`. |
+| A2.6 | Networking: Fabric `playS2C/playC2S`; `SetDayRatePayload` | [x] | A2 commit | Named `SetDayRatePacket` (tree convention). `util/StreamCodecs` for the 3 packets over 6 fields. |
+| A2.7 | `MarineCompostRecipe` + serializer | [x] | A2 commit | |
+| A2.8 | `FishingHookMixin` descriptors; `FishMoonPhase.at` (1 line, S6); `getDayTime` | [x] | A2 commit | Lava redirect now targets `BlockState#is(Block)`; verified at runtime on Fabric (the AP doesn't flag the old descriptor). |
+| A2.8.c | Sunset Postcard: tickTime accumulator mixins + rate sync (D8) | [~] | A2 commit | Mechanism in place (both mixins resolve in the refmap). The 0.5-rate gametest comes with A6.1. |
+| A2.9 | Commands, config, menus back in | [x] | A2 commit | |
+| A2.10 | Unit tests: 64 of 78 (FishSphereContainerTest waits for A4) | [x] | A2 commit | 64 passed. |
+| G-A2 | Gate | [x] | A2 commit | common compiles, 64 + 163/1 + 21,955 tests, both platforms compile, common refmap has all 7 server/client mixins. Server smoke run: both loaders boot through registration, then stop on 13 cosmetic structures that use post-1.21.1 blocks (A3, needs an owner decision). |
 
 ### A3: Datagen and resources (gate G-A3)
 | ID | Item | Status | Commit |

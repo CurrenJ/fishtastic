@@ -10,7 +10,7 @@ import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public final class FishEncyclopediaClientGameTests {
 
     public static void cacheStartsEmpty(GameTestHelper helper) {
         FishEncyclopediaClientCache.reset();
-        Identifier fishType = Ids.of("fishtastic", "bluegill");
+        ResourceLocation fishType = Ids.of("fishtastic", "bluegill");
 
         helper.assertTrue(FishEncyclopediaClientCache.getCatchCount(fishType) == 0, "an empty cache must report zero catches for any fish type");
         helper.assertTrue(FishEncyclopediaClientCache.getPersonalBest(fishType) == null, "an empty cache must report no personal best");
@@ -45,8 +45,8 @@ public final class FishEncyclopediaClientGameTests {
 
     public static void updatePopulatesCatchCountsByFishType(GameTestHelper helper) {
         FishEncyclopediaClientCache.reset();
-        Identifier bluegill = Ids.of("fishtastic", "bluegill");
-        Identifier trout = Ids.of("fishtastic", "trout");
+        ResourceLocation bluegill = Ids.of("fishtastic", "bluegill");
+        ResourceLocation trout = Ids.of("fishtastic", "trout");
 
         FishEncyclopediaClientCache.update(Map.of(bluegill, 7, trout, 2), List.of(), List.of(), List.of());
 
@@ -57,7 +57,7 @@ public final class FishEncyclopediaClientGameTests {
 
     public static void updateIndexesBestSizesByFishType(GameTestHelper helper) {
         FishEncyclopediaClientCache.reset();
-        Identifier bluegill = Ids.of("fishtastic", "bluegill");
+        ResourceLocation bluegill = Ids.of("fishtastic", "bluegill");
         UUID otherPlayer = UUID.randomUUID();
 
         LeaderboardEntry personal = LeaderboardEntry.personalBestSize(bluegill, 18.5f, FishQuality.Quality.RARE);
@@ -72,8 +72,8 @@ public final class FishEncyclopediaClientGameTests {
 
     public static void updateReplacesPriorContentsRatherThanMerging(GameTestHelper helper) {
         FishEncyclopediaClientCache.reset();
-        Identifier bluegill = Ids.of("fishtastic", "bluegill");
-        Identifier trout = Ids.of("fishtastic", "trout");
+        ResourceLocation bluegill = Ids.of("fishtastic", "bluegill");
+        ResourceLocation trout = Ids.of("fishtastic", "trout");
 
         FishEncyclopediaClientCache.update(Map.of(bluegill, 7), List.of(), List.of(), List.of());
         FishEncyclopediaClientCache.update(Map.of(trout, 3), List.of(), List.of(), List.of());
@@ -85,7 +85,7 @@ public final class FishEncyclopediaClientGameTests {
 
     public static void resetClearsAllMaps(GameTestHelper helper) {
         FishEncyclopediaClientCache.reset();
-        Identifier bluegill = Ids.of("fishtastic", "bluegill");
+        ResourceLocation bluegill = Ids.of("fishtastic", "bluegill");
         FishEncyclopediaClientCache.update(
             Map.of(bluegill, 7),
             List.of(LeaderboardEntry.personalBestSize(bluegill, 1f, FishQuality.Quality.COMMON)),
@@ -117,7 +117,7 @@ public final class FishEncyclopediaClientGameTests {
     }
 
     public static void getAllFishProfilesSortedMatchesRegistryEntrySet(GameTestHelper helper) {
-        Registry<FishProfile> registry = helper.getLevel().registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> registry = helper.getLevel().registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> sorted =
             FishEncyclopediaClientHelper.getAllFishProfilesSorted(helper.getLevel().registryAccess());

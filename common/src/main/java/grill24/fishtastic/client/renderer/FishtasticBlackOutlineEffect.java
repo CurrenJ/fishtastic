@@ -5,7 +5,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
  * pipeline + params buffer suffices instead of one per effect instance.
  */
 public final class FishtasticBlackOutlineEffect {
-    private static final Identifier PIPELINE_ID = Ids.of("fishtastic", "pipeline/gui_item_black_outline");
+    private static final ResourceLocation PIPELINE_ID = Ids.of("fishtastic", "pipeline/gui_item_black_outline");
 
     /** Solid black, no gradient fade, full opacity, one item-pixel thick. */
     private static final float COLOR_R = 0.0f, COLOR_G = 0.0f, COLOR_B = 0.0f;

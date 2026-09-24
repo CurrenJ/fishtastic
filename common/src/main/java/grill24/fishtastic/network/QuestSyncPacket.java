@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -7,7 +8,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -17,10 +18,10 @@ import java.util.List;
 import java.util.Map;
 
 public record QuestSyncPacket(
-        Map<Identifier, PlayerQuestState.QuestProgress> questProgress,
+        Map<ResourceLocation, PlayerQuestState.QuestProgress> questProgress,
         int tokenBalance,
-        Map<Identifier, ItemStack> triggeringItems,
-        Map<Identifier, Integer> purchaseCounts,
+        Map<ResourceLocation, ItemStack> triggeringItems,
+        Map<ResourceLocation, Integer> purchaseCounts,
         CleanupGoalProgress cleanupGoal,
         long serverGameTime,
         ItemStack baitDepletedItem,
@@ -32,14 +33,14 @@ public record QuestSyncPacket(
             new CustomPacketPayload.Type<>(FishtasticPackets.QUEST_SYNC_ID);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, QuestSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, PlayerQuestState.QuestProgress.STREAM_CODEC),
+            StreamCodecs.composite(
+                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, PlayerQuestState.QuestProgress.STREAM_CODEC),
                     QuestSyncPacket::questProgress,
                     ByteBufCodecs.VAR_INT,
                     QuestSyncPacket::tokenBalance,
-                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ItemStack.STREAM_CODEC),
+                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ItemStack.STREAM_CODEC),
                     QuestSyncPacket::triggeringItems,
-                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT),
+                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ByteBufCodecs.VAR_INT),
                     QuestSyncPacket::purchaseCounts,
                     CleanupGoalProgress.STREAM_CODEC,
                     QuestSyncPacket::cleanupGoal,
@@ -66,7 +67,7 @@ public record QuestSyncPacket(
 
     /** Send a sync packet with the items that triggered quest progress. */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
-                                    Map<Identifier, ItemStack> triggeringItems) {
+                                    Map<ResourceLocation, ItemStack> triggeringItems) {
         sendToPlayer(player, data, triggeringItems, 0);
     }
 
@@ -75,7 +76,7 @@ public record QuestSyncPacket(
      * threshold. Pass 0 for milestoneReached when this sync isn't a milestone announcement.
      */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
-                                    Map<Identifier, ItemStack> triggeringItems, int milestoneReached) {
+                                    Map<ResourceLocation, ItemStack> triggeringItems, int milestoneReached) {
         sendToPlayer(player, data, triggeringItems, milestoneReached, ItemStack.EMPTY, List.of());
     }
 
@@ -85,7 +86,7 @@ public record QuestSyncPacket(
      * QuestClientCache#update and QuestProgressNotificationManager#install).
      */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
-                                    Map<Identifier, ItemStack> triggeringItems, int milestoneReached,
+                                    Map<ResourceLocation, ItemStack> triggeringItems, int milestoneReached,
                                     ItemStack baitDepletedItem, List<ItemStack> firstCatchItems) {
         PlayerQuestState state = data.getOrCreateQuestState(player);
         List<CleanupGoalProgress.Contributor> topContributors = data

@@ -11,7 +11,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -28,7 +28,7 @@ import static grill24.fishtastic.util.Utility.ft;
 public class TestQuestNotifyCommand {
 
     private static final String DEFAULT_NAME = "Bluegill Novice";
-    private static final Identifier DEFAULT_ID = ft("mastery/bluegill_novice");
+    private static final ResourceLocation DEFAULT_ID = ft("mastery/bluegill_novice");
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("testquestnotify")
@@ -61,7 +61,7 @@ public class TestQuestNotifyCommand {
                                int oldCount, int newCount, int targetCount,
                                String displayName, boolean completed) {
         CommandSourceStack source = ctx.getSource();
-        Identifier questId = DEFAULT_ID;
+        ResourceLocation questId = DEFAULT_ID;
 
         QuestProgressEvent event = new QuestProgressEvent(questId, oldCount, newCount, targetCount, completed, ItemStack.EMPTY);
         QuestProgressNotificationManager.getInstance().enqueue(event);

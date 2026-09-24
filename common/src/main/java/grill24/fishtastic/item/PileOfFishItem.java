@@ -1,5 +1,6 @@
 package grill24.fishtastic.item;
 
+import grill24.fishtastic.util.InteractionResults;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
@@ -9,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.SlotAccess;
@@ -21,7 +23,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
@@ -54,13 +55,13 @@ public class PileOfFishItem extends BundleItem {
      * {@link FishPileBlock#tryHandleTargetedInteraction}.
      */
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
         if (tankResult != null) {
-            return tankResult;
+            return InteractionResults.forItemUse(tankResult, player, hand);
         }
         InteractionResult pileResult = FishPileBlock.tryHandleTargetedInteraction(level, player, hand);
-        return pileResult != null ? pileResult : super.use(level, player, hand);
+        return pileResult != null ? InteractionResults.forItemUse(pileResult, player, hand) : super.use(level, player, hand);
     }
 
     /**
@@ -165,8 +166,8 @@ public class PileOfFishItem extends BundleItem {
     @Nullable
     private static BundleContents mergeContents(BundleContents sourceContents, BundleContents.Mutable destContents) {
         BundleContents.Mutable leftover = new BundleContents.Mutable(BundleContents.EMPTY);
-        for (ItemStackTemplate template : sourceContents.items()) {
-            ItemStack toInsert = template.create();
+        for (ItemStack template : sourceContents.items()) {
+            ItemStack toInsert = template.copy();
             int added = destContents.tryInsert(toInsert);
             // toInsert is shrunk by `added`; whatever remains goes to leftover
             if (!toInsert.isEmpty()) {
@@ -187,12 +188,12 @@ public class PileOfFishItem extends BundleItem {
     private static Item getQuickCollectSpecies(ItemStack stack) {
         if (stack.getItem() instanceof PileOfFishItem) {
             BundleContents contents = FishtasticItemData.bundleContents(stack);
-            if (contents == null || contents.items().isEmpty()) {
+            if (contents == null || contents.isEmpty()) {
                 return null;
             }
-            Item species = contents.items().get(0).item().value();
-            for (ItemStackTemplate template : contents.items()) {
-                if (template.item().value() != species) {
+            Item species = contents.getItemUnsafe(0).getItem();
+            for (ItemStack template : contents.items()) {
+                if (template.getItem() != species) {
                     return null;
                 }
             }
@@ -243,15 +244,15 @@ public class PileOfFishItem extends BundleItem {
                     continue;
                 }
                 BundleContents leftover = mergeContents(slotContents, acc);
-                int leftoverSize = leftover == null ? 0 : leftover.items().size();
-                if (leftoverSize == slotContents.items().size()) {
+                int leftoverSize = leftover == null ? 0 : leftover.size();
+                if (leftoverSize == slotContents.size()) {
                     continue; // nothing fit
                 }
 
                 if (leftover == null) {
                     slot.set(ItemStack.EMPTY);
                 } else if (leftoverSize == 1) {
-                    slot.set(leftover.items().get(0).create());
+                    slot.set(leftover.getItemUnsafe(0).copy());
                 } else {
                     FishtasticItemData.setBundleContents(slotStack, leftover);
                 }
@@ -298,9 +299,9 @@ public class PileOfFishItem extends BundleItem {
                 if (leftover == null) {
                     // Everything merged — destroy cursor pile
                     self.shrink(1);
-                } else if (leftover.items().size() == 1) {
+                } else if (leftover.size() == 1) {
                     // Only 1 item left — decompose pile into that item
-                    ItemStack singleItem = leftover.items().get(0).create();
+                    ItemStack singleItem = leftover.getItemUnsafe(0).copy();
                     self.shrink(1);
                     player.containerMenu.setCarried(singleItem);
                 } else {
@@ -342,9 +343,9 @@ public class PileOfFishItem extends BundleItem {
             if (updatedContents.isEmpty()) {
                 // Pile is now empty — destruct
                 self.shrink(1);
-            } else if (updatedContents.items().size() == 1) {
+            } else if (updatedContents.size() == 1) {
                 // Only 1 item left — decompose pile into that item
-                ItemStack singleItem = updatedContents.items().get(0).create();
+                ItemStack singleItem = updatedContents.getItemUnsafe(0).copy();
                 self.shrink(1);
                 player.containerMenu.setCarried(singleItem);
             } else {
@@ -361,7 +362,7 @@ public class PileOfFishItem extends BundleItem {
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot,
                                              ClickAction clickAction, Player player, SlotAccess carriedItem) {
         if (clickAction == ClickAction.PRIMARY && other.isEmpty()) {
-            toggleSelectedItem(self, -1);
+            // 26.1.2 clears the bundle's selected item here; 1.21.1 bundles have no selection.
             return false;
         }
 
@@ -385,9 +386,9 @@ public class PileOfFishItem extends BundleItem {
                     // Everything merged — destroy cursor pile
                     other.shrink(1);
                     carriedItem.set(ItemStack.EMPTY);
-                } else if (leftover.items().size() == 1) {
+                } else if (leftover.size() == 1) {
                     // Only 1 item left — decompose pile into that item
-                    ItemStack singleItem = leftover.items().get(0).create();
+                    ItemStack singleItem = leftover.getItemUnsafe(0).copy();
                     other.shrink(1);
                     carriedItem.set(singleItem);
                 } else {
@@ -428,9 +429,9 @@ public class PileOfFishItem extends BundleItem {
             if (updatedContents.isEmpty()) {
                 // Pile is now empty — destruct
                 self.shrink(1);
-            } else if (updatedContents.items().size() == 1) {
+            } else if (updatedContents.size() == 1) {
                 // Only 1 item left — decompose pile into that item
-                ItemStack singleItem = updatedContents.items().get(0).create();
+                ItemStack singleItem = updatedContents.getItemUnsafe(0).copy();
                 self.shrink(1);
                 slot.setByPlayer(singleItem);
             } else {
@@ -439,7 +440,7 @@ public class PileOfFishItem extends BundleItem {
             broadcastChangesOnContainerMenu(player);
             return true;
         } else {
-            toggleSelectedItem(self, -1);
+            // 26.1.2 clears the bundle's selected item here; 1.21.1 bundles have no selection.
             return false;
         }
     }
@@ -451,15 +452,15 @@ public class PileOfFishItem extends BundleItem {
      * onUseTick → dropContent path), destroy it on the next inventory tick.
      */
     @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
+    public void inventoryTick(ItemStack stack, Level tickLevel, Entity entity, int slotId, boolean selected) {
         BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(stack);
         if (contents.isEmpty()) {
             stack.shrink(1);
             return;
         }
-        if (contents.items().size() == 1) {
+        if (contents.size() == 1) {
             // Pile has exactly 1 item — replace the pile with that item
-            ItemStack singleItem = contents.items().get(0).create();
+            ItemStack singleItem = contents.getItemUnsafe(0).copy();
             if (entity instanceof Player player) {
                 for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                     if (player.getInventory().getItem(i) == stack) {
@@ -472,7 +473,9 @@ public class PileOfFishItem extends BundleItem {
             stack.shrink(1);
             return;
         }
-        super.inventoryTick(stack, level, entity, slot);
+        super.inventoryTick(stack, tickLevel, entity, slotId, selected);
+        // 26.1.2 only ticks inventories server-side; 1.21.1 ticks both sides.
+        if (!(tickLevel instanceof ServerLevel level)) return;
     }
 
     private static void playRemoveOneSound(Entity entity) {
@@ -483,8 +486,8 @@ public class PileOfFishItem extends BundleItem {
         entity.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + entity.level().getRandom().nextFloat() * 0.4F);
     }
 
+    /** Silent: the bundle insert-fail sound is new in 1.21.2 (26.1.2 plays BUNDLE_INSERT_FAIL). */
     private static void playInsertFailSound(Entity entity) {
-        entity.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
     }
 
     private void broadcastChangesOnContainerMenu(Player player) {

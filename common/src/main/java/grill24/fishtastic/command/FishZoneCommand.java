@@ -57,13 +57,13 @@ public class FishZoneCommand {
 
         Set<FishProfile.Zone> zones = resolveZone(player);
         Registry<FishProfile> fishProfileRegistry = source.getServer().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        Registry<Item> itemRegistry = source.getServer().registryAccess().lookupOrThrow(Registries.ITEM);
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<Item> itemRegistry = source.getServer().registryAccess().registryOrThrow(Registries.ITEM);
 
         List<String> eligible = new ArrayList<>();
         for (Holder<Item> holder : itemRegistry.getTagOrEmpty(ItemTags.FISHES)) {
             if (FishtasticFishItem.isZoneEligible(holder, fishProfileRegistry, zones)) {
-                eligible.add(holder.unwrapKey().map(k -> k.identifier().toString()).orElse("?"));
+                eligible.add(holder.unwrapKey().map(k -> k.location().toString()).orElse("?"));
             }
         }
         eligible.sort(String::compareTo);

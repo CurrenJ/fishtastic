@@ -6,7 +6,7 @@ import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * A square zone icon rendered as a direct texture blit plus a black outline pass — the fish
@@ -17,10 +17,10 @@ import net.minecraft.resources.Identifier;
  * isn't an itemstack, just a standalone texture.
  */
 public class ZoneIconRectangle extends UIElement<ZoneIconRectangle> {
-    private final Identifier texture;
+    private final ResourceLocation texture;
     private final int texturePx;
 
-    public ZoneIconRectangle(float size, Identifier texture, int texturePx) {
+    public ZoneIconRectangle(float size, ResourceLocation texture, int texturePx) {
         this.size.set(size, size);
         this.texture = texture;
         this.texturePx = texturePx;

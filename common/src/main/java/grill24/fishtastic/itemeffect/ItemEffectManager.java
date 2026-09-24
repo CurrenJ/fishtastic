@@ -3,10 +3,7 @@ package grill24.fishtastic.itemeffect;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
-import grill24.fishtastic.client.renderer.RenderBuffersHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderBuffers;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.ItemStack;
 
@@ -39,17 +36,6 @@ public class ItemEffectManager {
 
     public static boolean shouldShowEffect(ItemStack stack) {
         return getEffectForItem(stack) != null;
-    }
-
-    public static List<RenderType> getAllRenderTypes() {
-        List<ItemEffect> effects = getSortedEffects();
-        if (effects.isEmpty()) return Collections.emptyList();
-
-        List<RenderType> renderTypes = new ArrayList<>();
-        for (ItemEffect effect : effects) {
-            renderTypes.addAll(effect.getAllRenderTypes());
-        }
-        return renderTypes;
     }
 
     public static void clearCache() {
@@ -88,33 +74,10 @@ public class ItemEffectManager {
         effects.sort(Comparator.comparingInt(ItemEffect::priority).reversed());
         sortedEffects = effects;
 
-        // Dynamically register all render types from the loaded effects
-        registerRenderTypes(effects);
+        // PORT A5.4: 26.1.2 registers each effect's glint render types with RenderBuffers here
+        // (RenderBuffersHelper). That moves to the client-side ItemEffectRenderData.
 
         return sortedEffects;
-    }
-
-    private static void registerRenderTypes(List<ItemEffect> effects) {
-        try {
-            List<RenderType> renderTypes = getAllRenderTypes();
-            if (renderTypes.isEmpty()) {
-                Fishtastic.LOGGER.debug("No render types to register");
-                return;
-            }
-
-            // Access RenderBuffers through Minecraft instance
-            Minecraft mc = Minecraft.getInstance();
-            RenderBuffers renderBuffers = mc.renderBuffers();
-
-            if (renderBuffers instanceof RenderBuffersHelper helper) {
-                helper.fishtastic$addRenderTypesToBuffer(renderTypes);
-                Fishtastic.LOGGER.info("Registered {} render types for {} ItemEffects", renderTypes.size(), effects.size());
-            } else {
-                Fishtastic.LOGGER.error("RenderBuffers does not implement RenderBuffersHelper - mixin may not have applied");
-            }
-        } catch (Exception e) {
-            Fishtastic.LOGGER.error("Failed to dynamically register ItemEffect render types", e);
-        }
     }
 
     private static Registry<ItemEffect> getRegistry() {
@@ -125,7 +88,7 @@ public class ItemEffectManager {
         }
 
         try {
-            Registry<ItemEffect> registry = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY);
+            Registry<ItemEffect> registry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY);
             Fishtastic.LOGGER.debug("Successfully accessed ItemEffect registry");
             return registry;
         } catch (Exception e) {

@@ -61,6 +61,7 @@ public final class FishtasticFabric implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             QuestSyncPacket.sendToPlayer(handler.getPlayer(), FishCatchSavedData.getOrCreate(server));
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(handler.getPlayer());
+            grill24.fishtastic.server.SunsetExtensionHandler.onPlayerJoin(handler.getPlayer());
         });
     }
 }

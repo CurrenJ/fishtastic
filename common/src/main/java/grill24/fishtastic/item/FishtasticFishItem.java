@@ -1,5 +1,6 @@
 package grill24.fishtastic.item;
 
+import grill24.fishtastic.util.InteractionResults;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
@@ -23,12 +24,12 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -124,9 +125,9 @@ public class FishtasticFishItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
-                                 Consumer<Component> builder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, builder, flag);
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        Consumer<Component> builder = tooltip::add;
         BaitEffect baitEffect = BaitEffect.fromStack(stack);
         if (baitEffect != null) {
             baitEffect.tooltipLines().forEach(builder);
@@ -154,13 +155,13 @@ public class FishtasticFishItem extends Item {
      * it doesn't touch the held stack at all.
      */
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         InteractionResult tankResult = FishTankBlock.tryShiftExtractFromTargetedTank(level, player, hand);
         if (tankResult != null) {
-            return tankResult;
+            return InteractionResults.forItemUse(tankResult, player, hand);
         }
         InteractionResult pileResult = FishPileBlock.tryHandleTargetedInteraction(level, player, hand);
-        return pileResult != null ? pileResult : super.use(level, player, hand);
+        return pileResult != null ? InteractionResults.forItemUse(pileResult, player, hand) : super.use(level, player, hand);
     }
 
     // ----- Loot Sampling -----
@@ -279,7 +280,7 @@ public class FishtasticFishItem extends Item {
     /** Looks up the {@link FishProfile} registered under the same id as this item, if any. */
     public static Optional<FishProfile> getProfile(Holder<Item> item, Registry<FishProfile> fishProfileRegistry) {
         return item.unwrapKey()
-                .map(key -> ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .map(key -> ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.location()))
                 .flatMap(fishProfileRegistry::getOptional);
     }
 
@@ -323,10 +324,10 @@ public class FishtasticFishItem extends Item {
     ) {
         float mean = FishProfile.DEFAULT_MEAN_SIZE;
         float stdDev = FishProfile.DEFAULT_STDDEV_SIZE;
-        Optional<ResourceKey<Item>> itemKey = stack.typeHolder().unwrapKey();
+        Optional<ResourceKey<Item>> itemKey = stack.getItemHolder().unwrapKey();
         if (itemKey.isPresent()) {
             ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                    FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+                    FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
             FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
             if (profile != null) {
                 mean = profile.size().mean();

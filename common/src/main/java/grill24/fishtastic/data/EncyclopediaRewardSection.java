@@ -1,6 +1,6 @@
 package grill24.fishtastic.data;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /** The five catch-gated encyclopedia sections that also pay a one-time quest-token reward. Zones and Records have none. */
 public enum EncyclopediaRewardSection {
@@ -50,7 +50,7 @@ public enum EncyclopediaRewardSection {
     }
 
     /** Composite key for one fish's reward slot, shared by server persistence, the wire format, and the client cache. */
-    public String key(Identifier fishId) {
+    public String key(ResourceLocation fishId) {
         return fishId + "#" + name();
     }
 }

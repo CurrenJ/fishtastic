@@ -1,6 +1,6 @@
 package grill24.fishtastic.client.compositemodel;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
@@ -14,16 +14,16 @@ import java.util.Map;
  * <p>NeoForge: populated by {@code BlockstateModelReloadListener} via {@code AddClientReloadListenersEvent}.
  */
 public final class BlockstateRedirectRegistry {
-    private static volatile Map<Identifier, Identifier> redirects = Map.of();
+    private static volatile Map<ResourceLocation, ResourceLocation> redirects = Map.of();
 
     private BlockstateRedirectRegistry() {}
 
-    public static void update(Map<Identifier, Identifier> newRedirects) {
+    public static void update(Map<ResourceLocation, ResourceLocation> newRedirects) {
         redirects = Map.copyOf(newRedirects);
     }
 
     @Nullable
-    public static Identifier getRedirect(Identifier standardModelPath) {
+    public static ResourceLocation getRedirect(ResourceLocation standardModelPath) {
         return redirects.get(standardModelPath);
     }
 }

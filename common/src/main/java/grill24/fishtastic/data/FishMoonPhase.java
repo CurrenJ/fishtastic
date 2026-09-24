@@ -3,15 +3,13 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.MoonPhase;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Fishtastic's own moon phase, serialized in fish profile {@code moon_weights}.
  *
- * <p>Mirrors 26.1's {@link MoonPhase}: the same constant names, serialized names and indices
+ * <p>Mirrors 26.1's {@code MoonPhase}: the same constant names, serialized names and indices
  * (0 = full moon, as in vanilla's moon cycle). It exists because {@code MoonPhase} is new in 26.1,
  * while 1.21.1 and 1.20.1 only have {@code Level#getMoonPhase()} returning that index as an
  * {@code int}. With this enum, {@link FishProfile} and the fish profile JSONs are identical on every
@@ -47,13 +45,9 @@ public enum FishMoonPhase implements StringRepresentable {
         return BY_INDEX[Math.floorMod(index, BY_INDEX.length)];
     }
 
-    public static FishMoonPhase fromVanilla(MoonPhase phase) {
-        return fromIndex(phase.index());
-    }
-
     /** The moon phase at {@code pos}. The only version-specific method: 1.21.1 and 1.20.1 read {@code level.getMoonPhase()}. */
     public static FishMoonPhase at(Level level, BlockPos pos) {
-        return fromVanilla(level.environmentAttributes().getValue(EnvironmentAttributes.MOON_PHASE, pos));
+        return fromIndex(level.getMoonPhase());
     }
 
     @Override

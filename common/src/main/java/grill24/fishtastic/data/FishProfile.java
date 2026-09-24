@@ -14,6 +14,7 @@ import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -125,9 +126,18 @@ public record FishProfile(
         public static WeatherCondition fromLevel(Level level, BlockPos pos) {
             if (level.isThundering()) return THUNDER;
             if (level.isRaining()) {
-                return level.precipitationAt(pos) == Biome.Precipitation.SNOW ? SNOW : RAIN;
+                return precipitationAt(level, pos) == Biome.Precipitation.SNOW ? SNOW : RAIN;
             }
             return CLEAR;
+        }
+
+        /** 26.1.2's {@code Level#precipitationAt}, which 1.21.1 doesn't have. */
+        private static Biome.Precipitation precipitationAt(Level level, BlockPos pos) {
+            if (!level.isRaining() || !level.canSeeSky(pos)
+                    || level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos).getY() > pos.getY()) {
+                return Biome.Precipitation.NONE;
+            }
+            return level.getBiome(pos).value().getPrecipitationAt(pos);
         }
     }
 
@@ -165,7 +175,7 @@ public record FishProfile(
             return biome.unwrap().map(
                     tag -> "#" + tag.location(),
                     list -> list.stream()
-                            .map(h -> h.unwrapKey().map(k -> k.identifier().toString()).orElse("?"))
+                            .map(h -> h.unwrapKey().map(k -> k.location().toString()).orElse("?"))
                             .collect(Collectors.joining(", "))
             );
         }
@@ -175,7 +185,7 @@ public record FishProfile(
             return biome.unwrap().map(
                     tag -> tag.location().getPath(),
                     list -> list.stream()
-                            .map(h -> h.unwrapKey().map(k -> k.identifier().getPath()).orElse("?"))
+                            .map(h -> h.unwrapKey().map(k -> k.location().getPath()).orElse("?"))
                             .collect(Collectors.joining(", "))
             );
         }

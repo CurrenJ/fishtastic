@@ -63,17 +63,17 @@ public final class QuestSatisfiabilityGameTests {
         List<String> failures = new ArrayList<>();
 
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : quests.entrySet()) {
-            String questId = entry.getKey().identifier().toString();
+            String questId = entry.getKey().location().toString();
             QuestObjective objective = entry.getValue().objective();
 
             Optional<ResourceKey<Item>> target = objective.targetSpecies();
             if (target.isEmpty()) continue;
 
             ResourceKey<FishProfile> profileKey =
-                    ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, target.get().identifier());
+                    ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, target.get().location());
             FishProfile profile = profiles.getOptional(profileKey).orElse(null);
             if (profile == null) {
-                failures.add(questId + ": target_species " + target.get().identifier() + " has no fish_profile");
+                failures.add(questId + ": target_species " + target.get().location() + " has no fish_profile");
                 continue;
             }
 
@@ -81,7 +81,7 @@ public final class QuestSatisfiabilityGameTests {
                     ? EnumSet.noneOf(FishProfile.Zone.class)
                     : EnumSet.copyOf(profile.zones());
             if (declaredZones.isEmpty()) {
-                failures.add(questId + ": target_species " + target.get().identifier() + " declares no zones");
+                failures.add(questId + ": target_species " + target.get().location() + " declares no zones");
                 continue;
             }
 
@@ -144,13 +144,13 @@ public final class QuestSatisfiabilityGameTests {
      */
     public static void lifetimeQuestsCarryNoUnreplayableConditions(GameTestHelper helper) {
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : quests.entrySet()) {
             QuestObjective objective = entry.getValue().objective();
             if (objective.lifetimeCount() && !objective.isLifetimeCompatible()) {
-                failures.add(entry.getKey().identifier()
+                failures.add(entry.getKey().location()
                         + ": lifetime_count is set alongside a condition that lifetime catch records"
                         + " cannot express (quality/size/biome/time/weather/session/distinct)");
             }
@@ -168,7 +168,7 @@ public final class QuestSatisfiabilityGameTests {
      */
     public static void dailyPoolIsLargerThanTheDrawAndActuallyRotates(GameTestHelper helper) {
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         long dailyCount = quests.entrySet().stream()
                 .filter(e -> e.getValue().category() == QuestCategory.DAILY)
@@ -193,14 +193,14 @@ public final class QuestSatisfiabilityGameTests {
     /** Every {@code prerequisite} must point at a quest that actually exists in the registry. */
     public static void everyPrerequisiteResolves(GameTestHelper helper) {
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : quests.entrySet()) {
             Optional<ResourceKey<Quest>> prereq = entry.getValue().prerequisiteQuestId();
             if (prereq.isPresent() && quests.getOptional(prereq.get()).isEmpty()) {
-                failures.add(entry.getKey().identifier() + ": prerequisite "
-                        + prereq.get().identifier() + " does not exist");
+                failures.add(entry.getKey().location() + ": prerequisite "
+                        + prereq.get().location() + " does not exist");
             }
         }
 
@@ -214,7 +214,7 @@ public final class QuestSatisfiabilityGameTests {
      */
     public static void noPrerequisiteCycles(GameTestHelper helper) {
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<Quest>, Quest> entry : quests.entrySet()) {
@@ -225,7 +225,7 @@ public final class QuestSatisfiabilityGameTests {
                 cursor = quest == null ? null : quest.prerequisiteQuestId().orElse(null);
             }
             if (cursor != null) {
-                failures.add(entry.getKey().identifier() + ": prerequisite chain cycles at " + cursor.identifier());
+                failures.add(entry.getKey().location() + ": prerequisite chain cycles at " + cursor.location());
             }
         }
 

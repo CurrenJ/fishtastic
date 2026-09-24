@@ -2,14 +2,14 @@ package grill24.fishtastic;
 
 import grill24.fishtastic.util.Ids;
 import com.mojang.logging.LogUtils;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
 public final class Fishtastic {
     public static final String MOD_ID = "fishtastic";
     public static Logger LOGGER = LogUtils.getLogger();
 
-    public static Identifier id(String path) {
+    public static ResourceLocation id(String path) {
         return Ids.of(MOD_ID, path);
     }
 }

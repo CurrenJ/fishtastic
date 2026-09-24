@@ -75,7 +75,7 @@ public class MarineCompostBlock extends Block implements EntityBlock {
             bin.aerate(level.getGameTime());
             bin.setChanged();
             level.setBlockAndUpdate(pos, state.setValue(PHASE, MarineCompostPhase.WET));
-            return InteractionResult.SUCCESS_SERVER;
+            return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
         }
 
         return InteractionResult.PASS;

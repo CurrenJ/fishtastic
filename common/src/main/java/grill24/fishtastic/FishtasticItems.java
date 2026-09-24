@@ -25,7 +25,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.BundleContents;
@@ -36,8 +36,9 @@ import java.util.Map;
 import java.util.Optional;
 
 public class FishtasticItems {
-    private static Item.Properties props(Identifier loc) {
-        return new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc));
+    /** 26.1.2 stamps the item id onto its properties here; before 1.21.2 the id comes from registration alone. */
+    private static Item.Properties props(ResourceLocation loc) {
+        return new Item.Properties();
     }
 
     // ----- Items for Rendering Only -----

@@ -65,6 +65,10 @@ subprojects {
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
+
+        // MC 26.1 ships JSpecify and the tree uses its @Nullable; 1.21.1 doesn't ship it.
+        // Annotations only, so compile-time is enough.
+        compileOnly 'org.jspecify:jspecify:1.0.0'
     }
 
     java {

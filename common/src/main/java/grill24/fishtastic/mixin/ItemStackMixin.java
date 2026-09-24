@@ -31,19 +31,19 @@ public abstract class ItemStackMixin {
             // Append item size information to the tooltip.
             ItemSize sizeProvider = FishtasticItemData.get(itemStack, FishtasticDataComponents.ITEM_SIZE);
             if (sizeProvider != null) {
-                sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
+                sizeProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
             }
 
             // Append fish quality information to the tooltip.
             FishQuality qualityProvider = FishtasticItemData.get(itemStack, FishtasticDataComponents.FISH_QUALITY);
             if (qualityProvider != null) {
-                qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
+                qualityProvider.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
             }
 
             // Append the fish tank's shape name to the tooltip.
             FishTankShape shape = FishtasticItemData.get(itemStack, FishtasticDataComponents.FISH_TANK_SHAPE);
             if (shape != null) {
-                shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
+                shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
             }
         }
     }

@@ -5,7 +5,7 @@ import grill24.fishtastic.FishtasticItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
@@ -77,10 +77,10 @@ public class QuestProgressNotificationManager {
     private QuestProgressNotificationManager() {}
 
     /** Synthetic "quest" id used to drive the global cleanup-goal milestone banner through this pipeline. */
-    public static final Identifier CLEANUP_GOAL_MILESTONE_ID = Fishtastic.id("cleanup_goal");
+    public static final ResourceLocation CLEANUP_GOAL_MILESTONE_ID = Fishtastic.id("cleanup_goal");
 
     /** Synthetic "quest" id used to drive the out-of-bait banner through this pipeline. */
-    public static final Identifier OUT_OF_BAIT_ID = Fishtastic.id("out_of_bait");
+    public static final ResourceLocation OUT_OF_BAIT_ID = Fishtastic.id("out_of_bait");
 
     /**
      * Prefix for synthetic "quest" ids driving first-catch banners, one per fish species
@@ -91,7 +91,7 @@ public class QuestProgressNotificationManager {
     public static final String FIRST_CATCH_ID_PREFIX = "first_catch/";
 
     /** The synthetic quest id used for a species' first-catch banner. */
-    public static Identifier firstCatchQuestId(Identifier fishId) {
+    public static ResourceLocation firstCatchQuestId(ResourceLocation fishId) {
         return Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath());
     }
 
@@ -104,7 +104,7 @@ public class QuestProgressNotificationManager {
      * at the moment it lands, and the banner turning up later to replay the same fanfare is the
      * duplicate — the reveal is where the player is actually looking.
      */
-    private static final Map<Identifier, Long> FANFARE_CLAIMS = new HashMap<>();
+    private static final Map<ResourceLocation, Long> FANFARE_CLAIMS = new HashMap<>();
 
     /**
      * How long a claim stays valid. Long enough to cover the celebration plus the round trip that
@@ -114,12 +114,12 @@ public class QuestProgressNotificationManager {
     private static final int FANFARE_CLAIM_WINDOW_TICKS = 200;
 
     /** Called when something else has already played the discovery fanfare for this species. */
-    public static void claimDiscoveryFanfare(Identifier fishId) {
+    public static void claimDiscoveryFanfare(ResourceLocation fishId) {
         FANFARE_CLAIMS.put(firstCatchQuestId(fishId), gameTime() + FANFARE_CLAIM_WINDOW_TICKS);
     }
 
     /** True if this banner's fanfare was already played elsewhere; consumes the claim. */
-    public static boolean consumeDiscoveryFanfareClaim(Identifier questId) {
+    public static boolean consumeDiscoveryFanfareClaim(ResourceLocation questId) {
         Long expiry = FANFARE_CLAIMS.remove(questId);
         if (expiry == null) return false;
 
@@ -153,7 +153,7 @@ public class QuestProgressNotificationManager {
         QuestClientCache.setBaitDepletedListener(baitItem ->
                 enqueue(new QuestProgressEvent(OUT_OF_BAIT_ID, 0, 1, 1, true, baitItem)));
         QuestClientCache.setFirstCatchListener(fishItem -> {
-            Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
+            ResourceLocation fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
             enqueue(new QuestProgressEvent(firstCatchQuestId(fishId), 0, 1, 1, true, fishItem));
         });
     }

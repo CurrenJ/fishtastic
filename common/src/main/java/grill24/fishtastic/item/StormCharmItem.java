@@ -10,19 +10,19 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.GameRules;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -66,23 +66,23 @@ public class StormCharmItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
         // Reject up-front rather than after a wasted charge-up. These two are readable on both
         // sides, so the client doesn't start an animation the server is about to refuse; the
         // gamerule check can only run server-side and is re-tested in trySummonStorm.
-        if (!level.canHaveWeather()) {
+        if (!canHaveWeather(level)) {
             if (!level.isClientSide()) fail(player, "no_sky", ChatFormatting.RED);
-            return InteractionResult.FAIL;
+            return InteractionResultHolder.fail(stack);
         }
         if (level.isThundering()) {
             if (!level.isClientSide()) fail(player, "already_storming", ChatFormatting.YELLOW);
-            return InteractionResult.FAIL;
+            return InteractionResultHolder.fail(stack);
         }
 
         player.startUsingItem(hand);
-        return InteractionResult.CONSUME;
+        return InteractionResultHolder.consume(stack);
     }
 
     @Override
@@ -91,9 +91,9 @@ public class StormCharmItem extends Item {
     }
 
     @Override
-    public ItemUseAnimation getUseAnimation(ItemStack stack) {
+    public UseAnim getUseAnimation(ItemStack stack) {
         // Held aloft rather than raised to the face — this is calling the weather down, not drinking it.
-        return ItemUseAnimation.BOW;
+        return UseAnim.BOW;
     }
 
     /** Builds the charge visually and audibly so the hold reads as deliberate rather than laggy. */
@@ -141,8 +141,7 @@ public class StormCharmItem extends Item {
      * the charge-up: a misclick costs the player nothing.
      */
     @Override
-    public boolean releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingTime) {
-        return false;
+    public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int remainingTime) {
     }
 
     /**
@@ -153,7 +152,7 @@ public class StormCharmItem extends Item {
      * @return true if the weather was actually changed — the caller consumes the item only then.
      */
     public static boolean trySummonStorm(ServerLevel level, Player player) {
-        if (!level.canHaveWeather()) {
+        if (!canHaveWeather(level)) {
             fail(player, "no_sky", ChatFormatting.RED);
             return false;
         }
@@ -164,7 +163,7 @@ public class StormCharmItem extends Item {
         // ServerLevel#advanceWeatherCycle only decrements the weather timers while ADVANCE_WEATHER
         // is on. With it off, a forced storm would never tick back down — a permanent thunderstorm
         // the player has no way to clear. Refuse rather than hand them that.
-        if (!level.getGameRules().get(GameRules.ADVANCE_WEATHER)) {
+        if (!level.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE)) {
             fail(player, "weather_frozen", ChatFormatting.RED);
             return false;
         }
@@ -172,7 +171,7 @@ public class StormCharmItem extends Item {
         MinecraftServer server = level.getServer();
         // Same call the /weather thunder command makes: clear-time 0, then rain+thunder for the
         // duration. Weather data is server-wide, so this lands for every player in the overworld.
-        server.setWeatherParameters(0, STORM_DURATION_TICKS, true, true);
+        server.overworld().setWeatherParameters(0, STORM_DURATION_TICKS, true, true);
 
         // setWeatherParameters only sets the *target*. Level#isThundering reads the interpolated
         // thunderLevel (itself scaled by rainLevel), and ServerLevel#advanceWeatherCycle ramps both
@@ -198,15 +197,20 @@ public class StormCharmItem extends Item {
         return true;
     }
 
+    /** 26.1's {@code Level#canHaveWeather}: a sky, no ceiling, and not the End. */
+    private static boolean canHaveWeather(Level level) {
+        return level.dimensionType().hasSkyLight() && !level.dimensionType().hasCeiling() && level.dimension() != Level.END;
+    }
+
     private static void fail(Player player, String key, ChatFormatting style) {
         player.sendSystemMessage(
                 Component.translatable("message.fishtastic.storm_charm." + key).withStyle(style));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
-                                 Consumer<Component> builder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, builder, flag);
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        Consumer<Component> builder = tooltip::add;
         builder.accept(Component.translatable("tooltip.fishtastic.storm_charm.summons",
                 STORM_DURATION_TICKS / 20 / 60).withStyle(ChatFormatting.AQUA));
         builder.accept(Component.translatable("tooltip.fishtastic.storm_charm.single_use")

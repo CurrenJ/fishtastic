@@ -19,7 +19,7 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 
@@ -52,7 +52,7 @@ public class FishtasticJeiPlugin implements IModPlugin {
             IRecipeType.create(Fishtastic.MOD_ID, "marine_compost_ripening", MarineCompostRipeningRecipe.class);
 
     @Override
-    public Identifier getPluginUid() {
+    public ResourceLocation getPluginUid() {
         return Fishtastic.id("jei_plugin");
     }
 

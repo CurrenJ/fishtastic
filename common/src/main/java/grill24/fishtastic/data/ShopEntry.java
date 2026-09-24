@@ -7,7 +7,7 @@ import grill24.fishtastic.FishtasticItemData;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 
@@ -103,11 +103,11 @@ public record ShopEntry(
      * registry-load time without needing item data-components to be ready yet.
      * ItemStacks are constructed lazily when the reward is actually granted or displayed.
      */
-    public record ShopReward(Identifier itemId, int count, DataComponentPatch components) {
+    public record ShopReward(ResourceLocation itemId, int count, DataComponentPatch components) {
         public static final Codec<ShopReward> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Identifier.CODEC.fieldOf("id").forGetter(ShopReward::itemId),
+                ResourceLocation.CODEC.fieldOf("id").forGetter(ShopReward::itemId),
                 Codec.INT.optionalFieldOf("count", 1).forGetter(ShopReward::count),
-                // Kept as a raw patch for the same bootstrap reason the id is a raw Identifier —
+                // Kept as a raw patch for the same bootstrap reason the id is a raw ResourceLocation —
                 // it must not touch an item's default component map at decode time. Lets a gated
                 // capstone entry sell back the exact configured item the quest granted (e.g. a
                 // fish tank carrying its fishtastic:fish_tank_materials), rather than a plain one.
@@ -115,7 +115,7 @@ public record ShopEntry(
                         .forGetter(ShopReward::components)
         ).apply(i, ShopReward::new));
 
-        public ShopReward(Identifier itemId, int count) {
+        public ShopReward(ResourceLocation itemId, int count) {
             this(itemId, count, DataComponentPatch.EMPTY);
         }
 
@@ -199,14 +199,14 @@ public record ShopEntry(
         List<ResourceKey<ShopEntry>> sortedKeys = registry.entrySet().stream()
                 .filter(e -> e.getValue().isUnlockedFor(questClaimed))
                 .map(Map.Entry::getKey)
-                .sorted(Comparator.comparing(k -> k.identifier().toString()))
+                .sorted(Comparator.comparing(k -> k.location().toString()))
                 .toList();
 
         List<ResourceKey<ShopEntry>> mainKeys = new ArrayList<>();
         List<ResourceKey<ShopEntry>> charmKeys = new ArrayList<>();
         List<ResourceKey<ShopEntry>> tankShapeKeys = new ArrayList<>();
         for (ResourceKey<ShopEntry> key : sortedKeys) {
-            ShopEntry entry = registry.getValue(key);
+            ShopEntry entry = registry.get(key);
             if (entry.isCharm()) {
                 charmKeys.add(key);
             } else if (entry.isTankShape()) {
@@ -254,7 +254,7 @@ public record ShopEntry(
             Registry<ShopEntry> registry, List<ResourceKey<ShopEntry>> keys, Random random, int count) {
         Map<ResourceKey<ShopEntry>, Double> priority = new LinkedHashMap<>();
         for (ResourceKey<ShopEntry> key : keys) {
-            float weight = Math.max(registry.getValue(key).weight(), MIN_WEIGHT);
+            float weight = Math.max(registry.get(key).weight(), MIN_WEIGHT);
             priority.put(key, Math.pow(random.nextDouble(), 1.0 / weight));
         }
 

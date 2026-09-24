@@ -21,7 +21,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
@@ -97,7 +97,7 @@ public final class PacketRoundTripGameTests {
             new ItemStack(FishtasticItems.BLUEGILL.value())
         );
         Set<FishProfile.Zone> zones = Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.HIGH_ALTITUDE);
-        Set<Identifier> undiscovered = Set.of(
+        Set<ResourceLocation> undiscovered = Set.of(
             BuiltInRegistries.ITEM.getKey(FishtasticItems.ACUTE_IASPIS.value()),
             BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value())
         );
@@ -151,18 +151,18 @@ public final class PacketRoundTripGameTests {
     // -------------------------------------------------------------------------
 
     public static void questSyncPacketRoundTrips(GameTestHelper helper) {
-        Identifier questA = Ids.of("fishtastic", "daily/quest_a");
-        Identifier questB = Ids.of("fishtastic", "tutorial/first_catch");
+        ResourceLocation questA = Ids.of("fishtastic", "daily/quest_a");
+        ResourceLocation questB = Ids.of("fishtastic", "tutorial/first_catch");
 
-        Map<Identifier, PlayerQuestState.QuestProgress> progress = new HashMap<>();
+        Map<ResourceLocation, PlayerQuestState.QuestProgress> progress = new HashMap<>();
         progress.put(questA, new PlayerQuestState.QuestProgress(3, 7L, false, false, List.of()));
         progress.put(questB, new PlayerQuestState.QuestProgress(1, 1L, true, true, List.of()));
 
         ItemStack triggeringStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 2);
-        Map<Identifier, ItemStack> triggeringItems = new HashMap<>();
+        Map<ResourceLocation, ItemStack> triggeringItems = new HashMap<>();
         triggeringItems.put(questA, triggeringStack);
 
-        Map<Identifier, Integer> purchaseCounts = new HashMap<>();
+        Map<ResourceLocation, Integer> purchaseCounts = new HashMap<>();
         purchaseCounts.put(Ids.of("fishtastic", "shop_entry_x"), 2);
 
         ItemStack baitStack = new ItemStack(FishtasticItems.BLUEGILL.value(), 1);
@@ -229,14 +229,14 @@ public final class PacketRoundTripGameTests {
     }
 
     // -------------------------------------------------------------------------
-    // FishEncyclopediaSyncPacket — Map<Identifier, Integer> and two List<LeaderboardEntry>
+    // FishEncyclopediaSyncPacket — Map<ResourceLocation, Integer> and two List<LeaderboardEntry>
     // -------------------------------------------------------------------------
 
     public static void fishEncyclopediaSyncPacketRoundTrips(GameTestHelper helper) {
-        Identifier bluegill = Ids.of("fishtastic", "bluegill");
-        Identifier trout = Ids.of("fishtastic", "trout");
+        ResourceLocation bluegill = Ids.of("fishtastic", "bluegill");
+        ResourceLocation trout = Ids.of("fishtastic", "trout");
 
-        Map<Identifier, Integer> catchCounts = new HashMap<>();
+        Map<ResourceLocation, Integer> catchCounts = new HashMap<>();
         catchCounts.put(bluegill, 12);
         catchCounts.put(trout, 3);
 

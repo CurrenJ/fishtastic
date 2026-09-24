@@ -3,7 +3,7 @@ package grill24.fishtastic.fabric.fishtank;
 import grill24.fishtastic.client.compositemodel.BlockstateModelScanner;
 import grill24.fishtastic.client.compositemodel.BlockstateRedirectRegistry;
 import net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -19,10 +19,10 @@ import java.util.concurrent.CompletableFuture;
 public final class BlockstateModelRedirectPlugin {
     private BlockstateModelRedirectPlugin() {}
 
-    public static final PreparableModelLoadingPlugin.DataLoader<Map<Identifier, Identifier>> LOADER =
+    public static final PreparableModelLoadingPlugin.DataLoader<Map<ResourceLocation, ResourceLocation>> LOADER =
             (resourceReloaderStore, executor) -> CompletableFuture.supplyAsync(
                     () -> BlockstateModelScanner.buildRedirectMap(resourceReloaderStore.resourceManager()), executor);
 
-    public static final PreparableModelLoadingPlugin<Map<Identifier, Identifier>> PLUGIN =
+    public static final PreparableModelLoadingPlugin<Map<ResourceLocation, ResourceLocation>> PLUGIN =
             (data, pluginContext) -> BlockstateRedirectRegistry.update(data);
 }

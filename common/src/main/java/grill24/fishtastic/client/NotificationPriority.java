@@ -5,7 +5,7 @@ import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestDifficulty;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 /**
@@ -27,7 +27,7 @@ public enum NotificationPriority {
     OTHER;
 
     public static NotificationPriority classify(QuestProgressEvent event) {
-        Identifier questId = event.questId();
+        ResourceLocation questId = event.questId();
         if (questId.getPath().startsWith(QuestProgressNotificationManager.FIRST_CATCH_ID_PREFIX)) {
             return NEW_SPECIES;
         }
@@ -52,12 +52,12 @@ public enum NotificationPriority {
         }
     }
 
-    private static QuestDifficulty resolveDifficulty(Identifier questId) {
+    private static QuestDifficulty resolveDifficulty(ResourceLocation questId) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return QuestDifficulty.BRONZE;
         try {
             Registry<Quest> questRegistry = mc.level.registryAccess()
-                    .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                    .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
             ResourceKey<Quest> questKey = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, questId);
             Quest quest = questRegistry.getOptional(questKey).orElse(null);
             return quest != null ? quest.difficulty() : QuestDifficulty.BRONZE;

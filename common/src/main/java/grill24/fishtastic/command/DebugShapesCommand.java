@@ -51,7 +51,7 @@ public class DebugShapesCommand {
         if (target == null) return 0;
 
         MinecraftServer server = source.getServer();
-        Registry<Quest> questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
         FishCatchBackups.beforeDestructiveCommand(server, "shapes_unlockall");
         PlayerQuestState state = data.getOrCreateQuestState(target);

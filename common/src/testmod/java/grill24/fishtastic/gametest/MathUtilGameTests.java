@@ -3,7 +3,7 @@ package grill24.fishtastic.gametest;
 import grill24.fishtastic.util.MathUtil;
 import grill24.fishtastic.util.Utility;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Vector3f;
 
 /**
@@ -136,10 +136,10 @@ public final class MathUtilGameTests {
     // -------------------------------------------------------------------------
 
     /**
-     * Utility.ft produces an Identifier namespaced to the mod ID, with the given path.
+     * Utility.ft produces an ResourceLocation namespaced to the mod ID, with the given path.
      */
     public static void utilityFtCreatesNamespacedIdentifier(GameTestHelper helper) {
-        Identifier id = Utility.ft("foo");
+        ResourceLocation id = Utility.ft("foo");
         helper.assertTrue(id.getNamespace().equals("fishtastic"),
             "Namespace must be 'fishtastic', got " + id.getNamespace());
         helper.assertTrue(id.getPath().equals("foo"),

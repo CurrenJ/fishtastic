@@ -13,7 +13,7 @@ import io.github.currenj.gelatinui.gui.components.ManualContainer;
 import io.github.currenj.gelatinui.gui.components.SpriteData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
@@ -39,8 +39,8 @@ import java.util.function.Predicate;
 public class ShapeGalleryPanel {
     // The 20x24 cell art shared with the quest log's shop entries; the gold-bordered variant marks
     // the committed selection. Reused as-is so the gallery needs no new texture work.
-    private static final Identifier CELL_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
-    private static final Identifier CELL_TEXTURE_SELECTED = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
+    private static final ResourceLocation CELL_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final ResourceLocation CELL_TEXTURE_SELECTED = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
 
     public static final int CELL_WIDTH = 20;
     public static final int CELL_HEIGHT = 24;
@@ -158,7 +158,7 @@ public class ShapeGalleryPanel {
     }
 
     private static Registry<Quest> quests() {
-        return Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        return Minecraft.getInstance().level.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
     }
 
     /**

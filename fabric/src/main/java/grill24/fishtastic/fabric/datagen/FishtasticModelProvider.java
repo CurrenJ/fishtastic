@@ -17,7 +17,7 @@ import net.minecraft.client.data.models.model.ModelTemplates;
 import net.minecraft.client.data.models.model.TextureMapping;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -52,14 +52,14 @@ public class FishtasticModelProvider extends FabricModelProvider {
     private void generateGlassModels(BlockModelGenerators blockModelGenerators, Map<DyeColor, Holder<Block>> glassBlocks) {
         for (DyeColor color : DyeColor.values()) {
             Holder<Block> block = glassBlocks.get(color);
-            Identifier textureLoc = getGlassTextureLoc(block);
-            Identifier modelLoc = getGlassModelLoc(block);
+            ResourceLocation textureLoc = getGlassTextureLoc(block);
+            ResourceLocation modelLoc = getGlassModelLoc(block);
 
             generateModelsForGlassBlock(blockModelGenerators, modelLoc, textureLoc, block);
         }
     }
 
-    private static void generateModelsForGlassBlock(BlockModelGenerators blockModelGenerators, Identifier modelLoc, Identifier textureLoc, Holder<Block> block) {
+    private static void generateModelsForGlassBlock(BlockModelGenerators blockModelGenerators, ResourceLocation modelLoc, ResourceLocation textureLoc, Holder<Block> block) {
         // Create block model in glass/ subdirectory using Material for texture
         ModelTemplates.CUBE_ALL.create(modelLoc, TextureMapping.cube(new Material(textureLoc)), blockModelGenerators.modelOutput);
 
@@ -191,11 +191,11 @@ public class FishtasticModelProvider extends FabricModelProvider {
      * cast-state model swap.
      */
     private static void generateAlertConditionedItem(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
-        Identifier baseModel = ModelTemplates.FLAT_ITEM.create(
+        ResourceLocation baseModel = ModelTemplates.FLAT_ITEM.create(
                 ModelLocationUtils.getModelLocation(item),
                 TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName))),
                 itemModelGenerators.modelOutput);
-        Identifier alertModel = ModelTemplates.FLAT_ITEM.create(
+        ResourceLocation alertModel = ModelTemplates.FLAT_ITEM.create(
                 ModelLocationUtils.getModelLocation(item, "_alert"),
                 TextureMapping.layer0(new Material(Fishtastic.id("item/" + textureName + "_alert"))),
                 itemModelGenerators.modelOutput);
@@ -231,25 +231,25 @@ public class FishtasticModelProvider extends FabricModelProvider {
     /**
      * Generate a flat item model with a custom texture path.
      */
-    private static void generateFlatItemWithCustomTexture(ItemModelGenerators itemModelGenerators, Item item, Identifier texturePath) {
-        Identifier modelLoc = ModelLocationUtils.getModelLocation(item);
-        Identifier createdModel = ModelTemplates.FLAT_ITEM.create(modelLoc, TextureMapping.layer0(new Material(texturePath)), itemModelGenerators.modelOutput);
+    private static void generateFlatItemWithCustomTexture(ItemModelGenerators itemModelGenerators, Item item, ResourceLocation texturePath) {
+        ResourceLocation modelLoc = ModelLocationUtils.getModelLocation(item);
+        ResourceLocation createdModel = ModelTemplates.FLAT_ITEM.create(modelLoc, TextureMapping.layer0(new Material(texturePath)), itemModelGenerators.modelOutput);
         itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.plainModel(createdModel));
     }
 
-    private static Identifier getGlassTextureLoc(Holder<Block> block) {
+    private static ResourceLocation getGlassTextureLoc(Holder<Block> block) {
         Optional<ResourceKey<Block>> key = block.unwrapKey();
         if (key.isPresent()) {
-            return key.get().identifier().withPrefix("block/glass/");
+            return key.get().location().withPrefix("block/glass/");
         } else {
             throw new RuntimeException("Failed to access block holder.");
         }
     }
 
-    private static Identifier getGlassModelLoc(Holder<Block> block) {
+    private static ResourceLocation getGlassModelLoc(Holder<Block> block) {
         Optional<ResourceKey<Block>> key = block.unwrapKey();
         if (key.isPresent()) {
-            return key.get().identifier().withPrefix("block/glass/");
+            return key.get().location().withPrefix("block/glass/");
         } else {
             throw new RuntimeException("Failed to access block holder.");
         }

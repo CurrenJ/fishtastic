@@ -3,7 +3,7 @@ package grill24.fishtastic.mixin;
 import grill24.fishtastic.item.PileOfFishItem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,9 +16,9 @@ public class QuickCollectPileMixin {
 
     @Inject(method = "doClick", at = @At("HEAD"), cancellable = true)
     private void fishtastic$quickCollectIntoPile(
-            int slotIndex, int buttonNum, ContainerInput containerInput, Player player, CallbackInfo ci) {
+            int slotIndex, int buttonNum, ClickType clickType, Player player, CallbackInfo ci) {
 
-        if (containerInput != ContainerInput.PICKUP_ALL || slotIndex < 0) {
+        if (clickType != ClickType.PICKUP_ALL || slotIndex < 0) {
             return;
         }
 

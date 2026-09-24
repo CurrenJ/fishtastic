@@ -525,7 +525,7 @@ public final class CatchCelebrationGameTests {
      */
     public static void applyQualityAndSizeSetsBothComponents(GameTestHelper helper) {
         Registry<FishProfile> profiles = helper.getLevel().registryAccess()
-            .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+            .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack stack = new ItemStack(Items.COD);
         FishtasticFishItem.applyQualityAndSize(
@@ -542,7 +542,7 @@ public final class CatchCelebrationGameTests {
     /** Restamping an already-rolled stack replaces its quality rather than layering a second one. */
     public static void applyQualityAndSizeOverwritesExistingQuality(GameTestHelper helper) {
         Registry<FishProfile> profiles = helper.getLevel().registryAccess()
-            .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+            .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack stack = commonFish();
         FishtasticFishItem.applyQualityAndSize(

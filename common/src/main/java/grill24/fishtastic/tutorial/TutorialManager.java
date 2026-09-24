@@ -15,7 +15,7 @@ import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,7 +36,7 @@ public class TutorialManager {
             ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
                     Ids.of("fishtastic", "tutorial/first_catch"));
 
-    private static final Identifier TUTORIAL_QUEST_ID = TUTORIAL_QUEST_KEY.identifier();
+    private static final ResourceLocation TUTORIAL_QUEST_ID = TUTORIAL_QUEST_KEY.location();
 
     /**
      * The {@code minecraft:recipe_crafted} advancement that {@code PlayerAdvancementsMixin}
@@ -44,7 +44,7 @@ public class TutorialManager {
      * reset, which must revoke it — otherwise a re-crafted rod after a debug reset would never
      * re-fire the advancement criterion (already granted) and the tutorial would stay stuck.
      */
-    public static final Identifier TUTORIAL_ROD_ADVANCEMENT_ID =
+    public static final ResourceLocation TUTORIAL_ROD_ADVANCEMENT_ID =
             Ids.of("fishtastic", "tutorial/craft_copper_fishing_rod");
     public static final String TUTORIAL_ROD_ADVANCEMENT_CRITERION = "crafted_copper_fishing_rod";
 
@@ -163,7 +163,7 @@ public class TutorialManager {
      * strictly stronger evidence of progress than either step it's meant to satisfy, so accept it
      * at any point before SHOP_BROWSE rather than requiring the exact expected step.
      */
-    public static void onQuestClaimed(ServerPlayer player, Identifier questId) {
+    public static void onQuestClaimed(ServerPlayer player, ResourceLocation questId) {
         if (TUTORIAL_QUEST_ID.equals(questId) && getStep(player).ordinal() < TutorialStep.SHOP_BROWSE.ordinal()) {
             setStep(player, TutorialStep.SHOP_BROWSE);
         }

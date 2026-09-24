@@ -7,6 +7,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.util.FishQualityHelper;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -40,7 +41,14 @@ public class MarineCompostRecipe extends CustomRecipe {
     private final CraftingBookCategory category;
 
     public MarineCompostRecipe(CraftingBookCategory category) {
+        super(category);
         this.category = category;
+    }
+
+    /** Abstract before 1.21.2: the recipe needs a grid with room for the dirt and the fish. */
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return width * height >= 2;
     }
 
     @Override
@@ -70,7 +78,7 @@ public class MarineCompostRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input) {
+    public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
         ItemStack result = new ItemStack(FishtasticBlocks.MARINE_COMPOST.value().asItem());
 
         for (int i = 0; i < input.size(); i++) {
@@ -90,7 +98,7 @@ public class MarineCompostRecipe extends CustomRecipe {
 
     @Override
     public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
-        NonNullList<ItemStack> result = CraftingRecipe.defaultCraftingReminder(input);
+        NonNullList<ItemStack> result = super.getRemainingItems(input);
 
         for (int i = 0; i < input.size(); i++) {
             ItemStack stack = input.getItem(i);
@@ -102,8 +110,8 @@ public class MarineCompostRecipe extends CustomRecipe {
 
             if (remaining.isEmpty()) {
                 result.set(i, ItemStack.EMPTY);
-            } else if (remaining.items().size() == 1) {
-                result.set(i, remaining.items().get(0).create());
+            } else if (remaining.size() == 1) {
+                result.set(i, remaining.getItemUnsafe(0).copy());
             } else {
                 ItemStack newPile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
                 FishtasticItemData.setBundleContents(newPile, remaining);
@@ -125,9 +133,9 @@ public class MarineCompostRecipe extends CustomRecipe {
         if (!(stack.getItem() instanceof PileOfFishItem)) return null;
 
         BundleContents contents = FishtasticItemData.bundleContents(stack);
-        if (contents == null || contents.items().isEmpty()) return null;
+        if (contents == null || contents.isEmpty()) return null;
 
-        ItemStack top = contents.items().get(0).create();
+        ItemStack top = contents.getItemUnsafe(0).copy();
         return top.is(ItemTags.FISHES) ? top : null;
     }
 

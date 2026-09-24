@@ -46,7 +46,7 @@ public class ServerTickHandler {
                 try {
                     manager.tick();
                 } catch (Exception e) {
-                    Fishtastic.LOGGER.error("Error ticking fishing minigame manager for level {}", level.dimension().identifier(), e);
+                    Fishtastic.LOGGER.error("Error ticking fishing minigame manager for level {}", level.dimension().location(), e);
                 }
             }
         }

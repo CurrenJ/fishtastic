@@ -9,7 +9,7 @@ import grill24.fishtastic.data.ShopEntry;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
@@ -45,13 +45,13 @@ public class PlayerQuestState {
      * catches of the same species don't inflate {@code currentCount} further.
      */
     public record QuestProgress(int currentCount, long lastResetGameDay, boolean completed, boolean claimed,
-                                 List<Identifier> caughtSpecies) {
+                                 List<ResourceLocation> caughtSpecies) {
         public static final Codec<QuestProgress> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("count").forGetter(QuestProgress::currentCount),
                 Codec.LONG.fieldOf("last_reset_day").forGetter(QuestProgress::lastResetGameDay),
                 Codec.BOOL.fieldOf("completed").forGetter(QuestProgress::completed),
                 Codec.BOOL.fieldOf("claimed").forGetter(QuestProgress::claimed),
-                Codec.list(Identifier.CODEC).optionalFieldOf("caught_species", List.of()).forGetter(QuestProgress::caughtSpecies)
+                Codec.list(ResourceLocation.CODEC).optionalFieldOf("caught_species", List.of()).forGetter(QuestProgress::caughtSpecies)
         ).apply(i, QuestProgress::new));
 
         /**
@@ -78,23 +78,23 @@ public class PlayerQuestState {
                 ByteBufCodecs.VAR_LONG, QuestProgress::lastResetGameDay,
                 ByteBufCodecs.BOOL, QuestProgress::completed,
                 ByteBufCodecs.BOOL, QuestProgress::claimed,
-                ByteBufCodecs.collection(ArrayList::new, Identifier.STREAM_CODEC), QuestProgress::caughtSpecies,
+                ByteBufCodecs.collection(ArrayList::new, ResourceLocation.STREAM_CODEC), QuestProgress::caughtSpecies,
                 QuestProgress::new
         );
     }
 
     public static final Codec<PlayerQuestState> CODEC = RecordCodecBuilder.create(i -> i.group(
-            Codec.unboundedMap(Identifier.CODEC, QuestProgress.CODEC)
+            Codec.unboundedMap(ResourceLocation.CODEC, QuestProgress.CODEC)
                     .fieldOf("progress").forGetter(state -> {
-                        Map<Identifier, QuestProgress> map = new HashMap<>();
-                        state.progress.forEach((k, v) -> map.put(k.identifier(), v));
+                        Map<ResourceLocation, QuestProgress> map = new HashMap<>();
+                        state.progress.forEach((k, v) -> map.put(k.location(), v));
                         return map;
                     }),
             Codec.INT.optionalFieldOf("token_balance", 0).forGetter(state -> state.tokenBalance),
-            Codec.unboundedMap(Identifier.CODEC, Codec.INT)
+            Codec.unboundedMap(ResourceLocation.CODEC, Codec.INT)
                     .optionalFieldOf("purchase_counts", Map.of()).forGetter(state -> {
-                        Map<Identifier, Integer> map = new HashMap<>();
-                        state.purchaseCounts.forEach((k, v) -> map.put(k.identifier(), v));
+                        Map<ResourceLocation, Integer> map = new HashMap<>();
+                        state.purchaseCounts.forEach((k, v) -> map.put(k.location(), v));
                         return map;
                     }),
             Codec.LONG.optionalFieldOf("last_purchase_reset_day", -1L).forGetter(state -> state.lastPurchaseResetDay),
@@ -135,10 +135,10 @@ public class PlayerQuestState {
      * A no-op if this species was already credited, so repeat catches of the same fish don't
      * inflate progress — only new species advance the count.
      */
-    public void incrementDistinctSpecies(ResourceKey<Quest> questId, int targetCount, long currentDay, Identifier speciesId) {
+    public void incrementDistinctSpecies(ResourceKey<Quest> questId, int targetCount, long currentDay, ResourceLocation speciesId) {
         QuestProgress existing = getProgress(questId);
         if (existing.caughtSpecies().contains(speciesId)) return;
-        List<Identifier> updated = new ArrayList<>(existing.caughtSpecies());
+        List<ResourceLocation> updated = new ArrayList<>(existing.caughtSpecies());
         updated.add(speciesId);
         boolean completed = updated.size() >= targetCount;
         long lastReset = existing.lastResetGameDay() == -1 ? currentDay : existing.lastResetGameDay();
@@ -237,15 +237,15 @@ public class PlayerQuestState {
         progress.put(questId, new QuestProgress(0, currentDay, false, false, List.of()));
     }
 
-    public Map<Identifier, QuestProgress> getProgressSnapshot() {
-        Map<Identifier, QuestProgress> snap = new HashMap<>();
-        progress.forEach((k, v) -> snap.put(k.identifier(), v));
+    public Map<ResourceLocation, QuestProgress> getProgressSnapshot() {
+        Map<ResourceLocation, QuestProgress> snap = new HashMap<>();
+        progress.forEach((k, v) -> snap.put(k.location(), v));
         return snap;
     }
 
-    public Map<Identifier, Integer> getPurchaseCountSnapshot() {
-        Map<Identifier, Integer> snap = new HashMap<>();
-        purchaseCounts.forEach((k, v) -> snap.put(k.identifier(), v));
+    public Map<ResourceLocation, Integer> getPurchaseCountSnapshot() {
+        Map<ResourceLocation, Integer> snap = new HashMap<>();
+        purchaseCounts.forEach((k, v) -> snap.put(k.location(), v));
         return snap;
     }
 
@@ -253,12 +253,12 @@ public class PlayerQuestState {
     // Encyclopedia reward claim API
     // -------------------------------------------------------------------------
 
-    public boolean isEncyclopediaRewardClaimed(Identifier fishId, EncyclopediaRewardSection section) {
+    public boolean isEncyclopediaRewardClaimed(ResourceLocation fishId, EncyclopediaRewardSection section) {
         return claimedEncyclopediaRewards.contains(section.key(fishId));
     }
 
     /** @return false if this reward was already claimed (no-op), true if it was newly granted. */
-    public boolean claimEncyclopediaReward(Identifier fishId, EncyclopediaRewardSection section) {
+    public boolean claimEncyclopediaReward(ResourceLocation fishId, EncyclopediaRewardSection section) {
         if (!claimedEncyclopediaRewards.add(section.key(fishId))) return false;
         tokenBalance += section.coinReward();
         return true;

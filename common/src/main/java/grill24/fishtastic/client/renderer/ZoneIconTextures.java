@@ -2,7 +2,7 @@ package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.FishProfile;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
@@ -21,7 +21,7 @@ public final class ZoneIconTextures {
     /** Native pixel size of every zone icon texture (square). */
     public static final int TEXTURE_PX = 32;
 
-    private static final Map<FishProfile.Zone, Identifier> TEXTURES = new EnumMap<>(FishProfile.Zone.class);
+    private static final Map<FishProfile.Zone, ResourceLocation> TEXTURES = new EnumMap<>(FishProfile.Zone.class);
     static {
         TEXTURES.put(FishProfile.Zone.OCEAN, texture("ocean"));
         TEXTURES.put(FishProfile.Zone.DEEP_OCEAN, texture("deep_ocean"));
@@ -31,12 +31,12 @@ public final class ZoneIconTextures {
         TEXTURES.put(FishProfile.Zone.HIGH_ALTITUDE, texture("high_altitude"));
     }
 
-    private static Identifier texture(String name) {
+    private static ResourceLocation texture(String name) {
         return Fishtastic.id("textures/item/zone/" + name + ".png");
     }
 
     @Nullable
-    public static Identifier get(FishProfile.Zone zone) {
+    public static ResourceLocation get(FishProfile.Zone zone) {
         return TEXTURES.get(zone);
     }
 }

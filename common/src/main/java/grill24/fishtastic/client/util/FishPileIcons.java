@@ -7,7 +7,7 @@ import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.client.renderer.FishPileBlockItemModel;
 import grill24.fishtastic.network.RecentCatch;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
@@ -18,7 +18,7 @@ import java.util.List;
 /** Builds the item stacks that render as a Fish Pile block icon (see {@link FishPileBlockItemModel}). */
 public final class FishPileIcons {
     /** Client item definition selecting {@link FishPileBlockItemModel}, applied per stack. */
-    public static final Identifier PILE_BLOCK_ITEM_MODEL = Fishtastic.id("fish_pile_block");
+    public static final ResourceLocation PILE_BLOCK_ITEM_MODEL = Fishtastic.id("fish_pile_block");
 
     private FishPileIcons() {
     }

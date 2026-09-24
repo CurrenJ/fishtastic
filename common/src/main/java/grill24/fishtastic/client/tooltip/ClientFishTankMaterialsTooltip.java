@@ -5,7 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
  * icons — a fish tank always has all three materials.
  */
 public class ClientFishTankMaterialsTooltip implements ClientTooltipComponent {
-    private static final Identifier SLOT_BACKGROUND_SPRITE =
+    private static final ResourceLocation SLOT_BACKGROUND_SPRITE =
             Ids.withDefaultNamespace("container/bundle/slot_background");
     private static final int SLOT_SIZE = 24;
     private static final int SLOT_GAP = 2;

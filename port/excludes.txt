@@ -1,13 +1,99 @@
 # Java sources left out of compilation on this port branch (see gradle/port-excludes.gradle).
 # One repo-relative Ant pattern per line, starting with a source directory. Each phase deletes
-# lines; at G2 this file is empty and is deleted (docs/backport-pass2/track-a-1.21.1.md).
-#
-# A1: everything. The only compiled mod code is the probe entrypoints in fabric/src/portstub and
-# neoforge/src/portstub. A2.0 replaces this list with the real 62-file one.
-common/src/main/java/**
-common/src/test/java/**
+# its lines; at G2 this file is empty and is deleted (docs/backport-pass2/track-a-1.21.1.md).
+# Grouped by the phase that brings the files back. Stand-ins for what kept code needs from
+# excluded classes live in <module>/src/portstub/java.
+
+# A4: GUI (needs gelatin 1.0.31+1.21.1, G-1.21.1). 26 main + 1 test, plus JEI (4).
+common/src/main/java/grill24/fishtastic/client/ElectricFishOrganizerScreen.java
+common/src/main/java/grill24/fishtastic/client/EncyclopediaTutorialClientHandler.java
+common/src/main/java/grill24/fishtastic/client/FishEncyclopediaScreen.java
+common/src/main/java/grill24/fishtastic/client/FishTankAssemblyScreen.java
+common/src/main/java/grill24/fishtastic/client/FishTankBrowserScreen.java
+common/src/main/java/grill24/fishtastic/client/LeaderboardScreen.java
+common/src/main/java/grill24/fishtastic/client/QuestLogScreen.java
+common/src/main/java/grill24/fishtastic/client/QuestProgressNotification.java
+common/src/main/java/grill24/fishtastic/client/QuestProgressNotificationManager.java
+common/src/main/java/grill24/fishtastic/client/TutorialClientHandler.java
+common/src/main/java/grill24/fishtastic/client/ZoneIconRectangle.java
+common/src/main/java/grill24/fishtastic/client/FishSphereContainer.java
+common/src/main/java/grill24/fishtastic/client/FreeformContainer.java
+common/src/main/java/grill24/fishtastic/client/SelectableItemButton.java
+common/src/main/java/grill24/fishtastic/client/ShapeGalleryPanel.java
+common/src/main/java/grill24/fishtastic/client/SilhouetteItemButton.java
+common/src/main/java/grill24/fishtastic/client/ThinProgressBar.java
+common/src/main/java/grill24/fishtastic/client/effects/CoinArcEffect.java
+common/src/main/java/grill24/fishtastic/client/effects/DropOffEffect.java
+common/src/main/java/grill24/fishtastic/client/effects/PendulumSwingEffect.java
+common/src/main/java/grill24/fishtastic/client/tooltip/ClientFishTankMaterialsTooltip.java
+common/src/main/java/grill24/fishtastic/client/tooltip/ClientRodGearTooltip.java
+common/src/main/java/grill24/fishtastic/compat/GelatinMenus.java
+common/src/main/java/grill24/fishtastic/compat/GelatinScreens.java
+common/src/main/java/grill24/fishtastic/util/FishingMinigameAnimation.java
+common/src/main/java/grill24/fishtastic/mixin/GuiGraphicsMixin.java
+common/src/main/java/grill24/fishtastic/compat/jei/**
+common/src/test/java/grill24/fishtastic/client/FishSphereContainerTest.java
+
+# A5: rendering (31 common files, plus the platform tank models).
+common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
+common/src/main/java/grill24/fishtastic/client/FishtasticClientSetup.java
+common/src/main/java/grill24/fishtastic/client/compositemodel/CompositeTextureHelper.java
+common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemModel.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockEntityRenderer.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockItemModel.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishPileRenderState.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishTankBlockEntityRenderer.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishTankRenderState.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticBlackOutlineEffect.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticGlintState.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemOutlineAtlas.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemStackRenderState.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticOutlineUboRegistry.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticRenderPipelines.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticSilhouetteEffect.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticTextureOutlineEffect.java
+common/src/main/java/grill24/fishtastic/client/renderer/FishtasticWorldOutlineRenderer.java
+common/src/main/java/grill24/fishtastic/client/renderer/PileOfFishItemModel.java
+common/src/main/java/grill24/fishtastic/client/renderer/TankFlockAdapter.java
+common/src/main/java/grill24/fishtastic/mixin/GuiRendererExecuteDrawMixin.java
+common/src/main/java/grill24/fishtastic/mixin/GuiRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/HumanoidModelMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemEntityRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemFeatureRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemFrameRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemInHandLayerMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemInHandRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemModelResolverMixin.java
+common/src/main/java/grill24/fishtastic/mixin/ItemStackRenderStateMixin.java
+common/src/main/java/grill24/fishtastic/mixin/RenderTypeMixin.java
+fabric/src/main/java/grill24/fishtastic/fabric/fishtank/**
+# A5, found by the A2 compile (render-only code the pass 2 import scan didn't flag):
+# A5.5 particles, A5.4a glint render-type registration, A5 cosmetic render transforms,
+# A5.3 fish pile item icons, A5.1 client flocks and tank bubbles, A5.7 IrisCompat and
+# LevelRendererMixin, A5.6 fishing-line hand (FishingHookRendererMixin).
+common/src/main/java/grill24/fishtastic/client/particle/**
+common/src/main/java/grill24/fishtastic/client/renderer/RenderBuffersHelper.java
+common/src/main/java/grill24/fishtastic/mixin/RenderBuffersMixin.java
+common/src/main/java/grill24/fishtastic/mixin/accessor/BufferSourceAccessor.java
+common/src/main/java/grill24/fishtastic/client/CosmeticTransformLoader.java
+common/src/main/java/grill24/fishtastic/client/util/FishPileIcons.java
+common/src/main/java/grill24/fishtastic/client/util/ClientTankFlocks.java
+common/src/main/java/grill24/fishtastic/client/renderer/TankBubbleEmitter.java
+common/src/main/java/grill24/fishtastic/client/renderer/IrisCompat.java
+common/src/main/java/grill24/fishtastic/mixin/FishingHookRendererMixin.java
+common/src/main/java/grill24/fishtastic/mixin/LevelRendererMixin.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/BlockModelPathResolver.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/BlockstateModelReloadListener.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankBakedModel.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankBlockStateModel.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankItemModel.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModel.java
+neoforge/src/main/java/grill24/fishtastic/neoforge/fishtank/FishTankModelData.java
+
+# A3: datagen providers, ported onto the FAPI 0.116 datagen APIs.
+fabric/src/main/java/grill24/fishtastic/fabric/datagen/**
+
+# A6.1: gametests, rewritten onto the shared vanilla-@GameTest harness (D10).
 common/src/testmod/java/**
-fabric/src/main/java/**
 fabric/src/testmod/java/**
-neoforge/src/main/java/**
 neoforge/src/testmod/java/**

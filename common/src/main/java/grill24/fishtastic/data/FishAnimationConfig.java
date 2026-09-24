@@ -3,6 +3,7 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.fishtastic.util.FishtasticCodecs;
 import net.minecraft.world.phys.Vec2;
 
 import java.util.Optional;
@@ -63,8 +64,8 @@ public sealed interface FishAnimationConfig
                 // Optional exact head/tail texture UV points ([0,1]x[0,1]), for consumers that want
                 // the real drawn angle instead of the diagonalTexture heuristic (e.g. the leaderboard
                 // podium's held-fish hang pose) — unused by this mode's own swim rendering.
-                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(HorizontalSwim::headUv),
-                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(HorizontalSwim::tailUv)
+                FishtasticCodecs.VEC2.optionalFieldOf("head_uv").forGetter(HorizontalSwim::headUv),
+                FishtasticCodecs.VEC2.optionalFieldOf("tail_uv").forGetter(HorizontalSwim::tailUv)
         ).apply(i, HorizontalSwim::new));
 
         @Override public String modeName() { return "horizontal_swim"; }
@@ -107,8 +108,8 @@ public sealed interface FishAnimationConfig
                 Codec.BOOL.optionalFieldOf("diagonal_texture",  true ).forGetter(UprightFloat::diagonalTexture),
                 Codec.FLOAT.optionalFieldOf("pulse_stretch", DEFAULT_PULSE_STRETCH).forGetter(UprightFloat::pulseStretch),
                 // See HorizontalSwim.headUv/tailUv.
-                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(UprightFloat::headUv),
-                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(UprightFloat::tailUv)
+                FishtasticCodecs.VEC2.optionalFieldOf("head_uv").forGetter(UprightFloat::headUv),
+                FishtasticCodecs.VEC2.optionalFieldOf("tail_uv").forGetter(UprightFloat::tailUv)
         ).apply(i, UprightFloat::new));
 
         @Override public String modeName() { return "upright_float"; }
@@ -263,8 +264,8 @@ public sealed interface FishAnimationConfig
                 Codec.FLOAT.optionalFieldOf("pivot_fraction", DEFAULT_PIVOT_FRACTION).forGetter(UprightSit::pivotFraction),
                 Codec.FLOAT.optionalFieldOf("scuttle_squash", DEFAULT_SCUTTLE_SQUASH).forGetter(UprightSit::scuttleSquash),
                 // See HorizontalSwim.headUv/tailUv.
-                Vec2.CODEC.optionalFieldOf("head_uv").forGetter(UprightSit::headUv),
-                Vec2.CODEC.optionalFieldOf("tail_uv").forGetter(UprightSit::tailUv)
+                FishtasticCodecs.VEC2.optionalFieldOf("head_uv").forGetter(UprightSit::headUv),
+                FishtasticCodecs.VEC2.optionalFieldOf("tail_uv").forGetter(UprightSit::tailUv)
         ).apply(i, UprightSit::new));
 
         @Override public String modeName() { return "upright_sit"; }

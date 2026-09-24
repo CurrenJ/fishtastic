@@ -49,7 +49,8 @@ public class FishingHookMixin implements IFishingHookExtension {
     // NeoForge patches this to canPerformAction(), so it already works there.
     @Inject(method = "shouldStopFishing", at = @At("HEAD"), cancellable = true)
     private void fishtastic$keepCopperRodAlive(Player owner, CallbackInfoReturnable<Boolean> cir) {
-        if (!owner.canInteractWithLevel()) return;
+        // 1.21.1 vanilla's own shouldStopFishing guard (26.1.2: Entity#canInteractWithLevel).
+        if (!owner.isAlive() || owner.isRemoved()) return;
         ItemStack mainHand = owner.getMainHandItem();
         ItemStack offHand = owner.getOffhandItem();
         if ((mainHand.is(FishtasticItemTags.FISHING_RODS) || offHand.is(FishtasticItemTags.FISHING_RODS))
@@ -68,7 +69,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         if(itemStack.is(FishtasticItemTags.FISHING_RODS)) {
             if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
                 grill24.fishtastic.server.FishingMinigameManager manager =
-                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
+                        grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.serverLevel());
                 if (TutorialManager.isTutorialSession(serverPlayer)) {
                     manager.startTutorialSession(serverPlayer);
                 } else {
@@ -85,7 +86,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         Player player = fishingHook.getPlayerOwner();
 
         if(player instanceof ServerPlayer serverPlayer) {
-            FishingMinigameManager manager = FishingMinigameManager.get(serverPlayer.level());
+            FishingMinigameManager manager = FishingMinigameManager.get(serverPlayer.serverLevel());
             boolean isFishingMinigameActive = manager.isPlayerInActiveSession(serverPlayer.getUUID());
 
             if (itemStack.is(FishtasticItemTags.FISHING_RODS) && isFishingMinigameActive) {
@@ -139,15 +140,11 @@ public class FishingHookMixin implements IFishingHookExtension {
     // Vanilla's catchingFish() only spawns the bite/nibble particle cycle when the block under
     // the simulated fish is literally Blocks.WATER; extend that to lava for Fishtastic rods so
     // the bite cycle is visible (and, combined with the fluid redirect above, actually happens).
-    @Redirect(method = "catchingFish", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;is(Ljava/lang/Object;)Z"))
-    private boolean fishtastic$treatLavaAsSplashBlock(BlockState state, Object other) {
-        // This call site only ever passes Blocks.WATER; a plain Block comparison replicates
-        // vanilla's original check without depending on the generic is(Object) overload.
-        if (other instanceof Block block) {
-            if (state.is(block)) return true;
-            return block == Blocks.WATER && this.fishtastic$ownerHoldsLavaCapableRod() && state.is(Blocks.LAVA);
-        }
-        return false;
+    // 1.21.1 calls BlockState#is(Block) here (26.1.2's generic is(Object) overload doesn't exist yet).
+    @Redirect(method = "catchingFish", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;is(Lnet/minecraft/world/level/block/Block;)Z"))
+    private boolean fishtastic$treatLavaAsSplashBlock(BlockState state, Block block) {
+        if (state.is(block)) return true;
+        return block == Blocks.WATER && this.fishtastic$ownerHoldsLavaCapableRod() && state.is(Blocks.LAVA);
     }
 
     // Copper rods drain rapidly in lava (the "wrong tool" experience); obsidian rods drain
@@ -173,7 +170,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         this.fishtastic$lavaDamageTickCounter = 0;
 
         if (owner instanceof ServerPlayer serverPlayer) {
-            rod.hurtAndBreak(fishtasticRod.getLavaDamagePerTick(), serverPlayer.level(), serverPlayer, item -> {});
+            rod.hurtAndBreak(fishtasticRod.getLavaDamagePerTick(), serverPlayer.serverLevel(), serverPlayer, item -> {});
         }
     }
 

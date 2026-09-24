@@ -19,16 +19,17 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Unit;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -44,19 +45,21 @@ public class QuestBookItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             MinecraftServer server = ((ServerLevel) level).getServer();
             QuestSyncPacket.sendToPlayer(serverPlayer, FishCatchSavedData.getOrCreate(server));
             GelatinOpenMenuCompat.openQuestLogMenu(serverPlayer);
         }
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
 
     /** Keeps {@link FishtasticDataComponents#HAS_ALERT} in sync with live server-side quest state. */
     @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
-        super.inventoryTick(stack, level, entity, slot);
+    public void inventoryTick(ItemStack stack, Level tickLevel, Entity entity, int slotId, boolean selected) {
+        super.inventoryTick(stack, tickLevel, entity, slotId, selected);
+        // 26.1.2 only ticks inventories server-side; 1.21.1 ticks both sides.
+        if (!(tickLevel instanceof ServerLevel level)) return;
         if (!(entity instanceof ServerPlayer player)) return;
 
         boolean alert = hasClaimableQuest(level.getServer(), player);
@@ -72,7 +75,7 @@ public class QuestBookItem extends Item {
     private static boolean hasClaimableQuest(MinecraftServer server, ServerPlayer player) {
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return false;
         }
@@ -86,9 +89,9 @@ public class QuestBookItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
-                                 Consumer<Component> builder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, builder, flag);
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        Consumer<Component> builder = tooltip::add;
 
         if (FishtasticKeyBinds.openQuestLog != null && !FishtasticKeyBinds.openQuestLog.isUnbound()) {
             builder.accept(Component.translatable("tooltip.fishtastic.keybind_hint",

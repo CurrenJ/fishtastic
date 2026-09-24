@@ -8,7 +8,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -18,14 +18,14 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Set;
 import java.util.List;
 
-public record PurchaseShopEntryPacket(Identifier entryId) implements CustomPacketPayload {
+public record PurchaseShopEntryPacket(ResourceLocation entryId) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<PurchaseShopEntryPacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.PURCHASE_SHOP_ENTRY_ID);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PurchaseShopEntryPacket> STREAM_CODEC =
             StreamCodec.composite(
-                    Identifier.STREAM_CODEC,
+                    ResourceLocation.STREAM_CODEC,
                     PurchaseShopEntryPacket::entryId,
                     PurchaseShopEntryPacket::new
             );
@@ -47,7 +47,7 @@ public record PurchaseShopEntryPacket(Identifier entryId) implements CustomPacke
 
             Registry<ShopEntry> shopRegistry;
             try {
-                shopRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                shopRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
             } catch (Exception e) {
                 return;
             }

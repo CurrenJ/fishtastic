@@ -9,12 +9,16 @@ import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
+import grill24.fishtastic.util.BlockEntityNbt;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
@@ -24,12 +28,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -178,8 +179,8 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
                 availableSlots.add(i);
                 BundleContents contents = FishtasticItemData.bundleContents(stack);
                 if (contents != null) {
-                    for (ItemStackTemplate template : contents.items()) {
-                        allFish.add(template.create());
+                    for (ItemStack template : contents.items()) {
+                        allFish.add(template.copy());
                     }
                 }
             } else if (PileOfFishItem.canInsertInPile(stack)) {
@@ -193,7 +194,7 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
         }
 
         Registry<FishProfile> fishProfileRegistry = sortMode == OrganizerSortMode.ZONE
-                ? level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                ? level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 : null;
 
         Map<Object, List<ItemStack>> byGroup = new LinkedHashMap<>();
@@ -297,33 +298,33 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
+    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
+        super.saveAdditional(output, registries);
         output.putString("SortMode", sortMode.getSerializedName());
         output.putBoolean("SortAscending", sortAscending);
-        ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
+        ListTag itemsList = BlockEntityNbt.childrenList(output, "Items");
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty()) {
-                ValueOutput child = itemsList.addChild();
+                CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                child.store("Stack", ItemStack.CODEC, stack);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
             }
         }
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
-        sortMode = OrganizerSortMode.bySerializedName(input.getStringOr("SortMode", OrganizerSortMode.SPECIES.getSerializedName()));
-        sortAscending = input.getBooleanOr("SortAscending", true);
+    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
+        super.loadAdditional(input, registries);
+        sortMode = OrganizerSortMode.bySerializedName(BlockEntityNbt.getStringOr(input, "SortMode", OrganizerSortMode.SPECIES.getSerializedName()));
+        sortAscending = BlockEntityNbt.getBooleanOr(input, "SortAscending", true);
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
         }
-        input.childrenListOrEmpty("Items").forEach(child -> {
-            int slot = child.getIntOr("Slot", -1);
+        BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
+            int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                child.read("Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
             }
         });
     }

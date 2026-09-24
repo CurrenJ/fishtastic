@@ -12,7 +12,7 @@ import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagsProvider;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.tags.TagAppender;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -53,14 +53,14 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
         RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, provider);
-        Map<Identifier, FishProfile> fishProfiles = loadFishProfiles(ops);
+        Map<ResourceLocation, FishProfile> fishProfiles = loadFishProfiles(ops);
 
         // Fish tag: every fish_profile entry is, by definition, a fish, so this is derived
         // rather than hand-listed - a hardcoded list previously drifted out of sync (missing
         // 12 fish) as new fish were added without updating it. See addZoneTags for the same
         // derive-don't-hardcode rationale.
         TagAppender<Item, Item> fishTagBuilder = valueLookupBuilder(FishtasticItemTags.FISH);
-        for (Identifier id : fishProfiles.keySet()) {
+        for (ResourceLocation id : fishProfiles.keySet()) {
             fishTagBuilder.add(itemForFishProfile(id));
         }
 
@@ -279,13 +279,13 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
      * JSON rather than hand-listed, so they can't drift out of sync as fish are added, removed,
      * or reassigned to a different zone.
      */
-    private void addZoneTags(Map<Identifier, FishProfile> fishProfiles) {
+    private void addZoneTags(Map<ResourceLocation, FishProfile> fishProfiles) {
         Map<FishProfile.Zone, TagAppender<Item, Item>> zoneBuilders = new EnumMap<>(FishProfile.Zone.class);
         for (FishProfile.Zone zone : FishProfile.Zone.values()) {
             zoneBuilders.put(zone, valueLookupBuilder(zoneTag(zone)));
         }
 
-        for (Map.Entry<Identifier, FishProfile> entry : fishProfiles.entrySet()) {
+        for (Map.Entry<ResourceLocation, FishProfile> entry : fishProfiles.entrySet()) {
             Item item = itemForFishProfile(entry.getKey());
             for (FishProfile.Zone zone : entry.getValue().zones()) {
                 zoneBuilders.get(zone).add(item);
@@ -293,7 +293,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
         }
     }
 
-    private static Item itemForFishProfile(Identifier id) {
+    private static Item itemForFishProfile(ResourceLocation id) {
         return BuiltInRegistries.ITEM.getOptional(id)
                 .orElseThrow(() -> new IllegalStateException(
                         "fish_profile/" + id.getPath() + ".json has no matching item"));
@@ -311,7 +311,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
     }
 
     /** Reads every fish_profile/*.json off the classpath and decodes it with the real {@link FishProfile#CODEC}. */
-    private static Map<Identifier, FishProfile> loadFishProfiles(RegistryOps<JsonElement> ops) {
+    private static Map<ResourceLocation, FishProfile> loadFishProfiles(RegistryOps<JsonElement> ops) {
         URL dirUrl = FishtasticItemTagProvider.class.getClassLoader().getResource(FISH_PROFILE_RESOURCE_DIR);
         if (dirUrl == null) {
             throw new IllegalStateException("Could not locate " + FISH_PROFILE_RESOURCE_DIR + " on the classpath");
@@ -324,7 +324,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
             throw new IllegalStateException("Malformed fish_profile classpath URL: " + dirUrl, e);
         }
 
-        Map<Identifier, FishProfile> profiles = new LinkedHashMap<>();
+        Map<ResourceLocation, FishProfile> profiles = new LinkedHashMap<>();
         try (Stream<Path> files = Files.list(dir)) {
             // Sorted for deterministic tag output - Files.list() order isn't guaranteed.
             List<Path> sortedFiles = files.filter(p -> p.getFileName().toString().endsWith(".json"))
@@ -332,7 +332,7 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                     .toList();
             for (Path file : sortedFiles) {
                 String fileName = file.getFileName().toString();
-                Identifier id = Fishtastic.id(fileName.substring(0, fileName.length() - ".json".length()));
+                ResourceLocation id = Fishtastic.id(fileName.substring(0, fileName.length() - ".json".length()));
                 JsonElement element = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));
                 FishProfile profile = FishProfile.CODEC.parse(ops, element)
                         .getOrThrow(msg -> new IllegalStateException("Failed to parse fish_profile/" + fileName + ": " + msg));

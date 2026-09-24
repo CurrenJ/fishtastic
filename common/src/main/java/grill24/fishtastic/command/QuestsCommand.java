@@ -146,17 +146,24 @@ public class QuestsCommand {
     // debug complete / claim
     // -------------------------------------------------------------------------
 
+    /** {@code ResourceKeyArgument.getRegistryKey}, which is private before 1.21.2. */
+    private static <T> ResourceKey<T> getQuestKey(CommandContext<CommandSourceStack> ctx, String name,
+            ResourceKey<Registry<T>> registryKey, DynamicCommandExceptionType error) throws CommandSyntaxException {
+        ResourceKey<?> key = ctx.getArgument(name, ResourceKey.class);
+        return key.cast(registryKey).orElseThrow(() -> error.create(key));
+    }
+
     private static int executeDebugOne(CommandContext<CommandSourceStack> ctx, ServerPlayer explicit, boolean claim) throws CommandSyntaxException {
         CommandSourceStack source = ctx.getSource();
         ServerPlayer target = resolveTarget(source, explicit);
         if (target == null) return 0;
 
-        ResourceKey<Quest> questKey = ResourceKeyArgument.getRegistryKey(
+        ResourceKey<Quest> questKey = getQuestKey(
                 ctx, "questId", FishtasticRegistries.QUEST_REGISTRY_KEY, ERROR_UNKNOWN_QUEST);
-        Registry<Quest> questRegistry = source.getServer().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> questRegistry = source.getServer().registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = questRegistry.getOptional(questKey).orElse(null);
         if (quest == null) {
-            source.sendFailure(Component.literal("Unknown quest: " + questKey.identifier()));
+            source.sendFailure(Component.literal("Unknown quest: " + questKey.location()));
             return 0;
         }
 
@@ -170,7 +177,7 @@ public class QuestsCommand {
         QuestSyncPacket.sendToPlayer(target, data);
 
         source.sendSuccess(() -> Component.literal(
-                (claim ? "Force-claimed" : "Force-completed") + " quest " + questKey.identifier()
+                (claim ? "Force-claimed" : "Force-completed") + " quest " + questKey.location()
                         + " for " + target.getName().getString() + ".")
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
@@ -181,7 +188,7 @@ public class QuestsCommand {
         ServerPlayer target = resolveTarget(source, explicit);
         if (target == null) return 0;
 
-        Registry<Quest> questRegistry = source.getServer().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> questRegistry = source.getServer().registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
         FishCatchBackups.beforeDestructiveCommand(source.getServer(), "quests_debug_all");
         PlayerQuestState state = data.getOrCreateQuestState(target);
@@ -225,14 +232,14 @@ public class QuestsCommand {
         ServerPlayer target = resolveTarget(source, explicit);
         if (target == null) return 0;
 
-        ResourceKey<Quest> questKey = ResourceKeyArgument.getRegistryKey(
+        ResourceKey<Quest> questKey = getQuestKey(
                 ctx, "questId", FishtasticRegistries.QUEST_REGISTRY_KEY, ERROR_UNKNOWN_QUEST);
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
 
-        Registry<Quest> questRegistry = source.getServer().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> questRegistry = source.getServer().registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = questRegistry.getOptional(questKey).orElse(null);
         if (quest == null) {
-            source.sendFailure(Component.literal("Unknown quest: " + questKey.identifier()));
+            source.sendFailure(Component.literal("Unknown quest: " + questKey.location()));
             return 0;
         }
 
@@ -247,7 +254,7 @@ public class QuestsCommand {
         QuestSyncPacket.sendToPlayer(target, data);
 
         source.sendSuccess(() -> Component.literal(
-                "Set progress for quest " + questKey.identifier() + " to " + amount + "/"
+                "Set progress for quest " + questKey.location() + " to " + amount + "/"
                         + targetCount + " for " + target.getName().getString() + ".")
                 .withStyle(ChatFormatting.GREEN), true);
         return amount;

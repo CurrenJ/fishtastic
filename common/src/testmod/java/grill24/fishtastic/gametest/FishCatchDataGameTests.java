@@ -6,7 +6,7 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -233,7 +233,7 @@ public final class FishCatchDataGameTests {
             data.getGlobalBestSizes(FishCatchSavedData.GLOBAL_BEST_SIZE_DESC);
         helper.assertTrue(global.size() == 2, "Must have 2 entries, one per fish type, got " + global.size());
 
-        Identifier bluegillId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value());
+        ResourceLocation bluegillId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value());
         for (FishCatchSavedData.GlobalBestSizeEntry entry : global) {
             if (entry.fishType().equals(bluegillId)) {
                 helper.assertTrue(entry.bestSize() == 80f && entry.playerUuid().equals(playerA),

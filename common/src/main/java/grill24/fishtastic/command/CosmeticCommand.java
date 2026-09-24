@@ -233,7 +233,7 @@ public class CosmeticCommand {
                             .withStyle(style -> style
                                     .withColor(ChatFormatting.AQUA)
                                     .withUnderlined(true)
-                                    .withClickEvent(new ClickEvent.CopyToClipboard(jsonText)))), true);
+                                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, jsonText)))), true);
         } catch (IOException e) {
             source.sendFailure(Component.literal("Failed to write file: " + e.getMessage()));
             return 0;

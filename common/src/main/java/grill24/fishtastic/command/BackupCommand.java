@@ -301,7 +301,7 @@ public class BackupCommand {
                     .append(Component.literal(confirmCmd).withStyle(style -> style
                             .withColor(ChatFormatting.AQUA)
                             .withUnderlined(true)
-                            .withClickEvent(new ClickEvent.SuggestCommand(confirmCmd)))), false);
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, confirmCmd)))), false);
             return 1;
         }
 
@@ -382,8 +382,8 @@ public class BackupCommand {
         String inspect = "/fishtastic backup inspect \"" + e.fileName() + "\"";
         return Component.literal(e.fileName()).withStyle(style -> style
                 .withColor(ChatFormatting.WHITE)
-                .withClickEvent(new ClickEvent.SuggestCommand(inspect))
-                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to inspect"))));
+                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, inspect))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to inspect"))));
     }
 
     private static String poolTitle(Pool pool) {

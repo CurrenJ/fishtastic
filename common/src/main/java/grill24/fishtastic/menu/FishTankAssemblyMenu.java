@@ -149,8 +149,8 @@ public class FishTankAssemblyMenu extends GelatinMenu {
      * interaction (placing/removing/shift-clicking a material) that could change the result.
      */
     @Override
-    public void clicked(int slotId, int button, net.minecraft.world.inventory.ContainerInput containerInput, Player player) {
-        super.clicked(slotId, button, containerInput, player);
+    public void clicked(int slotId, int button, net.minecraft.world.inventory.ClickType clickType, Player player) {
+        super.clicked(slotId, button, clickType, player);
         updateResult();
     }
 

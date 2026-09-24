@@ -17,7 +17,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -25,16 +25,17 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Unit;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -51,20 +52,22 @@ public class FishopediaItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             MinecraftServer server = ((ServerLevel) level).getServer();
             FishEncyclopediaSyncPacket.sendToPlayer(serverPlayer, FishCatchSavedData.getOrCreate(server));
             GelatinOpenMenuCompat.openFishEncyclopediaMenu(serverPlayer);
             EncyclopediaTutorialManager.onEncyclopediaOpened(serverPlayer);
         }
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
 
     /** Keeps {@link FishtasticDataComponents#HAS_ALERT} in sync with live server-side reward state. */
     @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
-        super.inventoryTick(stack, level, entity, slot);
+    public void inventoryTick(ItemStack stack, Level tickLevel, Entity entity, int slotId, boolean selected) {
+        super.inventoryTick(stack, tickLevel, entity, slotId, selected);
+        // 26.1.2 only ticks inventories server-side; 1.21.1 ticks both sides.
+        if (!(tickLevel instanceof ServerLevel level)) return;
         if (!(entity instanceof ServerPlayer player)) return;
 
         boolean alert = hasUnclaimedReward(level.getServer(), player);
@@ -80,7 +83,7 @@ public class FishopediaItem extends Item {
     private static boolean hasUnclaimedReward(MinecraftServer server, ServerPlayer player) {
         Registry<FishProfile> fishRegistry;
         try {
-            fishRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+            fishRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         } catch (Exception e) {
             return false;
         }
@@ -90,7 +93,7 @@ public class FishopediaItem extends Item {
         PlayerQuestState questState = catchData.getOrCreateQuestState(player);
 
         for (ResourceKey<FishProfile> fishKey : fishRegistry.registryKeySet()) {
-            Identifier fishId = fishKey.identifier();
+            ResourceLocation fishId = fishKey.location();
             int catchCount = catchData.getCatchCount(key, fishId);
             if (catchCount <= 0) continue;
 
@@ -107,9 +110,9 @@ public class FishopediaItem extends Item {
     private static FishEncyclopediaEntry.UnlockThresholds getThresholds(MinecraftServer server, ResourceKey<FishProfile> fishKey) {
         try {
             Registry<FishEncyclopediaEntry> registry =
-                    server.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY);
+                    server.registryAccess().registryOrThrow(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY);
             ResourceKey<FishEncyclopediaEntry> entryKey =
-                    ResourceKey.create(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.identifier());
+                    ResourceKey.create(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.location());
             return registry.getOptional(entryKey).map(FishEncyclopediaEntry::thresholds).orElse(FishEncyclopediaEntry.UnlockThresholds.DEFAULT);
         } catch (Exception e) {
             return FishEncyclopediaEntry.UnlockThresholds.DEFAULT;
@@ -117,9 +120,9 @@ public class FishopediaItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
-                                 Consumer<Component> builder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, builder, flag);
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        Consumer<Component> builder = tooltip::add;
 
         HolderLookup.Provider registries = context.registries();
         if (registries == null) return;
@@ -135,7 +138,7 @@ public class FishopediaItem extends Item {
         for (var it = fishRegistry.listElementIds().iterator(); it.hasNext(); ) {
             ResourceKey<FishProfile> fishKey = it.next();
             total++;
-            if (FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0) discovered++;
+            if (FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0) discovered++;
         }
 
         builder.accept(Component.translatable("tooltip.fishtastic.fishopedia.progress", discovered, total)

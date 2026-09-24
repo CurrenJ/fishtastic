@@ -66,7 +66,7 @@ public class FishtasticCommand {
                     .append(Component.literal("Gelatin UI")
                         .withStyle(style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://www.curseforge.com/minecraft/mc-mods/gelatin-ui")))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://www.curseforge.com/minecraft/mc-mods/gelatin-ui"))
                             .withUnderlined(true)))
                     .append(Component.literal(" for a visual display.")
                         .withStyle(ChatFormatting.YELLOW));

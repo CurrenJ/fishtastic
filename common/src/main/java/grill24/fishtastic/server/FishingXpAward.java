@@ -59,7 +59,7 @@ public final class FishingXpAward {
 
     private static int perItemXp(ItemStack stack, Registry<FishProfile> fishProfiles) {
         FishProfile profile = BuiltInRegistries.ITEM.getResourceKey(stack.getItem())
-                .map(key -> ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .map(key -> ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.location()))
                 .flatMap(fishProfiles::getOptional)
                 .orElse(null);
         if (profile == null) {

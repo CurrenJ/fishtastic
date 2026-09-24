@@ -12,20 +12,20 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-public record CompleteQuestPacket(Identifier questId) implements CustomPacketPayload {
+public record CompleteQuestPacket(ResourceLocation questId) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<CompleteQuestPacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.COMPLETE_QUEST_ID);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, CompleteQuestPacket> STREAM_CODEC =
             StreamCodec.composite(
-                    Identifier.STREAM_CODEC,
+                    ResourceLocation.STREAM_CODEC,
                     CompleteQuestPacket::questId,
                     CompleteQuestPacket::new
             );
@@ -47,7 +47,7 @@ public record CompleteQuestPacket(Identifier questId) implements CustomPacketPay
 
             Registry<Quest> questRegistry;
             try {
-                questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
             } catch (Exception e) {
                 return;
             }

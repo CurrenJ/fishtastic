@@ -22,7 +22,7 @@ import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.geometry.QuadCollection;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.client.resources.model.sprite.TextureSlots;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -159,8 +159,8 @@ public class FishTankItemModelFabric implements ItemModel {
         try {
             Field field = ItemModels.class.getDeclaredField("ID_MAPPER");
             field.setAccessible(true);
-            ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>> idMapper =
-                    (ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>>) field.get(null);
+            ExtraCodecs.LateBoundIdMapper<ResourceLocation, MapCodec<? extends ItemModel.Unbaked>> idMapper =
+                    (ExtraCodecs.LateBoundIdMapper<ResourceLocation, MapCodec<? extends ItemModel.Unbaked>>) field.get(null);
             idMapper.put(ft("fish_tank_composite"), Unbaked.MAP_CODEC);
             Fishtastic.LOGGER.info("Registered fish_tank_composite item model type.");
         } catch (ReflectiveOperationException e) {
@@ -201,7 +201,7 @@ public class FishTankItemModelFabric implements ItemModel {
     }
 
     /** Permutation-0 sub-model id for a shape's part (the "fully closed" tank the item renders). */
-    private static Identifier modelLocation(FishTankShape shape, String part) {
+    private static ResourceLocation modelLocation(FishTankShape shape, String part) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_" + part + "_0");
     }
 }

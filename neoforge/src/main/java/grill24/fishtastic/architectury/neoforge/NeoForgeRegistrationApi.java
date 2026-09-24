@@ -13,7 +13,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.flag.FeatureFlags;
@@ -40,17 +40,17 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     // ----- Registration Methods ----- //
 
     @Override
-    public <I extends Item> Holder<Item> registerItem(final String name, final Function<Identifier, ? extends I> func) {
+    public <I extends Item> Holder<Item> registerItem(final String name, final Function<ResourceLocation, ? extends I> func) {
         return FishtasticRegistriesNeoForge.ITEMS.register(name, func);
     }
 
     @Override
-    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func) {
-        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> func) {
+        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties()));
     }
 
     @Override
-    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc) {
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> blockFunc, final BiFunction<Block, ResourceLocation, ? extends BlockItem> itemFunc) {
         Holder<Block> blockHolder = FishtasticRegistriesNeoForge.BLOCKS.register(name, blockFunc);
         FishtasticRegistriesNeoForge.ITEMS.register(name, loc -> itemFunc.apply(blockHolder.value(), loc));
         return blockHolder;
@@ -59,7 +59,8 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Holder<BlockEntityType<?>> registerBlockEntityType(String name, BiFunction<BlockPos, BlockState, ? extends BlockEntity> factory, Supplier<Block[]> validBlocksSupplier) {
         return FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(name, () ->
-                new BlockEntityType<>(factory::apply, validBlocksSupplier.get())
+                // Before 1.21.2, a block entity type is built rather than constructed; the data fixer type is unused.
+                BlockEntityType.Builder.<BlockEntity>of(factory::apply, validBlocksSupplier.get()).build(null)
         );
     }
 
@@ -71,7 +72,7 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     }
 
     @Override
-    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
+    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<ResourceLocation, ? extends CreativeModeTab> func) {
         return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(name, func);
     }
 

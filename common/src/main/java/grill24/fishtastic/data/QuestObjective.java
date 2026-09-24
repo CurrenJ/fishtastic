@@ -237,7 +237,7 @@ public record QuestObjective(
     public int effectiveTargetCount(RegistryAccess registryAccess) {
         if (targetCount.isPresent()) return targetCount.get();
         if (distinctSpecies && targetSpeciesTag.isPresent()) {
-            Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
+            Registry<Item> items = registryAccess.registryOrThrow(Registries.ITEM);
             int count = 0;
             for (Holder<Item> holder : items.getTagOrEmpty(targetSpeciesTag.get())) {
                 if (excludeSpeciesTag.isPresent() && holder.is(excludeSpeciesTag.get())) continue;
@@ -246,7 +246,7 @@ public record QuestObjective(
             return count;
         }
         if (distinctBaitTag.isPresent()) {
-            Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
+            Registry<Item> items = registryAccess.registryOrThrow(Registries.ITEM);
             int count = 0;
             for (Holder<Item> holder : items.getTagOrEmpty(distinctBaitTag.get())) count++;
             return count;

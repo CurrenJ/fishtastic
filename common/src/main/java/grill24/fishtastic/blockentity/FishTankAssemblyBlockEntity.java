@@ -1,5 +1,9 @@
 package grill24.fishtastic.blockentity;
 
+import grill24.fishtastic.util.BlockEntityNbt;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.CompoundTag;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
@@ -15,8 +19,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -105,31 +107,31 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
+    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
+        super.saveAdditional(output, registries);
         output.putString("Shape", shape.getSerializedName());
-        ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
+        ListTag itemsList = BlockEntityNbt.childrenList(output, "Items");
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty()) {
-                ValueOutput child = itemsList.addChild();
+                CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                child.store("Stack", ItemStack.CODEC, stack);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
             }
         }
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
-        shape = FishTankShape.bySerializedName(input.getStringOr("Shape", FishTankShape.STANDARD.getSerializedName()));
+    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
+        super.loadAdditional(input, registries);
+        shape = FishTankShape.bySerializedName(BlockEntityNbt.getStringOr(input, "Shape", FishTankShape.STANDARD.getSerializedName()));
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
         }
-        input.childrenListOrEmpty("Items").forEach(child -> {
-            int slot = child.getIntOr("Slot", -1);
+        BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
+            int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                child.read("Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
             }
         });
     }

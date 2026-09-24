@@ -47,12 +47,12 @@ public class DebugEncyclopediaCommand {
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
         FishCatchBackups.beforeDestructiveCommand(source.getServer(), "encyclopedia_complete");
         Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         String playerName = target.getName().getString();
         java.util.UUID key = data.resolvePlayerKey(target);
         for (var entry : profileRegistry.entrySet()) {
-            data.setCatchCount(key, playerName, entry.getKey().identifier(), REVEAL_CATCH_COUNT);
+            data.setCatchCount(key, playerName, entry.getKey().location(), REVEAL_CATCH_COUNT);
         }
 
         int count = profileRegistry.size();
@@ -73,12 +73,12 @@ public class DebugEncyclopediaCommand {
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(source.getServer());
         FishCatchBackups.beforeDestructiveCommand(source.getServer(), "encyclopedia_reset");
         Registry<FishProfile> profileRegistry = source.getServer().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         String playerName = target.getName().getString();
         java.util.UUID key = data.resolvePlayerKey(target);
         for (var entry : profileRegistry.entrySet()) {
-            data.setCatchCount(key, playerName, entry.getKey().identifier(), 0);
+            data.setCatchCount(key, playerName, entry.getKey().location(), 0);
         }
 
         int count = profileRegistry.size();

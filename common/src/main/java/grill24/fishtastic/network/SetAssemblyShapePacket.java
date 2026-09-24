@@ -10,7 +10,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,7 +48,7 @@ public record SetAssemblyShapePacket(FishTankShape shape) implements CustomPacke
             MinecraftServer server = ((ServerLevel) player.level()).getServer();
             if (server == null) return;
             PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
-            Registry<Quest> quests = player.level().registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            Registry<Quest> quests = player.level().registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
             if (!packet.shape().isUnlockedFor(quests, quest -> state.getProgress(quest).claimed())) return;
 
             assembly.setShape(packet.shape());

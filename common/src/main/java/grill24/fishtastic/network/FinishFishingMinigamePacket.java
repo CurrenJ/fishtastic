@@ -53,7 +53,7 @@ public record FinishFishingMinigamePacket(
                     serverPlayer.getName().getString(), packet.sessionId, packet.caughtTargetIndices.size());
 
             // Get server-side minigame manager and process results
-            var manager = grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
+            var manager = grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.serverLevel());
             if (manager != null) {
                 manager.handleMinigameComplete(serverPlayer, packet.sessionId, packet.caughtTargetIndices);
             }

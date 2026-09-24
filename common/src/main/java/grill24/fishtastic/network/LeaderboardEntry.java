@@ -1,11 +1,12 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.component.FishQuality;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,7 @@ import java.util.UUID;
  * </ul>
  */
 public record LeaderboardEntry(
-        Optional<Identifier> fishType,
+        Optional<ResourceLocation> fishType,
         Optional<UUID> playerUuid,
         Optional<String> playerName,
         float size,
@@ -43,8 +44,8 @@ public record LeaderboardEntry(
                     Enum::ordinal
             );
 
-    public static final StreamCodec<ByteBuf, LeaderboardEntry> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.optional(Identifier.STREAM_CODEC),
+    public static final StreamCodec<ByteBuf, LeaderboardEntry> STREAM_CODEC = StreamCodecs.composite(
+            ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC),
             LeaderboardEntry::fishType,
             ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC),
             LeaderboardEntry::playerUuid,
@@ -63,16 +64,16 @@ public record LeaderboardEntry(
 
     // ---- Convenience constructors ----
 
-    public static LeaderboardEntry personalBestSize(Identifier fishType, float size, FishQuality.Quality quality) {
+    public static LeaderboardEntry personalBestSize(ResourceLocation fishType, float size, FishQuality.Quality quality) {
         return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), size, 0, quality, List.of());
     }
 
-    public static LeaderboardEntry globalBestSize(Identifier fishType, UUID playerUuid, String playerName,
+    public static LeaderboardEntry globalBestSize(ResourceLocation fishType, UUID playerUuid, String playerName,
                                                    float size, FishQuality.Quality quality) {
         return new LeaderboardEntry(Optional.of(fishType), Optional.of(playerUuid), Optional.of(playerName), size, 0, quality, List.of());
     }
 
-    public static LeaderboardEntry personalCatchCount(Identifier fishType, int count) {
+    public static LeaderboardEntry personalCatchCount(ResourceLocation fishType, int count) {
         return new LeaderboardEntry(Optional.of(fishType), Optional.empty(), Optional.empty(), 0f, count, FishQuality.Quality.COMMON, List.of());
     }
 

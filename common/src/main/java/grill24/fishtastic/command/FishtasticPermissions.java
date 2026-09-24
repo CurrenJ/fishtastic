@@ -15,14 +15,8 @@ import java.util.function.Predicate;
 public final class FishtasticPermissions {
     private FishtasticPermissions() {}
 
-    /**
-     * Op level 2 (gamemaster), the level every Fishtastic admin and debug command requires.
-     *
-     * <p>Returns vanilla's own {@code PermissionProviderCheck} rather than a lambda: vanilla
-     * recognises that type on command nodes ({@code ArgumentUtils}), so wrapping it would change
-     * behaviour.
-     */
+    /** Op level 2 (gamemaster), the level every Fishtastic admin and debug command requires. */
     public static Predicate<CommandSourceStack> gamemaster() {
-        return Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+        return src -> src.hasPermission(Commands.LEVEL_GAMEMASTERS);
     }
 }

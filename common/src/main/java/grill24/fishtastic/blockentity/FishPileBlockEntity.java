@@ -1,18 +1,18 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.util.BlockEntityNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -98,20 +98,20 @@ public class FishPileBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
-        ValueOutput.ValueOutputList fishList = output.childrenList("Fish");
+    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
+        super.saveAdditional(output, registries);
+        ListTag fishList = BlockEntityNbt.childrenList(output, "Fish");
         for (ItemStack stack : fish) {
-            fishList.addChild().store("Stack", ItemStack.CODEC, stack);
+            BlockEntityNbt.store(BlockEntityNbt.addChild(fishList), "Stack", ItemStack.CODEC, stack, registries);
         }
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
+    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
+        super.loadAdditional(input, registries);
         fish.clear();
-        input.childrenListOrEmpty("Fish").forEach(child ->
-                child.read("Stack", ItemStack.CODEC).ifPresent(fish::add));
+        BlockEntityNbt.childrenListOrEmpty(input, "Fish").forEach(child ->
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(fish::add));
     }
 
     @Override

@@ -15,7 +15,7 @@ import net.minecraft.client.resources.model.geometry.QuadCollection;
 import net.minecraft.client.resources.model.geometry.UnbakedGeometry;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.client.resources.model.sprite.TextureSlots;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jspecify.annotations.Nullable;
 
 import static grill24.fishtastic.util.Utility.ft;
@@ -67,7 +67,7 @@ public final class FishTankModelFabric implements UnbakedModel {
     }
 
     @Override
-    public @Nullable Identifier parent() {
+    public @Nullable ResourceLocation parent() {
         return Ids.withDefaultNamespace("block/block");
     }
 
@@ -83,7 +83,7 @@ public final class FishTankModelFabric implements UnbakedModel {
         }
 
         private void bakeAndAdd(QuadCollection.Builder builder, ModelBaker baker,
-                                Identifier modelId, ModelState state) {
+                                ResourceLocation modelId, ModelState state) {
             ResolvedModel model = baker.getModel(modelId);
             QuadCollection quads = model.bakeTopGeometry(model.getTopTextureSlots(), baker, state);
             builder.addAll(quads);

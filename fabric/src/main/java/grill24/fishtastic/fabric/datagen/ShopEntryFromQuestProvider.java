@@ -17,7 +17,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.io.IOException;
@@ -116,7 +116,7 @@ public class ShopEntryFromQuestProvider implements DataProvider {
     }
 
     private static boolean isFishTank(QuestReward.RewardItem rewardItem) {
-        Identifier id = BuiltInRegistries.ITEM.getKey(rewardItem.item());
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(rewardItem.item());
         return id.equals(Fishtastic.id("fish_tank"));
     }
 

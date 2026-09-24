@@ -1,6 +1,6 @@
 package grill24.fishtastic.client;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -8,7 +8,7 @@ import net.minecraft.world.item.ItemStack;
  * Used by QuestProgressNotificationManager to enqueue HUD notifications.
  */
 public record QuestProgressEvent(
-        Identifier questId,
+        ResourceLocation questId,
         int oldCount,
         int newCount,
         int targetCount,

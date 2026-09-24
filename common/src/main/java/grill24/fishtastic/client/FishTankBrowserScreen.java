@@ -25,7 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -70,7 +70,7 @@ public class FishTankBrowserScreen extends GelatinUIScreen<FishTankBrowserMenu> 
     // Reuses the same panel art as the shop/leaderboard/quest-log cards (see
     // LeaderboardScreen#ROW_BG_TEXTURE) rather than a bespoke outline asset, for visual
     // consistency with the rest of the mod's gelatin-ui screens.
-    private static final Identifier OUTLINE_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final ResourceLocation OUTLINE_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
     private static final int OUTLINE_SOURCE_WIDTH = 20;
     private static final int OUTLINE_SOURCE_HEIGHT = 24;
     private static final int OUTLINE_SLICE = 4;

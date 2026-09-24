@@ -63,7 +63,15 @@ public class ElectricFishOrganizerMenu extends AbstractContainerMenu {
         }
 
         int inventoryTop = 18 + ROWS * 18 + 13;
-        addStandardInventorySlots(playerInventory, 8, inventoryTop);
+        // 26.1.2's addStandardInventorySlots (1.21.2+): the 3x9 main inventory, then the hotbar 58px lower.
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                addSlot(new Slot(playerInventory, col + (row + 1) * 9, 8 + col * 18, inventoryTop + row * 18));
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            addSlot(new Slot(playerInventory, col, 8 + col * 18, inventoryTop + 58));
+        }
     }
 
     /** The sort mode both sides currently agree on (client mirrors the server via {@link #sortModeSlot}). */

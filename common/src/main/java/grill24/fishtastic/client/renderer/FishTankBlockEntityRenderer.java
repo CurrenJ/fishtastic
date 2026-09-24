@@ -564,10 +564,10 @@ public class FishTankBlockEntityRenderer
         if (itemKey.isEmpty()) return ResolvedFishRender.DEFAULT;
 
         ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
 
         return level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(profileKey)
                 .map(profile -> new ResolvedFishRender(
                         profile.animation().orElse(FishAnimationConfig.HorizontalSwim.DEFAULT),
@@ -581,7 +581,7 @@ public class FishTankBlockEntityRenderer
         Map<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> placed = blockEntity.getStructureCosmetics();
         if (placed.isEmpty()) return java.util.Collections.emptyMap();
 
-        var registry = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+        var registry = level.registryAccess().registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
         Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> resolved = new HashMap<>();
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
             registry.getOptional(entry.getValue().structureId()).ifPresent(structure ->

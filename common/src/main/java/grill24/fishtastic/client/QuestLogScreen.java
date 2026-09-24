@@ -43,7 +43,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
@@ -85,8 +85,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SpriteButton shopRefreshBtn;
     private Label shopRefreshCostLabel;
     private Label shopRefreshNotEnoughLabel;
-    private final Map<Identifier, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
-    private final Map<Identifier, CyclingIconState> cyclingIconRefs = new LinkedHashMap<>();
+    private final Map<ResourceLocation, QuestRowRefs> questRowRefs = new LinkedHashMap<>();
+    private final Map<ResourceLocation, CyclingIconState> cyclingIconRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
     private final Map<QuestCategory, List<ResourceKey<Quest>>> questKeysByCategory = new EnumMap<>(QuestCategory.class);
@@ -159,8 +159,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // Shop item panel — displays a purchasable item pinned to the board; falls away with
     // accelerating (gravity-like) motion on purchase, then pops back in shortly after if the
     // entry is still available.
-    private static final Identifier SHOP_ITEM_PANEL_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
-    private static final Identifier SHOP_ITEM_PANEL_PIN_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel_pin_only.png");
+    private static final ResourceLocation SHOP_ITEM_PANEL_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final ResourceLocation SHOP_ITEM_PANEL_PIN_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel_pin_only.png");
     // Source texture files are 20x24; rendered at SHOP_ITEM_PANEL_SCALE for a bigger on-screen panel.
     private static final int SHOP_ITEM_PANEL_SOURCE_WIDTH = 20;
     private static final int SHOP_ITEM_PANEL_SOURCE_HEIGHT = 24;
@@ -173,7 +173,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float SHOP_ITEM_NAME_MAX_WIDTH = 90f;
     private static final float SHOP_ITEM_DESCRIPTION_MAX_WIDTH = 140f;
 
-    private static final Identifier SHOP_BUY_BUTTON_TEXTURE = Fishtastic.id("textures/gui/buy_button_2.png");
+    private static final ResourceLocation SHOP_BUY_BUTTON_TEXTURE = Fishtastic.id("textures/gui/buy_button_2.png");
     private static final int SHOP_BUY_BUTTON_FILE_WIDTH = 18;
     private static final int SHOP_BUY_BUTTON_FILE_HEIGHT = 14;
     // This file's opaque art fills the entire 18x14 canvas — no cropping needed.
@@ -186,21 +186,21 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int SHOP_BUY_BUTTON_HEIGHT = Math.round(SHOP_BUY_BUTTON_SOURCE_HEIGHT * SHOP_BUY_BUTTON_SCALE);
 
     // Alert badge shown on a tab icon when that category has a completed-but-unclaimed quest.
-    private static final Identifier TAB_ALERT_TEXTURE = Fishtastic.id("textures/gui/alert_2.png");
+    private static final ResourceLocation TAB_ALERT_TEXTURE = Fishtastic.id("textures/gui/alert_2.png");
     private static final float TAB_ALERT_WIDTH = 2.5f;
     private static final float TAB_ALERT_HEIGHT = 7.5f;
 
     // Quest row background — reuses the shop item panel texture, 9-sliced so the border art
     // stays crisp while the middle stretches to fit each row's actual (varying) size.
-    private static final Identifier QUEST_ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final ResourceLocation QUEST_ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
     // Silver/gold difficulty tiers reuse the same 20x24 canvas and slice metrics, just with a
     // different border color, so no separate slice constants are needed for them.
-    private static final Identifier QUEST_ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
-    private static final Identifier QUEST_ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
+    private static final ResourceLocation QUEST_ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
+    private static final ResourceLocation QUEST_ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
     // Claimed quests use a green-tinted variant of the same panel to signal completion,
     // regardless of difficulty tier — there's no claimed+silver/gold art, and "claimed" is
     // the more important signal to show once it applies.
-    private static final Identifier QUEST_ROW_BG_TEXTURE_CLAIMED = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final ResourceLocation QUEST_ROW_BG_TEXTURE_CLAIMED = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
     private static final int QUEST_ROW_BG_SOURCE_WIDTH = 20;
     private static final int QUEST_ROW_BG_SOURCE_HEIGHT = 24;
     // Requested center/stretch region: origin (4,4), size (12,16) within the 20x24 source.
@@ -211,13 +211,13 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Claim button — reuses the same green claimed-panel texture as the row background,
     // 9-sliced so its border art stays crisp at the button's small on-screen size.
-    private static final Identifier QUEST_CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final ResourceLocation QUEST_CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
 
     // Status pip shown to the left of a quest's title when its objective has a spatial
     // (biome) or temporal (time of day / weather) condition — lit green while that
     // condition currently holds for the player, dim otherwise.
-    private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
-    private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final ResourceLocation STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
+    private static final ResourceLocation STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final float STATUS_PIP_SIZE = 5f;
     private static final float STATUS_PIP_TOOLTIP_SCALE = 0.7f;
 
@@ -321,7 +321,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
         // Ticked locally (rather than only on quest-sync) so a conditioned quest's pip reacts
         // live to weather changing, day/night passing, or the player walking between biomes.
-        for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
+        for (Map.Entry<ResourceLocation, QuestRowRefs> e : questRowRefs.entrySet()) {
             QuestRowRefs refs = e.getValue();
             if (refs.statusPip() != null) {
                 updateStatusPip(refs, QuestClientCache.getProgress(e.getKey()).claimed());
@@ -387,7 +387,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Registry<Quest> questRegistry;
         try {
-            questRegistry = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             Label err = new Label(translated("screen.fishtastic.quest_log.registry_unavailable"), 0xFFFF4444).init(tempContext);
             VBox errorRoot = UI.vbox().alignment(VBox.Alignment.CENTER);
@@ -399,7 +399,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Registry<ShopEntry> shopRegistry = null;
         try {
-            shopRegistry = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+            shopRegistry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
         } catch (Exception ignored) {
         }
 
@@ -427,9 +427,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         for (var list : byCategory.values()) {
             list.removeIf(entry -> {
                 Quest quest = entry.getValue();
-                boolean completed = QuestClientCache.getProgress(entry.getKey().identifier()).completed();
+                boolean completed = QuestClientCache.getProgress(entry.getKey().location()).completed();
                 boolean prerequisiteClaimed = quest.prerequisiteQuestId()
-                        .map(prereq -> QuestClientCache.getProgress(prereq.identifier()).claimed())
+                        .map(prereq -> QuestClientCache.getProgress(prereq.location()).claimed())
                         .orElse(false);
                 return quest.isHiddenFromLog(completed, prerequisiteClaimed);
             });
@@ -588,7 +588,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private SpriteData questRowBackgroundSprite(boolean claimed, QuestDifficulty difficulty) {
-        Identifier texture;
+        ResourceLocation texture;
         if (claimed) {
             texture = QUEST_ROW_BG_TEXTURE_CLAIMED;
         } else {
@@ -633,7 +633,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         if (!obj.timeConditions().isEmpty()) {
-            FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
+            FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(mc.level.getDayTime());
             if (!obj.timeConditions().contains(timeOfDay)) return false;
         }
 
@@ -679,7 +679,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private static boolean isFishSpecies(ResourceKey<Item> speciesKey) {
-        return BuiltInRegistries.ITEM.getOptional(speciesKey.identifier())
+        return BuiltInRegistries.ITEM.getOptional(speciesKey.location())
                 .map(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
                 .orElse(false);
     }
@@ -690,7 +690,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * sprite/name instead of a silhouette.
      */
     private static boolean isDiscovered(ResourceKey<Item> speciesKey) {
-        return !isFishSpecies(speciesKey) || FishEncyclopediaClientCache.getCatchCount(speciesKey.identifier()) > 0;
+        return !isFishSpecies(speciesKey) || FishEncyclopediaClientCache.getCatchCount(speciesKey.location()) > 0;
     }
 
     /**
@@ -700,7 +700,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      */
     private static boolean isHiddenUnlistedSpecies(ResourceKey<Item> speciesKey) {
         if (isDiscovered(speciesKey)) return false;
-        return BuiltInRegistries.ITEM.getOptional(speciesKey.identifier())
+        return BuiltInRegistries.ITEM.getOptional(speciesKey.location())
                 .map(item -> item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH))
                 .orElse(false);
     }
@@ -721,7 +721,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         Optional<ResourceKey<Item>> targetSpecies = quest.objective().targetSpecies();
         if (targetSpecies.isEmpty() || isDiscovered(targetSpecies.get())) return description;
 
-        Item item = BuiltInRegistries.ITEM.getOptional(targetSpecies.get().identifier()).orElse(null);
+        Item item = BuiltInRegistries.ITEM.getOptional(targetSpecies.get().location()).orElse(null);
         if (item == null) return description;
 
         String name = itemDisplayName(item);
@@ -748,7 +748,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SilhouetteItemButton buildSpeciesIcon(ResourceKey<Item> speciesKey, float scale, boolean discovered) {
         if (isHiddenUnlistedSpecies(speciesKey)) return null;
 
-        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
+        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.location()).orElse(Items.COD);
 
         SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
         icon.itemScale(scale);
@@ -770,8 +770,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * non-distinct quest's cycling icon.
      */
     private static List<ResourceKey<Item>> resolveSortedTagMembers(TagKey<Item> tag, Optional<TagKey<Item>> excludeTag, RegistryAccess registryAccess) {
-        Registry<Item> items = registryAccess.lookupOrThrow(Registries.ITEM);
-        Registry<FishProfile> profiles = registryAccess.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<Item> items = registryAccess.registryOrThrow(Registries.ITEM);
+        Registry<FishProfile> profiles = registryAccess.registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         List<ResourceKey<Item>> members = new ArrayList<>();
         for (Holder<Item> holder : items.getTagOrEmpty(tag)) {
@@ -779,7 +779,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             holder.unwrapKey().filter(key -> !isHiddenUnlistedSpecies(key)).ifPresent(members::add);
         }
         members.sort(Comparator.comparingInt((ResourceKey<Item> key) -> {
-            ResourceKey<FishProfile> profileKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier());
+            ResourceKey<FishProfile> profileKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.location());
             return profiles.getOptional(profileKey).map(FishProfile::baseWeight).orElse(0);
         }).reversed());
         return members;
@@ -828,7 +828,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * {@link #cyclingIconRefs} under {@code questId} so the tick loop can find it.
      */
     @Nullable
-    private SilhouetteItemButton buildCyclingSpeciesIcon(Identifier questId, TagKey<Item> tag, Optional<TagKey<Item>> excludeTag,
+    private SilhouetteItemButton buildCyclingSpeciesIcon(ResourceLocation questId, TagKey<Item> tag, Optional<TagKey<Item>> excludeTag,
             RegistryAccess registryAccess, float scale) {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
         if (members.isEmpty()) return null;
@@ -867,7 +867,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * species is stashed on {@link FishEncyclopediaScreen} for the next screen it builds to pick up.
      */
     private static void navigateToEncyclopedia(ResourceKey<Item> speciesKey) {
-        FishEncyclopediaScreen.selectOnNextOpen(speciesKey.identifier());
+        FishEncyclopediaScreen.selectOnNextOpen(speciesKey.location());
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
@@ -880,7 +880,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         state.lastIndex = index;
 
         ResourceKey<Item> speciesKey = state.species.get(index);
-        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
+        Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.location()).orElse(Items.COD);
         boolean discovered = isDiscovered(speciesKey);
 
         state.icon.itemStack(new ItemStack(item));
@@ -900,7 +900,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private VBox buildQuestRow(ResourceKey<Quest> questKey, Quest quest) {
-        Identifier questId = questKey.identifier();
+        ResourceLocation questId = questKey.location();
         PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);
 
         boolean claimed = progress.claimed();
@@ -928,7 +928,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .text(translated("screen.fishtastic.quest_log.claim"), 0xFFFFFFFF);
         claimBtn.onMouseEnter(e -> claimBtn.setTargetScale(1.12f, true));
         claimBtn.onMouseExit(e -> claimBtn.setTargetScale(1.0f, true));
-        final Identifier fId = questId;
+        final ResourceLocation fId = questId;
         claimBtn.onClick(e -> {
             claimBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
@@ -988,10 +988,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             // "Discovered" here means "already used on this quest" (progress.caughtSpecies() is
             // fed bait ids for a distinctBaitTag objective — see QuestTracker#onCatch), not the
             // fish-encyclopedia default buildTagFishList otherwise falls back to.
-            List<Identifier> usedBaitIds = progress.caughtSpecies();
+            List<ResourceLocation> usedBaitIds = progress.caughtSpecies();
             VBox tagList = buildTagFishList(quest.objective().distinctBaitTag().get(), Optional.empty(),
                     Minecraft.getInstance().level.registryAccess(),
-                    speciesKey -> usedBaitIds.contains(speciesKey.identifier()));
+                    speciesKey -> usedBaitIds.contains(speciesKey.location()));
             collectLeaves(tagList, tagListIcons);
             row.addChild(tagList);
         }
@@ -1204,9 +1204,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int SHOP_ICON_MEDIUM_PILE_THRESHOLD = 35;
     private static final int SHOP_ICON_LARGE_PILE_THRESHOLD = 55;
 
-    private static final Identifier COIN_ICON_ONE_TEXTURE = Fishtastic.id("textures/gui/one_coin.png");
-    private static final Identifier COIN_ICON_TWO_TEXTURE = Fishtastic.id("textures/gui/two_coins.png");
-    private static final Identifier COIN_ICON_THREE_TEXTURE = Fishtastic.id("textures/gui/three_coins.png");
+    private static final ResourceLocation COIN_ICON_ONE_TEXTURE = Fishtastic.id("textures/gui/one_coin.png");
+    private static final ResourceLocation COIN_ICON_TWO_TEXTURE = Fishtastic.id("textures/gui/two_coins.png");
+    private static final ResourceLocation COIN_ICON_THREE_TEXTURE = Fishtastic.id("textures/gui/three_coins.png");
 
     /** Builds the reward-row icon for a quest's token payout: a loose-coins sprite for small amounts, scaling up through coin-pile item icons for larger ones. */
     private static UIElement<?> rewardCoinIconFor(int questTokens) {
@@ -1329,7 +1329,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(
                 shopRegistry, currentDay, QuestClientCache.getShopRefreshCount(),
-                questKey -> QuestClientCache.getProgress(questKey.identifier()).claimed());
+                questKey -> QuestClientCache.getProgress(questKey.location()).claimed());
 
         List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
 
@@ -1407,10 +1407,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // item icon) is what falls away on purchase; the pin is drawn on top of it (like a pin
         // head poking through the tag it's holding), so it's added last/rendered in front.
         ManualContainer slot = UI.manualContainer().setSize(SHOP_ITEM_PANEL_WIDTH, SHOP_ITEM_PANEL_HEIGHT);
-        slot.setDebugName("shopSlot:" + key.identifier());
+        slot.setDebugName("shopSlot:" + key.location());
 
         ManualContainer fallingPanel = UI.manualContainer().setSize(SHOP_ITEM_PANEL_WIDTH, SHOP_ITEM_PANEL_HEIGHT);
-        fallingPanel.setDebugName("shopFallingPanel:" + key.identifier());
+        fallingPanel.setDebugName("shopFallingPanel:" + key.location());
         // Scale and rotation both pivot from the top-center — where the pin actually is —
         // so the respawn swing reads as the panel hanging and settling on the pin.
         fallingPanel.setPivotMode(PivotMode.TOP_CENTER);
@@ -1445,7 +1445,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         inner.addChild(slot);
 
         int nameColor = soldOut ? 0xFF555555 : 0xFFFFFFFF;
-        String nameText = entry.displayName().isEmpty() ? key.identifier().getPath() : entry.displayName();
+        String nameText = entry.displayName().isEmpty() ? key.location().getPath() : entry.displayName();
         Label nameLabel = new Label(nameText, nameColor).maxWidth(SHOP_ITEM_NAME_MAX_WIDTH).init(tempContext);
         // Name and description are no longer relevant once sold out - toggled by updateShopCardVisuals
         nameLabel.setVisible(!soldOut);
@@ -1492,7 +1492,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             buyBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.identifier())));
+                mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.location())));
             }
             triggerPurchaseFall(fallingPanel, fKey, entry);
         });
@@ -1515,7 +1515,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private boolean isEntrySoldOut(ResourceKey<ShopEntry> key, ShopEntry entry) {
-        int purchaseCount = QuestClientCache.getPurchaseCount(key.identifier());
+        int purchaseCount = QuestClientCache.getPurchaseCount(key.location());
         return entry.dailyMaxPurchases() > 0 && purchaseCount >= entry.dailyMaxPurchases();
     }
 
@@ -1589,7 +1589,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         for (Map.Entry<QuestCategory, Integer> e : QUEST_CATEGORY_TAB_INDEX.entrySet()) {
             List<ResourceKey<Quest>> keys = questKeysByCategory.getOrDefault(e.getKey(), List.of());
             boolean hasUnclaimed = keys.stream().anyMatch(key -> {
-                PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(key.identifier());
+                PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(key.location());
                 return progress.completed() && !progress.claimed();
             });
             questTabs.setTabAlert(e.getValue(), hasUnclaimed);
@@ -1612,8 +1612,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             rebuildCleanupGoalContributorsRow();
         }
 
-        for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
-            Identifier questId = e.getKey();
+        for (Map.Entry<ResourceLocation, QuestRowRefs> e : questRowRefs.entrySet()) {
+            ResourceLocation questId = e.getKey();
             QuestRowRefs refs = e.getValue();
 
             PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);

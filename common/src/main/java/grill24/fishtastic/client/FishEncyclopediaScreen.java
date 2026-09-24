@@ -44,7 +44,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
@@ -85,9 +85,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // Status pip shown to the left of each spawn condition row — lit green while that
     // condition currently holds for the player, dim otherwise. Mirrors QuestLogScreen's
     // per-objective status pip, but evaluated per spawn-weight row rather than per quest.
-    private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
-    private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
-    private static final Identifier STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
+    private static final ResourceLocation STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
+    private static final ResourceLocation STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final ResourceLocation STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
     private static final float STATUS_PIP_SIZE = 5f;
 
     // Shared cap on the unscaled width of the info page's widest wrappable content elements
@@ -108,7 +108,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final float ZONE_ICON_HOVER_SCALE = 2.0f;
 
     // Reward claim button background, reused from QuestLogScreen's claimed-panel texture.
-    private static final Identifier CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final ResourceLocation CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
     private static final int CLAIM_BUTTON_SOURCE_WIDTH = 20;
     private static final int CLAIM_BUTTON_SOURCE_HEIGHT = 24;
     private static final int CLAIM_BUTTON_SLICE_LEFT = 4;
@@ -117,7 +117,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private static final int CLAIM_BUTTON_SLICE_BOTTOM = CLAIM_BUTTON_SOURCE_HEIGHT - (CLAIM_BUTTON_SLICE_TOP + 16);
     // Coin icon blitted over the claim button in place of "+N" text; button size follows the icon.
     private static final float CLAIM_BUTTON_ICON_PADDING = 3f;
-    private record CoinIcon(Identifier texture, float width, float height) {}
+    private record CoinIcon(ResourceLocation texture, float width, float height) {}
     private static final CoinIcon COIN_ICON_ONE = new CoinIcon(Fishtastic.id("textures/gui/one_coin.png"), 8f, 7f);
     private static final CoinIcon COIN_ICON_TWO = new CoinIcon(Fishtastic.id("textures/gui/two_coins.png"), 12f, 8f);
     private static final CoinIcon COIN_ICON_THREE = new CoinIcon(Fishtastic.id("textures/gui/three_coins.png"), 8f, 11f);
@@ -130,10 +130,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     // fish's info page instead of landing on the disc. Static because the request round-trips
     // through the server (a fresh menu open), so no live screen instance exists to hand this to
     // directly at the point the request is made.
-    private static Identifier pendingAutoSelectFishId;
+    private static ResourceLocation pendingAutoSelectFishId;
 
     /** See {@link #pendingAutoSelectFishId}. */
-    public static void selectOnNextOpen(Identifier fishId) {
+    public static void selectOnNextOpen(ResourceLocation fishId) {
         pendingAutoSelectFishId = fishId;
     }
 
@@ -298,8 +298,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> iconItems = new ArrayList<>();
             for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
                 ResourceKey<FishProfile> fishKey = entry.getKey();
-                Item item = BuiltInRegistries.ITEM.getOptional(fishKey.identifier()).orElse(Items.COD);
-                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0;
+                Item item = BuiltInRegistries.ITEM.getOptional(fishKey.location()).orElse(Items.COD);
+                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0;
 
                 // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
                 // they're absent from the disc entirely until the player has caught one.
@@ -308,7 +308,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
                 icon.setSilhouette(!caught);
                 icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
-                        mc.level.registryAccess(), fishKey, fishKey.identifier()));
+                        mc.level.registryAccess(), fishKey, fishKey.location()));
                 iconItems.add(Map.entry(fishKey, icon));
                 iconRefs.put(fishKey, icon);
             }
@@ -317,7 +317,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         root.addChild(sphere);
 
-        Identifier autoSelectFishId = pendingAutoSelectFishId;
+        ResourceLocation autoSelectFishId = pendingAutoSelectFishId;
         pendingAutoSelectFishId = null;
         if (autoSelectFishId != null) {
             ResourceKey<FishProfile> autoSelectKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId);
@@ -365,7 +365,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         Minecraft mc = Minecraft.getInstance();
         for (Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton> entry : iconRefs.entrySet()) {
             ResourceKey<FishProfile> fishKey = entry.getKey();
-            Identifier fishId = fishKey.identifier();
+            ResourceLocation fishId = fishKey.location();
             entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
             if (mc.level != null) {
                 entry.getValue().setHasUnclaimedReward(
@@ -419,7 +419,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        selectedProfile = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+        selectedProfile = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(fishKey).orElse(null);
         selectedEntry = FishEncyclopediaClientHelper.getEncyclopediaEntry(mc.level.registryAccess(), fishKey);
         if (selectedProfile == null) return;
@@ -543,7 +543,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         nameLabel = new Label("", 0xFFFFD700).init(tempContext);
         nameLabel.scale(1.2f);
         nameRow.addChild(nameLabel);
-        nameClaimButton = buildClaimButton(selectedFishKey.identifier(), EncyclopediaRewardSection.NAME_REVEAL);
+        nameClaimButton = buildClaimButton(selectedFishKey.location(), EncyclopediaRewardSection.NAME_REVEAL);
         nameRow.addChild(nameClaimButton);
         page.addChild(nameRow);
 
@@ -579,7 +579,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private void refreshInfoPage() {
         if (selectedFishKey == null || selectedProfile == null) return;
-        Identifier fishId = selectedFishKey.identifier();
+        ResourceLocation fishId = selectedFishKey.location();
         int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
         FishEncyclopediaEntry.UnlockThresholds thresholds = selectedEntry.thresholds();
 
@@ -610,7 +610,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 fishId, EncyclopediaRewardSection.LORE, () -> buildLoreContent(selectedEntry)));
     }
 
-    private void populateRecordsSection(Identifier fishId, int catchCount) {
+    private void populateRecordsSection(ResourceLocation fishId, int catchCount) {
         recordsContainer.clearChildren();
         if (catchCount < 1) return;
 
@@ -643,7 +643,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         return content;
     }
 
-    private VBox buildTypesContent(Identifier fishId) {
+    private VBox buildTypesContent(ResourceLocation fishId) {
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
         List<TagKey<Item>> groups = FishtasticItemTags.FISH_GROUPS.stream()
@@ -686,7 +686,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     /** One icon+name column within {@link #buildZonesContent}; skips the icon if {@code zone} has no registered texture. */
     private VBox buildZoneColumn(FishProfile.Zone zone, List<Runnable> pipUpdaters) {
         VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        Identifier icon = ZoneIconTextures.get(zone);
+        ResourceLocation icon = ZoneIconTextures.get(zone);
         if (icon != null) {
             ZoneIconRectangle iconElement = new ZoneIconRectangle(ZONE_ICON_SIZE, icon, ZoneIconTextures.TEXTURE_PX);
             iconElement.onMouseEnter(e -> iconElement.setTargetScale(ZONE_ICON_HOVER_SCALE, true));
@@ -755,7 +755,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
      * See {@link #SPAWN_ROW_MAX_WIDTH}'s javadoc for why this cap exists.
      */
     private void addSpawnConditionRows(VBox content, List<ConditionSegment> segments, List<Runnable> pipUpdaters,
-                                        int textColor, Identifier unmetTexture) {
+                                        int textColor, ResourceLocation unmetTexture) {
         List<ConditionSegment> currentRow = new ArrayList<>();
         float currentRowWidth = 0f;
         for (ConditionSegment segment : segments) {
@@ -793,7 +793,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
      * red for Types zone rows, since a fish's zones are a hard gate on catchability (see
      * {@link FishProfile#zones}) rather than the soft multipliers the other axes represent.
      */
-    private HBox buildSpawnConditionRow(List<ConditionSegment> segments, List<Runnable> pipUpdaters, int textColor, Identifier unmetTexture) {
+    private HBox buildSpawnConditionRow(List<ConditionSegment> segments, List<Runnable> pipUpdaters, int textColor, ResourceLocation unmetTexture) {
         HBox row = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
         for (int i = 0; i < segments.size(); i++) {
             if (i > 0) row.addChild(label(",", textColor));
@@ -828,7 +828,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         CharmEffect charmEffect = getEquippedCharmEffect();
         return (charmEffect != null && charmEffect.forceNightFishing())
                 ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
+                : FishProfile.TimeOfDay.fromGameTime(mc.level.getDayTime());
     }
 
     /**
@@ -896,7 +896,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
      * Renders {@code unlockedContentBuilder}'s content if unlocked, else a ghost row with progress bar.
      * Adds a claim button next to the title while unlocked but unclaimed.
      */
-    private VBox buildGatedSection(String title, int currentCatches, int targetCatches, Identifier fishId,
+    private VBox buildGatedSection(String title, int currentCatches, int targetCatches, ResourceLocation fishId,
                                     EncyclopediaRewardSection rewardSection, Supplier<VBox> unlockedContentBuilder) {
         VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
         boolean unlocked = currentCatches >= targetCatches;
@@ -925,7 +925,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     /** Claim button for one fish's reward slot; disappearance is driven by the next server sync, not optimistically. */
-    private SpriteButton buildClaimButton(Identifier fishId, EncyclopediaRewardSection rewardSection) {
+    private SpriteButton buildClaimButton(ResourceLocation fishId, EncyclopediaRewardSection rewardSection) {
         CoinIcon icon = coinIconFor(rewardSection.coinReward());
         float btnWidth = icon.width() + CLAIM_BUTTON_ICON_PADDING * 2f;
         float btnHeight = icon.height() + CLAIM_BUTTON_ICON_PADDING * 2f;

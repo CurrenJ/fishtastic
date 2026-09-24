@@ -5,12 +5,11 @@ import grill24.fishtastic.data.Quest;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
@@ -256,23 +255,23 @@ public enum FishTankShape implements TooltipProvider {
     private static final java.util.Set<String> CORNER_GLASS_FILL_FRAGMENTS = java.util.Set.of(
             "skylight", "vitrine", "cupola", "hutch");
 
-    private final Identifier id;
-    private final Identifier connectionCollection;
+    private final ResourceLocation id;
+    private final ResourceLocation connectionCollection;
     private final String modelPathPrefix;
     private final boolean requiresSandMaterial;
 
-    FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix) {
+    FishTankShape(ResourceLocation id, ResourceLocation connectionCollection, String modelPathPrefix) {
         this(id, connectionCollection, modelPathPrefix, true);
     }
 
-    FishTankShape(Identifier id, Identifier connectionCollection, String modelPathPrefix, boolean requiresSandMaterial) {
+    FishTankShape(ResourceLocation id, ResourceLocation connectionCollection, String modelPathPrefix, boolean requiresSandMaterial) {
         this.id = id;
         this.connectionCollection = connectionCollection;
         this.modelPathPrefix = modelPathPrefix;
         this.requiresSandMaterial = requiresSandMaterial;
     }
 
-    public Identifier id() {
+    public ResourceLocation id() {
         return id;
     }
 
@@ -282,7 +281,7 @@ public enum FishTankShape implements TooltipProvider {
      * connects to itself until deliberately grouped with another (see the tank-shape-variants
      * design doc, §"Connection gating becomes collection-id equality").
      */
-    public Identifier connectionCollection() {
+    public ResourceLocation connectionCollection() {
         return connectionCollection;
     }
 
@@ -384,7 +383,7 @@ public enum FishTankShape implements TooltipProvider {
      * (vanilla only auto-renders a hardcoded list of components, so ours are appended manually).
      */
     @Override
-    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag, DataComponentGetter components) {
+    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
         tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_shape",
                 getDisplayName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
     }

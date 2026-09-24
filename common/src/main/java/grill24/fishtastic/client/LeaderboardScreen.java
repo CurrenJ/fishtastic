@@ -29,7 +29,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -64,12 +64,12 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Row background — reuses the same 9-sliced panel art as quest log rows/shop cards, so
     // leaderboard rows read as the same kind of "thing" as quests do elsewhere in the mod.
-    private static final Identifier ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
-    private static final Identifier ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
-    private static final Identifier ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
+    private static final ResourceLocation ROW_BG_TEXTURE = Fishtastic.id("textures/gui/generic_item_panel.png");
+    private static final ResourceLocation ROW_BG_TEXTURE_SILVER = Fishtastic.id("textures/gui/generic_item_panel_silver_border.png");
+    private static final ResourceLocation ROW_BG_TEXTURE_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
     // The viewing player's own row on a global board, regardless of rank/tier — same green tint
     // quest log uses to mark a claimed quest, so players can spot themselves at a glance.
-    private static final Identifier ROW_BG_TEXTURE_SELF = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
+    private static final ResourceLocation ROW_BG_TEXTURE_SELF = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
     private static final int ROW_BG_SOURCE_WIDTH = 20;
     private static final int ROW_BG_SOURCE_HEIGHT = 24;
     private static final int ROW_BG_SLICE_LEFT = 4;
@@ -494,7 +494,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     private SpriteData rowBackgroundSprite(int rank, boolean isSelf) {
-        Identifier texture;
+        ResourceLocation texture;
         if (isSelf) {
             texture = ROW_BG_TEXTURE_SELF;
         } else {

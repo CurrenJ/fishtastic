@@ -24,7 +24,7 @@ import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.client.resources.model.cuboid.ItemTransforms;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ItemOwner;
@@ -140,7 +140,7 @@ public class CosmeticStructureItemModel implements ItemModel {
     @Nullable
     private static PreparedIcon prepare(ResourceKey<CosmeticStructure> structureId, ClientLevel level) {
         CosmeticStructure structure = level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
+                .registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
                 .getOptional(structureId)
                 .orElse(null);
         if (structure == null || structure.parts().isEmpty()) return null;
@@ -249,7 +249,7 @@ public class CosmeticStructureItemModel implements ItemModel {
     // ── Registration ──────────────────────────────────────────────────────────
 
     public record Unbaked() implements ItemModel.Unbaked {
-        private static final Identifier BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
+        private static final ResourceLocation BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
         @Override

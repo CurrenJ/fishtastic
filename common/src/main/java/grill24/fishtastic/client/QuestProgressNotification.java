@@ -14,7 +14,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ItemStack;
@@ -46,7 +46,7 @@ public class QuestProgressNotification {
     // opaque artwork is PANEL_BG_TEXTURE_CONTENT_HEIGHT rows tall regardless of its content
     // width or file canvas size — only width differs between variants. Must stay ordered
     // ascending by contentWidth — selection below picks the first one wide enough.
-    private record BackgroundVariant(Identifier texture, int fileSize, int contentWidth) {}
+    private record BackgroundVariant(ResourceLocation texture, int fileSize, int contentWidth) {}
 
     private static final int PANEL_BG_TEXTURE_CONTENT_HEIGHT = 22;
 
@@ -156,7 +156,7 @@ public class QuestProgressNotification {
         try {
             if (!isSyntheticBanner && mc.level != null) {
                 Registry<Quest> questRegistry = mc.level.registryAccess()
-                        .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                        .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
                 ResourceKey<Quest> questKey = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, event.questId());
                 Quest quest = questRegistry.getOptional(questKey).orElse(null);
                 if (quest != null) {
@@ -439,7 +439,7 @@ public class QuestProgressNotification {
     // ---- Accessors ----
 
     public boolean isDone() { return phase == Phase.DONE; }
-    public Identifier questId() { return event.questId(); }
+    public ResourceLocation questId() { return event.questId(); }
     public QuestProgressEvent event() { return event; }
     public Phase phase() { return phase; }
 

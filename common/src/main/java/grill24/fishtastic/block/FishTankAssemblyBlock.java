@@ -32,6 +32,6 @@ public class FishTankAssemblyBlock extends Block implements EntityBlock {
         if (level.getBlockEntity(pos) instanceof FishTankAssemblyBlockEntity assembly) {
             player.openMenu(assembly);
         }
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 }

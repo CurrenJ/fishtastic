@@ -10,10 +10,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 public class FishProfileCommand {
@@ -24,21 +24,21 @@ public class FishProfileCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("fishprofile")
                         .requires(FishtasticPermissions.gamemaster())
-                        .then(Commands.argument("id", IdentifierArgument.id())
+                        .then(Commands.argument("id", ResourceLocationArgument.id())
                                 .suggests((ctx, builder) -> {
                                     Registry<FishProfile> registry = ctx.getSource().registryAccess()
-                                            .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+                                            .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
                                     return SharedSuggestionProvider.suggest(
-                                            registry.keySet().stream().map(Identifier::toString).toList(),
+                                            registry.keySet().stream().map(ResourceLocation::toString).toList(),
                                             builder);
                                 })
                                 .executes(FishProfileCommand::execute));
     }
 
     private static int execute(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        Identifier id = IdentifierArgument.getId(ctx, "id");
+        ResourceLocation id = ResourceLocationArgument.getId(ctx, "id");
         Registry<FishProfile> registry = ctx.getSource().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ResourceKey<FishProfile> key = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, id);
         FishProfile profile = registry.getOptional(key).orElseThrow(() -> NOT_FOUND.create(id));

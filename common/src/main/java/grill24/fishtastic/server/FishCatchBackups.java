@@ -113,7 +113,6 @@ public final class FishCatchBackups {
         }
     }
 
-    private static final LevelResource BACKUP_DIR = new LevelResource("data/fishtastic_backups");
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT);
     private static final Pattern NAME = Pattern.compile(
             "^(\\d{8}-\\d{6})-(auto|start|manual|prerestore|pre)(?:-([A-Za-z0-9_.]+))?\\.dat$");
@@ -273,7 +272,10 @@ public final class FishCatchBackups {
     private static CompoundTag encode(FishCatchSavedData data) {
         Tag tag = FishCatchSavedData.CODEC.encodeStart(NbtOps.INSTANCE, data)
                 .getOrThrow(msg -> new IllegalStateException("Failed to encode fish catch data: " + msg));
-        return tag.asCompound().orElseThrow(() -> new IllegalStateException("Fish catch data did not encode to a compound"));
+        if (!(tag instanceof CompoundTag compound)) {
+            throw new IllegalStateException("Fish catch data did not encode to a compound");
+        }
+        return compound;
     }
 
     private static String contentHash(CompoundTag data) {
@@ -302,7 +304,8 @@ public final class FishCatchBackups {
     // -------------------------------------------------------------------------
 
     public static Path directory(MinecraftServer server) {
-        return server.getWorldPath(BACKUP_DIR);
+        // data/fishtastic_backups. LevelResource's constructor is private before 1.21.2.
+        return server.getWorldPath(LevelResource.ROOT).resolve("data").resolve("fishtastic_backups");
     }
 
     /** Every parseable backup, newest first. Unrecognised files in the directory are ignored. */
@@ -347,8 +350,10 @@ public final class FishCatchBackups {
 
     private static CompoundTag readDataTag(Entry entry) throws IOException {
         CompoundTag root = NbtIo.readCompressed(entry.path(), NbtAccounter.unlimitedHeap());
-        return root.getCompound(DATA_KEY)
-                .orElseThrow(() -> new IOException(entry.fileName() + " has no '" + DATA_KEY + "' compound - not a fishtastic backup"));
+        if (!root.contains(DATA_KEY, Tag.TAG_COMPOUND)) {
+            throw new IOException(entry.fileName() + " has no '" + DATA_KEY + "' compound - not a fishtastic backup");
+        }
+        return root.getCompound(DATA_KEY);
     }
 
     /** Decodes a backup into a detached (not registered, never auto-saved) saved-data instance. */

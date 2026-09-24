@@ -7,7 +7,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -28,12 +28,12 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public interface IRegistrationApi {
-    <I extends Item> Holder<Item> registerItem(final String name, final Function<Identifier, ? extends I> func);
-    <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func);
-    <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc);
+    <I extends Item> Holder<Item> registerItem(final String name, final Function<ResourceLocation, ? extends I> func);
+    <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> func);
+    <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> blockFunc, final BiFunction<Block, ResourceLocation, ? extends BlockItem> itemFunc);
     Holder<BlockEntityType<?>> registerBlockEntityType(final String name, BiFunction<BlockPos, BlockState, ? extends BlockEntity> factory, Supplier<Block[]> validBlocksSupplier);
     <T> Holder<DataComponentType<T>> registerDataComponent(final String name, final UnaryOperator<DataComponentType.Builder<T>> builderOperator);
-    Holder<CreativeModeTab> registerCreativeModeTab(final String name, final Function<Identifier, ? extends CreativeModeTab> func);
+    Holder<CreativeModeTab> registerCreativeModeTab(final String name, final Function<ResourceLocation, ? extends CreativeModeTab> func);
     Holder<SoundEvent> registerSoundEvent(final String name);
     Holder<SimpleParticleType> registerParticleType(final String name);
     <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(final String name, final MenuFactory<M> factory);

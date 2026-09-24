@@ -34,7 +34,7 @@ public final class CapstoneRewardGameTests {
     /** A gated entry never appears for a player who has claimed nothing. */
     public static void gatedEntriesAreAbsentUntilTheirQuestIsClaimed(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
 
         Set<ResourceKey<ShopEntry>> gated = new HashSet<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
@@ -49,7 +49,7 @@ public final class CapstoneRewardGameTests {
                         ShopEntry.getActiveDailyShop(shop, day, nonce, questKey -> false);
                 for (ResourceKey<ShopEntry> key : active) {
                     helper.assertFalse(gated.contains(key),
-                            "Gated entry " + key.identifier() + " appeared in the shop with nothing claimed");
+                            "Gated entry " + key.location() + " appeared in the shop with nothing claimed");
                 }
             }
         }
@@ -59,7 +59,7 @@ public final class CapstoneRewardGameTests {
     /** With every quest claimed, gated entries do join the draw — the gate opens, not just closes. */
     public static void gatedEntriesCanAppearOnceTheirQuestIsClaimed(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
 
         Set<ResourceKey<ShopEntry>> gated = new HashSet<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
@@ -83,7 +83,7 @@ public final class CapstoneRewardGameTests {
      */
     public static void lockedEntriesDoNotConsumeShopSlots(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
 
         for (long day = 0; day < 50; day++) {
             int size = ShopEntry.getActiveDailyShop(shop, day, 0, questKey -> false).size();
@@ -110,9 +110,9 @@ public final class CapstoneRewardGameTests {
      */
     public static void gatedEntryIsEarnableViaEveryUnlockQuest(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
@@ -129,13 +129,13 @@ public final class CapstoneRewardGameTests {
             for (ResourceKey<Quest> questKey : entry.unlockQuests()) {
                 Quest quest = quests.getOptional(questKey).orElse(null);
                 if (quest == null) {
-                    failures.add(e.getKey().identifier() + ": unlock_quests entry " + questKey.identifier() + " does not resolve");
+                    failures.add(e.getKey().location() + ": unlock_quests entry " + questKey.location() + " does not resolve");
                     continue;
                 }
 
                 List<QuestReward.RewardItem> granted = quest.reward().items();
                 if (granted.isEmpty()) {
-                    failures.add(e.getKey().identifier() + ": unlock quest " + questKey.identifier()
+                    failures.add(e.getKey().location() + ": unlock quest " + questKey.location()
                             + " grants no item, so claiming it leaves the player with the unlock but no tank");
                     continue;
                 }
@@ -150,8 +150,8 @@ public final class CapstoneRewardGameTests {
                                 .map(QuestReward.RewardItem::toStack)
                                 .anyMatch(fromQuest -> FishtasticItemData.isSameItemSameData(fromQuest, fromShop));
                 if (!matched) {
-                    failures.add(e.getKey().identifier() + ": sells " + fromShop + " but unlock quest "
-                            + questKey.identifier() + " grants none of " + granted.stream()
+                    failures.add(e.getKey().location() + ": sells " + fromShop + " but unlock quest "
+                            + questKey.location() + " grants none of " + granted.stream()
                             .map(r -> r.toStack().toString()).toList()
                             + (entry.isTankShape() ? " matching shape " + expectedShape : ""));
                 }
@@ -170,16 +170,16 @@ public final class CapstoneRewardGameTests {
      */
     public static void unlockGatesNeverPointAtDailyQuests(GameTestHelper helper) {
         Registry<ShopEntry> shop = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         List<String> failures = new ArrayList<>();
         for (Map.Entry<ResourceKey<ShopEntry>, ShopEntry> e : shop.entrySet()) {
             for (ResourceKey<Quest> gate : e.getValue().unlockQuests()) {
                 Quest quest = quests.getOptional(gate).orElse(null);
                 if (quest != null && quest.category() == grill24.fishtastic.data.QuestCategory.DAILY) {
-                    failures.add(e.getKey().identifier() + ": gated behind daily quest " + gate.identifier()
+                    failures.add(e.getKey().location() + ": gated behind daily quest " + gate.location()
                             + ", which clears its claimed flag every rotation");
                 }
             }
@@ -195,7 +195,7 @@ public final class CapstoneRewardGameTests {
      */
     public static void capstoneTanksCarryTheirMaterialsComponent(GameTestHelper helper) {
         Registry<Quest> quests = helper.getLevel().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
 
         Set<FishTankMaterials> distinctConfigs = new HashSet<>();
         List<String> failures = new ArrayList<>();
@@ -208,7 +208,7 @@ public final class CapstoneRewardGameTests {
                     FishTankMaterials materials =
                             FishtasticItemData.get(stack, FishtasticDataComponents.FISH_TANK_MATERIALS);
                     if (materials == null) {
-                        failures.add(e.getKey().identifier() + ": grants a fish tank with no materials component");
+                        failures.add(e.getKey().location() + ": grants a fish tank with no materials component");
                     } else {
                         distinctConfigs.add(materials);
                     }

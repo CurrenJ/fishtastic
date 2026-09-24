@@ -1,5 +1,9 @@
 package grill24.fishtastic.blockentity;
 
+import grill24.fishtastic.util.BlockEntityNbt;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.CompoundTag;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
@@ -24,18 +28,15 @@ import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -218,7 +219,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     @Override
-    protected void applyImplicitComponents(DataComponentGetter components) {
+    protected void applyImplicitComponents(BlockEntity.DataComponentInput components) {
         super.applyImplicitComponents(components);
         FishTankMaterials materials = components.getOrDefault(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), FishTankMaterials.defaultMaterials());
         this.frameBlock = materials.frame();
@@ -440,23 +441,31 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
-        saveTankData(output, true);
+    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
+        super.saveAdditional(output, registries);
+        saveTankData(output, registries, true);
     }
+
+    /** The keys {@link #saveTankData} writes only with {@code includeConnectivity}. */
+    private static final List<String> CONNECTIVITY_KEYS = List.of("OpenFaces", "FilledDiagonals", "FilledEdgeDiagonals", "Waxed");
 
     /**
-     * Serializes this tank's custom data for a pick-blocked item copy (ctrl+pick), which must
-     * NOT carry connectivity (open faces / waxed state) — that's per-placement state recomputed
-     * from neighbors on place, and copying it produces stale connection permutations on the
-     * newly placed tank. See {@link #saveAdditional} for the full world-save version.
+     * A pick-blocked item copy (ctrl+pick) must NOT carry connectivity (open faces / waxed state) —
+     * that's per-placement state recomputed from neighbors on place, and copying it produces stale
+     * connection permutations on the newly placed tank.
+     *
+     * <p>26.1.2 overrides {@code saveCustomOnly(ValueOutput)} for this. On 1.21.1 that method is
+     * final, but both item-copy paths ({@code BlockEntity#saveToItem} and ctrl+pick's
+     * {@code Minecraft#addCustomNbtData}) pass the saved tag through this method, and a world save
+     * never does, so the connectivity keys are stripped here instead.
      */
     @Override
-    public void saveCustomOnly(ValueOutput output) {
-        saveTankData(output, false);
+    public void removeComponentsFromTag(CompoundTag tag) {
+        super.removeComponentsFromTag(tag);
+        CONNECTIVITY_KEYS.forEach(tag::remove);
     }
 
-    private void saveTankData(ValueOutput output, boolean includeConnectivity) {
+    private void saveTankData(CompoundTag output, HolderLookup.Provider registries, boolean includeConnectivity) {
         String frameId = BuiltInRegistries.BLOCK.getKey(frameBlock).toString();
         String sandId = BuiltInRegistries.BLOCK.getKey(sandBlock).toString();
         String glassId = BuiltInRegistries.BLOCK.getKey(glassBlock).toString();
@@ -492,13 +501,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         // Save items as a list of {Slot, Stack} entries
-        ValueOutput.ValueOutputList itemsList = output.childrenList("Items");
+        ListTag itemsList = BlockEntityNbt.childrenList(output, "Items");
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty()) {
-                ValueOutput child = itemsList.addChild();
+                CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                child.store("Stack", ItemStack.CODEC, stack);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
                 if (itemMirrored[i]) {
                     child.putBoolean("Mirrored", true);
                 }
@@ -509,12 +518,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         output.putFloat("FirstItemRotation", firstItemRotation);
 
         // Save cosmetics
-        ValueOutput.ValueOutputList cosmeticsList = output.childrenList("Cosmetics");
+        ListTag cosmeticsList = BlockEntityNbt.childrenList(output, "Cosmetics");
         for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : cosmetics.entrySet()) {
             CosmeticGridCell cell = entry.getKey();
             PlacedCosmetic cosmetic = entry.getValue();
             String blockId = BuiltInRegistries.BLOCK.getKey(cosmetic.block()).toString();
-            ValueOutput child = cosmeticsList.addChild();
+            CompoundTag child = BlockEntityNbt.addChild(cosmeticsList);
             child.putInt("GridX", cell.gridX());
             child.putInt("GridZ", cell.gridZ());
             child.putString("Block", blockId);
@@ -531,27 +540,27 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
 
         // Save structure cosmetics (anchor cells only; footprint is re-derived from the structure
         // definition on load, not stored here).
-        ValueOutput.ValueOutputList structureCosmeticsList = output.childrenList("StructureCosmetics");
+        ListTag structureCosmeticsList = BlockEntityNbt.childrenList(output, "StructureCosmetics");
         for (Map.Entry<CosmeticGridCell, PlacedStructureCosmetic> entry : structureCosmetics.entrySet()) {
             CosmeticGridCell cell = entry.getKey();
             PlacedStructureCosmetic placed = entry.getValue();
-            ValueOutput child = structureCosmeticsList.addChild();
+            CompoundTag child = BlockEntityNbt.addChild(structureCosmeticsList);
             child.putInt("GridX", cell.gridX());
             child.putInt("GridZ", cell.gridZ());
-            child.putString("StructureId", placed.structureId().identifier().toString());
-            child.store("Rotation", Rotation.CODEC, placed.rotation());
+            child.putString("StructureId", placed.structureId().location().toString());
+            BlockEntityNbt.store(child, "Rotation", Rotation.CODEC, placed.rotation(), registries);
         }
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
+    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
+        super.loadAdditional(input, registries);
         // Load frame block
-        String frameBlockStr = input.getStringOr("FrameBlock", "");
+        String frameBlockStr = BlockEntityNbt.getStringOr(input, "FrameBlock", "");
         if (!frameBlockStr.isEmpty()) {
-            Identifier blockId = Ids.tryParse(frameBlockStr);
+            ResourceLocation blockId = Ids.tryParse(frameBlockStr);
             if (blockId != null) {
-                Block b = BuiltInRegistries.BLOCK.getValue(blockId);
+                Block b = BuiltInRegistries.BLOCK.get(blockId);
                 if (b != null) {
                     frameBlock = b;
                 } else {
@@ -563,11 +572,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         // Load sand block
-        String sandBlockStr = input.getStringOr("SandBlock", "");
+        String sandBlockStr = BlockEntityNbt.getStringOr(input, "SandBlock", "");
         if (!sandBlockStr.isEmpty()) {
-            Identifier blockId = Ids.tryParse(sandBlockStr);
+            ResourceLocation blockId = Ids.tryParse(sandBlockStr);
             if (blockId != null) {
-                Block b = BuiltInRegistries.BLOCK.getValue(blockId);
+                Block b = BuiltInRegistries.BLOCK.get(blockId);
                 if (b != null) {
                     sandBlock = b;
                 } else {
@@ -579,11 +588,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         // Load glass block
-        String glassBlockStr = input.getStringOr("GlassBlock", "");
+        String glassBlockStr = BlockEntityNbt.getStringOr(input, "GlassBlock", "");
         if (!glassBlockStr.isEmpty()) {
-            Identifier blockId = Ids.tryParse(glassBlockStr);
+            ResourceLocation blockId = Ids.tryParse(glassBlockStr);
             if (blockId != null) {
-                Block b = BuiltInRegistries.BLOCK.getValue(blockId);
+                Block b = BuiltInRegistries.BLOCK.get(blockId);
                 if (b != null) {
                     glassBlock = b;
                 } else {
@@ -595,7 +604,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         // Load shape (body geometry)
-        shape = FishTankShape.bySerializedName(input.getStringOr("Shape", FishTankShape.STANDARD.getSerializedName()));
+        shape = FishTankShape.bySerializedName(BlockEntityNbt.getStringOr(input, "Shape", FishTankShape.STANDARD.getSerializedName()));
 
         // Load open faces. Default is the CURRENT in-memory state, not 0 — a fresh block entity's
         // openFaces starts empty anyway, so this is a no-op for normal world load, but it matters
@@ -606,7 +615,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         for (Direction dir : openFaces) {
             currentOpenFacesBits |= (1 << dir.ordinal());
         }
-        int openFacesBits = input.getIntOr("OpenFaces", currentOpenFacesBits);
+        int openFacesBits = BlockEntityNbt.getIntOr(input, "OpenFaces", currentOpenFacesBits);
         openFaces.clear();
         for (Direction dir : Direction.values()) {
             if ((openFacesBits & (1 << dir.ordinal())) != 0) {
@@ -625,7 +634,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         for (TankDiagonal diagonal : filledDiagonals) {
             currentFilledDiagonalsBits |= (1 << diagonal.ordinal());
         }
-        int filledDiagonalsBits = input.getIntOr("FilledDiagonals", currentFilledDiagonalsBits);
+        int filledDiagonalsBits = BlockEntityNbt.getIntOr(input, "FilledDiagonals", currentFilledDiagonalsBits);
         filledDiagonals.clear();
         for (TankDiagonal diagonal : TankDiagonal.values()) {
             if ((filledDiagonalsBits & (1 << diagonal.ordinal())) != 0) {
@@ -640,7 +649,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         for (TankEdgeDiagonal edgeDiagonal : filledEdgeDiagonals) {
             currentFilledEdgeDiagonalsBits |= (1 << edgeDiagonal.ordinal());
         }
-        int filledEdgeDiagonalsBits = input.getIntOr("FilledEdgeDiagonals", currentFilledEdgeDiagonalsBits);
+        int filledEdgeDiagonalsBits = BlockEntityNbt.getIntOr(input, "FilledEdgeDiagonals", currentFilledEdgeDiagonalsBits);
         filledEdgeDiagonals.clear();
         for (TankEdgeDiagonal edgeDiagonal : TankEdgeDiagonal.values()) {
             if ((filledEdgeDiagonalsBits & (1 << edgeDiagonal.ordinal())) != 0) {
@@ -649,48 +658,48 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         // Load waxed state (same preserve-current-if-absent reasoning as open faces above)
-        waxed = input.getBooleanOr("Waxed", waxed);
+        waxed = BlockEntityNbt.getBooleanOr(input, "Waxed", waxed);
 
         // Load items
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
             itemMirrored[i] = false;
         }
-        input.childrenListOrEmpty("Items").forEach(child -> {
-            int slot = child.getIntOr("Slot", -1);
+        BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
+            int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                child.read("Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
-                itemMirrored[slot] = child.getBooleanOr("Mirrored", false);
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
+                itemMirrored[slot] = BlockEntityNbt.getBooleanOr(child, "Mirrored", false);
             }
         });
 
         // Load first item rotation
-        firstItemRotation = input.getFloatOr("FirstItemRotation", 0f);
+        firstItemRotation = BlockEntityNbt.getFloatOr(input, "FirstItemRotation", 0f);
 
         // Load cosmetics
         cosmetics.clear();
-        input.childrenListOrEmpty("Cosmetics").forEach(child -> {
-            int gridX = child.getIntOr("GridX", -1);
-            int gridZ = child.getIntOr("GridZ", -1);
-            String blockStr = child.getStringOr("Block", "");
+        BlockEntityNbt.childrenListOrEmpty(input, "Cosmetics").forEach(child -> {
+            int gridX = BlockEntityNbt.getIntOr(child, "GridX", -1);
+            int gridZ = BlockEntityNbt.getIntOr(child, "GridZ", -1);
+            String blockStr = BlockEntityNbt.getStringOr(child, "Block", "");
             if (CosmeticGridCell.isValid(gridX, gridZ) && !blockStr.isEmpty()) {
-                Identifier blockId = Ids.tryParse(blockStr);
+                ResourceLocation blockId = Ids.tryParse(blockStr);
                 if (blockId != null) {
-                    Block b = BuiltInRegistries.BLOCK.getValue(blockId);
+                    Block b = BuiltInRegistries.BLOCK.get(blockId);
                     if (b != null) {
                         BlockState state = b.defaultBlockState();
                         if (b instanceof SeaPickleBlock) {
-                            int pickles = child.getIntOr("Pickles", 1);
+                            int pickles = BlockEntityNbt.getIntOr(child, "Pickles", 1);
                             state = state.setValue(BlockStateProperties.PICKLES, Math.min(pickles, SeaPickleBlock.MAX_PICKLES));
                         }
                         if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-                            String facingStr = child.getStringOr("Facing", "");
+                            String facingStr = BlockEntityNbt.getStringOr(child, "Facing", "");
                             Direction facing = Direction.byName(facingStr);
                             if (facing != null) {
                                 state = state.setValue(BlockStateProperties.HORIZONTAL_FACING, facing);
                             }
                         }
-                        int height = child.getIntOr("Height", 1);
+                        int height = BlockEntityNbt.getIntOr(child, "Height", 1);
                         cosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(state, height));
                     } else {
                         Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
@@ -702,22 +711,22 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // Load structure cosmetics and rebuild the derived cell index from each structure's footprint.
         structureCosmetics.clear();
         structureCellIndex.clear();
-        input.childrenListOrEmpty("StructureCosmetics").forEach(child -> {
-            int gridX = child.getIntOr("GridX", -1);
-            int gridZ = child.getIntOr("GridZ", -1);
-            String structureIdStr = child.getStringOr("StructureId", "");
+        BlockEntityNbt.childrenListOrEmpty(input, "StructureCosmetics").forEach(child -> {
+            int gridX = BlockEntityNbt.getIntOr(child, "GridX", -1);
+            int gridZ = BlockEntityNbt.getIntOr(child, "GridZ", -1);
+            String structureIdStr = BlockEntityNbt.getStringOr(child, "StructureId", "");
             if (!CosmeticGridCell.isValid(gridX, gridZ) || structureIdStr.isEmpty()) {
                 return;
             }
-            Identifier structureId = Ids.tryParse(structureIdStr);
+            ResourceLocation structureId = Ids.tryParse(structureIdStr);
             if (structureId == null) {
                 Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
                 return;
             }
-            Rotation rotation = child.read("Rotation", Rotation.CODEC).orElse(Rotation.NONE);
+            Rotation rotation = BlockEntityNbt.read(child, "Rotation", Rotation.CODEC, registries).orElse(Rotation.NONE);
             ResourceKey<CosmeticStructure> key = ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, structureId);
 
-            Optional<CosmeticStructure> structure = input.lookup().get(key)
+            Optional<CosmeticStructure> structure = registries.lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY).get(key)
                     .map(net.minecraft.core.Holder.Reference::value);
             if (structure.isEmpty()) {
                 Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic structure lookup returned nothing for id={}; skipping", worldPosition, structureId);

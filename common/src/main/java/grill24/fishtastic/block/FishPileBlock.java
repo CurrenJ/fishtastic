@@ -1,5 +1,6 @@
 package grill24.fishtastic.block;
 
+import grill24.fishtastic.util.InteractionResults;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
@@ -12,6 +13,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
@@ -91,7 +93,13 @@ public class FishPileBlock extends Block implements EntityBlock {
     // --- Adding one fish to a placed pile (plain right-click, directly targeted) ---
 
     @Override
-    protected InteractionResult useItemOn(ItemStack itemStack, BlockState state, Level level, BlockPos pos,
+    protected ItemInteractionResult useItemOn(ItemStack itemStack, BlockState state, Level level, BlockPos pos,
+            Player player, InteractionHand hand, BlockHitResult hit) {
+        return InteractionResults.forUseItemOn(useItemOnWithResult(itemStack, state, level, pos, player, hand, hit));
+    }
+
+    /** 26.1.2's {@code useItemOn} body, unchanged; the override above converts its result. */
+    private InteractionResult useItemOnWithResult(ItemStack itemStack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
         if (itemStack.isEmpty()) {
             // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires even
@@ -135,7 +143,7 @@ public class FishPileBlock extends Block implements EntityBlock {
 
         syncFishCount(level, pos, state, pile);
         level.playSound(null, pos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1.0f);
-        return InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
     }
 
     // --- Removing one fish (shift always; empty-hand plain click is a no-op) ---
@@ -163,7 +171,7 @@ public class FishPileBlock extends Block implements EntityBlock {
             syncFishCount(level, pos, state, pile);
         }
         level.playSound(null, pos, SoundEvents.BUNDLE_REMOVE_ONE, SoundSource.BLOCKS, 0.8f, 1.0f);
-        return InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
     }
 
     // --- Breaking ---
@@ -292,7 +300,7 @@ public class FishPileBlock extends Block implements EntityBlock {
             syncFishCount(level, hitPos, hitState, pile);
         }
         level.playSound(null, hitPos, SoundEvents.BUNDLE_REMOVE_ONE, SoundSource.BLOCKS, 0.8f, 1.0f);
-        return InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
     }
 
     /** Plain right-click branch: start a new pile with one fish on a valid bare surface. */
@@ -310,7 +318,7 @@ public class FishPileBlock extends Block implements EntityBlock {
         }
         if (isPileItem) {
             BundleContents contents = FishtasticItemData.bundleContents(itemStack);
-            if (contents == null || contents.items().isEmpty()) {
+            if (contents == null || contents.isEmpty()) {
                 return null;
             }
         }
@@ -336,7 +344,7 @@ public class FishPileBlock extends Block implements EntityBlock {
             itemStack.shrink(1);
         }
         level.playSound(null, targetPos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1.0f);
-        return InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
     }
 
     /**
@@ -346,7 +354,7 @@ public class FishPileBlock extends Block implements EntityBlock {
      */
     private static boolean takeOneFromPileItem(Player player, InteractionHand hand, ItemStack itemStack, FishPileBlockEntity pile) {
         BundleContents contents = FishtasticItemData.bundleContents(itemStack);
-        if (contents == null || contents.items().isEmpty()) {
+        if (contents == null || contents.isEmpty()) {
             return false;
         }
         BundleContents.Mutable mutable = new BundleContents.Mutable(contents);
@@ -358,8 +366,8 @@ public class FishPileBlock extends Block implements EntityBlock {
         BundleContents remaining = mutable.toImmutable();
         if (remaining.isEmpty()) {
             itemStack.shrink(1);
-        } else if (remaining.items().size() == 1) {
-            player.setItemInHand(hand, remaining.items().get(0).create());
+        } else if (remaining.size() == 1) {
+            player.setItemInHand(hand, remaining.getItemUnsafe(0).copy());
         } else {
             FishtasticItemData.setBundleContents(itemStack, remaining);
         }

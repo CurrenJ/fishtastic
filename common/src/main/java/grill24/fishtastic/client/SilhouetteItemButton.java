@@ -8,7 +8,7 @@ import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.ItemButton;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -36,7 +36,7 @@ import java.util.List;
  */
 public class SilhouetteItemButton extends ItemButton {
     // Reuses the status-pip art from spawn condition rows: unclaimed reward here vs. condition met there.
-    private static final Identifier REWARD_PIP_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
+    private static final ResourceLocation REWARD_PIP_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final int REWARD_PIP_TEXTURE_PX = 8;
     private static final float REWARD_PIP_SIZE = 4f;
     // Nudges the pip to read as a badge poking out from the icon's top-right corner.

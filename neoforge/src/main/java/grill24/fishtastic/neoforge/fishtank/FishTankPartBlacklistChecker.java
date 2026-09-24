@@ -6,7 +6,7 @@ import grill24.fishtastic.neoforge.FishtasticConfig;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
@@ -38,7 +38,7 @@ public class FishTankPartBlacklistChecker {
      * Check if a block is blacklisted for a specific fish tank part.
      */
     public static boolean isBlacklisted(Block block, FishTankPart part) {
-        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
 
         for (Config entry : FishtasticConfig.STARTUP.fishTankPartBlacklists.get()) {
             if (entry.isEmpty()) {
@@ -77,7 +77,7 @@ public class FishTankPartBlacklistChecker {
                 if (pattern.startsWith("#")) {
                     // Tag reference
                     try {
-                        Identifier tagId = Ids.parse(pattern.substring(1));
+                        ResourceLocation tagId = Ids.parse(pattern.substring(1));
                         TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, tagId);
                         boolean inTag = StreamSupport.stream(BuiltInRegistries.BLOCK.getTagOrEmpty(tagKey).spliterator(), false)
                                 .anyMatch(holder -> holder.value() == block);
@@ -92,7 +92,7 @@ public class FishTankPartBlacklistChecker {
                 } else {
                     // Direct block ID
                     try {
-                        Identifier targetId = Ids.parse(pattern);
+                        ResourceLocation targetId = Ids.parse(pattern);
                         if (blockId.equals(targetId)) {
                             Fishtastic.LOGGER.debug("Block {} is blacklisted for {}", blockId, part.getConfigName());
                             return true;
@@ -140,7 +140,7 @@ public class FishTankPartBlacklistChecker {
      * Get a user-friendly message for why a block is blacklisted.
      */
     public static String getBlacklistMessage(Block block, FishTankPart part) {
-        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
         return String.format("Block %s cannot be used for fish tank %s (blacklisted in config)",
                 blockId, part.getConfigName());
     }

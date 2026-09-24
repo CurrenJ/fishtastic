@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -26,9 +27,9 @@ import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -49,7 +50,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
     public abstract int getLavaDamagePerTick();
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         super.use(level, player, hand);
 
         // Minigame impulse input is polled every frame in FishingMinigameAnimation.render()
@@ -57,7 +58,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         // longer applies a discrete tap impulse here — that would double up with the
         // continuous hold force and behave differently from the keybind.
 
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
 
     // ----- Inventory interactions (bait, hook, charm) -----
@@ -144,10 +145,10 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         if (!current.isEmpty() && !FishtasticItemData.isSameItemSameData(current, other)) {
             // Different item already loaded — reject unless it's a hook/charm (single-item slots)
             if (type == SlotType.HOOK || type == SlotType.CHARM) {
-                player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
+                playInsertFailSound(player);
                 return true;
             }
-            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
+            playInsertFailSound(player);
             return true;
         }
 
@@ -155,7 +156,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         int existing = current.isEmpty() ? 0 : current.getCount();
         int spaceLeft = maxForSlot - existing;
         if (spaceLeft <= 0) {
-            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
+            playInsertFailSound(player);
             return true;
         }
 
@@ -174,12 +175,16 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         return true;
     }
 
+    /** Silent: the bundle insert-fail sound is new in 1.21.2 (26.1.2 plays BUNDLE_INSERT_FAIL). */
+    private static void playInsertFailSound(Player player) {
+    }
+
     private boolean handleSlotDrag(ItemStack rod, ItemStack other, Slot slot, Player player, SlotType type) {
         if (!slot.allowModification(player)) return false;
 
         ItemStack current = getSlotItem(rod, type);
         if (!current.isEmpty() && !FishtasticItemData.isSameItemSameData(current, other)) {
-            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
+            playInsertFailSound(player);
             return true;
         }
 
@@ -187,7 +192,7 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
         int existing = current.isEmpty() ? 0 : current.getCount();
         int spaceLeft = maxForSlot - existing;
         if (spaceLeft <= 0) {
-            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1.0F, 1.0F);
+            playInsertFailSound(player);
             return true;
         }
 
@@ -214,9 +219,9 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
-                                 Consumer<Component> builder, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, builder, flag);
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        Consumer<Component> builder = tooltip::add;
 
         // Bait — empty slot is communicated by the ghost icon in the tooltip image, not text.
         ItemStack bait = getBait(stack);

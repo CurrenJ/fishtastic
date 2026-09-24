@@ -5,7 +5,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.Std140Builder;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
  * caught this fish?), via {@link FishtasticGlintState#SILHOUETTE_REQUESTED}.
  */
 public final class FishtasticSilhouetteEffect {
-    private static final Identifier PIPELINE_ID = Ids.of("fishtastic", "pipeline/gui_item_silhouette");
+    private static final ResourceLocation PIPELINE_ID = Ids.of("fishtastic", "pipeline/gui_item_silhouette");
 
     /** Fill colour (opaque black) and overall opacity. */
     private static final float COLOR_R = 0.0f, COLOR_G = 0.0f, COLOR_B = 0.0f;

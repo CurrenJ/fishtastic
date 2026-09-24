@@ -16,9 +16,8 @@ import net.minecraft.world.item.FishingRodItem;
  * Manages custom key bindings for Fishtastic
  */
 public class FishtasticKeyBinds {
-    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
-        grill24.fishtastic.util.Ids.of("fishtastic", "fishtastic")
-    );
+    /** Category translation key; the same key 26.1's {@code KeyMapping.Category.register(fishtastic:fishtastic)} derives. */
+    public static final String CATEGORY = "key.category.fishtastic.fishtastic";
 
     public static KeyMapping fishingMinigameImpulse;
     public static KeyMapping openQuestLog;

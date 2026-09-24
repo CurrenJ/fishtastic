@@ -41,9 +41,9 @@ public class FishtasticBlocks {
     public static void registerBlocks() {
         // Undyed glass variants
         BORDERLESS_GLASS = RegistrationApiSided.getInstance().registerBlock("borderless_glass",
-                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS).setId(ResourceKey.create(Registries.BLOCK, loc))));
+                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS)));
         CLEAR_GLASS = RegistrationApiSided.getInstance().registerBlock("clear_glass",
-                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS).setId(ResourceKey.create(Registries.BLOCK, loc))));
+                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS)));
 
         // Register borderless and clear stained glass for all colors
         for (DyeColor color : DyeColor.values()) {
@@ -52,37 +52,34 @@ public class FishtasticBlocks {
             // Borderless stained glass
             Holder<Block> borderless = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_borderless_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass).setId(ResourceKey.create(Registries.BLOCK, loc))));
+                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
             BORDERLESS_STAINED_GLASS.put(color, borderless);
 
             // Clear stained glass
             Holder<Block> clear = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_clear_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass).setId(ResourceKey.create(Registries.BLOCK, loc))));
+                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
             CLEAR_STAINED_GLASS.put(color, clear);
         }
 
         FISH_TANK = RegistrationApiSided.getInstance().registerBlock("fish_tank",
             loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
-                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .noOcclusion()  // Allow transparent rendering
                 // Reads as a lit aquarium rather than a plain glass box at the mercy of nearby
                 // torches/skylight — without this, capping the tank with one solid block cuts its
                 // vertical skylight column and the whole interior (glass, sand, fish) goes dark,
                 // since a block's rendered brightness is real Minecraft light, not just its model.
                 .lightLevel(state -> 8)
-        ), (block, loc) -> new FishTankBlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+        ), (block, loc) -> new FishTankBlockItem(block, new Item.Properties()));
 
         FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerBlock("fish_tank_assembly",
             loc -> new FishTankAssemblyBlock(Block.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(2.5f)
                 .sound(SoundType.WOOD)
         ));
 
         MARINE_COMPOST = RegistrationApiSided.getInstance().registerBlock("marine_compost",
             loc -> new MarineCompostBlock(Block.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(0.5f)
                 .sound(SoundType.GRAVEL)
                 .noOcclusion()
@@ -91,7 +88,6 @@ public class FishtasticBlocks {
 
         FISH_PILE = RegistrationApiSided.getInstance().registerBlock("fish_pile",
             loc -> new FishPileBlock(Block.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(0.3f)
                 .sound(SoundType.WET_GRASS)
                 .noOcclusion()
@@ -100,7 +96,6 @@ public class FishtasticBlocks {
 
         ELECTRIC_FISH_ORGANIZER = RegistrationApiSided.getInstance().registerBlock("electric_fish_organizer",
             loc -> new ElectricFishOrganizerBlock(Block.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, loc))
                 .strength(3.0f)
                 .sound(SoundType.METAL)
                 .lightLevel(state -> 3)

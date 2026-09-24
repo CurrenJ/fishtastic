@@ -36,7 +36,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -50,7 +50,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -157,7 +156,7 @@ public class FishingMinigameManager {
     // lists (see the tiered treasure pool design doc) rather than a fixed preset combo, so a
     // legendary pull is always a surprise. Frame is deliberately stocked with materials little/no
     // existing shop/quest tank uses.
-    private static final List<Identifier> LEGENDARY_TANK_FRAMES = List.of(
+    private static final List<ResourceLocation> LEGENDARY_TANK_FRAMES = List.of(
             Ids.withDefaultNamespace("emerald_block"),
             Ids.withDefaultNamespace("netherite_block"),
             Ids.withDefaultNamespace("copper_block"),
@@ -184,7 +183,7 @@ public class FishingMinigameManager {
             Fishtastic.id("pink_clear_stained_glass"),
             Fishtastic.id("lime_clear_stained_glass")
     );
-    private static final List<Identifier> LEGENDARY_TANK_SANDS = List.of(
+    private static final List<ResourceLocation> LEGENDARY_TANK_SANDS = List.of(
             Ids.withDefaultNamespace("sand"),
             Ids.withDefaultNamespace("red_sand"),
             Ids.withDefaultNamespace("gravel"),
@@ -197,7 +196,7 @@ public class FishingMinigameManager {
             Fishtastic.id("pink_clear_stained_glass"),
             Fishtastic.id("lime_clear_stained_glass")
     );
-    private static final List<Identifier> LEGENDARY_TANK_GLASS = List.of(
+    private static final List<ResourceLocation> LEGENDARY_TANK_GLASS = List.of(
             Fishtastic.id("white_clear_stained_glass"),
             Fishtastic.id("light_gray_clear_stained_glass"),
             Fishtastic.id("gray_clear_stained_glass"),
@@ -278,11 +277,11 @@ public class FishingMinigameManager {
         Holder<Biome> sessionBiome = level.getBiome(sessionPos);
         FishProfile.TimeOfDay sessionTimeOfDay = charmEffect != null && charmEffect.forceNightFishing()
                 ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+                : FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
         Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
 
-        Identifier sessionBaitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
+        ResourceLocation sessionBaitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
                 sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved, sessionBaitId);
         activeSessions.put(playerId, session);
@@ -298,7 +297,7 @@ public class FishingMinigameManager {
             ));
         }
 
-        Set<Identifier> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
+        Set<ResourceLocation> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
 
         sendToPlayer(player, new StartFishingMinigamePacket(
                 sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved));
@@ -333,7 +332,7 @@ public class FishingMinigameManager {
                 ? BlockPos.containing(hook.position())
                 : player.blockPosition();
         Holder<net.minecraft.world.level.biome.Biome> biome = level.getBiome(tutorialPos);
-        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
         Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
 
@@ -374,7 +373,7 @@ public class FishingMinigameManager {
         }
 
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
-        Registry<FishProfile> xpFishProfiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> xpFishProfiles = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         ItemStack deliveryCharmStack = CopperFishingRod.getCharm(findFishtasticRod(player));
         CharmEffect deliveryCharmEffect = deliveryCharmStack.isEmpty() ? null : FishtasticItemData.get(deliveryCharmStack, FishtasticDataComponents.CHARM_EFFECT);
@@ -525,12 +524,12 @@ public class FishingMinigameManager {
         int gamesPlayed = 0;
 
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(level.getServer());
-        Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> fishProfileRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
 
         BlockPos originBlockPos = player.blockPosition();
         net.minecraft.world.phys.Vec3 originPos = net.minecraft.world.phys.Vec3.atCenterOf(originBlockPos);
         Holder<Biome> biome = level.getBiome(originBlockPos);
-        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, originBlockPos);
         Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, originBlockPos.getY(), level.getSeaLevel());
 
@@ -566,7 +565,7 @@ public class FishingMinigameManager {
                 CleanupGoalTracker.onTrashCatch(level.getServer(), player, result.trashCaught());
             }
             if (!result.questStacks().isEmpty()) {
-                Identifier baitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
+                ResourceLocation baitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
                 QuestTracker.onCatchBatch(level.getServer(), player, result.questStacks(), biome, timeOfDay, weather, zones, baitId);
             }
 
@@ -630,7 +629,7 @@ public class FishingMinigameManager {
         List<ServerFishingTarget> targets = new ArrayList<>();
         RandomSource randomSource = player.getRandom();
 
-        LootParams.Builder lootParamsBuilder = new LootParams.Builder(player.level())
+        LootParams.Builder lootParamsBuilder = new LootParams.Builder(player.serverLevel())
                 .withParameter(LootContextParams.ORIGIN, originPos)
                 .withParameter(LootContextParams.TOOL, player.getUseItem())
                 .withLuck(player.getLuck() + extraLuck);
@@ -647,7 +646,7 @@ public class FishingMinigameManager {
         FishProfile.WeatherCondition weather = env.weather();
         FishMoonPhase moonPhase = env.moonPhase();
 
-        Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> fishProfileRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
                 + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
@@ -667,7 +666,7 @@ public class FishingMinigameManager {
         int targetCountMean = DEFAULT_TARGET_COUNT_MEAN + (baitEffect != null ? baitEffect.targetCountBonus() : 0);
         int targetCount = (int) Mth.clamp(MathUtil.randomGaussian(randomSource, targetCountMean, 1), 1, MAX_TARGETS);
 
-        Registry<Temperament> temperamentRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
+        Registry<Temperament> temperamentRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
         float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
 
         Temperament forcedTemperament = getForcedTemperament(player.getUUID())
@@ -770,7 +769,7 @@ public class FishingMinigameManager {
         Holder<Biome> biome = level.getBiome(hookPos);
         FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
                 ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime());
+                : FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
         FishMoonPhase moonPhase = FishMoonPhase.at(level, hookPos);
         Set<FishProfile.Zone> zone = FishProfile.Zone.resolve(biome, hookPos.getY(), level.getSeaLevel());
@@ -794,7 +793,7 @@ public class FishingMinigameManager {
         IFishingHookExtension hookExt = (IFishingHookExtension) hook;
 
         float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
-        LootParams lootparams = new LootParams.Builder(player.level())
+        LootParams lootparams = new LootParams.Builder(player.serverLevel())
                 .withParameter(LootContextParams.ORIGIN, hook.position())
                 .withParameter(LootContextParams.TOOL, player.getUseItem())
                 .withParameter(LootContextParams.THIS_ENTITY, hook)
@@ -804,7 +803,7 @@ public class FishingMinigameManager {
         BlockPos hookPos = BlockPos.containing(hook.position());
         EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
 
-        Registry<FishProfile> fishProfileRegistry = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        Registry<FishProfile> fishProfileRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
         List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
                 .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
@@ -846,7 +845,7 @@ public class FishingMinigameManager {
     private Temperament resolveTemperament(ItemStack stack, Registry<FishProfile> fishProfileRegistry, Registry<Temperament> temperamentRegistry) {
         var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
         if (itemKey.isEmpty()) return null;
-        var profileKey = net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+        var profileKey = net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
         FishProfile profile = fishProfileRegistry.getOptional(profileKey).orElse(null);
         if (profile == null || profile.temperament().isEmpty()) return null;
         return temperamentRegistry.getOptional(profile.temperament().get()).orElse(null);
@@ -884,7 +883,7 @@ public class FishingMinigameManager {
         if (reward.is(FishtasticBlocks.FISH_TANK.value().asItem())) return;
 
         boolean isFish = BuiltInRegistries.ITEM.getResourceKey(reward.getItem())
-                .map(key -> net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier()))
+                .map(key -> net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.location()))
                 .map(fishProfiles::containsKey)
                 .orElse(false);
         if (!isFish) {
@@ -922,9 +921,9 @@ public class FishingMinigameManager {
      * precedent as Epic/Legendary-tier charms bypassing their shop/quest gates as a rare RNG bonus.
      */
     private static ItemStack generateLegendaryTreasureTank(RandomSource randomSource) {
-        Block frame = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_FRAMES.get(randomSource.nextInt(LEGENDARY_TANK_FRAMES.size())));
-        Block sand = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_SANDS.get(randomSource.nextInt(LEGENDARY_TANK_SANDS.size())));
-        Block glass = BuiltInRegistries.BLOCK.getValue(LEGENDARY_TANK_GLASS.get(randomSource.nextInt(LEGENDARY_TANK_GLASS.size())));
+        Block frame = BuiltInRegistries.BLOCK.get(LEGENDARY_TANK_FRAMES.get(randomSource.nextInt(LEGENDARY_TANK_FRAMES.size())));
+        Block sand = BuiltInRegistries.BLOCK.get(LEGENDARY_TANK_SANDS.get(randomSource.nextInt(LEGENDARY_TANK_SANDS.size())));
+        Block glass = BuiltInRegistries.BLOCK.get(LEGENDARY_TANK_GLASS.get(randomSource.nextInt(LEGENDARY_TANK_GLASS.size())));
         FishTankShape[] shapes = FishTankShape.values();
         FishTankShape shape = shapes[randomSource.nextInt(shapes.length)];
 
@@ -937,7 +936,7 @@ public class FishingMinigameManager {
 
     private static @NotNull List<Holder<Item>> getTrashPool(ServerPlayer player) {
         List<Holder<Item>> result = new ArrayList<>();
-        for (Holder<Item> holder : player.registryAccess().lookupOrThrow(Registries.ITEM).getTagOrEmpty(FishtasticItemTags.TRASH)) {
+        for (Holder<Item> holder : player.registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(FishtasticItemTags.TRASH)) {
             result.add(holder);
         }
         return result;
@@ -963,12 +962,12 @@ public class FishingMinigameManager {
      * Evaluated at session start, before any of these catches are recorded, so the reading is the
      * state the player had when they cast.
      */
-    private static Set<Identifier> computeUndiscoveredSpecies(
+    private static Set<ResourceLocation> computeUndiscoveredSpecies(
             ServerPlayer player, List<ServerFishingTarget> targets, List<ItemStack> previews) {
         FishCatchSavedData catchDb = FishCatchSavedData.getOrCreate(player.level().getServer());
         UUID playerKey = catchDb.resolvePlayerKey(player);
 
-        Set<Identifier> undiscovered = new HashSet<>();
+        Set<ResourceLocation> undiscovered = new HashSet<>();
         for (ServerFishingTarget target : targets) {
             if (target.category() != FishingTarget.TargetCategory.FISH) continue;
             for (ItemStack stack : target.rewardStacks()) {
@@ -982,9 +981,9 @@ public class FishingMinigameManager {
     }
 
     private static void addIfUndiscovered(FishCatchSavedData catchDb, UUID playerKey,
-                                          ItemStack stack, Set<Identifier> out) {
+                                          ItemStack stack, Set<ResourceLocation> out) {
         if (stack.isEmpty()) return;
-        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (catchDb.getCatchCount(playerKey, id) == 0) out.add(id);
     }
 
@@ -994,7 +993,7 @@ public class FishingMinigameManager {
                 : Optional.empty();
 
         List<Holder<Item>> result = new ArrayList<>();
-        for (Holder<Item> holder : player.registryAccess().lookupOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
+        for (Holder<Item> holder : player.registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
             if (exclusivePool.isEmpty() || holder.is(exclusivePool.get())) {
                 result.add(holder);
             }
@@ -1161,7 +1160,7 @@ public class FishingMinigameManager {
             serverLevel.playSound(null, player.blockPosition(), breakSound.value(), SoundSource.PLAYERS,
                     0.8F, 0.8F + serverLevel.getRandom().nextFloat() * 0.4F);
         }
-        serverLevel.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, ItemStackTemplate.fromNonEmptyStack(stack)),
+        serverLevel.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, stack.copy()),
                 player.getX(), player.getEyeY() - 0.3, player.getZ(), 5, 0.15, 0.1, 0.15, 0.05);
     }
 
@@ -1215,7 +1214,7 @@ public class FishingMinigameManager {
         // matching in QuestTracker; unrelated to baitWillBeSaved, which only governs whether this
         // bait is consumed.
         @Nullable
-        final Identifier hookBaitId;
+        final ResourceLocation hookBaitId;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
@@ -1226,7 +1225,7 @@ public class FishingMinigameManager {
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
-                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved, @Nullable Identifier hookBaitId) {
+                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved, @Nullable ResourceLocation hookBaitId) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;

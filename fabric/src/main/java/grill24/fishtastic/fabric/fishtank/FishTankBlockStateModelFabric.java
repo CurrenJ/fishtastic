@@ -10,7 +10,7 @@ import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ResolvedModel;
 import net.minecraft.client.resources.model.ResolvableModel;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -136,23 +136,23 @@ public class FishTankBlockStateModelFabric implements CustomUnbakedBlockStateMod
         return new FishTankBakedModelFabric(baker, frameModels, sandModels, glassModels, cornerFragmentModels, cornerGlassFillModels, edgeFragmentModels, edgeGlassFillModels);
     }
 
-    private static Identifier modelLocation(FishTankShape shape, String part, int permutation) {
+    private static ResourceLocation modelLocation(FishTankShape shape, String part, int permutation) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_" + part + "_" + permutation);
     }
 
-    private static Identifier cornerFragmentLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
+    private static ResourceLocation cornerFragmentLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_frame_corner_" + cornerSuffix(diagonal) + "_" + capState);
     }
 
-    private static Identifier cornerGlassFillLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
+    private static ResourceLocation cornerGlassFillLocation(FishTankShape shape, TankDiagonal diagonal, int capState) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_glass_fill_corner_" + cornerSuffix(diagonal) + "_" + capState);
     }
 
-    private static Identifier edgeFragmentLocation(FishTankShape shape, TankEdgeDiagonal edge) {
+    private static ResourceLocation edgeFragmentLocation(FishTankShape shape, TankEdgeDiagonal edge) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_frame_edge_" + edgeSuffix(edge));
     }
 
-    private static Identifier edgeGlassFillLocation(FishTankShape shape, TankEdgeDiagonal edge, TankDiagonal corner) {
+    private static ResourceLocation edgeGlassFillLocation(FishTankShape shape, TankEdgeDiagonal edge, TankDiagonal corner) {
         return ft("block/" + shape.modelPathPrefix() + "/fish_tank_glass_fill_" + edgeSuffix(edge) + "_" + cornerSuffix(corner));
     }
 

@@ -224,7 +224,7 @@ public final class TutorialManagerGameTests {
         TutorialManager.advanceStep(player, TutorialStep.QUEST_INTRO);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.QUEST_CLAIM, "Expected QUEST_CLAIM");
 
-        TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.identifier());
+        TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.location());
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.SHOP_BROWSE, "Expected SHOP_BROWSE after claiming the tutorial quest");
 
         TutorialManager.advanceStep(player, TutorialStep.SHOP_BROWSE);
@@ -248,7 +248,7 @@ public final class TutorialManagerGameTests {
             "Claiming a non-tutorial quest must not advance the tutorial step"
         );
 
-        TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.identifier());
+        TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.location());
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.SHOP_BROWSE,
             "Claiming the tutorial quest while in QUEST_CLAIM must advance to SHOP_BROWSE"

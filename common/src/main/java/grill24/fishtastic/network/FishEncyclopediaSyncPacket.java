@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import java.util.Map;
 
 /** Server→client sync of catch counts, Records panel data, and claimed encyclopedia reward slots. */
 public record FishEncyclopediaSyncPacket(
-        Map<Identifier, Integer> personalCatchCounts,
+        Map<ResourceLocation, Integer> personalCatchCounts,
         List<LeaderboardEntry> personalBestSizes,
         List<LeaderboardEntry> globalBestSizes,
         List<String> claimedRewardKeys
@@ -27,7 +27,7 @@ public record FishEncyclopediaSyncPacket(
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FishEncyclopediaSyncPacket> STREAM_CODEC =
             StreamCodec.composite(
-                    ByteBufCodecs.map(HashMap::new, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT),
+                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ByteBufCodecs.VAR_INT),
                     FishEncyclopediaSyncPacket::personalCatchCounts,
                     LeaderboardEntry.STREAM_CODEC.apply(ByteBufCodecs.list()),
                     FishEncyclopediaSyncPacket::personalBestSizes,
@@ -45,7 +45,7 @@ public record FishEncyclopediaSyncPacket(
 
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data) {
         java.util.UUID key = data.resolvePlayerKey(player);
-        Map<Identifier, Integer> catchCounts = new HashMap<>();
+        Map<ResourceLocation, Integer> catchCounts = new HashMap<>();
         data.getPersonalCatchCounts(key, FishCatchSavedData.PERSONAL_CATCH_COUNT_DESC)
                 .forEach(e -> catchCounts.put(e.fishType(), e.totalCatches()));
 

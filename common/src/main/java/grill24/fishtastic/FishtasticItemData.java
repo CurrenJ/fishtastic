@@ -8,12 +8,12 @@ import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ResolvableProfile;
-import net.minecraft.world.item.component.TooltipDisplay;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -63,15 +63,15 @@ public final class FishtasticItemData {
     }
 
     /** The registry id of a Fishtastic component — the id data-driven conditions refer to it by. */
-    public static Identifier id(Holder<? extends DataComponentType<?>> component) {
+    public static ResourceLocation id(Holder<? extends DataComponentType<?>> component) {
         return BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(component.value());
     }
 
     // ── Any component, by registry id (data-driven item-effect conditions) ──
 
     /** Whether the stack carries the component registered under {@code id}; false for an unknown id. */
-    public static boolean hasById(ItemStack stack, Identifier id) {
-        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(id);
+    public static boolean hasById(ItemStack stack, ResourceLocation id) {
+        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(id);
         return type != null && stack.has(type);
     }
 
@@ -81,8 +81,8 @@ public final class FishtasticItemData {
      * persistent, or encoding fails.
      */
     @Nullable
-    public static JsonElement encodeById(ItemStack stack, Identifier id) {
-        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(id);
+    public static JsonElement encodeById(ItemStack stack, ResourceLocation id) {
+        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(id);
         if (type == null) return null;
         return encode(stack, type);
     }
@@ -155,13 +155,15 @@ public final class FishtasticItemData {
 
     /** Whether the stack's tooltip is hidden entirely (vanilla's hide-tooltip flag). */
     public static boolean isTooltipHidden(ItemStack stack) {
-        TooltipDisplay tooltipDisplay = stack.get(DataComponents.TOOLTIP_DISPLAY);
-        return tooltipDisplay != null && tooltipDisplay.hideTooltip();
+        return stack.has(DataComponents.HIDE_TOOLTIP);
     }
 
-    /** The sound the item makes when it breaks, or null if it's silent. */
+    /**
+     * The sound the item makes when it breaks, or null if it's silent. There's no per-stack break
+     * sound before 1.21.5 (DataComponents.BREAK_SOUND), so every item uses vanilla's item-break sound.
+     */
     @Nullable
     public static Holder<SoundEvent> breakSound(ItemStack stack) {
-        return stack.get(DataComponents.BREAK_SOUND);
+        return BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.ITEM_BREAK);
     }
 }

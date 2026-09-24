@@ -6,7 +6,7 @@ import net.minecraft.client.resources.model.ResolvedModel;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import org.jspecify.annotations.Nullable;
 
@@ -30,10 +30,10 @@ public final class CompositeTextureHelper {
      * Skips models that resolve to the missing-model placeholder.
      */
     @Nullable
-    public static Material resolveBlockTexture(Block block, ModelBaker baker, List<Identifier> modelLocations) {
-        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+    public static Material resolveBlockTexture(Block block, ModelBaker baker, List<ResourceLocation> modelLocations) {
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
 
-        for (Identifier location : modelLocations) {
+        for (ResourceLocation location : modelLocations) {
             try {
                 ResolvedModel blockModel = baker.getModel(location);
 

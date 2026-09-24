@@ -2,7 +2,7 @@ package grill24.fishtastic.client;
 
 import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.network.LeaderboardEntry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,14 +12,14 @@ import java.util.Set;
 
 /** Client-side cache of the last {@code FishEncyclopediaSyncPacket} received, mirroring {@link QuestClientCache}. */
 public final class FishEncyclopediaClientCache {
-    private static Map<Identifier, Integer> personalCatchCounts = new HashMap<>();
-    private static Map<Identifier, LeaderboardEntry> personalBestSizes = new HashMap<>();
-    private static Map<Identifier, LeaderboardEntry> globalBestSizes = new HashMap<>();
+    private static Map<ResourceLocation, Integer> personalCatchCounts = new HashMap<>();
+    private static Map<ResourceLocation, LeaderboardEntry> personalBestSizes = new HashMap<>();
+    private static Map<ResourceLocation, LeaderboardEntry> globalBestSizes = new HashMap<>();
     private static Set<String> claimedRewardKeys = new HashSet<>();
 
     private FishEncyclopediaClientCache() {}
 
-    public static void update(Map<Identifier, Integer> catchCounts, List<LeaderboardEntry> personalBest,
+    public static void update(Map<ResourceLocation, Integer> catchCounts, List<LeaderboardEntry> personalBest,
                                List<LeaderboardEntry> globalBest, List<String> claimedRewards) {
         personalCatchCounts = new HashMap<>(catchCounts);
         personalBestSizes = new HashMap<>();
@@ -33,19 +33,19 @@ public final class FishEncyclopediaClientCache {
         claimedRewardKeys = new HashSet<>(claimedRewards);
     }
 
-    public static int getCatchCount(Identifier fishType) {
+    public static int getCatchCount(ResourceLocation fishType) {
         return personalCatchCounts.getOrDefault(fishType, 0);
     }
 
-    public static LeaderboardEntry getPersonalBest(Identifier fishType) {
+    public static LeaderboardEntry getPersonalBest(ResourceLocation fishType) {
         return personalBestSizes.get(fishType);
     }
 
-    public static LeaderboardEntry getGlobalBest(Identifier fishType) {
+    public static LeaderboardEntry getGlobalBest(ResourceLocation fishType) {
         return globalBestSizes.get(fishType);
     }
 
-    public static boolean isRewardClaimed(Identifier fishId, EncyclopediaRewardSection section) {
+    public static boolean isRewardClaimed(ResourceLocation fishId, EncyclopediaRewardSection section) {
         return claimedRewardKeys.contains(section.key(fishId));
     }
 

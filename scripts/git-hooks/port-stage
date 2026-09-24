@@ -1,2 +1,2 @@
-compile
+unit
 # Raise as gates pass: none (A1) -> compile (A1 gate) -> unit (A2 gate) -> full (A6.1). See pre-commit.

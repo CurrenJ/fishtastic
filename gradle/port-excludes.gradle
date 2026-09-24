@@ -68,6 +68,9 @@ def classStatus = { String className ->
 pluginManager.withPlugin('java') {
     sourceSets.named('main') { it.java.srcDir('src/portstub/java') }
 
+    // Porting runs the compiler as a to-do list; javac's default cap of 100 errors hides most of it.
+    tasks.withType(JavaCompile).configureEach { it.options.compilerArgs += ['-Xmaxerrs', '10000'] }
+
     sourceSets.configureEach { ss ->
         ss.java.exclude { FileTreeElement e -> !e.directory && excluded(e.file) }
     }

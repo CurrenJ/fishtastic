@@ -44,6 +44,6 @@ public class CosmeticCaptureWandItem extends Item {
         player.sendSystemMessage(Component.literal(message).withStyle(ChatFormatting.AQUA));
         CosmeticCaptureSyncPacket.sendToPlayer(player, session);
 
-        return InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.CONSUME; // 26.1.2: SUCCESS_SERVER (see InteractionResults)
     }
 }

@@ -7,7 +7,7 @@ import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -50,8 +50,8 @@ public final class LifetimeQuestProgressGameTests {
         for (int i = 0; i < 7; i++) data.recordCatch(player, "tester", fish(Items.COD));
         for (int i = 0; i < 3; i++) data.recordCatch(player, "tester", fish(Items.SALMON));
 
-        Identifier cod = Ids.withDefaultNamespace("cod");
-        Identifier salmon = Ids.withDefaultNamespace("salmon");
+        ResourceLocation cod = Ids.withDefaultNamespace("cod");
+        ResourceLocation salmon = Ids.withDefaultNamespace("salmon");
 
         helper.assertTrue(data.getCatchCount(player, cod) == 7,
                 "Cod lifetime count must be 7, was " + data.getCatchCount(player, cod));

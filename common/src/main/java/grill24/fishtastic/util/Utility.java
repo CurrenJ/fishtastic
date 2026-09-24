@@ -1,11 +1,11 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Vector3f;
 
 public class Utility {
-    public static Identifier ft(String id) {
+    public static ResourceLocation ft(String id) {
         return Ids.of(Fishtastic.MOD_ID, id);
     }
 

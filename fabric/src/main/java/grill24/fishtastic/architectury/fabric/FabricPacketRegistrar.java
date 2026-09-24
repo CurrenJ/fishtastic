@@ -27,7 +27,7 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
         // Register server-to-client codecs (server needs these to encode outgoing packets).
         // No handlers are registered here — those only exist on the client.
         FishtasticPackets.registerServerToClientCodecs(
-                (type, codec) -> PayloadTypeRegistry.clientboundPlay().register(type, codec));
+                (type, codec) -> PayloadTypeRegistry.playS2C().register(type, codec));
 
         Fishtastic.LOGGER.info("Registered Fabric server-side network packets");
     }
@@ -51,7 +51,7 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
             FishtasticPackets.IPacketHandler<T> handler) {
 
         // Register the payload type
-        PayloadTypeRegistry.serverboundPlay().register(type, codec);
+        PayloadTypeRegistry.playC2S().register(type, codec);
 
         // Register the handler
         ServerPlayNetworking.registerGlobalReceiver(
@@ -70,7 +70,7 @@ public class FabricPacketRegistrar implements FishtasticPackets.IPacketRegistrar
         // server-side init already registered this codec via registerServerToClientCodecs,
         // so tolerate double-registration.
         try {
-            PayloadTypeRegistry.clientboundPlay().register(type, codec);
+            PayloadTypeRegistry.playS2C().register(type, codec);
         } catch (IllegalArgumentException ignored) {
             // Already registered
         }

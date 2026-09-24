@@ -2,11 +2,9 @@ package grill24.fishtastic.server;
 
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.FishProfile;
-import net.minecraft.core.Holder;
+import grill24.fishtastic.network.SetDayRatePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.clock.WorldClock;
-import net.minecraft.world.clock.WorldClocks;
 
 /**
  * Elongates the dawn and dusk windows (overworld clock ticks [{@link FishProfile.TimeOfDay#DAWN_START_TICK},
@@ -20,11 +18,14 @@ import net.minecraft.world.clock.WorldClocks;
  * <p>
  * Each player's contribution is capped at {@link #PLAYER_CAP_SECONDS}, then summed linearly
  * across every online player (regardless of which dimension they're in — {@code
- * getOverworldClockTime()} is the single shared time source the rest of the mod already reads
- * everywhere, see {@code FishProfile.TimeOfDay}), and applied as a slowed rate on the overworld
- * {@link net.minecraft.world.clock.ServerClockManager} clock so the active window takes longer to
- * pass in real time. The rate is global — it isn't possible for one player to see a different
- * day-speed than another sharing the same world.
+ * getDayTime()} of the overworld is the single shared time source the rest of the mod already reads
+ * everywhere, see {@code FishProfile.TimeOfDay}), and applied as a slowed day-time rate so the
+ * active window takes longer to pass in real time. The rate is global — it isn't possible for one
+ * player to see a different day-speed than another sharing the same world.
+ *
+ * <p>1.21.1 has no world clocks (26.1.2 sets the rate on the overworld clock), so the rate is
+ * applied by {@code ServerLevelTickTimeMixin} and mirrored to clients with {@link SetDayRatePacket}
+ * for their day-time prediction.
  */
 public class SunsetExtensionHandler {
 
@@ -39,23 +40,25 @@ public class SunsetExtensionHandler {
     /** Hard floor on the applied clock rate, regardless of how many players are active. */
     private static final float RATE_FLOOR = 0.2f;
 
-    /** Only re-broadcast setRate when the target rate actually changes, to avoid spamming clients. */
+    /** Only re-broadcast the rate when the target rate actually changes, to avoid spamming clients. */
     private static final float RATE_CHANGE_THRESHOLD = 0.001f;
 
     private static Float lastAppliedRate = null;
-    private static boolean resetOnStartup = true;
+
+    /** The rate day time currently advances at; read by {@code ServerLevelTickTimeMixin} every tick. */
+    private static volatile float currentRate = 1.0f;
+
+    public static float currentRate() {
+        return currentRate;
+    }
+
+    /** Tells a joining player's client the current rate (the broadcast in {@link #tick} only covers changes). */
+    public static void onPlayerJoin(ServerPlayer player) {
+        SetDayRatePacket.sendToPlayer(player, currentRate);
+    }
 
     public static void tick(MinecraftServer server) {
-        Holder<WorldClock> overworldClock = server.registryAccess().getOrThrow(WorldClocks.OVERWORLD);
-
-        // Defensively clear any rate left over from a crash/unclean shutdown mid-slowdown.
-        if (resetOnStartup) {
-            resetOnStartup = false;
-            server.clockManager().setRate(overworldClock, 1.0f);
-            lastAppliedRate = 1.0f;
-        }
-
-        long dayTime = server.overworld().getOverworldClockTime() % 24000L;
+        long dayTime = server.overworld().getDayTime() % 24000L;
         long windowStartTick = -1L;
         long windowEndTick = -1L;
         if (dayTime >= FishProfile.TimeOfDay.DAWN_START_TICK && dayTime < FishProfile.TimeOfDay.DAWN_END_TICK) {
@@ -79,7 +82,8 @@ public class SunsetExtensionHandler {
         }
 
         if (lastAppliedRate == null || Math.abs(lastAppliedRate - targetRate) > RATE_CHANGE_THRESHOLD) {
-            server.clockManager().setRate(overworldClock, targetRate);
+            currentRate = targetRate;
+            SetDayRatePacket.broadcast(server, targetRate);
             lastAppliedRate = targetRate;
         }
     }

@@ -14,7 +14,7 @@ import net.minecraft.client.resources.model.geometry.QuadCollection;
 import net.minecraft.client.resources.model.geometry.UnbakedGeometry;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.client.resources.model.sprite.TextureSlots;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.model.UnbakedModelLoader;
 import org.jspecify.annotations.Nullable;
 
@@ -74,7 +74,7 @@ public final class FishTankModel implements UnbakedModel {
     }
 
     @Override
-    public @Nullable Identifier parent() {
+    public @Nullable ResourceLocation parent() {
         // Parent "block/block" gives standard block display transforms.
         return Ids.withDefaultNamespace("block/block");
     }
@@ -111,7 +111,7 @@ public final class FishTankModel implements UnbakedModel {
         }
 
         private void bakeAndAdd(QuadCollection.Builder builder, ModelBaker baker,
-                                Identifier modelId, ModelState state) {
+                                ResourceLocation modelId, ModelState state) {
             ResolvedModel model = baker.getModel(modelId);
             QuadCollection quads = model.bakeTopGeometry(
                     model.getTopTextureSlots(), baker, state);

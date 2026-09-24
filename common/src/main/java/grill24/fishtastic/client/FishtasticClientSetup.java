@@ -11,7 +11,7 @@ import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import grill24.fishtastic.menu.FishTankBrowserMenu;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModels;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.inventory.MenuType;
 
@@ -47,8 +47,8 @@ public final class FishtasticClientSetup {
         try {
             Field field = ItemModels.class.getDeclaredField("ID_MAPPER");
             field.setAccessible(true);
-            ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>> idMapper =
-                    (ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>>) field.get(null);
+            ExtraCodecs.LateBoundIdMapper<ResourceLocation, MapCodec<? extends ItemModel.Unbaked>> idMapper =
+                    (ExtraCodecs.LateBoundIdMapper<ResourceLocation, MapCodec<? extends ItemModel.Unbaked>>) field.get(null);
             idMapper.put(
                     Fishtastic.id("pile_of_fish_layers"),
                     PileOfFishItemModel.Unbaked.MAP_CODEC

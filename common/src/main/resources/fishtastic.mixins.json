@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
+    "ClientLevelTickTimeMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",
@@ -30,6 +31,7 @@
     "FishingHookMixin",
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
+    "ServerLevelTickTimeMixin",
     "SizedItemClickMixin"
   ]
 }

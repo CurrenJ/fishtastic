@@ -1,7 +1,7 @@
 package grill24.fishtastic.client.compositemodel;
 
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
@@ -17,12 +17,12 @@ import java.util.List;
  */
 public class BlockModelPathResolver {
 
-    public static List<Identifier> getModelLocations(Block block) {
-        List<Identifier> locations = new ArrayList<>();
-        Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
-        Identifier standardPath = blockId.withPrefix("block/");
+    public static List<ResourceLocation> getModelLocations(Block block) {
+        List<ResourceLocation> locations = new ArrayList<>();
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
+        ResourceLocation standardPath = blockId.withPrefix("block/");
 
-        Identifier redirect = BlockstateRedirectRegistry.getRedirect(standardPath);
+        ResourceLocation redirect = BlockstateRedirectRegistry.getRedirect(standardPath);
         if (redirect != null) {
             locations.add(redirect);
         }

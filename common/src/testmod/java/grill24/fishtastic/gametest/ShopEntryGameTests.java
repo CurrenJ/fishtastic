@@ -12,7 +12,7 @@ import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -95,11 +95,11 @@ public final class ShopEntryGameTests {
     }
 
     private static boolean containsAnyCharm(Set<ResourceKey<ShopEntry>> active) {
-        return active.stream().anyMatch(k -> k.identifier().getPath().startsWith("charm_"));
+        return active.stream().anyMatch(k -> k.location().getPath().startsWith("charm_"));
     }
 
     private static boolean containsAnyTankShape(Set<ResourceKey<ShopEntry>> active) {
-        return active.stream().anyMatch(k -> k.identifier().getPath().startsWith("shape_"));
+        return active.stream().anyMatch(k -> k.location().getPath().startsWith("shape_"));
     }
 
     public static void getActiveDailyShopIsStablePerDay(GameTestHelper helper) {
@@ -375,7 +375,7 @@ public final class ShopEntryGameTests {
         // measure the delta around the grant rather than an absolute nearby count.
         int baselineCount = countNearbyDroppedItems(player, Items.DIAMOND);
 
-        Identifier diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
+        ResourceLocation diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
         ShopEntry entry = entryWithReward(List.of(new ShopEntry.ShopReward(diamondId, 3)));
 
         PurchaseShopEntryPacket.grantRewards(player, entry);
@@ -402,7 +402,7 @@ public final class ShopEntryGameTests {
         ServerPlayer player = mockPlayer.get();
         int baselineCount = countNearbyDroppedItems(player, Items.DIAMOND);
 
-        Identifier diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
+        ResourceLocation diamondId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(Items.DIAMOND);
         ShopEntry entry = entryWithReward(List.of(new ShopEntry.ShopReward(diamondId, 3)));
 
         PurchaseShopEntryPacket.grantRewards(player, entry);

@@ -14,7 +14,7 @@ import grill24.fishtastic.itemeffect.condition.ItemTagCondition;
 import grill24.fishtastic.util.Utility;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -51,7 +51,7 @@ public final class ItemEffectConditionGameTests {
      * regardless of its value.
      */
     public static void componentConditionMatchesPresenceOnly(GameTestHelper helper) {
-        Identifier itemSizeId = FishtasticItemData.id(FishtasticDataComponents.ITEM_SIZE);
+        ResourceLocation itemSizeId = FishtasticItemData.id(FishtasticDataComponents.ITEM_SIZE);
         ComponentCondition condition = new ComponentCondition(itemSizeId);
 
         ItemStack withoutComponent = new ItemStack(FishtasticItems.BLUEGILL.value());
@@ -70,7 +70,7 @@ public final class ItemEffectConditionGameTests {
      * encoded value — FishQuality's "quality" field is a good real-world fixture.
      */
     public static void componentValueConditionMatchesFieldValue(GameTestHelper helper) {
-        Identifier qualityId = FishtasticItemData.id(FishtasticDataComponents.FISH_QUALITY);
+        ResourceLocation qualityId = FishtasticItemData.id(FishtasticDataComponents.FISH_QUALITY);
         ComponentValueCondition matchingCondition = new ComponentValueCondition(qualityId, "quality", "rare");
         ComponentValueCondition nonMatchingCondition = new ComponentValueCondition(qualityId, "quality", "legendary");
 

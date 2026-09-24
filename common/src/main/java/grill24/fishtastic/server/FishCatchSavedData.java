@@ -12,18 +12,18 @@ import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
-import grill24.fishtastic.util.Ids;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.resources.Identifier;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -44,13 +44,13 @@ public class FishCatchSavedData extends SavedData {
     // -------------------------------------------------------------------------
 
     public record PersonalBestSizeEntry(
-            Identifier fishType,
+            ResourceLocation fishType,
             float bestSize,
             FishQuality.Quality bestQuality
     ) {}
 
     public record GlobalBestSizeEntry(
-            Identifier fishType,
+            ResourceLocation fishType,
             UUID playerUuid,
             String playerName,
             float bestSize,
@@ -58,7 +58,7 @@ public class FishCatchSavedData extends SavedData {
     ) {}
 
     public record PersonalCatchCountEntry(
-            Identifier fishType,
+            ResourceLocation fishType,
             int totalCatches
     ) {}
 
@@ -127,7 +127,7 @@ public class FishCatchSavedData extends SavedData {
     private static final class PlayerCatchData {
         final UUID uuid;
         String lastKnownName;
-        final Map<Identifier, FishTypeData> perFish = new HashMap<>();
+        final Map<ResourceLocation, FishTypeData> perFish = new HashMap<>();
         /** Rolling history of individual catches, oldest first, capped at {@link #MAX_RECENT_CATCHES}. */
         final List<RecentCatch> recentCatches = new ArrayList<>();
 
@@ -136,7 +136,7 @@ public class FishCatchSavedData extends SavedData {
             this.lastKnownName = name;
         }
 
-        void record(Identifier fishType, float size, FishQuality.Quality quality) {
+        void record(ResourceLocation fishType, float size, FishQuality.Quality quality) {
             perFish.computeIfAbsent(fishType, k -> new FishTypeData()).record(size, quality);
             recentCatches.add(new RecentCatch(fishType, size, quality));
             while (recentCatches.size() > MAX_RECENT_CATCHES) {
@@ -152,7 +152,7 @@ public class FishCatchSavedData extends SavedData {
             instance.group(
                 UUIDUtil.STRING_CODEC.fieldOf("uuid").forGetter(d -> d.uuid),
                 Codec.STRING.fieldOf("name").forGetter(d -> d.lastKnownName),
-                Codec.unboundedMap(Identifier.CODEC, FishTypeData.CODEC).fieldOf("fish").forGetter(d -> new HashMap<>(d.perFish)),
+                Codec.unboundedMap(ResourceLocation.CODEC, FishTypeData.CODEC).fieldOf("fish").forGetter(d -> new HashMap<>(d.perFish)),
                 // Optional: worlds saved before the rolling history existed simply start empty.
                 RecentCatch.CODEC.listOf().optionalFieldOf("recent_catches", List.of()).forGetter(d -> List.copyOf(d.recentCatches))
             ).apply(instance, (uuid, name, fish, recent) -> {
@@ -189,7 +189,7 @@ public class FishCatchSavedData extends SavedData {
     private CleanupGoalState cleanupGoal = new CleanupGoalState();
 
     // -------------------------------------------------------------------------
-    // Codec and SavedDataType
+    // Codec and SavedData.Factory
     // -------------------------------------------------------------------------
 
     public static final Codec<FishCatchSavedData> CODEC = RecordCodecBuilder.create(instance ->
@@ -213,19 +213,37 @@ public class FishCatchSavedData extends SavedData {
         })
     );
 
-    public static final SavedDataType<FishCatchSavedData> TYPE = new SavedDataType<>(
-        Ids.of("fishtastic", "fish_catches"),
-        FishCatchSavedData::new,
-        CODEC,
-        DataFixTypes.LEVEL
-    );
+    /**
+     * The file under the overworld's {@code data/} folder. 26.1.2 stores {@code fishtastic:fish_catches}
+     * at {@code data/fishtastic/fish_catches.dat}; 1.21.1's storage only takes flat names, and saves
+     * don't carry across MC versions (D4), so the id is flattened. Backups live in their own folder.
+     */
+    private static final String FILE_ID = "fishtastic_fish_catches";
+
+    /** No DataFixTypes: {@link #CODEC} is the whole format, and vanilla's level fixers don't apply to it. */
+    public static final SavedData.Factory<FishCatchSavedData> FACTORY =
+            new SavedData.Factory<>(FishCatchSavedData::new, FishCatchSavedData::load, null);
+
+    private static FishCatchSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
+        return CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), tag)
+                .resultOrPartial(error -> grill24.fishtastic.Fishtastic.LOGGER.error("Failed to load fish catch data: {}", error))
+                .orElseGet(FishCatchSavedData::new);
+    }
+
+    @Override
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+        CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), this)
+                .resultOrPartial(error -> grill24.fishtastic.Fishtastic.LOGGER.error("Failed to save fish catch data: {}", error))
+                .ifPresent(encoded -> tag.merge((CompoundTag) encoded));
+        return tag;
+    }
 
     // -------------------------------------------------------------------------
     // Factory / lifecycle
     // -------------------------------------------------------------------------
 
     public static FishCatchSavedData getOrCreate(MinecraftServer server) {
-        return server.getDataStorage().computeIfAbsent(TYPE);
+        return server.overworld().getDataStorage().computeIfAbsent(FACTORY, FILE_ID);
     }
 
     // -------------------------------------------------------------------------
@@ -242,8 +260,8 @@ public class FishCatchSavedData extends SavedData {
         FishQuality.Quality quality = FishQualityHelper.getQuality(stack);
         if (quality == null) quality = FishQuality.Quality.COMMON;
 
-        Identifier fishType = stack.getItem().builtInRegistryHolder().unwrapKey()
-                .map(k -> k.identifier())
+        ResourceLocation fishType = stack.getItem().builtInRegistryHolder().unwrapKey()
+                .map(k -> k.location())
                 .orElse(null);
         if (fishType == null) return false;
 
@@ -271,10 +289,10 @@ public class FishCatchSavedData extends SavedData {
     }
 
     public List<GlobalBestSizeEntry> getGlobalBestSizes(Comparator<GlobalBestSizeEntry> order) {
-        Map<Identifier, GlobalBestSizeEntry> bestPerFish = new HashMap<>();
+        Map<ResourceLocation, GlobalBestSizeEntry> bestPerFish = new HashMap<>();
         for (PlayerCatchData pd : playerData.values()) {
-            for (Map.Entry<Identifier, FishTypeData> e : pd.perFish.entrySet()) {
-                Identifier fishType = e.getKey();
+            for (Map.Entry<ResourceLocation, FishTypeData> e : pd.perFish.entrySet()) {
+                ResourceLocation fishType = e.getKey();
                 FishTypeData ftd = e.getValue();
                 GlobalBestSizeEntry existing = bestPerFish.get(fishType);
                 if (existing == null || ftd.bestSize > existing.bestSize()) {
@@ -297,7 +315,7 @@ public class FishCatchSavedData extends SavedData {
     }
 
     /** Direct single-fish catch count lookup, 0 if the player has never caught it. */
-    public int getCatchCount(UUID playerUuid, Identifier fishType) {
+    public int getCatchCount(UUID playerUuid, ResourceLocation fishType) {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null) return 0;
         FishTypeData ftd = data.perFish.get(fishType);
@@ -314,11 +332,11 @@ public class FishCatchSavedData extends SavedData {
      * scales with what they've actually caught, and so a species that later leaves a tag stops
      * counting without needing a migration.
      */
-    public int getCatchCountMatching(UUID playerUuid, Predicate<Identifier> speciesFilter) {
+    public int getCatchCountMatching(UUID playerUuid, Predicate<ResourceLocation> speciesFilter) {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null) return 0;
         int total = 0;
-        for (Map.Entry<Identifier, FishTypeData> e : data.perFish.entrySet()) {
+        for (Map.Entry<ResourceLocation, FishTypeData> e : data.perFish.entrySet()) {
             if (speciesFilter.test(e.getKey())) total += e.getValue().totalCatches;
         }
         return total;
@@ -354,7 +372,7 @@ public class FishCatchSavedData extends SavedData {
     // -------------------------------------------------------------------------
 
     /** Directly sets the catch count for a fish type, bypassing the normal size/quality recording path. */
-    public void setCatchCount(UUID playerUuid, String playerName, Identifier fishType, int count) {
+    public void setCatchCount(UUID playerUuid, String playerName, ResourceLocation fishType, int count) {
         PlayerCatchData data = playerData.computeIfAbsent(playerUuid, id -> new PlayerCatchData(id, playerName));
         data.lastKnownName = playerName;
         FishTypeData ftd = data.perFish.computeIfAbsent(fishType, k -> new FishTypeData());
@@ -384,7 +402,7 @@ public class FishCatchSavedData extends SavedData {
      *  multiplayer players use their own Mojang-auth UUID (which is stable). */
     public PlayerQuestState getOrCreateQuestState(ServerPlayer player) {
         MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
-        if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
+        if (server != null && server.isSingleplayerOwner(player.getGameProfile())) {
             return getOrCreateQuestState(SINGLEPLAYER_QUEST_UUID);
         }
         return getOrCreateQuestState(player.getUUID());
@@ -438,7 +456,7 @@ public class FishCatchSavedData extends SavedData {
 
     public UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
         MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
-        if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
+        if (server != null && server.isSingleplayerOwner(player.getGameProfile())) {
             return SINGLEPLAYER_QUEST_UUID;
         }
         return player.getUUID();
@@ -447,7 +465,7 @@ public class FishCatchSavedData extends SavedData {
     public void resetDailyQuestsIfNeeded(MinecraftServer server, long currentDay) {
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }
@@ -465,7 +483,7 @@ public class FishCatchSavedData extends SavedData {
     public void forceRefreshDailyQuests(MinecraftServer server, ServerPlayer player, long currentDay) {
         Registry<Quest> questRegistry;
         try {
-            questRegistry = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+            questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }

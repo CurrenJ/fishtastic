@@ -5,7 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -43,7 +43,7 @@ public final class FollowFishStubCommand {
                 .then(Commands.argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
                     .executes(FollowFishStubCommand::unavailable)))
             .then(Commands.literal("species")
-                .then(Commands.argument("species", IdentifierArgument.id())
+                .then(Commands.argument("species", ResourceLocationArgument.id())
                     .executes(FollowFishStubCommand::unavailable)
                     .then(Commands.argument("retargetCooldownSeconds", FloatArgumentType.floatArg(0.05f))
                         .executes(FollowFishStubCommand::unavailable))))

@@ -3,7 +3,7 @@ package grill24.fishtastic.client;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.network.CleanupGoalProgress;
 import grill24.fishtastic.server.PlayerQuestState;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
@@ -14,9 +14,9 @@ public class QuestClientCache {
     /** Must match the day length {@code ServerTickHandler}/{@code QuestTracker} use to compute {@code currentDay}. */
     private static final long DAY_TICKS = 24000L;
 
-    private static Map<Identifier, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
+    private static Map<ResourceLocation, PlayerQuestState.QuestProgress> questProgress = new HashMap<>();
     private static int tokenBalance = 0;
-    private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
+    private static Map<ResourceLocation, Integer> purchaseCounts = new HashMap<>();
     private static int shopRefreshCount = 0;
     private static CleanupGoalProgress cleanupGoal = CleanupGoalProgress.EMPTY;
     private static boolean isInitialSync = true;
@@ -34,7 +34,7 @@ public class QuestClientCache {
 
     @FunctionalInterface
     public interface QuestProgressListener {
-        void onProgress(Identifier questId, int oldCount, int newCount, int targetCount,
+        void onProgress(ResourceLocation questId, int oldCount, int newCount, int targetCount,
                         boolean completed, ItemStack triggeringItem);
     }
 
@@ -80,16 +80,16 @@ public class QuestClientCache {
      *                        the listener. The server populates this only for quests
      *                        that crossed a notification interval or were completed.
      */
-    public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
-                              Map<Identifier, ItemStack> triggeringItems,
-                              Map<Identifier, Integer> newPurchaseCounts) {
+    public static void update(Map<ResourceLocation, PlayerQuestState.QuestProgress> progress, int tokens,
+                              Map<ResourceLocation, ItemStack> triggeringItems,
+                              Map<ResourceLocation, Integer> newPurchaseCounts) {
         update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L,
                 ItemStack.EMPTY, List.of(), 0);
     }
 
-    public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
-                              Map<Identifier, ItemStack> triggeringItems,
-                              Map<Identifier, Integer> newPurchaseCounts,
+    public static void update(Map<ResourceLocation, PlayerQuestState.QuestProgress> progress, int tokens,
+                              Map<ResourceLocation, ItemStack> triggeringItems,
+                              Map<ResourceLocation, Integer> newPurchaseCounts,
                               CleanupGoalProgress newCleanupGoal,
                               long serverGameTime,
                               ItemStack baitDepletedItem,
@@ -97,9 +97,9 @@ public class QuestClientCache {
                               int newShopRefreshCount) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
-            Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
-            for (Map.Entry<Identifier, PlayerQuestState.QuestProgress> entry : progress.entrySet()) {
-                Identifier questId = entry.getKey();
+            Map<ResourceLocation, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
+            for (Map.Entry<ResourceLocation, PlayerQuestState.QuestProgress> entry : progress.entrySet()) {
+                ResourceLocation questId = entry.getKey();
                 PlayerQuestState.QuestProgress newProg = entry.getValue();
                 PlayerQuestState.QuestProgress oldProg = oldMap.get(questId);
                 int oldCount = oldProg != null ? oldProg.currentCount() : 0;
@@ -137,14 +137,14 @@ public class QuestClientCache {
         }
     }
 
-    public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
-                              Map<Identifier, ItemStack> triggeringItems) {
+    public static void update(Map<ResourceLocation, PlayerQuestState.QuestProgress> progress, int tokens,
+                              Map<ResourceLocation, ItemStack> triggeringItems) {
         update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L,
                 ItemStack.EMPTY, List.of(), 0);
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
-    public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
+    public static void update(Map<ResourceLocation, PlayerQuestState.QuestProgress> progress, int tokens) {
         update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L,
                 ItemStack.EMPTY, List.of(), 0);
     }
@@ -162,7 +162,7 @@ public class QuestClientCache {
         return cleanupGoal.contributors();
     }
 
-    public static Map<Identifier, PlayerQuestState.QuestProgress> getQuestProgress() {
+    public static Map<ResourceLocation, PlayerQuestState.QuestProgress> getQuestProgress() {
         return questProgress;
     }
 
@@ -170,11 +170,11 @@ public class QuestClientCache {
         return tokenBalance;
     }
 
-    public static PlayerQuestState.QuestProgress getProgress(Identifier questId) {
+    public static PlayerQuestState.QuestProgress getProgress(ResourceLocation questId) {
         return questProgress.getOrDefault(questId, new PlayerQuestState.QuestProgress(0, -1, false, false, List.of()));
     }
 
-    public static int getPurchaseCount(Identifier entryId) {
+    public static int getPurchaseCount(ResourceLocation entryId) {
         return purchaseCounts.getOrDefault(entryId, 0);
     }
 

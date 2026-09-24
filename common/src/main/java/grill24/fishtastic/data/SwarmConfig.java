@@ -48,10 +48,10 @@ public record SwarmConfig(
         if (itemKey.isEmpty()) return DEFAULT;
 
         ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
 
         return level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(profileKey)
                 .map(FishProfile::swarm)
                 .orElse(DEFAULT);

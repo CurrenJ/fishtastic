@@ -1,5 +1,6 @@
 package grill24.fishtastic.block;
 
+import grill24.fishtastic.util.InteractionResults;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockTags;
 import grill24.fishtastic.FishtasticItemData;
@@ -28,6 +29,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BlockItem;
@@ -38,8 +41,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
@@ -74,12 +77,12 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
         // Materials + shape are copied on every pick-block (ctrl or not) — only contents
-        // (fish/cosmetics, via includeData's vanilla block-entity-data path) are gated behind
-        // ctrl. Connectivity (open faces/waxed) is never copied; see
-        // FishTankBlockEntity#saveCustomOnly.
-        ItemStack stack = super.getCloneItemStack(level, pos, state, includeData);
+        // (fish/cosmetics, via vanilla's block-entity-data path: Minecraft#addCustomNbtData on
+        // 1.21.1) are gated behind ctrl. Connectivity (open faces/waxed) is never copied; see
+        // FishTankBlockEntity#removeComponentsFromTag.
+        ItemStack stack = super.getCloneItemStack(level, pos, state);
         if (level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
             FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS, fishTank.getMaterials());
             FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE, fishTank.getShape());
@@ -129,21 +132,22 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected BlockState updateShape(BlockState blockState, LevelReader level, ScheduledTickAccess ticks,
-                                     BlockPos blockPos, Direction direction, BlockPos neighborPos,
-                                     BlockState neighborState, RandomSource random) {
+    protected BlockState updateShape(BlockState blockState, Direction direction, BlockState neighborState,
+                                     LevelAccessor level, BlockPos blockPos, BlockPos neighborPos) {
         if (!level.isClientSide()) {
             // Update connections when a neighboring block changes
             if (level instanceof Level worldLevel) {
                 updateConnections(worldLevel, blockPos);
             }
         }
-        return super.updateShape(blockState, level, ticks, blockPos, direction, neighborPos, neighborState, random);
+        return super.updateShape(blockState, direction, neighborState, level, blockPos, neighborPos);
     }
 
     @Override
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
-        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        super.onRemove(state, level, pos, newState, movedByPiston);
+        // 26.1.2's affectNeighborsAfterRemoval: runs server-side only, once the tank is actually gone.
+        if (level.isClientSide() || state.is(newState.getBlock())) return;
         // Update connections for all orthogonally adjacent tanks
         for (Direction direction : Direction.values()) {
             BlockPos adjacentPos = pos.relative(direction);
@@ -193,11 +197,16 @@ public class FishTankBlock extends Block implements EntityBlock {
                 player.openMenu(fishTank);
             }
         }
-        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
     @Override
-    protected InteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
+    protected ItemInteractionResult useItemOn(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
+        return InteractionResults.forUseItemOn(useItemOnWithResult(itemStack, blockState, level, blockPos, player, hand, blockHitResult));
+    }
+
+    /** 26.1.2's {@code useItemOn} body, unchanged; the override above converts its result. */
+    private InteractionResult useItemOnWithResult(ItemStack itemStack, BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand hand, BlockHitResult blockHitResult) {
         // A held Fish Tank must never become decorative content in another tank — always fall
         // through to PASS so vanilla's normal BlockItem placement (a new adjacent tank) runs,
         // exactly like it already does today via the shift-click path (which bypasses this whole
@@ -236,7 +245,7 @@ public class FishTankBlock extends Block implements EntityBlock {
                     fishTank.setWaxed(false);
                     level.playSound(null, blockPos, SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1.0F, 1.0F);
                     level.levelEvent(null, 3004, blockPos, 0);
-                    itemStack.hurtAndBreak(1, player, hand);
+                    itemStack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
                     return InteractionResult.SUCCESS;
                 }
             }
@@ -525,7 +534,7 @@ public class FishTankBlock extends Block implements EntityBlock {
     private InteractionResult placeStructureCosmetic(Level level, BlockPos blockPos, Player player, ItemStack itemStack,
                                                        FishTankBlockEntity fishTank, ResourceKey<CosmeticStructure> structureId) {
         Optional<CosmeticStructure> structure = level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
+                .registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
                 .getOptional(structureId);
         if (structure.isEmpty()) {
             grill24.fishtastic.Fishtastic.LOGGER.warn("[FishTankBlock] cosmetic structure lookup returned nothing for id={}", structureId);

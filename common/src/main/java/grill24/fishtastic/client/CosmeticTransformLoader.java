@@ -10,7 +10,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Block;
@@ -33,12 +33,12 @@ import java.util.concurrent.Executor;
 public final class CosmeticTransformLoader implements PreparableReloadListener {
 
     public static final CosmeticTransformLoader INSTANCE = new CosmeticTransformLoader();
-    public static final Identifier ID = Fishtastic.id("cosmetic_transforms");
+    public static final ResourceLocation ID = Fishtastic.id("cosmetic_transforms");
 
     private static final FileToIdConverter LISTER = FileToIdConverter.json("cosmetic_transforms");
     private static final Gson GSON = new Gson();
 
-    private static final Codec<Block> BLOCK_CODEC = Identifier.CODEC.flatXmap(
+    private static final Codec<Block> BLOCK_CODEC = ResourceLocation.CODEC.flatXmap(
         id -> BuiltInRegistries.BLOCK.getOptional(id)
             .map(DataResult::success)
             .orElseGet(() -> DataResult.error(() -> "Unknown block: " + id)),

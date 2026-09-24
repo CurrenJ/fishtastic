@@ -12,7 +12,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline.Snippet;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 
@@ -108,7 +108,7 @@ public final class FishtasticRenderPipelines {
             .get();
 
     /** Creates a per-effect basic outline pipeline with a unique location ID. */
-    public static RenderPipeline createOutlinePipeline(Identifier location) {
+    public static RenderPipeline createOutlinePipeline(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -127,7 +127,7 @@ public final class FishtasticRenderPipelines {
      * through the item atlas. Same vertex shader and UBO as {@link #createOutlinePipeline}; the
      * fragment shader differs in how it measures width and bounds its neighbour search.
      */
-    public static RenderPipeline createTextureOutlinePipeline(Identifier location) {
+    public static RenderPipeline createTextureOutlinePipeline(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -142,7 +142,7 @@ public final class FishtasticRenderPipelines {
     }
 
     /** Creates a per-effect legendary (animated pinwheel) outline pipeline with a unique location ID. */
-    public static RenderPipeline createLegendaryOutlinePipeline(Identifier location) {
+    public static RenderPipeline createLegendaryOutlinePipeline(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -221,7 +221,7 @@ public final class FishtasticRenderPipelines {
      * in the atlas verbatim rather than being composited against it.  Draw-time blending is the
      * render type's job.
      */
-    public static RenderPipeline createOutlineBakePipeline(Identifier location) {
+    public static RenderPipeline createOutlineBakePipeline(ResourceLocation location) {
         return outlineBakeBuilderBase(location)
                 .withUniform(BASIC_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
                 .withFragmentShader(Ids.of("fishtastic", "core/outline_bake"))
@@ -229,7 +229,7 @@ public final class FishtasticRenderPipelines {
     }
 
     /** Creates a per-effect legendary (animated pinwheel) outline bake pipeline. */
-    public static RenderPipeline createOutlineBakeLegendaryPipeline(Identifier location) {
+    public static RenderPipeline createOutlineBakeLegendaryPipeline(ResourceLocation location) {
         return outlineBakeBuilderBase(location)
                 .withUniform("Globals", UniformType.UNIFORM_BUFFER)
                 .withUniform(LEGENDARY_OUTLINE_UBO_NAME, UniformType.UNIFORM_BUFFER)
@@ -237,7 +237,7 @@ public final class FishtasticRenderPipelines {
                 .build();
     }
 
-    private static RenderPipeline.Builder outlineBakeBuilderBase(Identifier location) {
+    private static RenderPipeline.Builder outlineBakeBuilderBase(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -253,7 +253,7 @@ public final class FishtasticRenderPipelines {
     }
 
     /** Creates a per-effect debug-UV pipeline with a unique location ID. */
-    public static RenderPipeline createDebugUvPipeline(Identifier location) {
+    public static RenderPipeline createDebugUvPipeline(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)
@@ -268,7 +268,7 @@ public final class FishtasticRenderPipelines {
     }
 
     /** Creates the GUI item silhouette fill pipeline. Only one instance is ever needed (see {@link FishtasticSilhouetteEffect}). */
-    public static RenderPipeline createSilhouettePipeline(Identifier location) {
+    public static RenderPipeline createSilhouettePipeline(ResourceLocation location) {
         return RenderPipeline.builder()
                 .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
                 .withUniform("Projection", UniformType.UNIFORM_BUFFER)

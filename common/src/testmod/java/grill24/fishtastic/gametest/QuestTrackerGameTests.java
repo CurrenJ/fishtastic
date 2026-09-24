@@ -109,7 +109,7 @@ public final class QuestTrackerGameTests {
     }
 
     private static Holder<Biome> biome(GameTestHelper helper, ResourceKey<Biome> key) {
-        return helper.getLevel().registryAccess().lookupOrThrow(Registries.BIOME).get(key).orElseThrow();
+        return helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME).get(key).orElseThrow();
     }
 
     // -------------------------------------------------------------------------
@@ -480,7 +480,7 @@ public final class QuestTrackerGameTests {
             GameTestHelper helper, ServerPlayer player, String questPath, FishTankShape shape) {
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest(questPath);
-        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = quests.getValue(questKey);
         helper.assertTrue(quest != null, "Quest " + questPath + " must be registered");
         int target = quest.objective().effectiveTargetCount(server.registryAccess());
@@ -574,7 +574,7 @@ public final class QuestTrackerGameTests {
         ServerPlayer player = mockPlayer.get();
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("explorer/tank_starter");
-        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = quests.getValue(questKey);
         helper.assertTrue(quest != null, "Quest explorer/tank_starter must be registered");
 
@@ -600,7 +600,7 @@ public final class QuestTrackerGameTests {
         ServerPlayer player = mockPlayer.get();
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("challenge/golden_showcase");
-        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = quests.getValue(questKey);
         helper.assertTrue(quest != null, "Quest challenge/golden_showcase must be registered");
         PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
@@ -645,7 +645,7 @@ public final class QuestTrackerGameTests {
         ServerPlayer player = mockPlayer.get();
         MinecraftServer server = helper.getLevel().getServer();
         ResourceKey<Quest> questKey = ftQuest("explorer/blue_to_the_gills");
-        Registry<Quest> quests = server.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        Registry<Quest> quests = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         Quest quest = quests.getValue(questKey);
         helper.assertTrue(quest != null, "Quest explorer/blue_to_the_gills must be registered");
         int target = quest.objective().effectiveTargetCount(server.registryAccess());

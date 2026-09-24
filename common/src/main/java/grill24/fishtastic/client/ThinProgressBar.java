@@ -4,7 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import io.github.currenj.gelatinui.gui.DirtyFlag;
 import io.github.currenj.gelatinui.gui.IRenderContext;
 import io.github.currenj.gelatinui.gui.UIElement;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * A slim two-layer progress bar (empty backdrop + progress-clipped fill) built from
@@ -13,8 +13,8 @@ import net.minecraft.resources.Identifier;
  * competing with the row's name/reward text.
  */
 public class ThinProgressBar extends UIElement<ThinProgressBar> {
-    private static final Identifier TEXTURE_EMPTY = Fishtastic.id("textures/gui/thin_progress_bar_empty.png");
-    private static final Identifier TEXTURE_FILLED = Fishtastic.id("textures/gui/thin_progress_bar_filled.png");
+    private static final ResourceLocation TEXTURE_EMPTY = Fishtastic.id("textures/gui/thin_progress_bar_empty.png");
+    private static final ResourceLocation TEXTURE_FILLED = Fishtastic.id("textures/gui/thin_progress_bar_filled.png");
     // Both source files are a 64x64 canvas; the opaque bar art only occupies the top-left 64x5 region.
     private static final int SOURCE_FILE_SIZE = 64;
     private static final int SPRITE_WIDTH = 64;

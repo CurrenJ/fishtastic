@@ -17,7 +17,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.BlockItem;
@@ -42,7 +42,7 @@ import java.util.Optional;
  * {@code RecipeBookComponent#updateScreenPosition}).
  */
 public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu> {
-    private static final Identifier TEXTURE = Fishtastic.id("textures/gui/fish_tank_assembly.png");
+    private static final ResourceLocation TEXTURE = Fishtastic.id("textures/gui/fish_tank_assembly.png");
 
     // The texture file is a 256x256 atlas (vanilla convention, e.g. crafting_table.png) —
     // the actual panel only occupies the top-left corner.
@@ -211,7 +211,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     }
 
     private static boolean isQuestClaimed(ResourceKey<Quest> quest) {
-        return QuestClientCache.getProgress(quest.identifier()).claimed();
+        return QuestClientCache.getProgress(quest.location()).claimed();
     }
 
     /**
@@ -219,7 +219,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
      * shape — read from the synced quest registry.
      */
     private static Component questDisplayName(FishTankShape shape) {
-        var quests = Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        var quests = Minecraft.getInstance().level.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         MutableComponent joined = null;
         for (ResourceKey<Quest> key : shape.unlockQuests(quests)) {
             Component name = quests.getOptional(key)
@@ -249,7 +249,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
         List<Component> lines = new ArrayList<>(2);
         lines.add(hovered.getDisplayName());
-        var quests = Minecraft.getInstance().level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        var quests = Minecraft.getInstance().level.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
         if (!hovered.isUnlockedFor(quests, FishTankAssemblyScreen::isQuestClaimed)) {
             lines.add(Component.translatable("gui.fishtastic.fish_tank_assembly.shape_locked_tooltip",
                     questDisplayName(hovered)).withStyle(ChatFormatting.GRAY));

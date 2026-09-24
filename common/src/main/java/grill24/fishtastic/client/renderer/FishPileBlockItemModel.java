@@ -13,7 +13,7 @@ import net.minecraft.client.resources.model.ResolvableModel;
 import net.minecraft.client.resources.model.ResolvedModel;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.client.resources.model.cuboid.ItemTransforms;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -104,7 +104,7 @@ public class FishPileBlockItemModel implements ItemModel {
     }
 
     public record Unbaked() implements ItemModel.Unbaked {
-        private static final Identifier BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
+        private static final ResourceLocation BLOCK_BLOCK_MODEL = Ids.withDefaultNamespace("block/block");
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
         @Override

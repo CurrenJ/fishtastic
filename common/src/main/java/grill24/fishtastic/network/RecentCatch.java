@@ -9,7 +9,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -18,11 +18,11 @@ import net.minecraft.world.item.ItemStack;
  * (see {@code FishCatchSavedData}) on top of the aggregate per-species totals. Aggregates can't
  * answer "what did they catch lately", which is what the leaderboard podium's Fish Pile shows.
  */
-public record RecentCatch(Identifier fishType, float size, FishQuality.Quality quality) {
+public record RecentCatch(ResourceLocation fishType, float size, FishQuality.Quality quality) {
 
     public static final Codec<RecentCatch> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
-                    Identifier.CODEC.fieldOf("fish").forGetter(RecentCatch::fishType),
+                    ResourceLocation.CODEC.fieldOf("fish").forGetter(RecentCatch::fishType),
                     Codec.FLOAT.fieldOf("size").forGetter(RecentCatch::size),
                     FishQuality.Quality.CODEC.fieldOf("quality").forGetter(RecentCatch::quality)
             ).apply(instance, RecentCatch::new));
@@ -31,7 +31,7 @@ public record RecentCatch(Identifier fishType, float size, FishQuality.Quality q
             ByteBufCodecs.VAR_INT.map(i -> FishQuality.Quality.values()[i], Enum::ordinal);
 
     public static final StreamCodec<ByteBuf, RecentCatch> STREAM_CODEC = StreamCodec.composite(
-            Identifier.STREAM_CODEC,
+            ResourceLocation.STREAM_CODEC,
             RecentCatch::fishType,
             ByteBufCodecs.FLOAT,
             RecentCatch::size,

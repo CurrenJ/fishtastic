@@ -1,5 +1,8 @@
 package grill24.fishtastic.blockentity;
 
+import grill24.fishtastic.util.BlockEntityNbt;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.block.MarineCompostBlock;
 import grill24.fishtastic.block.MarineCompostPhase;
@@ -8,8 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -86,9 +87,9 @@ public class MarineCompostBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
-        if (quality != null) output.store("quality", FishQuality.Quality.CODEC, quality);
+    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
+        super.saveAdditional(output, registries);
+        if (quality != null) BlockEntityNbt.store(output, "quality", FishQuality.Quality.CODEC, quality, registries);
         output.putInt("conversion_ticks", conversionTicks);
         output.putInt("aeration_turns", aerationTurns);
         output.putInt("pending_worms", pendingWorms);
@@ -96,12 +97,12 @@ public class MarineCompostBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
-        quality = input.read("quality", FishQuality.Quality.CODEC).orElse(null);
-        conversionTicks = input.getIntOr("conversion_ticks", 0);
-        aerationTurns = input.getIntOr("aeration_turns", 0);
-        pendingWorms = input.getIntOr("pending_worms", 0);
-        lastAerationTick = input.getLongOr("last_aeration_tick", -AERATION_COOLDOWN_TICKS);
+    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
+        super.loadAdditional(input, registries);
+        quality = BlockEntityNbt.read(input, "quality", FishQuality.Quality.CODEC, registries).orElse(null);
+        conversionTicks = BlockEntityNbt.getIntOr(input, "conversion_ticks", 0);
+        aerationTurns = BlockEntityNbt.getIntOr(input, "aeration_turns", 0);
+        pendingWorms = BlockEntityNbt.getIntOr(input, "pending_worms", 0);
+        lastAerationTick = BlockEntityNbt.getLongOr(input, "last_aeration_tick", -AERATION_COOLDOWN_TICKS);
     }
 }

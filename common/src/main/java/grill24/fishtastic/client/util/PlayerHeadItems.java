@@ -5,6 +5,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 
+import com.mojang.authlib.properties.PropertyMap;
+
+import java.util.Optional;
 import java.util.UUID;
 
 /** Shared helper for building player-head item stacks that render the player's real skin. */
@@ -44,7 +47,7 @@ public final class PlayerHeadItems {
      */
     public static ResolvableProfile resolvableProfile(UUID uuid, String name) {
         return (name != null && !name.isBlank())
-                ? ResolvableProfile.createUnresolved(name)
-                : ResolvableProfile.createUnresolved(uuid);
+                ? new ResolvableProfile(Optional.of(name), Optional.empty(), new PropertyMap())
+                : new ResolvableProfile(Optional.empty(), Optional.of(uuid), new PropertyMap());
     }
 }

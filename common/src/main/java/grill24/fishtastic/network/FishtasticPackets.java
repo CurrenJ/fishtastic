@@ -2,7 +2,7 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Central registry for all Fishtastic network packets.
@@ -10,28 +10,29 @@ import net.minecraft.resources.Identifier;
  */
 public class FishtasticPackets {
     // Packet IDs
-    public static final Identifier START_FISHING_MINIGAME_ID = Fishtastic.id("start_fishing_minigame");
-    public static final Identifier FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
-    public static final Identifier REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
-    public static final Identifier LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
-    public static final Identifier COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
-    public static final Identifier QUEST_SYNC_ID = Fishtastic.id("quest_sync");
-    public static final Identifier REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
-    public static final Identifier REQUEST_LEADERBOARD_SCREEN_ID = Fishtastic.id("request_leaderboard_screen");
-    public static final Identifier PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
-    public static final Identifier REFRESH_SHOP_ID = Fishtastic.id("refresh_shop");
-    public static final Identifier TUTORIAL_SYNC_ID = Fishtastic.id("tutorial_sync");
-    public static final Identifier TUTORIAL_ADVANCE_ID = Fishtastic.id("tutorial_advance");
-    public static final Identifier REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
-    public static final Identifier FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
-    public static final Identifier CLAIM_ENCYCLOPEDIA_REWARD_ID = Fishtastic.id("claim_encyclopedia_reward");
-    public static final Identifier COSMETIC_CAPTURE_SYNC_ID = Fishtastic.id("cosmetic_capture_sync");
-    public static final Identifier ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
-    public static final Identifier ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
-    public static final Identifier SET_ASSEMBLY_SHAPE_ID = Fishtastic.id("set_assembly_shape");
-    public static final Identifier NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
-    public static final Identifier SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
-    public static final Identifier REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
+    public static final ResourceLocation START_FISHING_MINIGAME_ID = Fishtastic.id("start_fishing_minigame");
+    public static final ResourceLocation FINISH_FISHING_MINIGAME_ID = Fishtastic.id("finish_fishing_minigame");
+    public static final ResourceLocation REQUEST_LEADERBOARD_ID = Fishtastic.id("request_leaderboard");
+    public static final ResourceLocation LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
+    public static final ResourceLocation COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
+    public static final ResourceLocation QUEST_SYNC_ID = Fishtastic.id("quest_sync");
+    public static final ResourceLocation REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
+    public static final ResourceLocation REQUEST_LEADERBOARD_SCREEN_ID = Fishtastic.id("request_leaderboard_screen");
+    public static final ResourceLocation PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
+    public static final ResourceLocation REFRESH_SHOP_ID = Fishtastic.id("refresh_shop");
+    public static final ResourceLocation TUTORIAL_SYNC_ID = Fishtastic.id("tutorial_sync");
+    public static final ResourceLocation TUTORIAL_ADVANCE_ID = Fishtastic.id("tutorial_advance");
+    public static final ResourceLocation REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
+    public static final ResourceLocation FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
+    public static final ResourceLocation CLAIM_ENCYCLOPEDIA_REWARD_ID = Fishtastic.id("claim_encyclopedia_reward");
+    public static final ResourceLocation COSMETIC_CAPTURE_SYNC_ID = Fishtastic.id("cosmetic_capture_sync");
+    public static final ResourceLocation ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
+    public static final ResourceLocation ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
+    public static final ResourceLocation SET_ASSEMBLY_SHAPE_ID = Fishtastic.id("set_assembly_shape");
+    public static final ResourceLocation NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
+    public static final ResourceLocation SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
+    public static final ResourceLocation REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
+    public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -166,6 +167,11 @@ public class FishtasticPackets {
                 TankWaterFillSyncPacket.STREAM_CODEC,
                 TankWaterFillSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                SetDayRatePacket.TYPE,
+                SetDayRatePacket.STREAM_CODEC,
+                SetDayRatePacket::handleServerToClient
+        );
     }
 
     /**
@@ -186,6 +192,7 @@ public class FishtasticPackets {
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
         registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
+        registrar.accept(SetDayRatePacket.TYPE, SetDayRatePacket.STREAM_CODEC);
     }
 
     /**

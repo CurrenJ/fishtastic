@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 
 import java.util.HashMap;
@@ -50,7 +50,7 @@ public class CosmeticTransforms {
 
         /** Produces a copy-pasteable JSON file entry for use with /fishtastic cosmetic dump. */
         public String toFileJson(Block block) {
-            Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
+            ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
             return String.format(
                 "{\n  \"block\": \"%s\",\n  \"offsetX\": %.4f,\n  \"offsetY\": %.4f,\n  \"offsetZ\": %.4f," +
                 "\n  \"rotX\": %.4f,\n  \"rotY\": %.4f,\n  \"rotZ\": %.4f,\n  \"scale\": %.4f\n}",

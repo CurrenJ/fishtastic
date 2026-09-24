@@ -11,7 +11,7 @@ import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.util.Utility;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
@@ -189,7 +189,7 @@ public final class PlayerQuestStateGameTests {
         boolean result = state.purchase(id, entry);
         helper.assertTrue(!result, "Purchase must fail when balance is 0 and cost is 100");
         helper.assertTrue(state.getTokenBalance() == 0, "Balance must be unchanged after a failed purchase");
-        helper.assertTrue(state.getPurchaseCountSnapshot().getOrDefault(id.identifier(), 0) == 0,
+        helper.assertTrue(state.getPurchaseCountSnapshot().getOrDefault(id.location(), 0) == 0,
             "Purchase count must be unchanged after a failed purchase");
         helper.succeed();
     }
@@ -264,7 +264,7 @@ public final class PlayerQuestStateGameTests {
         boolean result = state.purchase(id, entry);
         helper.assertTrue(result, "Purchase must succeed when affordable and under the limit");
         helper.assertTrue(state.getTokenBalance() == 70, "Balance must be 100 - 30 = 70, got " + state.getTokenBalance());
-        helper.assertTrue(state.getPurchaseCountSnapshot().get(id.identifier()) == 1,
+        helper.assertTrue(state.getPurchaseCountSnapshot().get(id.location()) == 1,
             "Purchase count must be incremented to 1");
         helper.succeed();
     }
@@ -285,14 +285,14 @@ public final class PlayerQuestStateGameTests {
         ResourceKey<ShopEntry> sId = shopEntryId("snapshot_entry");
         state.purchase(sId, entry);
 
-        Map<Identifier, PlayerQuestState.QuestProgress> progressSnapshot = state.getProgressSnapshot();
-        helper.assertTrue(progressSnapshot.containsKey(qId.identifier()),
+        Map<ResourceLocation, PlayerQuestState.QuestProgress> progressSnapshot = state.getProgressSnapshot();
+        helper.assertTrue(progressSnapshot.containsKey(qId.location()),
             "Progress snapshot must contain the mutated quest id");
-        helper.assertTrue(progressSnapshot.get(qId.identifier()).currentCount() == 1,
+        helper.assertTrue(progressSnapshot.get(qId.location()).currentCount() == 1,
             "Progress snapshot must reflect the incremented count");
 
-        Map<Identifier, Integer> purchaseSnapshot = state.getPurchaseCountSnapshot();
-        helper.assertTrue(purchaseSnapshot.getOrDefault(sId.identifier(), 0) == 1,
+        Map<ResourceLocation, Integer> purchaseSnapshot = state.getPurchaseCountSnapshot();
+        helper.assertTrue(purchaseSnapshot.getOrDefault(sId.location(), 0) == 1,
             "Purchase count snapshot must reflect the successful purchase");
         helper.succeed();
     }

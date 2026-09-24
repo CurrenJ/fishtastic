@@ -90,10 +90,10 @@ public final class TankCapacity {
         if (itemKey.isEmpty()) return REFERENCE_LENGTH;
 
         ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier());
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
 
         return level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
                 .getOptional(profileKey)
                 .map(profile -> profile.size().mean())
                 .orElse(REFERENCE_LENGTH);

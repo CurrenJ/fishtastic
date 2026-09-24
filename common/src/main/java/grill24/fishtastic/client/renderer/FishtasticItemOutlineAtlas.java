@@ -21,7 +21,7 @@ import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
@@ -64,10 +64,10 @@ import java.util.Map;
  */
 public final class FishtasticItemOutlineAtlas {
 
-    /** Identifier the composed outline atlas is registered under in the {@code TextureManager}. */
-    public static final Identifier TEXTURE_ID = Ids.of("fishtastic", "item_outline_atlas");
-    /** Identifier the item mask atlas is registered under (sampled by the bake shaders). */
-    public static final Identifier MASK_TEXTURE_ID = Ids.of("fishtastic", "item_outline_mask_atlas");
+    /** ResourceLocation the composed outline atlas is registered under in the {@code TextureManager}. */
+    public static final ResourceLocation TEXTURE_ID = Ids.of("fishtastic", "item_outline_atlas");
+    /** ResourceLocation the item mask atlas is registered under (sampled by the bake shaders). */
+    public static final ResourceLocation MASK_TEXTURE_ID = Ids.of("fishtastic", "item_outline_mask_atlas");
 
     /** The 16-px item tile is rendered at this many texels (4x resolution). */
     public static final int ITEM_RENDER_PX = 64;
@@ -439,7 +439,7 @@ public final class FishtasticItemOutlineAtlas {
 
     /**
      * Thin {@link AbstractTexture} wrapper so the atlas can be bound by name through
-     * {@code RenderSetup.withTexture(Identifier)}.  The sampler is fully NEAREST + clamp:
+     * {@code RenderSetup.withTexture(ResourceLocation)}.  The sampler is fully NEAREST + clamp:
      * the outline shaders sample discrete texels and must not filter across slot borders.
      */
     private static final class AtlasTexture extends AbstractTexture {

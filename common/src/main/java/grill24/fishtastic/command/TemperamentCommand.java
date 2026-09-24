@@ -14,10 +14,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.List;
@@ -31,11 +31,11 @@ public class TemperamentCommand {
         return Commands.literal("temperament")
                         .requires(FishtasticPermissions.gamemaster())
                         .then(Commands.literal("info")
-                                .then(Commands.argument("id", IdentifierArgument.id())
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
                                         .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
                                         .executes(TemperamentCommand::execute)))
                         .then(Commands.literal("force")
-                                .then(Commands.argument("id", IdentifierArgument.id())
+                                .then(Commands.argument("id", ResourceLocationArgument.id())
                                         .suggests((ctx, builder) -> temperamentSuggestions(ctx, builder))
                                         .executes(TemperamentCommand::executeForce)
                                         .then(Commands.argument("difficulty", FloatArgumentType.floatArg(0f, 1f))
@@ -48,15 +48,15 @@ public class TemperamentCommand {
             com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx,
             com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
         Registry<Temperament> registry = ctx.getSource().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
         return SharedSuggestionProvider.suggest(
-                registry.keySet().stream().map(Identifier::toString).toList(), builder);
+                registry.keySet().stream().map(ResourceLocation::toString).toList(), builder);
     }
 
     private static int execute(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        Identifier id = IdentifierArgument.getId(ctx, "id");
+        ResourceLocation id = ResourceLocationArgument.getId(ctx, "id");
         Registry<Temperament> registry = ctx.getSource().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
 
         ResourceKey<Temperament> key = ResourceKey.create(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, id);
         Temperament t = registry.getOptional(key).orElseThrow(() -> NOT_FOUND.create(id));
@@ -156,7 +156,7 @@ public class TemperamentCommand {
         // A bare `force <id>` reverts difficulty to sampling within the temperament's own
         // range, so a stale value from an earlier `force <id> <difficulty>` doesn't linger.
         FishingMinigameManager.clearForcedDifficulty(playerId);
-        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament set to: " + key.identifier())
+        ctx.getSource().sendSuccess(() -> Component.literal("Forced temperament set to: " + key.location())
                 .withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
@@ -169,15 +169,15 @@ public class TemperamentCommand {
         FishingMinigameManager.setForcedTemperament(playerId, key);
         FishingMinigameManager.setForcedDifficulty(playerId, difficulty);
         ctx.getSource().sendSuccess(() -> Component.literal(
-                String.format("Forced temperament set to: %s, difficulty: %.2f", key.identifier(), difficulty))
+                String.format("Forced temperament set to: %s, difficulty: %.2f", key.location(), difficulty))
                 .withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
     private static ResourceKey<Temperament> resolveForcedKey(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        Identifier id = IdentifierArgument.getId(ctx, "id");
+        ResourceLocation id = ResourceLocationArgument.getId(ctx, "id");
         Registry<Temperament> registry = ctx.getSource().registryAccess()
-                .lookupOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
+                .registryOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
 
         ResourceKey<Temperament> key = ResourceKey.create(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY, id);
         if (registry.getOptional(key).isEmpty()) throw NOT_FOUND.create(id);

@@ -14,7 +14,7 @@ import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
@@ -47,19 +47,19 @@ public class FabricRegistrationApi implements IRegistrationApi {
     // ----- Registration Methods ----- //
 
     @Override
-    public <I extends Item> Holder<Item> registerItem(final String name, final Function<Identifier, ? extends I> func) {
+    public <I extends Item> Holder<Item> registerItem(final String name, final Function<ResourceLocation, ? extends I> func) {
         return register(BuiltInRegistries.ITEM, name, func);
     }
 
     @Override
-    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> func) {
-        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties().setId(ResourceKey.create(Registries.ITEM, loc))));
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> func) {
+        return registerBlock(name, func, (block, loc) -> new BlockItem(block, new Item.Properties()));
     }
 
     @Override
-    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<Identifier, ? extends I> blockFunc, final BiFunction<Block, Identifier, ? extends BlockItem> itemFunc) {
+    public <I extends Block> Holder<Block> registerBlock(final String name, final Function<ResourceLocation, ? extends I> blockFunc, final BiFunction<Block, ResourceLocation, ? extends BlockItem> itemFunc) {
         // Create the block
-        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
+        ResourceLocation id = Ids.of(Fishtastic.MOD_ID, name);
         Block block = blockFunc.apply(id);
         // Register the BlockItem for the block (must set item ID on properties)
         registerItem(name, loc -> itemFunc.apply(block, loc));
@@ -84,19 +84,19 @@ public class FabricRegistrationApi implements IRegistrationApi {
     }
 
     @Override
-    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<Identifier, ? extends CreativeModeTab> func) {
+    public Holder<CreativeModeTab> registerCreativeModeTab(String name, Function<ResourceLocation, ? extends CreativeModeTab> func) {
         return register(BuiltInRegistries.CREATIVE_MODE_TAB, name, func);
     }
 
     @Override
     public Holder<SoundEvent> registerSoundEvent(String name) {
-        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
+        ResourceLocation id = Ids.of(Fishtastic.MOD_ID, name);
         return Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
     }
 
     @Override
     public Holder<SimpleParticleType> registerParticleType(String name) {
-        Identifier id = Ids.of(Fishtastic.MOD_ID, name);
+        ResourceLocation id = Ids.of(Fishtastic.MOD_ID, name);
         @SuppressWarnings("unchecked")
         Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
                 Registry.registerForHolder(BuiltInRegistries.PARTICLE_TYPE, id, new SimpleParticleType(false) {});
@@ -146,7 +146,7 @@ public class FabricRegistrationApi implements IRegistrationApi {
         return BuiltInRegistries.CREATIVE_MODE_TAB;
     }
 
-    private static <T> Holder<T> register(Registry<T> registry, String name, Function<Identifier, ? extends T> func) {
+    private static <T> Holder<T> register(Registry<T> registry, String name, Function<ResourceLocation, ? extends T> func) {
         T entry = func.apply(Ids.of(Fishtastic.MOD_ID, name));
         ResourceKey<T> entryKey = ResourceKey.create(registry.key(), Ids.of(Fishtastic.MOD_ID, name));
         return Registry.registerForHolder(registry, entryKey, entry);

@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.jspecify.annotations.Nullable;
@@ -30,19 +30,19 @@ public final class BlockstateModelScanner {
 
     private BlockstateModelScanner() {}
 
-    public static Map<Identifier, Identifier> buildRedirectMap(ResourceManager manager) {
-        Map<Identifier, Identifier> redirects = new HashMap<>();
-        Map<Identifier, Resource> blockstates = BLOCKSTATE_LISTER.listMatchingResources(manager);
+    public static Map<ResourceLocation, ResourceLocation> buildRedirectMap(ResourceManager manager) {
+        Map<ResourceLocation, ResourceLocation> redirects = new HashMap<>();
+        Map<ResourceLocation, Resource> blockstates = BLOCKSTATE_LISTER.listMatchingResources(manager);
 
-        for (Map.Entry<Identifier, Resource> entry : blockstates.entrySet()) {
-            Identifier blockId = BLOCKSTATE_LISTER.fileToId(entry.getKey());
-            Identifier standardPath = blockId.withPrefix("block/");
+        for (Map.Entry<ResourceLocation, Resource> entry : blockstates.entrySet()) {
+            ResourceLocation blockId = BLOCKSTATE_LISTER.fileToId(entry.getKey());
+            ResourceLocation standardPath = blockId.withPrefix("block/");
 
             try (Reader reader = entry.getValue().openAsReader()) {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
                 if (json == null) continue;
 
-                Identifier modelId = extractFirstModelId(json);
+                ResourceLocation modelId = extractFirstModelId(json);
                 if (modelId != null && !modelId.equals(standardPath)) {
                     redirects.put(standardPath, modelId);
                 }
@@ -56,7 +56,7 @@ public final class BlockstateModelScanner {
     }
 
     @Nullable
-    private static Identifier extractFirstModelId(JsonObject json) {
+    private static ResourceLocation extractFirstModelId(JsonObject json) {
         String path = extractFirstModelPath(json);
         if (path == null) return null;
         try {
