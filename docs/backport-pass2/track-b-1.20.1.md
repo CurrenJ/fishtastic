@@ -39,19 +39,11 @@ The same exclusion-list + stub mechanism as track A (`port/excludes.txt`, `commo
 | `common/src/main/resources/fishtastic.accesswidener` | `named` | same file. Check each entry against MC20 at compile (the same caveat as track A). |
 | `scripts/git-hooks/local-java-home` (untracked) | JDK 21 | JDK 17 |
 
-### B1.2: Java 17 source audit
+### B1.2: Java 17 source audit (no-op: done by S5 on 26.1.2)
 
-About 45 sites in 21 files (N7). The compiler finds them all once `options.release = 17` is set. Grouped replacements:
+**Nothing to port.** Seam S5 (`552fed58`) replaced the Java 21-only calls on `26.1.2`, so `port/1.21.1` and this branch inherit Java 17-clean sources. The guard `java17ApiGuard` (`b7e24911`, `gradle/java17-api-guard.gradle`) fails the build if any come back. It runs before `:common:test` and every `runGametest`. On 1.20.1 the Java 17 toolchain is the final check. B1.2 only has to confirm that `:common:java17ApiGuard` passes and that the tree compiles with toolchain 17.
 
-| Java 21 API | Java 17 replacement | Sites |
-|---|---|---|
-| `List#getFirst()` | `list.get(0)` | 20 |
-| `List#reversed()` | a `util/Lists.reversedView(list)` helper (Guava `Lists.reverse` is on the classpath and works) | 13 |
-| `Math.clamp(v, lo, hi)` | `Mth.clamp` (exists on MC20) | 7 |
-| `List#removeFirst()`, `addFirst`/`addLast` on a `List` (not a `Deque`) | `remove(0)`, `add(0, x)`, `add(x)` | ~5 |
-| `SequencedCollection` / `SequencedMap` as declared types | `List` / `LinkedHashMap` | 4 in 2 files |
-
-Files: `block/FishPileBlock`, `blockentity/ElectricFishOrganizerBlockEntity`, `client/FishingMinigameClientHandler`, `client/FishTankBrowserScreen`, `client/FishtasticClientConfig`, `client/LeaderboardScreen`, `client/QuestLogScreen`, `client/QuestProgressNotificationManager`, `data/ShopEntry`, `fishtank/TankGroups`, `item/FishtasticFishItem`, `item/PileOfFishItem`, `itemeffect/ItemEffect`, `itemeffect/ItemEffectManager`, `recipe/MarineCompostRecipe`, `server/FishCatchBackups`, `server/FishCatchSavedData`, `server/FishingMinigameManager`, `util/CatchCelebration`, `testmod:gametest/CapstoneRewardGameTests`, `testmod:gametest/FishTankGameTests`. **If D9/S5 is accepted, this is done on 26.1.2 before track A, and B1.2 becomes a no-op.** (Pattern matching for `switch` and record patterns: 0 uses. `Stream#toList` (Java 16) and `HexFormat` (Java 17) are fine.)
+What S5 actually found, which corrects pass 2's N7 estimate of ~45 sites in 21 files: 19 `List#getFirst()` → `get(0)`, 7 `Math.clamp` → `Mth.clamp`, and one `SequencedMap` local → `Map` (in `RenderBuffersMixin`). All 13 `reversed()` hits were `Comparator#reversed` (Java 8), and the `addFirst`/`addLast`/`removeFirst` hits were on `Deque`s or MC/Fabric API methods. `BufferSourceAccessor` still declares `SequencedMap`, because Mixin matches the field's exact descriptor. On 1.20.1 the field is `Map<RenderType, BufferBuilder>`, so the B5.2 render rewrite changes that accessor anyway. (Pattern matching for `switch` and record patterns: 0 uses. `Stream#toList` (Java 16) and `HexFormat` (Java 17) are fine.)
 
 **Gate (G-B1):** `gw17 :fishsim:test :tools:tank-shape-gen:test` (163 + 1 skipped, 21,955). `gw17 :fabric:build :forge:build`. The A1-style probe loads under `runServer` on both loaders (Forge in the background). Refmap jar check.
 

@@ -9,8 +9,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`298279e1`** | 2026-09-24 | Pass 2 written. A1 not started. |
-| `port/1.20.1` | **`298279e1`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
+| `port/1.21.1` | **`63c8716a`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6 seams. A1 not started. |
+| `port/1.20.1` | **`63c8716a`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | — | not created |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
 
@@ -22,7 +22,11 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | `26.1.2` commit | Summary | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
-| — | none yet | | |
+| `552fed58` | S5: Java 21-only library calls replaced with Java 17 equivalents | included via rebase | inherits |
+| `b7e24911` | S5 guard: `java17ApiGuard` bytecode check on common/fabric/neoforge | included via rebase | inherits |
+| `c321593a` | S6: `FishMoonPhase` + `FishtasticPermissions.gamemaster()` | included via rebase | inherits |
+| `f2085c7b` | Book recipes datagen-owned again (`runDatagen` clean) | included via rebase | inherits |
+| `63c8716a` | NeoForge gametest discovery fixed (Loom mod group named `main`; 257 tests run) | included via rebase | inherits |
 
 ---
 
@@ -36,8 +40,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | S2 | Packet codec locality | [x] | (already true) | confirmed by the B3.1 inventory: one `STREAM_CODEC` field per type |
 | S3 | `fishsim` + `tank-shape-gen` at `--release 17` | [x] | `7b8945b5` | |
 | S4 | Rendering logic apart from output | [~] | | the swarm, animator and bubbles are already split. Remaining: the `ItemEffect` data/render split (A2.5). |
-| S5 | Java 17 library calls replaced (~45 sites) | [ ] | | D9: do before A1 |
-| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` (+ optional `Ids.of`) | [ ] | | D9: do before A1 |
+| S5 | Java 17 library calls replaced | [x] | `552fed58`, guard `b7e24911` | 19 `getFirst` + 7 `Math.clamp` + 1 `SequencedMap` local (the other N7 hits were Java 8 `Comparator#reversed` / `Deque` calls). `java17ApiGuard` keeps it that way. |
+| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` | [x] | `c321593a` | 21 `requires` sites (20 commands + `mcp/McpBridgeCommand`). `Ids.of` not done (owner decision pending). |
 
 ## Decisions
 
@@ -67,14 +71,14 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | A2.0 | `port/excludes.txt` (62 files) + `portstub` (12 stubs) | [ ] | |
-| A2.1 | `Identifier` (106), registry access (35 + 13), permissions (20), `setId` (4) | [ ] | |
+| A2.1 | `Identifier` (106), registry access (35 + 13), permissions (1 line in `FishtasticPermissions`, S6), `setId` (4) | [ ] | |
 | A2.2 | Registration: BE types, `@EventBusSubscriber` bus | [ ] | |
 | A2.3 | BEs (6), blocks (5), items (8): 1.21.1 signatures | [ ] | |
 | A2.4 | `FishCatchSavedData` → `SavedData.Factory` | [ ] | |
 | A2.5 | Components: `TooltipDisplay`, `TooltipProvider`, `ItemStackTemplate`, `BREAK_SOUND`, `ResolvableProfile`; `ItemEffect` split | [ ] | |
 | A2.6 | Networking: Fabric `playS2C/playC2S`; `SetDayRatePayload` | [ ] | |
 | A2.7 | `MarineCompostRecipe` + serializer | [ ] | |
-| A2.8 | `FishingHookMixin` descriptors; `FishMoonPhase`; `getDayTime` | [ ] | |
+| A2.8 | `FishingHookMixin` descriptors; `FishMoonPhase.at` (1 line, S6); `getDayTime` | [ ] | |
 | A2.8.c | Sunset Postcard: tickTime accumulator mixins + rate sync (D8) | [ ] | |
 | A2.9 | Commands, config, menus back in | [ ] | |
 | A2.10 | Unit tests: 64 of 78 (FishSphereContainerTest waits for A4) | [ ] | |
@@ -147,7 +151,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | B1.1 | Java 17, Forge 47.4.x module (`neoforge/` → `forge/`), FAPI 0.92.12, JEI 15 | [ ] | |
-| B1.2 | Java 17 audit (~45 sites; a no-op if S5 is done) | [ ] | |
+| B1.2 | Java 17 audit: **no-op**, done on 26.1.2 by S5 (`552fed58`); verify `java17ApiGuard` + `--release 17` compile | [ ] | |
 | G-B1 | Gate | [ ] | |
 
 ### B2: Item data

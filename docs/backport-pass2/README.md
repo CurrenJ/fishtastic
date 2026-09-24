@@ -1,6 +1,6 @@
 # Backport pass 2: implementation plan
 
-> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `298279e1` (A0.3).
+> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `63c8716a` (A0.3, moved forward from `298279e1` after seams S5/S6 landed).
 > **Parent:** [`../backport-plan.md`](../backport-plan.md) (pass 1: strategy, decisions D1–D7, phase outline).
 > Work-item IDs (`A2.3`, `B2.1`, …) are the pass 1 IDs. Pass 2 adds sub-steps (`A2.3.b`) where a phase needs them.
 
@@ -54,7 +54,7 @@ These go back into `backport-plan.md` as corrections.
 - **N4. The 26.1 client items that aren't plain models need 1.21.1 replacements beyond BEWLRs:** the `fishing_rod/cast` condition (2 rods), the `has_component fishtastic:has_alert` condition (2 books), and a `local_time` select plus a `special` chest model (`cosmetic_treasure_chest`) become item-property overrides (`ItemProperties.register`) plus a BEWLR. The other 149 client items are plain `minecraft:model` wrappers whose `models/item/*.json` already exist, so they just go away.
 - **N5. There are 11 component types, not 9:** the 9 records plus `FISH_TANK_SHAPE` and the unit-typed `HAS_ALERT`. B2 counts are updated to match.
 - **N6. Reward data encodes components in JSON.** 94 data files (53 quests, 41 shop entries) carry a `"components": {…}` patch. Only `fishtastic:fish_tank_shape` and `fishtastic:fish_tank_materials` appear. The B2.5 design keeps that JSON byte-identical on 1.20.1 (a `FishtasticItemPatch` codec that routes through the `ComponentKey` codecs) instead of forking the data.
-- **N7. The Java 17 audit (B1.2) is ~45 sites in 21 files** in common and the platforms: `getFirst()` ×20, `reversed()` ×13, `Math.clamp` ×7, `removeFirst` ×1, and a few `addFirst`/`addLast` calls on `List`. As estimated, but they can't be pre-empted by compiler flag on 26.1.2 (see S5).
+- **N7. The Java 17 audit (B1.2) is ~45 sites in 21 files** *(overcounted: S5 found 27 real sites; see `backport-plan.md` §8 S5)* in common and the platforms: `getFirst()` ×20, `reversed()` ×13, `Math.clamp` ×7, `removeFirst` ×1, and a few `addFirst`/`addLast` calls on `List`. As estimated, but they can't be pre-empted by compiler flag on 26.1.2 (see S5).
 - **N8. Refmap trap on the remapping Loom.** The Fabric mixin config names `fishtastic.refmap.json` and the common one has no refmap key. potions-plus hit exactly this on 1.21.1: one refmap silently overwrote the other during shading, and every mixin was dropped in production but not in dev. A1 has to name the refmaps per subproject and keep `useLegacyMixinAp = true`. A1.5 adds a jar-level check to the gate.
 
 **Estimates.** Track A: unchanged overall. A2 is smaller than pass 1 thought (registration, networking, `isClientSide`). A5.2 is bigger (Fabric FRAPI tank is new work, N3). N1 adds about a day. G-1.21.1 is smaller: 3 render-coupled commits, not 164 render-API hits spread across the history. Track B: unchanged, with B4.1 smaller (R5 retired) and B2 slightly bigger (N6).
