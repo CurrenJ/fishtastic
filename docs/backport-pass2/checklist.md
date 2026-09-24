@@ -9,8 +9,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`51a8d367`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); hook stage `unit`. |
-| `port/1.20.1` | **`51a8d367`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
+| `port/1.21.1` | **`33986055`** | 2026-09-24 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1, A2, A3 and A4 done (G-A4 passed 2026-09-24); hook stage `unit`. |
+| `port/1.20.1` | **`33986055`** (inherited when it's cut from `port/1.21.1` at G2) | — | not created |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
 
@@ -18,17 +18,17 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 ## Forward-port log
 
-26.1.2 commits after `298279e1` and what each branch did with them. Add a row per commit as it lands on 26.1.2.
+26.1.2 commits after `3b8427e4` and what each branch did with them. Add a row per commit as it lands on 26.1.2.
 
 | `26.1.2` commit | Summary | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
-| `552fed58` | S5: Java 21-only library calls replaced with Java 17 equivalents | included via rebase | inherits |
-| `b7e24911` | S5 guard: `java17ApiGuard` bytecode check on common/fabric/neoforge | included via rebase | inherits |
-| `c321593a` | S6: `FishMoonPhase` + `FishtasticPermissions.gamemaster()` | included via rebase | inherits |
-| `f2085c7b` | Book recipes datagen-owned again (`runDatagen` clean) | included via rebase | inherits |
-| `63c8716a` | NeoForge gametest discovery fixed (Loom mod group named `main`; 257 tests run) | included via rebase | inherits |
-| `c8129cf3` | S6c: resource id construction routed through `util/Ids` (135 calls, 43 files) | included via rebase | inherits |
-| `51a8d367` | S6c guard: `idConstructionGuard`; guard script renamed to `gradle/backport-guards.gradle` | included via rebase | inherits |
+| `cf643423` | S5: Java 21-only library calls replaced with Java 17 equivalents | included via rebase | inherits |
+| `afa6d4dc` | S5 guard: `java17ApiGuard` bytecode check on common/fabric/neoforge | included via rebase | inherits |
+| `616b6566` | S6: `FishMoonPhase` + `FishtasticPermissions.gamemaster()` | included via rebase | inherits |
+| `f896635b` | Book recipes datagen-owned again (`runDatagen` clean) | included via rebase | inherits |
+| `f096fc8d` | NeoForge gametest discovery fixed (Loom mod group named `main`; 257 tests run) | included via rebase | inherits |
+| `24203a87` | S6c: resource id construction routed through `util/Ids` (135 calls, 43 files) | included via rebase | inherits |
+| `33986055` | S6c guard: `idConstructionGuard`; guard script renamed to `gradle/backport-guards.gradle` | included via rebase | inherits |
 
 ---
 
@@ -36,15 +36,15 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | ID | Item | Status | Commit | Notes |
 |---|---|---|---|---|
-| S1 | `FishtasticItemData` facade | [x] | `a697edc8`..`298279e1` | |
+| S1 | `FishtasticItemData` facade | [x] | `a285e76f`..`3b8427e4` | |
 | S1b | `HeadProfile` record for `setHeadProfile` | [ ] | | optional (track B, B2.1) |
 | S1c | `FishtasticItemPatch` wrapper for reward patches | [ ] | | recommended (B2.5), D9 family |
 | S2 | Packet codec locality | [x] | (already true) | confirmed by the B3.1 inventory: one `STREAM_CODEC` field per type |
-| S3 | `fishsim` + `tank-shape-gen` at `--release 17` | [x] | `7b8945b5` | |
+| S3 | `fishsim` + `tank-shape-gen` at `--release 17` | [x] | `2b181f3c` | |
 | S4 | Rendering logic apart from output | [~] | | the swarm, animator and bubbles are already split. Remaining: the `ItemEffect` data/render split (A2.5). |
-| S5 | Java 17 library calls replaced | [x] | `552fed58`, guard `b7e24911` | 19 `getFirst` + 7 `Math.clamp` + 1 `SequencedMap` local (the other N7 hits were Java 8 `Comparator#reversed` / `Deque` calls). `java17ApiGuard` keeps it that way. |
-| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` | [x] | `c321593a` | 21 `requires` sites (20 commands + `mcp/McpBridgeCommand`). |
-| S6c | `util/Ids` for resource id construction | [x] | `c8129cf3`, guard `51a8d367` | 135 calls in 43 files (`of` 77, `withDefaultNamespace` 45, `parse` 8, `tryParse` 5). `idConstructionGuard` keeps it that way. Backports change only the 4 `Ids` bodies; A2.1's `Identifier` type rename (100 files) still happens. |
+| S5 | Java 17 library calls replaced | [x] | `cf643423`, guard `afa6d4dc` | 19 `getFirst` + 7 `Math.clamp` + 1 `SequencedMap` local (the other N7 hits were Java 8 `Comparator#reversed` / `Deque` calls). `java17ApiGuard` keeps it that way. |
+| S6 | `FishMoonPhase` enum + `FishtasticPermissions.gamemaster()` | [x] | `616b6566` | 21 `requires` sites (20 commands + `mcp/McpBridgeCommand`). |
+| S6c | `util/Ids` for resource id construction | [x] | `24203a87`, guard `33986055` | 135 calls in 43 files (`of` 77, `withDefaultNamespace` 45, `parse` 8, `tryParse` 5). `idConstructionGuard` keeps it that way. Backports change only the 4 `Ids` bodies; A2.1's `Identifier` type rename (100 files) still happens. |
 
 ## Decisions
 
@@ -156,7 +156,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | B1.1 | Java 17, Forge 47.4.x module (`neoforge/` → `forge/`), FAPI 0.92.12, JEI 15 | [ ] | |
-| B1.2 | Java 17 audit: **no-op**, done on 26.1.2 by S5 (`552fed58`); verify `java17ApiGuard` + `--release 17` compile | [ ] | |
+| B1.2 | Java 17 audit: **no-op**, done on 26.1.2 by S5 (`cf643423`); verify `java17ApiGuard` + `--release 17` compile | [ ] | |
 | G-B1 | Gate | [ ] | |
 
 ### B2: Item data

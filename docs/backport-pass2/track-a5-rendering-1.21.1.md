@@ -1,6 +1,6 @@
 # Track A5: rendering on 1.21.1 (pass 2 design notes)
 
-> Parent: [`README.md`](README.md), [`track-a-1.21.1.md`](track-a-1.21.1.md). Spike: `docs/spike-1.21.1-rendering.md` on `spike/1.21.1-rendering` (`d3ded9da`).
+> Parent: [`README.md`](README.md), [`track-a-1.21.1.md`](track-a-1.21.1.md). Spike: `docs/spike-1.21.1-rendering.md` on `spike/1.21.1-rendering` (`362b5255`).
 > Written **before any A5 code**. Each section follows the house style of `docs/fish-tank-rendering.md` and `docs/item-effect-rendering.md`: what 26.1.2 does, the constraint on 1.21.1, the chosen approach and the rejected alternatives, the file map with verified 1.21.1 signatures, and how it's verified.
 > 1.20.1 inherits all of this (track B, B5.2). Its deltas are noted inline as **[1.20.1]**.
 

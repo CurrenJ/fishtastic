@@ -1,6 +1,6 @@
 # Backport pass 2: implementation plan
 
-> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `51a8d367` (A0.3, moved forward from `298279e1` after seams S5/S6 landed, then from `63c8716a` after S6c).
+> **Status:** Pass 2, written 2026-09-24 on `port/1.21.1`. Baseline: `26.1.2` @ `33986055` (A0.3, moved forward from `3b8427e4` after seams S5/S6 landed, then from `f096fc8d` after S6c).
 > **Parent:** [`../backport-plan.md`](../backport-plan.md) (pass 1: strategy, decisions D1–D7, phase outline).
 > Work-item IDs (`A2.3`, `B2.1`, …) are the pass 1 IDs. Pass 2 adds sub-steps (`A2.3.b`) where a phase needs them.
 
@@ -27,7 +27,7 @@ Every "lands on" signature in the track files was checked against decompiled sou
 
 Two techniques did most of the work:
 1. **Import resolution.** Every `net.minecraft.*`, `com.mojang.blaze3d.*`, `net.neoforged.neoforge.*` and `net.fabricmc.fabric.api.*` import in the 26.1.2 tree was resolved against the 1.21.1 sources. The 122 imports that don't resolve are the verified list of classes that are missing or moved on 1.21.1. The track A tables are built from that list, grouped by the API that replaces them.
-2. **The migration commit `06329830` read backwards** for the registration, BE, SavedData and item-property patterns, and the 1.21.1 ancestor `44064cc5` plus the spike (`d3ded9da`) for the immediate-mode rendering hooks.
+2. **The migration commit `06329830` read backwards** for the registration, BE, SavedData and item-property patterns, and the 1.21.1 ancestor `44064cc5` plus the spike (`362b5255`) for the immediate-mode rendering hooks.
 
 **Caveats:**
 - **Access modifiers.** Loom's merged sources already have Fabric API's transitive access wideners applied, so they can't be trusted for visibility. For example, `CreativeModeTab.Output` shows as `public`. Visibility is checked by the compiler at the A1 and A2 gates instead.
@@ -64,6 +64,6 @@ These go back into `backport-plan.md` as corrections.
 | ID | Question | Decision (was the recommendation) |
 |---|---|---|
 | **D8** | Sunset Postcard on 1.21.1/1.20.1 (N1): implement the tickTime accumulator + rate sync for full parity, or accept a server-only rate (the sun jumps back up to once a second while a charm is active)? | **Full parity** (accumulator on both sides + a `SetDayRatePayload`). About 60 lines plus two small mixins, and D1 says full parity. |
-| **D9** | Seams S5/S6 on `26.1.2` before track A starts in earnest? **S5**: replace the ~45 Java-21-only calls in common and platform code with Java 17 equivalents on 26.1.2. **S6**: add `FishMoonPhase` (N2) and a `gamemaster()` permission helper for the 20 `Commands.hasPermission(LEVEL_GAMEMASTERS)` sites on 26.1.2. | **Yes to both.** Each is under an hour on 26.1.2 and removes a permanent per-branch diff under lockstep. Neither changes behaviour. The baseline marker then advances past `298279e1` by those commits. |
+| **D9** | Seams S5/S6 on `26.1.2` before track A starts in earnest? **S5**: replace the ~45 Java-21-only calls in common and platform code with Java 17 equivalents on 26.1.2. **S6**: add `FishMoonPhase` (N2) and a `gamemaster()` permission helper for the 20 `Commands.hasPermission(LEVEL_GAMEMASTERS)` sites on 26.1.2. | **Yes to both.** Each is under an hour on 26.1.2 and removes a permanent per-branch diff under lockstep. Neither changes behaviour. The baseline marker then advances past `3b8427e4` by those commits. |
 | **D10** | Gametests: replace both 1.21.1 platform harnesses with one shared annotated class in `common/src/testmod` (A6.1)? | **Yes.** It removes about 2,100 lines of duplicated registration and fixes the 256/263 drift. It also makes B6.1 nearly free, because Forge 47 consumes the same vanilla `@GameTest` annotations (`@GameTestHolder` + `RegisterGameTestsEvent`). |
 | **D11** | Loom and Gradle line for `port/1.21.1`: Architectury Loom **1.17** on Gradle **9.5** (what potions-plus mc-1.21.1 runs, and it clears the Iris 1.8.14 Loom ≥ 1.16 requirement from spike finding 6), or Loom 1.11 on Gradle 8.14 (what the spike ran)? | **Loom 1.17 + Gradle 9.5.** It's the configuration already proven on this machine for 1.21.1 with remapping, refmaps and shadowed common. Fall back to 1.11 / 8.14 only if 1.17 misbehaves on the Fabric FRAPI setup. |
