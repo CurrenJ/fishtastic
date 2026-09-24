@@ -80,7 +80,7 @@ The 1.21.1 ancestor's mixin set (`ItemRendererMixin`, `GuiGraphicsMixin`, `Level
 |---|---|---|---|---|
 | gelatin-ui | 1.0.31 | exists at 1.0.16 (`main`) | **doesn't exist** | Critical path. See §7. |
 | JEI (optional compat) | 29.33.0.87 | 19.x (potions-plus uses 19.18.10.218) | 15.x | The API has shifted between majors, but only 10 compat files use it. |
-| cool-cam (optional, Fabric only) | 0.1.0+26.1.2 | none | none | **Keep the compat** (D1). Needs a cool-cam build per MC version, or a soft dependency. See O1. |
+| cool-cam (optional, Fabric only) | 0.1.0+26.1.2 | none | none | **Drop the compat on backports** (D1). It's promo-video tooling only. Exclude `fabric/compat/coolcam`. |
 | Iris (optional, `IrisCompat`) | yes | yes | yes | Check which API the reflection targets on each version. |
 | Architectury | injectables 1.0.13 only (no runtime API) | same | same | Keep it this way. `@ExpectPlatform` via injectables worked on the 1.21.1 ancestor. |
 | Fabric API | 0.155.2+26.1.2 | 0.116.x+1.21.1 | 0.92.x+1.20.1 | |
@@ -171,13 +171,13 @@ Approach: create `mc-1.21.1` from `26.1.2` HEAD. Restore the 1.21.1 build scaffo
 
 ### A0: Decisions and scope (before any code)
 - **A0.1** ~~Settle decisions D1 to D6 (§10).~~ D1, D2, D3 and D5 settled 2026-09-24. D4 and D6 still open.
-- **A0.2** Cut list (decided, D1): **only `mcp/`** (the retired MCP bridge). Everything else ships on every version: `examples/`, `TestItem`, all debug, authoring and admin commands, and the leaderboard podium (which means porting gelatin-ui's posed-player rendering). The cool-cam compat is kept too, pending how its dependency is provided (open item O1, §10).
+- **A0.2** Cut list (decided, D1): **`mcp/`** (the retired MCP bridge) and the **cool-cam compat** (`fabric/compat/coolcam`, used only to capture promo videos on 26.1.2). Everything else ships on every version: `examples/`, `TestItem`, all debug, authoring and admin commands, and the leaderboard podium (which means porting gelatin-ui's posed-player rendering).
 - **A0.3** Freeze the feature baseline: the `26.1.2` commit that lands S1 and S3 (D5). `port/1.21.1` rebases onto it. Record it so later forward-port diffs have a fixed base.
 
 ### A1: Build scaffolding (gate: an empty mod loads on both loaders)
 - **A1.1** Switch the root, common, fabric and neoforge Gradle files from `loom-no-remap` to the remapping Architectury Loom with mojmap. Use the Java 21 toolchain, `JAVA_21` mixin configs, and the `named` access-widener header. Reference: `44064cc5` and potions-plus `mc-1.21.1`.
 - **A1.2** Change `gradle.properties` versions: MC 1.21.1, NeoForge 21.1.x, Fabric API 0.116.x, JEI 19.x, gelatin-ui 1.21.1 line. Update the mod metadata version ranges.
-- **A1.3** Wire cool-cam per O1. Keep `fishsim` and `tools/*` as plain-Java modules. They compile unchanged on Java 21, but the target should come down (see §8 S3).
+- **A1.3** Remove cool-cam from the build. Keep `fishsim` and `tools/*` as plain-Java modules. They compile unchanged on Java 21, but the target should come down (see §8 S3).
 - **A1.4** Check `publishCurseForge` and `build-all.ps1`, and make the artifacts carry the version suffix `2.0.x+1.21.1`.
 
 ### A2: Core and server logic (gate: `:common` compiles with client rendering excluded, unit tests pass)
@@ -323,14 +323,13 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 
 | ID | Decision | Recommendation |
 |---|---|---|
-| **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Decided: full parity on all three versions.** Cut only `mcp/`. Everything else, including dev and debug tooling, the podium and cool-cam compat, ships everywhere. |
+| **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Decided: full parity on all three versions.** Cut only `mcp/` and the cool-cam compat (promo-video tooling, 26.1.2 only). Everything else, including dev and debug tooling and the podium, ships everywhere. |
 | **D2** | Loaders per version | **Decided:** 1.21.1 is **Fabric + NeoForge**, with no Forge. 1.20.1 is **Fabric + Forge**. |
 | **D3** | Sequential or parallel | **Decided: sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Not supported**: document it. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
 | **D7** | If A-SPIKE shows a faithful GUI quality outline is too costly on 1.21.1: build it anyway, or ship a simplified GUI outline on backports? | **Resolved by the spike: not needed.** The faithful GUI outline costs about 0.05 ms/frame on the shared bake atlas. |
 | **D6** | Versioning and release cadence | **Goal set by the owner:** identical gameplay on all three versions, and future features and fixes land on all three **together**. So: the same mod version everywhere (`2.x.y+<mc>`), and releases in lockstep once G3 is reached. The version-string format is still to confirm. |
-| **O1** | cool-cam compat on backports (D1 keeps it) | cool-cam (owner's mod) exists only for 26.1.2. Either backport cool-cam too, or keep the compat as a soft dependency that is inert when cool-cam is absent, and ship it once cool-cam has a build for that version. |
 
 ---
 
