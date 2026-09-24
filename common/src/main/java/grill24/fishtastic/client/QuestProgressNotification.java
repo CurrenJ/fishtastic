@@ -88,8 +88,11 @@ public class QuestProgressNotification {
 
     private Phase phase = Phase.SLIDE_IN;
     private int tickCounter;
-    private final QuestProgressEvent event;
+    // Replaced by updateProgress() when the same quest progresses while this banner is up,
+    // so the counter and the Complete! badge always show the latest event.
+    private QuestProgressEvent event;
     private final NotificationPriority priority;
+    private final QuestDifficulty difficulty;
     private final String displayName;
     private final int targetCount;
     private final ItemStack targetItem;
@@ -99,7 +102,7 @@ public class QuestProgressNotification {
     private final boolean showProgress;
     private int panelWidth;
     private final int panelHeight;
-    private final BackgroundVariant bgVariant;
+    private BackgroundVariant bgVariant;
     private float previousDisplayX; // for partial-tick interpolation
     private float displayX;
     // Vertical slot position, eased toward targetY rather than snapped — when a banner
@@ -170,40 +173,15 @@ public class QuestProgressNotification {
         this.displayName = name;
         this.targetCount = tgt;
         this.targetItem = event.triggeringItem();
-        boolean hasItem = !targetItem.isEmpty();
-
-        // Compute panel width from content (unscaled — scale applied in render)
-        int barWidth = SpriteProgressBar.DEFAULT_WIDTH;
-        String countText = event.newCount() + " / " + tgt;
-        int countTextWidth = mc.font.width(countText);
-        int barRowWidth = barWidth + BAR_COUNT_GAP + countTextWidth;
-        int nameWidth = mc.font.width(name);
-        int completeWidth = (event.completed() && showProgress) ? mc.font.width("Complete!") + 4 : 0;
-        int textRowWidth = nameWidth + completeWidth;
-        if (hasItem) textRowWidth += ITEM_SIZE + ITEM_TEXT_GAP;
-        int desiredWidth = PADDING + (showProgress ? Math.max(textRowWidth, barRowWidth) : textRowWidth) + PADDING;
+        this.difficulty = difficulty;
 
         // panelHeight is constant (independent of content), which fixes a single
-        // uniform scale factor for the background art. Pick the narrowest background
-        // variant that's still wide enough at that scale, so the art is never
-        // stretched unevenly on x vs y. Falls back to the largest variant (with a
-        // small residual stretch) only if content is wider than every variant covers.
+        // uniform scale factor for the background art.
         int fontHeight = mc.font.lineHeight;
         this.panelHeight = showProgress
                 ? PADDING + fontHeight + ROW_SPACING + SpriteProgressBar.DEFAULT_HEIGHT + PADDING
                 : PADDING + fontHeight + PADDING;
-        float bgScale = (float) panelHeight / PANEL_BG_TEXTURE_CONTENT_HEIGHT;
-
-        BackgroundVariant[] tierVariants = PANEL_BG_VARIANTS_BY_DIFFICULTY.get(difficulty);
-        BackgroundVariant chosen = tierVariants[tierVariants.length - 1];
-        for (BackgroundVariant variant : tierVariants) {
-            if (Math.round(variant.contentWidth() * bgScale) >= desiredWidth) {
-                chosen = variant;
-                break;
-            }
-        }
-        this.bgVariant = chosen;
-        this.panelWidth = Math.max(desiredWidth, Math.round(chosen.contentWidth() * bgScale));
+        layOutPanel(mc);
         int visualPanelWidth = (int) (panelWidth * SCALE);
 
         // Create progress bar — start at old fraction, manual lerp to target during HOLD
@@ -271,6 +249,8 @@ public class QuestProgressNotification {
                 }
             }
             case HOLD -> {
+                // Pinned to the right margin; updateProgress() can widen the panel mid-hold
+                displayX = screenWidth - panelWidth * SCALE - MARGIN;
                 int maxHold = event.completed() ? HOLD_DURATION_COMPLETE : HOLD_DURATION_NORMAL;
                 if (tickCounter >= maxHold) {
                     phase = Phase.SLIDE_OUT;
@@ -314,6 +294,37 @@ public class QuestProgressNotification {
         }
     }
 
+    /**
+     * Sizes the panel to the current {@link #event}'s content (unscaled — scale applied in
+     * render) and picks the narrowest background variant that's still wide enough at the
+     * panel's fixed height, so the art is never stretched unevenly on x vs y. Falls back to
+     * the largest variant (with a small residual stretch) only if content is wider than every
+     * variant covers.
+     */
+    private void layOutPanel(Minecraft mc) {
+        int barWidth = SpriteProgressBar.DEFAULT_WIDTH;
+        String countText = event.newCount() + " / " + targetCount;
+        int countTextWidth = mc.font.width(countText);
+        int barRowWidth = barWidth + BAR_COUNT_GAP + countTextWidth;
+        int nameWidth = mc.font.width(displayName);
+        int completeWidth = (event.completed() && showProgress) ? mc.font.width("Complete!") + 4 : 0;
+        int textRowWidth = nameWidth + completeWidth;
+        if (!targetItem.isEmpty()) textRowWidth += ITEM_SIZE + ITEM_TEXT_GAP;
+        int desiredWidth = PADDING + (showProgress ? Math.max(textRowWidth, barRowWidth) : textRowWidth) + PADDING;
+
+        float bgScale = (float) panelHeight / PANEL_BG_TEXTURE_CONTENT_HEIGHT;
+        BackgroundVariant[] tierVariants = PANEL_BG_VARIANTS_BY_DIFFICULTY.get(difficulty);
+        BackgroundVariant chosen = tierVariants[tierVariants.length - 1];
+        for (BackgroundVariant variant : tierVariants) {
+            if (Math.round(variant.contentWidth() * bgScale) >= desiredWidth) {
+                chosen = variant;
+                break;
+            }
+        }
+        this.bgVariant = chosen;
+        this.panelWidth = Math.max(desiredWidth, Math.round(chosen.contentWidth() * bgScale));
+    }
+
     /** Called when the same quest progresses again while already visible. */
     public void updateProgress(QuestProgressEvent newEvent) {
         // Animate from current displayed fraction to the new target
@@ -328,6 +339,10 @@ public class QuestProgressNotification {
             playSound(Minecraft.getInstance(), completionSound(NotificationPriority.classify(newEvent)));
             completeFlashTimer = 0;
         }
+
+        // Show the new counter (and the Complete! badge, which may need a wider panel)
+        event = newEvent;
+        layOutPanel(Minecraft.getInstance());
     }
 
     /** Ticks to wait before this notification begins its SLIDE_IN animation. */
