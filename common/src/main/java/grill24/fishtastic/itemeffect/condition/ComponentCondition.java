@@ -2,9 +2,8 @@ package grill24.fishtastic.itemeffect.condition;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.itemeffect.ItemEffectCondition;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,8 +16,7 @@ public record ComponentCondition(Identifier component) implements ItemEffectCond
 
     @Override
     public boolean matches(ItemStack stack) {
-        DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(component);
-        return type != null && stack.has(type);
+        return FishtasticItemData.hasById(stack, component);
     }
 
     @Override

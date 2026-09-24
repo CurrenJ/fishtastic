@@ -1,18 +1,17 @@
 package grill24.fishtastic.fishtank;
 
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestReward;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.WeakHashMap;
 
 /**
@@ -65,14 +64,7 @@ public final class FishTankShapeUnlocks {
      * doesn't mention {@code fishtastic:fish_tank_shape} at all — deliberately not the item's
      * default (STANDARD), since a bare fish tank reward isn't meant to "unlock" the default shape.
      */
-    @SuppressWarnings("unchecked")
     private static FishTankShape explicitShape(QuestReward.RewardItem rewardItem) {
-        DataComponentType<FishTankShape> shapeType = FishtasticDataComponents.FISH_TANK_SHAPE.value();
-        for (Map.Entry<DataComponentType<?>, Optional<?>> patchEntry : rewardItem.components().entrySet()) {
-            if (patchEntry.getKey() == shapeType && patchEntry.getValue().isPresent()) {
-                return (FishTankShape) patchEntry.getValue().get();
-            }
-        }
-        return null;
+        return FishtasticItemData.patchValue(rewardItem.components(), FishtasticDataComponents.FISH_TANK_SHAPE);
     }
 }

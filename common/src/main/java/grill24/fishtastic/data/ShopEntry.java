@@ -3,6 +3,7 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticItemData;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
@@ -122,7 +123,7 @@ public record ShopEntry(
             return BuiltInRegistries.ITEM.getOptional(itemId)
                     .map(item -> {
                         ItemStack stack = new ItemStack(item, count);
-                        stack.applyComponents(components);
+                        FishtasticItemData.applyPatch(stack, components);
                         return stack;
                     })
                     .orElse(ItemStack.EMPTY);

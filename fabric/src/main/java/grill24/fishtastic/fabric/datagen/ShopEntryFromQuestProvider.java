@@ -6,13 +6,13 @@ import com.mojang.serialization.JsonOps;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.fishtank.FishTankShape;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -126,13 +126,7 @@ public class ShopEntryFromQuestProvider implements DataProvider {
      * {@code FishTankShapeUnlocks.explicitShape}.
      */
     private static FishTankShape explicitShape(QuestReward.RewardItem rewardItem) {
-        DataComponentType<FishTankShape> shapeType = FishtasticDataComponents.FISH_TANK_SHAPE.value();
-        for (var patchEntry : rewardItem.components().entrySet()) {
-            if (patchEntry.getKey() == shapeType && patchEntry.getValue().isPresent()) {
-                return (FishTankShape) patchEntry.getValue().get();
-            }
-        }
-        return null;
+        return FishtasticItemData.patchValue(rewardItem.components(), FishtasticDataComponents.FISH_TANK_SHAPE);
     }
 
     private static ShopEntry buildEntry(Quest quest, ResourceKey<Quest> questKey, QuestReward.RewardItem rewardItem, FishTankShape shape) {
