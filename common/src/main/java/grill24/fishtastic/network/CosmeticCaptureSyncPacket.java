@@ -3,11 +3,10 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.command.CosmeticCaptureSession;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Optional;
@@ -23,23 +22,23 @@ public record CosmeticCaptureSyncPacket(
         Optional<BlockPos> corner1,
         Optional<BlockPos> corner2,
         Optional<BlockPos> anchor
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<CosmeticCaptureSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("cosmetic_capture_sync"));
+    public static final FishtasticPayload.PayloadType<CosmeticCaptureSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("cosmetic_capture_sync"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, CosmeticCaptureSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.BOOL, CosmeticCaptureSyncPacket::active,
+    public static final BufCodec<CosmeticCaptureSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.BOOL, CosmeticCaptureSyncPacket::active,
                     CosmeticCaptureSession.Mode.STREAM_CODEC, CosmeticCaptureSyncPacket::mode,
-                    ByteBufCodecs.optional(BlockPos.STREAM_CODEC), CosmeticCaptureSyncPacket::corner1,
-                    ByteBufCodecs.optional(BlockPos.STREAM_CODEC), CosmeticCaptureSyncPacket::corner2,
-                    ByteBufCodecs.optional(BlockPos.STREAM_CODEC), CosmeticCaptureSyncPacket::anchor,
+                    BufCodecs.optional(BufCodecs.BLOCK_POS), CosmeticCaptureSyncPacket::corner1,
+                    BufCodecs.optional(BufCodecs.BLOCK_POS), CosmeticCaptureSyncPacket::corner2,
+                    BufCodecs.optional(BufCodecs.BLOCK_POS), CosmeticCaptureSyncPacket::anchor,
                     CosmeticCaptureSyncPacket::new
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

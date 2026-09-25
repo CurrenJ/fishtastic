@@ -7,8 +7,8 @@ import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
@@ -73,12 +73,12 @@ public class PlayerQuestState {
             return targetCount > 0 ? Math.min(currentCount, targetCount) : currentCount;
         }
 
-        public static final StreamCodec<ByteBuf, QuestProgress> STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, QuestProgress::currentCount,
-                ByteBufCodecs.VAR_LONG, QuestProgress::lastResetGameDay,
-                ByteBufCodecs.BOOL, QuestProgress::completed,
-                ByteBufCodecs.BOOL, QuestProgress::claimed,
-                ByteBufCodecs.collection(ArrayList::new, ResourceLocation.STREAM_CODEC), QuestProgress::caughtSpecies,
+        public static final BufCodec<QuestProgress> STREAM_CODEC = BufCodec.composite(
+                BufCodecs.VAR_INT, QuestProgress::currentCount,
+                BufCodecs.VAR_LONG, QuestProgress::lastResetGameDay,
+                BufCodecs.BOOL, QuestProgress::completed,
+                BufCodecs.BOOL, QuestProgress::claimed,
+                BufCodecs.collection(ArrayList::new, BufCodecs.RESOURCE_LOCATION), QuestProgress::caughtSpecies,
                 QuestProgress::new
         );
     }

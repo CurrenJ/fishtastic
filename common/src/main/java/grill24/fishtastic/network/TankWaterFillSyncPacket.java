@@ -1,11 +1,10 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -15,20 +14,20 @@ import net.minecraft.server.level.ServerPlayer;
  * like {@link NotificationVolumeSyncPacket}, this is round-tripped from the command handler
  * straight back to the same player.
  */
-public record TankWaterFillSyncPacket(boolean enabled) implements CustomPacketPayload {
+public record TankWaterFillSyncPacket(boolean enabled) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<TankWaterFillSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("tank_water_fill_sync"));
+    public static final FishtasticPayload.PayloadType<TankWaterFillSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("tank_water_fill_sync"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, TankWaterFillSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.BOOL,
+    public static final BufCodec<TankWaterFillSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.BOOL,
                     TankWaterFillSyncPacket::enabled,
                     TankWaterFillSyncPacket::new
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

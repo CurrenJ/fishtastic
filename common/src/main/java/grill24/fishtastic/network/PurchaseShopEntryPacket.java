@@ -5,9 +5,8 @@ import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.core.Registry;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -18,20 +17,20 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Set;
 import java.util.List;
 
-public record PurchaseShopEntryPacket(ResourceLocation entryId) implements CustomPacketPayload {
+public record PurchaseShopEntryPacket(ResourceLocation entryId) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<PurchaseShopEntryPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.PURCHASE_SHOP_ENTRY_ID);
+    public static final FishtasticPayload.PayloadType<PurchaseShopEntryPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.PURCHASE_SHOP_ENTRY_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, PurchaseShopEntryPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ResourceLocation.STREAM_CODEC,
+    public static final BufCodec<PurchaseShopEntryPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.RESOURCE_LOCATION,
                     PurchaseShopEntryPacket::entryId,
                     PurchaseShopEntryPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

@@ -1,13 +1,11 @@
 package grill24.fishtastic.network;
 
-import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,36 +25,36 @@ public record QuestSyncPacket(
         ItemStack baitDepletedItem,
         List<ItemStack> firstCatchItems,
         int shopRefreshCount
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.QUEST_SYNC_ID);
+    public static final FishtasticPayload.PayloadType<QuestSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.QUEST_SYNC_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, QuestSyncPacket> STREAM_CODEC =
-            StreamCodecs.composite(
-                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, PlayerQuestState.QuestProgress.STREAM_CODEC),
+    public static final BufCodec<QuestSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.map(HashMap::new, BufCodecs.RESOURCE_LOCATION, PlayerQuestState.QuestProgress.STREAM_CODEC),
                     QuestSyncPacket::questProgress,
-                    ByteBufCodecs.VAR_INT,
+                    BufCodecs.VAR_INT,
                     QuestSyncPacket::tokenBalance,
-                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ItemStack.STREAM_CODEC),
+                    BufCodecs.map(HashMap::new, BufCodecs.RESOURCE_LOCATION, BufCodecs.ITEM_STACK),
                     QuestSyncPacket::triggeringItems,
-                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ByteBufCodecs.VAR_INT),
+                    BufCodecs.map(HashMap::new, BufCodecs.RESOURCE_LOCATION, BufCodecs.VAR_INT),
                     QuestSyncPacket::purchaseCounts,
                     CleanupGoalProgress.STREAM_CODEC,
                     QuestSyncPacket::cleanupGoal,
-                    ByteBufCodecs.VAR_LONG,
+                    BufCodecs.VAR_LONG,
                     QuestSyncPacket::serverGameTime,
                     ItemStack.OPTIONAL_STREAM_CODEC,
                     QuestSyncPacket::baitDepletedItem,
-                    ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    BufCodecs.ITEM_STACK.apply(BufCodecs.list()),
                     QuestSyncPacket::firstCatchItems,
-                    ByteBufCodecs.VAR_INT,
+                    BufCodecs.VAR_INT,
                     QuestSyncPacket::shopRefreshCount,
                     QuestSyncPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

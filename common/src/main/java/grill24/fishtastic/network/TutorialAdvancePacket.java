@@ -3,25 +3,24 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public record TutorialAdvancePacket(TutorialStep fromStep) implements CustomPacketPayload {
+public record TutorialAdvancePacket(TutorialStep fromStep) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<TutorialAdvancePacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("tutorial_advance"));
+    public static final FishtasticPayload.PayloadType<TutorialAdvancePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("tutorial_advance"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, TutorialAdvancePacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<TutorialAdvancePacket> STREAM_CODEC =
+            BufCodec.composite(
                     TutorialStep.STREAM_CODEC,
                     TutorialAdvancePacket::fromStep,
                     TutorialAdvancePacket::new
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

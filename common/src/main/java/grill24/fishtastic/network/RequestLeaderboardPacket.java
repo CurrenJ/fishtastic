@@ -3,10 +3,9 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.server.FishCatchSavedData;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
@@ -30,24 +29,24 @@ public record RequestLeaderboardPacket(
         LeaderboardType leaderboardType,
         boolean ascending,
         Optional<UUID> targetPlayer
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RequestLeaderboardPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REQUEST_LEADERBOARD_ID);
+    public static final FishtasticPayload.PayloadType<RequestLeaderboardPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REQUEST_LEADERBOARD_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RequestLeaderboardPacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<RequestLeaderboardPacket> STREAM_CODEC =
+            BufCodec.composite(
                     LeaderboardType.STREAM_CODEC,
                     RequestLeaderboardPacket::leaderboardType,
-                    ByteBufCodecs.BOOL,
+                    BufCodecs.BOOL,
                     RequestLeaderboardPacket::ascending,
-                    ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC),
+                    BufCodecs.optional(BufCodecs.UUID),
                     RequestLeaderboardPacket::targetPlayer,
                     RequestLeaderboardPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<RequestLeaderboardPacket> type() {
+    public FishtasticPayload.PayloadType<RequestLeaderboardPacket> type() {
         return TYPE;
     }
 

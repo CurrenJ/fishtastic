@@ -2,26 +2,25 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public record EncyclopediaTutorialSyncPacket(EncyclopediaTutorialStep step) implements CustomPacketPayload {
+public record EncyclopediaTutorialSyncPacket(EncyclopediaTutorialStep step) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<EncyclopediaTutorialSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("encyclopedia_tutorial_sync"));
+    public static final FishtasticPayload.PayloadType<EncyclopediaTutorialSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("encyclopedia_tutorial_sync"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, EncyclopediaTutorialSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<EncyclopediaTutorialSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
                     EncyclopediaTutorialStep.STREAM_CODEC,
                     EncyclopediaTutorialSyncPacket::step,
                     EncyclopediaTutorialSyncPacket::new
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

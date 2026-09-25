@@ -1,11 +1,10 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -16,20 +15,20 @@ import net.minecraft.server.level.ServerPlayer;
  * same way other sync packets push server-authoritative state down, just without a
  * server-side value backing it.
  */
-public record NotificationVolumeSyncPacket(int volume) implements CustomPacketPayload {
+public record NotificationVolumeSyncPacket(int volume) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<NotificationVolumeSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("notification_volume_sync"));
+    public static final FishtasticPayload.PayloadType<NotificationVolumeSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("notification_volume_sync"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, NotificationVolumeSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.VAR_INT,
+    public static final BufCodec<NotificationVolumeSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.VAR_INT,
                     NotificationVolumeSyncPacket::volume,
                     NotificationVolumeSyncPacket::new
             );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

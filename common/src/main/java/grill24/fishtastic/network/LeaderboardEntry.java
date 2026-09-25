@@ -1,11 +1,10 @@
 package grill24.fishtastic.network;
 
-import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.component.FishQuality;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -38,26 +37,26 @@ public record LeaderboardEntry(
         FishQuality.Quality quality,
         List<RecentCatch> recentCatches
 ) {
-    private static final StreamCodec<ByteBuf, FishQuality.Quality> QUALITY_CODEC =
-            ByteBufCodecs.VAR_INT.map(
+    private static final BufCodec<FishQuality.Quality> QUALITY_CODEC =
+            BufCodecs.VAR_INT.map(
                     i -> FishQuality.Quality.values()[i],
                     Enum::ordinal
             );
 
-    public static final StreamCodec<ByteBuf, LeaderboardEntry> STREAM_CODEC = StreamCodecs.composite(
-            ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC),
+    public static final BufCodec<LeaderboardEntry> STREAM_CODEC = BufCodec.composite(
+            BufCodecs.optional(BufCodecs.RESOURCE_LOCATION),
             LeaderboardEntry::fishType,
-            ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC),
+            BufCodecs.optional(BufCodecs.UUID),
             LeaderboardEntry::playerUuid,
-            ByteBufCodecs.optional(ByteBufCodecs.stringUtf8(256)),
+            BufCodecs.optional(BufCodecs.stringUtf8(256)),
             LeaderboardEntry::playerName,
-            ByteBufCodecs.FLOAT,
+            BufCodecs.FLOAT,
             LeaderboardEntry::size,
-            ByteBufCodecs.VAR_INT,
+            BufCodecs.VAR_INT,
             LeaderboardEntry::catchCount,
             QUALITY_CODEC,
             LeaderboardEntry::quality,
-            RecentCatch.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            RecentCatch.STREAM_CODEC.apply(BufCodecs.list()),
             LeaderboardEntry::recentCatches,
             LeaderboardEntry::new
     );

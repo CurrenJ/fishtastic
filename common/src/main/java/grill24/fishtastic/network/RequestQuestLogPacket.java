@@ -2,22 +2,21 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.server.FishCatchSavedData;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-public record RequestQuestLogPacket() implements CustomPacketPayload {
+public record RequestQuestLogPacket() implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RequestQuestLogPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REQUEST_QUEST_LOG_ID);
+    public static final FishtasticPayload.PayloadType<RequestQuestLogPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REQUEST_QUEST_LOG_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RequestQuestLogPacket> STREAM_CODEC =
-            StreamCodec.unit(new RequestQuestLogPacket());
+    public static final BufCodec<RequestQuestLogPacket> STREAM_CODEC =
+            BufCodec.unit(new RequestQuestLogPacket());
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

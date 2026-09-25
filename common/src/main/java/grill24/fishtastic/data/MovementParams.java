@@ -3,7 +3,7 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodec;
 
 import java.util.Optional;
 
@@ -54,7 +54,7 @@ public record MovementParams(
             Codec.FLOAT.optionalFieldOf("initial_catch_progress").forGetter(MovementParams::initialCatchProgress)
     ).apply(i, MovementParams::new));
 
-    public static final StreamCodec<ByteBuf, MovementParams> STREAM_CODEC = StreamCodec.of(
+    public static final BufCodec<MovementParams> STREAM_CODEC = BufCodec.of(
             MovementParams::encode,
             MovementParams::decode
     );

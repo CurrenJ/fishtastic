@@ -31,7 +31,7 @@ common/src/main/java/grill24/fishtastic/blockentity/FishTankBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishTankAssemblyBlockEntity.java
 common/src/main/java/grill24/fishtastic/loot/CopyTankDataFunction.java
 common/src/main/java/grill24/fishtastic/blockentity/MarineCompostBlockEntity.java
-common/src/main/java/grill24/fishtastic/blockentity/OrganizerSortMode.java
+#common/src/main/java/grill24/fishtastic/blockentity/OrganizerSortMode.java
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
 common/src/main/java/grill24/fishtastic/client/CosmeticTransformLoader.java
 common/src/main/java/grill24/fishtastic/client/ElectricFishOrganizerScreen.java
@@ -118,7 +118,7 @@ common/src/main/java/grill24/fishtastic/client/util/TankFloors.java
 common/src/main/java/grill24/fishtastic/command/BackupCommand.java
 common/src/main/java/grill24/fishtastic/command/CelebrationCommand.java
 common/src/main/java/grill24/fishtastic/command/CleanupGoalCommand.java
-common/src/main/java/grill24/fishtastic/command/CosmeticCaptureSession.java
+#common/src/main/java/grill24/fishtastic/command/CosmeticCaptureSession.java
 common/src/main/java/grill24/fishtastic/command/CosmeticCommand.java
 common/src/main/java/grill24/fishtastic/command/DebugEncyclopediaCommand.java
 common/src/main/java/grill24/fishtastic/command/DebugFishDataCommand.java
@@ -157,7 +157,7 @@ common/src/main/java/grill24/fishtastic/data/FishAnimationConfig.java
 common/src/main/java/grill24/fishtastic/data/FishEncyclopediaEntry.java
 common/src/main/java/grill24/fishtastic/data/FishMoonPhase.java
 common/src/main/java/grill24/fishtastic/data/FishProfile.java
-common/src/main/java/grill24/fishtastic/data/MovementParams.java
+#common/src/main/java/grill24/fishtastic/data/MovementParams.java
 common/src/main/java/grill24/fishtastic/data/PhaseRule.java
 common/src/main/java/grill24/fishtastic/data/Quest.java
 common/src/main/java/grill24/fishtastic/data/QuestObjective.java
@@ -172,7 +172,7 @@ common/src/main/java/grill24/fishtastic/fishtank/FishTankCompositeModelData.java
 common/src/main/java/grill24/fishtastic/fishtank/PlacedCosmetic.java
 common/src/main/java/grill24/fishtastic/fishtank/TankDiagonal.java
 common/src/main/java/grill24/fishtastic/fishtank/TankEdgeDiagonal.java
-common/src/main/java/grill24/fishtastic/fishtank/TankEntryKind.java
+#common/src/main/java/grill24/fishtastic/fishtank/TankEntryKind.java
 common/src/main/java/grill24/fishtastic/fishtank/TankGroups.java
 common/src/main/java/grill24/fishtastic/item/AcuteIapsisItem.java
 common/src/main/java/grill24/fishtastic/item/CopperFishingRod.java

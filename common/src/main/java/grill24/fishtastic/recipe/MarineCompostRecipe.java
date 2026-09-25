@@ -9,8 +9,8 @@ import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.util.FishQualityHelper;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -34,8 +34,8 @@ public class MarineCompostRecipe extends CustomRecipe {
             .optionalFieldOf("category", CraftingBookCategory.MISC)
             .xmap(MarineCompostRecipe::new, MarineCompostRecipe::category);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, MarineCompostRecipe> STREAM_CODEC =
-            CraftingBookCategory.STREAM_CODEC.<RegistryFriendlyByteBuf>cast()
+    public static final BufCodec<MarineCompostRecipe> STREAM_CODEC =
+            BufCodecs.idMapper((int i) -> CraftingBookCategory.values()[i], (CraftingBookCategory c) -> c.ordinal())
                     .map(MarineCompostRecipe::new, MarineCompostRecipe::category);
 
     private final CraftingBookCategory category;

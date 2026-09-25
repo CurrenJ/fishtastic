@@ -1,9 +1,8 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -11,16 +10,16 @@ import net.minecraft.server.level.ServerPlayer;
  * Leaderboards Book opens it server-side on use instead). The screen then pulls its own rows
  * per tab with {@link RequestLeaderboardPacket}, so nothing needs syncing up front.
  */
-public record RequestLeaderboardScreenPacket() implements CustomPacketPayload {
+public record RequestLeaderboardScreenPacket() implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RequestLeaderboardScreenPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REQUEST_LEADERBOARD_SCREEN_ID);
+    public static final FishtasticPayload.PayloadType<RequestLeaderboardScreenPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REQUEST_LEADERBOARD_SCREEN_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RequestLeaderboardScreenPacket> STREAM_CODEC =
-            StreamCodec.unit(new RequestLeaderboardScreenPacket());
+    public static final BufCodec<RequestLeaderboardScreenPacket> STREAM_CODEC =
+            BufCodec.unit(new RequestLeaderboardScreenPacket());
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

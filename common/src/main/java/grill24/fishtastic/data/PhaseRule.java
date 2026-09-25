@@ -4,8 +4,9 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.util.FishingTarget;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,12 +41,13 @@ public record PhaseRule(
                 .xmap(e -> e.map(l -> l, List::of), Either::left);
     }
 
-    public static final StreamCodec<FriendlyByteBuf, PhaseRule> STREAM_CODEC = StreamCodec.of(
+    public static final BufCodec<PhaseRule> STREAM_CODEC = BufCodec.of(
             PhaseRule::encode,
             PhaseRule::decode
     );
 
-    private static void encode(FriendlyByteBuf buf, PhaseRule p) {
+    private static void encode(ByteBuf rawBuf, PhaseRule p) {
+        FriendlyByteBuf buf = new FriendlyByteBuf(rawBuf);
         buf.writeFloat(p.threshold());
         buf.writeVarInt(p.patterns().size());
         for (FishingTarget.MovementPattern pattern : p.patterns()) {
@@ -60,7 +62,8 @@ public record PhaseRule(
         writeOptFloat(buf, p.minCatchProgress());
     }
 
-    private static PhaseRule decode(FriendlyByteBuf buf) {
+    private static PhaseRule decode(ByteBuf rawBuf) {
+        FriendlyByteBuf buf = new FriendlyByteBuf(rawBuf);
         float threshold = buf.readFloat();
         int count = buf.readVarInt();
         FishingTarget.MovementPattern[] values = FishingTarget.MovementPattern.values();

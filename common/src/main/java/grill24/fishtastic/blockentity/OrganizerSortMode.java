@@ -2,8 +2,8 @@ package grill24.fishtastic.blockentity;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.util.StringRepresentable;
 
 import java.util.Locale;
@@ -17,7 +17,7 @@ import java.util.Locale;
 public enum OrganizerSortMode implements StringRepresentable {
     SPECIES, QUALITY, SIZE, ZONE;
 
-    public static final StreamCodec<ByteBuf, OrganizerSortMode> STREAM_CODEC = ByteBufCodecs.idMapper(
+    public static final BufCodec<OrganizerSortMode> STREAM_CODEC = BufCodecs.idMapper(
             i -> OrganizerSortMode.values()[i],
             OrganizerSortMode::ordinal
     );

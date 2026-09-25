@@ -1,10 +1,9 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 
 import java.util.List;
 
@@ -22,24 +21,24 @@ public record LeaderboardResponsePacket(
         LeaderboardType leaderboardType,
         boolean ascending,
         List<LeaderboardEntry> entries
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<LeaderboardResponsePacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.LEADERBOARD_RESPONSE_ID);
+    public static final FishtasticPayload.PayloadType<LeaderboardResponsePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.LEADERBOARD_RESPONSE_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, LeaderboardResponsePacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<LeaderboardResponsePacket> STREAM_CODEC =
+            BufCodec.composite(
                     LeaderboardType.STREAM_CODEC,
                     LeaderboardResponsePacket::leaderboardType,
-                    ByteBufCodecs.BOOL,
+                    BufCodecs.BOOL,
                     LeaderboardResponsePacket::ascending,
-                    LeaderboardEntry.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    LeaderboardEntry.STREAM_CODEC.apply(BufCodecs.list()),
                     LeaderboardResponsePacket::entries,
                     LeaderboardResponsePacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<LeaderboardResponsePacket> type() {
+    public FishtasticPayload.PayloadType<LeaderboardResponsePacket> type() {
         return TYPE;
     }
 

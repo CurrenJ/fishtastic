@@ -1,13 +1,11 @@
 package grill24.fishtastic.network;
 
-import grill24.fishtastic.util.StreamCodecs;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -42,34 +40,34 @@ public record StartFishingMinigamePacket(
         Set<FishProfile.Zone> zones,
         Set<ResourceLocation> undiscoveredSpecies,
         boolean baitWillBeSaved
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.START_FISHING_MINIGAME_ID);
+    public static final FishtasticPayload.PayloadType<StartFishingMinigamePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.START_FISHING_MINIGAME_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, StartFishingMinigamePacket> STREAM_CODEC = StreamCodecs.composite(
-            ByteBufCodecs.VAR_INT,
+    public static final BufCodec<StartFishingMinigamePacket> STREAM_CODEC = BufCodec.composite(
+            BufCodecs.VAR_INT,
             StartFishingMinigamePacket::sessionId,
-            TargetData.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            TargetData.STREAM_CODEC.apply(BufCodecs.list()),
             StartFishingMinigamePacket::targets,
-            ByteBufCodecs.BOOL,
+            BufCodecs.BOOL,
             StartFishingMinigamePacket::isTutorial,
-            ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            BufCodecs.ITEM_STACK.apply(BufCodecs.list()),
             StartFishingMinigamePacket::topWeightedFishPreviews,
-            ByteBufCodecs.INT.map(
+            BufCodecs.INT.map(
                     i -> FishProfile.Zone.values()[i],
                     Enum::ordinal
-            ).apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
+            ).apply(BufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::zones,
-            ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list()).map(Set::copyOf, List::copyOf),
+            BufCodecs.RESOURCE_LOCATION.apply(BufCodecs.list()).map(Set::copyOf, List::copyOf),
             StartFishingMinigamePacket::undiscoveredSpecies,
-            ByteBufCodecs.BOOL,
+            BufCodecs.BOOL,
             StartFishingMinigamePacket::baitWillBeSaved,
             StartFishingMinigamePacket::new
     );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 
@@ -103,19 +101,19 @@ public record StartFishingMinigamePacket(
             float difficulty,
             List<PhaseRule> phases
     ) {
-        public static final StreamCodec<RegistryFriendlyByteBuf, TargetData> STREAM_CODEC = StreamCodec.composite(
-                ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()),
+        public static final BufCodec<TargetData> STREAM_CODEC = BufCodec.composite(
+                BufCodecs.ITEM_STACK.apply(BufCodecs.list()),
                 TargetData::rewardStacks,
-                ByteBufCodecs.INT.map(
+                BufCodecs.INT.map(
                         i -> grill24.fishtastic.util.FishingTarget.TargetCategory.values()[i],
                         Enum::ordinal
                 ),
                 TargetData::category,
-                ByteBufCodecs.FLOAT,
+                BufCodecs.FLOAT,
                 TargetData::initialPosition,
-                ByteBufCodecs.FLOAT,
+                BufCodecs.FLOAT,
                 TargetData::difficulty,
-                PhaseRule.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                PhaseRule.STREAM_CODEC.apply(BufCodecs.list()),
                 TargetData::phases,
                 TargetData::new
         );

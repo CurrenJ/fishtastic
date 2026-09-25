@@ -3,8 +3,7 @@ package grill24.fishtastic.recipe;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Holder;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 
 public class FishtasticRecipeSerializers {
@@ -20,7 +19,7 @@ public class FishtasticRecipeSerializers {
                     }
 
                     @Override
-                    public StreamCodec<RegistryFriendlyByteBuf, MarineCompostRecipe> streamCodec() {
+                    public BufCodec<MarineCompostRecipe> streamCodec() {
                         return MarineCompostRecipe.STREAM_CODEC;
                     }
                 }

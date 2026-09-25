@@ -1,11 +1,10 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.server.FishCatchSavedData;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -20,26 +19,26 @@ public record FishEncyclopediaSyncPacket(
         List<LeaderboardEntry> personalBestSizes,
         List<LeaderboardEntry> globalBestSizes,
         List<String> claimedRewardKeys
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<FishEncyclopediaSyncPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.FISH_ENCYCLOPEDIA_SYNC_ID);
+    public static final FishtasticPayload.PayloadType<FishEncyclopediaSyncPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.FISH_ENCYCLOPEDIA_SYNC_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, FishEncyclopediaSyncPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.map(HashMap::new, ResourceLocation.STREAM_CODEC, ByteBufCodecs.VAR_INT),
+    public static final BufCodec<FishEncyclopediaSyncPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.map(HashMap::new, BufCodecs.RESOURCE_LOCATION, BufCodecs.VAR_INT),
                     FishEncyclopediaSyncPacket::personalCatchCounts,
-                    LeaderboardEntry.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    LeaderboardEntry.STREAM_CODEC.apply(BufCodecs.list()),
                     FishEncyclopediaSyncPacket::personalBestSizes,
-                    LeaderboardEntry.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    LeaderboardEntry.STREAM_CODEC.apply(BufCodecs.list()),
                     FishEncyclopediaSyncPacket::globalBestSizes,
-                    ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()),
+                    BufCodecs.STRING_UTF8.apply(BufCodecs.list()),
                     FishEncyclopediaSyncPacket::claimedRewardKeys,
                     FishEncyclopediaSyncPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

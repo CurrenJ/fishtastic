@@ -7,9 +7,8 @@ import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.core.Registry;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -19,20 +18,20 @@ import net.minecraft.server.level.ServerPlayer;
  * Sent CLIENT → SERVER to select the fish tank body shape the assembly block crafts.
  * The server applies it to the block entity (persisting it) and recomputes the result slot.
  */
-public record SetAssemblyShapePacket(FishTankShape shape) implements CustomPacketPayload {
+public record SetAssemblyShapePacket(FishTankShape shape) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<SetAssemblyShapePacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.SET_ASSEMBLY_SHAPE_ID);
+    public static final FishtasticPayload.PayloadType<SetAssemblyShapePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.SET_ASSEMBLY_SHAPE_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, SetAssemblyShapePacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<SetAssemblyShapePacket> STREAM_CODEC =
+            BufCodec.composite(
                     FishTankShape.STREAM_CODEC,
                     SetAssemblyShapePacket::shape,
                     SetAssemblyShapePacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

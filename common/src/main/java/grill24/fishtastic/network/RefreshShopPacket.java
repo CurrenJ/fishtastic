@@ -3,24 +3,23 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.data.ShopEntry;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 /** Sent when the player clicks the shop's refresh button to spend tokens rerolling today's active entries. */
-public record RefreshShopPacket() implements CustomPacketPayload {
+public record RefreshShopPacket() implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RefreshShopPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REFRESH_SHOP_ID);
+    public static final FishtasticPayload.PayloadType<RefreshShopPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REFRESH_SHOP_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RefreshShopPacket> STREAM_CODEC =
-            StreamCodec.unit(new RefreshShopPacket());
+    public static final BufCodec<RefreshShopPacket> STREAM_CODEC =
+            BufCodec.unit(new RefreshShopPacket());
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

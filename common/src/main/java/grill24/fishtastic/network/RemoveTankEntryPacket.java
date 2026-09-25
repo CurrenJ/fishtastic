@@ -7,10 +7,9 @@ import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.menu.FishTankBrowserMenu;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -22,21 +21,21 @@ import net.minecraft.world.level.block.entity.BlockEntity;
  * the menu — and {@code key} is a slot index for {@link TankEntryKind#FISH}, or a packed
  * {@link CosmeticGridCell} for the cosmetic kinds. See docs/fish-tank-interaction-redesign.md.
  */
-public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int key) implements CustomPacketPayload {
+public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int key) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RemoveTankEntryPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REMOVE_TANK_ENTRY_ID);
+    public static final FishtasticPayload.PayloadType<RemoveTankEntryPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REMOVE_TANK_ENTRY_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RemoveTankEntryPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    BlockPos.STREAM_CODEC, RemoveTankEntryPacket::segmentPos,
+    public static final BufCodec<RemoveTankEntryPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.BLOCK_POS, RemoveTankEntryPacket::segmentPos,
                     TankEntryKind.STREAM_CODEC, RemoveTankEntryPacket::kind,
-                    ByteBufCodecs.VAR_INT, RemoveTankEntryPacket::key,
+                    BufCodecs.VAR_INT, RemoveTankEntryPacket::key,
                     RemoveTankEntryPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

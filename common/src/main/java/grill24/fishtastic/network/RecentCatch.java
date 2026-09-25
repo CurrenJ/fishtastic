@@ -7,8 +7,8 @@ import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -27,13 +27,13 @@ public record RecentCatch(ResourceLocation fishType, float size, FishQuality.Qua
                     FishQuality.Quality.CODEC.fieldOf("quality").forGetter(RecentCatch::quality)
             ).apply(instance, RecentCatch::new));
 
-    private static final StreamCodec<ByteBuf, FishQuality.Quality> QUALITY_STREAM_CODEC =
-            ByteBufCodecs.VAR_INT.map(i -> FishQuality.Quality.values()[i], Enum::ordinal);
+    private static final BufCodec<FishQuality.Quality> QUALITY_STREAM_CODEC =
+            BufCodecs.VAR_INT.map(i -> FishQuality.Quality.values()[i], Enum::ordinal);
 
-    public static final StreamCodec<ByteBuf, RecentCatch> STREAM_CODEC = StreamCodec.composite(
-            ResourceLocation.STREAM_CODEC,
+    public static final BufCodec<RecentCatch> STREAM_CODEC = BufCodec.composite(
+            BufCodecs.RESOURCE_LOCATION,
             RecentCatch::fishType,
-            ByteBufCodecs.FLOAT,
+            BufCodecs.FLOAT,
             RecentCatch::size,
             QUALITY_STREAM_CODEC,
             RecentCatch::quality,

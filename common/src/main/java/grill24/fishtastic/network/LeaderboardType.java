@@ -1,8 +1,8 @@
 package grill24.fishtastic.network;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 
 /**
  * Identifies which of the four leaderboard queries is being requested / returned.
@@ -17,8 +17,8 @@ public enum LeaderboardType {
     /** Global total catch count per player (across all species). */
     GLOBAL_CATCH_COUNT;
 
-    public static final StreamCodec<ByteBuf, LeaderboardType> STREAM_CODEC =
-            ByteBufCodecs.VAR_INT.map(
+    public static final BufCodec<LeaderboardType> STREAM_CODEC =
+            BufCodecs.VAR_INT.map(
                     i -> LeaderboardType.values()[i],
                     Enum::ordinal
             );

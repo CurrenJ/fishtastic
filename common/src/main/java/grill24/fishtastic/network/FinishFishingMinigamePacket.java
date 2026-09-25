@@ -1,10 +1,9 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
@@ -17,25 +16,25 @@ import java.util.List;
 public record FinishFishingMinigamePacket(
         int sessionId,
         List<Integer> caughtTargetIndices  // Indices of targets that were caught
-) implements CustomPacketPayload {
+) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<FinishFishingMinigamePacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.FINISH_FISHING_MINIGAME_ID);
+    public static final FishtasticPayload.PayloadType<FinishFishingMinigamePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.FINISH_FISHING_MINIGAME_ID);
 
     // A session never generates more than a handful of targets (see FishingMinigameManager.MAX_TARGETS);
     // capping the list size closes off oversized/replayed-index payloads from a modified client.
     private static final int MAX_CAUGHT_INDICES = 16;
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, FinishFishingMinigamePacket> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.VAR_INT,
+    public static final BufCodec<FinishFishingMinigamePacket> STREAM_CODEC = BufCodec.composite(
+            BufCodecs.VAR_INT,
             FinishFishingMinigamePacket::sessionId,
-            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(MAX_CAUGHT_INDICES)),
+            BufCodecs.VAR_INT.apply(BufCodecs.list(MAX_CAUGHT_INDICES)),
             FinishFishingMinigamePacket::caughtTargetIndices,
             FinishFishingMinigamePacket::new
     );
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

@@ -1,7 +1,6 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -182,7 +181,7 @@ public class FishtasticPackets {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void registerServerToClientCodecs(
-            java.util.function.BiConsumer<CustomPacketPayload.Type, net.minecraft.network.codec.StreamCodec> registrar) {
+            java.util.function.BiConsumer<FishtasticPayload.PayloadType, grill24.fishtastic.network.codec.BufCodec> registrar) {
         registrar.accept(StartFishingMinigamePacket.TYPE, StartFishingMinigamePacket.STREAM_CODEC);
         registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
         registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
@@ -199,15 +198,15 @@ public class FishtasticPackets {
      * Interface for platform-specific packet registration
      */
     public interface IPacketRegistrar {
-        <T extends CustomPacketPayload> void registerClientToServer(
-                CustomPacketPayload.Type<T> type,
-                net.minecraft.network.codec.StreamCodec<? super net.minecraft.network.RegistryFriendlyByteBuf, T> codec,
+        <T extends FishtasticPayload> void registerClientToServer(
+                FishtasticPayload.PayloadType<T> type,
+                grill24.fishtastic.network.codec.BufCodec<T> codec,
                 IPacketHandler<T> handler
         );
 
-        <T extends CustomPacketPayload> void registerServerToClient(
-                CustomPacketPayload.Type<T> type,
-                net.minecraft.network.codec.StreamCodec<? super net.minecraft.network.RegistryFriendlyByteBuf, T> codec,
+        <T extends FishtasticPayload> void registerServerToClient(
+                FishtasticPayload.PayloadType<T> type,
+                grill24.fishtastic.network.codec.BufCodec<T> codec,
                 IPacketHandler<T> handler
         );
     }
@@ -216,7 +215,7 @@ public class FishtasticPackets {
      * Platform-agnostic packet handler interface
      */
     @FunctionalInterface
-    public interface IPacketHandler<T extends CustomPacketPayload> {
+    public interface IPacketHandler<T extends FishtasticPayload> {
         void handle(T packet, IPacketContext context);
     }
 

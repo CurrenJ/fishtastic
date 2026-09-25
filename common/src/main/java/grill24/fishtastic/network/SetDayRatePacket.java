@@ -1,11 +1,10 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -16,14 +15,14 @@ import net.minecraft.server.level.ServerPlayer;
  * {@code ServerLevelTickTimeMixin} on the server and {@code ClientLevelTickTimeMixin} here.
  * 26.1.2 syncs the same rate through its world clock instead.
  */
-public record SetDayRatePacket(float rate) implements CustomPacketPayload {
+public record SetDayRatePacket(float rate) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<SetDayRatePacket> TYPE =
-            new CustomPacketPayload.Type<>(Fishtastic.id("set_day_rate"));
+    public static final FishtasticPayload.PayloadType<SetDayRatePacket> TYPE =
+            new FishtasticPayload.PayloadType<>(Fishtastic.id("set_day_rate"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, SetDayRatePacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.FLOAT,
+    public static final BufCodec<SetDayRatePacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.FLOAT,
                     SetDayRatePacket::rate,
                     SetDayRatePacket::new
             );
@@ -41,7 +40,7 @@ public record SetDayRatePacket(float rate) implements CustomPacketPayload {
     }
 
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

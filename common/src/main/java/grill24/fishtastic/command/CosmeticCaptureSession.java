@@ -2,8 +2,8 @@ package grill24.fishtastic.command;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -26,8 +26,8 @@ public final class CosmeticCaptureSession {
     public enum Mode {
         CORNER_1, CORNER_2, ANCHOR;
 
-        public static final StreamCodec<ByteBuf, Mode> STREAM_CODEC =
-                ByteBufCodecs.VAR_INT.map(i -> Mode.values()[i], Enum::ordinal);
+        public static final BufCodec<Mode> STREAM_CODEC =
+                BufCodecs.VAR_INT.map(i -> Mode.values()[i], Enum::ordinal);
     }
 
     private static final Map<UUID, CosmeticCaptureSession> SESSIONS = new ConcurrentHashMap<>();

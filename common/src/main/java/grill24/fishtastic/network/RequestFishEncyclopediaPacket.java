@@ -3,10 +3,9 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialManager;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -15,20 +14,20 @@ import net.minecraft.server.level.ServerPlayer;
  * encyclopedia menu server-side (used when navigating there); a sync-only request (e.g. so the
  * quest log's silhouettes are current without ever having opened the encyclopedia) passes false.
  */
-public record RequestFishEncyclopediaPacket(boolean openMenu) implements CustomPacketPayload {
+public record RequestFishEncyclopediaPacket(boolean openMenu) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<RequestFishEncyclopediaPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.REQUEST_FISH_ENCYCLOPEDIA_ID);
+    public static final FishtasticPayload.PayloadType<RequestFishEncyclopediaPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.REQUEST_FISH_ENCYCLOPEDIA_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RequestFishEncyclopediaPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.BOOL,
+    public static final BufCodec<RequestFishEncyclopediaPacket> STREAM_CODEC =
+            BufCodec.composite(
+                    BufCodecs.BOOL,
                     RequestFishEncyclopediaPacket::openMenu,
                     RequestFishEncyclopediaPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 

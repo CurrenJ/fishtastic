@@ -2,10 +2,9 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.blockentity.OrganizerSortMode;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import grill24.fishtastic.network.codec.BufCodecs;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -13,22 +12,22 @@ import net.minecraft.server.level.ServerPlayer;
  * piles. The server applies it to the block entity (persisting it and re-triggering the sort)
  * and re-syncs the menu's data slots.
  */
-public record SetOrganizerSortPacket(OrganizerSortMode mode, boolean ascending) implements CustomPacketPayload {
+public record SetOrganizerSortPacket(OrganizerSortMode mode, boolean ascending) implements FishtasticPayload {
 
-    public static final CustomPacketPayload.Type<SetOrganizerSortPacket> TYPE =
-            new CustomPacketPayload.Type<>(FishtasticPackets.SET_ORGANIZER_SORT_ID);
+    public static final FishtasticPayload.PayloadType<SetOrganizerSortPacket> TYPE =
+            new FishtasticPayload.PayloadType<>(FishtasticPackets.SET_ORGANIZER_SORT_ID);
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, SetOrganizerSortPacket> STREAM_CODEC =
-            StreamCodec.composite(
+    public static final BufCodec<SetOrganizerSortPacket> STREAM_CODEC =
+            BufCodec.composite(
                     OrganizerSortMode.STREAM_CODEC,
                     SetOrganizerSortPacket::mode,
-                    ByteBufCodecs.BOOL,
+                    BufCodecs.BOOL,
                     SetOrganizerSortPacket::ascending,
                     SetOrganizerSortPacket::new
             );
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
     }
 
