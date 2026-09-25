@@ -47,7 +47,7 @@ public interface ItemEffectCondition {
         public static final Codec<ItemEffectCondition> DISPATCH_CODEC = Codec.STRING.dispatch(
                 "type",
                 ItemEffectCondition::getType,
-                Codecs::getConditionCodec
+                type -> getConditionCodec(type).codec()
         );
     }
 

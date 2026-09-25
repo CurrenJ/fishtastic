@@ -123,8 +123,10 @@ Usage counts for the port surface: `isEmpty` 25, `items` 21, `toImmutable` 17, `
 - `Item#appendHoverText(ItemStack, @Nullable Level, List<Component>, TooltipFlag)` (MC20 `Item.java:264`), in the 6 item files.
 - Equality: covered by normalization (B2.1 point 2).
 
-### B2.4: `ItemEffectCondition`s
-`itemeffect/condition/ComponentCondition` and `ComponentValueCondition` already go through `FishtasticItemData.hasById/encodeById` (S1), so **no change**. `encodeById` → `KEY.codec.encodeStart(JsonOps.INSTANCE, value)` gives the same JSON the 1.21.1 path produces, so the 14 item-effect JSONs are unchanged.
+### B2.4: `ItemEffectCondition`s (done, B2.4 commit)
+`itemeffect/condition/ComponentCondition` and `ComponentValueCondition` already go through `FishtasticItemData.hasById/encodeById` (S1), so no *semantic* change. `encodeById` → `KEY.codec.encodeStart(JsonOps.INSTANCE, value)` gives the same JSON the 1.21.1 path produces, so the 14 item-effect JSONs are unchanged.
+
+One real compile-time delta the "expected: no change" note missed: `ItemEffectCondition.Codecs.DISPATCH_CODEC` used `Codec.STRING.dispatch("type", getter, Codecs::getConditionCodec)`, where the third argument returns `MapCodec<? extends ItemEffectCondition>`. 1.20.1 pins `com.mojang:datafixerupper:6.0.8` (verified via `javap` on the jar in `~/.gradle/caches`), whose only 3-arg `dispatch(String, Function, Function)` overload requires the codec-function to return `Codec<? extends E>`, not `MapCodec` — the `Function<A, ? extends MapCodec<? extends E>>` overload used on 1.21.1's newer DFU doesn't exist here. Fix: `type -> getConditionCodec(type).codec()` (`MapCodec#codec()` is the same on both DFU versions). All 7 files (`ItemEffect`, `ItemEffectCondition`, and the 5 `itemeffect/condition/*` classes) un-excluded as-is otherwise — `ItemEffectManager` stays excluded (needs `FishtasticRegistries` + the client renderer graph, B2.7/B5.3 territory).
 
 ### B2.5: Reward data format (S1 left-in-place item 5), keeping the JSON byte-identical
 

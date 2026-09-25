@@ -185,14 +185,7 @@ common/src/main/java/grill24/fishtastic/item/ObsidianFishingRod.java
 common/src/main/java/grill24/fishtastic/item/PileOfFishItem.java
 common/src/main/java/grill24/fishtastic/item/QuestBookItem.java
 common/src/main/java/grill24/fishtastic/item/TestItem.java
-common/src/main/java/grill24/fishtastic/itemeffect/ItemEffect.java
-common/src/main/java/grill24/fishtastic/itemeffect/ItemEffectCondition.java
 common/src/main/java/grill24/fishtastic/itemeffect/ItemEffectManager.java
-common/src/main/java/grill24/fishtastic/itemeffect/condition/AndCondition.java
-common/src/main/java/grill24/fishtastic/itemeffect/condition/ComponentCondition.java
-common/src/main/java/grill24/fishtastic/itemeffect/condition/ComponentValueCondition.java
-common/src/main/java/grill24/fishtastic/itemeffect/condition/ItemCondition.java
-common/src/main/java/grill24/fishtastic/itemeffect/condition/ItemTagCondition.java
 common/src/main/java/grill24/fishtastic/menu/ElectricFishOrganizerMenu.java
 common/src/main/java/grill24/fishtastic/menu/FishTankAssemblyMenu.java
 common/src/main/java/grill24/fishtastic/menu/FishTankBrowserMenu.java
