@@ -3,7 +3,9 @@ package grill24.fishtastic.block;
 import grill24.fishtastic.util.InteractionResults;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockTags;
+import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.data.TankCapacity;
@@ -11,6 +13,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
@@ -42,7 +45,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
@@ -77,17 +80,30 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         // Materials + shape are copied on every pick-block (ctrl or not) — only contents
         // (fish/cosmetics, via vanilla's block-entity-data path: Minecraft#addCustomNbtData on
         // 1.21.1) are gated behind ctrl. Connectivity (open faces/waxed) is never copied; see
         // FishTankBlockEntity#removeComponentsFromTag.
+        // B2.6: 1.20.1 has no implicit-component copy, so this calls the BE's writeToItem
+        // directly instead of relying on super.getCloneItemStack + collectImplicitComponents.
         ItemStack stack = super.getCloneItemStack(level, pos, state);
         if (level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
-            FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_MATERIALS, fishTank.getMaterials());
-            FishtasticItemData.set(stack, grill24.fishtastic.FishtasticDataComponents.FISH_TANK_SHAPE, fishTank.getShape());
+            fishTank.writeToItem(stack);
         }
         return stack;
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        // B2.6: 1.20.1 has no implicit-component application on placement (that's a 1.21.1
+        // BlockItem behavior), so the block itself seeds the freshly-placed BE from the stack.
+        if (level.getBlockEntity(pos) instanceof FishTankBlockEntity fishTank) {
+            FishTankMaterials materials = FishtasticItemData.getOrDefault(stack, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials());
+            FishTankShape shape = FishtasticItemData.getOrDefault(stack, FishtasticDataComponents.FISH_TANK_SHAPE, FishTankShape.STANDARD);
+            fishTank.applyFromItem(materials, shape);
+        }
     }
 
     @Override

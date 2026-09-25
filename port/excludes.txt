@@ -29,6 +29,7 @@ common/src/main/java/grill24/fishtastic/blockentity/ElectricFishOrganizerBlockEn
 common/src/main/java/grill24/fishtastic/blockentity/FishPileBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishTankBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishTankAssemblyBlockEntity.java
+common/src/main/java/grill24/fishtastic/loot/CopyTankDataFunction.java
 common/src/main/java/grill24/fishtastic/blockentity/MarineCompostBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/OrganizerSortMode.java
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java

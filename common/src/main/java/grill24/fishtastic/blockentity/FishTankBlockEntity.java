@@ -28,7 +28,6 @@ import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Rotation;
@@ -211,21 +210,27 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
     }
 
-    @Override
-    protected void collectImplicitComponents(DataComponentMap.Builder components) {
-        super.collectImplicitComponents(components);
-        components.set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), getMaterials());
-        components.set(FishtasticDataComponents.FISH_TANK_SHAPE.value(), shape);
+    /**
+     * Writes this tank's materials/shape onto {@code stack} (B2.6: the shared body behind
+     * {@code collectImplicitComponents} on 1.21.1; called from {@code FishTankBlock#getCloneItemStack}
+     * and the {@code fishtastic:copy_tank_data} loot function on 1.20.1, which replace 1.21.1's
+     * component-copy loot function since 1.20.1 has no components).
+     */
+    public void writeToItem(ItemStack stack) {
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_TANK_MATERIALS, getMaterials());
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_TANK_SHAPE, shape);
     }
 
-    @Override
-    protected void applyImplicitComponents(BlockEntity.DataComponentInput components) {
-        super.applyImplicitComponents(components);
-        FishTankMaterials materials = components.getOrDefault(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), FishTankMaterials.defaultMaterials());
+    /**
+     * Seeds this tank's materials/shape from a placing item stack (B2.6: the shared body behind
+     * {@code applyImplicitComponents} on 1.21.1; called from {@code FishTankBlock#setPlacedBy} on
+     * 1.20.1, which replaces 1.21.1's {@code BlockItem} implicit-component application).
+     */
+    public void applyFromItem(FishTankMaterials materials, FishTankShape shape) {
         this.frameBlock = materials.frame();
         this.sandBlock = materials.sand();
         this.glassBlock = materials.glass();
-        this.shape = components.getOrDefault(FishtasticDataComponents.FISH_TANK_SHAPE.value(), FishTankShape.STANDARD);
+        this.shape = shape;
     }
 
     /**
