@@ -23,7 +23,6 @@ import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
-import grill24.fishtastic.menu.FishTankBrowserMenu;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,13 +33,9 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -63,7 +58,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class FishTankBlockEntity extends BlockEntity implements Container, MenuProvider {
+public class FishTankBlockEntity extends BlockEntity implements Container {
     /** A placed multi-block structure cosmetic, anchored at one grid cell. */
     public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
 
@@ -446,31 +441,21 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     @Override
-    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
-        super.saveAdditional(output, registries);
-        saveTankData(output, registries, true);
+    protected void saveAdditional(CompoundTag output) {
+        super.saveAdditional(output);
+        saveTankData(output, true);
     }
-
-    /** The keys {@link #saveTankData} writes only with {@code includeConnectivity}. */
-    private static final List<String> CONNECTIVITY_KEYS = List.of("OpenFaces", "FilledDiagonals", "FilledEdgeDiagonals", "Waxed");
 
     /**
-     * A pick-blocked item copy (ctrl+pick) must NOT carry connectivity (open faces / waxed state) —
-     * that's per-placement state recomputed from neighbors on place, and copying it produces stale
-     * connection permutations on the newly placed tank.
-     *
-     * <p>26.1.2 overrides {@code saveCustomOnly(ValueOutput)} for this. On 1.21.1 that method is
-     * final, but both item-copy paths ({@code BlockEntity#saveToItem} and ctrl+pick's
-     * {@code Minecraft#addCustomNbtData}) pass the saved tag through this method, and a world save
-     * never does, so the connectivity keys are stripped here instead.
+     * A pick-blocked item copy (ctrl+pick) ends up carrying connectivity (open faces / waxed state)
+     * on 1.20.1 — unlike 26.1.2, which strips it via {@code saveCustomOnly(ValueOutput)}, a hook that
+     * doesn't exist before 1.21.6, so there's no way to distinguish "saving for world persistence"
+     * from "saving for item copy" here. Harmless in practice: {@link
+     * grill24.fishtastic.block.FishTankBlock#onPlace} unconditionally recomputes every placed tank's
+     * connections from its actual neighbors, discarding whatever bits the copied item's {@link
+     * #load} seeded, so a stale copy never produces a stale placement.
      */
-    @Override
-    public void removeComponentsFromTag(CompoundTag tag) {
-        super.removeComponentsFromTag(tag);
-        CONNECTIVITY_KEYS.forEach(tag::remove);
-    }
-
-    private void saveTankData(CompoundTag output, HolderLookup.Provider registries, boolean includeConnectivity) {
+    private void saveTankData(CompoundTag output, boolean includeConnectivity) {
         String frameId = BuiltInRegistries.BLOCK.getKey(frameBlock).toString();
         String sandId = BuiltInRegistries.BLOCK.getKey(sandBlock).toString();
         String glassId = BuiltInRegistries.BLOCK.getKey(glassBlock).toString();
@@ -512,7 +497,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             if (!stack.isEmpty()) {
                 CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack);
                 if (itemMirrored[i]) {
                     child.putBoolean("Mirrored", true);
                 }
@@ -553,13 +538,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             child.putInt("GridX", cell.gridX());
             child.putInt("GridZ", cell.gridZ());
             child.putString("StructureId", placed.structureId().location().toString());
-            BlockEntityNbt.store(child, "Rotation", Rotation.CODEC, placed.rotation(), registries);
+            BlockEntityNbt.store(child, "Rotation", Rotation.CODEC, placed.rotation());
         }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
-        super.loadAdditional(input, registries);
+    public void load(CompoundTag input) {
+        super.load(input);
         // Load frame block
         String frameBlockStr = BlockEntityNbt.getStringOr(input, "FrameBlock", "");
         if (!frameBlockStr.isEmpty()) {
@@ -569,10 +554,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     frameBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, frameBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, frameBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse FrameBlock id='{}'", worldPosition, frameBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse FrameBlock id='{}'", worldPosition, frameBlockStr);
             }
         }
 
@@ -585,10 +570,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     sandBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, sandBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, sandBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse SandBlock id='{}'", worldPosition, sandBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse SandBlock id='{}'", worldPosition, sandBlockStr);
             }
         }
 
@@ -601,10 +586,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     glassBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, glassBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, glassBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
             }
         }
 
@@ -673,7 +658,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
             int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
                 itemMirrored[slot] = BlockEntityNbt.getBooleanOr(child, "Mirrored", false);
             }
         });
@@ -707,15 +692,19 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                         int height = BlockEntityNbt.getIntOr(child, "Height", 1);
                         cosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(state, height));
                     } else {
-                        Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
+                        Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
                     }
                 }
             }
         });
 
-        // Load structure cosmetics and rebuild the derived cell index from each structure's footprint.
+        // Load structure cosmetics. Only the raw id + rotation are recorded here — resolving each
+        // id to its CosmeticStructure (for the footprint) needs registry access, and `level` isn't
+        // set yet this early in the block entity's lifecycle (load() runs inside the static
+        // BlockEntity.loadStatic factory, before LevelChunk attaches it via setLevel — MC20 has no
+        // ValueInput-style registry-aware load hook to do this resolution inline, unlike 26.1.2's).
+        // See #setLevel/#rebuildStructureCellIndex, which redo this once a level is available.
         structureCosmetics.clear();
-        structureCellIndex.clear();
         BlockEntityNbt.childrenListOrEmpty(input, "StructureCosmetics").forEach(child -> {
             int gridX = BlockEntityNbt.getIntOr(child, "GridX", -1);
             int gridZ = BlockEntityNbt.getIntOr(child, "GridZ", -1);
@@ -725,28 +714,47 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
             ResourceLocation structureId = Ids.tryParse(structureIdStr);
             if (structureId == null) {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
                 return;
             }
-            Rotation rotation = BlockEntityNbt.read(child, "Rotation", Rotation.CODEC, registries).orElse(Rotation.NONE);
+            Rotation rotation = BlockEntityNbt.read(child, "Rotation", Rotation.CODEC).orElse(Rotation.NONE);
             ResourceKey<CosmeticStructure> key = ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, structureId);
-
-            Optional<CosmeticStructure> structure = registries.lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY).get(key)
-                    .map(net.minecraft.core.Holder.Reference::value);
-            if (structure.isEmpty()) {
-                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic structure lookup returned nothing for id={}; skipping", worldPosition, structureId);
-                return;
-            }
-
-            CosmeticGridCell anchor = new CosmeticGridCell(gridX, gridZ);
-            List<CosmeticGridCell> footprintCells = rotatedFootprintCells(structure.get(), rotation, anchor);
-            structureCosmetics.put(anchor, new PlacedStructureCosmetic(key, rotation));
-            for (CosmeticGridCell footprintCell : footprintCells) {
-                structureCellIndex.put(footprintCell, anchor);
-            }
+            structureCosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedStructureCosmetic(key, rotation));
         });
 
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+    }
+
+    /**
+     * Resolves every entry in {@link #structureCosmetics} against the level's registry access and
+     * rebuilds {@link #structureCellIndex} from scratch. Called from {@link #setLevel} — the
+     * earliest point a level (and so registry access) is available after {@link #load} parsed the
+     * raw ids — and safe to call again any time the level is known.
+     */
+    private void rebuildStructureCellIndex() {
+        structureCellIndex.clear();
+        if (level == null) return;
+        HolderLookup.Provider registries = level.registryAccess();
+        for (Map.Entry<CosmeticGridCell, PlacedStructureCosmetic> entry : structureCosmetics.entrySet()) {
+            CosmeticGridCell anchor = entry.getKey();
+            PlacedStructureCosmetic placed = entry.getValue();
+            Optional<CosmeticStructure> structure = registries.lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
+                    .get(placed.structureId())
+                    .map(net.minecraft.core.Holder.Reference::value);
+            if (structure.isEmpty()) {
+                Fishtastic.LOGGER.warn("[FishTankBE.rebuildStructureCellIndex] pos={}, cosmetic structure lookup returned nothing for id={}; skipping", worldPosition, placed.structureId());
+                continue;
+            }
+            for (CosmeticGridCell footprintCell : rotatedFootprintCells(structure.get(), placed.rotation(), anchor)) {
+                structureCellIndex.put(footprintCell, anchor);
+            }
+        }
+    }
+
+    @Override
+    public void setLevel(Level level) {
+        super.setLevel(level);
+        rebuildStructureCellIndex();
     }
 
     /** Rotates a structure's footprint cells and translates them to the given anchor. */
@@ -760,8 +768,8 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     @Override
-    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
-        return saveWithoutMetadata(registries);
+    public CompoundTag getUpdateTag() {
+        return saveWithoutMetadata();
     }
 
     @Override
@@ -1103,14 +1111,8 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         return returnItem != null ? new ItemStack(returnItem) : ItemStack.EMPTY;
     }
 
-    @Override
-    public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
-        return new FishTankBrowserMenu(containerId, inventory, this);
-    }
-
-    @Override
-    public Component getDisplayName() {
-        return Component.translatable("block.fishtastic.fish_tank");
-    }
-
+    // MenuProvider/createMenu/getDisplayName deliberately not ported yet: FishTankBrowserMenu
+    // extends gelatin-ui's GelatinMenu, whose 1.20.1 port (G-1.20.1) hasn't reached the menu system
+    // yet. FishTankBlock's empty-hand click (the only caller of an opened menu) is a no-op until
+    // then — see FishTankBlock#useWithoutItemBody.
 }

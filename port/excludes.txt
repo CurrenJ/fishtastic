@@ -8,10 +8,10 @@
 # but stays excluded here — it pulls in the full registration/block/menu/recipe graph, which isn't
 # ported yet; it'll come off this list once B2.7 (registration cleanup) and friends land. Everything
 # else in common/src/main/java is excluded file-by-file below, pending B2.2-B2.7/B3-B5.
-common/src/main/java/grill24/FishtasticRegistries.java
+#common/src/main/java/grill24/FishtasticRegistries.java
 common/src/main/java/grill24/fishtastic/FishtasticBiomeTags.java
 common/src/main/java/grill24/fishtastic/FishtasticBlockEntityTypes.java
-common/src/main/java/grill24/fishtastic/FishtasticBlockTags.java
+#common/src/main/java/grill24/fishtastic/FishtasticBlockTags.java
 common/src/main/java/grill24/fishtastic/FishtasticBlocks.java
 common/src/main/java/grill24/fishtastic/FishtasticCreativeTabs.java
 common/src/main/java/grill24/fishtastic/FishtasticDispenseBehaviors.java
@@ -22,14 +22,14 @@ common/src/main/java/grill24/fishtastic/FishtasticSounds.java
 common/src/main/java/grill24/fishtastic/block/ElectricFishOrganizerBlock.java
 common/src/main/java/grill24/fishtastic/block/FishPileBlock.java
 common/src/main/java/grill24/fishtastic/block/FishTankAssemblyBlock.java
-common/src/main/java/grill24/fishtastic/block/FishTankBlock.java
+#common/src/main/java/grill24/fishtastic/block/FishTankBlock.java
 common/src/main/java/grill24/fishtastic/block/MarineCompostBlock.java
 common/src/main/java/grill24/fishtastic/block/MarineCompostPhase.java
 common/src/main/java/grill24/fishtastic/blockentity/ElectricFishOrganizerBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishPileBlockEntity.java
-common/src/main/java/grill24/fishtastic/blockentity/FishTankBlockEntity.java
+#common/src/main/java/grill24/fishtastic/blockentity/FishTankBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishTankAssemblyBlockEntity.java
-common/src/main/java/grill24/fishtastic/loot/CopyTankDataFunction.java
+#common/src/main/java/grill24/fishtastic/loot/CopyTankDataFunction.java
 common/src/main/java/grill24/fishtastic/blockentity/MarineCompostBlockEntity.java
 #common/src/main/java/grill24/fishtastic/blockentity/OrganizerSortMode.java
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
@@ -163,7 +163,7 @@ common/src/main/java/grill24/fishtastic/data/Quest.java
 common/src/main/java/grill24/fishtastic/data/QuestObjective.java
 common/src/main/java/grill24/fishtastic/data/ShopEntry.java
 common/src/main/java/grill24/fishtastic/data/SwarmConfig.java
-common/src/main/java/grill24/fishtastic/data/TankCapacity.java
+#common/src/main/java/grill24/fishtastic/data/TankCapacity.java
 common/src/main/java/grill24/fishtastic/data/Temperament.java
 common/src/main/java/grill24/fishtastic/env/DevEnvironmentCheck.java
 common/src/main/java/grill24/fishtastic/examples/FishTankConnectionExample.java
@@ -173,7 +173,7 @@ common/src/main/java/grill24/fishtastic/examples/MultiItemTargetExamples.java
 #common/src/main/java/grill24/fishtastic/fishtank/TankDiagonal.java
 #common/src/main/java/grill24/fishtastic/fishtank/TankEdgeDiagonal.java
 #common/src/main/java/grill24/fishtastic/fishtank/TankEntryKind.java
-common/src/main/java/grill24/fishtastic/fishtank/TankGroups.java
+#common/src/main/java/grill24/fishtastic/fishtank/TankGroups.java
 common/src/main/java/grill24/fishtastic/item/AcuteIapsisItem.java
 common/src/main/java/grill24/fishtastic/item/CopperFishingRod.java
 common/src/main/java/grill24/fishtastic/item/CosmeticCaptureWandItem.java
@@ -248,7 +248,7 @@ common/src/main/java/grill24/fishtastic/tutorial/EncyclopediaTutorialManager.jav
 common/src/main/java/grill24/fishtastic/tutorial/EncyclopediaTutorialStep.java
 common/src/main/java/grill24/fishtastic/tutorial/TutorialManager.java
 common/src/main/java/grill24/fishtastic/tutorial/TutorialStep.java
-common/src/main/java/grill24/fishtastic/util/BlockEntityNbt.java
+#common/src/main/java/grill24/fishtastic/util/BlockEntityNbt.java
 common/src/main/java/grill24/fishtastic/util/CatchCelebration.java
 common/src/main/java/grill24/fishtastic/util/FishQualityHelper.java
 common/src/main/java/grill24/fishtastic/util/FishingMinigameAnimation.java
@@ -260,7 +260,7 @@ common/src/main/java/grill24/fishtastic/util/IGameRendererExtension.java
 common/src/main/java/grill24/fishtastic/util/IGuiGraphicsExtension.java
 common/src/main/java/grill24/fishtastic/util/InteractionResults.java
 common/src/main/java/grill24/fishtastic/util/ItemActivationAnimation.java
-common/src/main/java/grill24/fishtastic/util/ItemSizeHelper.java
+#common/src/main/java/grill24/fishtastic/util/ItemSizeHelper.java
 common/src/main/java/grill24/fishtastic/util/PhysicsSimulation.java
 common/src/main/java/grill24/fishtastic/util/SparkleParticle.java
 common/src/main/java/grill24/fishtastic/util/StreamCodecs.java
