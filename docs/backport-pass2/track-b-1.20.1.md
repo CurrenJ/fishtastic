@@ -2,7 +2,7 @@
 
 > Parent: [`README.md`](README.md). Starts from `port/1.21.1` at **G2**. Branch `port/1.20.1`, worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`.
 > Conventions as in track A. "Lands on" cites `D:\GitHub\modding-guide\resources\minecraft-merged-1.20.1-sources` (MC20), `forge-1.20.1-47.4.23-patched-sources` (FG; vanilla with Forge patches + `net.minecraftforge.*`) and `fabric-api-0.92.12+1.20.1-sources` (FAPI20).
-> Gradle runs on JDK 17 in this worktree: `-Dorg.gradle.java.home=<jdk-17>` (installed: `C:\Program Files\Eclipse Adoptium\jdk-17.0.6.10-hotspot` or `C:\Program Files\Java\jdk-17.0.6+10`). Written `gw17` below.
+> **Correction (B1 as built):** the Gradle *daemon* needs JDK 21 here, not 17 — Loom's buildscript deps (`unpick`) require it regardless of which Loom line is pinned, matching `port/1.21.1`. `-Dorg.gradle.java.home=<jdk-21>` (`C:\Program Files\Java\jdk-21`). The project's own **toolchain still targets 17** (`build.gradle`'s `JavaLanguageVersion.of(17)` / `--release 17`), so compiled output is Java 17 bytecode either way. Written `gw17` below for continuity with the rest of this doc, but it now means "run gradle for this branch," not "run gradle under a JDK 17 daemon."
 
 **Shape of the delta.** Rendering carries over from 1.21.1 almost unchanged (the `VertexConsumer` builder and a handful of GUI calls). The work is in five layers:
 1. item data (components → NBT)
@@ -20,7 +20,7 @@ The same exclusion-list + stub mechanism as track A (`port/excludes.txt`, `commo
 ## B0: Decisions (settled)
 - **B0.1** Loaders: Fabric + **Forge 47.4.x** (D2). NeoForge 1.20.1 (47.1) loads Forge jars.
 - **B0.2** No world upgrade from 1.20.1 to 1.21.1 (D4). Consequence for B2: the NBT layout under `ComponentKey` is ours to choose, with no compatibility constraint towards 1.21.1 saves.
-- **New, D11 for track B:** Loom line. The throwaway source project ran **Architectury Loom 1.11 on Gradle 8.14** against Forge 47.4.23 and Fabric API 0.92.12 successfully (genSources, 2026-09-24). Try Loom 1.17 / Gradle 9.5 first to match `port/1.21.1` (fewer build-file diffs under lockstep), and fall back to 1.11 / 8.14, which is proven.
+- **New, D11 for track B:** Loom line. The throwaway source project ran **Architectury Loom 1.11 on Gradle 8.14** against Forge 47.4.23 and Fabric API 0.92.12 successfully (genSources, 2026-09-24; a `genSources` run never remaps a mod dependency like Fabric API, so it didn't hit the bug below). **Decided at B1 (2026-09-25): Loom 1.17-SNAPSHOT / Gradle 9.5, matching `port/1.21.1`.** 1.11 hit a real `:common` SRG-merge ordering bug against Forge, and the older, genuinely-proven-for-Forge `1.7.+` line can't remap current Fabric API builds (its own version numbers trail mainline fabric-loom's). See track-b-1.20.1.md "B1 as built" for detail.
 
 ---
 
@@ -46,6 +46,20 @@ The same exclusion-list + stub mechanism as track A (`port/excludes.txt`, `commo
 What S5 actually found, which corrects pass 2's N7 estimate of ~45 sites in 21 files: 19 `List#getFirst()` → `get(0)`, 7 `Math.clamp` → `Mth.clamp`, and one `SequencedMap` local → `Map` (in `RenderBuffersMixin`). All 13 `reversed()` hits were `Comparator#reversed` (Java 8), and the `addFirst`/`addLast`/`removeFirst` hits were on `Deque`s or MC/Fabric API methods. `BufferSourceAccessor` still declares `SequencedMap`, because Mixin matches the field's exact descriptor. On 1.20.1 the field is `Map<RenderType, BufferBuilder>`, so the B5.2 render rewrite changes that accessor anyway. (Pattern matching for `switch` and record patterns: 0 uses. `Stream#toList` (Java 16) and `HexFormat` (Java 17) are fine.)
 
 **Gate (G-B1):** `gw17 :fishsim:test :tools:tank-shape-gen:test` (163 + 1 skipped, 21,955). `gw17 :fabric:build :forge:build`. The A1-style probe loads under `runServer` on both loaders (Forge in the background). Refmap jar check.
+
+### B1 as built (2026-09-25)
+
+**G-B1 passed**, with three corrections to what B0.3/B1 assumed:
+
+1. **Loom line: 1.17-SNAPSHOT, not 1.11.** B0.3's throwaway-proven "1.11/Gradle 8.14" hit a real bug: `:common`'s `architectury.common(['fabric','forge'])` triggers the SRG+mojmap merge before the Forge-side provider that writes `<mcversion>/forge/mojmap.tsrg2` has run, so `:common`'s Minecraft setup fails (`Right does not exist: .../forge/mojmap.tsrg2`). Pinning `dev.architectury.loom 1.7.+` (Gradle 8.8) — the version real 1.20.1 Forge+Fabric Architectury multiloader templates use — fixed that, but then failed remapping FAPI `0.92.12+1.20.1`: `Mod was built with a newer version of Loom (1.17.20), you are using Loom (1.7.435)`. Architectury-loom's own version numbers (1.7.x, 1.11.x) trail mainline fabric-loom's numbering (FAPI's published jar was remapped by fabric-loom 1.17.20), and Loom's cross-version mod-remap guard (`ArtifactMetadata.validateLoomVersion`) compares raw major.minor numbers without knowing the two are different projects — any architectury-loom below "1.17" always rejects a FAPI jar remapped that recently. **1.17-SNAPSHOT/Gradle 9.5 — the same line as `port/1.21.1` — is what actually works**, once the daemon runs on JDK 21 (see the correction above `B1.2`).
+2. **`mods.toml` schema: `mandatory = true/false`, not `type = "required"/"optional"`.** 1.20.1's Forge 47 line predates the newer TOML dependency schema `port/1.21.1`'s (NeoForge) `neoforge.mods.toml` uses. Using `type =` there throws `InvalidModFileException: Missing required field mandatory in dependency (main)` during mod discovery, before any of our own code runs. Confirmed against `Fabricators-of-Create/create-multiloader-addon-template@1.20.1`.
+3. **`forge/build.gradle` needs its own `loom.accessWidenerPath`.** Unlike a single-loader project, Forge's `extraAccessWideners.add loom.accessWidenerPath.get().asFile.name` inside `loom.forge {}` throws unless `forge/build.gradle` explicitly sets `loom.accessWidenerPath = project(":common").loom.accessWidenerPath` first (common's own `accessWidenerPath` isn't visible to sibling projects automatically).
+
+Also: `gelatinui_version` in `gradle.properties` is the eventual `1.0.31+1.20.1` (matching G-1.20.1's plan), but that artifact doesn't exist yet — G-1.20.1 hasn't run. The three `modImplementation("io.github.currenj.gelatinui:...")`/`modCompileOnly`/`modTestImplementation` lines are commented out (common, fabric, forge) with a note to restore them once G-1.20.1 publishes; B1's bare probe doesn't reference gelatin. `jei_version` is pinned to `15.20.0.117`, not the newest 1.20.1 JEI build (`15.62.0.216`, checked live): newer JEI builds require `fabricloader >= 0.19.4`, well above what `fabric_loader_version = 0.16.14` (B0's pick) provides — `15.20.0.117` is old enough to be undemanding on both loaders.
+
+The accesswidener (`common/src/main/resources/fishtastic.accesswidener`) is now just the header: all three 1.21.1-era entries (`CreativeModeTab$Output`, `MenuScreens$ScreenConstructor`/`MenuType$MenuSupplier`/its constructor, `RenderType.create`) are already `public` on MC20 (checked against `minecraft-merged-1.20.1-sources`), so none of the widenings are needed pre-B5.
+
+Verified: `:fishsim:test` 164 (163 + 1 skipped), `:tools:tank-shape-gen:test` 21,955, `:fabric:build` and `:forge:build` both green (including `java17ApiGuard`/`idConstructionGuard` on both platforms), both `runServer` probes reach `Done` (Fabric and Forge), both jars' `fishtastic.mixins.json`/platform mixins config have empty `mixins`/`client` lists (nothing compiled yet, as A1) with the correct `refmap` keys injected (`fishtastic-common-refmap.json` on Fabric's copy, `fishtastic-forge-refmap.json` on Forge's platform config) — no refmap files exist yet in either jar, expected until B2 compiles mixins (same as A1.5's note).
 
 ---
 

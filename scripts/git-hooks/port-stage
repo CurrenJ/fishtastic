@@ -1,2 +1,2 @@
-full
-# Raise as gates pass: none (A1) -> compile (A1 gate) -> unit (A2 gate) -> full (A6.1). See pre-commit.
+compile
+# Raise as gates pass: none (B1 scaffolding) -> compile (G-B1, here) -> unit (G-B2) -> full (B6.1). See pre-commit.

@@ -49,7 +49,9 @@ dependencies {
     // Architectury injectables (annotations only, no runtime API)
     modImplementation "dev.architectury:architectury-injectables:1.0.13"
 
-    modCompileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+    // B1 (docs/backport-pass2/track-b-1.20.1.md, G-1.20.1): no gelatinui-*-1.20.1 artifact exists
+    // yet, so this stays commented until G-1.20.1 publishes one. B1's probe doesn't need it.
+    // modCompileOnly("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
 
     // JEI integration is optional at runtime (see grill24.fishtastic.compat.jei) — only
     // needed on the compile classpath so the plugin class can reference the JEI API.
@@ -64,7 +66,7 @@ dependencies {
     // runtime), but JUnit tests run outside any platform, so the test source set needs
     // its own real dependency on it to construct UIElement/UIContainer instances.
     // modTestImplementation (not testImplementation) so Loom remaps the published jar to named.
-    modTestImplementation("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
+    // modTestImplementation("io.github.currenj.gelatinui:gelatinui-common:${gelatinui_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

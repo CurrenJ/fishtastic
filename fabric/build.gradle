@@ -44,7 +44,9 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
 
-    modImplementation("io.github.currenj.gelatinui:gelatinui-fabric:${gelatinui_version}")
+    // B1 (docs/backport-pass2/track-b-1.20.1.md, G-1.20.1): no gelatinui-*-1.20.1 artifact exists
+    // yet, so this stays commented until G-1.20.1 publishes one. B1's probe doesn't need it.
+    // modImplementation("io.github.currenj.gelatinui:gelatinui-fabric:${gelatinui_version}")
 
     // JEI integration is optional at runtime — compile-only api, plus the full jar as a
     // dev-time convenience so `runClient` can exercise the integration locally.
@@ -72,9 +74,8 @@ dependencies {
 
     // Testmod: access the compiled main classes (fabric-api comes from the extendsFrom above).
     testmodImplementation sourceSets.main.output
-    testmodImplementation sourceSets.main.output
-    // A6.1: compile-only NeoForge gametest annotations, so the shared harness in
-    // common/src/testmod can carry the holder NeoForge 21.1 requires. Never a runtime dependency.
+    // A6.1/B6.1: compile-only gametest annotations, so the shared harness in
+    // common/src/testmod can carry the holder each loader requires. Never a runtime dependency.
     testmodCompileOnly project(path: ':common', configuration: 'neoforgeGametestAnnotationsApi')
 }
 
@@ -135,6 +136,11 @@ remapJar {
     inputFile.set shadowJar.archiveFile
 }
 
+// Loom 1.11's runs{} closures resolve `rootProject`/`file` against the RunConfigSettings DSL
+// delegate rather than the project, so these paths are computed here instead of inline below.
+def questSourceDir = rootProject.file("common/src/main/resources/data/fishtastic/fishtastic/quest")
+def generatedDir = file("src/main/generated")
+
 loom {
     runs {
         // Fixed window size, so the self-test's evidence screenshots are comparable between the
@@ -148,12 +154,12 @@ loom {
             inherit client
             name = "Data Generation"
             vmArg "-Dfabric-api.datagen"
-            vmArg "-Dfabric-api.datagen.output-dir=${file("src/main/generated")}"
+            vmArg "-Dfabric-api.datagen.output-dir=${generatedDir}"
             vmArg "-Dfabric-api.datagen.modid=fishtastic"
             // Lets ShopEntryFromQuestProvider read the hand-authored quest JSON (explorer/mastery/
             // challenge/tutorial/collector quests have no Java-side bootstrap data to generate shop
             // entries from otherwise) — see that class for why.
-            vmArg "-Dfishtastic.quest-source-dir=${rootProject.file("common/src/main/resources/data/fishtastic/fishtastic/quest")}"
+            vmArg "-Dfishtastic.quest-source-dir=${questSourceDir}"
 
             runDir "build/datagen"
         }

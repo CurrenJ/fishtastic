@@ -1,0 +1,13 @@
+# Java sources left out of compilation on this port branch (see gradle/port-excludes.gradle).
+# One repo-relative Ant pattern per line, starting with a source directory. Each phase deletes
+# lines; at G3 this file is empty and is deleted (docs/backport-pass2/track-b-1.20.1.md).
+#
+# B1: everything. The only compiled mod code is the probe entrypoints in fabric/src/portstub and
+# forge/src/portstub. B2.0 replaces this list with the real file-by-file one.
+common/src/main/java/**
+common/src/test/java/**
+common/src/testmod/java/**
+fabric/src/main/java/**
+fabric/src/testmod/java/**
+forge/src/main/java/**
+forge/src/testmod/java/**

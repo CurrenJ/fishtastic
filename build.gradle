@@ -1,4 +1,13 @@
 plugins {
+    // B0.3 (docs/backport-pass2/track-b-1.20.1.md): needs the JDK 21 Gradle daemon regardless of
+    // Loom line (buildscript deps like unpick require it) — the project toolchain still targets 17
+    // for compilation. Loom 1.11-SNAPSHOT hit a real :common SRG-merge ordering bug. Loom 1.7.x
+    // (the version real 1.20.1 Forge+Fabric Architectury multiloader templates pin) fixed that, but
+    // then failed remapping FAPI 0.92.12+1.20.1: architectury-loom's own version numbers (1.7.x,
+    // 1.11.x) trail mainline fabric-loom's (fabric-api's jar was remapped by fabric-loom 1.17.20),
+    // and Loom's cross-version mod-remap guard compares raw major.minor numbers without knowing the
+    // two are different projects — any architectury-loom below "1.17" always rejects it. Back to
+    // 1.17-SNAPSHOT (matching port/1.21.1) under the JDK 21 daemon.
     id 'dev.architectury.loom' version '1.17-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.5-SNAPSHOT'
     id 'com.gradleup.shadow' version '8.3.6' apply false
@@ -76,17 +85,20 @@ subprojects {
         // If you remove this line, sources will not be generated.
         withSourcesJar()
 
-        // MC 1.21.1 runs on Java 21.
-        toolchain.languageVersion = JavaLanguageVersion.of(21)
+        // MC 1.20.1 runs on Java 17.
+        toolchain.languageVersion = JavaLanguageVersion.of(17)
     }
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
-        it.options.release = 21
+        it.options.release = 17
     }
 
     // Checks that keep the backport seams in place (S5 Java 17 calls, S6c id construction).
     apply from: rootProject.file('gradle/backport-guards.gradle')
+
+    // Port scaffolding: port/excludes.txt and src/portstub/java (deleted at G3).
+    apply from: rootProject.file('gradle/port-excludes.gradle')
 
     // Configure Maven publishing.
     publishing {
@@ -148,18 +160,18 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     fabricUpload.addModLoader('Fabric')
     fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
 
-    // ── NeoForge ──
-    def neoJar = project(':neoforge').tasks.named('remapJar').get().archiveFile
-    def neoUpload = upload(projectId, neoJar)
-    neoUpload.changelog = changelogText
-    neoUpload.changelogType = 'markdown'
-    neoUpload.releaseType = releaseType
-    neoUpload.addGameVersion(minecraft_version)
-    neoUpload.addModLoader('NeoForge')
-    neoUpload.displayName = neoJar.get().asFile.name.replace('.jar', '')
+    // ── Forge ──
+    def forgeJar = project(':forge').tasks.named('remapJar').get().archiveFile
+    def forgeUpload = upload(projectId, forgeJar)
+    forgeUpload.changelog = changelogText
+    forgeUpload.changelogType = 'markdown'
+    forgeUpload.releaseType = releaseType
+    forgeUpload.addGameVersion(minecraft_version)
+    forgeUpload.addModLoader('Forge')
+    forgeUpload.displayName = forgeJar.get().asFile.name.replace('.jar', '')
 }
 
 // Ensure publish depends on both platforms being built.
 tasks.named('publishCurseForge') {
-    dependsOn(':fabric:build', ':neoforge:build')
+    dependsOn(':fabric:build', ':forge:build')
 }
