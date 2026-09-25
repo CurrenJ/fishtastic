@@ -706,7 +706,7 @@ public final class RenderSelfTest {
         FishtasticItemData.set(legendary, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
         List<ItemStack> contents = List.of(fish("bluegill", 25f), legendary, fish("discus", 28f), fish("betta", 20f));
         ItemStack pile = new ItemStack(BuiltInRegistries.ITEM.get(Ids.of("fishtastic", "pile_of_fish")));
-        FishtasticItemData.setBundleContents(pile, new net.minecraft.world.item.component.BundleContents(contents));
+        FishtasticItemData.setBundleContents(pile, new grill24.fishtastic.component.BundleContents(contents));
         ItemStack pileBlock = pile.copy();
         pileBlock.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, grill24.fishtastic.client.util.FishPileIcons.PILE_BLOCK_MARKER);
         return List.of(

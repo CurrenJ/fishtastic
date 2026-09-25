@@ -166,7 +166,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [x] | B2.1 commit |
-| B2.2 | `BundleContents` class ported | [~] | B2.1 commit (class only; 11 call-site import changes still pending — those files stay excluded) |
+| B2.2 | `BundleContents` class ported | [~] | B2.1 commit + B2.2 commit (all 9 call-site import changes done; files stay excluded — each transitively needs `FishtasticItems`/block-registration graph, B2.7's territory) |
 | B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [~] | B2.1 commit (`TooltipProvider` dropped from the 3 component classes; `ItemStackMixin` wiring + the 6 item files' `appendHoverText` signature not done) |
 | B2.4 | Effect conditions (expected: no change) | [ ] | |
 | B2.5 | `FishtasticItemPatch` | [~] | B2.1 commit (class + `QuestReward` done; `ShopEntry`, the 94 JSON files' shape check, and `DailyQuestFamily` not done) |

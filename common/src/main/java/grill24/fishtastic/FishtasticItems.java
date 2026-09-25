@@ -27,7 +27,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.component.BundleContents;
+import grill24.fishtastic.component.BundleContents;
 
 import java.util.LinkedHashMap;
 import java.util.List;

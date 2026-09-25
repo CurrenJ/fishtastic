@@ -180,7 +180,13 @@ Two portstubs, both citing what they're standing in for and why:
 
 Also found live: two DFU API deltas that show up as soon as anything calls `DataResult` methods — `DataResult#isError()` doesn't exist on this DFU version (use `result().isEmpty()`), and `Codec.stringResolver` doesn't exist either (`FishTankShape.CODEC` uses `Codec.STRING.xmap(...)` instead, same behavior).
 
-**Next:** either keep widening the compiled set toward the real G-B2 (`ShopEntry`/`DailyQuestFamily` for the rest of B2.5, the 11 `BundleContents` call sites for B2.2, `ItemStackMixin`/the 6 tooltip files for B2.3, then B2.6/B2.7 and `FishtasticItems`), or move to B3 if a full G-B2 pass is deferred — the doc's ordering assumed B2 would be self-contained, but in practice item-data and "the rest of common" are intertwined enough that they may need to grow together.
+**Next:** either keep widening the compiled set toward the real G-B2 (`ShopEntry`/`DailyQuestFamily` for the rest of B2.5, `ItemStackMixin`/the 6 tooltip files for B2.3, then B2.6/B2.7 and `FishtasticItems`), or move to B3 if a full G-B2 pass is deferred — the doc's ordering assumed B2 would be self-contained, but in practice item-data and "the rest of common" are intertwined enough that they may need to grow together.
+
+### B2.2 as built (2026-09-25)
+
+**Import-site edits done, files still excluded.** Changed `import net.minecraft.world.item.component.BundleContents;` → `import grill24.fishtastic.component.BundleContents;` (and the one fully-qualified `new net.minecraft.world.item.component.BundleContents(...)` construction in the dev-only `client/selftest/RenderSelfTest`) in all 9 call sites: `FishtasticItems`, `blockentity/ElectricFishOrganizerBlockEntity`, `block/FishTankBlock`, `block/FishPileBlock`, `recipe/MarineCompostRecipe`, `item/PileOfFishItem`, `mixin/SizedItemClickMixin`, `client/util/FishPileIcons`, `client/selftest/RenderSelfTest`. (The doc's original count of 11 was off by two: `client/renderer/{FishPileBlockItemModel,PileOfFishItemModel}` only call `FishtasticItemData.bundleContentsOrEmpty(stack).items()` inline and never name the `BundleContents` type, so they need no edit.)
+
+**Compiled-by-inspection, not verified live**: tried un-excluding `client/util/FishPileIcons` alone (the shallowest of the 9) as a probe — it still transitively needs `FishtasticItems` (for `PILE_OF_FISH`) and `blockentity/FishPileBlockEntity` (for `MAX_FISH`), both excluded pending the registration graph. Every one of the 9 files has the same shape: none is compilable standalone, because `BundleContents` was never the blocker — the surrounding block/item/BE/registration classes are. **B2.2 doesn't unblock on its own; it completes only as a side effect of B2.6/B2.7 (and, for `FishtasticItems`, the registration cleanup) un-excluding those files.** Left the import fix in place (harmless while excluded, correct once un-excluded) rather than reverting it.
 
 ---
 
