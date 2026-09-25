@@ -9,9 +9,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class ClientRodGearTooltip implements ClientTooltipComponent {
+    // 1.21.1 ships no `container/bundle/slot_background` — that is 26.1.2's 24x24 sprite, and
+    // blitting a name this version cannot resolve draws vanilla's purple/black MissingSprite
+    // behind the icons. 1.21.1's own bundle tooltip draws its slots from `container/bundle/slot`,
+    // so these slots use that sprite at its native 18x20 rather than a nonexistent 24x24 one.
     private static final ResourceLocation SLOT_BACKGROUND_SPRITE =
-            Ids.withDefaultNamespace("container/bundle/slot_background");
-    private static final int SLOT_SIZE = 24;
+            Ids.withDefaultNamespace("container/bundle/slot");
+    private static final int SLOT_WIDTH = 18;
+    private static final int SLOT_HEIGHT = 20;
     private static final int SLOT_GAP = 2;
     private static final int ICON_SIZE = 16;
 
@@ -30,12 +35,12 @@ public class ClientRodGearTooltip implements ClientTooltipComponent {
 
     @Override
     public int getHeight() {
-        return SLOT_SIZE;
+        return SLOT_HEIGHT;
     }
 
     @Override
     public int getWidth(Font font) {
-        return gear.length * SLOT_SIZE + (gear.length - 1) * SLOT_GAP;
+        return gear.length * SLOT_WIDTH + (gear.length - 1) * SLOT_GAP;
     }
 
     @Override
@@ -44,11 +49,11 @@ public class ClientRodGearTooltip implements ClientTooltipComponent {
         // starts at the tooltip's left edge the way vanilla's own ClientBundleTooltip does.
         int startX = x;
         for (int i = 0; i < gear.length; i++) {
-            int slotX = startX + i * (SLOT_SIZE + SLOT_GAP);
-            graphics.blitSprite(SLOT_BACKGROUND_SPRITE, slotX, y, SLOT_SIZE, SLOT_SIZE);
+            int slotX = startX + i * (SLOT_WIDTH + SLOT_GAP);
+            graphics.blitSprite(SLOT_BACKGROUND_SPRITE, slotX, y, SLOT_WIDTH, SLOT_HEIGHT);
             ItemStack stack = gear[i];
-            int iconX = slotX + 4;
-            int iconY = y + 4;
+            int iconX = slotX + (SLOT_WIDTH - ICON_SIZE) / 2;
+            int iconY = y + (SLOT_HEIGHT - ICON_SIZE) / 2;
             if (!stack.isEmpty()) {
                 graphics.renderItem(stack, iconX, iconY, 0);
                 graphics.renderItemDecorations(font, stack, iconX, iconY);

@@ -624,6 +624,61 @@ It passes in the Fabric run (263 tests, 0 failures).
 ### A6.3: In-game playtest
 The owner, on both loaders, against the pass 1 checklist (minigame, all rods, bait, hooks and charms, every tank shape and cosmetic, swarm, bubbles, quests, shop, encyclopedia, leaderboards and podium, compost, organizer, backups). **Add:** the Sunset Postcard (the sun visibly slows at dawn and dusk, with no stutter) and every quality-outline tier in the GUI, on the ground and in frames.
 
+#### A6.3 as found (2026-09-25): two defects, both fixed, both compiler-invisible
+
+The owner's playtest passed everything except two visual defects. Neither exists on `26.1.2`, and
+neither could be caught by compiling, which is why A1–A6.2 missed both.
+
+**1. Tooltip slot backgrounds drew vanilla's missing texture.** `ClientRodGearTooltip` and
+`ClientFishTankMaterialsTooltip` each blitted `minecraft:container/bundle/slot_background` — a
+**24x24** sprite that exists only on `26.1.2`. 1.21.1 ships no sprite by that name at all (its
+bundle tooltip draws from `container/bundle/slot` and `blocked_slot`, both **18x20**; verified
+against `~/.gradle/caches/fabric-loom/1.21.1/minecraft-client.jar`), so `blitSprite` fell back to
+`MissingSprite` — the purple/black square behind the ghost bait/hook/charm icons. Fixed by using
+1.21.1's own `container/bundle/slot` at its native size: `SLOT_SIZE = 24` became
+`SLOT_WIDTH = 18` / `SLOT_HEIGHT = 20`, and the icons centre via `(SLOT_WIDTH - ICON_SIZE) / 2`
+rather than a hardcoded `+4`. The owner chose native size over stretching the art to keep the 24px
+layout, accepting a 58px slot row where `26.1.2`'s is 76px. **These are the only two `blitSprite`
+calls in the port**; the other 36 `withDefaultNamespace` refs are registry IDs or
+`textures/gui/container/generic_54.png`, all confirmed present.
+
+**2. The leaderboard podium ordered by depth instead of by paint order.** All three of the owner's
+symptoms — the player behind the pedestal, the fish pile behind the podium block, the block stack
+out of order — are one cause. gelatin's `UIContainer.renderChildren` paints in insertion order with
+no per-child z on **both** branches (byte-identical), but what each child *writes* differs. On
+`26.1.2` the pose is a 2D `Matrix3x2fStack` and items/players are deferred picture-in-picture, so
+nothing writes depth and insertion order alone decides. On 1.21.1 the pose is a real 3D `PoseStack`
+and every leaf draws immediately with its **own baked-in z**: vanilla items 150
+(`GuiGraphics#renderItem`, `GuiGraphics.java:555`), gelatin's posed player 100
+(`PlayerModelRenderer.Z_OFFSET`), vanilla's entity-in-inventory 50 (`InventoryScreen.java:137`).
+Larger z is nearer, so depth overrode paint order and the pedestal (150) covered the player (100)
+whatever order they were added in. `LeaderboardScreen` is innocent — byte-identical to `26.1.2`
+apart from renames.
+
+Fixed with a new **opt-in gelatin seam** rather than a change to the paint loop:
+`IUIElement#setZOffset` has the container apply an extra pose translate around that child and its
+subtree (`pushZOffset`/`popZOffset` on `IRenderContext`, implemented in `MinecraftRenderContext`),
+and `LeaderboardScreen` sets `PODIUM_BLOCK_Z_STEP = 32` per block and `PODIUM_PLAYER_Z_OFFSET = 400`
+on the player. A global per-child z step was rejected: it would have to dominate the baked-in
+150/100/50 **and** stay inside the GUI's ±10000 ortho depth budget
+(`GameRenderer.java:1057-1063`: `setOrtho(0, w, h, 0, 1000, 21000)` with a `-11000` modelview
+translate) once it accumulates down a tree — a 50-row list at step 200 lands exactly on the clip
+limit. Gelatin change is **`gelatinui 1.0.32+1.21.1`** (branch `mc/1.21.1`, commit `e00acee`): the
+API, `mod_version` 1.0.31 → 1.0.32, and a new `UIContainerZOffsetTest` pinning push order, the
+zero-skip, nesting and push/pop balance. Gelatin signs every publication unconditionally and this
+machine has no usable key, so the mavenLocal publish ran with the sign tasks temporarily disabled
+and `build.gradle` reverted immediately (gelatin tree clean at `e00acee`).
+
+**Not verified in-game.** Both fixes compile and the seam is unit-tested, but the podium needs live
+leaderboard data, so its ordering could not be reproduced headlessly — **A6.3 stays open pending the
+owner's re-check.** One thing for that re-check: the stack now paints **top block in front**, which
+is what `buildBlockColumn`'s own comment documents as intended and what `26.1.2` does. If the owner
+expected the opposite, that is a separate design decision, not a bug in this fix.
+
+**Track B implication.** 1.20.1's `GuiGraphics` is the same immediate-mode depth-writing path, so
+this bug will exist there too: gelatin's 1.20.1 line needs the same `setZOffset` API before the
+podium can be fixed on the Forge line.
+
 ### A6.4 → G2
 Record G2 in `checklist.md`. `port/1.20.1` is cut from here.
 

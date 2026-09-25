@@ -146,6 +146,20 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
     // the player ends up standing on the block's bounding-box edge instead of its rendered surface.
     private static final float PODIUM_PLAYER_PEDESTAL_OVERLAP = -6f - PODIUM_TOP_BLOCK_SURFACE_DROP;
 
+    // Which of two overlapping podium elements ends up in front is paint order on 26.1.2, because
+    // its GUI pose is a 2D matrix with no z at all. On 1.21.1 the pose is a real 3D PoseStack and
+    // children are painted depth-tested, so depth decides instead — and every leaf renderer bakes
+    // in its own depth: vanilla items sit at z=150 (GuiGraphics#renderItem), gelatin's posed
+    // player at z=100 (PlayerModelRenderer.Z_OFFSET), vanilla's entity-in-inventory at z=50
+    // (InventoryScreen). Left alone, that puts a pedestal's blocks permanently in front of a
+    // player standing on them, whatever order they are added in. These offsets push each element
+    // nearer so paint order decides again; gelatin exposes no other seam for it. Both are inert
+    // on 26.1.2, where the z offset has nowhere to be applied.
+    /** Per-block lift inside a podium column, chosen to clear a block model's own depth extent. */
+    private static final float PODIUM_BLOCK_Z_STEP = 32.0f;
+    /** Lift for a podium player — clears the tallest pedestal's topmost block (see the constant above). */
+    private static final float PODIUM_PLAYER_Z_OFFSET = 400.0f;
+
     // Live element refs, one per tab, so a response for a given type can update its list in place
     // without rebuilding the other three tabs.
     private final Map<LeaderboardType, VBox> listWrappers = new EnumMap<>(LeaderboardType.class);
@@ -348,15 +362,20 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
 
         playerOnPedestal.addChildAt(pedestal, groupWidth / 2f, pedestalTop + pedestalSize.y / 2f);
         if (uuid != null) {
+            // Both player renderers sit less far forward than a vanilla item does on 1.21.1, so
+            // without this lift the pedestal's blocks cover the player — see
+            // PODIUM_PLAYER_Z_OFFSET. On 26.1.2 the add order below already decides it.
             if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
                 PlayerAvatarRenderer avatar = UI.playerAvatar(playerWidth, playerHeight)
                         .profile(PlayerHeadItems.resolvableProfile(uuid, name))
                         .heldItem(catchStack(entry));
+                avatar.setZOffset(PODIUM_PLAYER_Z_OFFSET);
                 playerOnPedestal.addChildAt(avatar, groupWidth / 2f, playerHeight / 2f);
             } else {
                 PlayerModelRenderer model = UI.playerModel(playerWidth, playerHeight)
                         .profile(PlayerHeadItems.resolvableProfile(uuid, name))
                         .pose(isFirst ? PlayerPoses.VICTORY : PlayerPoses.ARMS_CROSSED);
+                model.setZOffset(PODIUM_PLAYER_Z_OFFSET);
                 playerOnPedestal.addChildAt(model, groupWidth / 2f, playerHeight / 2f);
             }
         }
@@ -444,7 +463,11 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         // positions run the other way: y grows downward, so the bottom block gets the largest y.
         for (int i = 0; i < column.size(); i++) {
             float centerY = (column.size() - 1 - i) * step + blockSize / 2f;
-            pedestal.addChildAt(UI.itemRenderer(column.get(i)).itemScale(PODIUM_BLOCK_SCALE), blockSize / 2f, centerY);
+            // Lifted a step per block (see PODIUM_BLOCK_Z_STEP) so on 1.21.1 the stack is ordered
+            // by this list order as well, rather than by each cube's own depth extent.
+            var block = UI.itemRenderer(column.get(i)).itemScale(PODIUM_BLOCK_SCALE);
+            block.setZOffset(i * PODIUM_BLOCK_Z_STEP);
+            pedestal.addChildAt(block, blockSize / 2f, centerY);
         }
         return pedestal;
     }
