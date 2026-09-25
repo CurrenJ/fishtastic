@@ -669,11 +669,9 @@ zero-skip, nesting and push/pop balance. Gelatin signs every publication uncondi
 machine has no usable key, so the mavenLocal publish ran with the sign tasks temporarily disabled
 and `build.gradle` reverted immediately (gelatin tree clean at `e00acee`).
 
-**Not verified in-game.** Both fixes compile and the seam is unit-tested, but the podium needs live
-leaderboard data, so its ordering could not be reproduced headlessly — **A6.3 stays open pending the
-owner's re-check.** One thing for that re-check: the stack now paints **top block in front**, which
-is what `buildBlockColumn`'s own comment documents as intended and what `26.1.2` does. If the owner
-expected the opposite, that is a separate design decision, not a bug in this fix.
+**Re-checked and confirmed 2026-09-25.** The owner verified both fixes in-game on both loaders —
+tooltip slots and the leaderboard podium (including the top-block-in-front stack order) all look
+correct. **A6.3 is done.**
 
 **Track B implication.** 1.20.1's `GuiGraphics` is the same immediate-mode depth-writing path, so
 this bug will exist there too: gelatin's 1.20.1 line needs the same `setZOffset` API before the
