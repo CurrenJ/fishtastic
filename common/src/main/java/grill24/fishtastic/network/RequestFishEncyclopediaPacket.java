@@ -31,7 +31,7 @@ public record RequestFishEncyclopediaPacket(boolean openMenu) implements Fishtas
         return TYPE;
     }
 
-    public static void handleClientToServer(RequestFishEncyclopediaPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(RequestFishEncyclopediaPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {

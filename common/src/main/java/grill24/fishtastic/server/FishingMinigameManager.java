@@ -1164,8 +1164,8 @@ public class FishingMinigameManager {
                 player.getX(), player.getEyeY() - 0.3, player.getZ(), 5, 0.15, 0.1, 0.15, 0.05);
     }
 
-    private void sendToPlayer(ServerPlayer player, grill24.fishtastic.network.FishtasticPayload payload) {
-        player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(payload));
+    private void sendToPlayer(ServerPlayer player, StartFishingMinigamePacket payload) {
+        grill24.fishtastic.network.NetworkApiSided.sendToPlayer(player, payload, StartFishingMinigamePacket.STREAM_CODEC);
     }
 
     public boolean isPlayerInActiveSession(UUID uuid) {

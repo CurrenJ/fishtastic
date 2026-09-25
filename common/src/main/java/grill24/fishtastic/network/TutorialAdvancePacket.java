@@ -24,7 +24,7 @@ public record TutorialAdvancePacket(TutorialStep fromStep) implements Fishtastic
         return TYPE;
     }
 
-    public static void handleClientToServer(TutorialAdvancePacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(TutorialAdvancePacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {

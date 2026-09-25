@@ -74,7 +74,7 @@ public record StartFishingMinigamePacket(
     /**
      * Handle packet on client side
      */
-    public static void handle(StartFishingMinigamePacket packet, FishtasticPackets.IPacketContext context) {
+    public static void handle(StartFishingMinigamePacket packet, FishtasticPacketHandling.IPacketContext context) {
         context.enqueueWork(() -> {
             Fishtastic.LOGGER.info("Received start fishing minigame packet: session={}, targets={}",
                     packet.sessionId, packet.targets.size());

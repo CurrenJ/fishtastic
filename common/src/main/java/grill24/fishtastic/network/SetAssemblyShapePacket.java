@@ -35,7 +35,7 @@ public record SetAssemblyShapePacket(FishTankShape shape) implements FishtasticP
         return TYPE;
     }
 
-    public static void handleClientToServer(SetAssemblyShapePacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(SetAssemblyShapePacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.getPlayer() instanceof ServerPlayer player)) return;
             // Only applies while the player actually has the assembly menu open; a stale packet

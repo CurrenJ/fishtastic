@@ -41,7 +41,7 @@ public record FinishFishingMinigamePacket(
     /**
      * Handle packet on server side (client reports results)
      */
-    public static void handleClientToServer(FinishFishingMinigamePacket packet, FishtasticPackets.IPacketContext context) {
+    public static void handleClientToServer(FinishFishingMinigamePacket packet, FishtasticPacketHandling.IPacketContext context) {
         context.enqueueWork(() -> {
             var player = context.getPlayer();
             if (!(player instanceof ServerPlayer serverPlayer)) {

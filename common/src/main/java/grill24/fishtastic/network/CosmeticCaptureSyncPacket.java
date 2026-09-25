@@ -5,7 +5,6 @@ import grill24.fishtastic.command.CosmeticCaptureSession;
 import net.minecraft.core.BlockPos;
 import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.network.codec.BufCodec;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -43,19 +42,19 @@ public record CosmeticCaptureSyncPacket(
     }
 
     public static void sendToPlayer(ServerPlayer player, CosmeticCaptureSession session) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new CosmeticCaptureSyncPacket(
+        NetworkApiSided.sendToPlayer(player, new CosmeticCaptureSyncPacket(
                 true,
                 session.mode(),
                 Optional.ofNullable(session.corner1()),
                 Optional.ofNullable(session.corner2()),
                 Optional.ofNullable(session.anchor())
-        )));
+        ), STREAM_CODEC);
     }
 
     public static void sendClear(ServerPlayer player) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new CosmeticCaptureSyncPacket(
+        NetworkApiSided.sendToPlayer(player, new CosmeticCaptureSyncPacket(
                 false, CosmeticCaptureSession.Mode.CORNER_1, Optional.empty(), Optional.empty(), Optional.empty()
-        )));
+        ), STREAM_CODEC);
     }
 
     @FunctionalInterface
@@ -69,7 +68,7 @@ public record CosmeticCaptureSyncPacket(
         clientHandler = handler;
     }
 
-    public static void handleServerToClient(CosmeticCaptureSyncPacket packet, FishtasticPackets.IPacketContext context) {
+    public static void handleServerToClient(CosmeticCaptureSyncPacket packet, FishtasticPacketHandling.IPacketContext context) {
         context.enqueueWork(() -> {
             if (clientHandler != null) {
                 clientHandler.handle(packet);

@@ -51,7 +51,7 @@ public record RequestLeaderboardPacket(
     }
 
     /** Handles the packet on the server side. */
-    public static void handleClientToServer(RequestLeaderboardPacket packet, FishtasticPackets.IPacketContext context) {
+    public static void handleClientToServer(RequestLeaderboardPacket packet, FishtasticPacketHandling.IPacketContext context) {
         context.enqueueWork(() -> {
             if (!(context.getPlayer() instanceof ServerPlayer serverPlayer)) return;
 
@@ -60,8 +60,7 @@ public record RequestLeaderboardPacket(
 
             LeaderboardResponsePacket response = new LeaderboardResponsePacket(
                     packet.leaderboardType(), packet.ascending(), entries);
-            serverPlayer.connection.send(
-                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(response));
+            NetworkApiSided.sendToPlayer(serverPlayer, response, LeaderboardResponsePacket.STREAM_CODEC);
 
             Fishtastic.LOGGER.debug("Sent {} leaderboard entries to {} (type={}, asc={})",
                     entries.size(), serverPlayer.getName().getString(), packet.leaderboardType(), packet.ascending());

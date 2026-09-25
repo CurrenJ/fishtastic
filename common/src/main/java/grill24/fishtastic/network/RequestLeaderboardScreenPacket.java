@@ -23,7 +23,7 @@ public record RequestLeaderboardScreenPacket() implements FishtasticPayload {
         return TYPE;
     }
 
-    public static void handleClientToServer(RequestLeaderboardScreenPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(RequestLeaderboardScreenPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.getPlayer() instanceof ServerPlayer serverPlayer) {
                 GelatinOpenMenuCompat.openFishtasticMenu(serverPlayer);

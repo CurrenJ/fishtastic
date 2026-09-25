@@ -39,7 +39,7 @@ public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int
         return TYPE;
     }
 
-    public static void handleClientToServer(RemoveTankEntryPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(RemoveTankEntryPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.getPlayer() instanceof ServerPlayer player)) return;
             // Only applies while the player actually has the browser menu open; a stale packet

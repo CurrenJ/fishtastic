@@ -20,7 +20,7 @@ public record RequestQuestLogPacket() implements FishtasticPayload {
         return TYPE;
     }
 
-    public static void handleClientToServer(RequestQuestLogPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(RequestQuestLogPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {

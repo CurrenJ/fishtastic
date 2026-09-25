@@ -3,7 +3,6 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.network.codec.BufCodec;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -44,15 +43,15 @@ public record SetDayRatePacket(float rate) implements FishtasticPayload {
         return TYPE;
     }
 
-    public static void handleServerToClient(SetDayRatePacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleServerToClient(SetDayRatePacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> clientRate = packet.rate());
     }
 
     public static void sendToPlayer(ServerPlayer player, float rate) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new SetDayRatePacket(rate)));
+        NetworkApiSided.sendToPlayer(player, new SetDayRatePacket(rate), STREAM_CODEC);
     }
 
     public static void broadcast(MinecraftServer server, float rate) {
-        server.getPlayerList().broadcastAll(new ClientboundCustomPayloadPacket(new SetDayRatePacket(rate)));
+        NetworkApiSided.broadcast(server, new SetDayRatePacket(rate), STREAM_CODEC);
     }
 }

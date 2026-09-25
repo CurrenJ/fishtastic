@@ -70,7 +70,7 @@ public record LeaderboardResponsePacket(
 
     /** Handles the packet on the client side. */
     public static void handleServerToClient(LeaderboardResponsePacket packet,
-                                             FishtasticPackets.IPacketContext context) {
+                                             FishtasticPacketHandling.IPacketContext context) {
         context.enqueueWork(() -> {
             Fishtastic.LOGGER.debug("Received leaderboard response: type={}, entries={}",
                     packet.leaderboardType(), packet.entries().size());

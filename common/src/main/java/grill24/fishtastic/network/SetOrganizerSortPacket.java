@@ -31,7 +31,7 @@ public record SetOrganizerSortPacket(OrganizerSortMode mode, boolean ascending) 
         return TYPE;
     }
 
-    public static void handleClientToServer(SetOrganizerSortPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(SetOrganizerSortPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.getPlayer() instanceof ServerPlayer player)) return;
             // Only applies while the player actually has the organizer menu open; a stale packet

@@ -34,7 +34,7 @@ public record PurchaseShopEntryPacket(ResourceLocation entryId) implements Fisht
         return TYPE;
     }
 
-    public static void handleClientToServer(PurchaseShopEntryPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(PurchaseShopEntryPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (!(player instanceof ServerPlayer serverPlayer)) return;

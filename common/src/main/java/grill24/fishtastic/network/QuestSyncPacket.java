@@ -4,7 +4,6 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.network.codec.BufCodec;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -99,7 +98,7 @@ public record QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
                 baitDepletedItem, firstCatchItems, state.getShopRefreshCount());
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        NetworkApiSided.sendToPlayer(player, packet, STREAM_CODEC);
     }
 
     public static ClientHandler clientHandler;
@@ -112,7 +111,7 @@ public record QuestSyncPacket(
         clientHandler = h;
     }
 
-    public static void handleServerToClient(QuestSyncPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleServerToClient(QuestSyncPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (clientHandler != null) clientHandler.handle(packet);
         });

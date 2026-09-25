@@ -23,7 +23,7 @@ public record RefreshShopPacket() implements FishtasticPayload {
         return TYPE;
     }
 
-    public static void handleClientToServer(RefreshShopPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(RefreshShopPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (!(player instanceof ServerPlayer serverPlayer)) return;

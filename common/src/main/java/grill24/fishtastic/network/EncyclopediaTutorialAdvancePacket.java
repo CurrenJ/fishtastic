@@ -24,7 +24,7 @@ public record EncyclopediaTutorialAdvancePacket(EncyclopediaTutorialStep fromSte
         return TYPE;
     }
 
-    public static void handleClientToServer(EncyclopediaTutorialAdvancePacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(EncyclopediaTutorialAdvancePacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {

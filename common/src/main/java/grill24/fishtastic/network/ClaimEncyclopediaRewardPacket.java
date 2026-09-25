@@ -36,7 +36,7 @@ public record ClaimEncyclopediaRewardPacket(ResourceLocation fishId, Encyclopedi
         return TYPE;
     }
 
-    public static void handleClientToServer(ClaimEncyclopediaRewardPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleClientToServer(ClaimEncyclopediaRewardPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (!(player instanceof ServerPlayer serverPlayer)) return;

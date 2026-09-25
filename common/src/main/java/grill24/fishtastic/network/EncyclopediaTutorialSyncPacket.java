@@ -3,7 +3,6 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.network.codec.BufCodec;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -34,13 +33,13 @@ public record EncyclopediaTutorialSyncPacket(EncyclopediaTutorialStep step) impl
         clientHandler = h;
     }
 
-    public static void handleServerToClient(EncyclopediaTutorialSyncPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleServerToClient(EncyclopediaTutorialSyncPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (clientHandler != null) clientHandler.handle(packet);
         });
     }
 
     public static void sendToPlayer(ServerPlayer player, EncyclopediaTutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new EncyclopediaTutorialSyncPacket(step)));
+        NetworkApiSided.sendToPlayer(player, new EncyclopediaTutorialSyncPacket(step), STREAM_CODEC);
     }
 }

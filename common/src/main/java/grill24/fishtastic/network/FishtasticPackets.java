@@ -44,74 +44,88 @@ public class FishtasticPackets {
     /**
      * Register client-to-server packets
      */
-    public static void registerClientToServerPackets(IPacketRegistrar registrar) {
+    public static void registerClientToServerPackets(FishtasticPacketHandling.IPacketRegistrar registrar) {
         registrar.registerClientToServer(
                 FinishFishingMinigamePacket.TYPE,
+                FinishFishingMinigamePacket.class,
                 FinishFishingMinigamePacket.STREAM_CODEC,
                 FinishFishingMinigamePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RequestLeaderboardPacket.TYPE,
+                RequestLeaderboardPacket.class,
                 RequestLeaderboardPacket.STREAM_CODEC,
                 RequestLeaderboardPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 CompleteQuestPacket.TYPE,
+                CompleteQuestPacket.class,
                 CompleteQuestPacket.STREAM_CODEC,
                 CompleteQuestPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RequestQuestLogPacket.TYPE,
+                RequestQuestLogPacket.class,
                 RequestQuestLogPacket.STREAM_CODEC,
                 RequestQuestLogPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RequestLeaderboardScreenPacket.TYPE,
+                RequestLeaderboardScreenPacket.class,
                 RequestLeaderboardScreenPacket.STREAM_CODEC,
                 RequestLeaderboardScreenPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 PurchaseShopEntryPacket.TYPE,
+                PurchaseShopEntryPacket.class,
                 PurchaseShopEntryPacket.STREAM_CODEC,
                 PurchaseShopEntryPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RefreshShopPacket.TYPE,
+                RefreshShopPacket.class,
                 RefreshShopPacket.STREAM_CODEC,
                 RefreshShopPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 TutorialAdvancePacket.TYPE,
+                TutorialAdvancePacket.class,
                 TutorialAdvancePacket.STREAM_CODEC,
                 TutorialAdvancePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RequestFishEncyclopediaPacket.TYPE,
+                RequestFishEncyclopediaPacket.class,
                 RequestFishEncyclopediaPacket.STREAM_CODEC,
                 RequestFishEncyclopediaPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 ClaimEncyclopediaRewardPacket.TYPE,
+                ClaimEncyclopediaRewardPacket.class,
                 ClaimEncyclopediaRewardPacket.STREAM_CODEC,
                 ClaimEncyclopediaRewardPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 EncyclopediaTutorialAdvancePacket.TYPE,
+                EncyclopediaTutorialAdvancePacket.class,
                 EncyclopediaTutorialAdvancePacket.STREAM_CODEC,
                 EncyclopediaTutorialAdvancePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 SetAssemblyShapePacket.TYPE,
+                SetAssemblyShapePacket.class,
                 SetAssemblyShapePacket.STREAM_CODEC,
                 SetAssemblyShapePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 SetOrganizerSortPacket.TYPE,
+                SetOrganizerSortPacket.class,
                 SetOrganizerSortPacket.STREAM_CODEC,
                 SetOrganizerSortPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RemoveTankEntryPacket.TYPE,
+                RemoveTankEntryPacket.class,
                 RemoveTankEntryPacket.STREAM_CODEC,
                 RemoveTankEntryPacket::handleClientToServer
         );
@@ -120,54 +134,64 @@ public class FishtasticPackets {
     /**
      * Register server-to-client packets
      */
-    public static void registerServerToClientPackets(IPacketRegistrar registrar) {
+    public static void registerServerToClientPackets(FishtasticPacketHandling.IPacketRegistrar registrar) {
         registrar.registerServerToClient(
                 StartFishingMinigamePacket.TYPE,
+                StartFishingMinigamePacket.class,
                 StartFishingMinigamePacket.STREAM_CODEC,
                 StartFishingMinigamePacket::handle
         );
         registrar.registerServerToClient(
                 LeaderboardResponsePacket.TYPE,
+                LeaderboardResponsePacket.class,
                 LeaderboardResponsePacket.STREAM_CODEC,
                 LeaderboardResponsePacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 QuestSyncPacket.TYPE,
+                QuestSyncPacket.class,
                 QuestSyncPacket.STREAM_CODEC,
                 QuestSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 TutorialSyncPacket.TYPE,
+                TutorialSyncPacket.class,
                 TutorialSyncPacket.STREAM_CODEC,
                 TutorialSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 FishEncyclopediaSyncPacket.TYPE,
+                FishEncyclopediaSyncPacket.class,
                 FishEncyclopediaSyncPacket.STREAM_CODEC,
                 FishEncyclopediaSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 CosmeticCaptureSyncPacket.TYPE,
+                CosmeticCaptureSyncPacket.class,
                 CosmeticCaptureSyncPacket.STREAM_CODEC,
                 CosmeticCaptureSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 EncyclopediaTutorialSyncPacket.TYPE,
+                EncyclopediaTutorialSyncPacket.class,
                 EncyclopediaTutorialSyncPacket.STREAM_CODEC,
                 EncyclopediaTutorialSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 NotificationVolumeSyncPacket.TYPE,
+                NotificationVolumeSyncPacket.class,
                 NotificationVolumeSyncPacket.STREAM_CODEC,
                 NotificationVolumeSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 TankWaterFillSyncPacket.TYPE,
+                TankWaterFillSyncPacket.class,
                 TankWaterFillSyncPacket.STREAM_CODEC,
                 TankWaterFillSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 SetDayRatePacket.TYPE,
+                SetDayRatePacket.class,
                 SetDayRatePacket.STREAM_CODEC,
                 SetDayRatePacket::handleServerToClient
         );
@@ -194,36 +218,4 @@ public class FishtasticPackets {
         registrar.accept(SetDayRatePacket.TYPE, SetDayRatePacket.STREAM_CODEC);
     }
 
-    /**
-     * Interface for platform-specific packet registration
-     */
-    public interface IPacketRegistrar {
-        <T extends FishtasticPayload> void registerClientToServer(
-                FishtasticPayload.PayloadType<T> type,
-                grill24.fishtastic.network.codec.BufCodec<T> codec,
-                IPacketHandler<T> handler
-        );
-
-        <T extends FishtasticPayload> void registerServerToClient(
-                FishtasticPayload.PayloadType<T> type,
-                grill24.fishtastic.network.codec.BufCodec<T> codec,
-                IPacketHandler<T> handler
-        );
-    }
-
-    /**
-     * Platform-agnostic packet handler interface
-     */
-    @FunctionalInterface
-    public interface IPacketHandler<T extends FishtasticPayload> {
-        void handle(T packet, IPacketContext context);
-    }
-
-    /**
-     * Context information for packet handling
-     */
-    public interface IPacketContext {
-        net.minecraft.world.entity.player.Player getPlayer();
-        void enqueueWork(Runnable runnable);
-    }
 }

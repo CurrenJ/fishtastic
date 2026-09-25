@@ -3,7 +3,6 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.network.codec.BufCodec;
-import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -61,7 +60,7 @@ public record FishEncyclopediaSyncPacket(
         List<String> claimedRewardKeys = new ArrayList<>(data.getOrCreateQuestState(player).getClaimedEncyclopediaRewardsSnapshot());
 
         FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        NetworkApiSided.sendToPlayer(player, packet, STREAM_CODEC);
     }
 
     public static ClientHandler clientHandler;
@@ -74,7 +73,7 @@ public record FishEncyclopediaSyncPacket(
         clientHandler = h;
     }
 
-    public static void handleServerToClient(FishEncyclopediaSyncPacket packet, FishtasticPackets.IPacketContext ctx) {
+    public static void handleServerToClient(FishEncyclopediaSyncPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (clientHandler != null) clientHandler.handle(packet);
         });
