@@ -10,7 +10,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
 | `port/1.21.1` | **`7839f271`** | 2026-09-25 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1–A5 done; **G1 passed 2026-09-25** (all 11 self-test scenes green on both loaders, Iris live on both, `:common:test` 78/78, fishsim byte-identical to `26.1.2`). **A6.1 done 2026-09-25**: one shared `FishtasticGameTests` on vanilla `@GameTest`, `port/excludes.txt` empty, **263/263 green on both loaders** (`:fabric:runGametest` and `:neoforge:runGametest`). Hook stage raised to **`full`** (its first run passed as part of that commit). A6.2's green bar is green too (see its row); **A6.3 done 2026-09-25 (owner playtest, both fixes confirmed in-game on both loaders); G2 is what remains.** Includes `26.1.2` `7839f271` (cherry-picked as `e33f5792`). |
-| `port/1.20.1` | **`4ba2099c`** | 2026-09-25 | Cut from `port/1.21.1` at G2 (`4ba2099c`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. Nothing else done yet; B1 (Java 17, Forge 47.4.x, FAPI 0.92.12, JEI 15.x) is next. Includes `26.1.2` `7839f271` (inherited via `port/1.21.1`). |
+| `port/1.20.1` | **`911495f7`** | 2026-09-25 | Cut from `port/1.21.1` at G2 (`911495f7`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. Nothing else done yet; B1 (Java 17, Forge 47.4.x, FAPI 0.92.12, JEI 15.x) is next. Includes `26.1.2` `7839f271` (inherited via `port/1.21.1`). |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | — | — | not created |
 
