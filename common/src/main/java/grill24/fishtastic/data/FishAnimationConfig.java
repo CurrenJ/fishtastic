@@ -17,12 +17,12 @@ public sealed interface FishAnimationConfig
             "mode",
             FishAnimationConfig::modeName,
             mode -> switch (mode) {
-                case "horizontal_swim" -> HorizontalSwim.MAP_CODEC;
-                case "upright_float"   -> UprightFloat.MAP_CODEC;
-                case "floor_sit"       -> FloorSit.MAP_CODEC;
-                case "planted"         -> Planted.MAP_CODEC;
-                case "belly_down"      -> BellyDown.MAP_CODEC;
-                case "upright_sit"     -> UprightSit.MAP_CODEC;
+                case "horizontal_swim" -> HorizontalSwim.MAP_CODEC.codec();
+                case "upright_float"   -> UprightFloat.MAP_CODEC.codec();
+                case "floor_sit"       -> FloorSit.MAP_CODEC.codec();
+                case "planted"         -> Planted.MAP_CODEC.codec();
+                case "belly_down"      -> BellyDown.MAP_CODEC.codec();
+                case "upright_sit"     -> UprightSit.MAP_CODEC.codec();
                 default -> throw new IllegalArgumentException("Unknown fish animation mode: " + mode);
             }
     );
