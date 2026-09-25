@@ -44,9 +44,9 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
 
-    // B1 (docs/backport-pass2/track-b-1.20.1.md, G-1.20.1): no gelatinui-*-1.20.1 artifact exists
-    // yet, so this stays commented until G-1.20.1 publishes one. B1's probe doesn't need it.
-    // modImplementation("io.github.currenj.gelatinui:gelatinui-fabric:${gelatinui_version}")
+    // G-G2 (docs/backport-pass2/track-b-1.20.1.md): gelatinui-*-1.20.1 published to
+    // mavenLocal via gelatin-ui's own publishToMavenLocal (see gelatin-ui-worktrees/mc-1.20.1).
+    modImplementation("io.github.currenj.gelatinui:gelatinui-fabric:${gelatinui_version}")
 
     // JEI integration is optional at runtime — compile-only api, plus the full jar as a
     // dev-time convenience so `runClient` can exercise the integration locally.
