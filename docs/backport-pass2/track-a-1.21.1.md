@@ -680,6 +680,13 @@ podium can be fixed on the Forge line.
 ### A6.4 → G2
 Record G2 in `checklist.md`. `port/1.20.1` is cut from here.
 
+**G2 done 2026-09-25.** `port/excludes.txt` was already empty (A6.1 took its last lines) and no
+`src/portstub/java` directory existed (A5 took the last stub), so removal was just the scaffolding
+itself: `gradle/port-excludes.gradle` deleted and its `apply from` in `build.gradle` removed.
+`common/src/neoforge-gametest-annotations/` stayed — port-only but load-bearing (A6.1). `gw build
+-x test` succeeds and `:fabric:runDatagen` leaves `git status --porcelain` empty. `port/1.20.1` is
+cut from this tip next; see track B.
+
 ---
 
 ## A7: Release

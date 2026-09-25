@@ -88,9 +88,6 @@ subprojects {
     // Checks that keep the backport seams in place (S5 Java 17 calls, S6c id construction).
     apply from: rootProject.file('gradle/backport-guards.gradle')
 
-    // Port scaffolding: port/excludes.txt and src/portstub/java (deleted at G2).
-    apply from: rootProject.file('gradle/port-excludes.gradle')
-
     // Configure Maven publishing.
     publishing {
         publications {

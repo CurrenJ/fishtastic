@@ -1,9 +1,0 @@
-# Java sources left out of compilation on this port branch (see gradle/port-excludes.gradle).
-# One repo-relative Ant pattern per line, starting with a source directory. Each phase deletes
-# its lines; at G2 this file is empty and is deleted (docs/backport-pass2/track-a-1.21.1.md).
-# Grouped by the phase that brings the files back. A5 (rendering) took the last of its lines;
-# no src/portstub/java stand-in is in use any more either.
-
-# A6.1 returned the gametests on the shared vanilla-@GameTest harness (D10), so nothing is
-# excluded any more. The file stays empty until G2 deletes it, so a new phase has an obvious
-# place to add its lines.
