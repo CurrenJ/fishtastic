@@ -3,12 +3,11 @@ package grill24.fishtastic.component;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.util.Utility;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +79,7 @@ public record CharmEffect(
             Codec.FLOAT.optionalFieldOf("sunset_extension_seconds", 0.0f).forGetter(CharmEffect::sunsetExtensionSeconds)
     ).apply(i, CharmEffect::new));
 
-    public static final StreamCodec<ByteBuf, CharmEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    public static final BufCodec<CharmEffect> STREAM_CODEC = BufCodecs.fromCodec(CODEC);
 
     public List<Component> tooltipLines() {
         List<Component> lines = new ArrayList<>();

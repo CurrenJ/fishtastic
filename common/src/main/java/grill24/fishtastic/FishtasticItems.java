@@ -23,7 +23,6 @@ import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.item.TestItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
@@ -39,6 +38,16 @@ public class FishtasticItems {
     /** 26.1.2 stamps the item id onto its properties here; before 1.21.2 the id comes from registration alone. */
     private static Item.Properties props(ResourceLocation loc) {
         return new Item.Properties();
+    }
+
+    /**
+     * Registers {@code value} as {@code item}'s prototype default for {@code key}, the 1.20.1
+     * stand-in for 1.21.1's {@code Item.Properties#component(type, value)} (B2.1) — properties
+     * can't carry component defaults pre-1.20.5, so this runs after the item itself registers.
+     */
+    private static <T> Holder<Item> defaults(Holder<Item> item, grill24.fishtastic.component.ComponentKey<T> key, T value) {
+        key.registerDefault(item.value(), value);
+        return item;
     }
 
     // ----- Items for Rendering Only -----
@@ -227,16 +236,16 @@ public class FishtasticItems {
         REWARD_CHEST = RegistrationApiSided.getInstance().registerItem("reward_chest", loc -> new Item(props(loc).stacksTo(1)));
 
         COPPER_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("copper_fishing_rod",
-                loc -> new CopperFishingRod(props(loc).durability(250)
-                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)
-                        .component(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY)
-                        .component(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY)));
+                loc -> new CopperFishingRod(props(loc).durability(250)));
+        defaults(COPPER_FISHING_ROD, FishtasticDataComponents.ROD_BAIT_CONTENTS, RodBaitContents.EMPTY);
+        defaults(COPPER_FISHING_ROD, FishtasticDataComponents.ROD_HOOK_CONTENTS, RodHookContents.EMPTY);
+        defaults(COPPER_FISHING_ROD, FishtasticDataComponents.ROD_CHARM_CONTENTS, RodCharmContents.EMPTY);
 
         OBSIDIAN_FISHING_ROD = RegistrationApiSided.getInstance().registerItem("obsidian_fishing_rod",
-                loc -> new ObsidianFishingRod(props(loc).durability(250)
-                        .component(FishtasticDataComponents.ROD_BAIT_CONTENTS.value(), RodBaitContents.EMPTY)
-                        .component(FishtasticDataComponents.ROD_HOOK_CONTENTS.value(), RodHookContents.EMPTY)
-                        .component(FishtasticDataComponents.ROD_CHARM_CONTENTS.value(), RodCharmContents.EMPTY)));
+                loc -> new ObsidianFishingRod(props(loc).durability(250)));
+        defaults(OBSIDIAN_FISHING_ROD, FishtasticDataComponents.ROD_BAIT_CONTENTS, RodBaitContents.EMPTY);
+        defaults(OBSIDIAN_FISHING_ROD, FishtasticDataComponents.ROD_HOOK_CONTENTS, RodHookContents.EMPTY);
+        defaults(OBSIDIAN_FISHING_ROD, FishtasticDataComponents.ROD_CHARM_CONTENTS, RodCharmContents.EMPTY);
 
         // Fish items — size/weight now defined in fish_profile data entries
         ACUTE_IASPIS = RegistrationApiSided.getInstance().registerItem("acute_iaspis", loc -> new FishtasticFishItem(props(loc)));
@@ -304,23 +313,16 @@ public class FishtasticItems {
         YELLOWSTRIPE_GRUNT = RegistrationApiSided.getInstance().registerItem("yellowstripe_grunt", loc -> new FishtasticFishItem(props(loc)));
 
         // Bait items — BaitEffect component drives fishing behavior
-        WORMS = RegistrationApiSided.getInstance().registerItem("worms",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.WORMS)));
-        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.GUMMY_WORMS)));
-        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), BaitEffect.BLAZED_GRUB)));
+        WORMS = RegistrationApiSided.getInstance().registerItem("worms", loc -> new FishtasticFishItem(props(loc)));
+        defaults(WORMS, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.WORMS);
+        GUMMY_WORMS = RegistrationApiSided.getInstance().registerItem("gummy_worms", loc -> new FishtasticFishItem(props(loc)));
+        defaults(GUMMY_WORMS, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.GUMMY_WORMS);
+        BLAZED_GRUB = RegistrationApiSided.getInstance().registerItem("blazed_grub", loc -> new FishtasticFishItem(props(loc)));
+        defaults(BLAZED_GRUB, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.BLAZED_GRUB);
 
         PILE_OF_FISH = RegistrationApiSided.getInstance().registerItem("pile_of_fish",
-                loc -> new PileOfFishItem(
-                        props(loc)
-                                .stacksTo(1)
-                                .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
-                )
-        );
+                loc -> new PileOfFishItem(props(loc).stacksTo(1)));
+        defaults(PILE_OF_FISH, FishtasticItemData.BUNDLE_CONTENTS, BundleContents.EMPTY);
 
         // Specialist bait items — boost a targeted subset and suppress the rest (0.3x)
         // without hard-excluding it. Item ids kept as-is (freshwater/ocean/predator/deep_sea_bait)
@@ -339,20 +341,18 @@ public class FishtasticItems {
         // punishing sloppy centering on its already-boosted small-fish pool. Session-wide, not a
         // per-fish FishGroupAffinity field, since only one bobber renders per cast — see
         // BaitEffect.smallBobber's field doc.
-        SMALL_FISH_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 2.0f, 0.3f, 0.35f)),
-                                1.0f, true))));
+        SMALL_FISH_BAIT = RegistrationApiSided.getInstance().registerItem("freshwater_bait", loc -> new FishtasticFishItem(props(loc)));
+        defaults(SMALL_FISH_BAIT, FishtasticDataComponents.BAIT_EFFECT, new BaitEffect(
+                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 1, 1.0f, 0.25f,
+                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.SMALL_FISH, 2.0f, 0.3f, 0.35f)),
+                1.0f, true));
         // catchProgressMultiplier 0.7 — Calm Bait's downside: favored (calm) catches fill the
         // catch bar at 70% rate (milder than Trophy's 0.5x — calm isn't meant to be as punishing,
         // just less of a pushover), per the 2026-09-08 bait-downside pass.
-        CALM_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 2.0f, 0.3f, 0.4f, 1.0f, 0.7f))))));
+        CALM_BAIT = RegistrationApiSided.getInstance().registerItem("ocean_bait", loc -> new FishtasticFishItem(props(loc)));
+        defaults(CALM_BAIT, FishtasticDataComponents.BAIT_EFFECT, new BaitEffect(
+                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
+                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.CALM_FISH, 2.0f, 0.3f, 0.4f, 1.0f, 0.7f))));
         // multiplier raised 1.5->2.2 (and, for Trophy Bait, rarityExponent steepened 0.6->0.45)
         // per the 2026-07-24 bait balance audit: Gummy Worms' rarityFlattening=0.85 was
         // dominating both baits' rare/uncommon tag-mates. New values move the crossover point
@@ -364,67 +364,53 @@ public class FishtasticItems {
         // the 2026-09-08 feedback that the bait didn't feel frenzied enough. This is the bait's
         // slight challenge/downside counterweight for its 2.2x catch-odds boost — see
         // FishGroupAffinity.targetSpeedMultiplier's field doc.
-        FRENZY_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 2.2f, 0.3f, 0.35f, 1.6f))))));
+        FRENZY_BAIT = RegistrationApiSided.getInstance().registerItem("predator_bait", loc -> new FishtasticFishItem(props(loc)));
+        defaults(FRENZY_BAIT, FishtasticDataComponents.BAIT_EFFECT, new BaitEffect(
+                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, 0, 1.0f, 0.25f,
+                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.FRENZY_FISH, 2.2f, 0.3f, 0.35f, 1.6f))));
         // catchProgressMultiplier 0.5 — Trophy Bait's downside: favored (big) catches are chonky
         // and fill the catch bar at half rate, roughly doubling how long they take to reel in
         // (minigame-only; see FishGroupAffinity.catchProgressMultiplier's field doc). This bait's
         // counterweight for its 2.2x catch-odds boost, per the 2026-09-08 bait-downside pass.
-        TROPHY_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait",
-                loc -> new FishtasticFishItem(props(loc)
-                        .component(FishtasticDataComponents.BAIT_EFFECT.value(), new BaitEffect(
-                                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, -1, 1.0f, 0.25f,
-                                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 2.2f, 0.3f, 0.45f, 1.0f, 0.5f))))));
+        TROPHY_BAIT = RegistrationApiSided.getInstance().registerItem("deep_sea_bait", loc -> new FishtasticFishItem(props(loc)));
+        defaults(TROPHY_BAIT, FishtasticDataComponents.BAIT_EFFECT, new BaitEffect(
+                0.0f, BaitEffect.DEFAULT_TREASURE_CHANCE, BaitEffect.DEFAULT_TRASH_CHANCE, -1, 1.0f, 0.25f,
+                Optional.empty(), List.of(new BaitEffect.FishGroupAffinity(FishtasticItemTags.BIG_FISH, 2.2f, 0.3f, 0.45f, 1.0f, 0.5f))));
 
         // Hook items — loaded into the rod's hook slot; affect quality bias and trash chance
-        HOOK = RegistrationApiSided.getInstance().registerItem("hook",
-                loc -> new FishtasticFishItem(props(loc).durability(100)
-                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.HOOK)));
-        OLD_COPPER_HOOK = RegistrationApiSided.getInstance().registerItem("old_copper_hook",
-                loc -> new FishtasticFishItem(props(loc).durability(50)
-                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.OLD_COPPER_HOOK)));
+        HOOK = RegistrationApiSided.getInstance().registerItem("hook", loc -> new FishtasticFishItem(props(loc).durability(100)));
+        defaults(HOOK, FishtasticDataComponents.HOOK_EFFECT, HookEffect.HOOK);
+        OLD_COPPER_HOOK = RegistrationApiSided.getInstance().registerItem("old_copper_hook", loc -> new FishtasticFishItem(props(loc).durability(50)));
+        defaults(OLD_COPPER_HOOK, FishtasticDataComponents.HOOK_EFFECT, HookEffect.OLD_COPPER_HOOK);
         // Soft gold wears out fast — the treasure bonus is paid for in durability.
-        GOLDEN_HOOK = RegistrationApiSided.getInstance().registerItem("golden_hook",
-                loc -> new FishtasticFishItem(props(loc).durability(32)
-                        .component(FishtasticDataComponents.HOOK_EFFECT.value(), HookEffect.GOLDEN_HOOK)));
+        GOLDEN_HOOK = RegistrationApiSided.getInstance().registerItem("golden_hook", loc -> new FishtasticFishItem(props(loc).durability(32)));
+        defaults(GOLDEN_HOOK, FishtasticDataComponents.HOOK_EFFECT, HookEffect.GOLDEN_HOOK);
 
         // Charm items — loaded into the rod's charm slot; affect fishing minigame physics
-        AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.AMETHYST_CHARM)));
-        CRYSTAL_BALL_CHARM = RegistrationApiSided.getInstance().registerItem("crystal_ball_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.CRYSTAL_BALL_CHARM)));
-        FOUR_LEAF_CHARM = RegistrationApiSided.getInstance().registerItem("four_leaf_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.FOUR_LEAF_CHARM)));
-        LUNA_CHARM = RegistrationApiSided.getInstance().registerItem("luna_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LUNA_CHARM)));
-        BANANA_CHARM = RegistrationApiSided.getInstance().registerItem("banana_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BANANA_CHARM)));
-        ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.ANGLERS_ALMANAC)));
+        AMETHYST_CHARM = RegistrationApiSided.getInstance().registerItem("amethyst_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(AMETHYST_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.AMETHYST_CHARM);
+        CRYSTAL_BALL_CHARM = RegistrationApiSided.getInstance().registerItem("crystal_ball_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(CRYSTAL_BALL_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.CRYSTAL_BALL_CHARM);
+        FOUR_LEAF_CHARM = RegistrationApiSided.getInstance().registerItem("four_leaf_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(FOUR_LEAF_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.FOUR_LEAF_CHARM);
+        LUNA_CHARM = RegistrationApiSided.getInstance().registerItem("luna_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(LUNA_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.LUNA_CHARM);
+        BANANA_CHARM = RegistrationApiSided.getInstance().registerItem("banana_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(BANANA_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.BANANA_CHARM);
+        ANGLERS_ALMANAC = RegistrationApiSided.getInstance().registerItem("anglers_almanac", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(ANGLERS_ALMANAC, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.ANGLERS_ALMANAC);
         // Not a rod-slot charm and deliberately absent from FISHING_CHARMS — single-use, used
         // from the hand, and it changes the world's weather for real. See StormCharmItem.
         STORM_CHARM = RegistrationApiSided.getInstance().registerItem("storm_charm",
                 loc -> new StormCharmItem(props(loc).stacksTo(16)));
-        LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.LITTLE_FISH_BOX)));
-        BAIT_BUDDY_CHARM = RegistrationApiSided.getInstance().registerItem("bait_buddy_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.BAIT_BUDDY_CHARM)));
+        LITTLE_FISH_BOX = RegistrationApiSided.getInstance().registerItem("little_fish_box", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(LITTLE_FISH_BOX, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.LITTLE_FISH_BOX);
+        BAIT_BUDDY_CHARM = RegistrationApiSided.getInstance().registerItem("bait_buddy_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(BAIT_BUDDY_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.BAIT_BUDDY_CHARM);
         // Passive like Little Fish Box/Angler's Almanac — works from anywhere in inventory, no
         // rod-slotting required. See SunsetExtensionHandler for the tick-driven dusk slowdown.
-        SUNSET_POSTCARD_CHARM = RegistrationApiSided.getInstance().registerItem("sunset_postcard_charm",
-                loc -> new FishtasticFishItem(props(loc).durability(64)
-                        .component(FishtasticDataComponents.CHARM_EFFECT.value(), CharmEffect.SUNSET_POSTCARD_CHARM)));
+        SUNSET_POSTCARD_CHARM = RegistrationApiSided.getInstance().registerItem("sunset_postcard_charm", loc -> new FishtasticFishItem(props(loc).durability(64)));
+        defaults(SUNSET_POSTCARD_CHARM, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.SUNSET_POSTCARD_CHARM);
 
         PILE_OF_COINS = RegistrationApiSided.getInstance().registerItem("pile_of_coins",
                 loc -> new Item(props(loc).stacksTo(64)));

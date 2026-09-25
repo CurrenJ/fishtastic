@@ -164,6 +164,24 @@ The tank loot table JSON differs on 1.20.1 (`fishtastic:copy_tank_data` instead 
 
 **Gate (G-B2):** `gw17 :common:compileJava` with B3–B5 rows still excluded, then `gw17 :common:test`. Expect **78**, plus the new `ComponentKeyTest`, which is a unit test of normalization, defaults, round-trip and `HAS_ALERT`.
 
+### B2.1 as built (2026-09-25)
+
+**G-B2 not reached yet — this is a first slice.** `:common:compileJava` is green for a much narrower file set than "everything except B3-B5", and `:common:test` runs green for `ComponentKeyTest` alone (8 cases); the other 9 pre-existing unit tests stay excluded (their production code — `client/`, most of `fishtank/`, `server/` — isn't ported). Three corrections to what B2 assumed:
+
+1. **The `BufCodec`/`BufCodecs` shim (B3.1) had to land now, not at B3.** The 9 item-data component records each declare their `STREAM_CODEC` in the same file as the persistent `CODEC` B2.1 needs, and `net.minecraft.network.codec.StreamCodec`/`ByteBufCodecs` don't exist on 1.20.1 MC jars — so the file won't compile at all until something replaces those types, B3 or not. Landed a scoped `common/.../network/codec/{BufCodec,BufCodecs}.java` with only what those 9 files (+ `BundleContents`, B2.2) use: `composite` (1/2/3-field), `of`, `unit`, `fromCodec` (NBT round-trip through the buffer, wrapped in a throwaway `CompoundTag` key since not every component's codec encodes to a compound), `FLOAT`, `idMapper`. B3 does the full 49-file sed and the registrars; this shim's surface just needs to grow, not change shape.
+2. **`util/Ids` (B5.1) had to land now too.** `ComponentKey.of` needs to construct a `fishtastic:<name>` id, and `Ids.of`'s body was still `ResourceLocation.fromNamespaceAndPath` (1.21.1-only). Pulled forward B5.1's one-file fix: `new ResourceLocation(ns, path)` / `new ResourceLocation("minecraft", path)` / `new ResourceLocation(id)`; `tryParse` was already MC20-native.
+3. **`FishtasticItems.java` doesn't compile yet, on purpose.** Its `.component(KEY.value(), V)` calls were converted to a `defaults(item, KEY, V)` helper (registers into `ItemComponentDefaults` after the item registers, since properties can't carry component defaults pre-1.20.5) — but the file stays on `port/excludes.txt`. It pulls in the *entire* registration graph (`IRegistrationApi`/`RegistrationApiSided`, every `block/`, most of `item/`, `menu/` (blocked on G-1.20.1's gelatin-ui), `recipe/`), which is B2.6/B2.7/B3.2/B5.3 territory, not B2.1's. It'll come off the exclude list once those land.
+
+**What actually compiles now** (`port/excludes.txt`'s inverse): `FishtasticDataComponents`, `FishtasticItemData` (with a package-private `BUNDLE_CONTENTS` key covering vanilla's missing bundle component, and a `HeadProfile` record replacing `ResolvableProfile`, S1b — 1.20.1-only for now, not propagated to the other branches), the whole `component/` package including the new `ComponentKey`, `ItemComponentDefaults`, `BundleContents` (B2.2, class only — the 11 files that import it are still excluded), `FishtasticItemPatch` (B2.5, class only — `QuestReward` was updated to use it since it's tiny, `ShopEntry` and the 94 JSON files weren't touched yet), `FishTankShape`, `QuestCategory`/`QuestDifficulty`/`QuestReward`, `FishTankShapeUnlocks`, `Fishtastic`/`FishtasticItemTags`/`util.{Ids,MathUtil,Utility}`.
+
+Two portstubs, both citing what they're standing in for and why:
+- `common/src/portstub/java/grill24/fishtastic/data/Quest.java` — a 2-field `record Quest(QuestCategory category, QuestReward reward)`, standing in for the real 8-field record. The real one needs `QuestObjective` → `FishProfile` → `FishtasticRegistries` → most of the data-registry graph, well beyond item-data scope; `FishTankShapeUnlocks` only calls `.category()`/`.reward()`.
+- `common/src/portstub/java/grill24/fishtastic/FishtasticBlocks.java` — just `CLEAR_STAINED_GLASS` (an `EnumMap` of vanilla `Blocks.GLASS` holders), standing in for the full block registry. `FishTankMaterials#defaultMaterials()` is the only caller in scope.
+
+Also found live: two DFU API deltas that show up as soon as anything calls `DataResult` methods — `DataResult#isError()` doesn't exist on this DFU version (use `result().isEmpty()`), and `Codec.stringResolver` doesn't exist either (`FishTankShape.CODEC` uses `Codec.STRING.xmap(...)` instead, same behavior).
+
+**Next:** either keep widening the compiled set toward the real G-B2 (`ShopEntry`/`DailyQuestFamily` for the rest of B2.5, the 11 `BundleContents` call sites for B2.2, `ItemStackMixin`/the 6 tooltip files for B2.3, then B2.6/B2.7 and `FishtasticItems`), or move to B3 if a full G-B2 pass is deferred — the doc's ordering assumed B2 would be self-contained, but in practice item-data and "the rest of common" are intertwined enough that they may need to grow together.
+
 ---
 
 ## B3: Networking

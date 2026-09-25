@@ -2,18 +2,17 @@ package grill24.fishtastic.fishtank;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.Quest;
-import io.netty.buffer.ByteBuf;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 import com.mojang.serialization.Codec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipProvider;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -34,7 +33,7 @@ import java.util.function.Predicate;
  * unlock quests here, which had to be hand-kept in sync with both the reward JSON and the matching
  * {@code shop_entry} JSON; the three silently drifted more than once.)
  */
-public enum FishTankShape implements TooltipProvider {
+public enum FishTankShape {
     STANDARD(Fishtastic.id("standard"), Fishtastic.id("standard"), "fishtankbase"),
     /**
      * Light corner brace — modest 3px→1px taper. See CornerTaperProfile.TRIMMED (tools/tank-shape-gen).
@@ -382,8 +381,7 @@ public enum FishTankShape implements TooltipProvider {
      * localized shape name in white — and is wired up by {@code ItemStackMixin#modifyTooltipLines}
      * (vanilla only auto-renders a hardcoded list of components, so ours are appended manually).
      */
-    @Override
-    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
+    public void addToTooltip(@Nullable Level level, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
         tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_tank_shape",
                 getDisplayName().copy().withStyle(ChatFormatting.WHITE)).withStyle(ChatFormatting.GRAY));
     }
@@ -398,9 +396,9 @@ public enum FishTankShape implements TooltipProvider {
     }
 
     public static final Codec<FishTankShape> CODEC =
-            Codec.stringResolver(FishTankShape::getSerializedName, FishTankShape::bySerializedName);
+            Codec.STRING.xmap(FishTankShape::bySerializedName, FishTankShape::getSerializedName);
 
-    public static final StreamCodec<ByteBuf, FishTankShape> STREAM_CODEC = ByteBufCodecs.idMapper(
+    public static final BufCodec<FishTankShape> STREAM_CODEC = BufCodecs.idMapper(
             i -> FishTankShape.values()[i],
             FishTankShape::ordinal
     );

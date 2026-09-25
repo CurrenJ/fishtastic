@@ -2,24 +2,26 @@ package grill24.fishtastic.component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import io.netty.buffer.ByteBuf;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipProvider;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
 /**
  * A data component that stores a fish's quality tier and provides tooltip information.
  * Quality affects visual effects and indicates rarity/value.
+ * <p>
+ * {@code TooltipProvider} doesn't exist before 1.20.5, so on 1.20.1 {@code addToTooltip} is called
+ * directly by {@code mixin/ItemStackMixin} rather than through that interface (B2.3).
  */
-public record FishQuality(Quality quality) implements TooltipProvider {
+public record FishQuality(Quality quality) {
 
     public enum Quality implements StringRepresentable {
         COMMON("common", ChatFormatting.GRAY, "Common"),
@@ -65,14 +67,13 @@ public record FishQuality(Quality quality) implements TooltipProvider {
             ).apply(instance, FishQuality::new)
     );
 
-    public static final StreamCodec<ByteBuf, FishQuality> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.fromCodec(Quality.CODEC),
+    public static final BufCodec<FishQuality> STREAM_CODEC = BufCodec.composite(
+            BufCodecs.fromCodec(Quality.CODEC),
             FishQuality::quality,
             FishQuality::new
     );
 
-    @Override
-    public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
+    public void addToTooltip(@Nullable Level level, Consumer<Component> tooltipAdder, TooltipFlag tooltipFlag) {
         // Add the quality information to the tooltip with appropriate color
         tooltipAdder.accept(Component.translatable("tooltip.fishtastic.fish_quality", quality.getTranslatableName())
                 .withStyle(quality.getColor()));

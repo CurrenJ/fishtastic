@@ -18,17 +18,17 @@ public final class Ids {
 
     /** {@code namespace:path}. */
     public static ResourceLocation of(String namespace, String path) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, path);
+        return new ResourceLocation(namespace, path);
     }
 
     /** {@code minecraft:path}. */
     public static ResourceLocation withDefaultNamespace(String path) {
-        return ResourceLocation.withDefaultNamespace(path);
+        return new ResourceLocation("minecraft", path);
     }
 
     /** Parses {@code namespace:path} (or a bare path, which gets the {@code minecraft} namespace). Throws on invalid input. */
     public static ResourceLocation parse(String id) {
-        return ResourceLocation.parse(id);
+        return new ResourceLocation(id);
     }
 
     /** Like {@link #parse}, but returns null on invalid input. */

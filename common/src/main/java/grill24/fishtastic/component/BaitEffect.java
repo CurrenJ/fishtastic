@@ -5,13 +5,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.util.Utility;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -127,8 +126,8 @@ public record BaitEffect(
                 Codec.FLOAT.optionalFieldOf("catch_progress_multiplier", 1.0f).forGetter(FishGroupAffinity::catchProgressMultiplier)
         ).apply(i, FishGroupAffinity::new));
 
-        public static final StreamCodec<ByteBuf, FishGroupAffinity> STREAM_CODEC =
-                ByteBufCodecs.fromCodec(CODEC);
+        public static final BufCodec<FishGroupAffinity> STREAM_CODEC =
+                BufCodecs.fromCodec(CODEC);
     }
 
     // Baseline treasure_chance/trash_chance — also the codec's optionalFieldOf defaults below.
@@ -189,7 +188,7 @@ public record BaitEffect(
             Codec.BOOL.optionalFieldOf("small_bobber", false).forGetter(BaitEffect::smallBobber)
     ).apply(i, BaitEffect::new));
 
-    public static final StreamCodec<ByteBuf, BaitEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    public static final BufCodec<BaitEffect> STREAM_CODEC = BufCodecs.fromCodec(CODEC);
 
     /**
      * Reads the effective {@link BaitEffect} off a bait item stack — the item's default

@@ -165,14 +165,14 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### B2: Item data
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [ ] | |
-| B2.2 | `BundleContents` port (+ 11 import changes) | [ ] | |
-| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [ ] | |
+| B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [x] | B2.1 commit |
+| B2.2 | `BundleContents` class ported | [~] | B2.1 commit (class only; 11 call-site import changes still pending — those files stay excluded) |
+| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [~] | B2.1 commit (`TooltipProvider` dropped from the 3 component classes; `ItemStackMixin` wiring + the 6 item files' `appendHoverText` signature not done) |
 | B2.4 | Effect conditions (expected: no change) | [ ] | |
-| B2.5 | `FishtasticItemPatch` (94 data files unchanged) | [ ] | |
+| B2.5 | `FishtasticItemPatch` | [~] | B2.1 commit (class + `QuestReward` done; `ShopEntry`, the 94 JSON files' shape check, and `DailyQuestFamily` not done) |
 | B2.6 | Tank BE ↔ item: `setPlacedBy`, `fishtastic:copy_tank_data`, `getCloneItemStack` | [ ] | |
 | B2.7 | S1 items 1, 6, 7, 8 cleanup | [ ] | |
-| G-B2 | Gate | [ ] | |
+| G-B2 | Gate | [ ] | `:common:compileJava` green on the file set the B2.1 commit un-excludes; full `:common:test` (78 + ComponentKeyTest) still blocked on B2.2-B2.7 and the rest of common |
 
 ### B3: Networking
 | ID | Item | Status | Commit |

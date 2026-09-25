@@ -2,11 +2,10 @@ package grill24.fishtastic.component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import io.netty.buffer.ByteBuf;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +32,7 @@ public record HookEffect(
             Codec.FLOAT.optionalFieldOf("treasure_chance_delta", 0.0f).forGetter(HookEffect::treasureChanceDelta)
     ).apply(i, HookEffect::new));
 
-    public static final StreamCodec<ByteBuf, HookEffect> STREAM_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    public static final BufCodec<HookEffect> STREAM_CODEC = BufCodecs.fromCodec(CODEC);
 
     // Qualitative, same reasoning as BaitEffect's tooltip lines — sign is what the player
     // actually experiences, the exact magnitude isn't something they can reason about in play.

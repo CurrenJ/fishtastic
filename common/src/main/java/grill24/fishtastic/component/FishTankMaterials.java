@@ -3,10 +3,9 @@ package grill24.fishtastic.component;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.FishtasticBlocks;
-import io.netty.buffer.ByteBuf;
+import grill24.fishtastic.network.codec.BufCodec;
+import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -30,7 +29,7 @@ public record FishTankMaterials(Block frame, Block sand, Block glass) {
                 FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value());
     }
 
-    private static final StreamCodec<ByteBuf, Block> BLOCK_STREAM_CODEC = ByteBufCodecs.idMapper(
+    private static final BufCodec<Block> BLOCK_STREAM_CODEC = BufCodecs.idMapper(
             BuiltInRegistries.BLOCK::byId,
             BuiltInRegistries.BLOCK::getId
     );
@@ -41,7 +40,7 @@ public record FishTankMaterials(Block frame, Block sand, Block glass) {
             BuiltInRegistries.BLOCK.byNameCodec().fieldOf("glass").forGetter(FishTankMaterials::glass)
     ).apply(instance, FishTankMaterials::new));
 
-    public static final StreamCodec<ByteBuf, FishTankMaterials> STREAM_CODEC = StreamCodec.composite(
+    public static final BufCodec<FishTankMaterials> STREAM_CODEC = BufCodec.composite(
             BLOCK_STREAM_CODEC, FishTankMaterials::frame,
             BLOCK_STREAM_CODEC, FishTankMaterials::sand,
             BLOCK_STREAM_CODEC, FishTankMaterials::glass,
