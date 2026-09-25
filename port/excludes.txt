@@ -19,8 +19,6 @@ common/src/main/java/grill24/fishtastic/FishtasticItems.java
 common/src/main/java/grill24/fishtastic/FishtasticMenuTypes.java
 common/src/main/java/grill24/fishtastic/FishtasticParticleTypes.java
 common/src/main/java/grill24/fishtastic/FishtasticSounds.java
-common/src/main/java/grill24/fishtastic/architectury/IRegistrationApi.java
-common/src/main/java/grill24/fishtastic/architectury/RegistrationApiSided.java
 common/src/main/java/grill24/fishtastic/block/ElectricFishOrganizerBlock.java
 common/src/main/java/grill24/fishtastic/block/FishPileBlock.java
 common/src/main/java/grill24/fishtastic/block/FishTankAssemblyBlock.java
@@ -29,8 +27,8 @@ common/src/main/java/grill24/fishtastic/block/MarineCompostBlock.java
 common/src/main/java/grill24/fishtastic/block/MarineCompostPhase.java
 common/src/main/java/grill24/fishtastic/blockentity/ElectricFishOrganizerBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishPileBlockEntity.java
-common/src/main/java/grill24/fishtastic/blockentity/FishTankAssemblyBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/FishTankBlockEntity.java
+common/src/main/java/grill24/fishtastic/blockentity/FishTankAssemblyBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/MarineCompostBlockEntity.java
 common/src/main/java/grill24/fishtastic/blockentity/OrganizerSortMode.java
 common/src/main/java/grill24/fishtastic/client/CosmeticCaptureClientState.java
@@ -175,7 +173,6 @@ common/src/main/java/grill24/fishtastic/fishtank/CosmeticStructure.java
 common/src/main/java/grill24/fishtastic/fishtank/CosmeticStructures.java
 common/src/main/java/grill24/fishtastic/fishtank/CosmeticTransforms.java
 common/src/main/java/grill24/fishtastic/fishtank/FishTankCompositeModelData.java
-common/src/main/java/grill24/fishtastic/fishtank/FishTankFrameType.java
 common/src/main/java/grill24/fishtastic/fishtank/PlacedCosmetic.java
 common/src/main/java/grill24/fishtastic/fishtank/TankDiagonal.java
 common/src/main/java/grill24/fishtastic/fishtank/TankEdgeDiagonal.java
