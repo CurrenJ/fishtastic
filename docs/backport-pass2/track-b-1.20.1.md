@@ -202,6 +202,15 @@ That surfaced two more symbols `IRegistrationApi` names as types: `FishTankFrame
 
 **Conclusion on path 1 vs path 2:** the registration graph itself (IRegistrationApi/RegistrationApiSided) was cheap and is now real and done. But it doesn't cascade into B2.2/B2.3/B2.5 unblocking "for free" the way the handoff hoped — `FishtasticItems.java` is gated on the `item/` package compiling, and the `item/` package is gated on doing B2.3 and B2.6 as real semantic ports first. **Path 2 is now the correct next step**: work through the 16 `item/` files (and `FishtasticRegistries`, `CosmeticTransforms`) as real ports, smallest/least-coupled first (`TestItem`, `ObsidianFishingRod`, `CopperFishingRod`, `AcuteIapsisItem`, `FishTankBlockItem`, `FishTankCosmeticItem`, `FishTankStructureCosmeticItem`, `CosmeticCaptureWandItem`, `LeaderboardsBookItem` look mechanical or near-mechanical by size; `FishopediaItem`/`QuestBookItem`/`StormCharmItem`/`FishtasticFishingRodItem`/`FishtasticFishItem`/`PileOfFishItem` need the B2.3 tooltip signature change and, for the tank-adjacent ones, B2.6's BE↔item flow), verifying each by compiling with `FishtasticItems.java` still excluded until the graph is ready, same discipline as B2.1/B2.2.
 
+**Path 2, first pass — own-file size is a false proxy for shallowness; check transitive imports first.** `TestItem.java` is 44 lines but pulls in `util/FishingMinigameAnimation` (1302 lines) and `server/FishingMinigameManager` (1249 lines) transitively — not remotely shallow. Checked internal (`grill24.fishtastic.*`) imports before touching a file, not just line count, from then on.
+
+That surfaced a genuinely shallow, vanilla-API-only cluster, un-excluded and verified together (`:common:compileJava`/`:common:test` green, **zero code changes needed** on any of them):
+- `fishtank/{CosmeticGridCell,CosmeticStructures,CosmeticTransforms,CosmeticStructure}` (a self-contained sub-graph: grid math, rotation helpers, per-block render transforms, and the multi-block structure record built on them — all vanilla `Codec`/`BlockState`/`Rotation`/`StructureTemplate` API, none of it touched by any 1.20.1 delta this doc tracks)
+- `item/{FishTankCosmeticItem,FishTankStructureCosmeticItem}` (thin `Item` subclasses over the above)
+- `item/FishTankBlockItem` + `client/tooltip/FishTankMaterialsTooltip` (a second small pair: `Item#getTooltipImage`/`TooltipComponent` are unchanged on MC20, and both already only needed `FishtasticDataComponents`/`FishtasticItemData`/`component/FishTankMaterials`, which B2.1 already compiles)
+
+`CosmeticCaptureWandItem` and `LeaderboardsBookItem` (next by size) stay excluded: the former needs `network/CosmeticCaptureSyncPacket` (a `StreamCodec` payload — B3.1's `BufCodec` shim, not built yet), the latter needs `compat/GelatinOpenMenuCompat` (blocked on G-1.20.1, gelatin-ui's 1.20.1 port, not started). Both are real blockers, not scope creep to chase now.
+
 ---
 
 ## B3: Networking

@@ -106,7 +106,6 @@ common/src/main/java/grill24/fishtastic/client/renderer/ZoneIconTextures.java
 common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java
 common/src/main/java/grill24/fishtastic/client/tooltip/ClientFishTankMaterialsTooltip.java
 common/src/main/java/grill24/fishtastic/client/tooltip/ClientRodGearTooltip.java
-common/src/main/java/grill24/fishtastic/client/tooltip/FishTankMaterialsTooltip.java
 common/src/main/java/grill24/fishtastic/client/tooltip/RodGearTooltip.java
 common/src/main/java/grill24/fishtastic/client/util/ClientTankFlocks.java
 common/src/main/java/grill24/fishtastic/client/util/ClientTankGroups.java
@@ -168,10 +167,6 @@ common/src/main/java/grill24/fishtastic/data/Temperament.java
 common/src/main/java/grill24/fishtastic/env/DevEnvironmentCheck.java
 common/src/main/java/grill24/fishtastic/examples/FishTankConnectionExample.java
 common/src/main/java/grill24/fishtastic/examples/MultiItemTargetExamples.java
-common/src/main/java/grill24/fishtastic/fishtank/CosmeticGridCell.java
-common/src/main/java/grill24/fishtastic/fishtank/CosmeticStructure.java
-common/src/main/java/grill24/fishtastic/fishtank/CosmeticStructures.java
-common/src/main/java/grill24/fishtastic/fishtank/CosmeticTransforms.java
 common/src/main/java/grill24/fishtastic/fishtank/FishTankCompositeModelData.java
 common/src/main/java/grill24/fishtastic/fishtank/PlacedCosmetic.java
 common/src/main/java/grill24/fishtastic/fishtank/TankDiagonal.java
@@ -181,9 +176,6 @@ common/src/main/java/grill24/fishtastic/fishtank/TankGroups.java
 common/src/main/java/grill24/fishtastic/item/AcuteIapsisItem.java
 common/src/main/java/grill24/fishtastic/item/CopperFishingRod.java
 common/src/main/java/grill24/fishtastic/item/CosmeticCaptureWandItem.java
-common/src/main/java/grill24/fishtastic/item/FishTankBlockItem.java
-common/src/main/java/grill24/fishtastic/item/FishTankCosmeticItem.java
-common/src/main/java/grill24/fishtastic/item/FishTankStructureCosmeticItem.java
 common/src/main/java/grill24/fishtastic/item/FishopediaItem.java
 common/src/main/java/grill24/fishtastic/item/FishtasticFishItem.java
 common/src/main/java/grill24/fishtastic/item/FishtasticFishingRodItem.java

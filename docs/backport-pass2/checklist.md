@@ -171,7 +171,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | B2.4 | Effect conditions (expected: no change) | [ ] | |
 | B2.5 | `FishtasticItemPatch` | [~] | B2.1 commit (class + `QuestReward` done; `ShopEntry`, the 94 JSON files' shape check, and `DailyQuestFamily` not done) |
 | B2.6 | Tank BE ↔ item: `setPlacedBy`, `fishtastic:copy_tank_data`, `getCloneItemStack` | [ ] | |
-| B2.7 | S1 items 1, 6, 7, 8 cleanup | [~] | B2.7 commit (item 1's `common`-side slice done: `registerDataComponent`/`dataComponentTypes` deleted from `IRegistrationApi`, it + `RegistrationApiSided` + `FishTankFrameType` compile for real, `FishTankBlockEntity` portstubbed; items 6/7/8 and the NeoForge-only item-1 deletions not done)
+| B2.7 | S1 items 1, 6, 7, 8 cleanup | [~] | B2.7 commit (item 1's `common`-side slice done: `registerDataComponent`/`dataComponentTypes` deleted from `IRegistrationApi`, it + `RegistrationApiSided` + `FishTankFrameType` compile for real, `FishTankBlockEntity` portstubbed; items 6/7/8 and the NeoForge-only item-1 deletions not done) + a path-2 item/fishtank slice (`fishtank/{CosmeticGridCell,CosmeticStructures,CosmeticTransforms,CosmeticStructure}`, `item/{FishTankCosmeticItem,FishTankStructureCosmeticItem,FishTankBlockItem}`, `client/tooltip/FishTankMaterialsTooltip` — 8 files, all vanilla-API-only, zero code changes needed)
 | G-B2 | Gate | [ ] | `:common:compileJava` green on the file set the B2.1 commit un-excludes; full `:common:test` (78 + ComponentKeyTest) still blocked on B2.2-B2.7 and the rest of common |
 
 ### B3: Networking
