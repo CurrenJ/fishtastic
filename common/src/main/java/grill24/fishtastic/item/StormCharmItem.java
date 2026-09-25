@@ -21,6 +21,7 @@ import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.GameRules;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -86,7 +87,7 @@ public class StormCharmItem extends Item {
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity user) {
+    public int getUseDuration(ItemStack stack) {
         return CHARGE_TICKS;
     }
 
@@ -129,8 +130,8 @@ public class StormCharmItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
         if (level instanceof ServerLevel serverLevel && entity instanceof Player player) {
-            if (trySummonStorm(serverLevel, player)) {
-                stack.consume(1, player);
+            if (trySummonStorm(serverLevel, player) && !player.getAbilities().instabuild) {
+                stack.shrink(1);
             }
         }
         return stack;
@@ -208,8 +209,8 @@ public class StormCharmItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
         Consumer<Component> builder = tooltip::add;
         builder.accept(Component.translatable("tooltip.fishtastic.storm_charm.summons",
                 STORM_DURATION_TICKS / 20 / 60).withStyle(ChatFormatting.AQUA));

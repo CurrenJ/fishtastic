@@ -167,7 +167,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 |---|---|---|---|
 | B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [x] | B2.1 commit |
 | B2.2 | `BundleContents` class ported | [~] | B2.1 commit + B2.2 commit (all 9 call-site import changes done; files stay excluded — each transitively needs `FishtasticItems`/block-registration graph, B2.7's territory) |
-| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [~] | B2.1 commit (`TooltipProvider` dropped from the 3 component classes; `ItemStackMixin` wiring + the 6 item files' `appendHoverText` signature not done) |
+| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [x] | B2.3 commit | `ItemStackMixin` rewritten to `getTooltipLines(Player, TooltipFlag)`, matching the 3 already-ported `addToTooltip(@Nullable Level, …)` component classes. Of the 6 item files needing the `appendHoverText` signature change, only `StormCharmItem` was actually unblocked by it alone (un-excluded, verified compiling); the other 5 got the signature fix too but stay excluded on B2.6/B3.1/G-1.20.1, not B2.3 itself — `PileOfFishItem` turned out not to override `appendHoverText` at all. See track-b-1.20.1.md "B2.3 as built". |
 | B2.4 | Effect conditions (expected: no change) | [ ] | |
 | B2.5 | `FishtasticItemPatch` | [~] | B2.1 commit (class + `QuestReward` done; `ShopEntry`, the 94 JSON files' shape check, and `DailyQuestFamily` not done) |
 | B2.6 | Tank BE ↔ item: `setPlacedBy`, `fishtastic:copy_tank_data`, `getCloneItemStack` | [ ] | |

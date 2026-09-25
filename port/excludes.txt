@@ -183,7 +183,6 @@ common/src/main/java/grill24/fishtastic/item/LeaderboardsBookItem.java
 common/src/main/java/grill24/fishtastic/item/ObsidianFishingRod.java
 common/src/main/java/grill24/fishtastic/item/PileOfFishItem.java
 common/src/main/java/grill24/fishtastic/item/QuestBookItem.java
-common/src/main/java/grill24/fishtastic/item/StormCharmItem.java
 common/src/main/java/grill24/fishtastic/item/TestItem.java
 common/src/main/java/grill24/fishtastic/itemeffect/ItemEffect.java
 common/src/main/java/grill24/fishtastic/itemeffect/ItemEffectCondition.java

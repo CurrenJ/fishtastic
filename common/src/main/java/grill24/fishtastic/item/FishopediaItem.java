@@ -14,7 +14,6 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -120,23 +119,21 @@ public class FishopediaItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
         Consumer<Component> builder = tooltip::add;
 
-        HolderLookup.Provider registries = context.registries();
-        if (registries == null) return;
-        HolderLookup.RegistryLookup<FishProfile> fishRegistry;
+        if (level == null) return;
+        Registry<FishProfile> fishRegistry;
         try {
-            fishRegistry = registries.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+            fishRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         } catch (Exception e) {
             return;
         }
 
         int total = 0;
         int discovered = 0;
-        for (var it = fishRegistry.listElementIds().iterator(); it.hasNext(); ) {
-            ResourceKey<FishProfile> fishKey = it.next();
+        for (ResourceKey<FishProfile> fishKey : fishRegistry.registryKeySet()) {
             total++;
             if (FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0) discovered++;
         }
