@@ -191,12 +191,12 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | G-B4 | Datagen diff as expected | [ ] | |
 
 ### G-1.20.1: gelatin-ui
-| ID | Item | Status | Commit (gelatin) |
-|---|---|---|---|
-| G2.1 | Branch `mc/1.20.1` from `mc/1.21.1` at G-G1 | [ ] | |
-| G2.2 | Java 17, Forge module, menus (`IForgeMenuType`, `NetworkHooks`) | [ ] | |
-| G2.3 | Sprites → textures; posed-player skins on the 1.20.1 `SkinManager` | [ ] | |
-| G-G2 | Gate + `publishToMavenLocal 1.0.31+1.20.1` | [ ] | |
+| ID | Item | Status | Commit (gelatin) | Notes |
+|---|---|---|---|---|
+| G2.1 | Branch `mc/1.20.1` from `mc/1.21.1` at G-G1 | [x] | worktree only, not a commit | Worktree `D:\GitHub\gelatin-ui-worktrees\mc-1.20.1`, branch `mc/1.20.1`, from `mc/1.21.1` `e00acee` (tip after A6.3's z-offset seam, not just the older G-G1 tip). |
+| G2.2 | Java 17, Forge module, menus (`IForgeMenuType`, `NetworkHooks`) | [~] | uncommitted | Scaffolding done and matches `port/1.20.1`'s own conventions: root `build.gradle` (Java 17, Loom 1.17-SNAPSHOT, architectury-plugin 3.5-SNAPSHOT), `settings.gradle`/`gradle.properties` (`forge_version=47.4.23`, `fabric_loader_version=0.16.14`, `fabric_api_version=0.92.12+1.20.1`; `architectury_api_version=9.2.14` **not verified against the maven repo yet**), `neoforge/` → `forge/` (`git mv`, keeps history), `forge/build.gradle` (`architectury { forge() }`, MinecraftForge maven, `loom.forge.mixinConfig` — Forge 1.20.1's `mods.toml` has no `[[mixins]]` table), `mods.toml` (`mandatory = true`, not `type =`). The 4-file platform module (128 lines) is ported too: `GelatinUiModForge`/`GelatinUiModForgeClient`/`MenuRegistrationHandlerForge`/`SidedRegistrationHelperImpl`, verified against the real `javafmllanguage-1.20.1-47.4.23.jar`/`fmlcore` classes via `javap` (not guessed) — Forge 1.20.1 has **one** `@Mod` entrypoint per mod (no constructor-injected `IEventBus`, no second per-Dist `@Mod` class like NeoForge); client-only registration moved to a static `@Mod.EventBusSubscriber(bus = MOD, value = Dist.CLIENT)` class; `RegisterMenuScreensEvent` doesn't exist on Forge 47, so screens register from `FMLClientSetupEvent#enqueueWork` instead. **Not attempted: an actual compile** (needs the Forge/FAPI maven repos live and hasn't been run). `fabric.mod.json`'s hardcoded `"java": ">=21"` / `"fabricloader": ">=0.17.2"` are untouched — fabric-side G2.2 deltas not started. |
+| G2.3 | Sprites → textures; posed-player skins on the 1.20.1 `SkinManager` | [ ] | | **Real blocker found, not started:** `common/src/main/java/.../mixin/{GuiGraphicsMixin,HoverEventActionMixin}.java` are still 1.21.1-only and block `:common` compiling for this branch at all. `HoverEventActionMixin` is the hard one — 1.20.1's `HoverEvent.Action<T>` (checked against `forge-1.20.1-47.4.23-patched-sources`) has **no `Codec`/`UNSAFE_CODEC` fields and no extension point**: it's a fixed 3-entry `private static final Map<String, Action<?>> LOOKUP` built once at class-init from `SHOW_TEXT`/`SHOW_ITEM`/`SHOW_ENTITY`, Gson-based, not DFU-`Codec`-based. Gelatin's custom `ItemStacksTooltip` hover action (`Codec.withAlternative` on 1.21.1) needs a different mechanism on 1.20.1 — likely a mixin that appends to `LOOKUP` directly, or a different plumbing than a custom `HoverEvent.Action` altogether. This is a design decision, not a mechanical port; `GuiGraphicsMixin`'s `Tesselator`/`BufferBuilder`/`VertexConsumer` calls also need the same B5.2-style vertex-builder rewrite `port/1.20.1` itself already went through. |
+| G-G2 | Gate + `publishToMavenLocal 1.0.31+1.20.1` | [ ] | | |
 
 ### B5: Remaining API deltas
 | ID | Item | Status | Commit |
