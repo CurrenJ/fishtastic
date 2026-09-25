@@ -9,7 +9,7 @@
 # ported yet; it'll come off this list once B2.7 (registration cleanup) and friends land. Everything
 # else in common/src/main/java is excluded file-by-file below, pending B2.2-B2.7/B3-B5.
 #common/src/main/java/grill24/FishtasticRegistries.java
-common/src/main/java/grill24/fishtastic/FishtasticBiomeTags.java
+#common/src/main/java/grill24/fishtastic/FishtasticBiomeTags.java
 common/src/main/java/grill24/fishtastic/FishtasticBlockEntityTypes.java
 #common/src/main/java/grill24/fishtastic/FishtasticBlockTags.java
 common/src/main/java/grill24/fishtastic/FishtasticBlocks.java
@@ -219,7 +219,7 @@ common/src/main/java/grill24/fishtastic/network/LeaderboardType.java
 #common/src/main/java/grill24/fishtastic/network/NotificationVolumeSyncPacket.java
 common/src/main/java/grill24/fishtastic/network/PurchaseShopEntryPacket.java
 common/src/main/java/grill24/fishtastic/network/QuestSyncPacket.java
-common/src/main/java/grill24/fishtastic/network/RecentCatch.java
+#common/src/main/java/grill24/fishtastic/network/RecentCatch.java
 common/src/main/java/grill24/fishtastic/network/RefreshShopPacket.java
 common/src/main/java/grill24/fishtastic/network/RemoveTankEntryPacket.java
 common/src/main/java/grill24/fishtastic/network/RequestFishEncyclopediaPacket.java
