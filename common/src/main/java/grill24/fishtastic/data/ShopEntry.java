@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticItemData;
-import net.minecraft.core.component.DataComponentPatch;
+import grill24.fishtastic.component.FishtasticItemPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
@@ -103,7 +103,7 @@ public record ShopEntry(
      * registry-load time without needing item data-components to be ready yet.
      * ItemStacks are constructed lazily when the reward is actually granted or displayed.
      */
-    public record ShopReward(ResourceLocation itemId, int count, DataComponentPatch components) {
+    public record ShopReward(ResourceLocation itemId, int count, FishtasticItemPatch components) {
         public static final Codec<ShopReward> CODEC = RecordCodecBuilder.create(i -> i.group(
                 ResourceLocation.CODEC.fieldOf("id").forGetter(ShopReward::itemId),
                 Codec.INT.optionalFieldOf("count", 1).forGetter(ShopReward::count),
@@ -111,12 +111,12 @@ public record ShopEntry(
                 // it must not touch an item's default component map at decode time. Lets a gated
                 // capstone entry sell back the exact configured item the quest granted (e.g. a
                 // fish tank carrying its fishtastic:fish_tank_materials), rather than a plain one.
-                DataComponentPatch.CODEC.optionalFieldOf("components", DataComponentPatch.EMPTY)
+                FishtasticItemPatch.CODEC.optionalFieldOf("components", FishtasticItemPatch.EMPTY)
                         .forGetter(ShopReward::components)
         ).apply(i, ShopReward::new));
 
         public ShopReward(ResourceLocation itemId, int count) {
-            this(itemId, count, DataComponentPatch.EMPTY);
+            this(itemId, count, FishtasticItemPatch.EMPTY);
         }
 
         public ItemStack toItemStack() {

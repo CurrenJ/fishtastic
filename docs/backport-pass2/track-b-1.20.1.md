@@ -137,7 +137,9 @@ One real compile-time delta the "expected: no change" note missed: `ItemEffectCo
 - The field type in the two records changes to `FishtasticItemPatch`, and its `CODEC` / `EMPTY` names are kept.
 - **Seam S1c (recommended, D9 family):** add `FishtasticItemPatch` on 26.1.2 as a thin wrapper over `DataComponentPatch`, with the same `CODEC` / `EMPTY` / `applyTo`. Then the two records are identical on all branches, and only the wrapper's body differs.
 
-`fabric:datagen/DailyQuestFamily` builds these patches: it goes through `FishtasticItemPatch.builder()`, so it has the same shape everywhere once S1c exists.
+`fabric:datagen/DailyQuestFamily` builds these patches: it goes through `FishtasticItemPatch.builder()`, so it has the same shape everywhere once S1c exists. It lives under `fabric/src/main/java/**`, which is wholesale excluded pending B1's loader wiring — not touchable yet regardless of B2.5's own state.
+
+**`ShopEntry` (2026-09-25):** `ShopReward`'s `components` field switched from `DataComponentPatch` to `FishtasticItemPatch`, same as `QuestReward.RewardItem` — mechanical, matches the design above. Still excluded, though: `ShopEntry` needs `FishtasticRegistries` (for `QUEST_REGISTRY_KEY`), which in turn needs `Quest`, `Temperament`, `FishProfile`, and `FishEncyclopediaEntry` all compiling. `Temperament`'s `MovementParams.STREAM_CODEC` imports `net.minecraft.network.codec.StreamCodec`, which doesn't exist pre-1.20.5 — this is real B3.1 territory (the `BufCodec`/`BufCodecs` shim under `network/codec/`, not `util/StreamCodecs`, is what 1.20.1 code should target instead). So `ShopEntry`'s exclusion doesn't lift until either B3.1 lands or `MovementParams`/`Temperament`/`FishProfile`'s network codecs get a one-off shim swap ahead of the full B3.1 sed pass. Left as a documented blocker rather than reaching into B3.1 mid-B2.5.
 
 ### B2.6: Block entity ↔ item data for the fish tank (S1 left-in-place item 3)
 
