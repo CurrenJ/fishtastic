@@ -4,7 +4,6 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fabric.blockentity.FishTankBlockEntityFabric;
-import grill24.fishtastic.fishtank.FishTankFrameType;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -28,7 +27,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 
-import javax.naming.OperationNotSupportedException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -140,18 +138,6 @@ public class FabricRegistrationApi implements IRegistrationApi {
         T entry = func.apply(Ids.of(Fishtastic.MOD_ID, name));
         ResourceKey<T> entryKey = ResourceKey.create(registry.key(), Ids.of(Fishtastic.MOD_ID, name));
         return Registry.registerForHolder(registry, entryKey, entry);
-    }
-
-    // ----- Registries ----- //
-
-    @Override
-    public Registry<FishTankFrameType> fishTankFrameTypes() {
-        try {
-            throw new OperationNotSupportedException("TODO: Implement FishTankFrameType registry for Fabric");
-        } catch (OperationNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
-        // TODO: Implement FishTankFrameType registry for Fabric
     }
 
     // ----- Platform-specific BlockEntity Creation ----- //

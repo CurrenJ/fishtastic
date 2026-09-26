@@ -3,7 +3,6 @@ package grill24.fishtastic.architectury.forge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.fishtank.FishTankFrameType;
 import grill24.fishtastic.forge.blockentity.FishTankBlockEntityForge;
 import grill24.fishtastic.forge.fishtank.FishTankPartBlacklistChecker;
 import grill24.fishtastic.util.Ids;
@@ -163,17 +162,6 @@ public class ForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Registry<CreativeModeTab> creativeModeTabs() {
         return BuiltInRegistries.CREATIVE_MODE_TAB;
-    }
-
-    // ----- Registries ----- //
-
-    @Override
-    public Registry<FishTankFrameType> fishTankFrameTypes() {
-        // TODO: Forge 47's registries.RegistryBuilder produces an IForgeRegistry<T>, not a vanilla
-        // Registry<T> (unlike NeoForge's own RegistryBuilder, which does) - needs its own adapter.
-        // Left unimplemented like Fabric's stub (FabricRegistrationApi#fishTankFrameTypes) pending
-        // that follow-up; nothing in the currently-ported common/Forge code calls this yet.
-        throw new UnsupportedOperationException("TODO: Implement FishTankFrameType registry for Forge");
     }
 
     // ----- Platform-specific BlockEntity Creation ----- //
