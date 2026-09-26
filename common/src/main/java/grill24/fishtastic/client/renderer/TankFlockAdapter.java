@@ -616,14 +616,13 @@ public final class TankFlockAdapter {
      * worlds.
      */
     private static Locomotion locomotionOf(FishAnimationConfig anim) {
-        return switch (anim) {
-            case FishAnimationConfig.HorizontalSwim ignored -> Locomotion.FREE_SWIM;
-            case FishAnimationConfig.BellyDown      ignored -> Locomotion.GLIDE;
-            case FishAnimationConfig.UprightFloat   ignored -> Locomotion.DRIFT;
-            case FishAnimationConfig.FloorSit       ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.UprightSit     ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.Planted        ignored -> Locomotion.ANCHORED;
-        };
+        if (anim instanceof FishAnimationConfig.HorizontalSwim) return Locomotion.FREE_SWIM;
+        if (anim instanceof FishAnimationConfig.BellyDown) return Locomotion.GLIDE;
+        if (anim instanceof FishAnimationConfig.UprightFloat) return Locomotion.DRIFT;
+        if (anim instanceof FishAnimationConfig.FloorSit) return Locomotion.BENTHIC;
+        if (anim instanceof FishAnimationConfig.UprightSit) return Locomotion.BENTHIC;
+        if (anim instanceof FishAnimationConfig.Planted) return Locomotion.ANCHORED;
+        throw new IllegalStateException("Unhandled FishAnimationConfig: " + anim);
     }
 
 

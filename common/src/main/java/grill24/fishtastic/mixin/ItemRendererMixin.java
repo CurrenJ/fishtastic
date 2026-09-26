@@ -105,7 +105,7 @@ public class ItemRendererMixin {
         ItemEffect effect = fishtastic$currentEffect();
         if (effect != null) {
             cir.setReturnValue(VertexMultiConsumer.create(
-                    new SheetedDecalTextureGenerator(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlow(effect.texture())), pose, 0.0078125F),
+                    new SheetedDecalTextureGenerator(bufferSource.getBuffer(FishtasticRenderTypes.qualityGlow(effect.texture())), pose.pose(), pose.normal(), 0.0078125F),
                     bufferSource.getBuffer(renderType)));
         }
     }

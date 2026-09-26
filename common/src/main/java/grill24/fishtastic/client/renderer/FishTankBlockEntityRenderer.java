@@ -461,23 +461,25 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     }
 
     static float computeBaseY(FishAnimationConfig animConfig, boolean hasOpenDownFace, float scale) {
-        return switch (animConfig) {
-            // The engine walks crawlers and owns their vertical: it reports the height of the sand
-            // under wherever the creature has got to (see the swarmYOffset note above), so all
-            // that is left here is the baseline that offset is measured from, plus the pose's own
-            // lift off the sand.
-            case FishAnimationConfig.FloorSit    fs -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(fs, scale);
-            // An anchored creature's Y is the engine's too, since Phase 4: its burrow is on the
-            // group's sand, which in a stacked group is not all at one height. All that is left
-            // here is the baseline, plus the pose's own plant depth and centre-pivot compensation.
-            case FishAnimationConfig.Planted     p  -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(p, scale);
-            case FishAnimationConfig.UprightSit  us -> ITEM_BASELINE_Y + FishAnimator.floorPoseLift(us, scale);
-            default -> {
-                float y = ITEM_POSITION_OFFSET.y();
-                if (!hasOpenDownFace) y += SAND_BASE_Y_OFFSET.y();
-                yield y;
-            }
-        };
+        // The engine walks crawlers and owns their vertical: it reports the height of the sand
+        // under wherever the creature has got to (see the swarmYOffset note above), so all
+        // that is left here is the baseline that offset is measured from, plus the pose's own
+        // lift off the sand.
+        if (animConfig instanceof FishAnimationConfig.FloorSit fs) {
+            return ITEM_BASELINE_Y + FishAnimator.floorPoseLift(fs, scale);
+        }
+        // An anchored creature's Y is the engine's too, since Phase 4: its burrow is on the
+        // group's sand, which in a stacked group is not all at one height. All that is left
+        // here is the baseline, plus the pose's own plant depth and centre-pivot compensation.
+        if (animConfig instanceof FishAnimationConfig.Planted p) {
+            return ITEM_BASELINE_Y + FishAnimator.floorPoseLift(p, scale);
+        }
+        if (animConfig instanceof FishAnimationConfig.UprightSit us) {
+            return ITEM_BASELINE_Y + FishAnimator.floorPoseLift(us, scale);
+        }
+        float y = ITEM_POSITION_OFFSET.y();
+        if (!hasOpenDownFace) y += SAND_BASE_Y_OFFSET.y();
+        return y;
     }
 
     /** Animation config + per-species render calibration, resolved together from one profile lookup. */
@@ -508,12 +510,16 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
      */
     public static float getHeldItemHangingRollDegrees(ItemStack stack, Level level) {
         FishAnimationConfig animation = resolveFishRender(stack, level).animation();
-        return switch (animation) {
-            case FishAnimationConfig.HorizontalSwim hs -> hangingRoll(hs.headUv(), hs.tailUv(), hs.diagonalTexture());
-            case FishAnimationConfig.UprightFloat uf -> hangingRoll(uf.headUv(), uf.tailUv(), uf.diagonalTexture());
-            case FishAnimationConfig.UprightSit us -> hangingRoll(us.headUv(), us.tailUv(), us.diagonalTexture());
-            default -> 0f;
-        };
+        if (animation instanceof FishAnimationConfig.HorizontalSwim hs) {
+            return hangingRoll(hs.headUv(), hs.tailUv(), hs.diagonalTexture());
+        }
+        if (animation instanceof FishAnimationConfig.UprightFloat uf) {
+            return hangingRoll(uf.headUv(), uf.tailUv(), uf.diagonalTexture());
+        }
+        if (animation instanceof FishAnimationConfig.UprightSit us) {
+            return hangingRoll(us.headUv(), us.tailUv(), us.diagonalTexture());
+        }
+        return 0f;
     }
 
     private static float hangingRoll(Optional<Vec2> head, Optional<Vec2> tail, boolean diagonalTexture) {
@@ -666,12 +672,13 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
 
     private static void addWaterFillVertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z,
             float u, float v, float nx, float ny, float nz, int light) {
-        buffer.addVertex(pose, x, y, z)
-                .setColor(WATER_FILL_TINT_R, WATER_FILL_TINT_G, WATER_FILL_TINT_B, WATER_FILL_ALPHA)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(light)
-                .setNormal(pose, nx, ny, nz);
+        buffer.vertex(pose.pose(), x, y, z)
+                .color(WATER_FILL_TINT_R, WATER_FILL_TINT_G, WATER_FILL_TINT_B, WATER_FILL_ALPHA)
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(light)
+                .normal(pose.normal(), nx, ny, nz)
+                .endVertex();
     }
 
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, MultiBufferSource buffers) {

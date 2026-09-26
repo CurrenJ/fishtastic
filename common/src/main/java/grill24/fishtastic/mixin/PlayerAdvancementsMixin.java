@@ -1,7 +1,7 @@
 package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.tutorial.TutorialManager;
-import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.Advancement;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,8 +26,8 @@ public class PlayerAdvancementsMixin {
 
     @Inject(method = "award", at = @At("RETURN"))
     private void fishtastic$onAdvancementAwarded(
-            AdvancementHolder holder, String criterion, CallbackInfoReturnable<Boolean> cir) {
-        if (cir.getReturnValue() && holder.id().equals(TutorialManager.TUTORIAL_ROD_ADVANCEMENT_ID)) {
+            Advancement advancement, String criterion, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValue() && advancement.getId().equals(TutorialManager.TUTORIAL_ROD_ADVANCEMENT_ID)) {
             TutorialManager.onItemCrafted(this.player);
         }
     }

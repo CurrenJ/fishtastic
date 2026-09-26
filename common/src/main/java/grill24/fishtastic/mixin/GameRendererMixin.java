@@ -5,7 +5,6 @@ import grill24.fishtastic.client.FishtasticHudLayers;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemActivationAnimation;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
@@ -43,15 +42,15 @@ public class GameRendererMixin implements IGameRendererExtension {
      * toast can't cover a quest notification. Only while no screen is open; with one open they're
      * drawn in the HUD pass, under it (see {@link FishtasticHudLayers}).
      */
-    @Inject(method = "render(Lnet/minecraft/client/DeltaTracker;Z)V", at = @At(value = "INVOKE",
+    @Inject(method = "render(FJZ)V", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/components/toasts/ToastComponent;render(Lnet/minecraft/client/gui/GuiGraphics;)V",
             shift = At.Shift.AFTER))
-    private void fishtastic$renderHudLayersAboveToasts(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci,
+    private void fishtastic$renderHudLayersAboveToasts(float partialTick, long finishTimeNano, boolean tickTime, CallbackInfo ci,
                                                         @Local GuiGraphics guiGraphics) {
         if (FishtasticHudLayers.drawnInHudPass() || this.minecraft.options.hideGui || this.minecraft.level == null) {
             return;
         }
-        FishtasticHudLayers.renderAfterToasts(guiGraphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+        FishtasticHudLayers.renderAfterToasts(guiGraphics, partialTick);
     }
 
     /**
@@ -59,8 +58,8 @@ public class GameRendererMixin implements IGameRendererExtension {
      * level or GUI submission — the shared SubmitNodeStorage / FeatureRenderDispatcher /
      * BufferSource borrowed by the bake are idle only at this point.
      */
-    @Inject(method = "render(Lnet/minecraft/client/DeltaTracker;Z)V", at = @At("HEAD"))
-    private void fishtastic$processOutlineAtlasBakes(DeltaTracker deltaTracker, boolean advanceGameTime, CallbackInfo ci) {
+    @Inject(method = "render(FJZ)V", at = @At("HEAD"))
+    private void fishtastic$processOutlineAtlasBakes(float partialTick, long finishTimeNano, boolean tickTime, CallbackInfo ci) {
         FishtasticItemOutlineAtlas.getInstance().processBakeQueue(this.minecraft);
     }
 

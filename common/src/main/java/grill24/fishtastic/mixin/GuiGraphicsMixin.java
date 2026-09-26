@@ -81,7 +81,7 @@ public abstract class GuiGraphicsMixin implements IGuiGraphicsExtension {
                 CrashReport crashReport = CrashReport.forThrowable(var12, "Rendering item");
                 CrashReportCategory crashReportCategory = crashReport.addCategory("Item being rendered");
                 crashReportCategory.setDetail("Item Type", (CrashReportDetail<String>)(() -> String.valueOf(itemStack.getItem())));
-                crashReportCategory.setDetail("Item Components", (CrashReportDetail<String>)(() -> String.valueOf(itemStack.getComponents())));
+                crashReportCategory.setDetail("Item Components", (CrashReportDetail<String>)(() -> String.valueOf(itemStack.getTag())));
                 crashReportCategory.setDetail("Item Foil", (CrashReportDetail<String>)(() -> String.valueOf(itemStack.hasFoil())));
                 throw new ReportedException(crashReport);
             }

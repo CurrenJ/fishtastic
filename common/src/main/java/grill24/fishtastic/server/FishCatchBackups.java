@@ -239,7 +239,7 @@ public final class FishCatchBackups {
         // Write to a sibling temp file first, then move: a crash mid-write can't leave a
         // truncated .dat that later looks like a valid (empty) backup.
         Path tmp = dir.resolve(target.getFileName() + ".tmp");
-        NbtIo.writeCompressed(root, tmp);
+        NbtIo.writeCompressed(root, tmp.toFile());
         try {
             Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
@@ -271,7 +271,7 @@ public final class FishCatchBackups {
 
     private static CompoundTag encode(FishCatchSavedData data) {
         Tag tag = FishCatchSavedData.CODEC.encodeStart(NbtOps.INSTANCE, data)
-                .getOrThrow(msg -> new IllegalStateException("Failed to encode fish catch data: " + msg));
+                .getOrThrow(false, msg -> { throw new IllegalStateException("Failed to encode fish catch data: " + msg); });
         if (!(tag instanceof CompoundTag compound)) {
             throw new IllegalStateException("Fish catch data did not encode to a compound");
         }
@@ -349,7 +349,7 @@ public final class FishCatchBackups {
     }
 
     private static CompoundTag readDataTag(Entry entry) throws IOException {
-        CompoundTag root = NbtIo.readCompressed(entry.path(), NbtAccounter.unlimitedHeap());
+        CompoundTag root = NbtIo.readCompressed(entry.path().toFile());
         if (!root.contains(DATA_KEY, Tag.TAG_COMPOUND)) {
             throw new IOException(entry.fileName() + " has no '" + DATA_KEY + "' compound - not a fishtastic backup");
         }
@@ -359,8 +359,15 @@ public final class FishCatchBackups {
     /** Decodes a backup into a detached (not registered, never auto-saved) saved-data instance. */
     public static FishCatchSavedData load(Entry entry) throws IOException {
         CompoundTag data = readDataTag(entry);
-        return FishCatchSavedData.CODEC.parse(NbtOps.INSTANCE, data)
-                .getOrThrow(msg -> new IOException("Failed to decode " + entry.fileName() + ": " + msg));
+        try {
+            return FishCatchSavedData.CODEC.parse(NbtOps.INSTANCE, data)
+                    .getOrThrow(false, msg -> {
+                        throw new java.io.UncheckedIOException(
+                                new IOException("Failed to decode " + entry.fileName() + ": " + msg));
+                    });
+        } catch (java.io.UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     public static long sizeBytes(Entry entry) {

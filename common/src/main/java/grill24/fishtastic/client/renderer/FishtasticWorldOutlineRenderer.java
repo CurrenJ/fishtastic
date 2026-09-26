@@ -76,12 +76,13 @@ public final class FishtasticWorldOutlineRenderer {
     }
 
     private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z, float u, float v) {
-        buffer.addVertex(pose, x, y, z)
-                .setColor(-1)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(FULL_BRIGHT)
-                .setNormal(pose, 0.0F, 0.0F, 1.0F);
+        buffer.vertex(pose.pose(), x, y, z)
+                .color(-1)
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(FULL_BRIGHT)
+                .normal(pose.normal(), 0.0F, 0.0F, 1.0F)
+                .endVertex();
     }
 
     private FishtasticWorldOutlineRenderer() {}

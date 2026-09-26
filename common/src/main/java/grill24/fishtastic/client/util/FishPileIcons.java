@@ -5,10 +5,8 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.client.renderer.FishPileBlockItemModel;
 import grill24.fishtastic.network.RecentCatch;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import grill24.fishtastic.component.BundleContents;
-import net.minecraft.world.item.component.CustomModelData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,16 +15,18 @@ import java.util.List;
 public final class FishPileIcons {
     /**
      * PORT-ONLY: marks a Pile of Fish stack to be drawn as a pile <em>block</em>. 26.1 sets
-     * {@code minecraft:item_model} to its {@code fish_pile_block} item model instead; 1.21.1 has
-     * neither, and the Pile of Fish's item renderer ({@code FishtasticItemRenderers}) picks
-     * {@link FishPileBlockItemModel} when it sees this value. The stacks are client-only (built
-     * for the leaderboard), so a vanilla component is enough.
+     * {@code minecraft:item_model} to its {@code fish_pile_block} item model instead; 1.21.1 sets
+     * the {@code minecraft:custom_model_data} component; 1.20.1 has neither component system, so
+     * this writes the pre-1.20.5 plain-int {@code CustomModelData} NBT tag instead, and the Pile of
+     * Fish's item renderer ({@code FishtasticItemRenderers}) picks {@link FishPileBlockItemModel}
+     * when it sees this value. The stacks are client-only (built for the leaderboard), so a raw NBT
+     * tag is enough.
      */
-    public static final CustomModelData PILE_BLOCK_MARKER = new CustomModelData(1913);
+    public static final int PILE_BLOCK_MARKER = 1913;
 
     /** Whether {@code stack} was built by {@link #pileBlocks} to draw as a pile block. */
     public static boolean isPileBlock(ItemStack stack) {
-        return PILE_BLOCK_MARKER.equals(stack.get(DataComponents.CUSTOM_MODEL_DATA));
+        return stack.hasTag() && stack.getTag().getInt("CustomModelData") == PILE_BLOCK_MARKER;
     }
 
     private FishPileIcons() {
@@ -60,7 +60,7 @@ public final class FishPileIcons {
                     .map(ItemStack::copy)
                     .toList();
             FishtasticItemData.setBundleContents(pile, new BundleContents(blockContents));
-            pile.set(DataComponents.CUSTOM_MODEL_DATA, PILE_BLOCK_MARKER);
+            pile.getOrCreateTag().putInt("CustomModelData", PILE_BLOCK_MARKER);
             piles.add(pile);
         }
         return piles;

@@ -1,23 +1,20 @@
 package grill24.fishtastic.recipe;
 
-import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.util.FishQualityHelper;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import grill24.fishtastic.network.codec.BufCodec;
-import grill24.fishtastic.network.codec.BufCodecs;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import grill24.fishtastic.component.BundleContents;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
@@ -30,19 +27,8 @@ import org.jspecify.annotations.Nullable;
  * leaving the remainder of the pile behind via {@link #getRemainingItems}.
  */
 public class MarineCompostRecipe extends CustomRecipe {
-    public static final MapCodec<MarineCompostRecipe> CODEC = CraftingBookCategory.CODEC
-            .optionalFieldOf("category", CraftingBookCategory.MISC)
-            .xmap(MarineCompostRecipe::new, MarineCompostRecipe::category);
-
-    public static final BufCodec<MarineCompostRecipe> STREAM_CODEC =
-            BufCodecs.idMapper((int i) -> CraftingBookCategory.values()[i], (CraftingBookCategory c) -> c.ordinal())
-                    .map(MarineCompostRecipe::new, MarineCompostRecipe::category);
-
-    private final CraftingBookCategory category;
-
-    public MarineCompostRecipe(CraftingBookCategory category) {
-        super(category);
-        this.category = category;
+    public MarineCompostRecipe(ResourceLocation id, CraftingBookCategory category) {
+        super(id, category);
     }
 
     /** Abstract before 1.21.2: the recipe needs a grid with room for the dirt and the fish. */
@@ -52,16 +38,11 @@ public class MarineCompostRecipe extends CustomRecipe {
     }
 
     @Override
-    public CraftingBookCategory category() {
-        return category;
-    }
-
-    @Override
-    public boolean matches(CraftingInput input, Level level) {
+    public boolean matches(CraftingContainer input, Level level) {
         boolean hasDirt = false;
         boolean hasFish = false;
 
-        for (int i = 0; i < input.size(); i++) {
+        for (int i = 0; i < input.getContainerSize(); i++) {
             ItemStack stack = input.getItem(i);
             if (stack.isEmpty()) continue;
 
@@ -78,10 +59,10 @@ public class MarineCompostRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+    public ItemStack assemble(CraftingContainer input, RegistryAccess registries) {
         ItemStack result = new ItemStack(FishtasticBlocks.MARINE_COMPOST.value().asItem());
 
-        for (int i = 0; i < input.size(); i++) {
+        for (int i = 0; i < input.getContainerSize(); i++) {
             ItemStack stack = input.getItem(i);
             ItemStack fish = stack.is(ItemTags.FISHES) ? stack : pileTopFish(stack);
             if (fish != null) {
@@ -97,10 +78,10 @@ public class MarineCompostRecipe extends CustomRecipe {
     }
 
     @Override
-    public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
+    public NonNullList<ItemStack> getRemainingItems(CraftingContainer input) {
         NonNullList<ItemStack> result = super.getRemainingItems(input);
 
-        for (int i = 0; i < input.size(); i++) {
+        for (int i = 0; i < input.getContainerSize(); i++) {
             ItemStack stack = input.getItem(i);
             if (pileTopFish(stack) == null) continue;
 

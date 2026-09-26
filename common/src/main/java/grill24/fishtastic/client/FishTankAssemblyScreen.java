@@ -15,7 +15,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
@@ -172,7 +172,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetAssemblyShapePacket(shape)));
+            NetworkApiSided.sendToServer(new SetAssemblyShapePacket(shape), SetAssemblyShapePacket.STREAM_CODEC);
         }
     }
 

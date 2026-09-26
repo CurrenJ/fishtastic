@@ -13,11 +13,12 @@ import net.minecraft.world.item.ItemStack;
  * icons — a fish tank always has all three materials.
  */
 public class ClientFishTankMaterialsTooltip implements ClientTooltipComponent {
-    // Same 1.21.1 constraint as ClientRodGearTooltip: `container/bundle/slot_background` is a
-    // 26.1.2 sprite this version does not ship, so the slots use 1.21.1's own 18x20
-    // `container/bundle/slot` at its native size.
-    private static final ResourceLocation SLOT_BACKGROUND_SPRITE =
-            Ids.withDefaultNamespace("container/bundle/slot");
+    // 1.20.1 has no GUI sprite atlas (blitSprite is 1.20.2+): draw straight from vanilla's own
+    // bundle tooltip texture instead, at the same SLOT region (u0,v0,18,20 on a 128x128 sheet)
+    // ClientBundleTooltip.Texture.SLOT uses.
+    private static final ResourceLocation SLOT_BACKGROUND_TEXTURE =
+            Ids.withDefaultNamespace("textures/gui/container/bundle.png");
+    private static final int SLOT_TEXTURE_SIZE = 128;
     private static final int SLOT_WIDTH = 18;
     private static final int SLOT_HEIGHT = 20;
     private static final int SLOT_GAP = 2;
@@ -46,7 +47,8 @@ public class ClientFishTankMaterialsTooltip implements ClientTooltipComponent {
         int startX = x;
         for (int i = 0; i < materials.length; i++) {
             int slotX = startX + i * (SLOT_WIDTH + SLOT_GAP);
-            graphics.blitSprite(SLOT_BACKGROUND_SPRITE, slotX, y, SLOT_WIDTH, SLOT_HEIGHT);
+            graphics.blit(SLOT_BACKGROUND_TEXTURE, slotX, y, SLOT_WIDTH, SLOT_HEIGHT,
+                    0f, 0f, SLOT_WIDTH, SLOT_HEIGHT, SLOT_TEXTURE_SIZE, SLOT_TEXTURE_SIZE);
             ItemStack stack = materials[i];
             int iconX = slotX + (SLOT_WIDTH - ICON_SIZE) / 2;
             int iconY = y + (SLOT_HEIGHT - ICON_SIZE) / 2;

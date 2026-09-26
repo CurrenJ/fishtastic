@@ -71,12 +71,13 @@ public final class FishtasticSilhouetteEffect {
 
         float half = size / 2.0F;
         Matrix4f pose = guiGraphics.pose().last().pose();
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, FishtasticShaders.GUI_EFFECT_FORMAT);
-        buffer.addVertex(pose, cx - half, cy - half, z).setUv(item.u0(), item.v0());
-        buffer.addVertex(pose, cx - half, cy + half, z).setUv(item.u0(), item.v1());
-        buffer.addVertex(pose, cx + half, cy + half, z).setUv(item.u1(), item.v1());
-        buffer.addVertex(pose, cx + half, cy - half, z).setUv(item.u1(), item.v0());
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, FishtasticShaders.GUI_EFFECT_FORMAT);
+        buffer.vertex(pose, cx - half, cy - half, z).uv(item.u0(), item.v0()).endVertex();
+        buffer.vertex(pose, cx - half, cy + half, z).uv(item.u0(), item.v1()).endVertex();
+        buffer.vertex(pose, cx + half, cy + half, z).uv(item.u1(), item.v1()).endVertex();
+        buffer.vertex(pose, cx + half, cy - half, z).uv(item.u1(), item.v0()).endVertex();
+        BufferUploader.drawWithShader(buffer.end());
 
         RenderSystem.disableBlend();
     }

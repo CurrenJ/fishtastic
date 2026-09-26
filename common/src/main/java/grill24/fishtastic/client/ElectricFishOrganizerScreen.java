@@ -10,7 +10,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -108,7 +108,7 @@ public class ElectricFishOrganizerScreen extends AbstractContainerScreen<Electri
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetOrganizerSortPacket(mode, ascending)));
+            NetworkApiSided.sendToServer(new SetOrganizerSortPacket(mode, ascending), SetOrganizerSortPacket.STREAM_CODEC);
         }
     }
 

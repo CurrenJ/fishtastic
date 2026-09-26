@@ -85,12 +85,13 @@ public final class FishtasticGuiOutlineRenderer {
         // No depth write: the quad is mostly transparent and must not occlude the item drawn next.
         RenderSystem.depthMask(false);
 
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        buffer.addVertex(pose, x0, y0, z).setUv(slot.u0(), slot.v0());
-        buffer.addVertex(pose, x0, y1, z).setUv(slot.u0(), slot.v1());
-        buffer.addVertex(pose, x1, y1, z).setUv(slot.u1(), slot.v1());
-        buffer.addVertex(pose, x1, y0, z).setUv(slot.u1(), slot.v0());
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        buffer.vertex(pose, x0, y0, z).uv(slot.u0(), slot.v0()).endVertex();
+        buffer.vertex(pose, x0, y1, z).uv(slot.u0(), slot.v1()).endVertex();
+        buffer.vertex(pose, x1, y1, z).uv(slot.u1(), slot.v1()).endVertex();
+        buffer.vertex(pose, x1, y0, z).uv(slot.u1(), slot.v0()).endVertex();
+        BufferUploader.drawWithShader(buffer.end());
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();

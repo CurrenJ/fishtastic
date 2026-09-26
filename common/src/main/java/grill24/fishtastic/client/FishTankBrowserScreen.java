@@ -24,7 +24,7 @@ import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -327,7 +327,7 @@ public class FishTankBrowserScreen extends GelatinUIScreen<FishTankBrowserMenu> 
     private void sendRemove(BlockPos segmentPos, TankEntryKind kind, int key) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new RemoveTankEntryPacket(segmentPos, kind, key)));
+        NetworkApiSided.sendToServer(new RemoveTankEntryPacket(segmentPos, kind, key), RemoveTankEntryPacket.STREAM_CODEC);
     }
 
     private void setHeaderText(Label header, String key, int count) {

@@ -1,10 +1,9 @@
 package grill24.fishtastic.recipe;
 
 import grill24.fishtastic.architectury.RegistrationApiSided;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Holder;
-import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 
 public class FishtasticRecipeSerializers {
     public static Holder<RecipeSerializer<?>> MARINE_COMPOST;
@@ -12,17 +11,7 @@ public class FishtasticRecipeSerializers {
     public static void registerRecipeSerializers() {
         MARINE_COMPOST = RegistrationApiSided.getInstance().registerRecipeSerializer(
                 "marine_compost",
-                () -> new RecipeSerializer<MarineCompostRecipe>() {
-                    @Override
-                    public MapCodec<MarineCompostRecipe> codec() {
-                        return MarineCompostRecipe.CODEC;
-                    }
-
-                    @Override
-                    public BufCodec<MarineCompostRecipe> streamCodec() {
-                        return MarineCompostRecipe.STREAM_CODEC;
-                    }
-                }
+                () -> new SimpleCraftingRecipeSerializer<>(MarineCompostRecipe::new)
         );
     }
 }

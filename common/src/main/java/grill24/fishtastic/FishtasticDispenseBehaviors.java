@@ -5,7 +5,7 @@ import grill24.fishtastic.block.MarineCompostPhase;
 import grill24.fishtastic.blockentity.MarineCompostBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.dispenser.BlockSource;
+import net.minecraft.core.BlockSource;
 import net.minecraft.core.dispenser.OptionalDispenseItemBehavior;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.BlockItem;
@@ -29,9 +29,9 @@ public class FishtasticDispenseBehaviors {
             protected ItemStack execute(BlockSource source, ItemStack dispensed) {
                 this.setSuccess(false);
 
-                ServerLevel level = source.level();
-                Direction facing = source.state().getValue(DispenserBlock.FACING);
-                BlockPos targetPos = source.pos().relative(facing);
+                ServerLevel level = source.getLevel();
+                Direction facing = source.getBlockState().getValue(DispenserBlock.FACING);
+                BlockPos targetPos = source.getPos().relative(facing);
                 BlockState targetState = level.getBlockState(targetPos);
 
                 if (targetState.is(FishtasticBlocks.MARINE_COMPOST.value())
@@ -41,7 +41,7 @@ public class FishtasticDispenseBehaviors {
                     bin.aerate(level.getGameTime());
                     bin.setChanged();
                     level.setBlockAndUpdate(targetPos, targetState.setValue(MarineCompostBlock.PHASE, MarineCompostPhase.WET));
-                    dispensed.hurtAndBreak(1, level, null, item -> {});
+                    dispensed.hurtAndBreak(1, (net.minecraft.world.entity.LivingEntity) null, item -> {});
                     this.setSuccess(true);
                 }
 
@@ -63,12 +63,12 @@ public class FishtasticDispenseBehaviors {
 
                 Item item = dispensed.getItem();
                 if (item instanceof BlockItem blockItem) {
-                    Direction facing = source.state().getValue(DispenserBlock.FACING);
-                    BlockPos targetPos = source.pos().relative(facing);
-                    Direction clickedFace = source.level().isEmptyBlock(targetPos.below()) ? facing : Direction.UP;
+                    Direction facing = source.getBlockState().getValue(DispenserBlock.FACING);
+                    BlockPos targetPos = source.getPos().relative(facing);
+                    Direction clickedFace = source.getLevel().isEmptyBlock(targetPos.below()) ? facing : Direction.UP;
 
                     try {
-                        this.setSuccess(blockItem.place(new DirectionalPlaceContext(source.level(), targetPos, facing, dispensed, clickedFace)).consumesAction());
+                        this.setSuccess(blockItem.place(new DirectionalPlaceContext(source.getLevel(), targetPos, facing, dispensed, clickedFace)).consumesAction());
                     } catch (Exception e) {
                         LOGGER.error("Error trying to place marine compost at {}", targetPos, e);
                     }

@@ -28,14 +28,14 @@ import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ResolvableProfile;
+import grill24.fishtastic.component.HeadProfile;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
@@ -197,7 +197,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         ItemStack playerHead = new ItemStack(Items.PLAYER_HEAD);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            FishtasticItemData.setHeadProfile(playerHead, new ResolvableProfile(mc.player.getGameProfile()));
+            FishtasticItemData.setHeadProfile(playerHead, HeadProfile.of(mc.player.getGameProfile()));
         }
 
         ItemTabs itemTabs = UI.itemTabs();
@@ -279,8 +279,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         Optional<UUID> target = (type == LeaderboardType.PERSONAL_BEST_SIZE || type == LeaderboardType.PERSONAL_CATCH_COUNT)
                 ? Optional.of(mc.player.getUUID())
                 : Optional.empty();
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                new RequestLeaderboardPacket(type, false, target)));
+        NetworkApiSided.sendToServer(new RequestLeaderboardPacket(type, false, target), RequestLeaderboardPacket.STREAM_CODEC);
     }
 
     private void onLeaderboardResponse(LeaderboardResponsePacket packet) {

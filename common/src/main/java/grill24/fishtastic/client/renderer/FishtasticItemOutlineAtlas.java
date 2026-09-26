@@ -25,7 +25,6 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayDeque;
@@ -80,14 +79,15 @@ public final class FishtasticItemOutlineAtlas {
     private static final Hash.Strategy<ItemStack> STACK_STRATEGY = new Hash.Strategy<>() {
         @Override
         public int hashCode(@Nullable ItemStack stack) {
-            return ItemStack.hashItemAndComponents(stack);
+            if (stack == null) return 0;
+            return java.util.Objects.hash(stack.getItem(), stack.getTag());
         }
 
         @Override
         public boolean equals(@Nullable ItemStack a, @Nullable ItemStack b) {
             if (a == b) return true;
             if (a == null || b == null) return false;
-            return ItemStack.isSameItemSameComponents(a, b);
+            return ItemStack.isSameItemSameTags(a, b);
         }
     };
 
@@ -267,9 +267,9 @@ public final class FishtasticItemOutlineAtlas {
 
         ensureInitialized();
         RenderSystem.backupProjectionMatrix();
-        Matrix4fStack modelView = RenderSystem.getModelViewStack();
-        modelView.pushMatrix();
-        modelView.identity();
+        PoseStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushPose();
+        modelView.setIdentity();
         RenderSystem.applyModelViewMatrix();
         // Y-down pixel space: atlas pixel row 0 is the top of the framebuffer (texture v = 1).
         RenderSystem.setProjectionMatrix(
@@ -290,7 +290,7 @@ public final class FishtasticItemOutlineAtlas {
 
         composeSlots(composeScratch);
 
-        modelView.popMatrix();
+        modelView.popPose();
         RenderSystem.applyModelViewMatrix();
         RenderSystem.restoreProjectionMatrix();
         minecraft.getMainRenderTarget().bindWrite(true);
@@ -338,12 +338,13 @@ public final class FishtasticItemOutlineAtlas {
             int top = slot.y * SLOT_PX;
             int bottom = top + SLOT_PX;
             SlotView uv = viewOf(slot);
-            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, FishtasticShaders.OUTLINE_BAKE_FORMAT);
-            buffer.addVertex(identity, left, top, 0.0F).setUv(uv.u0(), uv.v0());
-            buffer.addVertex(identity, left, bottom, 0.0F).setUv(uv.u0(), uv.v1());
-            buffer.addVertex(identity, left + SLOT_PX, bottom, 0.0F).setUv(uv.u1(), uv.v1());
-            buffer.addVertex(identity, left + SLOT_PX, top, 0.0F).setUv(uv.u1(), uv.v0());
-            BufferUploader.drawWithShader(buffer.buildOrThrow());
+            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+            buffer.begin(VertexFormat.Mode.QUADS, FishtasticShaders.OUTLINE_BAKE_FORMAT);
+            buffer.vertex(identity, left, top, 0.0F).uv(uv.u0(), uv.v0()).endVertex();
+            buffer.vertex(identity, left, bottom, 0.0F).uv(uv.u0(), uv.v1()).endVertex();
+            buffer.vertex(identity, left + SLOT_PX, bottom, 0.0F).uv(uv.u1(), uv.v1()).endVertex();
+            buffer.vertex(identity, left + SLOT_PX, top, 0.0F).uv(uv.u1(), uv.v0()).endVertex();
+            BufferUploader.drawWithShader(buffer.end());
             slot.composedStyle = style;
         }
         RenderSystem.enableCull();

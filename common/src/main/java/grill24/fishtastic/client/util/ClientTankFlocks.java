@@ -77,8 +77,8 @@ public final class ClientTankFlocks {
             flock.step();
             // Bubbles are an observer of the step just taken, and only for tanks actually on
             // screen — a warm-but-unseen flock keeps simulating without spending particles.
-            if (flock.lastExtractTick() == tickCounter - 1
-                    && Minecraft.getInstance().level instanceof ClientLevel clientLevel) {
+            ClientLevel clientLevel = Minecraft.getInstance().level;
+            if (flock.lastExtractTick() == tickCounter - 1 && clientLevel != null) {
                 TankBubbleEmitter.emit(clientLevel, entry.getKey(), flock, eye);
             }
         }

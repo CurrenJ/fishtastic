@@ -1,6 +1,6 @@
 package grill24.fishtastic.mixin;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.renderer.RenderBuffersHelper;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
@@ -39,7 +39,7 @@ public class RenderBuffersMixin implements RenderBuffersHelper {
      */
     @Inject(method = "put", at = @At("HEAD"))
     private static void addQualityGlowRenderTypes(
-            Object2ObjectLinkedOpenHashMap<RenderType, ByteBufferBuilder> object2ObjectLinkedOpenHashMap, RenderType renderType, CallbackInfo ci
+            Object2ObjectLinkedOpenHashMap<RenderType, BufferBuilder> object2ObjectLinkedOpenHashMap, RenderType renderType, CallbackInfo ci
     ) {
         if(renderType == RenderType.glint()) {
             // PORT-ONLY: the world quality outline gets a fixed buffer here too, so it's drawn in
@@ -68,15 +68,13 @@ public class RenderBuffersMixin implements RenderBuffersHelper {
             return;
         }
 
-        // PORT-ONLY: Map rather than the field's SequencedMap type — naming it in a local would emit
-        // a java/util/SequencedMap class constant, which :common:java17ApiGuard bans (1.20.1 is Java 17).
-        Map<RenderType, ByteBufferBuilder> fixedBuffers = accessor.fishtastic$getFixedBuffers();
+        Map<RenderType, BufferBuilder> fixedBuffers = accessor.fishtastic$getFixedBuffers();
         int added = 0;
 
         for (RenderType renderType : renderTypes) {
             // Only add if not already present
             if (!fixedBuffers.containsKey(renderType)) {
-                fixedBuffers.put(renderType, new ByteBufferBuilder(renderType.bufferSize()));
+                fixedBuffers.put(renderType, new BufferBuilder(renderType.bufferSize()));
                 added++;
             }
         }
@@ -88,9 +86,9 @@ public class RenderBuffersMixin implements RenderBuffersHelper {
 
     @Unique
     private static void fishtastic$putRenderType(
-        Object2ObjectLinkedOpenHashMap<RenderType, ByteBufferBuilder> map,
+        Object2ObjectLinkedOpenHashMap<RenderType, BufferBuilder> map,
         RenderType renderType
     ) {
-        map.put(renderType, new ByteBufferBuilder(renderType.bufferSize()));
+        map.put(renderType, new BufferBuilder(renderType.bufferSize()));
     }
 }

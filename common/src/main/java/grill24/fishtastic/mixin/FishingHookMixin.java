@@ -170,7 +170,7 @@ public class FishingHookMixin implements IFishingHookExtension {
         this.fishtastic$lavaDamageTickCounter = 0;
 
         if (owner instanceof ServerPlayer serverPlayer) {
-            rod.hurtAndBreak(fishtasticRod.getLavaDamagePerTick(), serverPlayer.serverLevel(), serverPlayer, item -> {});
+            rod.hurtAndBreak(fishtasticRod.getLavaDamagePerTick(), serverPlayer, item -> {});
         }
     }
 

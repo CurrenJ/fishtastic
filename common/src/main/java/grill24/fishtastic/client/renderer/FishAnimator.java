@@ -26,14 +26,13 @@ public final class FishAnimator {
      *                 the model's face winding/normals instead.
      */
     public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, float scale, boolean mirrored) {
-        switch (config) {
-            case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
-            case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
-            case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
-            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
-            case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
-            case FishAnimationConfig.UprightSit     cfg -> applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
-        }
+        if (config instanceof FishAnimationConfig.HorizontalSwim cfg) applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
+        else if (config instanceof FishAnimationConfig.UprightFloat cfg) applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
+        else if (config instanceof FishAnimationConfig.FloorSit cfg) applyFloorSit(poseStack, cfg, random, t, mirrored);
+        else if (config instanceof FishAnimationConfig.Planted cfg) applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
+        else if (config instanceof FishAnimationConfig.BellyDown cfg) applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
+        else if (config instanceof FishAnimationConfig.UprightSit cfg) applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
+        else throw new IllegalStateException("Unhandled FishAnimationConfig: " + config);
     }
 
     /**
@@ -51,13 +50,12 @@ public final class FishAnimator {
     public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
                                     float t, float yawDeg, float baseRotation, float scale,
                                     boolean mirrored, float shapeDrive) {
-        switch (config) {
-            case FishAnimationConfig.FloorSit cfg ->
-                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive);
-            case FishAnimationConfig.UprightSit cfg ->
-                    applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg,
-                            scale, shapeDrive);
-            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        if (config instanceof FishAnimationConfig.FloorSit cfg) {
+            applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive);
+        } else if (config instanceof FishAnimationConfig.UprightSit cfg) {
+            applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg, scale, shapeDrive);
+        } else {
+            apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
 
@@ -72,10 +70,10 @@ public final class FishAnimator {
     public static void applyDrifting(PoseStack poseStack, FishAnimationConfig config, Random random,
                                      float t, float baseRotation, float scale, boolean mirrored,
                                      float shapeDrive) {
-        switch (config) {
-            case FishAnimationConfig.UprightFloat cfg ->
-                    applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, shapeDrive);
-            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        if (config instanceof FishAnimationConfig.UprightFloat cfg) {
+            applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, shapeDrive);
+        } else {
+            apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
 
@@ -91,10 +89,10 @@ public final class FishAnimator {
     public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
                                      float t, float baseRotation, float scale, boolean mirrored,
                                      float retract) {
-        switch (config) {
-            case FishAnimationConfig.Planted cfg ->
-                    applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract);
-            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        if (config instanceof FishAnimationConfig.Planted cfg) {
+            applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract);
+        } else {
+            apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
 
@@ -115,11 +113,10 @@ public final class FishAnimator {
     public static void applyGliding(PoseStack poseStack, FishAnimationConfig config, Random random,
                                     float t, float yawDeg, float bankFraction, float baseRotation,
                                     float scale, boolean mirrored) {
-        switch (config) {
-            case FishAnimationConfig.BellyDown cfg ->
-                    applyBellyDown(poseStack, cfg, random, t, yawDeg, mirrored,
-                            cfg.bankAmplitude() * bankFraction);
-            default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
+        if (config instanceof FishAnimationConfig.BellyDown cfg) {
+            applyBellyDown(poseStack, cfg, random, t, yawDeg, mirrored, cfg.bankAmplitude() * bankFraction);
+        } else {
+            apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
 
@@ -137,19 +134,23 @@ public final class FishAnimator {
      * float small catches above the sand and sink large ones into it.
      */
     public static float floorPoseLift(FishAnimationConfig animConfig, float scale) {
-        return switch (animConfig) {
-            case FishAnimationConfig.FloorSit    fs -> fs.floorOffset();
-            // An eel is planted: its base sits plantDepth *below* the sand the engine reports,
-            // and the rest is the same centre-pivot compensation an upright pose needs. Until
-            // Phase 4 this returned 0 and the renderer pinned the pose's Y itself; the engine
-            // owns it now, exactly as it does for a crawler.
-            case FishAnimationConfig.Planted     p  -> PLANTED_PIVOT_Y * scale - p.plantDepth();
-            // The pivot is measured per species rather than assumed to be half the item: see
-            // UprightSit.pivotFraction. PLANTED_PIVOT_Y remains the value for art that fills its
-            // canvas, and the default for art nobody has measured.
-            case FishAnimationConfig.UprightSit  us -> us.floorOffset() + us.pivotFraction() * scale;
-            default -> 0f;
-        };
+        if (animConfig instanceof FishAnimationConfig.FloorSit fs) {
+            return fs.floorOffset();
+        }
+        // An eel is planted: its base sits plantDepth *below* the sand the engine reports,
+        // and the rest is the same centre-pivot compensation an upright pose needs. Until
+        // Phase 4 this returned 0 and the renderer pinned the pose's Y itself; the engine
+        // owns it now, exactly as it does for a crawler.
+        if (animConfig instanceof FishAnimationConfig.Planted p) {
+            return PLANTED_PIVOT_Y * scale - p.plantDepth();
+        }
+        // The pivot is measured per species rather than assumed to be half the item: see
+        // UprightSit.pivotFraction. PLANTED_PIVOT_Y remains the value for art that fills its
+        // canvas, and the default for art nobody has measured.
+        if (animConfig instanceof FishAnimationConfig.UprightSit us) {
+            return us.floorOffset() + us.pivotFraction() * scale;
+        }
+        return 0f;
     }
 
     // ── Mode implementations ──────────────────────────────────────────────────
@@ -377,22 +378,20 @@ public final class FishAnimator {
      *                    own game-time fallback, which never applies).
      */
     public static float yBob(FishAnimationConfig config, Random random, float t, float speedFactor) {
-        return switch (config) {
-            case FishAnimationConfig.HorizontalSwim cfg -> {
-                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
-                yield getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
-            }
-            case FishAnimationConfig.BellyDown cfg -> {
-                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
-                yield getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
-            }
-            case FishAnimationConfig.UprightFloat cfg -> {
-                float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
-                float hertz = cfg.bobHertz() + (random.nextFloat() * 0.01f);
-                yield (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
-            }
-            default -> 0f;
-        };
+        if (config instanceof FishAnimationConfig.HorizontalSwim cfg) {
+            float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
+            return getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
+        }
+        if (config instanceof FishAnimationConfig.BellyDown cfg) {
+            float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
+            return getBobbingHeight(random, t, cfg.bobAmplitude(), hertz);
+        }
+        if (config instanceof FishAnimationConfig.UprightFloat cfg) {
+            float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
+            float hertz = cfg.bobHertz() + (random.nextFloat() * 0.01f);
+            return (float) (Math.sin((t / (20f / hertz) + randomPhaseRad) * 2 * Math.PI) * cfg.bobAmplitude());
+        }
+        return 0f;
     }
 
     // ── Shared animation helpers ──────────────────────────────────────────────
