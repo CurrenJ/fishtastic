@@ -180,15 +180,22 @@ loom {
     }
 }
 
-// Forge's "data" launch target runs as Dist.CLIENT (it gathers client-side resources too), so JEI's
-// own DistExecutor.safeRunWhenOn(CLIENT, ...) fires and tries to build its client subsystem — but
-// that environment doesn't wire up I18n the way a real client run does, so JEI throws a
-// NoSuchMethodError building its key mappings, ModLoader's CONSTRUCT event fails fatally, and the JVM
-// then idles forever on FML's non-daemon worker pool instead of exiting (same silent-hang shape as
-// the B6.1 gametest fix, just triggered by a third-party mod). JEI is `localRuntime`-only (dev
-// convenience for runClient, see the dependencies block) and datagen never needs it, so drop its jar
-// from this run's classpath instead of chasing the upstream JEI/Forge-datagen incompatibility.
+// JEI's own DistExecutor.safeRunWhenOn(CLIENT, ...) fires during its client init and calls
+// I18n.get(...) by its SRG name; Architectury Loom's runtime remapper doesn't reliably have that
+// name resolved on net.minecraft.client.resources.language.I18n by the time JEI's CONSTRUCT event
+// runs in this dev environment, so JEI throws a NoSuchMethodError building its key mappings and
+// ModLoader's CONSTRUCT event fails fatally. On "data" this hangs the JVM forever on FML's
+// non-daemon worker pool (same shape as the B6.1 gametest fix); on "client" it just shows the fatal
+// mod-loading crash screen. Originally thought to only hit "data" (a real "client" launch was
+// assumed to wire up I18n correctly) — confirmed 2026-09-26 that "client" hits it too, reproducibly.
+// JEI is `localRuntime`-only (dev convenience, see the dependencies block) and neither run actually
+// needs it, so drop its jar from both runs' classpaths instead of chasing the upstream
+// JEI/Architectury-Loom remapper-ordering bug. If JEI-in-dev-client is needed again, use a real
+// (non-dev) Forge install instead.
 tasks.named("runData") {
+    classpath = classpath.filter { !it.name.startsWith("jei-") }
+}
+tasks.named("runClient") {
     classpath = classpath.filter { !it.name.startsWith("jei-") }
 }
 
