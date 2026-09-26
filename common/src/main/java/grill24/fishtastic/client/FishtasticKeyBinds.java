@@ -8,9 +8,6 @@ import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.client.TutorialClientHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.FishingRodItem;
 
 /**
  * Manages custom key bindings for Fishtastic
@@ -60,21 +57,15 @@ public class FishtasticKeyBinds {
     public static void handleKeyPress(Minecraft minecraft) {
         if (fishingMinigameImpulse.consumeClick()) {
             // Drain the click queue unconditionally so stale clicks don't fire after the
-            // minigame ends.  When a FishingMinigameAnimation is active its render() method
+            // minigame ends. When a FishingMinigameAnimation is active its render() method
             // handles the impulse at frame rate via rising-edge key detection — applying it
             // here a second time would double the impulse on the same press.
             //
-            // If no minigame is running yet but the player has a bobber out (e.g. it just
-            // got a bite), let the impulse key also reel it in and start the minigame, the
-            // same way right-click/use-item already does.
-            Player player = minecraft.player;
-            if (!FishingMinigameClientHandler.hasActiveSession() && player != null && player.fishing != null && minecraft.screen == null) {
-                if (player.getMainHandItem().getItem() instanceof FishingRodItem) {
-                    minecraft.gameMode.useItem(player, InteractionHand.MAIN_HAND);
-                } else if (player.getOffhandItem().getItem() instanceof FishingRodItem) {
-                    minecraft.gameMode.useItem(player, InteractionHand.OFF_HAND);
-                }
-            }
+            // Deliberately does NOT auto-reel-in/start the minigame when no session is active:
+            // this key defaults to SPACE, the same physical key as vanilla jump, so both
+            // keybindings fire off one jump press. Auto-reeling here meant jumping near water
+            // with a hook out silently discarded the bobber (confirmed via repro 2026-09-26).
+            // Starting the minigame stays exclusively a right-click/use-item action, like vanilla.
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
             TutorialClientHandler.onQuestLogKeyPressed();
