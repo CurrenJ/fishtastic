@@ -197,13 +197,15 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     /**
-     * Empty-hand click. Should open the browser GUI (lists every fish/cosmetic across the whole
+     * Empty-hand click opens the browser GUI (lists every fish/cosmetic across the whole
      * connected tank group and lets the player remove any of them) instead of blindly popping the
-     * last-placed fish — see docs/fish-tank-interaction-redesign.md. **Deferred**: the GUI
-     * (FishTankBrowserMenu, built on gelatin-ui's GelatinMenu) isn't ported yet — its 1.20.1 port
-     * (G-1.20.1) hasn't reached the menu system. A no-op consumed click until then.
+     * last-placed fish — see docs/fish-tank-interaction-redesign.md.
      */
     private InteractionResult useWithoutItemBody(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
+        BlockEntity be = level.getBlockEntity(blockPos);
+        if (be instanceof FishTankBlockEntity fishTank) {
+            player.openMenu(fishTank);
+        }
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
 

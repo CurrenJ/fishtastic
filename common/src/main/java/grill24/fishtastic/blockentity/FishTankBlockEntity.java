@@ -23,11 +23,13 @@ import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.menu.FishTankBrowserMenu;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.network.protocol.Packet;
@@ -35,7 +37,10 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -58,7 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class FishTankBlockEntity extends BlockEntity implements Container {
+public class FishTankBlockEntity extends BlockEntity implements Container, MenuProvider {
     /** A placed multi-block structure cosmetic, anchored at one grid cell. */
     public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
 
@@ -1111,8 +1116,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container {
         return returnItem != null ? new ItemStack(returnItem) : ItemStack.EMPTY;
     }
 
-    // MenuProvider/createMenu/getDisplayName deliberately not ported yet: FishTankBrowserMenu
-    // extends gelatin-ui's GelatinMenu, whose 1.20.1 port (G-1.20.1) hasn't reached the menu system
-    // yet. FishTankBlock's empty-hand click (the only caller of an opened menu) is a no-op until
-    // then — see FishTankBlock#useWithoutItemBody.
+    @Override
+    public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+        return new FishTankBrowserMenu(containerId, inventory, this);
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("block.fishtastic.fish_tank");
+    }
 }
