@@ -1,10 +1,10 @@
-package grill24.fishtastic.neoforge.fishtank;
+package grill24.fishtastic.forge.fishtank;
 
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.minecraftforge.client.model.data.ModelProperty;
 
 /**
- * Holds the NeoForge {@link ModelProperty} key used to attach {@link FishTankCompositeModelData}
+ * Holds the Forge {@link ModelProperty} key used to attach {@link FishTankCompositeModelData}
  * to a block position's {@code ModelData}.
  */
 public final class FishTankModelData {

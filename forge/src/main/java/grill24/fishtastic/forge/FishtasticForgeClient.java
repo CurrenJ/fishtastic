@@ -1,4 +1,4 @@
-package grill24.fishtastic.neoforge;
+package grill24.fishtastic.forge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
@@ -17,12 +17,9 @@ import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
 import grill24.fishtastic.network.QuestSyncPacket;
-import grill24.fishtastic.FishtasticBlocks;
-import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.FishtasticParticleTypes;
-// A4 needs this class for its menu-type accessors; A5 adds the item model types.
 import grill24.fishtastic.client.FishtasticClientSetup;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.particle.LavaBubbleParticle;
@@ -37,8 +34,10 @@ import grill24.fishtastic.client.particle.TankMicroBubbleParticle;
 import grill24.fishtastic.client.renderer.FishPileBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.client.renderer.FishtasticShaders;
+import grill24.fishtastic.forge.fishtank.FishTankModel;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
+import net.minecraftforge.client.event.RegisterShadersEvent;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.compat.GelatinScreensCompat;
@@ -48,38 +47,53 @@ import grill24.fishtastic.client.tooltip.ClientFishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.ClientRodGearTooltip;
 import grill24.fishtastic.client.tooltip.FishTankMaterialsTooltip;
 import grill24.fishtastic.client.tooltip.RodGearTooltip;
-import grill24.fishtastic.neoforge.fishtank.FishTankModel;
-import grill24.fishtastic.util.IGameRendererExtension;
-import grill24.fishtastic.util.ItemActivationAnimation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.event.TagsUpdatedEvent;
-import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
-import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.event.TagsUpdatedEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.client.event.ModelEvent;
+import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
+import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
-import static grill24.fishtastic.util.Utility.ft;
+/**
+ * Forge 47 client entrypoint. B5.3 deltas from NeoForge:
+ * <ul>
+ *   <li>constructor injection → {@code FMLJavaModLoadingContext.get().getModEventBus()}; the
+ *       NeoForge game bus ({@code NeoForge.EVENT_BUS}) → {@code MinecraftForge.EVENT_BUS}.</li>
+ *   <li>no {@code RegisterClientExtensionsEvent} — the builtin/entity item renderers are wired
+ *       via reflection in {@link FishtasticItemRendererForge#register}, called from
+ *       {@code FMLClientSetupEvent} instead of a mod-bus listener.</li>
+ *   <li>no {@code RegisterMenuScreensEvent} — {@code MenuScreens.register} runs directly in
+ *       {@code FMLClientSetupEvent#enqueueWork}.</li>
+ *   <li>no {@code RenderGuiEvent}/{@code RegisterGuiLayersEvent} HUD hook — the tutorial and
+ *       fishing-minigame HUD passes are registered as {@code IGuiOverlay}s through
+ *       {@code RegisterGuiOverlaysEvent} instead (order preserved: tutorial registered first,
+ *       so the minigame overlay draws above/after it, matching the old Pre-then-Post order).</li>
+ *   <li>{@code ClientTickEvent} has no {@code Pre}/{@code Post} subtypes — phase-gated instead.</li>
+ * </ul>
+ *
+ * <p>Not a {@code @Mod} class itself — Forge 47's {@code @Mod} has no {@code dist} filter (that's
+ * NeoForge), so this is instantiated from {@link FishtasticForge}'s constructor through {@code
+ * DistExecutor.safeRunWhenOn(Dist.CLIENT, ...)} instead, which keeps this class (and its
+ * client-only imports) from ever being loaded on a dedicated server.
+ */
+public final class FishtasticForgeClient {
+    public FishtasticForgeClient() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-@Mod(value = Fishtastic.MOD_ID, dist = Dist.CLIENT)
-public final class FishtasticNeoForgeClient {
-    public FishtasticNeoForgeClient(IEventBus modEventBus) {
         // Try to register GelatinUI screens, if GelatinUI is present.
         GelatinScreensCompat.init();
 
@@ -114,46 +128,38 @@ public final class FishtasticNeoForgeClient {
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
-        modEventBus.addListener(FishtasticNeoForgeClient::registerClientReloadListeners);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerModelLoaders);
-        // PORT-ONLY: the builtin/entity items (26.1's custom item model types, A5.3).
-        modEventBus.addListener(FishtasticItemRendererNeoForge::register);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerShaders);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerItemProperties);
+        modEventBus.addListener(FishtasticForgeClient::registerClientReloadListeners);
+        modEventBus.addListener(FishtasticForgeClient::registerModelLoaders);
+        modEventBus.addListener(FishtasticForgeClient::registerRenderers);
+        modEventBus.addListener(FishtasticForgeClient::registerParticleProviders);
+        modEventBus.addListener(FishtasticForgeClient::registerShaders);
+        modEventBus.addListener(FishtasticForgeClient::registerKeyMappings);
+        modEventBus.addListener(FishtasticForgeClient::registerTooltipComponents);
+        modEventBus.addListener(FishtasticForgeClient::registerGuiOverlays);
+        modEventBus.addListener(FishtasticForgeClient::onClientSetup);
 
         // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onPlayerJoin);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onPlayerLeave);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onTagsUpdated);
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onItemTooltip);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onItemTooltip);
 
         // Register client tick event handler
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onClientTick);
 
-        // Register tutorial overlay — fires BEFORE the minigame bar so the bar appears on top
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGuiPre);
         // Render tutorial text on top of quest/shop screen (fires after the screen renders)
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onScreenRenderPost);
-        // Register HUD render hook for the fishing minigame overlay
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onScreenRenderPost);
         // Draw the cosmetic-capture wand selection preview (PORT-ONLY: a world-render pass here)
-        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderLevelStage);
+        MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onRenderLevelStage);
     }
 
     /**
      * The tank's model geometry, referenced from {@code models/block/fish_tank.json} as
-     * {@code "loader": "fishtastic:fish_tank"}. (26.1.2 registers a blockstate-level model type
-     * instead; 1.21.1 only has model-level loaders, and the blockstate redirect scan that 26.1.2
-     * runs as a reload listener happens inside the tank's own bake, see FishTankGeometry.)
+     * {@code "loader": "fishtastic:fish_tank"}.
      */
     public static void registerModelLoaders(ModelEvent.RegisterGeometryLoaders event) {
-        event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE);
+        event.register("fish_tank", FishTankModel.Loader.INSTANCE);
         Fishtastic.LOGGER.info("Fishtastic model loaders registered.");
     }
 
@@ -188,7 +194,7 @@ public final class FishtasticNeoForgeClient {
         Fishtastic.LOGGER.info("Fishtastic particle providers registered.");
     }
 
-    /** PORT-ONLY: Fishtastic's core shader programs (26.1 builds RenderPipelines instead). */
+    /** PORT-ONLY: Fishtastic's core shader programs. */
     public static void registerShaders(RegisterShadersEvent event) {
         try {
             FishtasticShaders.registerAll((id, format, onLoad) ->
@@ -212,20 +218,43 @@ public final class FishtasticNeoForgeClient {
         event.register(FishTankMaterialsTooltip.class, tooltip -> new ClientFishTankMaterialsTooltip(tooltip.frame(), tooltip.glass(), tooltip.sand()));
     }
 
-    // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
-
-    /** PORT-ONLY: the rod {@code cast} and book {@code has_alert} predicates the item models test. */
-    public static void registerItemProperties(final FMLClientSetupEvent event) {
-        event.enqueueWork(() -> FishtasticItemProperties.register(ItemProperties::register));
-        // PORT-ONLY: the see-through blocks' chunk layers (26.1 derives them from texture alpha).
-        // NeoForge 21.1 still honours the deprecated setRenderLayer for models with no render_type.
-        event.enqueueWork(() -> FishtasticBlockRenderLayers.register(net.minecraft.client.renderer.ItemBlockRenderTypes::setRenderLayer));
+    /**
+     * The tutorial overlay draws first (registered first, so later registrations sit above it),
+     * then the fishing minigame + notifications overlay — matching the old
+     * {@code RenderGuiEvent.Pre}-then-{@code Post} order.
+     */
+    public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("tutorial", (gui, graphics, partialTick, width, height) -> {
+            // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
+            if (!FishtasticHudLayers.drawnInHudPass()) return;
+            FishtasticHudLayers.renderTutorial(graphics, partialTick);
+        });
+        event.registerAboveAll("minigame", (gui, graphics, partialTick, width, height) -> {
+            // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
+            if (!FishtasticHudLayers.drawnInHudPass()) return;
+            // The fishing minigame, then the quest progress notifications over it
+            FishtasticHudLayers.renderMinigameAndNotifications(graphics, partialTick);
+        });
     }
 
-    public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
-        event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
-        event.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
-        event.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
+    // TODO MC-26.1: Block color handlers need to be re-implemented using the new BlockTintSource system
+
+    public static void onClientSetup(final FMLClientSetupEvent event) {
+        // PORT-ONLY: the builtin/entity items (A5.3).
+        event.enqueueWork(FishtasticItemRendererForge::register);
+
+        // PORT-ONLY: the rod {@code cast} and book {@code has_alert} predicates the item models test.
+        event.enqueueWork(() -> FishtasticItemProperties.register(ItemProperties::register));
+        // PORT-ONLY: the see-through blocks' chunk layers.
+        // Forge 47 still honours the deprecated setRenderLayer for models with no render_type.
+        event.enqueueWork(() -> FishtasticBlockRenderLayers.register(net.minecraft.client.renderer.ItemBlockRenderTypes::setRenderLayer));
+
+        // No RegisterMenuScreensEvent on Forge 47 — register screens directly here instead.
+        event.enqueueWork(() -> {
+            MenuScreens.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
+            MenuScreens.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
+            MenuScreens.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
+        });
     }
 
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
@@ -253,11 +282,13 @@ public final class FishtasticNeoForgeClient {
         TankCosmeticTooltip.append(event.getItemStack(), event.getToolTip());
     }
 
-    public static void onClientTick(ClientTickEvent.Pre event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
+
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
         // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
-        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "forge");
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
@@ -270,8 +301,8 @@ public final class FishtasticNeoForgeClient {
     }
 
     /**
-     * Draws the cosmetic-capture wand selection preview, if a session is active. PORT-ONLY: 1.21.1
-     * has no per-tick gizmo collection (26.1's Gizmos), so this is a world-render pass.
+     * Draws the cosmetic-capture wand selection preview, if a session is active. PORT-ONLY: no
+     * per-tick gizmo collection, so this is a world-render pass.
      */
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
@@ -281,21 +312,8 @@ public final class FishtasticNeoForgeClient {
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
     }
 
-    public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
-        // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
-        if (!FishtasticHudLayers.drawnInHudPass()) return;
-        FishtasticHudLayers.renderTutorial(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
-    }
-
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         TutorialClientHandler.renderScreenOverlay(event.getGuiGraphics(), event.getPartialTick());
         EncyclopediaTutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick());
-    }
-
-    public static void onRenderGui(RenderGuiEvent.Post event) {
-        // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
-        if (!FishtasticHudLayers.drawnInHudPass()) return;
-        // The fishing minigame, then the quest progress notifications over it
-        FishtasticHudLayers.renderMinigameAndNotifications(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 }

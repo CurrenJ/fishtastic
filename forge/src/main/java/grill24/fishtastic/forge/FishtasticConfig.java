@@ -1,10 +1,10 @@
-package grill24.fishtastic.neoforge;
+package grill24.fishtastic.forge;
 
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.InMemoryFormat;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.config.ModConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -14,31 +14,30 @@ public final class FishtasticConfig {
      * The config defines blacklisted blocks for fish tank parts and model path overrides.
      */
     public static class Startup {
-        public final ModConfigSpec.ConfigValue<List<? extends Config>> fishTankPartBlacklists;
-        public final ModConfigSpec.ConfigValue<List<? extends Config>> blockModelPathOverrides;
+        public final ForgeConfigSpec.ConfigValue<List<? extends Config>> fishTankPartBlacklists;
+        public final ForgeConfigSpec.ConfigValue<List<? extends Config>> blockModelPathOverrides;
 
-        Startup(ModConfigSpec.Builder builder) {
+        Startup(ForgeConfigSpec.Builder builder) {
             //TODO: See if/how this can be made to work with the config GUI
 
-            var emptyConfig = Config.wrap(Map.of(), InMemoryFormat.defaultInstance());
             fishTankPartBlacklists = builder
                     .comment("""
-                           
+
                             Blacklisted blocks for fish tank parts.
                             Specify the parts (frame, glass, sand) and the blocks/tags to blacklist.
                             Blocks in these lists will not be used for the corresponding fish tank parts.
-                            
+
                             Example entries:
                             [[fishTankPartBlacklists]]
                                 parts = ["frame"]
                                 blocks = ["minecraft:stone", "#minecraft:logs"]
-                            
+
                             [[fishTankPartBlacklists]]
                                 parts = ["frame", "glass", "sand"]
                                 blocks = ["minecraft:bedrock"]
                                 """)
                     .translation("fishtastic.config.fishTankPartBlacklists")
-                    .gameRestart()
+                    .worldRestart()
                     .defineList("fishTankPartBlacklists", () ->
                     {
                         var frameBlacklist = Config.wrap(Map.of(
@@ -47,7 +46,7 @@ public final class FishtasticConfig {
                         ), InMemoryFormat.defaultInstance());
 
                         return List.of(frameBlacklist);
-                    }, null, o -> o instanceof Config);
+                    }, o -> o instanceof Config);
 
             blockModelPathOverrides = builder
                     .comment("""
@@ -59,7 +58,7 @@ public final class FishtasticConfig {
                             The {name} placeholder will be replaced with the block's registry name (without namespace).
                                \s""")
                     .translation("fishtastic.config.blockModelPathOverrides")
-                    .gameRestart()
+                    .worldRestart()
                     .defineList("blockModelPathOverrides", () -> {
                         // Default overrides for Fishtastic's custom glass blocks
                         var borderlessGlassOverride = Config.wrap(Map.of(
@@ -73,20 +72,22 @@ public final class FishtasticConfig {
                         ), InMemoryFormat.defaultInstance());
 
                         return List.of(borderlessGlassOverride, clearGlassOverride);
-                    }, null, o -> o instanceof Config);
+                    }, o -> o instanceof Config);
         }
     }
 
     public static final Startup STARTUP;
-    private static final ModConfigSpec startupSpec;
+    private static final ForgeConfigSpec startupSpec;
 
     static {
-        var startupPair = new ModConfigSpec.Builder().configure(Startup::new);
+        var startupPair = new ForgeConfigSpec.Builder().configure(Startup::new);
         STARTUP = startupPair.getLeft();
         startupSpec = startupPair.getRight();
     }
 
-    public static void register(ModContainer container) {
-        container.registerConfig(ModConfig.Type.STARTUP, startupSpec);
+    public static void register() {
+        // Forge 47 has no ModConfig.Type.STARTUP (that's a NeoForge addition) - COMMON is the
+        // closest analog: loaded once at startup, not per-world, matching this config's contents.
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, startupSpec);
     }
 }

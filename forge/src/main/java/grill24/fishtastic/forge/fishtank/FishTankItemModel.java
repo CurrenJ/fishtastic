@@ -1,4 +1,4 @@
-package grill24.fishtastic.neoforge.fishtank;
+package grill24.fishtastic.forge.fishtank;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
@@ -18,7 +18,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.RenderTypeHelper;
+import net.minecraftforge.client.RenderTypeHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -27,10 +27,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The tank item's per-stack model on NeoForge 1.21.1: resolves the stack's
+ * The tank item's per-stack model on Forge 47: resolves the stack's
  * {@code FISH_TANK_SHAPE} and {@code FISH_TANK_MATERIALS} to the fully closed (permutation 0)
- * composite, as 26.1.2's {@code FishTankItemModel} does. Each material layer is its own render
- * pass so it can use its own item render type (glass translucent, frame and sand cutout).
+ * composite. Each material layer is its own render pass so it can use its own item render type
+ * (glass translucent, frame and sand cutout).
  */
 final class FishTankItemModel extends ItemOverrides {
     private final FishTankBakedModel blockModel;

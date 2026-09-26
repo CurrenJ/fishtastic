@@ -1,4 +1,4 @@
-package grill24.fishtastic.neoforge;
+package grill24.fishtastic.forge;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
@@ -9,7 +9,7 @@ import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
-import grill24.fishtastic.architectury.neoforge.NeoForgePacketRegistrar;
+import grill24.fishtastic.architectury.forge.ForgePacketRegistrar;
 import grill24.fishtastic.compat.GelatinMenusCompat;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
@@ -18,65 +18,69 @@ import grill24.fishtastic.network.FishtasticPackets;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.ServerTickHandler;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
 
 import grill24.fishtastic.Fishtastic;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.OnDatapackSyncEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.OnDatapackSyncEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.neoforge.registries.DataPackRegistryEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DataPackRegistryEvent;
 
+/**
+ * Forge 47 entrypoint (B5.3: NeoForge's constructor-injected {@code IEventBus modEventBus,
+ * ModContainer container} becomes {@code FMLJavaModLoadingContext.get().getModEventBus()} inside a
+ * no-arg constructor; NeoForge's own event bus is {@code MinecraftForge.EVENT_BUS} here).
+ */
 @Mod(Fishtastic.MOD_ID)
-public final class FishtasticNeoForge {
-    public FishtasticNeoForge(IEventBus modEventBus, ModContainer container) {
+public final class FishtasticForge {
+    public FishtasticForge() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+
         // Try to register GelatinUI menus, if GelatinUI is present.
         GelatinMenusCompat.init();
 
-        // __BEGIN:item_registration:init_neoforge
-        // Register data components first
-        FishtasticDataComponents.registerDataComponents();
-        FishtasticRegistriesNeoForge.DATA_COMPONENT_TYPES.register(modEventBus);
-
+        // __BEGIN:item_registration:init_forge
         // Call modloader-specific static method to register items to our deferred register
+        FishtasticDataComponents.registerDataComponents();
+
         FishtasticItems.registerItems();
-        FishtasticRegistriesNeoForge.ITEMS.register(modEventBus);
+        FishtasticRegistriesForge.ITEMS.register(modEventBus);
 
         FishtasticBlocks.registerBlocks();
-        FishtasticRegistriesNeoForge.BLOCKS.register(modEventBus);
+        FishtasticRegistriesForge.BLOCKS.register(modEventBus);
 
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
-        FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(modEventBus);
+        FishtasticRegistriesForge.BLOCK_ENTITY_TYPES.register(modEventBus);
 
         FishtasticMenuTypes.registerMenuTypes();
-        FishtasticRegistriesNeoForge.MENU_TYPES.register(modEventBus);
+        FishtasticRegistriesForge.MENU_TYPES.register(modEventBus);
 
         FishtasticCreativeTabs.registerCreativeTabs();
-        FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.register(modEventBus);
+        FishtasticRegistriesForge.CREATIVE_MODE_TABS.register(modEventBus);
 
         FishtasticSounds.registerSounds();
-        FishtasticRegistriesNeoForge.SOUND_EVENTS.register(modEventBus);
+        FishtasticRegistriesForge.SOUND_EVENTS.register(modEventBus);
 
         FishtasticParticleTypes.registerParticleTypes();
-        FishtasticRegistriesNeoForge.PARTICLE_TYPES.register(modEventBus);
+        FishtasticRegistriesForge.PARTICLE_TYPES.register(modEventBus);
 
         grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
-        FishtasticRegistriesNeoForge.RECIPE_SERIALIZERS.register(modEventBus);
+        FishtasticRegistriesForge.RECIPE_SERIALIZERS.register(modEventBus);
 
         // Deferred to common setup, not called inline: registerDispenseBehaviors() dereferences
-        // FishtasticBlocks.MARINE_COMPOST.value(), and on NeoForge a DeferredHolder is still
-        // unbound while the mod constructor runs — doing it here threw
-        // "Trying to access unbound value: ResourceKey[minecraft:block / fishtastic:marine_compost]"
-        // and killed mod loading outright. enqueueWork because DispenserBlock's behavior map is
-        // plain mutable global state and common setup runs in parallel across mods. Fabric calls
-        // it inline in onInitialize and is fine — its registries are populated eagerly.
-        modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
+        // FishtasticBlocks.MARINE_COMPOST.value(), and a RegistryObjectHolder is still unbound
+        // while the mod constructor runs (same ordering hazard as NeoForge's DeferredHolder).
+        // enqueueWork because DispenserBlock's behavior map is plain mutable global state and
+        // common setup runs in parallel across mods. Fabric calls it inline in onInitialize and is
+        // fine — its registries are populated eagerly.
+        modEventBus.addListener((FMLCommonSetupEvent event) ->
                 event.enqueueWork(grill24.fishtastic.FishtasticDispenseBehaviors::registerDispenseBehaviors));
-
-        // Register our custom registries
-        modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
 
         // Register datapack registries
         modEventBus.addListener((DataPackRegistryEvent.NewRegistry event) -> {
@@ -97,7 +101,7 @@ public final class FishtasticNeoForge {
         });
 
         // Send quest and tutorial state to player on world join
-        NeoForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
+        MinecraftForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
             if (event.getPlayer() == null) return;
             QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(event.getPlayer());
@@ -105,15 +109,21 @@ public final class FishtasticNeoForge {
         });
 
         // Register network packets
-        modEventBus.addListener(NeoForgePacketRegistrar::register);
+        ForgePacketRegistrar.register();
         FishtasticPackets.init();
 
         // Register server tick handler
-        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> {
-            ServerTickHandler.onServerTick(event.getServer());
+        MinecraftForge.EVENT_BUS.addListener((TickEvent.ServerTickEvent event) -> {
+            if (event.phase == TickEvent.Phase.END) {
+                ServerTickHandler.onServerTick(event.getServer());
+            }
         });
 
         // Register config
-        FishtasticConfig.register(container);
+        FishtasticConfig.register();
+
+        // Forge 47's @Mod has no dist filter (that's NeoForge) - defer client setup through
+        // DistExecutor so FishtasticForgeClient's client-only imports never load server-side.
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> FishtasticForgeClient::new);
     }
 }

@@ -1,4 +1,4 @@
-package grill24.fishtastic.neoforge.fishtank;
+package grill24.fishtastic.forge.fishtank;
 
 import grill24.fishtastic.client.compositemodel.FishTankGeometry;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
@@ -12,10 +12,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.IDynamicBakedModel;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.common.util.TriState;
+import net.minecraftforge.client.ChunkRenderTypeSet;
+import net.minecraftforge.client.model.IDynamicBakedModel;
+import net.minecraftforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -24,12 +23,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Runtime model for the Fish Tank on NeoForge 1.21.1: composites the frame, sand and glass
+ * Runtime model for the Fish Tank on Forge 47: composites the frame, sand and glass
  * layers for the block entity's {@link FishTankCompositeModelData} (read from {@link ModelData}),
  * through the shared {@link FishTankGeometry}.
  *
  * <p>Each layer goes to its material block's own chunk layer (glass is usually translucent,
- * frame and sand solid). 26.1.2 derives the same from its quads' material flags.
+ * frame and sand solid).
  */
 public class FishTankBakedModel implements IDynamicBakedModel {
     private final FishTankGeometry geometry;
@@ -86,14 +85,10 @@ public class FishTankBakedModel implements IDynamicBakedModel {
     }
 
     @Override
-    public TriState useAmbientOcclusion(BlockState state, ModelData data, RenderType renderType) {
-        // The tank shell is assembled from many noOcclusion() blocks; vanilla AO compounds at the
-        // internal seams and darkens large tanks (26.1.2 disables it on the model part too).
-        return TriState.FALSE;
-    }
-
-    @Override
     public boolean useAmbientOcclusion() {
+        // The tank shell is assembled from many noOcclusion() blocks; vanilla AO compounds at the
+        // internal seams and darkens large tanks. IForgeBakedModel's 1-/2-arg overloads both
+        // delegate to this by default, so overriding just this covers every call site.
         return false;
     }
 

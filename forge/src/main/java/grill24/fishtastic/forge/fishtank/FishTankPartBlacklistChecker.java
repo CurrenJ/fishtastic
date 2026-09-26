@@ -1,8 +1,8 @@
-package grill24.fishtastic.neoforge.fishtank;
+package grill24.fishtastic.forge.fishtank;
 
 import com.electronwill.nightconfig.core.Config;
 import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.neoforge.FishtasticConfig;
+import grill24.fishtastic.forge.FishtasticConfig;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;

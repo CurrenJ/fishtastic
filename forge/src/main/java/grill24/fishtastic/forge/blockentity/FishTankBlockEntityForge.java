@@ -1,24 +1,23 @@
-package grill24.fishtastic.neoforge.blockentity;
+package grill24.fishtastic.forge.blockentity;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
-import grill24.fishtastic.neoforge.fishtank.FishTankModelData;
+import grill24.fishtastic.forge.fishtank.FishTankModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraftforge.client.model.data.ModelData;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * NeoForge-specific extension of FishTankBlockEntity that provides ModelData for rendering.
+ * Forge-specific extension of FishTankBlockEntity that provides ModelData for rendering.
  */
-public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
+public class FishTankBlockEntityForge extends FishTankBlockEntity {
 
-    public FishTankBlockEntityNeoForge(BlockPos blockPos, BlockState blockState) {
+    public FishTankBlockEntityForge(BlockPos blockPos, BlockState blockState) {
         super(blockPos, blockState);
     }
 
@@ -32,8 +31,8 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet, HolderLookup.Provider registries) {
-        super.onDataPacket(net, packet, registries);
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet) {
+        super.onDataPacket(net, packet);
 
         // Handle data packet on client - this will trigger model data update
         if (level != null && level.isClientSide()) {
@@ -48,7 +47,7 @@ public class FishTankBlockEntityNeoForge extends FishTankBlockEntity {
                     getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ()
                 );
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBENF.onDataPacket][CLIENT] pos={}, levelRenderer is NULL!", getBlockPos());
+                Fishtastic.LOGGER.warn("[FishTankBEForge.onDataPacket][CLIENT] pos={}, levelRenderer is NULL!", getBlockPos());
             }
         }
     }

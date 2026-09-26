@@ -1,6 +1,6 @@
-package grill24.fishtastic.config.neoforge;
+package grill24.fishtastic.config.forge;
 
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.nio.file.Path;
 
