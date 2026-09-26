@@ -42,7 +42,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -303,7 +303,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // opening that menu) so a species caught since the last encyclopedia visit shows correctly here.
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(false)));
+            NetworkApiSided.sendToServer(new RequestFishEncyclopediaPacket(false), RequestFishEncyclopediaPacket.STREAM_CODEC);
         }
         super.init();
     }
@@ -870,7 +870,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaScreen.selectOnNextOpen(speciesKey.location());
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+            NetworkApiSided.sendToServer(new RequestFishEncyclopediaPacket(true), RequestFishEncyclopediaPacket.STREAM_CODEC);
         }
     }
 
@@ -933,7 +933,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             claimBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompleteQuestPacket(fId)));
+                NetworkApiSided.sendToServer(new CompleteQuestPacket(fId), CompleteQuestPacket.STREAM_CODEC);
             }
             triggerQuestClaimReward(row, quest);
         });
@@ -1373,7 +1373,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refreshBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new RefreshShopPacket()));
+                NetworkApiSided.sendToServer(new RefreshShopPacket(), RefreshShopPacket.STREAM_CODEC);
             }
         });
         refreshBtn.setVisible(canAfford);
@@ -1492,7 +1492,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             buyBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.location())));
+                NetworkApiSided.sendToServer(new PurchaseShopEntryPacket(fKey.location()), PurchaseShopEntryPacket.STREAM_CODEC);
             }
             triggerPurchaseFall(fallingPanel, fKey, entry);
         });

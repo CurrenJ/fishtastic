@@ -13,7 +13,6 @@ import grill24.fishtastic.util.BlockEntityNbt;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -298,8 +297,8 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
     }
 
     @Override
-    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
-        super.saveAdditional(output, registries);
+    protected void saveAdditional(CompoundTag output) {
+        super.saveAdditional(output);
         output.putString("SortMode", sortMode.getSerializedName());
         output.putBoolean("SortAscending", sortAscending);
         ListTag itemsList = BlockEntityNbt.childrenList(output, "Items");
@@ -308,14 +307,14 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
             if (!stack.isEmpty()) {
                 CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack);
             }
         }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
-        super.loadAdditional(input, registries);
+    public void load(CompoundTag input) {
+        super.load(input);
         sortMode = OrganizerSortMode.bySerializedName(BlockEntityNbt.getStringOr(input, "SortMode", OrganizerSortMode.SPECIES.getSerializedName()));
         sortAscending = BlockEntityNbt.getBooleanOr(input, "SortAscending", true);
         for (int i = 0; i < CONTAINER_SIZE; i++) {
@@ -324,7 +323,7 @@ public class ElectricFishOrganizerBlockEntity extends BlockEntity implements Con
         BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
             int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
             }
         });
     }

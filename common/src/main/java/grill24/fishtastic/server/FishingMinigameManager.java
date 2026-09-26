@@ -899,8 +899,10 @@ public class FishingMinigameManager {
         }
 
         String tableName = TREASURE_LOOT_TABLE_NAMES.get(quality);
-        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(
-                net.minecraft.resources.ResourceKey.create(Registries.LOOT_TABLE, Fishtastic.id(tableName)));
+        LootTable lootTable = level.getServer().getLootData().getElement(
+                new net.minecraft.world.level.storage.loot.LootDataId<>(
+                        net.minecraft.world.level.storage.loot.LootDataType.TABLE, Fishtastic.id(tableName)));
+        if (lootTable == null) lootTable = LootTable.EMPTY;
 
         List<ItemStack> rewardStacks = new ArrayList<>();
         for (int n = 0; n < numRewards; n++) {
@@ -936,7 +938,7 @@ public class FishingMinigameManager {
 
     private static @NotNull List<Holder<Item>> getTrashPool(ServerPlayer player) {
         List<Holder<Item>> result = new ArrayList<>();
-        for (Holder<Item> holder : player.registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(FishtasticItemTags.TRASH)) {
+        for (Holder<Item> holder : player.level().registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(FishtasticItemTags.TRASH)) {
             result.add(holder);
         }
         return result;
@@ -993,7 +995,7 @@ public class FishingMinigameManager {
                 : Optional.empty();
 
         List<Holder<Item>> result = new ArrayList<>();
-        for (Holder<Item> holder : player.registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
+        for (Holder<Item> holder : player.level().registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
             if (exclusivePool.isEmpty() || holder.is(exclusivePool.get())) {
                 result.add(holder);
             }
@@ -1144,7 +1146,7 @@ public class FishingMinigameManager {
     private static void damagePassiveCharmInInventory(ServerPlayer player, Predicate<CharmEffect> predicate) {
         int slot = findCharmSlotInInventory(player, predicate);
         if (slot >= 0) {
-            player.getInventory().getItem(slot).hurtAndBreak(1, (ServerLevel) player.level(), player, item -> {});
+            player.getInventory().getItem(slot).hurtAndBreak(1, player, item -> {});
         }
     }
 

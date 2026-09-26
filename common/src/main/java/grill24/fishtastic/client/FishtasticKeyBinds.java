@@ -1,13 +1,13 @@
 package grill24.fishtastic.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import grill24.fishtastic.network.NetworkApiSided;
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestLeaderboardScreenPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.client.TutorialClientHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.FishingRodItem;
@@ -79,17 +79,17 @@ public class FishtasticKeyBinds {
         if (openQuestLog != null && openQuestLog.consumeClick()) {
             TutorialClientHandler.onQuestLogKeyPressed();
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
+                NetworkApiSided.sendToServer(new RequestQuestLogPacket(), RequestQuestLogPacket.STREAM_CODEC);
             }
         }
         if (openFishEncyclopedia != null && openFishEncyclopedia.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+                NetworkApiSided.sendToServer(new RequestFishEncyclopediaPacket(true), RequestFishEncyclopediaPacket.STREAM_CODEC);
             }
         }
         if (openLeaderboards != null && openLeaderboards.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestLeaderboardScreenPacket()));
+                NetworkApiSided.sendToServer(new RequestLeaderboardScreenPacket(), RequestLeaderboardScreenPacket.STREAM_CODEC);
             }
         }
     }

@@ -1,7 +1,6 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.util.BlockEntityNbt;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.block.MarineCompostBlock;
@@ -87,9 +86,9 @@ public class MarineCompostBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
-        super.saveAdditional(output, registries);
-        if (quality != null) BlockEntityNbt.store(output, "quality", FishQuality.Quality.CODEC, quality, registries);
+    protected void saveAdditional(CompoundTag output) {
+        super.saveAdditional(output);
+        if (quality != null) BlockEntityNbt.store(output, "quality", FishQuality.Quality.CODEC, quality);
         output.putInt("conversion_ticks", conversionTicks);
         output.putInt("aeration_turns", aerationTurns);
         output.putInt("pending_worms", pendingWorms);
@@ -97,9 +96,9 @@ public class MarineCompostBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
-        super.loadAdditional(input, registries);
-        quality = BlockEntityNbt.read(input, "quality", FishQuality.Quality.CODEC, registries).orElse(null);
+    public void load(CompoundTag input) {
+        super.load(input);
+        quality = BlockEntityNbt.read(input, "quality", FishQuality.Quality.CODEC).orElse(null);
         conversionTicks = BlockEntityNbt.getIntOr(input, "conversion_ticks", 0);
         aerationTurns = BlockEntityNbt.getIntOr(input, "aeration_turns", 0);
         pendingWorms = BlockEntityNbt.getIntOr(input, "pending_worms", 0);

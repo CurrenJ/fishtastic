@@ -8,7 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
@@ -124,6 +124,6 @@ public class EncyclopediaTutorialClientHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         sentAdvanceThisStep = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new EncyclopediaTutorialAdvancePacket(currentStep)));
+        NetworkApiSided.sendToServer(new EncyclopediaTutorialAdvancePacket(currentStep), EncyclopediaTutorialAdvancePacket.STREAM_CODEC);
     }
 }

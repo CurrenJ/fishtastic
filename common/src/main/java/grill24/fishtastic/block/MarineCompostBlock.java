@@ -7,6 +7,7 @@ import grill24.fishtastic.util.FishQualityHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -62,9 +63,15 @@ public class MarineCompostBlock extends Block implements EntityBlock {
         bin.setChanged();
     }
 
+    /**
+     * MC20 has one {@code use} override, not 1.21.1's {@code useItemOn}/{@code useWithoutItem}
+     * split; a held item falls through to PASS, matching 1.21.1's unoverridden {@code useItemOn}
+     * default for this block (only a bare-hand click aerates the bin).
+     */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
-            Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos,
+            Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!player.getItemInHand(hand).isEmpty()) return InteractionResult.PASS;
         MarineCompostPhase phase = state.getValue(PHASE);
         boolean willAerate = phase == MarineCompostPhase.DRY;
 
@@ -82,15 +89,15 @@ public class MarineCompostBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         // A player breaking the block removes it (and its BlockEntity) before spawnAfterBreak/playerDestroy
         // ever runs, so the pending worm count has to be read here instead, while the entity still exists.
         dropWormsIfReady(level, pos, state);
-        return super.playerWillDestroy(level, pos, state, player);
+        super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
-    protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+    public void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
         super.spawnAfterBreak(state, level, pos, tool, dropExperience);
         // Non-player destruction (pistons, explosions, fire) drops resources via this hook *before* the
         // block is removed, unlike the player-break path above - so the BlockEntity is still live here.

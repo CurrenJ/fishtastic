@@ -148,10 +148,9 @@ public class FishingMinigameClientHandler {
         List<Integer> caughtIndices = currentAnimation.getCaughtTargetIndices();
 
         // Send packet to server with results
-        minecraft.player.connection.send(
-                new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                        new FinishFishingMinigamePacket(currentSessionId, caughtIndices)
-                )
+        grill24.fishtastic.network.NetworkApiSided.sendToServer(
+                new FinishFishingMinigamePacket(currentSessionId, caughtIndices),
+                FinishFishingMinigamePacket.STREAM_CODEC
         );
 
         // Clean up

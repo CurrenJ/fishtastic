@@ -3,7 +3,6 @@ package grill24.fishtastic.blockentity;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.util.BlockEntityNbt;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -98,25 +97,25 @@ public class FishPileBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
-        super.saveAdditional(output, registries);
+    protected void saveAdditional(CompoundTag output) {
+        super.saveAdditional(output);
         ListTag fishList = BlockEntityNbt.childrenList(output, "Fish");
         for (ItemStack stack : fish) {
-            BlockEntityNbt.store(BlockEntityNbt.addChild(fishList), "Stack", ItemStack.CODEC, stack, registries);
+            BlockEntityNbt.store(BlockEntityNbt.addChild(fishList), "Stack", ItemStack.CODEC, stack);
         }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
-        super.loadAdditional(input, registries);
+    public void load(CompoundTag input) {
+        super.load(input);
         fish.clear();
         BlockEntityNbt.childrenListOrEmpty(input, "Fish").forEach(child ->
-                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(fish::add));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC).ifPresent(fish::add));
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        return saveWithoutMetadata(registries);
+    public CompoundTag getUpdateTag() {
+        return saveWithoutMetadata();
     }
 
     @Override

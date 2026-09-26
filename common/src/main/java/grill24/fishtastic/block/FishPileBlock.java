@@ -1,6 +1,5 @@
 package grill24.fishtastic.block;
 
-import grill24.fishtastic.util.InteractionResults;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
@@ -13,7 +12,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import grill24.fishtastic.component.BundleContents;
@@ -90,17 +88,26 @@ public class FishPileBlock extends Block implements EntityBlock {
         level.setBlock(pos, state.setValue(FISH_COUNT, count), Block.UPDATE_CLIENTS);
     }
 
-    // --- Adding one fish to a placed pile (plain right-click, directly targeted) ---
-
-    @Override
-    protected ItemInteractionResult useItemOn(ItemStack itemStack, BlockState state, Level level, BlockPos pos,
-            Player player, InteractionHand hand, BlockHitResult hit) {
-        return InteractionResults.forUseItemOn(useItemOnWithResult(itemStack, state, level, pos, player, hand, hit));
+    /**
+     * {@code Player#blockInteractionRange()} is a 1.20.5+ attribute-backed method (see
+     * FishTankBlock#interactionRange for the same fix). Mirrors vanilla's pre-attribute hardcoded
+     * reach distances.
+     */
+    private static double interactionRange(Player player) {
+        return player.isCreative() ? 5.0 : 4.5;
     }
 
-    /** 26.1.2's {@code useItemOn} body, unchanged; the override above converts its result. */
-    private InteractionResult useItemOnWithResult(ItemStack itemStack, BlockState state, Level level, BlockPos pos,
-            Player player, InteractionHand hand, BlockHitResult hit) {
+    // --- Adding one fish to a placed pile (plain right-click, directly targeted) ---
+
+    /**
+     * MC20 has one {@code use} override, not 1.21.1's {@code useItemOn}/{@code useWithoutItem}
+     * split (nor the {@code ItemInteractionResult} wrapper type, which doesn't exist before
+     * 1.20.5) — see FishTankBlock#use for the same pattern.
+     */
+    @Override
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+            BlockHitResult hit) {
+        ItemStack itemStack = player.getItemInHand(hand);
         if (itemStack.isEmpty()) {
             // In MC 26.1.2, useWithoutItem is never automatically called — useItemOn fires even
             // with an empty hand. Delegate pickup here when the hand is empty (see FishTankBlock
@@ -111,7 +118,7 @@ public class FishPileBlock extends Block implements EntityBlock {
             if (level.isClientSide()) {
                 return InteractionResult.SUCCESS;
             }
-            return useWithoutItem(state, level, pos, player, hit);
+            return useWithoutItemBody(state, level, pos, player, hit);
         }
 
         // Vanilla suppresses this whole method while sneaking with a non-empty hand (see
@@ -148,8 +155,7 @@ public class FishPileBlock extends Block implements EntityBlock {
 
     // --- Removing one fish (shift always; empty-hand plain click is a no-op) ---
 
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    private InteractionResult useWithoutItemBody(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
@@ -177,15 +183,15 @@ public class FishPileBlock extends Block implements EntityBlock {
     // --- Breaking ---
 
     @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         // A player breaking the block removes it (and its BlockEntity) before spawnAfterBreak ever
         // runs, so the contents have to be dropped here while the entity still exists.
         dropFishIfPresent(level, pos);
-        return super.playerWillDestroy(level, pos, state, player);
+        super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
-    protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+    public void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
         super.spawnAfterBreak(state, level, pos, tool, dropExperience);
         // Non-player destruction (pistons, explosions, fire) drops resources via this hook before
         // the block is removed, unlike the player-break path above — so the BlockEntity is still
@@ -240,7 +246,7 @@ public class FishPileBlock extends Block implements EntityBlock {
         // reconstructs the block the player is looking at, since the suppressed block interaction
         // never gave us a BlockHitResult to work with.
         Vec3 from = player.getEyePosition();
-        Vec3 to = from.add(player.calculateViewVector(player.getXRot(), player.getYRot()).scale(player.blockInteractionRange()));
+        Vec3 to = from.add(player.getLookAngle().scale(interactionRange(player)));
         BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
         if (hit.getType() != HitResult.Type.BLOCK) {
             return null;

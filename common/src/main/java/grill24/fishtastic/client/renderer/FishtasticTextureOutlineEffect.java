@@ -56,12 +56,13 @@ public final class FishtasticTextureOutlineEffect {
         float u1 = (u + regionW) / texW;
         float v1 = (v + regionH) / texH;
         Matrix4f pose = guiGraphics.pose().last().pose();
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, FishtasticShaders.GUI_EFFECT_FORMAT);
-        buffer.addVertex(pose, x, y, 0.0F).setUv(u0, v0);
-        buffer.addVertex(pose, x, y + h, 0.0F).setUv(u0, v1);
-        buffer.addVertex(pose, x + w, y + h, 0.0F).setUv(u1, v1);
-        buffer.addVertex(pose, x + w, y, 0.0F).setUv(u1, v0);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+        buffer.begin(VertexFormat.Mode.QUADS, FishtasticShaders.GUI_EFFECT_FORMAT);
+        buffer.vertex(pose, x, y, 0.0F).uv(u0, v0).endVertex();
+        buffer.vertex(pose, x, y + h, 0.0F).uv(u0, v1).endVertex();
+        buffer.vertex(pose, x + w, y + h, 0.0F).uv(u1, v1).endVertex();
+        buffer.vertex(pose, x + w, y, 0.0F).uv(u1, v0).endVertex();
+        BufferUploader.drawWithShader(buffer.end());
 
         RenderSystem.disableBlend();
     }

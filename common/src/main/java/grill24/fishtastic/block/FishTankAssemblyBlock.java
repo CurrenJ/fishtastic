@@ -2,6 +2,7 @@ package grill24.fishtastic.block;
 
 import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -27,8 +28,9 @@ public class FishTankAssemblyBlock extends Block implements EntityBlock {
         return new FishTankAssemblyBlockEntity(pos, state);
     }
 
+    /** MC20 has one {@code use} override, not 1.21.1's {@code useItemOn}/{@code useWithoutItem} split. */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
         if (level.getBlockEntity(pos) instanceof FishTankAssemblyBlockEntity assembly) {
             player.openMenu(assembly);
         }

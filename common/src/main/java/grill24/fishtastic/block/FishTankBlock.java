@@ -7,6 +7,7 @@ import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
@@ -47,7 +48,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -418,11 +421,65 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
     }
 
-    // The shift-click "pull topmost fish into hand" interaction (tryShiftExtractFromTargetedTank,
-    // called from PileOfFishItem/FishtasticFishItem's own Item#use() raycast, since vanilla
-    // suppresses Block#use entirely whenever the player sneaks with a non-empty hand) is
-    // **deferred** along with the rest of the Pile-of-Fish interactions above — same PileOfFishItem/
-    // FishtasticItems blocker.
+    /**
+     * Entry point for the shift-click "pull topmost fish into hand" interaction, called from
+     * {@link PileOfFishItem#use} / {@link FishtasticFishItem#use}. It can't live in
+     * {@link #use} because vanilla never calls that method for this case: sneaking with a
+     * non-empty hand makes {@code ServerPlayerGameMode#useItemOn} skip {@code Block#useItemOn}
+     * entirely and fall through to {@code Item#use} instead (see
+     * {@code ItemStack#doesSneakBypassUse}, which defaults to false for ordinary items). So this
+     * does its own raycast, mirroring what the suppressed block interaction would have targeted.
+     *
+     * @return {@code null} if the player isn't sneaking or isn't targeting a fish tank with an
+     * eligible item, so the caller can fall back to its normal {@code use()} behavior.
+     */
+    @Nullable
+    public static InteractionResult tryShiftExtractFromTargetedTank(Level level, Player player, InteractionHand hand) {
+        ItemStack itemStack = player.getItemInHand(hand);
+        boolean isPile = itemStack.getItem() instanceof PileOfFishItem;
+        if (!player.isShiftKeyDown() || !(isPile || PileOfFishItem.canInsertInPile(itemStack))) {
+            return null;
+        }
+        // Mirrors Item#getPlayerPOVHitResult (protected, not accessible from here) — this
+        // reconstructs the block the player is looking at, since the suppressed block
+        // interaction never gave us a BlockHitResult to work with.
+        Vec3 from = player.getEyePosition();
+        Vec3 to = from.add(player.getLookAngle().scale(interactionRange(player)));
+        BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        if (hit.getType() != HitResult.Type.BLOCK) {
+            return null;
+        }
+        BlockEntity be = level.getBlockEntity(hit.getBlockPos());
+        if (!(be instanceof FishTankBlockEntity fishTank)) {
+            return null;
+        }
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        return extractTopFishIntoHand(player, hand, itemStack, fishTank);
+    }
+
+    /**
+     * Extracts the topmost fish from the tank into the held item. If a Pile of Fish is held, the
+     * fish is added to it directly; if a single fish item is held instead, it's combined with the
+     * extracted fish into a new pile (replacing the held stack, or split off into a new stack
+     * alongside the remainder when more than one was held).
+     */
+    private static InteractionResult extractTopFishIntoHand(Player player, InteractionHand hand, ItemStack itemStack, FishTankBlockEntity fishTank) {
+        ItemStack extracted = fishTank.extractItem();
+        if (extracted.isEmpty()) {
+            player.sendSystemMessage(Component.literal("Fish tank is empty"));
+            return InteractionResult.FAIL;
+        }
+        PileOfFishItem.combineExtractedFish(player, hand, itemStack, extracted);
+        if (!extracted.isEmpty()) {
+            // Pile is full — put the fish back in the tank rather than losing it.
+            fishTank.addItem(extracted);
+            player.sendSystemMessage(Component.literal("Pile of Fish is full"));
+            return InteractionResult.FAIL;
+        }
+        return InteractionResult.SUCCESS;
+    }
 
     /**
      * Returns the block to use as a cosmetic from the held stack, or null if the item

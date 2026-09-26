@@ -13,7 +13,7 @@ import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
-import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.Advancement;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
@@ -76,8 +76,8 @@ public class TutorialManager {
      * {@link #onItemCrafted} never fires a second time.
      */
     public static void revokeRodCraftedAdvancement(ServerPlayer player) {
-        AdvancementHolder rodAdvancement =
-                player.level().getServer().getAdvancements().get(TUTORIAL_ROD_ADVANCEMENT_ID);
+        Advancement rodAdvancement =
+                player.level().getServer().getAdvancements().getAdvancement(TUTORIAL_ROD_ADVANCEMENT_ID);
         if (rodAdvancement != null) {
             player.getAdvancements().revoke(rodAdvancement, TUTORIAL_ROD_ADVANCEMENT_CRITERION);
         }
@@ -88,8 +88,8 @@ public class TutorialManager {
      * WAITING_FOR_CAST's two meanings apart — see {@link #onPlayerJoin}.
      */
     public static boolean hasCraftedStarterRod(ServerPlayer player) {
-        AdvancementHolder rodAdvancement =
-                player.level().getServer().getAdvancements().get(TUTORIAL_ROD_ADVANCEMENT_ID);
+        Advancement rodAdvancement =
+                player.level().getServer().getAdvancements().getAdvancement(TUTORIAL_ROD_ADVANCEMENT_ID);
         if (rodAdvancement == null) return false;
         return player.getAdvancements().getOrStartProgress(rodAdvancement).isDone();
     }

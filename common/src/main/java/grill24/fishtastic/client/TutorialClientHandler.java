@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.item.FishtasticFishingRodItem;
+import grill24.fishtastic.network.NetworkApiSided;
 import grill24.fishtastic.network.TutorialAdvancePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
 import grill24.fishtastic.tutorial.TutorialStep;
@@ -10,7 +11,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -212,11 +212,9 @@ public class TutorialClientHandler {
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
-        // Screen render hooks hand us Screen.render's "partial tick" param, which on this MC version is actually
-        // deltaTracker.getGameTimeDeltaTicks() (a frame-to-frame tick delta) — not the 0-1 interpolation fraction
-        // our slide animation needs. Pull the real interpolation fraction directly instead.
-        float realPartialTick = mc.getTimer().getGameTimeDeltaPartialTick(false);
-        renderTextBox(graphics, mc, sw, sh, realPartialTick);
+        // MC20's Screen.render partial tick is already the 0-1 interpolation fraction (the
+        // DeltaTracker split happened later), so there's no separate "real" value to pull here.
+        renderTextBox(graphics, mc, sw, sh, partialTick);
     }
 
     private static void renderDarkOverlay(GuiGraphics graphics, int sw, int sh) {
@@ -413,6 +411,6 @@ public class TutorialClientHandler {
         if (mc.player == null) return;
         sentAdvanceThisStep = true;
         isExiting = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new TutorialAdvancePacket(currentStep)));
+        NetworkApiSided.sendToServer(new TutorialAdvancePacket(currentStep), TutorialAdvancePacket.STREAM_CODEC);
     }
 }

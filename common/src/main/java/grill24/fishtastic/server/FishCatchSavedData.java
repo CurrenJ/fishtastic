@@ -12,7 +12,6 @@ import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
@@ -220,19 +219,15 @@ public class FishCatchSavedData extends SavedData {
      */
     private static final String FILE_ID = "fishtastic_fish_catches";
 
-    /** No DataFixTypes: {@link #CODEC} is the whole format, and vanilla's level fixers don't apply to it. */
-    public static final SavedData.Factory<FishCatchSavedData> FACTORY =
-            new SavedData.Factory<>(FishCatchSavedData::new, FishCatchSavedData::load, null);
-
-    private static FishCatchSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
-        return CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), tag)
+    private static FishCatchSavedData load(CompoundTag tag) {
+        return CODEC.parse(NbtOps.INSTANCE, tag)
                 .resultOrPartial(error -> grill24.fishtastic.Fishtastic.LOGGER.error("Failed to load fish catch data: {}", error))
                 .orElseGet(FishCatchSavedData::new);
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), this)
+    public CompoundTag save(CompoundTag tag) {
+        CODEC.encodeStart(NbtOps.INSTANCE, this)
                 .resultOrPartial(error -> grill24.fishtastic.Fishtastic.LOGGER.error("Failed to save fish catch data: {}", error))
                 .ifPresent(encoded -> tag.merge((CompoundTag) encoded));
         return tag;
@@ -243,7 +238,7 @@ public class FishCatchSavedData extends SavedData {
     // -------------------------------------------------------------------------
 
     public static FishCatchSavedData getOrCreate(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(FACTORY, FILE_ID);
+        return server.overworld().getDataStorage().computeIfAbsent(FishCatchSavedData::load, FishCatchSavedData::new, FILE_ID);
     }
 
     // -------------------------------------------------------------------------
@@ -691,9 +686,11 @@ public class FishCatchSavedData extends SavedData {
         return roundTrip(CleanupGoalState.CODEC, s);
     }
 
+    /** {@code JavaOps} doesn't exist on this DFU version; round-trips through NBT instead. */
     private static <T> T roundTrip(Codec<T> codec, T value) {
-        return codec.encodeStart(com.mojang.serialization.JavaOps.INSTANCE, value)
-                .flatMap(o -> codec.parse(com.mojang.serialization.JavaOps.INSTANCE, o))
-                .getOrThrow(msg -> new IllegalStateException("Failed to copy saved data: " + msg));
+        return codec.encodeStart(NbtOps.INSTANCE, value)
+                .flatMap(o -> codec.parse(NbtOps.INSTANCE, o))
+                .resultOrPartial(msg -> grill24.fishtastic.Fishtastic.LOGGER.error("Failed to copy saved data: {}", msg))
+                .orElseThrow(() -> new IllegalStateException("Failed to copy saved data"));
     }
 }

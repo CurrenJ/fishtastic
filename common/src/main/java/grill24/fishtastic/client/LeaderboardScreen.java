@@ -367,13 +367,13 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
             // PODIUM_PLAYER_Z_OFFSET. On 26.1.2 the add order below already decides it.
             if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
                 PlayerAvatarRenderer avatar = UI.playerAvatar(playerWidth, playerHeight)
-                        .profile(PlayerHeadItems.resolvableProfile(uuid, name))
+                        .profile(PlayerHeadItems.gameProfile(uuid, name))
                         .heldItem(catchStack(entry));
                 avatar.setZOffset(PODIUM_PLAYER_Z_OFFSET);
                 playerOnPedestal.addChildAt(avatar, groupWidth / 2f, playerHeight / 2f);
             } else {
                 PlayerModelRenderer model = UI.playerModel(playerWidth, playerHeight)
-                        .profile(PlayerHeadItems.resolvableProfile(uuid, name))
+                        .profile(PlayerHeadItems.gameProfile(uuid, name))
                         .pose(isFirst ? PlayerPoses.VICTORY : PlayerPoses.ARMS_CROSSED);
                 model.setZOffset(PODIUM_PLAYER_Z_OFFSET);
                 playerOnPedestal.addChildAt(model, groupWidth / 2f, playerHeight / 2f);

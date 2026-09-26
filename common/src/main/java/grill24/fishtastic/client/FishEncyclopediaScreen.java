@@ -42,7 +42,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import grill24.fishtastic.network.NetworkApiSided;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -936,7 +936,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             btn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new ClaimEncyclopediaRewardPacket(fishId, rewardSection)));
+                NetworkApiSided.sendToServer(new ClaimEncyclopediaRewardPacket(fishId, rewardSection), ClaimEncyclopediaRewardPacket.STREAM_CODEC);
             }
             playRewardClaimFlourish(btn);
         });

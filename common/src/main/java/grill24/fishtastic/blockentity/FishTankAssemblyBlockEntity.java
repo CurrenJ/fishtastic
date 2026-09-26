@@ -1,7 +1,6 @@
 package grill24.fishtastic.blockentity;
 
 import grill24.fishtastic.util.BlockEntityNbt;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.CompoundTag;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
@@ -107,8 +106,8 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
     }
 
     @Override
-    protected void saveAdditional(CompoundTag output, HolderLookup.Provider registries) {
-        super.saveAdditional(output, registries);
+    protected void saveAdditional(CompoundTag output) {
+        super.saveAdditional(output);
         output.putString("Shape", shape.getSerializedName());
         ListTag itemsList = BlockEntityNbt.childrenList(output, "Items");
         for (int i = 0; i < items.size(); i++) {
@@ -116,14 +115,14 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
             if (!stack.isEmpty()) {
                 CompoundTag child = BlockEntityNbt.addChild(itemsList);
                 child.putInt("Slot", i);
-                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack, registries);
+                BlockEntityNbt.store(child, "Stack", ItemStack.CODEC, stack);
             }
         }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag input, HolderLookup.Provider registries) {
-        super.loadAdditional(input, registries);
+    public void load(CompoundTag input) {
+        super.load(input);
         shape = FishTankShape.bySerializedName(BlockEntityNbt.getStringOr(input, "Shape", FishTankShape.STANDARD.getSerializedName()));
         for (int i = 0; i < CONTAINER_SIZE; i++) {
             items.set(i, ItemStack.EMPTY);
@@ -131,7 +130,7 @@ public class FishTankAssemblyBlockEntity extends BlockEntity implements Containe
         BlockEntityNbt.childrenListOrEmpty(input, "Items").forEach(child -> {
             int slot = BlockEntityNbt.getIntOr(child, "Slot", -1);
             if (slot >= 0 && slot < CONTAINER_SIZE) {
-                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC, registries).ifPresent(stack -> items.set(slot, stack));
+                BlockEntityNbt.read(child, "Stack", ItemStack.CODEC).ifPresent(stack -> items.set(slot, stack));
             }
         });
     }

@@ -41,9 +41,9 @@ public class FishtasticBlocks {
     public static void registerBlocks() {
         // Undyed glass variants
         BORDERLESS_GLASS = RegistrationApiSided.getInstance().registerBlock("borderless_glass",
-                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS)));
+                loc -> new Block(Block.Properties.copy(Blocks.GLASS)));
         CLEAR_GLASS = RegistrationApiSided.getInstance().registerBlock("clear_glass",
-                loc -> new Block(Block.Properties.ofFullCopy(Blocks.GLASS)));
+                loc -> new Block(Block.Properties.copy(Blocks.GLASS)));
 
         // Register borderless and clear stained glass for all colors
         for (DyeColor color : DyeColor.values()) {
@@ -52,18 +52,18 @@ public class FishtasticBlocks {
             // Borderless stained glass
             Holder<Block> borderless = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_borderless_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
+                    loc -> new StainedGlassBlock(color, Block.Properties.copy(vanillaStainedGlass)));
             BORDERLESS_STAINED_GLASS.put(color, borderless);
 
             // Clear stained glass
             Holder<Block> clear = RegistrationApiSided.getInstance().registerBlock(
                     color.getName() + "_clear_stained_glass",
-                    loc -> new StainedGlassBlock(color, Block.Properties.ofFullCopy(vanillaStainedGlass)));
+                    loc -> new StainedGlassBlock(color, Block.Properties.copy(vanillaStainedGlass)));
             CLEAR_STAINED_GLASS.put(color, clear);
         }
 
         FISH_TANK = RegistrationApiSided.getInstance().registerBlock("fish_tank",
-            loc -> new FishTankBlock(Block.Properties.ofFullCopy(Blocks.GLASS)
+            loc -> new FishTankBlock(Block.Properties.copy(Blocks.GLASS)
                 .noOcclusion()  // Allow transparent rendering
                 // Reads as a lit aquarium rather than a plain glass box at the mercy of nearby
                 // torches/skylight — without this, capping the tank with one solid block cuts its

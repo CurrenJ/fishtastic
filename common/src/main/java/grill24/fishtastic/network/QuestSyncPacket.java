@@ -43,7 +43,7 @@ public record QuestSyncPacket(
                     QuestSyncPacket::cleanupGoal,
                     BufCodecs.VAR_LONG,
                     QuestSyncPacket::serverGameTime,
-                    ItemStack.OPTIONAL_STREAM_CODEC,
+                    BufCodecs.ITEM_STACK,
                     QuestSyncPacket::baitDepletedItem,
                     BufCodecs.ITEM_STACK.apply(BufCodecs.list()),
                     QuestSyncPacket::firstCatchItems,
