@@ -354,7 +354,7 @@ public final class FishTankGeometry {
         // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
         BlockModel retextured = new BlockModel(id, List.of(), slots, false, null, ItemTransforms.NO_TRANSFORMS, List.of());
         retextured.resolveParents(fragments::get);
-        BakedModel baked = retextured.bake(NO_BAKER, spriteGetter, (ModelState) BlockModelRotation.X0_Y0);
+        BakedModel baked = retextured.bake(NO_BAKER, spriteGetter, (ModelState) BlockModelRotation.X0_Y0, id);
         if (baked == null) return false;
         RandomSource random = RandomSource.create(42L);
         for (int side = 0; side < SIDES; side++) {

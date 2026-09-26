@@ -25,6 +25,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -222,7 +223,7 @@ public class CosmeticCommand {
         String jsonText = gson.toJson(json);
 
         try {
-            Path dir = source.getServer().getServerDirectory().resolve("fishtastic_cosmetic_structures");
+            Path dir = source.getServer().getServerDirectory().toPath().resolve("fishtastic_cosmetic_structures");
             Files.createDirectories(dir);
             Path file = dir.resolve(name + ".json");
             Files.writeString(file, jsonText, StandardCharsets.UTF_8);
@@ -350,8 +351,16 @@ public class CosmeticCommand {
     }
 
     private static void giveWandIfMissing(ServerPlayer player) {
-        if (!player.getInventory().contains(stack -> stack.is(FishtasticItems.COSMETIC_CAPTURE_WAND.value()))) {
-            player.getInventory().add(new ItemStack(FishtasticItems.COSMETIC_CAPTURE_WAND.value()));
+        Inventory inventory = player.getInventory();
+        boolean hasWand = false;
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            if (inventory.getItem(i).is(FishtasticItems.COSMETIC_CAPTURE_WAND.value())) {
+                hasWand = true;
+                break;
+            }
+        }
+        if (!hasWand) {
+            inventory.add(new ItemStack(FishtasticItems.COSMETIC_CAPTURE_WAND.value()));
         }
     }
 
@@ -392,9 +401,18 @@ public class CosmeticCommand {
 
     record TargetedCosmetic(BlockPos tankPos, CosmeticGridCell cell, PlacedCosmetic cosmetic) {}
 
+    /**
+     * {@code Player#blockInteractionRange()} is a 1.20.5+ attribute-backed method (nothing on MC20
+     * exposes reach on the entity at all). Mirrors vanilla's own pre-attribute hardcoded reach
+     * distances (see {@code FishTankBlock#interactionRange}).
+     */
+    private static double interactionRange(ServerPlayer player) {
+        return player.isCreative() ? 5.0 : 4.5;
+    }
+
     @Nullable
     private static TargetedCosmetic findTargetedCosmetic(ServerPlayer player) {
-        HitResult hit = player.pick(player.blockInteractionRange(), 1.0f, false);
+        HitResult hit = player.pick(interactionRange(player), 1.0f, false);
         if (!(hit instanceof BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) return null;
 
         BlockPos pos = blockHit.getBlockPos();
@@ -403,7 +421,7 @@ public class CosmeticCommand {
 
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle();
-        double reach = player.blockInteractionRange();
+        double reach = interactionRange(player);
         Vec3 end = eye.add(look.scale(reach));
 
         CosmeticGridCell closest = null;

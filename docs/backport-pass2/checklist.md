@@ -10,7 +10,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
 | `port/1.21.1` | **`7839f271`** | 2026-09-25 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1–A5 done; **G1 passed 2026-09-25** (all 11 self-test scenes green on both loaders, Iris live on both, `:common:test` 78/78, fishsim byte-identical to `26.1.2`). **A6.1 done 2026-09-25**: one shared `FishtasticGameTests` on vanilla `@GameTest`, `port/excludes.txt` empty, **263/263 green on both loaders** (`:fabric:runGametest` and `:neoforge:runGametest`). Hook stage raised to **`full`** (its first run passed as part of that commit). A6.2's green bar is green too (see its row); **A6.3 done 2026-09-25 (owner playtest, both fixes confirmed in-game on both loaders); G2 is what remains.** Includes `26.1.2` `7839f271` (cherry-picked as `e33f5792`). |
-| `port/1.20.1` | **`7839f271`** (inherited via `port/1.21.1` at G2) | 2026-09-25 | Cut from `port/1.21.1` at G2 (`911495f7`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. **B1 done 2026-09-25**: build scaffolding green (`neoforge/`→`forge/`, Java 17, Forge 47.4.23, FAPI 0.92.12+1.20.1, Loom **1.17-SNAPSHOT**/Gradle 9.5 — not 1.11, see track-b-1.20.1.md "B1 as built"). B2 is next. |
+| `port/1.20.1` | **`7839f271`** (inherited via `port/1.21.1` at G2) | 2026-09-26 | Cut from `port/1.21.1` at G2 (`911495f7`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. **B1 done 2026-09-25**: build scaffolding green (`neoforge/`→`forge/`, Java 17, Forge 47.4.23, FAPI 0.92.12+1.20.1, Loom **1.17-SNAPSHOT**/Gradle 9.5 — not 1.11, see track-b-1.20.1.md "B1 as built"). **`common/src/main/java` is now fully off `port/excludes.txt`** (2026-09-26): the last 9 files (`FishTankGeometry`, `CosmeticStructureItemModel`, `FishtasticItemRenderers`, `RenderSelfTest`, `CosmeticCommand`, `FishtasticCommand`, `FishtasticJeiPlugin` + its 2 `RecipeCategory` dependents) landed with their real API deltas fixed; verified `:common:compileJava :forge:compileJava :fabric:compileJava :common:test`, `--rerun-tasks`, all green. What remains is purely what's still excluded: `common/src/test/java/**`, `fabric/src/main/java/**`/`forge/src/main/java/**`, and all 3 `testmod/**` trees (B1's platform entrypoints, B3.3, B4.1/B4.2, B5.3, B6.1's gametest harness, G-B3). |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). `1.0.31+1.21.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 | gelatin-ui `mc/1.20.1` | branched from `mc/1.21.1` `e00acee` | 2026-09-25 | **ported** (6 commits, tip `3f9ba6e`, clean). `1.0.33+1.20.1` published to mavenLocal; Fishtastic's `gelatinui_version` points at it. |
 
@@ -185,10 +185,10 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### B4: Data and resources
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B4.1 | Plural folders; gametest structure → `structures/` | [ ] | |
-| B4.2 | 1.20.1 datagen (recipes, advancements, loot); JSON-based compost serializer | [ ] | |
-| B4.3 | `blitSprite` → `blit`; 1.20.2+ vanilla ids audit | [ ] | |
-| G-B4 | Datagen diff as expected | [ ] | |
+| B4.1 | Plural folders; gametest structure → `structures/` | [ ] | | `common/src/testmod/resources/data/{fishtastic,minecraft}/structure` are still singular; untouched — this is B6.1 harness-wiring territory (`common/src/testmod/java`/`fabric/src/testmod/java`/`forge/src/testmod/java` are still wholly excluded). |
+| B4.2 | 1.20.1 datagen (recipes, advancements, loot); JSON-based compost serializer | [ ] | | `FishtasticDataGenerator`/`QuestProvider`/`ShopEntryFromQuestProvider` live under `fabric/src/main/java/**`, still wholly excluded (B1 scope, untouched this session). |
+| B4.3 | `blitSprite` → `blit`; 1.20.2+ vanilla ids audit | [x] | B4/B5 commit | Confirmed zero `blitSprite` call sites anywhere in `common` (`ClientFishTankMaterialsTooltip`/`ClientRodGearTooltip` draw straight from vanilla's sprite, in-line comments explain why); `util/Ids`'s 4 bodies already use the pre-1.20.2 `new ResourceLocation(ns, path)` constructor form (S6c). |
+| G-B4 | Datagen diff as expected | [ ] | | Blocked on B4.2. |
 
 ### G-1.20.1: gelatin-ui
 | ID | Item | Status | Commit (gelatin) | Notes |
@@ -201,11 +201,11 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### B5: Remaining API deltas
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B5.1 | `ResourceLocation` construction (the 4 `util/Ids` bodies only, S6c), BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [ ] | |
-| B5.2 | Vertex builder (6 sites), shaders, BER bounds on the BE | [ ] | |
-| B5.3 | Forge wiring: `RegistryObjectHolder`, event buses, config, models, `initializeClient`, overlays, menu screens | [ ] | |
+| B5.1 | `ResourceLocation` construction (the 4 `util/Ids` bodies only, S6c), BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [x] | B4/B5 commit | All landed as part of the `common/src/main/java` sweep: `util/Ids` (S6c, pre-1.20.2 `ResourceLocation` ctor), `FishTankBlockEntity`/`FishCatchSavedData` NBT (B2.6/G-B2), `FishTankBlock#use` (single pre-1.20.5 method, no item/block split), `hurtAndBreak` call sites, `AdvancementHolder` delta (this session), `CopyTankDataFunction` loot function (B2.6). `common/src/main/java` is fully off `port/excludes.txt`; verified `:common:compileJava :forge:compileJava :fabric:compileJava :common:test`, `--rerun-tasks`, all green. |
+| B5.2 | Vertex builder (6 sites), shaders, BER bounds on the BE | [x] | B4/B5 commit | Old vertex-builder API and `Matrix4fStack`/`PoseStack`/`mulPoseMatrix` deltas fixed this session and last (`FishTankGeometry`, `CosmeticStructureItemModel`); all client renderer code in `common` compiles for real. No BE overrides `getRenderBoundingBox` — none of the tank/pile BEs need a non-default bounds, so there was nothing to port here. |
+| B5.3 | Forge wiring: `RegistryObjectHolder`, event buses, config, models, `initializeClient`, overlays, menu screens | [ ] | | Lives under `forge/src/main/java/**`, still wholly excluded — untouched, B1/B6 scaffolding territory. |
 | B5.4 | `[-]` Fishing enchantment helpers: dropped, the tree doesn't call `EnchantmentHelper` | [-] | |
-| B5.5 | Creative tabs, `Item.Properties` defaults | [ ] | |
+| B5.5 | Creative tabs, `Item.Properties` defaults | [x] | B4/B5 commit | `FishtasticItems.java` (the full ~50-file gameplay graph, G-B2) compiles for real with plain `new Item.Properties()` — no 1.20.5+ component-default API in play on MC20, so there was nothing to change beyond what G-B2 already landed. |
 
 ### B6: Gametests and release (gate G3)
 | ID | Item | Status | Commit |

@@ -67,7 +67,7 @@
 #common/src/main/java/grill24/fishtastic/client/compositemodel/BlockModelPathResolver.java
 #common/src/main/java/grill24/fishtastic/client/compositemodel/BlockstateModelScanner.java
 #common/src/main/java/grill24/fishtastic/client/compositemodel/BlockstateRedirectRegistry.java
-common/src/main/java/grill24/fishtastic/client/compositemodel/FishTankGeometry.java
+#common/src/main/java/grill24/fishtastic/client/compositemodel/FishTankGeometry.java
 #common/src/main/java/grill24/fishtastic/client/effects/CoinArcEffect.java
 #common/src/main/java/grill24/fishtastic/client/effects/DropOffEffect.java
 #common/src/main/java/grill24/fishtastic/client/effects/PendulumSwingEffect.java
@@ -80,7 +80,7 @@ common/src/main/java/grill24/fishtastic/client/compositemodel/FishTankGeometry.j
 #common/src/main/java/grill24/fishtastic/client/particle/TankBubbleParticle.java
 #common/src/main/java/grill24/fishtastic/client/particle/TankBubblePopParticle.java
 #common/src/main/java/grill24/fishtastic/client/particle/TankMicroBubbleParticle.java
-common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemModel.java
+#common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemModel.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishAnimator.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockEntityRenderer.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishPileBlockItemModel.java
@@ -91,7 +91,7 @@ common/src/main/java/grill24/fishtastic/client/renderer/CosmeticStructureItemMod
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticGlintState.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticGuiOutlineRenderer.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemOutlineAtlas.java
-common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemRenderers.java
+#common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemRenderers.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticOutlineStyle.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticRenderTypes.java
 #common/src/main/java/grill24/fishtastic/client/renderer/FishtasticShaders.java
@@ -104,7 +104,7 @@ common/src/main/java/grill24/fishtastic/client/renderer/FishtasticItemRenderers.
 #common/src/main/java/grill24/fishtastic/client/renderer/TankBubbleEmitter.java
 #common/src/main/java/grill24/fishtastic/client/renderer/TankFlockAdapter.java
 #common/src/main/java/grill24/fishtastic/client/renderer/ZoneIconTextures.java
-common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java
+#common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java
 #common/src/main/java/grill24/fishtastic/client/tooltip/ClientFishTankMaterialsTooltip.java
 #common/src/main/java/grill24/fishtastic/client/tooltip/ClientRodGearTooltip.java
 #common/src/main/java/grill24/fishtastic/client/tooltip/RodGearTooltip.java
@@ -119,13 +119,13 @@ common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java
 #common/src/main/java/grill24/fishtastic/command/CelebrationCommand.java
 #common/src/main/java/grill24/fishtastic/command/CleanupGoalCommand.java
 #common/src/main/java/grill24/fishtastic/command/CosmeticCaptureSession.java
-common/src/main/java/grill24/fishtastic/command/CosmeticCommand.java
+#common/src/main/java/grill24/fishtastic/command/CosmeticCommand.java
 #common/src/main/java/grill24/fishtastic/command/DebugEncyclopediaCommand.java
 #common/src/main/java/grill24/fishtastic/command/DebugFishDataCommand.java
 #common/src/main/java/grill24/fishtastic/command/DebugShapesCommand.java
 #common/src/main/java/grill24/fishtastic/command/FishProfileCommand.java
 #common/src/main/java/grill24/fishtastic/command/FishZoneCommand.java
-common/src/main/java/grill24/fishtastic/command/FishtasticCommand.java
+#common/src/main/java/grill24/fishtastic/command/FishtasticCommand.java
 #common/src/main/java/grill24/fishtastic/command/FishtasticPermissions.java
 #common/src/main/java/grill24/fishtastic/command/FollowFishStubCommand.java
 #common/src/main/java/grill24/fishtastic/command/ForceQualityCommand.java
@@ -147,10 +147,10 @@ common/src/main/java/grill24/fishtastic/command/FishtasticCommand.java
 #common/src/main/java/grill24/fishtastic/compat/GelatinOpenMenuCompat.java
 #common/src/main/java/grill24/fishtastic/compat/GelatinScreens.java
 #common/src/main/java/grill24/fishtastic/compat/GelatinScreensCompat.java
-common/src/main/java/grill24/fishtastic/compat/jei/FishtasticJeiPlugin.java
-common/src/main/java/grill24/fishtastic/compat/jei/MarineCompostRecipeCategory.java
+#common/src/main/java/grill24/fishtastic/compat/jei/FishtasticJeiPlugin.java
+#common/src/main/java/grill24/fishtastic/compat/jei/MarineCompostRecipeCategory.java
 #common/src/main/java/grill24/fishtastic/compat/jei/MarineCompostRipeningRecipe.java
-common/src/main/java/grill24/fishtastic/compat/jei/MarineCompostRipeningRecipeCategory.java
+#common/src/main/java/grill24/fishtastic/compat/jei/MarineCompostRipeningRecipeCategory.java
 #common/src/main/java/grill24/fishtastic/config/FishtasticServerConfig.java
 #common/src/main/java/grill24/fishtastic/data/EncyclopediaRewardSection.java
 #common/src/main/java/grill24/fishtastic/data/FishAnimationConfig.java

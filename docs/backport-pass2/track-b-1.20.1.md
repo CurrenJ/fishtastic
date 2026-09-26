@@ -487,6 +487,20 @@ All 41 files with `StreamCodec`/`ByteBufCodecs`/`CustomPacketPayload`/`RegistryF
 - Render types, BER, particles: same as 1.21.1. BER culling moves to the BE (`IForgeBlockEntity#getRenderBoundingBox` on Forge; see A5.1).
 - `GuiGraphics#renderItem(LivingEntity, Level, ItemStack, int, int, int, int)` for the GUI outline hook: present on MC20 (the public 5-argument overload is at `GuiGraphics.java:469`). Check the private overload's descriptor.
 
+### B5.1/B5.2/B4.3 as built (2026-09-26)
+
+All three rows' scope lives entirely in `common/src/main/java`, which came fully off `port/excludes.txt` this session (the last 9 files: `FishTankGeometry`, `CosmeticStructureItemModel`, `FishtasticItemRenderers`, `RenderSelfTest`, `CosmeticCommand`, `FishtasticCommand`, `FishtasticJeiPlugin` + its 2 `RecipeCategory` dependents). Each row's planned deltas above checked out against the real jars, plus two the plan didn't anticipate:
+
+- `BlockModel#bake` needed a 4th `ResourceLocation` arg on MC20 (`FishTankGeometry`) — the plan's B5.2 vertex-builder/shader entries didn't call this one out, since it's a model-baking signature, not a vertex or shader one.
+- `PoseStack#mulPose(Quaternionf)` vs `#mulPoseMatrix(Matrix4f)`: `CosmeticStructureItemModel` was calling the quaternion overload with a `Matrix4f` (`part.localTransform()`); switched to `mulPoseMatrix`.
+- `WorldOpenFlows#createFreshLevel` is 4-arg on MC20 (no trailing `Screen`); `RenderSelfTest`'s self-test world creation dropped the extra `new TitleScreen()` argument.
+- `SystemToast.SystemToastId` is `SystemToast.SystemToastIds` (plural) on MC20; `RenderSelfTest`'s two toast-checking call sites fixed.
+- The pile-block `CUSTOM_MODEL_DATA` marker in `RenderSelfTest`'s self-test scene was still writing the 1.21.1 component (`net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA`); switched to the same pre-1.20.5 NBT-tag marker `client/util/FishPileIcons` already uses (`getOrCreateTag().putInt("CustomModelData", …)`).
+- `CosmeticCommand`: `File#resolve` doesn't exist (`getServerDirectory().toPath().resolve(...)`), `Inventory#contains` has no predicate overload (replaced with a manual `getContainerSize()`/`getItem(i)` loop), and `Player#blockInteractionRange()` doesn't exist pre-1.20.5 — added a local `interactionRange(ServerPlayer)` helper mirroring `FishTankBlock`'s own (creative 5.0 / survival 4.5), same finding B2.6/B2.7 already made twice.
+- `FishtasticJeiPlugin`: JEI 15.20.0.117's `IGuiProperties` uses `getScreenClass()`/`getGuiLeft()`/etc. (the `get`-prefixed names), not 1.21.1's unprefixed `screenClass()`/`guiLeft()`/etc. `MarineCompostRecipe`'s constructor needs a `ResourceLocation id` first arg (`Fishtastic.id("jei_marine_compost")`, since JEI's representative instance isn't looked up from `RecipeManager`).
+
+Verified `:common:compileJava :forge:compileJava :fabric:compileJava :common:test`, `--rerun-tasks`, all green. `common/src/main/java` is now empty in `port/excludes.txt`; everything remaining there is `common/src/test/java/**`, `fabric/src/main/java/**`/`forge/src/main/java/**`, and the 3 `testmod/**` trees (B1's platform entrypoints, B3.3, B4.1/B4.2, B5.3, B6.1).
+
 ### B5.3: Loader: NeoForge 21.1 → Forge 47
 
 | NeoForge 21.1 | Forge 47 (lands on) | Files |

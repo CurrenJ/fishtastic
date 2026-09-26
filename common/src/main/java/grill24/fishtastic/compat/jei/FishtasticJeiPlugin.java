@@ -68,7 +68,8 @@ public class FishtasticJeiPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
         // Only one shape exists (1 dirt + 1 fish -> marine compost), so a single
         // representative instance is enough; no need to pull from RecipeManager.
-        registration.addRecipes(MARINE_COMPOSTING, List.of(new MarineCompostRecipe(CraftingBookCategory.MISC)));
+        registration.addRecipes(MARINE_COMPOSTING,
+                List.of(new MarineCompostRecipe(Fishtastic.id("jei_marine_compost"), CraftingBookCategory.MISC)));
 
         // One row per fish quality tier the compost can be seeded with.
         registration.addRecipes(MARINE_COMPOST_RIPENING,
@@ -124,37 +125,37 @@ public class FishtasticJeiPlugin implements IModPlugin {
         }
         return new IGuiProperties() {
             @Override
-            public Class<? extends Screen> screenClass() {
+            public Class<? extends Screen> getScreenClass() {
                 return screen.getClass();
             }
 
             @Override
-            public int guiLeft() {
+            public int getGuiLeft() {
                 return 0;
             }
 
             @Override
-            public int guiTop() {
+            public int getGuiTop() {
                 return 0;
             }
 
             @Override
-            public int guiXSize() {
+            public int getGuiXSize() {
                 return width;
             }
 
             @Override
-            public int guiYSize() {
+            public int getGuiYSize() {
                 return height;
             }
 
             @Override
-            public int screenWidth() {
+            public int getScreenWidth() {
                 return width;
             }
 
             @Override
-            public int screenHeight() {
+            public int getScreenHeight() {
                 return height;
             }
         };

@@ -68,7 +68,7 @@ public final class CosmeticStructureItemModel {
 
         for (PartIcon part : parts) {
             poseStack.pushPose();
-            poseStack.mulPose(part.localTransform());
+            poseStack.mulPoseMatrix(part.localTransform());
             mc.getBlockRenderer().renderSingleBlock(part.state(), poseStack, buffers, light, overlay);
             poseStack.popPose();
         }

@@ -186,8 +186,7 @@ public final class RenderSelfTest {
         LevelSettings settings = new LevelSettings(WORLD_NAME, GameType.CREATIVE, false, Difficulty.PEACEFUL, true,
                 rules, WorldDataConfiguration.DEFAULT);
         mc.createWorldOpenFlows().createFreshLevel(WORLD_NAME, settings, new WorldOptions(1L, false, false),
-                access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
-                new TitleScreen());
+                access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions());
     }
 
     /**
@@ -708,7 +707,7 @@ public final class RenderSelfTest {
         ItemStack pile = new ItemStack(BuiltInRegistries.ITEM.get(Ids.of("fishtastic", "pile_of_fish")));
         FishtasticItemData.setBundleContents(pile, new grill24.fishtastic.component.BundleContents(contents));
         ItemStack pileBlock = pile.copy();
-        pileBlock.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, grill24.fishtastic.client.util.FishPileIcons.PILE_BLOCK_MARKER);
+        pileBlock.getOrCreateTag().putInt("CustomModelData", grill24.fishtastic.client.util.FishPileIcons.PILE_BLOCK_MARKER);
         return List.of(
                 pile,
                 item("cosmetic_castle_ruin"),
@@ -775,7 +774,7 @@ public final class RenderSelfTest {
             server(mc, s -> run(s, "gamemode creative @a"));
             QuestProgressNotificationManager.getInstance().enqueue(new QuestProgressEvent(
                     Ids.of("fishtastic", "mastery/bluegill_novice"), 2, 3, 5, false, ItemStack.EMPTY));
-            SystemToast.add(mc.getToasts(), SystemToast.SystemToastId.NARRATOR_TOGGLE,
+            SystemToast.add(mc.getToasts(), SystemToast.SystemToastIds.NARRATOR_TOGGLE,
                     Component.literal("Vanilla toast"),
                     Component.literal("shares the banner's corner"));
         });
@@ -785,7 +784,7 @@ public final class RenderSelfTest {
         queue(20, mc -> {
             check("hud.noScreen", mc.screen == null, "screen=" + mc.screen);
             check("hud.toastOnScreen",
-                    mc.getToasts().getToast(SystemToast.class, SystemToast.SystemToastId.NARRATOR_TOGGLE) != null,
+                    mc.getToasts().getToast(SystemToast.class, SystemToast.SystemToastIds.NARRATOR_TOGGLE) != null,
                     "");
             check("hud.drawnAfterToasts", FishtasticHudLayers.toastPassFrames > 0,
                     "toastPassFrames=" + FishtasticHudLayers.toastPassFrames);
