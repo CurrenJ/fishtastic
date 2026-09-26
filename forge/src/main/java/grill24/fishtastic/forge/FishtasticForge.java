@@ -72,6 +72,7 @@ public final class FishtasticForge {
 
         grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
         FishtasticRegistriesForge.RECIPE_SERIALIZERS.register(modEventBus);
+        grill24.fishtastic.loot.CopyTankDataFunction.registerLootFunctions();
 
         // Deferred to common setup, not called inline: registerDispenseBehaviors() dereferences
         // FishtasticBlocks.MARINE_COMPOST.value(), and a RegistryObjectHolder is still unbound

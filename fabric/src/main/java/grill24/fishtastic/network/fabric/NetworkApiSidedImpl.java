@@ -1,5 +1,6 @@
-package grill24.fishtastic.architectury.fabric;
+package grill24.fishtastic.network.fabric;
 
+import grill24.fishtastic.architectury.fabric.FabricPacketRegistrar;
 import grill24.fishtastic.network.FishtasticPayload;
 import grill24.fishtastic.network.codec.BufCodec;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;

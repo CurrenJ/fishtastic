@@ -183,7 +183,7 @@ public final class FishCatchBackupsGameTests {
         Path dir = FishCatchBackups.directory(server(helper));
         Files.createDirectories(dir);
         Path bogus = dir.resolve("20200101-000000-manual-gt_bogus.dat");
-        net.minecraft.nbt.NbtIo.writeCompressed(new net.minecraft.nbt.CompoundTag(), bogus);
+        net.minecraft.nbt.NbtIo.writeCompressed(new net.minecraft.nbt.CompoundTag(), bogus.toFile());
         try {
             Entry entry = FishCatchBackups.find(server(helper), bogus.getFileName().toString()).orElseThrow();
             boolean threw = false;

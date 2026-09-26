@@ -42,7 +42,7 @@ public final class FishTankGameTests {
     private static FishTankBlockEntity placeFishTank(GameTestHelper helper) {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK.value());
-        return helper.<FishTankBlockEntity>getBlockEntity(TANK_POS);
+        return (FishTankBlockEntity) helper.getBlockEntity(TANK_POS);
     }
 
     /** Places a second tank immediately east of {@link #TANK_POS}, for connection-gating tests. */
@@ -52,7 +52,7 @@ public final class FishTankGameTests {
 
     private static FishTankBlockEntity placeFishTankAt(GameTestHelper helper, BlockPos pos) {
         helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
-        return helper.<FishTankBlockEntity>getBlockEntity(pos);
+        return (FishTankBlockEntity) helper.getBlockEntity(pos);
     }
 
     // -------------------------------------------------------------------------
@@ -466,7 +466,9 @@ public final class FishTankGameTests {
         FishTankBlockEntity replaced = placeEastNeighborFishTank(helper);
         helper.assertTrue(replaced.getShape() == FishTankShape.STANDARD,
             "A fresh tank must start STANDARD before the dropped stack is applied");
-        replaced.applyComponentsFromItemStack(drop);
+        FishTankMaterials droppedMaterials = FishtasticItemData.getOrDefault(drop, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials());
+        FishTankShape droppedShape = FishtasticItemData.getOrDefault(drop, FishtasticDataComponents.FISH_TANK_SHAPE, FishTankShape.STANDARD);
+        replaced.applyFromItem(droppedMaterials, droppedShape);
 
         helper.assertTrue(replaced.getShape() == FishTankShape.LATTICE,
             "Re-placed tank must recover the LATTICE shape, got " + replaced.getShape());

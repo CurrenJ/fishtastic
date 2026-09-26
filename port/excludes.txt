@@ -267,6 +267,3 @@
 common/src/test/java/grill24/fishtastic/client/**
 common/src/test/java/grill24/fishtastic/fishtank/**
 common/src/test/java/grill24/fishtastic/server/**
-common/src/testmod/java/**
-fabric/src/testmod/java/**
-forge/src/testmod/java/**

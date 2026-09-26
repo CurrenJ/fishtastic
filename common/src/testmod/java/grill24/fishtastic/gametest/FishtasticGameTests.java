@@ -2,27 +2,30 @@ package grill24.fishtastic.gametest;
 
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 /**
  * The shared gametest harness: every Fishtastic game test, annotated with <b>vanilla</b>
  * {@code net.minecraft.gametest.framework.GameTest} so one class serves both loaders
- * (decision D10, docs/backport-pass2/track-a-1.21.1.md A6.1). Each method delegates to a
- * platform-agnostic body in a sibling class; those bodies touch no loader API.
+ * (decision D10, ported from port/1.21.1's A6.1 to this branch at B6.1,
+ * docs/backport-pass2/track-b-1.20.1.md). Each method delegates to a platform-agnostic body in a
+ * sibling class; those bodies touch no loader API.
  *
  * <p>Registered on Fabric by the {@code fabric-gametest} entrypoint (Fabric derives the mod id
  * from the entrypoint and uses {@code template} verbatim - see its {@code TestFunctionsMixin}),
- * and on NeoForge by {@code RegisterGameTestsEvent.register(FishtasticGameTests.class)}.
+ * and on Forge by {@code RegisterGameTestsEvent.register(FishtasticGameTests.class)}.
  *
- * <p>{@code @GameTestHolder} and {@code @PrefixGameTestTemplate(false)} are NeoForge's, and are
- * required <em>on this class</em>: the holder supplies the template namespace its enabled-namespaces
- * filter matches on, and without the prefix annotation NeoForge prepends the class's simple name to
- * the template. They are compiled against PORT-ONLY stubs that are on the testmod compile classpath
- * only; at runtime NeoForge's own annotation classes are the ones loaded, and on Fabric the
- * annotation types are simply absent and ignored. See "A6.1 as built" in the track doc.
+ * <p>{@code @GameTestHolder} and {@code @PrefixGameTestTemplate(false)} are Forge's real
+ * annotations (unlike port/1.21.1's NeoForge, Forge 47 ships both natively) and are required
+ * <em>on this class</em>: the holder supplies the template namespace its enabled-namespaces
+ * filter matches on, and without the prefix annotation Forge prepends the class's simple name to
+ * the template. Fabric has no Forge dependency, so its compile of this same shared source resolves
+ * them against a PORT-ONLY compile-only stub instead (see that stub's own doc); at runtime Forge's
+ * own annotation classes are the ones loaded, and on Fabric the annotation types are simply absent
+ * and ignored.
  *
- * <p>The template is a <em>bare path</em> because the two loaders read it differently: NeoForge
+ * <p>The template is a <em>bare path</em> because the two loaders read it differently: Forge
  * builds the id as {@code getTemplateNamespace(method) + ":" + template}, so {@code fishtastic_empty}
  * becomes {@code fishtastic:fishtastic_empty}, while Fabric parses the template verbatim, so the same
  * bare path becomes {@code minecraft:fishtastic_empty}. The all-air 8x8x8 is therefore shipped twice,
@@ -33,9 +36,10 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * {@code GameTestHelper.setBlock()}.
  *
  * <p>Tests that need a player take a supplier and are handed
- * {@link FishtasticTestSupport#playerSupplier}: the two loaders cannot share vanilla's
- * {@code makeMockServerPlayerInLevel}, because NeoForge's mock connection skips the
- * configuration handshake that registers its payload channels.
+ * {@link FishtasticTestSupport#playerSupplier}: each platform's own gametest entrypoint installs
+ * its own factory (both use vanilla's {@code makeMockServerPlayerInLevel} on this port — unlike
+ * port/1.21.1's NeoForge, Forge 47's {@code SimpleChannel} does not gate sends on a negotiated
+ * payload-channel handshake, so no special mock-connection setup is needed here).
  */
 @GameTestHolder("fishtastic")
 @PrefixGameTestTemplate(false)

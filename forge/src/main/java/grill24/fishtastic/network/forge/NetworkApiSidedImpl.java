@@ -1,5 +1,6 @@
-package grill24.fishtastic.architectury.forge;
+package grill24.fishtastic.network.forge;
 
+import grill24.fishtastic.architectury.forge.ForgePacketRegistrar;
 import grill24.fishtastic.network.FishtasticPayload;
 import grill24.fishtastic.network.codec.BufCodec;
 import net.minecraftforge.network.PacketDistributor;

@@ -89,7 +89,7 @@ public final class StormCharmGameTests {
         boolean wasAdvancingWeather = level.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE);
         level.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(true, server);
         try {
-            StormCharmItem.trySummonStorm(level, helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
+            StormCharmItem.trySummonStorm(level, helper.makeMockSurvivalPlayer());
 
             helper.assertTrue(level.isThundering(),
                     "Summoning a storm must make the level thunder immediately, not after the "
@@ -114,11 +114,11 @@ public final class StormCharmGameTests {
      */
     public static void handUseChargesUpAndIsFreeToCancel(GameTestHelper helper) {
         ItemStack storm = new ItemStack(FishtasticItems.STORM_CHARM.value());
-        var player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        var player = helper.makeMockSurvivalPlayer();
 
-        helper.assertTrue(storm.getUseDuration(player) == StormCharmItem.CHARGE_TICKS,
+        helper.assertTrue(storm.getUseDuration() == StormCharmItem.CHARGE_TICKS,
                 "Storm Charm must charge for " + StormCharmItem.CHARGE_TICKS + " ticks, was "
-                        + storm.getUseDuration(player));
+                        + storm.getUseDuration());
         helper.assertTrue(storm.getUseAnimation() != net.minecraft.world.item.UseAnim.NONE,
                 "A charge-up needs a visible use animation");
 

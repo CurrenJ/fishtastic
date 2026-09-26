@@ -26,7 +26,6 @@ import com.mojang.serialization.Lifecycle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.MappedRegistry;
-import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -362,11 +361,11 @@ public final class QuestTrackerGameTests {
         MappedRegistry<Quest> registry = new MappedRegistry<>(FishtasticRegistries.QUEST_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < dailyCount; i++) {
             ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Ids.of("fishtastic", "daily_" + i));
-            registry.register(key, dailyQuest(), RegistrationInfo.BUILT_IN);
+            registry.register(key, dailyQuest(), Lifecycle.stable());
         }
         for (int i = 0; i < tutorialCount; i++) {
             ResourceKey<Quest> key = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, Ids.of("fishtastic", "tutorial_" + i));
-            registry.register(key, tutorialQuest(), RegistrationInfo.BUILT_IN);
+            registry.register(key, tutorialQuest(), Lifecycle.stable());
         }
         return registry;
     }
@@ -450,7 +449,7 @@ public final class QuestTrackerGameTests {
     private static FishTankBlockEntity placeFishTank(GameTestHelper helper, BlockPos pos) {
         helper.setBlock(pos.below(), Blocks.STONE);
         helper.setBlock(pos, FishtasticBlocks.FISH_TANK.value());
-        return helper.<FishTankBlockEntity>getBlockEntity(pos);
+        return (FishTankBlockEntity) helper.getBlockEntity(pos);
     }
 
     private static ItemStack fishStack() {

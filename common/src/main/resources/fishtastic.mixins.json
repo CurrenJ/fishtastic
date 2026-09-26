@@ -3,6 +3,7 @@
   "package": "grill24.fishtastic.mixin",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
+  "plugin": "grill24.fishtastic.mixin.FishtasticMixinExtrasPlugin",
   "client": [
     "ClientLevelTickTimeMixin",
     "FishingHookRendererMixin",

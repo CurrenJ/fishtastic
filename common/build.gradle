@@ -9,12 +9,13 @@ loom {
 // Creates modTestImplementation & co., so the test source set gets remapped mod dependencies too.
 loom.createRemapConfigurations(sourceSets.test)
 
-// PORT-ONLY (A6.1): NeoForge's two gametest annotations as a compile-only artifact. NeoForge 21.1
-// requires @GameTestHolder + @PrefixGameTestTemplate(false) on the class that *declares* the tests,
-// and the one shared harness (src/testmod) is compiled for both loaders - so Fabric's compile has
-// to resolve them as well. They are never shipped and never on a runtime classpath: at runtime the
-// annotation must be NeoForge's own class, or its lookup by Class would miss the shadowing copy and
-// quietly disable the holder. See docs/backport-pass2/track-a-1.21.1.md, "A6.1 as built".
+// PORT-ONLY (B6.1, docs/backport-pass2/track-b-1.20.1.md): Forge's two gametest annotations as a
+// compile-only artifact, at their real net.minecraftforge.gametest package names. Forge 47 ships
+// these for real and requires @GameTestHolder + @PrefixGameTestTemplate(false) on the class that
+// *declares* the tests; the one shared harness (src/testmod) is compiled for both loaders, so
+// Fabric's compile - which has no Forge dependency at all - needs something resolvable at the same
+// name. Named "neoforge*" for history (this infra started life on port/1.21.1's NeoForge module,
+// where both loaders needed a stub); never shipped, never on a runtime classpath.
 sourceSets {
     neoforgeGametestAnnotations {
         java.srcDirs = ['src/neoforge-gametest-annotations/java']
@@ -56,6 +57,13 @@ dependencies {
     // JEI integration is optional at runtime (see grill24.fishtastic.compat.jei) — only
     // needed on the compile classpath so the plugin class can reference the JEI API.
     compileOnly("mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}")
+
+    // MixinExtras (@WrapOperation/@Local, used by 4 mixins). Fabric Loader bundles this at
+    // runtime already; Forge 47 (unlike NeoForge) doesn't, so it's shaded into the Forge jar
+    // explicitly (forge/build.gradle's shadowBundle) with a manual-bootstrap plugin
+    // (FishtasticMixinExtrasPlugin) — see docs/backport-pass2/track-b-1.20.1.md "B6.1 as built".
+    // compileOnly here since each platform provides (or bundles) its own copy at runtime.
+    compileOnly "io.github.llamalad7:mixinextras-common:0.5.4"
 
     // The Minecraft-free flocking engine (docs/fish-sim-engine-plan.md). Each platform bundles it
     // into the shipped jar via its own shadowBundle dependency — this line only provides the

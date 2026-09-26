@@ -83,7 +83,7 @@ public final class FishingMinigameManagerGameTests {
     /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
     private static void fillInventoryCompletely(ServerPlayer player, Item fillerItem) {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
-            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
+            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getMaxStackSize()));
         }
     }
 

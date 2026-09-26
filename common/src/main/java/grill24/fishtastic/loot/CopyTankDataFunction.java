@@ -28,6 +28,16 @@ import java.util.Set;
 public class CopyTankDataFunction extends LootItemConditionalFunction {
     public static final LootItemFunctionType TYPE = register();
 
+    /**
+     * Forces this class to load (and so {@link #TYPE} to register), so the {@code
+     * fishtastic:copy_tank_data} loot function type exists before any loot table referencing it
+     * is parsed. Called once from each platform's mod entrypoint, next to
+     * {@code FishtasticRecipeSerializers.registerRecipeSerializers()}. Without this, nothing ever
+     * touches this class and the registry entry never appears — the loot table then fails to
+     * parse with {@code Unknown type 'fishtastic:copy_tank_data'} the first time it's loaded.
+     */
+    public static void registerLootFunctions() {}
+
     protected CopyTankDataFunction(LootItemCondition[] predicates) {
         super(predicates);
     }

@@ -4,7 +4,8 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.TankEntryKind;
-import grill24.fishtastic.network.FishtasticPackets;
+import grill24.fishtastic.menu.FishTankBrowserMenu;
+import grill24.fishtastic.network.FishtasticPacketHandling;
 import grill24.fishtastic.network.RemoveTankEntryPacket;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
@@ -43,7 +44,7 @@ public final class RemoveTankEntryPacketGameTests {
 
     private static void fillInventoryCompletely(ServerPlayer player, net.minecraft.world.item.Item fillerItem) {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
-            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
+            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getMaxStackSize()));
         }
     }
 
@@ -185,8 +186,8 @@ public final class RemoveTankEntryPacketGameTests {
 
     /** Runs the packet handler's enqueued work immediately, synchronously — matches the real
      * server's single-threaded execute() closely enough for a test that never yields mid-handler. */
-    private static FishtasticPackets.IPacketContext syncContext(ServerPlayer player) {
-        return new FishtasticPackets.IPacketContext() {
+    private static FishtasticPacketHandling.IPacketContext syncContext(ServerPlayer player) {
+        return new FishtasticPacketHandling.IPacketContext() {
             @Override
             public Player getPlayer() {
                 return player;
@@ -212,7 +213,7 @@ public final class RemoveTankEntryPacketGameTests {
             GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK.value());
-        FishTankBlockEntity tank = helper.<FishTankBlockEntity>getBlockEntity(TANK_POS);
+        FishTankBlockEntity tank = (FishTankBlockEntity) helper.getBlockEntity(TANK_POS);
         ItemStack fishInTank = sizedFish();
         helper.assertTrue(tank.addItem(fishInTank), "Setup: inserting the test fish into the tank must succeed");
 
@@ -221,9 +222,11 @@ public final class RemoveTankEntryPacketGameTests {
         forceSurvivalMode(player);
         fillInventoryCompletely(player, Items.DIRT);
 
-        // Real vanilla menu-open path — sets player.containerMenu to an actual FishTankBrowserMenu,
-        // exactly like right-clicking the tank empty-handed does.
-        player.openMenu(tank);
+        // FishTankBlockEntity has no MenuProvider yet on this port (docs/backport-pass2/
+        // track-b-1.20.1.md B2.6: the browser GUI's server-side open path waits on gelatin-ui's
+        // menu system), so there's no vanilla open path to drive here — construct the real
+        // FishTankBrowserMenu directly and assign it, exactly as an eventual MenuProvider would.
+        player.containerMenu = new FishTankBrowserMenu(1, player.getInventory(), tank);
 
         // Free exactly one slot...
         ItemStack toDrop = player.getInventory().getItem(0).copy();

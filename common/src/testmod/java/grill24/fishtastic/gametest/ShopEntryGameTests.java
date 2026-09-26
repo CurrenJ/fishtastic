@@ -9,7 +9,6 @@ import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.MappedRegistry;
-import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -61,7 +60,7 @@ public final class ShopEntryGameTests {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < weights.size(); i++) {
             ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "entry_" + i));
-            registry.register(key, entry(weights.get(i)), RegistrationInfo.BUILT_IN);
+            registry.register(key, entry(weights.get(i)), Lifecycle.stable());
         }
         return registry;
     }
@@ -71,11 +70,11 @@ public final class ShopEntryGameTests {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < mainCount; i++) {
             ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "main_" + i));
-            registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
+            registry.register(key, entry(1.0f), Lifecycle.stable());
         }
         for (int i = 0; i < charmCount; i++) {
             ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "charm_" + i));
-            registry.register(key, charmEntry(1.0f), RegistrationInfo.BUILT_IN);
+            registry.register(key, charmEntry(1.0f), Lifecycle.stable());
         }
         return registry;
     }
@@ -85,11 +84,11 @@ public final class ShopEntryGameTests {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < mainCount; i++) {
             ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "main_" + i));
-            registry.register(key, entry(1.0f), RegistrationInfo.BUILT_IN);
+            registry.register(key, entry(1.0f), Lifecycle.stable());
         }
         for (int i = 0; i < shapeCount; i++) {
             ResourceKey<ShopEntry> key = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Ids.of("fishtastic", "shape_" + i));
-            registry.register(key, tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
+            registry.register(key, tankShapeEntry(1.0f), Lifecycle.stable());
         }
         return registry;
     }
@@ -274,15 +273,15 @@ public final class ShopEntryGameTests {
         MappedRegistry<ShopEntry> registry = new MappedRegistry<>(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, Lifecycle.stable());
         for (int i = 0; i < 10; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Ids.of("fishtastic", "main_" + i)), entry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "main_" + i)), entry(1.0f), Lifecycle.stable());
         }
         for (int i = 0; i < 3; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Ids.of("fishtastic", "charm_" + i)), charmEntry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "charm_" + i)), charmEntry(1.0f), Lifecycle.stable());
         }
         for (int i = 0; i < 3; i++) {
             registry.register(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY,
-                    Ids.of("fishtastic", "shape_" + i)), tankShapeEntry(1.0f), RegistrationInfo.BUILT_IN);
+                    Ids.of("fishtastic", "shape_" + i)), tankShapeEntry(1.0f), Lifecycle.stable());
         }
 
         int trials = 3000;
@@ -337,7 +336,7 @@ public final class ShopEntryGameTests {
     /** Fills every main-inventory slot (0-35) with an unrelated full stack, leaving no room for anything else. */
     private static void fillInventoryCompletely(ServerPlayer player, net.minecraft.world.item.Item fillerItem) {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
-            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getDefaultMaxStackSize()));
+            player.getInventory().setItem(i, new ItemStack(fillerItem, fillerItem.getMaxStackSize()));
         }
     }
 

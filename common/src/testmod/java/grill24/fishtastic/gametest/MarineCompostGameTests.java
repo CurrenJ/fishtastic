@@ -28,7 +28,7 @@ public final class MarineCompostGameTests {
     private static MarineCompostBlockEntity placeMarineCompost(GameTestHelper helper) {
         helper.setBlock(FLOOR, Blocks.STONE);
         helper.setBlock(BIN_POS, FishtasticBlocks.MARINE_COMPOST.value());
-        return helper.<MarineCompostBlockEntity>getBlockEntity(BIN_POS);
+        return (MarineCompostBlockEntity) helper.getBlockEntity(BIN_POS);
     }
 
     private static boolean isConverting(MarineCompostPhase phase) {

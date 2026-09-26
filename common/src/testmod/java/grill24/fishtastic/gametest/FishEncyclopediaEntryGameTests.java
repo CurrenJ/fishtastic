@@ -22,7 +22,7 @@ public final class FishEncyclopediaEntryGameTests {
         JsonObject json = new JsonObject();
 
         FishEncyclopediaEntry decoded = FishEncyclopediaEntry.CODEC.parse(JsonOps.INSTANCE, json)
-            .getOrThrow(error -> new AssertionError("Expected empty object to decode: " + error));
+            .getOrThrow(false, error -> { throw new AssertionError("Expected empty object to decode: " + error); });
 
         helper.assertTrue(decoded.lore().isEmpty(), "lore must default to empty when absent");
         helper.assertTrue(
@@ -39,7 +39,7 @@ public final class FishEncyclopediaEntryGameTests {
         json.add("thresholds", thresholds);
 
         FishEncyclopediaEntry decoded = FishEncyclopediaEntry.CODEC.parse(JsonOps.INSTANCE, json)
-            .getOrThrow(error -> new AssertionError("Expected partial thresholds to decode: " + error));
+            .getOrThrow(false, error -> { throw new AssertionError("Expected partial thresholds to decode: " + error); });
 
         FishEncyclopediaEntry.UnlockThresholds t = decoded.thresholds();
         helper.assertTrue(t.nameRevealCatches() == 2, "explicit nameRevealCatches must override default, got " + t.nameRevealCatches());
@@ -57,9 +57,9 @@ public final class FishEncyclopediaEntryGameTests {
         );
 
         JsonElement encoded = FishEncyclopediaEntry.CODEC.encodeStart(JsonOps.INSTANCE, original)
-            .getOrThrow(error -> new AssertionError("Expected entry to encode: " + error));
+            .getOrThrow(false, error -> { throw new AssertionError("Expected entry to encode: " + error); });
         FishEncyclopediaEntry decoded = FishEncyclopediaEntry.CODEC.parse(JsonOps.INSTANCE, encoded)
-            .getOrThrow(error -> new AssertionError("Expected encoded entry to decode: " + error));
+            .getOrThrow(false, error -> { throw new AssertionError("Expected encoded entry to decode: " + error); });
 
         helper.assertTrue(decoded.lore().equals(original.lore()), "lore must round-trip");
         helper.assertTrue(decoded.thresholds().equals(original.thresholds()), "thresholds must round-trip");

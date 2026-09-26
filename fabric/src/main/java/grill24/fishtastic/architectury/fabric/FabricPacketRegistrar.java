@@ -98,7 +98,7 @@ public class FabricPacketRegistrar implements FishtasticPacketHandling.IPacketRe
     }
 
     /** Wraps a {@link FishtasticPayload} + its codec as a {@link FabricPacket}. */
-    record FabricPayloadPacket<T extends FishtasticPayload>(T payload, BufCodec<T> codec, ResourceLocation id) implements FabricPacket {
+    public record FabricPayloadPacket<T extends FishtasticPayload>(T payload, BufCodec<T> codec, ResourceLocation id) implements FabricPacket {
         @Override
         public void write(FriendlyByteBuf buf) {
             codec.encode(buf, payload);

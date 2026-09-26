@@ -18,8 +18,8 @@ import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -32,21 +32,22 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Round-trip tests for Fishtastic's custom StreamCodec payloads.
+ * Round-trip tests for Fishtastic's custom BufCodec payloads (this port's 1.20.1 stand-in for
+ * 1.21.1's StreamCodec, see {@code network/codec/BufCodec}).
  *
- * Codecs here are typed StreamCodec<RegistryFriendlyByteBuf, T>, so encoding/decoding needs a
- * registry-aware buffer: new RegistryFriendlyByteBuf(Unpooled.buffer(), helper.getLevel().registryAccess()).
- * ItemStack does not override equals(), so stacks are never compared directly — only by
- * getItem()/getCount()/relevant components, matching how FishCatchDataGameTests already avoids
- * whole-record equality for fields that embed ItemStack.
+ * Codecs here are typed BufCodec<T> over a plain {@link ByteBuf} — no registry access needed,
+ * unlike 1.21.1's RegistryFriendlyByteBuf, since none of this tree's payloads decode through a
+ * registry-aware codec. ItemStack does not override equals(), so stacks are never compared
+ * directly — only by getItem()/getCount()/relevant components, matching how
+ * FishCatchDataGameTests already avoids whole-record equality for fields that embed ItemStack.
  * All methods are pure GameTestHelper consumers — no platform annotations here.
  */
 public final class PacketRoundTripGameTests {
 
     private PacketRoundTripGameTests() {}
 
-    private static RegistryFriendlyByteBuf newBuf(GameTestHelper helper) {
-        return new RegistryFriendlyByteBuf(Unpooled.buffer(), helper.getLevel().registryAccess());
+    private static ByteBuf newBuf(GameTestHelper helper) {
+        return Unpooled.buffer();
     }
 
     private static void assertStacksMatch(GameTestHelper helper, ItemStack expected, ItemStack actual, String label) {
@@ -104,7 +105,7 @@ public final class PacketRoundTripGameTests {
         StartFishingMinigamePacket original =
             new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered, true);
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
         StartFishingMinigamePacket decoded = StartFishingMinigamePacket.STREAM_CODEC.decode(buf);
 
@@ -138,7 +139,7 @@ public final class PacketRoundTripGameTests {
     public static void purchaseShopEntryPacketRoundTrips(GameTestHelper helper) {
         PurchaseShopEntryPacket original = new PurchaseShopEntryPacket(Ids.of("fishtastic", "daily/some_entry"));
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         PurchaseShopEntryPacket.STREAM_CODEC.encode(buf, original);
         PurchaseShopEntryPacket decoded = PurchaseShopEntryPacket.STREAM_CODEC.decode(buf);
 
@@ -176,7 +177,7 @@ public final class PacketRoundTripGameTests {
                 new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0, contributors), 12345L,
                 baitStack, firstCatchItems, 3);
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
         QuestSyncPacket decoded = QuestSyncPacket.STREAM_CODEC.decode(buf);
 
@@ -217,7 +218,7 @@ public final class PacketRoundTripGameTests {
             new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400, List.of()), 0L,
             ItemStack.EMPTY, List.of(), 0);
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
         QuestSyncPacket decoded = QuestSyncPacket.STREAM_CODEC.decode(buf);
 
@@ -252,7 +253,7 @@ public final class PacketRoundTripGameTests {
 
         FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         FishEncyclopediaSyncPacket.STREAM_CODEC.encode(buf, original);
         FishEncyclopediaSyncPacket decoded = FishEncyclopediaSyncPacket.STREAM_CODEC.decode(buf);
 
@@ -271,7 +272,7 @@ public final class PacketRoundTripGameTests {
     public static void requestFishEncyclopediaPacketRoundTrips(GameTestHelper helper) {
         RequestFishEncyclopediaPacket original = new RequestFishEncyclopediaPacket(true);
 
-        RegistryFriendlyByteBuf buf = newBuf(helper);
+        ByteBuf buf = newBuf(helper);
         RequestFishEncyclopediaPacket.STREAM_CODEC.encode(buf, original);
         RequestFishEncyclopediaPacket decoded = RequestFishEncyclopediaPacket.STREAM_CODEC.decode(buf);
 

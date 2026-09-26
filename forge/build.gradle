@@ -60,6 +60,14 @@ dependencies {
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
 
+    // MixinExtras (B6.1, docs/backport-pass2/track-b-1.20.1.md "B6.1 as built"): Forge 47 has no
+    // built-in MixinExtras (unlike NeoForge) and this module doesn't use the JarJar packaging the
+    // published mixinextras-forge artifact expects (a nested jar, meant to be unpacked by FML's
+    // JarJar dependency locator) — so mixinextras-common's flat classes are shaded straight into
+    // the jar instead, bootstrapped manually by FishtasticMixinExtrasPlugin.
+    implementation "io.github.llamalad7:mixinextras-common:0.5.4"
+    shadowBundle "io.github.llamalad7:mixinextras-common:0.5.4"
+
     // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev
     // classpath dep and a shadowBundle entry — dev runs resolve the former, the shipped jar only
     // contains the latter (skipping it = NoClassDefFoundError in production).
@@ -68,9 +76,9 @@ dependencies {
 
     // Testmod: access the compiled main classes.
     testmodImplementation sourceSets.main.output
-    // A6.1/B6.1: compile-only gametest annotations, so the shared harness in common/src/testmod
-    // can carry the holder each loader requires. Never a runtime dependency.
-    testmodCompileOnly project(path: ':common', configuration: 'neoforgeGametestAnnotationsApi')
+    // B6.1: unlike Fabric, Forge needs no compile-only gametest-annotations stub — Forge 47 ships
+    // real @GameTestHolder/@PrefixGameTestTemplate classes of its own, already on this module's
+    // main compileClasspath via the `forge` dependency above, which sourceSets.testmod extends.
 }
 
 processResources {

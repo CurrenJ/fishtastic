@@ -30,7 +30,7 @@ public class ForgePacketRegistrar implements FishtasticPacketHandling.IPacketReg
     private static final ResourceLocation CHANNEL_ID = Fishtastic.id("main");
     private static final String PROTOCOL_VERSION = "1.0.0";
 
-    static SimpleChannel CHANNEL;
+    public static SimpleChannel CHANNEL;
     private static final AtomicInteger NEXT_INDEX = new AtomicInteger();
 
     /** Registers every Fishtastic packet on both directions. Called once from the mod entrypoint. */

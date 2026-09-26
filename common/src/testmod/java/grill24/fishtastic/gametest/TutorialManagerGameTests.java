@@ -5,7 +5,7 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.Ids;
-import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.Advancement;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
@@ -350,7 +350,7 @@ public final class TutorialManagerGameTests {
      */
     public static void revokingRodAdvancementAllowsReTriggeringAfterReset(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
-        AdvancementHolder rodAdvancement = helper.getLevel().getServer().getAdvancements().get(TutorialManager.TUTORIAL_ROD_ADVANCEMENT_ID);
+        Advancement rodAdvancement = helper.getLevel().getServer().getAdvancements().getAdvancement(TutorialManager.TUTORIAL_ROD_ADVANCEMENT_ID);
         helper.assertTrue(rodAdvancement != null, "Sanity check: the tutorial rod advancement must be loaded");
 
         player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
