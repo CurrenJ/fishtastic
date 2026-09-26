@@ -670,6 +670,64 @@ be untangled by hand). Two content bugs fell out of the same diff-review:
   `:fabric:runDatagen --rerun-tasks` green, `:common:compileJava :fabric:compileJava :common:test
   :fabric:test` green, 239-file diff reviewed and committed for real.
 
+### G-B4 Forge as built (2026-09-26)
+
+`:forge:runDatagen` doesn't exist as a task name — Loom's real Forge `data` run task is
+`:forge:runData` (the config block is named `data` in `forge/build.gradle`'s `runs {}`; Loom
+generates `run<Capitalized name>`). Running it hit two real, separate problems before it could
+confirm anything:
+
+1. **Config-time crash before the JVM even launches**: `forge/build.gradle`'s `data` run only had
+   `forgeTemplate("data")`, unlike the working `gametest` run which also calls
+   `environment("gameTestServer")` explicitly. `DefaultRunConfigurationSettings.finialise()` (the
+   code that applies a Forge template, including setting `runtimeEnvironment`) only runs lazily
+   inside the run task's own execution — but Gradle reads `runtimeEnvironment` eagerly while
+   building the task dependency graph (`getMainClass()`'s `.convention(...)` chain), well before
+   that task ever executes. Without an explicit `environment(...)` call, that read throws
+   `MissingValueException`. Fixed by adding `environment("data")` to the block, matching the
+   `gametest` block's existing pattern.
+2. **A real hang, same shape as B6.1's**: with (1) fixed, the run got as far as FML's `CONSTRUCT`
+   lifecycle event and then died with an uncaught `NoSuchMethodError` inside JEI:
+   `mezz.jei.common.util.Translator.translateToLocal` → `I18n.m_118938_` doesn't exist at runtime,
+   thrown from `JustEnoughItemsClient`'s constructor, itself invoked through
+   `DistExecutor.safeRunWhenOn(Dist.CLIENT, ...)`. Forge's `forgedatauserdev` launch target
+   genuinely runs as `Dist.CLIENT` (it gathers client-side resources too, e.g. models), so JEI's own
+   client-init gate correctly fires — but that environment doesn't wire up `I18n` fully, so the
+   specific overload JEI calls isn't there. `ModLoader`'s `CONSTRUCT` event then fails fatally,
+   logged only as `[main/FATAL] ... Failed to complete lifecycle event CONSTRUCT` — and, exactly
+   like B6.1's original gametest hang, the JVM never exits: `main` is gone, but ~50 non-daemon FML
+   worker-pool threads (`pool-1-thread-*`, `pool-2-thread-*`) stay alive forever. Confirmed via
+   `jstack` on the live process (JDK 21's `jstack` attaches fine to a JDK 17 target). Fixed by
+   dropping JEI's jar from `runData`'s classpath — JEI is `localRuntime`-only in
+   `forge/build.gradle` (dev convenience for `runClient`; see that dependency's own comment) and
+   datagen never needs it:
+   ```groovy
+   tasks.named("runData") {
+       classpath = classpath.filter { !it.name.startsWith("jei-") }
+   }
+   ```
+
+With both fixed, the run reaches real completion: `[minecraft/DataGenerator]: All providers took: 0
+ms`, `[minecraft/HashCache]: ... new count: 1, removed stale: 0, written: 0`. Zero providers is
+**expected**, not a bug — `FishtasticDataGenerator`'s own doc comment (Fabric-side) says all datagen
+intentionally lives on Fabric only ("no point in adding data generation support for both platforms,
+when the resulting data assets should be identical"), and Forge has no `GatherDataEvent` listener at
+all (confirmed: zero matches for `GatherDataEvent`/`FishtasticDataGenerator` anywhere under
+`forge/src/main/java`). `git -c core.autocrlf=false status --short`/`diff --stat` after the run:
+empty — exactly the no-op G-B4 expects for the Forge side.
+
+**Separate, deliberately-not-fixed quirk**: even with the JEI crash gone and the run completing
+correctly, the JVM still never exits on its own — a `GatherDataEvent` with zero providers apparently
+skips whatever cleanup normally shuts down FML's worker-pool executors after real generation work.
+Every real modder report of this shape (searchable as "Forge runData hangs after All providers
+took") describes the same thing and just kills the process once that log line appears. Left
+unfixed: it's an upstream FML behavior independent of the port, doesn't affect the diff-review gate
+(the diff is what G-B4 cares about, and it's empty as expected), and forcing a `System.exit(0)`
+from mod code to paper over an upstream executor-shutdown gap felt like the wrong kind of fix for a
+one-off manual verification task. Verified by manually killing the process (`jstack` confirmed no
+`main` thread left, only idle non-daemon workers) after its log settled — noted here so the next
+session doesn't re-diagnose the same "hang" from scratch.
+
 ### B5.3: Loader: NeoForge 21.1 → Forge 47
 
 | NeoForge 21.1 | Forge 47 (lands on) | Files |

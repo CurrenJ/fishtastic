@@ -160,6 +160,7 @@ loom {
         }
 
         data {
+            environment("data")
             forgeTemplate("data")
             programArgs "--mod", "fishtastic",
                         "--all",
@@ -177,6 +178,18 @@ loom {
             runDir "build/gametest"
         }
     }
+}
+
+// Forge's "data" launch target runs as Dist.CLIENT (it gathers client-side resources too), so JEI's
+// own DistExecutor.safeRunWhenOn(CLIENT, ...) fires and tries to build its client subsystem — but
+// that environment doesn't wire up I18n the way a real client run does, so JEI throws a
+// NoSuchMethodError building its key mappings, ModLoader's CONSTRUCT event fails fatally, and the JVM
+// then idles forever on FML's non-daemon worker pool instead of exiting (same silent-hang shape as
+// the B6.1 gametest fix, just triggered by a third-party mod). JEI is `localRuntime`-only (dev
+// convenience for runClient, see the dependencies block) and datagen never needs it, so drop its jar
+// from this run's classpath instead of chasing the upstream JEI/Forge-datagen incompatibility.
+tasks.named("runData") {
+    classpath = classpath.filter { !it.name.startsWith("jei-") }
 }
 
 // Custom (non-default) runDirs aren't auto-created by Loom/Architectury before the
