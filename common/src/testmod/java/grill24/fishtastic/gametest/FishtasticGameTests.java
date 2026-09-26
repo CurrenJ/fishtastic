@@ -37,9 +37,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
  *
  * <p>Tests that need a player take a supplier and are handed
  * {@link FishtasticTestSupport#playerSupplier}: each platform's own gametest entrypoint installs
- * its own factory (both use vanilla's {@code makeMockServerPlayerInLevel} on this port — unlike
- * port/1.21.1's NeoForge, Forge 47's {@code SimpleChannel} does not gate sends on a negotiated
- * payload-channel handshake, so no special mock-connection setup is needed here).
+ * its own factory (Fabric uses vanilla's {@code makeMockServerPlayerInLevel}; Forge 47 can't,
+ * because its patched {@code placeNewPlayer} needs the connection to have a Netty channel, so
+ * Forge installs {@code ForgeTestPlayers}).
  */
 @GameTestHolder("fishtastic")
 @PrefixGameTestTemplate(false)

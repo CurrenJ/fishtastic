@@ -86,8 +86,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
  * </ul>
  *
  * <p>Not a {@code @Mod} class itself — Forge 47's {@code @Mod} has no {@code dist} filter (that's
- * NeoForge), so this is instantiated from {@link FishtasticForge}'s constructor through {@code
- * DistExecutor.safeRunWhenOn(Dist.CLIENT, ...)} instead, which keeps this class (and its
+ * NeoForge), so this is instantiated from {@link FishtasticForge}'s constructor behind an
+ * {@code FMLEnvironment.dist == Dist.CLIENT} check instead, which keeps this class (and its
  * client-only imports) from ever being loaded on a dedicated server.
  */
 public final class FishtasticForgeClient {

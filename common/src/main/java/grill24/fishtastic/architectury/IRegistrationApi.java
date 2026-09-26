@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -35,6 +36,7 @@ public interface IRegistrationApi {
     Holder<SimpleParticleType> registerParticleType(final String name);
     <M extends AbstractContainerMenu> Holder<MenuType<?>> registerMenuType(final String name, final MenuFactory<M> factory);
     <T extends Recipe<?>> Holder<RecipeSerializer<?>> registerRecipeSerializer(final String name, final Supplier<RecipeSerializer<T>> supplier);
+    Holder<LootItemFunctionType> registerLootFunctionType(final String name, final Supplier<LootItemFunctionType> supplier);
 
     /** Stand-in for {@code MenuType.MenuSupplier}, which is package-private. */
     @FunctionalInterface

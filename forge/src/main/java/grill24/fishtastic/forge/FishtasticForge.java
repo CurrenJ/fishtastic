@@ -10,6 +10,7 @@ import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.architectury.forge.ForgePacketRegistrar;
+import grill24.fishtastic.architectury.forge.ForgeRegistrationApi;
 import grill24.fishtastic.compat.GelatinMenusCompat;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.ShopEntry;
@@ -26,11 +27,15 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.DataPackRegistryEvent;
+import net.minecraftforge.registries.RegisterEvent;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 
 /**
  * Forge 47 entrypoint (B5.3: NeoForge's constructor-injected {@code IEventBus modEventBus,
@@ -46,37 +51,42 @@ public final class FishtasticForge {
         GelatinMenusCompat.init();
 
         // __BEGIN:item_registration:init_forge
-        // Call modloader-specific static method to register items to our deferred register
         FishtasticDataComponents.registerDataComponents();
 
-        FishtasticItems.registerItems();
-        FishtasticRegistriesForge.ITEMS.register(modEventBus);
-
-        FishtasticBlocks.registerBlocks();
-        FishtasticRegistriesForge.BLOCKS.register(modEventBus);
-
-        FishtasticBlockEntityTypes.registerBlockEntityTypes();
-        FishtasticRegistriesForge.BLOCK_ENTITY_TYPES.register(modEventBus);
-
-        FishtasticMenuTypes.registerMenuTypes();
-        FishtasticRegistriesForge.MENU_TYPES.register(modEventBus);
-
-        FishtasticCreativeTabs.registerCreativeTabs();
-        FishtasticRegistriesForge.CREATIVE_MODE_TABS.register(modEventBus);
-
-        FishtasticSounds.registerSounds();
-        FishtasticRegistriesForge.SOUND_EVENTS.register(modEventBus);
-
-        FishtasticParticleTypes.registerParticleTypes();
-        FishtasticRegistriesForge.PARTICLE_TYPES.register(modEventBus);
-
-        grill24.fishtastic.recipe.FishtasticRecipeSerializers.registerRecipeSerializers();
-        FishtasticRegistriesForge.RECIPE_SERIALIZERS.register(modEventBus);
-        grill24.fishtastic.loot.CopyTankDataFunction.registerLootFunctions();
+        // Forge 47 unfreezes each registry only while its own RegisterEvent runs, so every common
+        // register*() is called from inside the event for its registry and gets that registry's
+        // real holders back (see ForgeRegistrationApi). Blocks fire before items, so the BlockItems
+        // registerBlocks() queues are flushed in the ITEM event.
+        ForgeRegistrationApi api = ForgeRegistrationApi.INSTANCE;
+        modEventBus.addListener((RegisterEvent event) -> {
+            ResourceKey<? extends Registry<?>> key = event.getRegistryKey();
+            if (key.equals(Registries.SOUND_EVENT)) {
+                api.registerDuring(event, FishtasticSounds::registerSounds);
+            } else if (key.equals(Registries.BLOCK)) {
+                api.registerDuring(event, FishtasticBlocks::registerBlocks);
+            } else if (key.equals(Registries.ITEM)) {
+                api.registerDuring(event, () -> {
+                    FishtasticItems.registerItems();
+                    api.registerPendingBlockItems();
+                });
+            } else if (key.equals(Registries.PARTICLE_TYPE)) {
+                api.registerDuring(event, FishtasticParticleTypes::registerParticleTypes);
+            } else if (key.equals(Registries.BLOCK_ENTITY_TYPE)) {
+                api.registerDuring(event, FishtasticBlockEntityTypes::registerBlockEntityTypes);
+            } else if (key.equals(Registries.MENU)) {
+                api.registerDuring(event, FishtasticMenuTypes::registerMenuTypes);
+            } else if (key.equals(Registries.RECIPE_SERIALIZER)) {
+                api.registerDuring(event, grill24.fishtastic.recipe.FishtasticRecipeSerializers::registerRecipeSerializers);
+            } else if (key.equals(Registries.LOOT_FUNCTION_TYPE)) {
+                api.registerDuring(event, grill24.fishtastic.loot.CopyTankDataFunction::registerLootFunctions);
+            } else if (key.equals(Registries.CREATIVE_MODE_TAB)) {
+                api.registerDuring(event, FishtasticCreativeTabs::registerCreativeTabs);
+            }
+        });
 
         // Deferred to common setup, not called inline: registerDispenseBehaviors() dereferences
-        // FishtasticBlocks.MARINE_COMPOST.value(), and a RegistryObjectHolder is still unbound
-        // while the mod constructor runs (same ordering hazard as NeoForge's DeferredHolder).
+        // FishtasticBlocks.MARINE_COMPOST.value(), and blocks aren't registered until their
+        // RegisterEvent, after the mod constructor has run.
         // enqueueWork because DispenserBlock's behavior map is plain mutable global state and
         // common setup runs in parallel across mods. Fabric calls it inline in onInitialize and is
         // fine — its registries are populated eagerly.
@@ -123,8 +133,11 @@ public final class FishtasticForge {
         // Register config
         FishtasticConfig.register();
 
-        // Forge 47's @Mod has no dist filter (that's NeoForge) - defer client setup through
-        // DistExecutor so FishtasticForgeClient's client-only imports never load server-side.
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> FishtasticForgeClient::new);
+        // Forge 47's @Mod has no dist filter (that's NeoForge). A plain dist check, not
+        // DistExecutor.safeRunWhenOn: that validates its referent on every dist, which links
+        // FishtasticForgeClient::new and loads client-only classes on a dedicated server.
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            new FishtasticForgeClient();
+        }
     }
 }

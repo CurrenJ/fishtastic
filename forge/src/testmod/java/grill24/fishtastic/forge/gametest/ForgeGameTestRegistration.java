@@ -25,7 +25,7 @@ public final class ForgeGameTestRegistration {
 
     @SubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
-        FishtasticTestSupport.installPlayerFactory(helper -> helper.makeMockServerPlayerInLevel());
+        FishtasticTestSupport.installPlayerFactory(ForgeTestPlayers::create);
         event.register(FishtasticGameTests.class);
     }
 }

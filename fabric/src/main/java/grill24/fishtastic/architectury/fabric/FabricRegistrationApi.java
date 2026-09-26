@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 
 import javax.naming.OperationNotSupportedException;
 import java.util.function.BiFunction;
@@ -90,6 +91,11 @@ public class FabricRegistrationApi implements IRegistrationApi {
         Holder<SimpleParticleType> holder = (Holder<SimpleParticleType>) (Holder<?>)
                 Registry.registerForHolder(BuiltInRegistries.PARTICLE_TYPE, id, new SimpleParticleType(false) {});
         return holder;
+    }
+
+    @Override
+    public Holder<LootItemFunctionType> registerLootFunctionType(String name, Supplier<LootItemFunctionType> supplier) {
+        return register(BuiltInRegistries.LOOT_FUNCTION_TYPE, name, loc -> supplier.get());
     }
 
     @Override

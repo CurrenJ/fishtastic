@@ -65,7 +65,12 @@ dependencies {
     // published mixinextras-forge artifact expects (a nested jar, meant to be unpacked by FML's
     // JarJar dependency locator) — so mixinextras-common's flat classes are shaded straight into
     // the jar instead, bootstrapped manually by FishtasticMixinExtrasPlugin.
+    // forgeRuntimeLibrary is what makes it visible in dev runs: a plain `implementation` jar only
+    // lands on the JVM classpath, which ModLauncher's module layers can't see, so the plugin's
+    // onLoad threw NoClassDefFoundError on "main" — printed only to stderr, never to the log files,
+    // and the JVM then idled forever on FML's non-daemon pool threads (the B6.1 "hang").
     implementation "io.github.llamalad7:mixinextras-common:0.5.4"
+    forgeRuntimeLibrary "io.github.llamalad7:mixinextras-common:0.5.4"
     shadowBundle "io.github.llamalad7:mixinextras-common:0.5.4"
 
     // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev

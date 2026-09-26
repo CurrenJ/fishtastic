@@ -3,10 +3,9 @@ package grill24.fishtastic.loot;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.architectury.RegistrationApiSided;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Holder;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -26,17 +25,19 @@ import java.util.Set;
  * {@code ComponentKey} NBT layout instead of going through {@link FishTankBlockEntity#writeToItem}.
  */
 public class CopyTankDataFunction extends LootItemConditionalFunction {
-    public static final LootItemFunctionType TYPE = register();
+    public static Holder<LootItemFunctionType> TYPE;
 
     /**
-     * Forces this class to load (and so {@link #TYPE} to register), so the {@code
-     * fishtastic:copy_tank_data} loot function type exists before any loot table referencing it
-     * is parsed. Called once from each platform's mod entrypoint, next to
-     * {@code FishtasticRecipeSerializers.registerRecipeSerializers()}. Without this, nothing ever
-     * touches this class and the registry entry never appears — the loot table then fails to
-     * parse with {@code Unknown type 'fishtastic:copy_tank_data'} the first time it's loaded.
+     * Registers {@link #TYPE} through the platform API, so the {@code fishtastic:copy_tank_data}
+     * loot function type exists before any loot table referencing it is parsed (Forge 47 freezes
+     * vanilla registries outside its RegisterEvent, so a direct Registry.register throws there).
+     * Called once from each platform's mod entrypoint, next to
+     * {@code FishtasticRecipeSerializers.registerRecipeSerializers()}.
      */
-    public static void registerLootFunctions() {}
+    public static void registerLootFunctions() {
+        TYPE = RegistrationApiSided.getInstance().registerLootFunctionType("copy_tank_data",
+                () -> new LootItemFunctionType(new Serializer()));
+    }
 
     protected CopyTankDataFunction(LootItemCondition[] predicates) {
         super(predicates);
@@ -47,13 +48,9 @@ public class CopyTankDataFunction extends LootItemConditionalFunction {
         return simpleBuilder(CopyTankDataFunction::new);
     }
 
-    private static LootItemFunctionType register() {
-        return Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, Fishtastic.id("copy_tank_data"), new LootItemFunctionType(new Serializer()));
-    }
-
     @Override
     public LootItemFunctionType getType() {
-        return TYPE;
+        return TYPE.value();
     }
 
     @Override
