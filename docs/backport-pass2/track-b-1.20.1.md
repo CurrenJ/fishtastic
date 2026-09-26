@@ -595,6 +595,62 @@ again from behavior.
 the B5.3 table below describes) is untouched this session and is the natural next target once
 B4.2's datagen crash is resolved.
 
+### B4.2 `is_snowy_peaks` root cause (2026-09-26)
+
+Root-caused and fixed the handoff's first suggested task. Decompiled (vineflower) both FAPI
+versions' `fabric-data-generation-api-v1` jars looking for a `FabricTagProvider`/mixin difference —
+found nothing relevant (`TagProviderMixin` only patches JSON `"replace"`/`"fabric:remove"` output,
+unrelated to resolution). The real lead came from instrumenting `FishtasticItemTagProvider.addTags`
+directly (writing a debug file from inside the booted datagen process, since `System.out.println`
+inside the forked Loom/`TransformerRuntime` process doesn't reach Gradle's captured stdout — use
+`Files.writeString` to a file under the process's cwd, `fabric/build/datagen/`, instead) and calling
+`provider.lookupOrThrow(Registries.BIOME).listTags()`:
+
+- On `port/1.20.1` (FAPI 0.92.12): the call returns an **empty stream** — zero tags bound at all,
+  not even vanilla ones.
+- On `port/1.21.1` (FAPI 0.116.7, embedded `fabric-data-generation-api-v1-0.116.7`), the identical
+  call **throws `UnsupportedOperationException: Tags are not available in datagen`** — i.e. tags
+  aren't just unbound there, `listTags()` is flatly unimplemented.
+
+So datagen's `HolderLookup.Provider` never carries real tag bindings on *either* MC version — this
+is expected vanilla behavior, not an FAPI regression. The actual divergence is in
+`HolderGetter#getOrThrow(TagKey)` (the per-key lookup `HolderSetCodec` calls during
+`FishProfile.CODEC` decode, not the enumerable `listTags()`): MC 1.20.1's default implementation
+throws immediately (`IllegalStateException: Missing tag …`) the instant a `TagKey` has no bound
+`HolderSet`, while MC 1.21.1's `getOrThrow` is lazy/permissive about forward-referenced tags and
+returns something usable regardless. Confirmed by testing the identical instrumentation against
+`port/1.21.1` and observing the `UnsupportedOperationException` there too — proving both versions'
+providers are equally tag-free, only the per-key getter's strictness differs.
+
+Fix (`FishtasticItemTagProvider.java`, fabric datagen only): wrap the `HolderLookup.Provider` passed
+into `addTags` with a `lenientForDatagen(...)` decorator before building the `RegistryOps` used for
+`loadFishProfiles`. The decorator delegates every `HolderLookup.RegistryLookup<T>` method unchanged
+except `get(TagKey<T>)`, which falls back to `HolderSet.emptyNamed(this, tagKey)` (a real public
+vanilla factory for exactly this case) instead of `Optional.empty()` when the underlying lookup has
+no binding. This is safe because `FishtasticItemTagProvider` never reads the *resolved membership*
+of a fish's biome tag — item tag generation only consumes `zones()` (a plain enum list) and other
+non-tag fields; the biome-tag-driven environment-multiplier math is runtime-only code, never
+exercised during datagen. Verified: `:fabric:runDatagen --rerun-tasks` now `BUILD SUCCESSFUL`, and
+the real generated `data/fishtastic/tags/item/zone_high_altitude.json` correctly lists all 6
+`is_snowy_peaks`-referencing fish (`arctic_char`/`bull_trout`/`european_grayling`/`golden_mahseer`/
+`golden_trout`/`rainbow_trout`) plus the two other `high_altitude`-zoned fish — so the leniency
+doesn't silently corrupt real output, it just stops the irrelevant tag-membership check from
+crashing the run. `:common:compileJava :fabric:compileJava :common:test :fabric:test` still green.
+
+**New finding, not yet resolved**: this same successful run's `copyGeneratedAssetsToCommon` also
+produced a pile of untracked, almost-certainly-stale generated resources under
+`common/src/main/resources` — a duplicate **plural**-path tag tree
+(`data/fishtastic/tags/items/**`, `data/minecraft/tags/items/**`, `data/minecraft/tags/blocks/**`)
+sitting alongside the real, correct, tracked **singular** `tags/item/`/`tags/block/` trees, plus
+long-dead vanilla tags (`data/minecraft/tags/item/enchantable/{durability,fishing}.json`) that
+`FishtasticItemTagProvider` explicitly stopped generating back in B1 (they don't exist pre-1.20.5).
+This looks like leftover output from an old hash-cache/output directory (possibly under `fabric/run`
+or a Loom-internal datagen cache) that's never been cleaned across sessions and gets blindly
+re-merged in by `copyGeneratedAssetsToCommon` regardless of which providers are currently registered.
+Discarded as untracked cruft this session (`rm -rf` on the 6 new directories) rather than committed
+blind — **don't commit generated resources for real until this is tracked down and the stale paths
+stop reappearing**, or a genuinely-stale duplicate could get committed as if it were fresh output.
+
 ### B5.3: Loader: NeoForge 21.1 → Forge 47
 
 | NeoForge 21.1 | Forge 47 (lands on) | Files |

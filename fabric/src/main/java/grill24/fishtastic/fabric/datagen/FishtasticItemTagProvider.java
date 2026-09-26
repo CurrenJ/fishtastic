@@ -3,14 +3,19 @@ package grill24.fishtastic.fabric.datagen;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.Lifecycle;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.FishProfile;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.tags.ItemTags;
@@ -30,6 +35,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -51,7 +57,16 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 .add(FishtasticItems.COPPER_FISHING_ROD.value())
                 .add(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
 
-        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, provider);
+        // Datagen's registries future never binds tags at all (confirmed empirically: even on
+        // MC 1.21.1's newer FAPI, HolderLookup.RegistryLookup#listTags() throws "Tags are not
+        // available in datagen") - only HolderGetter#get(TagKey) resolves per-key, and MC 1.20.1's
+        // implementation throws eagerly on a request for a tag it has no binding for at all,
+        // where 1.21.1's is lazy/permissive. fish_profile's biome_weights reference custom biome
+        // tags (e.g. #fishtastic:is_snowy_peaks) purely for the runtime environment-multiplier
+        // codec; item tag generation only reads zones()/other fields, never that resolved
+        // membership, so it's safe to hand decode a lenient provider that treats any unresolved
+        // tag as empty instead of throwing.
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, lenientForDatagen(provider));
         Map<ResourceLocation, FishProfile> fishProfiles = loadFishProfiles(ops);
 
         // Fish tag: every fish_profile entry is, by definition, a fish, so this is derived
@@ -337,5 +352,59 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
             throw new UncheckedIOException(e);
         }
         return profiles;
+    }
+
+    /**
+     * Wraps a datagen {@link HolderLookup.Provider} so an unresolved tag decodes to an empty
+     * {@link HolderSet.Named} instead of throwing. Datagen's registries future carries no tag
+     * bindings at all (not even vanilla ones); this is scoped to datagen decode only, never used
+     * for real gameplay data where correct tag membership matters.
+     */
+    private static HolderLookup.Provider lenientForDatagen(HolderLookup.Provider provider) {
+        return new HolderLookup.Provider() {
+            @Override
+            public <T> Optional<HolderLookup.RegistryLookup<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
+                return provider.lookup(key).map(LenientRegistryLookup::new);
+            }
+        };
+    }
+
+    private static final class LenientRegistryLookup<T> implements HolderLookup.RegistryLookup<T> {
+        private final HolderLookup.RegistryLookup<T> delegate;
+
+        private LenientRegistryLookup(HolderLookup.RegistryLookup<T> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public ResourceKey<? extends Registry<? extends T>> key() {
+            return delegate.key();
+        }
+
+        @Override
+        public Lifecycle registryLifecycle() {
+            return delegate.registryLifecycle();
+        }
+
+        @Override
+        public Stream<Holder.Reference<T>> listElements() {
+            return delegate.listElements();
+        }
+
+        @Override
+        public Stream<HolderSet.Named<T>> listTags() {
+            return delegate.listTags();
+        }
+
+        @Override
+        public Optional<Holder.Reference<T>> get(ResourceKey<T> resourceKey) {
+            return delegate.get(resourceKey);
+        }
+
+        @Override
+        public Optional<HolderSet.Named<T>> get(TagKey<T> tagKey) {
+            Optional<HolderSet.Named<T>> bound = delegate.get(tagKey);
+            return bound.isPresent() ? bound : Optional.of(HolderSet.emptyNamed(this, tagKey));
+        }
     }
 }
