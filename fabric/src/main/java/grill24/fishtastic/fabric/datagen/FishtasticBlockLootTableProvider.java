@@ -1,19 +1,15 @@
 package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.FishtasticBlocks;
-import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.loot.CopyTankDataFunction;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootTableProvider;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
-import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Generates block loot tables for all Fishtastic blocks.
@@ -26,8 +22,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public class FishtasticBlockLootTableProvider extends FabricBlockLootTableProvider {
 
-    public FishtasticBlockLootTableProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
-        super(output, registriesFuture);
+    public FishtasticBlockLootTableProvider(FabricDataOutput output) {
+        super(output);
     }
 
     @Override
@@ -54,9 +50,7 @@ public class FishtasticBlockLootTableProvider extends FabricBlockLootTableProvid
                                         .setRolls(ConstantValue.exactly(1.0F))
                                         .add(
                                                 LootItem.lootTableItem(block)
-                                                        .apply(CopyComponentsFunction.copyComponents(CopyComponentsFunction.Source.BLOCK_ENTITY)
-                                                                .include(FishtasticDataComponents.FISH_TANK_MATERIALS.value())
-                                                                .include(FishtasticDataComponents.FISH_TANK_SHAPE.value()))
+                                                        .apply(CopyTankDataFunction.copyTankData())
                                         )
                         )
                 );

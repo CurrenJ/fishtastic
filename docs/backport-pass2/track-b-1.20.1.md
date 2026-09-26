@@ -501,6 +501,100 @@ All three rows' scope lives entirely in `common/src/main/java`, which came fully
 
 Verified `:common:compileJava :forge:compileJava :fabric:compileJava :common:test`, `--rerun-tasks`, all green. `common/src/main/java` is now empty in `port/excludes.txt`; everything remaining there is `common/src/test/java/**`, `fabric/src/main/java/**`/`forge/src/main/java/**`, and the 3 `testmod/**` trees (B1's platform entrypoints, B3.3, B4.1/B4.2, B5.3, B6.1).
 
+### B1 fabric real port (2026-09-26)
+
+Picked up the handoff's suggested next step: `fabric/src/main/java/**` was still a blanket
+`port/excludes.txt` wildcard even though the files under it (28 of them) already existed,
+ported forward from `port/1.21.1`'s Fabric module and never touched for MC20/FAPI 0.92 deltas.
+Un-excluded the line, ran a real `:fabric:compileJava --rerun-tasks`, and fixed every error against
+the real jars (never by inspection) until it went green:
+
+- **`FabricRegistrationApi`** (`architectury/fabric/`): `registerDataComponent`/`dataComponentTypes`
+  deleted to match B2.7's `IRegistrationApi` cleanup (MC20 has no `DataComponentType` at all) — the
+  Fabric implementation had never been updated to match.
+- **`DailyQuestFamily`** (fabric datagen): `net.minecraft.core.component.DataComponentPatch` doesn't
+  exist on MC20 — switched to B2.5's `FishtasticItemPatch` facade (`.value()` → the bare
+  `ComponentKey` field, since it isn't a `Holder`).
+- **`FishtasticBlockLootTableProvider`**: `FabricBlockLootTableProvider`'s ctor is 1-arg
+  (`FabricDataOutput`) on FAPI 0.92, not `(output, registriesFuture)`. `CopyComponentsFunction`
+  doesn't exist pre-1.20.5 — routed through B2.6's `CopyTankDataFunction` instead (added a
+  `copyTankData()` builder factory wrapping the protected `simpleBuilder`, the datagen entry point
+  that function never needed until now).
+- **`FishtasticItemTagProvider`**: `ItemTags.FISHING_ENCHANTABLE`/`DURABILITY_ENCHANTABLE` don't
+  exist pre-1.20.5 (the enchantment-overhaul tags) — dropped, nothing to add them to. DFU 6.0.8's
+  `DataResult#getOrThrow` is `(boolean, Consumer<String>)`, not the later 1-arg
+  `Function<String,RuntimeException>` — matched the pattern `FishCatchBackups` already uses.
+- **`FishtasticRecipeProvider`**: MC20 has no `RecipeOutput` at all — `buildRecipes` and every
+  private helper take `Consumer<FinishedRecipe>` (`RecipeBuilder`'s `save(Consumer)`/
+  `save(Consumer, String)` defaults cover every `.save(output)`/`.save(output, name)` call
+  unchanged). `FabricRecipeProvider`'s ctor is also 1-arg. The Marine Compost special recipe used
+  1.21.1's `RecipeOutput#accept(id, recipe, advancement)`; rebuilt as
+  `SpecialRecipeBuilder.special(serializer).save(output, "fishtastic:marine_compost")`, casting the
+  `Holder<RecipeSerializer<?>>` to `RecipeSerializer<? extends CraftingRecipe>` (unchecked, same
+  shape as the JEI plugin's cast last session). `Holder#getRegisteredName()` doesn't exist — the
+  `_plus_glass_to_clear` file-name suffix now reads `BuiltInRegistries.BLOCK.getKey(block).getPath()`.
+  `ItemTags.MEAT` doesn't exist pre-1.21 — Frenzy Bait's raw-meat ingredient is now an explicit
+  `Ingredient.of(Items.BEEF, PORKCHOP, CHICKEN, MUTTON, RABBIT)`.
+- **`QuestProvider`**: `Blocks.TUFF_BRICKS` doesn't exist pre-1.21 (the Tuff building set) — the
+  Storm Chaser gold-tier tank frame uses plain `Blocks.TUFF` instead.
+- **`FishTankModelFabric`**: MC20's `UnbakedModel#bake` takes a trailing `ResourceLocation` (the
+  same delta `BlockModel#bake` already had, B4/B5) — added the unused parameter to match.
+- **`FishtasticFabricClient`**: FAPI 0.92's `ItemTooltipCallback` is `(ItemStack, TooltipFlag,
+  List<Component>)` — no `TooltipContext`/`type` split (that's 1.20.5+); FAPI 0.92's
+  `HudRenderCallback` passes a plain `float` partial tick, not a `DeltaTracker` (1.20.2+ only).
+- **Portstubs deleted**: `fabric/src/portstub/java/…/FishtasticFabric.java` and
+  `forge/src/portstub/java/…/FishtasticForge.java` were both already stale (their own header said
+  "deleted in B2.0") and collided with the real entrypoint classes once `fabric/src/main/java/**`
+  stopped being excluded — removed both files and the now-empty `portstub` directories.
+- **Found and fixed two real gelatin-ui bugs this uncovered**: `runDatagen` boots the full Fabric
+  mod loader, which compiling never does. (1) gelatinui's `fabric.mod.json` hardcoded `"java":
+  ">=21"` / `"fabricloader": ">=0.17.2"` (copied from a newer branch) — G2.2 had flagged this as
+  "cosmetic, doesn't block the build," but it actually hard-crashes any real loader boot, datagen
+  included. Fixed in `gelatin-ui` `mc/1.20.1` (`9697dcf`): both bounds now come from
+  `fabric/build.gradle`'s `processResources.expand` (`mod_fabric_loader_version` from
+  `rootProject.fabric_loader_version`, `mod_java_version` hardcoded `"17"` to match the project's
+  own `JavaVersion.VERSION_17` toolchain target) instead of being hand-typed in the template. (2)
+  Past that, mixin bootstrap crashed too: `gelatinui-fabric.mixins.json`'s `compatibilityLevel` was
+  also still `"JAVA_21"`, which Mixin refuses to set under a Java 17 JRE. Fixed (`7afa572`):
+  `"JAVA_17"`. Republished twice (repo convention: never reuse a version string; signing
+  temporarily disabled for each mavenLocal publish, same as G-G2, then restored) — `1.0.34+1.20.1`
+  for fix 1, `1.0.35+1.20.1` for fix 2. Fishtastic's `gradle.properties` `gelatinui_version` bumped
+  to match each time.
+
+Verified `:common:compileJava :fabric:compileJava :common:test :fabric:test`, `--rerun-tasks`, all
+green. `fabric/src/main/java/**` is off `port/excludes.txt` — this closes the Fabric half of B1,
+plus lets B3.2's Fabric registrar and B2.5's `DailyQuestFamily` be verified by a real module compile
+instead of the isolated-probe method those sessions had to use.
+
+**`:fabric:runDatagen` boots and runs against the fixed gelatin-ui, but fails** (B4.2, not a B1
+compile issue): `FishtasticItemTagProvider.loadFishProfiles` throws `IllegalStateException: Missing
+tag TagKey[minecraft:worldgen/biome / fishtastic:is_snowy_peaks]` while decoding
+`fish_profile/arctic_char.json` (and 5 other cold-water fish) through `FishProfile.CODEC`. The tag
+file itself exists on disk and copies through to `common/build/resources/main/...`.
+
+**Ruled out**: hypothesized this was because `FishtasticDataGenerator`'s pack never registers a
+`FabricTagProvider.BiomeTagProvider`, so the sibling tag providers' `HolderLookup` chain never
+picks up the two `FishtasticBiomeTags`. Wrote one (writing `IS_CAVE_BIOME`/`IS_SNOWY_PEAKS` to
+match the hand-authored JSON exactly) and added it to the pack before `FishtasticItemTagProvider` —
+**identical crash, same stack trace**. Reverted (file deleted, `FishtasticDataGenerator` back to its
+original provider list) since it didn't help and would otherwise be a needless divergence from
+`port/1.21.1`'s provider list. Also confirmed directly: `port/1.21.1`'s own real
+`:fabric:runDatagen --rerun-tasks` (run this session, not just recalled from A3.2's report) succeeds
+clean end-to-end, hitting the exact same `FishtasticItemTagProvider.loadFishProfiles` code path with
+the exact same `FishProfile`/`FishtasticBiomeTags` source, and it does **not** crash — so this isn't
+a code bug in the shared logic, it's a real difference somewhere between FAPI 0.92.12 (1.20.1) and
+FAPI 0.116.7 (1.21.1)'s `FabricDataGenerator`/`TagsProvider` internals in how the `HolderLookup`
+handed to `addTags` gets built (both log identical `[Render thread/INFO]` provider-boot lines up to
+this point, so the boot path itself looks the same). **Not yet root-caused**; next session's first
+job before B4.2/G-B4 can close. Worth comparing the two FAPI versions' `FabricTagProvider`/
+`AbstractRegistryDependentDataProvider` sources directly (decompile both jars) rather than guessing
+again from behavior.
+
+`forge/src/main/java/**` (still a literal, un-renamed copy of the `port/1.21.1` NeoForge module —
+~1,283 lines across 20 files, every one of them needing the NeoForge 21.1 → Forge 47 API rewrite
+the B5.3 table below describes) is untouched this session and is the natural next target once
+B4.2's datagen crash is resolved.
+
 ### B5.3: Loader: NeoForge 21.1 → Forge 47
 
 | NeoForge 21.1 | Forge 47 (lands on) | Files |

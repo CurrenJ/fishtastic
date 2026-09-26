@@ -97,8 +97,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             return null;
         });
 
-        // Mark every item usable as a tank cosmetic with a grey tooltip hint
-        ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> TankCosmeticTooltip.append(stack, lines));
+        // Mark every item usable as a tank cosmetic with a grey tooltip hint. Pre-1.20.5 has no
+        // TooltipContext/TooltipDisplay split, so the callback only carries the flag and lines.
+        ItemTooltipCallback.EVENT.register((stack, flag, lines) -> TankCosmeticTooltip.append(stack, lines));
 
         // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json. PORT-ONLY:
         // Fabric API 0.116 takes an IdentifiableResourceReloadListener (26.1's ResourceLoader takes
@@ -263,9 +264,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // order they were registered there: tutorial, then the minigame bar over it, then the
         // quest notifications on top. That relative order is what those registrations existed for.
         // With no screen open they're drawn after vanilla's toasts instead (FishtasticHudLayers).
-        HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
+        HudRenderCallback.EVENT.register((graphics, partialTick) -> {
             if (FishtasticHudLayers.drawnInHudPass()) {
-                FishtasticHudLayers.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+                FishtasticHudLayers.render(graphics, partialTick);
             }
         });
 

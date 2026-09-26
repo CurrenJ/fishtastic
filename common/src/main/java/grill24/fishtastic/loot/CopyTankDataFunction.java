@@ -32,6 +32,11 @@ public class CopyTankDataFunction extends LootItemConditionalFunction {
         super(predicates);
     }
 
+    /** Datagen entry point (B4.2): {@code LootItem.builder().apply(CopyTankDataFunction.copyTankData())}. */
+    public static Builder<?> copyTankData() {
+        return simpleBuilder(CopyTankDataFunction::new);
+    }
+
     private static LootItemFunctionType register() {
         return Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, Fishtastic.id("copy_tank_data"), new LootItemFunctionType(new Serializer()));
     }

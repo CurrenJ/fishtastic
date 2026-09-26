@@ -45,7 +45,7 @@ public final class FishTankModelFabric implements UnbakedModel {
     }
 
     @Override
-    public BakedModel bake(ModelBaker baker, Function<Material, TextureAtlasSprite> spriteGetter, ModelState modelState) {
+    public BakedModel bake(ModelBaker baker, Function<Material, TextureAtlasSprite> spriteGetter, ModelState modelState, ResourceLocation location) {
         return new FishTankBakedModelFabric(FishTankGeometry.bake(baker, spriteGetter, BlockModelPathResolver::getModelLocations));
     }
 }

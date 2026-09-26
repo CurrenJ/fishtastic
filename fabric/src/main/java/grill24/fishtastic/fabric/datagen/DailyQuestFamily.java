@@ -4,13 +4,13 @@ import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.component.FishtasticItemPatch;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
-import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
@@ -111,8 +111,8 @@ public final class DailyQuestFamily {
 
     /** Builds the reward's bonus fish tank: a plain {@code fishtastic:fish_tank} carrying a distinctive material combo. */
     private static QuestReward.RewardItem goldTank(Block frame, Block sand, Block glass) {
-        DataComponentPatch patch = DataComponentPatch.builder()
-                .set(FishtasticDataComponents.FISH_TANK_MATERIALS.value(), new FishTankMaterials(frame, sand, glass))
+        FishtasticItemPatch patch = FishtasticItemPatch.builder()
+                .set(FishtasticDataComponents.FISH_TANK_MATERIALS, new FishTankMaterials(frame, sand, glass))
                 .build();
         return new QuestReward.RewardItem(FishtasticBlocks.FISH_TANK.value().asItem(), GOLD_TANK_COUNT, patch);
     }

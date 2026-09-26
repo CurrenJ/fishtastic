@@ -80,7 +80,8 @@ public class QuestProvider implements DataProvider {
                         .objective(o -> o.weather(FishProfile.WeatherCondition.THUNDER))
                         .bronze(1, 5)
                         .silver(2, 9)
-                        .gold(3, 16, Blocks.TUFF_BRICKS, Blocks.GRAVEL, glass(DyeColor.GRAY)),
+                        // Blocks.TUFF_BRICKS doesn't exist pre-1.21 (added with the Tuff building set); plain tuff instead.
+                        .gold(3, 16, Blocks.TUFF, Blocks.GRAVEL, glass(DyeColor.GRAY)),
 
                 DailyQuestFamily.of("freshwater_morning")
                         .displayName("Morning Cast")

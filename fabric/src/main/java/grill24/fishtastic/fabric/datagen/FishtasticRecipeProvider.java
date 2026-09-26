@@ -2,18 +2,19 @@ package grill24.fishtastic.fabric.datagen;
 
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticItems;
-import grill24.fishtastic.recipe.MarineCompostRecipe;
-import grill24.fishtastic.util.Ids;
+import grill24.fishtastic.recipe.FishtasticRecipeSerializers;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.recipes.*;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
@@ -34,11 +35,11 @@ import java.util.concurrent.CompletableFuture;
 public class FishtasticRecipeProvider extends FabricRecipeProvider {
 
     public FishtasticRecipeProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
-        super(output, registriesFuture);
+        super(output);
     }
 
     @Override
-    public void buildRecipes(RecipeOutput output) {
+    public void buildRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         buildEquipmentRecipes(output);
         buildGlassRecipes(output);
         buildBaitAndFoodRecipes(output);
@@ -52,7 +53,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Equipment
     // -----------------------------------------------------------------
 
-    private void buildEquipmentRecipes(RecipeOutput output) {
+    private void buildEquipmentRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Copper Fishing Rod: 2 copper ingots + a stick handle + 2 strings
         ShapedRecipeBuilder.shaped(RecipeCategory.TOOLS, FishtasticItems.COPPER_FISHING_ROD.value())
                 .pattern("  C")
@@ -97,17 +98,18 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
         // Marine Compost: 1 dirt + 1 sized fish, shapeless. A custom recipe type since the
         // fish's quality must be copied onto the result (see MarineCompostRecipe). No datagen
         // advancement is emitted here - it's hand-authored alongside the recipe JSON.
-        output.accept(
-                Ids.of("fishtastic", "marine_compost"),
-                new MarineCompostRecipe(CraftingBookCategory.MISC),
-                null);
+        @SuppressWarnings("unchecked")
+        RecipeSerializer<? extends CraftingRecipe> marineCompostSerializer =
+                (RecipeSerializer<? extends CraftingRecipe>) (RecipeSerializer<?>) FishtasticRecipeSerializers.MARINE_COMPOST.value();
+        SpecialRecipeBuilder.special(marineCompostSerializer)
+                .save(output, "fishtastic:marine_compost");
     }
 
     // -----------------------------------------------------------------
     // Glass variants
     // -----------------------------------------------------------------
 
-    private void buildGlassRecipes(RecipeOutput output) {
+    private void buildGlassRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Undyed glass variants
         ShapelessRecipeBuilder.shapeless(RecipeCategory.BUILDING_BLOCKS, FishtasticBlocks.BORDERLESS_GLASS.value())
                 .requires(Items.GLASS)
@@ -149,7 +151,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                     .requires(borderless.value())
                     .requires(Items.GLASS)
                     .unlockedBy("has_borderless_stained_glass", has(borderless.value()))
-                    .save(output, borderless.getRegisteredName() + "_plus_glass_to_clear");
+                    .save(output, BuiltInRegistries.BLOCK.getKey(borderless.value()).getPath() + "_plus_glass_to_clear");
         }
     }
 
@@ -157,7 +159,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Bait and food
     // -----------------------------------------------------------------
 
-    private void buildBaitAndFoodRecipes(RecipeOutput output) {
+    private void buildBaitAndFoodRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Worms are no longer directly craftable from dirt - obtain them from the
         // Worm Bin (fish -> worms) or the token shop so both faucets stay meaningful.
 
@@ -193,11 +195,14 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                 .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                 .save(output);
 
-        // Frenzy Bait: worms + raw meat (item id kept as predator_bait)
+        // Frenzy Bait: worms + raw meat (item id kept as predator_bait). No vanilla "meat" item
+        // tag exists pre-1.21 (S6c/A3.2 territory only starts at 1.21), so the raw meats are
+        // listed explicitly instead.
+        Ingredient rawMeat = Ingredient.of(Items.BEEF, Items.PORKCHOP, Items.CHICKEN, Items.MUTTON, Items.RABBIT);
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, FishtasticItems.FRENZY_BAIT.value())
                 .requires(FishtasticItems.WORMS.value())
-                .requires(ItemTags.MEAT)
-                .requires(ItemTags.MEAT)
+                .requires(rawMeat)
+                .requires(rawMeat)
                 .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                 .save(output);
     }
@@ -206,7 +211,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Hooks and charms
     // -----------------------------------------------------------------
 
-    private void buildHookAndCharmRecipes(RecipeOutput output) {
+    private void buildHookAndCharmRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Hook: iron ingot sharpened with string, better quality bias / lower trash chance
         ShapelessRecipeBuilder.shapeless(RecipeCategory.TOOLS, FishtasticItems.HOOK.value())
                 .requires(Items.IRON_INGOT)
@@ -226,7 +231,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Trash catches
     // -----------------------------------------------------------------
 
-    private void buildTrashRecipes(RecipeOutput output) {
+    private void buildTrashRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Old Tire: smelts down to coal
         SimpleCookingRecipeBuilder.smelting(Ingredient.of(FishtasticItems.OLD_TIRE.value()), RecipeCategory.MISC,
                         Items.COAL, 0.1F, 200)
@@ -250,7 +255,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Fish cooking
     // -----------------------------------------------------------------
 
-    private void buildFishCookingRecipes(RecipeOutput output) {
+    private void buildFishCookingRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Any Fishtastic fish (fishtastic:fish tag) can be furnaced, smoked, or campfired
         // into vanilla cooked cod - mirrors vanilla's own raw fish -> cooked fish recipes.
         Ingredient fish = Ingredient.of(grill24.fishtastic.FishtasticItemTags.FISH);
@@ -275,7 +280,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
     // Books
     // -----------------------------------------------------------------
 
-    private void buildBookRecipes(RecipeOutput output) {
+    private void buildBookRecipes(java.util.function.Consumer<FinishedRecipe> output) {
         // Quest Book: a book pressed with any fish to bind the quest log
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, FishtasticItems.QUEST_BOOK.value())
                 .requires(Items.BOOK)

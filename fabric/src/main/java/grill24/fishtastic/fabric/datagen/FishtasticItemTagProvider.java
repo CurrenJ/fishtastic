@@ -85,14 +85,10 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 .add(FishtasticItems.FRENZY_BAIT.value())
                 .add(FishtasticItems.TROPHY_BAIT.value());
 
-        getOrCreateTagBuilder(ItemTags.FISHING_ENCHANTABLE)
-                .addTag(FishtasticItemTags.FISHING_RODS);
-
+        // No FISHING_ENCHANTABLE/DURABILITY_ENCHANTABLE tags pre-1.20.5 (the enchantment overhaul
+        // that introduced them hasn't happened yet on 1.20.1) - nothing to add them to.
         getOrCreateTagBuilder(ItemTags.FISHES)
                 .addTag(FishtasticItemTags.FISH);
-
-        getOrCreateTagBuilder(ItemTags.DURABILITY_ENCHANTABLE)
-                .addTag(FishtasticItemTags.FISHING_RODS);
 
         // Exotic fish: eligible when using blazed grub bait
         getOrCreateTagBuilder(FishtasticItemTags.EXOTIC_FISH)
@@ -334,7 +330,7 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 ResourceLocation id = Fishtastic.id(fileName.substring(0, fileName.length() - ".json".length()));
                 JsonElement element = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));
                 FishProfile profile = FishProfile.CODEC.parse(ops, element)
-                        .getOrThrow(msg -> new IllegalStateException("Failed to parse fish_profile/" + fileName + ": " + msg));
+                        .getOrThrow(false, msg -> { throw new IllegalStateException("Failed to parse fish_profile/" + fileName + ": " + msg); });
                 profiles.put(id, profile);
             }
         } catch (IOException e) {

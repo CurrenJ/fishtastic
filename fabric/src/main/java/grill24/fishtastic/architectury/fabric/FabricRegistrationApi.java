@@ -9,7 +9,6 @@ import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -32,7 +31,6 @@ import javax.naming.OperationNotSupportedException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.client.Minecraft;
@@ -72,15 +70,6 @@ public class FabricRegistrationApi implements IRegistrationApi {
         return register(BuiltInRegistries.BLOCK_ENTITY_TYPE, name, loc ->
                 FabricBlockEntityTypeBuilder.create(factory::apply, validBlocksSupplier.get()).build()
         );
-    }
-
-    @Override
-    public <T> Holder<DataComponentType<T>> registerDataComponent(String name, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
-        DataComponentType<T> componentType = builderOperator.apply(DataComponentType.<T>builder()).build();
-        ResourceKey<DataComponentType<?>> key = ResourceKey.create(BuiltInRegistries.DATA_COMPONENT_TYPE.key(), Ids.of(Fishtastic.MOD_ID, name));
-        @SuppressWarnings("unchecked")
-        Holder<DataComponentType<T>> holder = (Holder<DataComponentType<T>>) (Holder<?>) Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, (ResourceKey<DataComponentType<?>>) key, componentType);
-        return holder;
     }
 
     @Override
@@ -134,11 +123,6 @@ public class FabricRegistrationApi implements IRegistrationApi {
     @Override
     public Registry<BlockEntityType<?>> blockEntityTypes() {
         return BuiltInRegistries.BLOCK_ENTITY_TYPE;
-    }
-
-    @Override
-    public Registry<DataComponentType<?>> dataComponentTypes() {
-        return BuiltInRegistries.DATA_COMPONENT_TYPE;
     }
 
     @Override
