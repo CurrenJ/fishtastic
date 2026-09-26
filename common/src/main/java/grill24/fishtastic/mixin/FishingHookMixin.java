@@ -100,6 +100,24 @@ public class FishingHookMixin implements IFishingHookExtension {
         return this.luck;
     }
 
+    // TEMP diagnostic for the "bobber vanishes/line retracts on its own right as it hits water"
+    // report — logs a full stack trace on every discard() of a Fishtastic-rod hook so the actual
+    // caller (vanilla vs. our own code) can be identified from logs/latest.log. Remove once the
+    // bug is root-caused.
+    @Inject(method = "discard", at = @At("HEAD"))
+    private void fishtastic$diagnoseDiscard(CallbackInfo ci) {
+        FishingHook hook = (FishingHook) (Object) this;
+        if (hook.level().isClientSide()) return;
+        Player owner = hook.getPlayerOwner();
+        if (owner == null) return;
+        if (!(owner.getMainHandItem().is(FishtasticItemTags.FISHING_RODS)
+                || owner.getOffhandItem().is(FishtasticItemTags.FISHING_RODS))) return;
+        grill24.fishtastic.Fishtastic.LOGGER.info(
+                "[fishtastic-diag] FishingHook#discard() called, inWater={}, age={}",
+                hook.level().getFluidState(hook.blockPosition()).is(FluidTags.WATER), hook.tickCount,
+                new Throwable("fishtastic$diagnoseDiscard stack trace"));
+    }
+
     // ----- Lava fishing (obsidian / copper rods) -----
 
     @Unique
