@@ -395,9 +395,7 @@ which is seeded from the stack on placement. The composite baked model retexture
 geometry models with those blocks' sprites at bake time, keyed by the same cache key as the shape.
 Materials require no new models — that's the point of the split.
 
-`FishTankFrameType` is a separate dynamic registry; each entry is just a `TagKey<Block>` naming the
-family of blocks that count as one frame material choice. Shop entries hand out preconfigured tanks
-by setting the components directly on the reward stack:
+Shop entries hand out preconfigured tanks by setting the components directly on the reward stack:
 
 ```json
 { "id": "fishtastic:fish_tank", "count": 8,

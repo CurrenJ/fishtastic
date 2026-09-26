@@ -1,7 +1,6 @@
 package grill24.fishtastic.architectury;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.fishtank.FishTankFrameType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -50,9 +49,6 @@ public interface IRegistrationApi {
     Registry<BlockEntityType<?>> blockEntityTypes();
     Registry<DataComponentType<?>> dataComponentTypes();
     Registry<CreativeModeTab> creativeModeTabs();
-
-    // Registries
-    Registry<FishTankFrameType> fishTankFrameTypes();
 
     // Platform-specific BlockEntity creation
     FishTankBlockEntity createFishTankBlockEntity(BlockPos pos, BlockState state);

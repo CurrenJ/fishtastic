@@ -25,8 +25,8 @@ import java.util.function.Predicate;
  * elements — independent of which blocks texture them ({@link grill24.fishtastic.component.FishTankMaterials})
  * and independent of which other tanks it's willing to connect to ({@link #connectionCollection()}).
  *
- * <p>A code-defined enum (matching {@link FishTankFrameType}'s minimalism) rather than a dynamic
- * registry: shapes are curated content shipped with the mod, not something datapacks need to add.
+ * <p>A code-defined enum, rather than a dynamic registry: shapes are curated content shipped with
+ * the mod, not something datapacks need to add.
  *
  * <p>Which quests unlock a given shape is <em>not</em> declared here. It's derived at runtime by
  * {@link FishTankShapeUnlocks}, which scans the {@code Quest} registry for reward items carrying an

@@ -3,7 +3,6 @@ package grill24.fishtastic.architectury.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.architectury.IRegistrationApi;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
-import grill24.fishtastic.fishtank.FishTankFrameType;
 import grill24.fishtastic.neoforge.FishtasticRegistriesNeoForge;
 import grill24.fishtastic.neoforge.blockentity.FishTankBlockEntityNeoForge;
 import grill24.fishtastic.util.Ids;
@@ -125,13 +124,6 @@ public class NeoForgeRegistrationApi implements IRegistrationApi {
     @Override
     public Registry<CreativeModeTab> creativeModeTabs() {
         return FishtasticRegistriesNeoForge.CREATIVE_MODE_TABS.getRegistry().get();
-    }
-
-    // ----- Registries ----- //
-
-    @Override
-    public net.minecraft.core.Registry<FishTankFrameType> fishTankFrameTypes() {
-        return FishtasticRegistriesNeoForge.FISH_TANK_FRAME_TYPE_REGISTRY;
     }
 
     // ----- Platform-specific BlockEntity Creation ----- //
