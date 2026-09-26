@@ -264,6 +264,3 @@
 #common/src/main/java/grill24/fishtastic/util/PhysicsSimulation.java
 #common/src/main/java/grill24/fishtastic/util/SparkleParticle.java
 #common/src/main/java/grill24/fishtastic/util/StreamCodecs.java
-common/src/test/java/grill24/fishtastic/client/**
-common/src/test/java/grill24/fishtastic/fishtank/**
-common/src/test/java/grill24/fishtastic/server/**
