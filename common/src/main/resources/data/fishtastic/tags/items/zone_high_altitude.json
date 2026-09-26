@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "fishtastic:arctic_char",
+    "fishtastic:bull_trout",
+    "fishtastic:european_grayling",
+    "fishtastic:golden_mahseer",
+    "fishtastic:golden_trout",
+    "fishtastic:longnose_gar",
+    "fishtastic:northern_pike",
+    "fishtastic:rainbow_trout"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_electric_eel": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "fishtastic:electric_eel"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "fishtastic:electric_fish_organizer"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_electric_eel",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "fishtastic:electric_fish_organizer"
+    ]
+  },
+  "sends_telemetry_event": false
+}

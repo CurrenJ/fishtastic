@@ -637,19 +637,38 @@ the real generated `data/fishtastic/tags/item/zone_high_altitude.json` correctly
 doesn't silently corrupt real output, it just stops the irrelevant tag-membership check from
 crashing the run. `:common:compileJava :fabric:compileJava :common:test :fabric:test` still green.
 
-**New finding, not yet resolved**: this same successful run's `copyGeneratedAssetsToCommon` also
-produced a pile of untracked, almost-certainly-stale generated resources under
-`common/src/main/resources` — a duplicate **plural**-path tag tree
-(`data/fishtastic/tags/items/**`, `data/minecraft/tags/items/**`, `data/minecraft/tags/blocks/**`)
-sitting alongside the real, correct, tracked **singular** `tags/item/`/`tags/block/` trees, plus
-long-dead vanilla tags (`data/minecraft/tags/item/enchantable/{durability,fishing}.json`) that
-`FishtasticItemTagProvider` explicitly stopped generating back in B1 (they don't exist pre-1.20.5).
-This looks like leftover output from an old hash-cache/output directory (possibly under `fabric/run`
-or a Loom-internal datagen cache) that's never been cleaned across sessions and gets blindly
-re-merged in by `copyGeneratedAssetsToCommon` regardless of which providers are currently registered.
-Discarded as untracked cruft this session (`rm -rf` on the 6 new directories) rather than committed
-blind — **don't commit generated resources for real until this is tracked down and the stale paths
-stop reappearing**, or a genuinely-stale duplicate could get committed as if it were fresh output.
+**Follow-up, resolved same day**: the previous instance of this session flagged that same run's
+`copyGeneratedAssetsToCommon` output as "almost-certainly-stale duplicate plural-path cache
+pollution" and discarded it (`rm -rf`) rather than commit it. That call was backwards. Re-running
+clean (`rm -rf fabric/src/main/generated`, `:fabric:runDatagen --rerun-tasks`) and diffing against
+the tracked tree with `git -c core.autocrlf=false diff` (not plain `git status`, which is swamped by
+~5,400 pure-CRLF-churn false positives from Loom rewriting every touched file's line endings — see
+B4.1's table, this is exactly what it already predicted) showed the **plural**-path output
+(`tags/items/`, `tags/blocks/`, `advancements/`, `loot_tables/`, `recipes/`) is the real, correct MC
+1.20.1 datagen convention. The tracked **singular**-path directories (`tags/item/`, `tags/block/`,
+`advancement/`, `loot_table/`, `recipe/`) were the actual bug: an un-renamed leftover from the
+`port/1.21.1` source tree, where 1.21's pack-format change collapsed these to singular. Renamed all
+five pairs with `git mv` (careful with the semantics: `git mv old new` moves *into* `new/` if `new`
+already exists on disk as a directory from an untracked datagen run — happened once here and had to
+be untangled by hand). Two content bugs fell out of the same diff-review:
+- `recipe/deep_sea_bait.json` (hand-authored, never regenerated because `FishtasticRecipeProvider`
+  doesn't emit this recipe) used the 1.21+ `"result":{"id":...}` field name, which MC 1.20.1's
+  shapeless-recipe codec doesn't decode as `"item"` — silently broken, fixed in place.
+- 12 more hand-authored files the current provider no longer produces at all: recipe-unlock
+  advancements for `amethyst_charm`/`anglers_almanac`/`banana_charm`/`crystal_ball_charm`/
+  `four_leaf_charm`/`little_fish_box`/`luna_charm`/`marine_compost` (the items still exist —
+  registered, tagged, shop-listed, lang'd, modeled — but `buildHookAndCharmRecipes` in
+  `FishtasticRecipeProvider` only builds `HOOK`/`OLD_COPPER_HOOK`; the charm recipes and
+  `little_fish_box`/`anglers_almanac` were dropped somewhere in B1's rewrite and never ported back),
+  plus 4 stray duplicate glass-recipe advancement files. Deleted rather than kept, since a recipe
+  reference to a nonexistent recipe id is dead data. **New tracked gap, not fixed this session**:
+  those 7 items need real crafting recipes (or an explicit decision that they're quest-reward-only)
+  before B4 can be called fully closed — this needs a recipe-shape call, not a mechanical port, so
+  it's tracked as its own follow-up rather than folded into B4.1/B4.2. The two dead
+  `data/minecraft/tags/item{,s}/enchantable/{durability,fishing}.json` (B1 already stopped
+  generating these; don't exist pre-1.20.5) were deleted outright, no replacement needed. Verified:
+  `:fabric:runDatagen --rerun-tasks` green, `:common:compileJava :fabric:compileJava :common:test
+  :fabric:test` green, 239-file diff reviewed and committed for real.
 
 ### B5.3: Loader: NeoForge 21.1 → Forge 47
 

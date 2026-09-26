@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "fishtastic:american_paddlefish",
+    "fishtastic:betta",
+    "fishtastic:bluegill",
+    "fishtastic:bridle_shiner",
+    "fishtastic:clown_loach",
+    "fishtastic:electric_eel",
+    "fishtastic:glass_catfish",
+    "fishtastic:greenstripe_barb",
+    "fishtastic:largetooth_sawfish",
+    "fishtastic:longnose_gar",
+    "fishtastic:neon_tetra",
+    "fishtastic:northern_pike",
+    "fishtastic:ornate_bichir",
+    "fishtastic:oscar",
+    "fishtastic:rainfordia",
+    "fishtastic:red_bellied_pirahna"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": {
+      "item": "minecraft:obsidian"
+    },
+    "I": {
+      "item": "minecraft:stick"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "pattern": [
+    "  C",
+    " CS",
+    "I S"
+  ],
+  "result": {
+    "item": "fishtastic:obsidian_fishing_rod"
+  },
+  "show_notification": true
+}

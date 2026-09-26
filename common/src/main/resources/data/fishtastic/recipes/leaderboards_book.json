@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "fishtastic:fishopedia"
+    }
+  ],
+  "result": {
+    "item": "fishtastic:leaderboards_book"
+  }
+}

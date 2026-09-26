@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    {
+      "item": "minecraft:lime_stained_glass"
+    }
+  ],
+  "result": {
+    "item": "fishtastic:lime_borderless_stained_glass"
+  }
+}
