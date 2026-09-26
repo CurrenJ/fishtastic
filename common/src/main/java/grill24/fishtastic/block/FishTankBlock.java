@@ -342,12 +342,22 @@ public class FishTankBlock extends Block implements EntityBlock {
             return useWithoutItemBody(blockState, level, blockPos, player, blockHitResult);
         }
 
-        // Pile-of-Fish-specific interactions (a plain click pops just the pile's top fish into the
-        // tank; shift-click pulls the topmost fish back into hand via PileOfFishItem/
-        // FishtasticFishItem's own Item#use() raycast) are **deferred**: PileOfFishItem needs
-        // FishtasticItems (the full item registration graph, B2.7 proper), not ported yet. The
-        // generic "insert held item as display content" fallback below still handles a Pile of
-        // Fish like any other held item (the whole stack becomes one display entry) until then.
+        // Pile-specific interaction takes priority over the generic "insert held item as display
+        // content" fallback below: a plain click with a Pile of Fish in hand pops just its top
+        // fish into the tank instead of inserting the whole pile as a single display item.
+        //
+        // The shift-click "pull topmost fish into hand" interaction is NOT handled here — vanilla
+        // suppresses Block#useWithoutItem entirely whenever the player sneaks with a non-empty
+        // hand (item.doesSneakBypassUse defaults to false), so this method never even runs for
+        // that case. It's implemented instead as an Item#use() override on PileOfFishItem/
+        // FishtasticFishItem, which does its own raycast — see FishTankBlock's shift-extract path.
+        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND
+                && itemStack.getItem() instanceof PileOfFishItem && !player.isShiftKeyDown()) {
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof FishTankBlockEntity fishTank) {
+                return popPileTopIntoTank(player, blockPos, itemStack, fishTank);
+            }
+        }
 
         if (!level.isClientSide()) {
             BlockEntity be = level.getBlockEntity(blockPos);
@@ -390,6 +400,29 @@ public class FishTankBlock extends Block implements EntityBlock {
         }
 
         return InteractionResult.PASS;
+    }
+
+    /** Pops just the top fish off a held Pile of Fish and adds it to the tank as display content. */
+    private InteractionResult popPileTopIntoTank(Player player, BlockPos blockPos, ItemStack itemStack, FishTankBlockEntity fishTank) {
+        grill24.fishtastic.component.BundleContents.Mutable contents = new grill24.fishtastic.component.BundleContents.Mutable(
+                FishtasticItemData.bundleContentsOrEmpty(itemStack));
+        ItemStack popped = contents.removeOne();
+        if (popped == null) {
+            player.sendSystemMessage(Component.literal("Pile of Fish is empty"));
+            return InteractionResult.FAIL;
+        }
+        float rotation = calculateRotationTowardPlayer(player, blockPos);
+        ItemStack placedStack = popped.copy();
+        Level level = fishTank.getLevel();
+        FishTankBlockEntity target = level != null ? addToGroupWithFallback(level, fishTank, popped, rotation) : null;
+        if (target == null) {
+            // Tank has no room anywhere in its connected group — leave the pile untouched.
+            player.sendSystemMessage(Component.literal("Fish tank is full"));
+            return InteractionResult.FAIL;
+        }
+        FishtasticItemData.setBundleContents(itemStack, contents.toImmutable());
+        checkTankQuests(player, target, placedStack);
+        return InteractionResult.SUCCESS;
     }
 
     /**
