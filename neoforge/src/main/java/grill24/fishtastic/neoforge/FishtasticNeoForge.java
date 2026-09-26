@@ -75,9 +75,6 @@ public final class FishtasticNeoForge {
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(grill24.fishtastic.FishtasticDispenseBehaviors::registerDispenseBehaviors));
 
-        // Register our custom registries
-        modEventBus.addListener(FishtasticRegistriesNeoForge::registerRegistries);
-
         // Register datapack registries
         modEventBus.addListener((DataPackRegistryEvent.NewRegistry event) -> {
             Fishtastic.LOGGER.info("Registering ItemEffect datapack registry");
