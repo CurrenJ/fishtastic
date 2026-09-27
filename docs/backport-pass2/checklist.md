@@ -9,8 +9,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 | Branch | Ported through (`26.1.2` commit) | Updated | State |
 |---|---|---|---|
-| `port/1.21.1` | **`7839f271`** | 2026-09-25 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1–A5 done; **G1 passed 2026-09-25** (all 11 self-test scenes green on both loaders, Iris live on both, `:common:test` 78/78, fishsim byte-identical to `26.1.2`). **A6.1 done 2026-09-25**: one shared `FishtasticGameTests` on vanilla `@GameTest`, `port/excludes.txt` empty, **263/263 green on both loaders** (`:fabric:runGametest` and `:neoforge:runGametest`). Hook stage raised to **`full`** (its first run passed as part of that commit). A6.2's green bar is green too (see its row); **A6.3 done 2026-09-25 (owner playtest, both fixes confirmed in-game on both loaders); G2 is what remains.** Includes `26.1.2` `7839f271` (cherry-picked as `e33f5792`). |
-| `port/1.20.1` | **`911495f7`** | 2026-09-25 | Cut from `port/1.21.1` at G2 (`911495f7`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. Nothing else done yet; B1 (Java 17, Forge 47.4.x, FAPI 0.92.12, JEI 15.x) is next. Includes `26.1.2` `7839f271` (inherited via `port/1.21.1`). |
+| `port/1.21.1` | **`c656ea44`** | 2026-09-27 | Pass 2 written; rebased onto the S5/S6/S6c seams. A1–A5 done; **G1 passed 2026-09-25**, **A6.1/A6.2 green 2026-09-25** (263/263 gametests both loaders, hook stage `full`), **A6.3 playtest found and fixed 2 defects** (missing vanilla sprite; GUI depth vs paint order) — both confirmed in-game 2026-09-25. **G2 done 2026-09-25** (`port/excludes.txt` + portstub scaffolding removed; `port/1.20.1` cut). **A7 (release) is what remains.** Marker advanced past `1d88b8e3` (FishTankFrameType removal, ported as `6c1ababa`); `c656ea44` is a 26.1.2-only build fix (skipped). |
+| `port/1.20.1` | **`c656ea44`** | 2026-09-27 | Cut from `port/1.21.1` at G2 (`911495f7`), worktree `D:\GitHub\fishtastic-worktrees\mc-1.20.1`. **Track B essentially complete**: B1–B5 and B6.1 done (263/263 `:forge:runGametest` and `:fabric:runGametest` green; `port/excludes.txt` reached zero). B6.2's green bar + owner playtest done (bobber reel-in bug found and fixed); the `2.0.1+1.20.1` release cut and G3 (lockstep) are what remain. Includes `26.1.2` `7839f271` (inherited) and `1d88b8e3` (FishTankFrameType removal, ported as `eded9f9e`); `c656ea44` is a 26.1.2-only build fix (skipped). |
 | gelatin-ui `mc/1.21.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-24 | **ported** (34 commits, tip `20c9f68`, clean). Currently published as `1.0.32+1.21.1` (its own independent bump for a later fix, see 2026-09-26 note below). |
 | gelatin-ui `mc/1.20.1` | gelatin `26.1.2` @ **`5ae6aa4`** (1.0.31) | 2026-09-26 | **ported and active** (this row was stale — branch exists and is the most-published of the three). Currently `1.0.37+1.20.1`. |
 
@@ -32,6 +32,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | `24203a87` | S6c: resource id construction routed through `util/Ids` (135 calls, 43 files) | included via rebase | inherits |
 | `33986055` | S6c guard: `idConstructionGuard`; guard script renamed to `gradle/backport-guards.gradle` | included via rebase | inherits |
 | `7839f271` | Stale in-place quest banner and JEI zero-size gui properties (the two A4 findings) | `e33f5792` (cherry-pick) | inherits |
+| `1d88b8e3` | Remove dead FishTankFrameType registry (superseded by open-ended FishTankMaterials block system) | `6c1ababa` (ported) | `eded9f9e` (ported) |
+| `c656ea44` | Pin project-local Java 25 toolchain via `org.gradle.java.home` (26.1.2-only build fix) | skipped (build-only) | skipped (build-only) |
 
 ---
 
@@ -160,58 +162,58 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### B1: Scaffolding
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B1.1 | Java 17, Forge 47.4.x module (`neoforge/` → `forge/`), FAPI 0.92.12, JEI 15 | [ ] | |
-| B1.2 | Java 17 audit: **no-op**, done on 26.1.2 by S5 (`cf643423`); verify `java17ApiGuard` + `--release 17` compile | [ ] | |
-| G-B1 | Gate | [ ] | |
+| B1.1 | Java 17, Forge 47.4.x module (`neoforge/` → `forge/`), FAPI 0.92.12, JEI 15 | [x] | `1b148dc0`, `6920aa20` |
+| B1.2 | Java 17 audit: **no-op**, done on 26.1.2 by S5 (`cf643423`); verify `java17ApiGuard` + `--release 17` compile | [x] | no-op, verified by B1 compile |
+| G-B1 | Gate | [x] | `6920aa20` |
 
 ### B2: Item data
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [ ] | |
-| B2.2 | `BundleContents` port (+ 11 import changes) | [ ] | |
-| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [ ] | |
-| B2.4 | Effect conditions (expected: no change) | [ ] | |
-| B2.5 | `FishtasticItemPatch` (94 data files unchanged) | [ ] | |
-| B2.6 | Tank BE ↔ item: `setPlacedBy`, `fishtastic:copy_tank_data`, `getCloneItemStack` | [ ] | |
-| B2.7 | S1 items 1, 6, 7, 8 cleanup | [ ] | |
-| G-B2 | Gate | [ ] | |
+| B2.1 | `ComponentKey<T>` + defaults + normalization; facade bodies; `ComponentKeyTest` | [x] | `7c2681a2` |
+| B2.2 | `BundleContents` port (+ 11 import changes) | [x] | `e49452e1` |
+| B2.3 | Tooltip providers, `appendHoverText`, `ItemStackMixin` | [x] | `1f32ac0e` |
+| B2.4 | Effect conditions (expected: no change) | [x] | `2d24152b` |
+| B2.5 | `FishtasticItemPatch` (94 data files unchanged) | [x] | `c873ab61` |
+| B2.6 | Tank BE ↔ item: `setPlacedBy`, `fishtastic:copy_tank_data`, `getCloneItemStack`; browser GUI; Pile-of-Fish tank-click | [x] | `3beaae20`, `c2f15cbe`, `e12ee599`, `fba26e16` |
+| B2.7 | S1 items 1, 6, 7, 8 cleanup (registration graph → `FishtasticItems` off excludes) | [x] | `f1440108`, `1fd4023d`, `4bba72a0`, `0cdaec33`, `6f6ffb2b`, `7b717eac` |
+| G-B2 | Gate | [x] | `7b717eac` |
 
 ### B3: Networking
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B3.1 | `BufCodec` / `BufCodecs` shim + `FishtasticPayload`; sed over 49 files | [ ] | |
-| B3.2 | Fabric `PacketType`/`FabricPacket` registrar; Forge `SimpleChannel` registrar | [ ] | |
-| B3.3 | Datapack registry sync (expected: no change) | [ ] | |
-| G-B3 | `PacketRoundTripGameTests` green on both loaders | [ ] | |
+| B3.1 | `BufCodec` / `BufCodecs` shim + `FishtasticPayload`; sed over 49 files | [x] | `4e02cfb8` |
+| B3.2 | Fabric `PacketType`/`FabricPacket` registrar; Forge `SimpleChannel` registrar | [x] | `eab1bb65` |
+| B3.3 | Datapack registry sync (expected: no change) | [x] | `b50faff6` |
+| G-B3 | `PacketRoundTripGameTests` green on both loaders | [x] | `b50faff6` |
 
 ### B4: Data and resources
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B4.1 | Plural folders; gametest structure → `structures/` | [ ] | |
-| B4.2 | 1.20.1 datagen (recipes, advancements, loot); JSON-based compost serializer | [ ] | |
-| B4.3 | `blitSprite` → `blit`; 1.20.2+ vanilla ids audit | [ ] | |
-| G-B4 | Datagen diff as expected | [ ] | |
+| B4.1 | Plural folders; gametest structure → `structures/` | [x] | `e6658628`; `4d1ee2bc` (charm items are intentionally shop-only, not a recipe gap) |
+| B4.2 | 1.20.1 datagen (recipes, advancements, loot); JSON-based compost serializer | [x] | `74b0027c`, `e6658628`, `5cd7b11f`, `bf475e83` |
+| B4.3 | `blitSprite` → `blit`; 1.20.2+ vanilla ids audit | [x] | absorbed into B4/B5 bulk |
+| G-B4 | Datagen diff as expected | [x] | `013d1d07` |
 
 ### G-1.20.1: gelatin-ui
 | ID | Item | Status | Commit (gelatin) |
 |---|---|---|---|
-| G2.1 | Branch `mc/1.20.1` from `mc/1.21.1` at G-G1 | [ ] | |
-| G2.2 | Java 17, Forge module, menus (`IForgeMenuType`, `NetworkHooks`) | [ ] | |
-| G2.3 | Sprites → textures; posed-player skins on the 1.20.1 `SkinManager` | [ ] | |
-| G-G2 | Gate + `publishToMavenLocal 1.0.31+1.20.1` | [ ] | |
+| G2.1 | Branch `mc/1.20.1` from `mc/1.21.1` at G-G1 | [x] | 6 commits, tip `3f9ba6e` |
+| G2.2 | Java 17, Forge module, menus (`IForgeMenuType`, `NetworkHooks`) | [x] | `3f9ba6e` |
+| G2.3 | Sprites → textures; posed-player skins on the 1.20.1 `SkinManager` | [x] | `3f9ba6e` |
+| G-G2 | Gate + `publishToMavenLocal 1.0.33+1.20.1` (later bumped to 1.0.37) | [x] | gelatin `3f5da81`, fishtastic `060d56c6` |
 
 ### B5: Remaining API deltas
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B5.1 | `ResourceLocation` construction (the 4 `util/Ids` bodies only, S6c), BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [ ] | |
-| B5.2 | Vertex builder (6 sites), shaders, BER bounds on the BE | [ ] | |
-| B5.3 | Forge wiring: `RegistryObjectHolder`, event buses, config, models, `initializeClient`, overlays, menu screens | [ ] | |
+| B5.1 | `ResourceLocation` construction (the 4 `util/Ids` bodies only, S6c), BE/SavedData NBT, block `use` merge, `hurtAndBreak`, advancements, loot data | [x] | `7c2681a2` (Ids, pulled forward); rest absorbed into B4/B5 |
+| B5.2 | Vertex builder (6 sites), shaders, BER bounds on the BE | [x] | absorbed into B4/B5 |
+| B5.3 | Forge wiring: `RegistryObjectHolder`, event buses, config, models, `initializeClient`, overlays, menu screens | [x] | `2f46d5b8`; `eded9f9e` (dead `FishTankFrameType` removed instead of implemented) |
 | B5.4 | `[-]` Fishing enchantment helpers: dropped, the tree doesn't call `EnchantmentHelper` | [-] | |
-| B5.5 | Creative tabs, `Item.Properties` defaults | [ ] | |
+| B5.5 | Creative tabs, `Item.Properties` defaults | [x] | absorbed into B4/B5 |
 
 ### B6: Gametests and release (gate G3)
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| B6.1 | Shared harness on Forge 47 (`@GameTestHolder`, enabled namespaces) + Fabric 0.92 | [ ] | |
-| B6.2 | Green bar: 78+ / 163+1 / 21,955 / 264 × 2 / datagen clean; owner playtest; release `2.0.1+1.20.1` | [ ] | |
+| B6.1 | Shared harness on Forge 47 (`@GameTestHolder`, enabled namespaces) + Fabric 0.92 | [x] | `dc4ae88f`, `08369f43` |
+| B6.2 | Green bar: 78+ / 163+1 / 21,955 / 263 × 2 / datagen clean; owner playtest; release `2.0.1+1.20.1` | [~] | `4396e8a1`, `a0958a94` (green bar + playtest done, bobber bug fixed `32c255cc`); release cut remains |
 | G3 | Lockstep begins (D6) | [ ] | |
