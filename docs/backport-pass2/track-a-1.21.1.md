@@ -693,8 +693,9 @@ cut from this tip next; see track B.
 
 | Item | Change |
 |---|---|
-| `.github/workflows/build.yml`, `publish.yml` | JDK 25 → **21**. Gradle `-Dorg.gradle.java.home` isn't needed in CI. |
-| `build.gradle` `publishCurseForge` | `addGameVersion('1.21.1')` comes from `minecraft_version` already. Loader tags `Fabric`, `NeoForge`. |
+| CI | None. `.github/workflows/` was deleted on 2026-09-27 (owner: no remote CI — builds and releases run locally, JDK 21). |
+| `build.gradle` `publishCurseForge` | `addGameVersion('1.21.1')` comes from `minecraft_version` already. Tags: loaders `Fabric`/`NeoForge`, environments `client`/`server`, and `addJavaVersion("Java <N>")` from `java_version`. |
+| `-Pbeta[=N]` | Beta N of this version: the version metadata gains `b<N>` (`2.0.1b1+1.21.1` for `-Pbeta=1`; a bare `-Pbeta` means `b1`) — jar filename and CurseForge display name follow it — and the release type defaults to `beta`. An explicit `-Prelease_type=` still overrides. `./gradlew publishCurseForge -Pbeta=1`. |
 | `CHANGELOG.md` | `2.0.1+1.21.1`: parity with 2.0.1, known limitations (no world upgrade from 1.20.1, D4) |
 | `D:\GitHub\fishtastic-worktrees\build-all.ps1` | create it (adapted from `apt-ores-worktrees/build-all.ps1`) so it builds `26.1.2` and `port/1.21.1` and collects jars into `dist\` |
 | `checklist.md` | mark A7 and record the released commit |
