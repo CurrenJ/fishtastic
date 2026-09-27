@@ -18,6 +18,8 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 
 **2026-09-26 — gelatin-ui version audit.** Checked whether `1.0.31` (master) / `1.0.32` (`mc/1.21.1`) / `1.0.37` (`mc/1.20.1`) meant the port branches were feature-ahead of master. They aren't: diffing all three branches' commit *messages* (not hashes — each branch has independently-committed duplicates of the same changes, presumably cherry-picked rather than merged, so hashes differ but content doesn't) shows master has exactly one commit none of the others do ("Update to MC version 26.1.2" — master-specific, not portable). Every real feature/bugfix commit already exists on all three. The version numbers had simply been bumped independently, per-branch, whenever that branch needed its own mavenLocal publish — not from a shared lineage. **Decision (owner, 2026-09-26): going forward, bump `mod_version` on all three gelatin-ui branches together for every release**, even when a fix is platform-specific, so the number stays a trustworthy parity signal instead of noise. Same rule applies to fishtastic's own `mod_version`, which is already in sync at `2.0.1` across all three branches — keep it that way.
 
+**2026-09-27 — release-candidate deploy + owner smoketest.** The release `2.0.1` builds for all three lines were rebuilt and deployed into their CurseForge profiles (from worktrees `mc-1.20.1`, `port/1.21.1` and `26.1.2`; `F2F Cam` deliberately excluded, pinned to `2.0.0`). gelatin-ui was moved to the unified `1.0.37` on every line in the same pass, so no profile now pairs a fishtastic with an older gelatin-ui than it was compiled against. **Owner ran a general smoketest on all three versions (both loaders each) the same day — all passed.** This is a smoketest, not a feature pass: A6.3 and B6.2 remain the per-feature playtest records. Cutting and publishing each release (`publishCurseForge`) is still outstanding on all three lines.
+
 ## Forward-port log
 
 26.1.2 commits after `3b8427e4` and what each branch did with them. Add a row per commit as it lands on 26.1.2.
@@ -152,7 +154,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### A7: Release
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| A7.1 | Changelog, CurseForge `2.0.1+1.21.1` — local `publishCurseForge` (no CI: workflows deleted 2026-09-27). Beta `2.0.1b1+1.21.1` (fabric + neoforge) published 2026-09-27 and playtested on both loaders the same day. | [ ] | |
+| A7.1 | Changelog, CurseForge `2.0.1+1.21.1` — local `publishCurseForge` (no CI: workflows deleted 2026-09-27). Beta `2.0.1b1+1.21.1` (fabric + neoforge) published 2026-09-27 and playtested on both loaders the same day. Release `2.0.1+1.21.1` rebuilt and deployed to both 1.21.1 profiles 2026-09-27 and smoketested on both loaders (see the dated note above). | [~] | build + deploy + smoketest done; the `publishCurseForge` cut remains |
 | A7.2 | `fishtastic-worktrees/build-all.ps1` | [ ] | |
 
 ---
@@ -215,5 +217,5 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 | ID | Item | Status | Commit |
 |---|---|---|---|
 | B6.1 | Shared harness on Forge 47 (`@GameTestHolder`, enabled namespaces) + Fabric 0.92 | [x] | `dc4ae88f`, `08369f43` |
-| B6.2 | Green bar: 78+ / 163+1 / 21,955 / 263 × 2 / datagen clean; owner playtest; release `2.0.1+1.20.1` | [~] | `4396e8a1`, `a0958a94` (green bar + playtest done, bobber bug fixed `32c255cc`); release cut remains |
+| B6.2 | Green bar: 78+ / 163+1 / 21,955 / 263 × 2 / datagen clean; owner playtest; release `2.0.1+1.20.1` | [~] | `4396e8a1`, `a0958a94` (green bar + playtest done, bobber bug fixed `32c255cc`); release `2.0.1+1.20.1` rebuilt and deployed to both 1.20.1 profiles 2026-09-27 and smoketested on both loaders (see the dated note above); the `publishCurseForge` cut remains |
 | G3 | Lockstep begins (D6) | [ ] | |
