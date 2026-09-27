@@ -40,9 +40,9 @@
   ],
   "accessWidener": "fishtastic.accesswidener",
   "depends": {
-    "fabricloader": ">=0.19.1",
+    "fabricloader": "${mod_fabricloader_version}",
     "minecraft": "${mod_fabric_minecraft_version}",
-    "java": ">=25",
+    "java": "${mod_java_version}",
     "fabric-api": "*"
   },
   "suggests": {

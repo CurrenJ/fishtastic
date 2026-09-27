@@ -16,9 +16,19 @@ architectury {
     minecraft = project.minecraft_version
 }
 
+// -Pbeta[=N] marks beta N of the current mod version: the version metadata gains "b<N>", so the jar
+// becomes fishtastic-neoforge-2.0.1b1+26.1.2.jar for -Pbeta=1 (a bare -Pbeta means b1), and
+// CurseForge's display name follows the jar name. The publish task's release type also defaults to
+// "beta" — an explicit -Prelease_type= still wins. A distinct version string is what keeps a local
+// build from matching a released file's fingerprint, so a beta must not reuse the release version.
+def betaMetadata = ''
+if (hasProperty('beta')) {
+    betaMetadata = 'b' + (findProperty('beta')?.toString()?.trim() ?: '1')
+}
+
 allprojects {
     group = rootProject.maven_group
-    version = "${rootProject.mod_version}+${rootProject.minecraft_version}"
+    version = "${rootProject.mod_version}${betaMetadata}+${rootProject.minecraft_version}"
 }
 
 subprojects {
@@ -115,7 +125,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     apiToken = System.getenv('CURSEFORGE_TOKEN') ?: findProperty('curseforge_token') ?: ''
 
     def projectId = findProperty('curseforge_project_id') ?: '0'
-    def releaseType = findProperty('release_type') ?: 'release'
+    def releaseType = findProperty('release_type') ?: (betaMetadata ? 'beta' : 'release')
     def changelogText = findProperty('changelog_override')
             ?: (file('CHANGELOG.md').exists() ? file('CHANGELOG.md').text : 'No changelog provided.')
 
@@ -127,6 +137,12 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     fabricUpload.releaseType = releaseType
     fabricUpload.addGameVersion(minecraft_version)
     fabricUpload.addModLoader('Fabric')
+    fabricUpload.addEnvironment('client')
+    fabricUpload.addEnvironment('server')
+    // CurseForge file tag ("Java 17" / "Java 21" / "Java 25"), from the same java_version the
+    // Fabric metadata's floor is templated with. The tag names are CF's own — validated against
+    // its version list at upload time.
+    fabricUpload.addJavaVersion("Java ${java_version}")
     fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
 
     // ── NeoForge ──
@@ -137,6 +153,9 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     neoUpload.releaseType = releaseType
     neoUpload.addGameVersion(minecraft_version)
     neoUpload.addModLoader('NeoForge')
+    neoUpload.addEnvironment('client')
+    neoUpload.addEnvironment('server')
+    neoUpload.addJavaVersion("Java ${java_version}")
     neoUpload.displayName = neoJar.get().asFile.name.replace('.jar', '')
 }
 
