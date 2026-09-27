@@ -209,6 +209,14 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .requires(ItemTags.MEAT)
                         .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
                         .save(this.output);
+
+                // Deep Sea Bait: worms + prismarine shards (item id kept as deep_sea_bait)
+                ShapelessRecipeBuilder.shapeless(items, RecipeCategory.MISC, FishtasticItems.TROPHY_BAIT.value())
+                        .requires(FishtasticItems.WORMS.value())
+                        .requires(Items.PRISMARINE_SHARD)
+                        .requires(Items.PRISMARINE_SHARD)
+                        .unlockedBy("has_worms", has(FishtasticItems.WORMS.value()))
+                        .save(this.output);
             }
 
             // -----------------------------------------------------------------
