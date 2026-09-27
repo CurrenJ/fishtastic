@@ -1,0 +1,6 @@
+# Pin JSON to LF line endings. The datagen writes LF (Java `\n`) and
+# scripts/copy_assets_to_common.py copies that output byte-for-byte into
+# common/src/main/resources. With the system core.autocrlf=true (Git for Windows),
+# git would otherwise check JSON out as CRLF, so every :fabric:runDatagen dirties
+# thousands of files with pure line-ending churn. eol=lf overrides that so the two agree.
+*.json text eol=lf
