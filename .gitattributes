@@ -4,3 +4,11 @@
 # git would otherwise check JSON out as CRLF, so every :fabric:runDatagen dirties
 # thousands of files with pure line-ending churn. eol=lf overrides that so the two agree.
 *.json text eol=lf
+
+# Pin Markdown to LF too. Both port branches (port/1.20.1, port/1.21.1) carry a
+# copy of docs/backport-pass2/, and the two worktrees were checking the same
+# markdown out differently — one CRLF, one LF — so diffing them reported six
+# "divergent" files, three of which differed by nothing but the trailing \r.
+# The stored blobs already matched (core.autocrlf=true stores LF); this rule only
+# settles the working-tree side so a cross-worktree diff means something.
+*.md text eol=lf
