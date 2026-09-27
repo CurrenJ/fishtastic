@@ -152,7 +152,7 @@ Every 26.1.2 commit up to and including the marker is present on the branch, eit
 ### A7: Release
 | ID | Item | Status | Commit |
 |---|---|---|---|
-| A7.1 | Changelog, CurseForge `2.0.1+1.21.1` — local `publishCurseForge` (no CI: workflows deleted 2026-09-27). Beta `2.0.1b1+1.21.1` (fabric + neoforge) published 2026-09-27. | [ ] | |
+| A7.1 | Changelog, CurseForge `2.0.1+1.21.1` — local `publishCurseForge` (no CI: workflows deleted 2026-09-27). Beta `2.0.1b1+1.21.1` (fabric + neoforge) published 2026-09-27 and playtested on both loaders the same day. | [ ] | |
 | A7.2 | `fishtastic-worktrees/build-all.ps1` | [ ] | |
 
 ---
