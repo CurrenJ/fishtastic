@@ -124,8 +124,7 @@ D:\GitHub\fishtastic-worktrees\
 - Backport branches are `port/1.21.1` and `port/1.20.1` (the primary stays `26.1.2`). Feature branches follow the existing `feature/<mc>/<name>` pattern.
 - Git hooks come from the tracked `scripts/git-hooks` (`core.hooksPath`), so each branch runs its **own** pre-commit script. The existing NeoForge-hang caveat carries over.
 - **Hook policy on port branches.** The port branch's `pre-commit` reads a tracked stage from `scripts/git-hooks/port-stage` and raises its checks as gates pass: `none` (A1, before anything compiles) → `compile` (A1 gate) → `unit` (A2 gate: `:common:test`, `:tools:tank-shape-gen:test`) → `full` (A6.1: plus Fabric gametests, as on the primary). Raising the stage is part of each gate's commit. No `--no-verify`.
-- **JDK per worktree.** `~/.gradle/gradle.properties` pins JDK 25 for the primary. Each port worktree has an untracked, gitignored `scripts/git-hooks/local-java-home` (JDK 21 for `port/1.21.1`, JDK 17 for `port/1.20.1`) that the hook passes to Gradle as `org.gradle.java.home`. Manual Gradle runs in a port worktree need the same `-Dorg.gradle.java.home=…`.
-- `.github/workflows/*` hard-code JDK 25. Each backport branch needs its own JDK and version matrix.
+- **JDK per worktree.** `~/.gradle/gradle.properties` pins JDK 25 for the primary. Each port worktree has an untracked, gitignored `scripts/git-hooks/local-java-home` (JDK 21 for **both** port worktrees — Loom's `unpick` buildscript dep needs 21 even where the toolchain is 17, see track B's B1 correction) that the hook passes to Gradle as `org.gradle.java.home`. Manual Gradle runs in a port worktree need the same `-Dorg.gradle.java.home=…`.
 - The 1.21.1 and 1.20.1 worktrees each need `genSources`, which gives local decompiled vanilla to check against, like the 26.1.2 source the guide already has.
 
 ---
@@ -254,7 +253,7 @@ Each item is a re-implementation on the immediate-mode API, not a port.
 - **A6.4 → G2.** Cut the `port/1.20.1` branch from here.
 
 ### A7: Release 1.21.1
-- **A7.1** Changelog, CurseForge publish (the `publishCurseForge` game-version tags), and a CI workflow on JDK 21.
+- **A7.1** Changelog, CurseForge publish (the `publishCurseForge` game-version tags) — run locally; there is no CI workflow.
 
 ---
 
