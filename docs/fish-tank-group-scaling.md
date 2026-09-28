@@ -585,3 +585,14 @@ screen, and only the rendering now follows visibility.
 Two failure modes here are silent — a fish owned by nobody is never drawn, and a fish owned by two
 tanks is drawn twice, the second submission overwriting the first's shared render state — so both are
 covered by `GroupOwnersTest`, whose bucket case fails if the partition ignores a fish's position.
+
+The in-game gate is the render self-test's **`pertank`** scene
+(`common/.../client/selftest/RenderSelfTest.java`; arm it by writing `pertank` into
+`<run dir>/fishtastic_render_selftest` and running the client). It stages a row whose anchor stands
+41 blocks west of the camera — a distance that is load-bearing, because vanilla culls terrain against
+a frustum pushed *back* along the view vector until it contains the camera's own 8-cube, so an anchor
+only a few blocks behind is still dispatched — then photographs the view facing away from the anchor
+and the view facing it, stocked and emptied, and differences the frames. It asserts first that each
+view is the configuration it claims (the anchor's extract tick), then the partition audit live, then
+the pixels. Verified 2026-09-28, including against a deliberate revert of the fix, which fails the
+scene's `fishWithAnchorOutOfView` check.
