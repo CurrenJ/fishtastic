@@ -140,19 +140,14 @@ public final class TankBubbleEmitter {
     }
 
     /**
-     * Emits this tick's bubbles for a tank that was rendered last frame. Lone tanks emit from
-     * their own engine; a group anchor additionally emits for the group engine, in the same frames
-     * the two draw loops use.
+     * Emits this tick's bubbles for a tank that was rendered last frame, from this tank's own
+     * engine (the fish it keeps while it is part of a group, or all of them when it stands alone).
      *
      * @param eye the camera position, for LOD; null skips emission entirely
      */
     public static void emit(ClientLevel level, BlockPos pos, TankFlockAdapter flock, Vec3 eye) {
-        if (eye == null) return;
-        double dist = Math.sqrt(eye.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
-        if (dist >= LOD_RADIUS) return;
-        float lod = 1f - (float) (dist / LOD_RADIUS);
-
-        if (!(level.getBlockEntity(pos) instanceof FishTankBlockEntity be)) return;
+        float lod = lodAt(pos, eye);
+        if (Float.isNaN(lod) || !(level.getBlockEntity(pos) instanceof FishTankBlockEntity be)) return;
         boolean hasOpenDownFace = be.getOpenFaces().contains(Direction.DOWN);
 
         FlockEngine lone = flock.engine();
@@ -160,11 +155,37 @@ public final class TankBubbleEmitter {
             emitFor(level, pos, lone, flock.anims, flock.loneEmitter, lod,
                     0.5f, Float.NaN, 0.5f, hasOpenDownFace);
         }
-        FlockEngine group = flock.groupEngine();
-        if (group != null && group.count() > 0) {
-            emitFor(level, pos, group, flock.groupAnims, flock.groupEmitter, lod,
-                    flock.groupOffsetX, flock.groupOffsetY, flock.groupOffsetZ, hasOpenDownFace);
-        }
+    }
+
+    /**
+     * Emits this tick's bubbles for a group's shared engine, from whichever member is warm — the
+     * caller stamps this on the tick so a group with several members on screen still emits once.
+     * The member supplies the origin, so the bubbles land in the same world positions the draw loop
+     * puts the fish at; which member does the emitting only decides how the LOD is measured.
+     *
+     * @param eye the camera position, for LOD; null skips emission entirely
+     */
+    public static void emitGroup(ClientLevel level, TankGroupFlock group, BlockPos memberPos, Vec3 eye) {
+        FlockEngine eng = group.engine();
+        if (eng.count() == 0) return;
+        float lod = lodAt(memberPos, eye);
+        if (Float.isNaN(lod) || !(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity be)) return;
+
+        emitFor(level, memberPos, eng, group.anims, group.bubbleEmitter, lod,
+                group.localOffsetX(memberPos), group.localOffsetY(memberPos), group.localOffsetZ(memberPos),
+                be.getOpenFaces().contains(Direction.DOWN));
+    }
+
+    /**
+     * Distance falloff for a tank's bubbles, measured from the block centre.
+     *
+     * @return 0..1, or {@code NaN} when there is no camera or the tank is past {@link #LOD_RADIUS}
+     */
+    private static float lodAt(BlockPos pos, Vec3 eye) {
+        if (eye == null) return Float.NaN;
+        double dist = Math.sqrt(eye.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
+        if (dist >= LOD_RADIUS) return Float.NaN;
+        return 1f - (float) (dist / LOD_RADIUS);
     }
 
     /**

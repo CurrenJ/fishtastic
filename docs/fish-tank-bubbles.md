@@ -133,8 +133,11 @@ so it needs the same origin + rotation the draw loops apply:
 - **Lone tank:** `FlockEngine.toRender` (the rotation `interpolate` applies, now factored out as
   the inverse of `toLocal`), then `(0.5, computeBaseY(anim, openDown, length), 0.5)` — the
   per-pose baseline `FishTankBlockEntityRenderer` translates by.
-- **Group anchor:** `toRender` (identity today, but not a law) plus the adapter's
-  `groupOffset{X,Y,Z}`.
+- **Group:** `toRender` (identity today, but not a law) plus the group runtime's group-space
+  offsets, rebased onto whichever member is emitting (`TankGroupFlock.localOffset*`) — the same
+  numbers the draw loop uses, since fish are drawn by the member they are inside (§9.8 of the
+  group-scaling doc). A group emits once per tick from the first member that offers, so a group
+  with several members on screen does not emit several times.
 
 Forward vector = normalised `(velL, velD)` through `toRender` when moving, else the binary
 `heading` along lateral — so a wake trails the direction actually travelled and a hovering fish
