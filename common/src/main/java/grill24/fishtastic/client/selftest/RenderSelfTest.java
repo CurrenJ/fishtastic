@@ -24,6 +24,15 @@ import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import grill24.fishtastic.util.Ids;
 import grill24.fishtastic.util.ItemSizeHelper;
+import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.client.renderer.TankGroupFlock;
+import grill24.fishtastic.client.util.ClientTankFlocks;
+import grill24.fishtastic.client.util.ClientTankGroups;
+import grill24.fishtastic.fishtank.TankGroups;
+import net.minecraft.world.entity.player.ChatVisiblity;
+import net.minecraft.world.phys.Vec3;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -84,7 +93,7 @@ public final class RenderSelfTest {
 
     /** Scenes in the order they run. */
     private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
-            "guiscale", "fixes", "hud", "gizmos");
+            "guiscale", "fixes", "hud", "gizmos", "pertank");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -233,6 +242,7 @@ public final class RenderSelfTest {
             case "fixes" -> queueFixesScene();
             case "hud" -> queueHudScene();
             case "gizmos" -> queueGizmosScene();
+            case "pertank" -> queuePerTankScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -859,6 +869,421 @@ public final class RenderSelfTest {
         queue(1, mc -> mc.player.connection.sendCommand("fishtastic cosmetic capture cancel"));
         queue(30, mc -> screenshot(mc, "gizmos", "cancelled"));
         queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    // ── Per-tank group rendering ─────────────────────────────────────────────
+
+    /**
+     * How far west of the camera the group's anchor stands, in blocks.
+     *
+     * <p>This is the number that makes the scene reproduce the defect, and it is much larger than
+     * "out of view" would suggest. Vanilla culls terrain against a frustum pushed <em>back</em> along
+     * the view vector until it fully contains the 8-block cube around the camera
+     * ({@code LevelRenderer.offsetFrustum} → {@code Frustum.offsetToFullyIncludeCameraCube(8)}), which
+     * reaches roughly a dozen blocks behind the camera. A section merely a few blocks behind the
+     * camera is therefore still dispatched, and a scene staged that close measures nothing: it was
+     * tried, and {@code pertank.anchorNotRendered} is the check that caught it.
+     */
+    private static final int PERTANK_ANCHOR_BEHIND = 41;
+    /**
+     * Stocked tanks either side of the camera: a long run east of it, where the anchor is far
+     * behind, and a shorter one just west, so the control view — the same spot facing the anchor —
+     * has fish to show too. Both views have to be able to see fish, or one of the two measurements
+     * below would compare two frames that were never going to differ.
+     */
+    private static final int PERTANK_EAST_FISH_TANKS = 11;
+    private static final int PERTANK_WEST_FISH_TANKS = 4;
+    /**
+     * Fish per stocked tank. Two 85 cm fish is what a tank's size-based capacity budget accepts
+     * ({@code TankCapacity}); asking for four made {@code pertank.stocked} fail, which is what that
+     * check is for. The group scatters its fish over the whole row on rebuild, so how many end up
+     * in front of either camera is a draw from that spread — this density over fifteen tanks keeps
+     * the expected count clear of the floor {@link #checkFishAhead} enforces.
+     */
+    private static final int PERTANK_FISH_PER_TANK = 2;
+    /**
+     * Several species, so the shoal cannot school into one clump somewhere off screen. The check
+     * below counts fish <em>pixels</em>, and the fish are free to swim the whole row.
+     */
+    private static final String[] PERTANK_SPECIES = {"discus", "lionfish", "clown_loach", "greenstripe_barb"};
+    /** Eye height above the row, and how far north of it the two cameras stand. */
+    private static final double PERTANK_EYE_ABOVE = 1.6;
+    private static final double PERTANK_EYE_OFFSET_Z = 1.0;
+    /** Fish size in cm. Big enough that a human looking at the shot can see them at a glance, and
+     *  comfortably inside the group's size gate whatever it is at the row's length. */
+    private static final float PERTANK_FISH_SIZE_CM = 85f;
+    /** Where the camera stands, in blocks east of the section boundary the row is laid out from. */
+    private static final double PERTANK_CAMERA_ALONG = 2.5;
+    /** Pixels that must change before fish count as drawn, and how the camera looks along the row. */
+    private static final int PERTANK_MIN_SIGNAL = 400;
+    private static final float PERTANK_PITCH = 18f;
+    /**
+     * The frame rectangle the fish measurement covers, as fractions of the frame — the sky is
+     * cropped out of it, because the clouds move.
+     */
+    private static final double PERTANK_CROP_X0 = 0.08, PERTANK_CROP_X1 = 0.92;
+    private static final double PERTANK_CROP_Y0 = 0.30, PERTANK_CROP_Y1 = 1.0;
+    /**
+     * Per-channel difference a pixel must exceed to count as changed. PNG is lossless, so this is
+     * only here to absorb a renderer's own frame-to-frame noise.
+     */
+    private static final int PERTANK_PIXEL_DELTA = 8;
+
+    /**
+     * The multi-tank culling gate (docs/fish-tank-group-scaling.md §9.8).
+     *
+     * <p>Group fish used to be drawn by the group's anchor alone, and a block entity renderer only
+     * runs while its own chunk section is on screen — so every swimming fish in a connected build
+     * vanished the moment the anchor's section left the frustum. This scene builds exactly that
+     * configuration and measures it.
+     *
+     * <p>The row runs from the anchor, {@value #PERTANK_ANCHOR_BEHIND} blocks west of the camera,
+     * east through the boundary to the stocked tanks in front of it — a long connector run of empty
+     * tanks in between, because the distance is what the defect needs and not an accident of layout
+     * (see {@link #PERTANK_ANCHOR_BEHIND} for why a few blocks will not do). Facing east along the
+     * row puts the anchor's section far behind the camera, where vanilla's section cull cannot
+     * reach; facing west from the same spot brings it into view. Fish must be drawn in both, and the
+     * anchor's own extract tick says whether each view is what it claims: the scene fails if the
+     * anchor was rendered while the camera faced away from it.
+     *
+     * <p>Each view is shot twice, stocked and emptied, and the two frames differenced. The emptied
+     * scene is shot twice more so the measurement carries its own noise floor — this machine's
+     * animation and shader noise, measured, rather than a guessed constant. The water fill is
+     * switched off for the scene, so an animated surface over every wall stays out of the signal.
+     *
+     * <p>The difference is measured in solid runs of changed pixels rather than a flat count, so the
+     * fish are what clears the floor and the bubble wakes they trail are not — see
+     * {@link #shotDifference}. Reverting the fix was measured against this scene by hand: it takes
+     * the fish out of the away view and leaves nothing but wakes, which now fails by a factor of
+     * several rather than passing on them.
+     */
+    private static void queuePerTankScene() {
+        boolean waterFillWasOn = FishtasticClientConfig.isTankWaterFillEnabled();
+        ChatVisiblity chatWas = Minecraft.getInstance().options.chatVisibility().get();
+
+        // Stand at the row before building it: /setblock cannot touch an unloaded chunk, and the
+        // client only receives the tanks' contents once it is near them.
+        queue(1, mc -> cameraFacingRow(mc, false));
+        queue(20, mc -> {
+            FishtasticClientConfig.setTankWaterFillEnabled(false);
+            // Staging is dozens of server commands and their feedback lands in the chat overlay,
+            // which sits inside the measurement crop. Hiding it removes both a barrier over the
+            // fish and the one thing in the frame that could still be changing between two shots.
+            mc.options.chatVisibility().set(ChatVisiblity.HIDDEN);
+        });
+        queue(1, mc -> server(mc, RenderSelfTest::stagePerTankRow));
+        queue(20, mc -> server(mc, s -> check("pertank.stocked", stockPerTankRow(s.overworld()), "")));
+        queue(20, RenderSelfTest::checkPerTankGroup);
+
+        // ── Facing away from the anchor: the configuration that used to lose the shoal ──
+        queue(60, mc -> screenshot(mc, "pertank", "away_fish"));
+        queue(1, mc -> {
+            checkAnchorRendered(mc, "pertank.anchorNotRendered", false);
+            // Enough to explain the pixels, not a proxy for them: the pixel check below carries the
+            // verdict, and this only has to distinguish "the shoal drifted behind the camera" from
+            // "nothing was drawn".
+            checkFishAhead(mc, "pertank.fishAheadAway", false, 2);
+            checkOwnership(mc, "pertank.ownershipAway");
+        });
+        queue(1, mc -> server(mc, s -> emptyPerTankRow(s.overworld())));
+        queue(20, mc -> screenshot(mc, "pertank", "away_empty"));
+        queue(20, mc -> screenshot(mc, "pertank", "away_empty2"));
+
+        // ── Facing the anchor: the same fish, drawn in the same place, with the anchor in view ──
+        queue(1, mc -> server(mc, s -> check("pertank.restocked", stockPerTankRow(s.overworld()), "")));
+        queue(1, mc -> cameraFacingRow(mc, true));
+        queue(60, mc -> screenshot(mc, "pertank", "toward_fish"));
+        queue(1, mc -> {
+            checkAnchorRendered(mc, "pertank.anchorRendered", true);
+            // Fewer fish are stocked west of the camera than east, and a couple may have drifted the
+            // other way by now, so this asks for less than the away view does.
+            checkFishAhead(mc, "pertank.fishAheadToward", true, 2);
+        });
+        queue(1, mc -> server(mc, s -> emptyPerTankRow(s.overworld())));
+        queue(20, mc -> screenshot(mc, "pertank", "toward_empty"));
+
+        queue(1, mc -> {
+            FishtasticClientConfig.setTankWaterFillEnabled(waterFillWasOn);
+            mc.options.chatVisibility().set(chatWas);
+        });
+        queue(40, RenderSelfTest::checkPerTankDiffs);
+    }
+
+    /**
+     * The section boundary the row is laid out from. The row runs west from here to the anchor and
+     * east through the camera to the stocked tanks, so the anchor's section is the far side of a
+     * boundary the camera never crosses — a group whose tanks all shared one section could not
+     * reproduce the defect at all, because vanilla dispatches block entities a section at a time.
+     */
+    private static int pertankBoundary() {
+        return Math.floorDiv(origin.getX(), 16) * 16;
+    }
+
+    /** The group's anchor: the row's west end, {@value #PERTANK_ANCHOR_BEHIND} blocks behind the camera. */
+    private static BlockPos pertankAnchorPos() {
+        return new BlockPos(pertankBoundary() - PERTANK_ANCHOR_BEHIND, origin.getY(), origin.getZ() + 40);
+    }
+
+    /** Where the camera stands along the row: over a connector tank, just east of the boundary. */
+    private static double pertankCameraX() {
+        return pertankBoundary() + PERTANK_CAMERA_ALONG;
+    }
+
+    /** First of the stocked tanks east of the camera, and first of the shorter run west of it. */
+    private static int pertankFirstEastFishTankX() {
+        return (int) Math.ceil(pertankCameraX()) + 1;
+    }
+
+    private static int pertankFirstWestFishTankX() {
+        return (int) Math.floor(pertankCameraX()) - PERTANK_WEST_FISH_TANKS;
+    }
+
+    private static int pertankLastTankX() {
+        return pertankFirstEastFishTankX() + PERTANK_EAST_FISH_TANKS - 1;
+    }
+
+    private static int pertankStockedFish() {
+        return (PERTANK_EAST_FISH_TANKS + PERTANK_WEST_FISH_TANKS) * PERTANK_FISH_PER_TANK;
+    }
+
+    private static int pertankTankCount() {
+        return pertankLastTankX() - pertankAnchorPos().getX() + 1;
+    }
+
+    /**
+     * Stands the (spectator) camera beside the row, looking along it. {@code towardAnchor} faces
+     * west, which brings the anchor's section into the frustum; the other way faces east, away from
+     * it, with the whole run of connector tanks between.
+     */
+    private static void cameraFacingRow(Minecraft mc, boolean towardAnchor) {
+        BlockPos anchor = pertankAnchorPos();
+        camera(mc,
+                pertankCameraX(),
+                anchor.getY() + PERTANK_EYE_ABOVE,
+                anchor.getZ() - PERTANK_EYE_OFFSET_Z,
+                towardAnchor ? 90f : -90f,
+                PERTANK_PITCH);
+    }
+
+    private static void stagePerTankRow(MinecraftServer server) {
+        BlockPos anchor = pertankAnchorPos();
+        int x = anchor.getX(), y = anchor.getY(), z = anchor.getZ();
+        int last = pertankLastTankX();
+        run(server, "fill " + (x - 3) + " " + (y - 2) + " " + (z - 2) + " " + (last + 3) + " "
+                + (y + 3) + " " + (z + 2) + " minecraft:air");
+        for (int tankX = x; tankX <= last; tankX++) {
+            run(server, "setblock " + tankX + " " + y + " " + z + " fishtastic:fish_tank");
+        }
+        run(server, "time set 6000");
+    }
+
+    /**
+     * Stocks the tanks either side of the camera, leaving the long connector run to the anchor
+     * empty on purpose. The fish are free swimmers in the whole group, so what matters is that they
+     * start in front of the camera in both views, and {@link #checkFishAhead} measures whether they
+     * are still there when the shot is taken.
+     */
+    private static boolean stockPerTankRow(ServerLevel level) {
+        BlockPos anchor = pertankAnchorPos();
+        int y = anchor.getY(), z = anchor.getZ();
+        boolean stocked = true;
+        for (int i = 0; i < PERTANK_WEST_FISH_TANKS + PERTANK_EAST_FISH_TANKS; i++) {
+            int tankX = i < PERTANK_WEST_FISH_TANKS
+                    ? pertankFirstWestFishTankX() + i
+                    : pertankFirstEastFishTankX() + i - PERTANK_WEST_FISH_TANKS;
+            FishTankBlockEntity tank = tank(level, new BlockPos(tankX, y, z));
+            if (tank == null) {
+                stocked = false;
+                continue;
+            }
+            for (int f = 0; f < PERTANK_FISH_PER_TANK; f++) {
+                stocked &= tank.addItem(fish(PERTANK_SPECIES[(i + f) % PERTANK_SPECIES.length], PERTANK_FISH_SIZE_CM));
+            }
+        }
+        return stocked;
+    }
+
+    /**
+     * Empties every slot of every tank in the row. Deliberately {@code setItem} rather than
+     * {@code clearContent}: the latter never sends a block update, so the client would go on
+     * rendering the shoal and the "emptied" frame would be identical to the stocked one — the check
+     * would then fail with no hint why.
+     */
+    private static void emptyPerTankRow(ServerLevel level) {
+        BlockPos anchor = pertankAnchorPos();
+        int y = anchor.getY(), z = anchor.getZ();
+        for (int tankX = anchor.getX(); tankX <= pertankLastTankX(); tankX++) {
+            if (!(level.getBlockEntity(new BlockPos(tankX, y, z)) instanceof FishTankBlockEntity tank)) continue;
+            for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
+                tank.setItem(slot, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    /**
+     * Whether the row really is one group anchored at its west end, with every fish given to the
+     * group engine rather than left hovering in its own tank. Without this the scene could be
+     * measuring the single-tank path and calling it a pass.
+     */
+    private static void checkPerTankGroup(Minecraft mc) {
+        BlockPos anchor = pertankAnchorPos();
+        if (!(mc.level.getBlockEntity(anchor) instanceof FishTankBlockEntity be)) {
+            check("pertank.oneGroup", false, "no client tank at " + anchor);
+            return;
+        }
+        ClientTankGroups.Entry entry = ClientTankGroups.get(be, mc.level);
+        TankGroups.Group group = entry.group();
+        check("pertank.oneGroup", group.isMultiTank() && group.members().size() == pertankTankCount(),
+                "members=" + group.members().size() + " expected=" + pertankTankCount());
+        check("pertank.anchorAtWestEnd", group.anchor().equals(anchor),
+                "anchor=" + group.anchor() + " expected=" + anchor);
+        TankGroupFlock flock = entry.flock();
+        int stocked = pertankStockedFish();
+        int groupFish = flock == null ? -1 : flock.count();
+        check("pertank.joinedTheGroup", groupFish == stocked,
+                "groupFish=" + groupFish + " stocked=" + stocked);
+    }
+
+    /**
+     * Whether the anchor's block entity is being dispatched at all — the scene's proof that it is
+     * reproducing the configuration it claims rather than assuming it from camera geometry. A
+     * section is only handed to its renderers while it survives vanilla's frustum and occlusion
+     * tests, and facing away from the anchor exists precisely to keep it out of them.
+     */
+    private static void checkAnchorRendered(Minecraft mc, String name, boolean expected) {
+        long last = ClientTankFlocks.lastExtractTickOf(pertankAnchorPos());
+        long since = last == Long.MIN_VALUE ? Long.MAX_VALUE : ClientTankFlocks.tickCounter() - last;
+        boolean rendered = since <= 2;
+        check(name, rendered == expected,
+                "anchor " + (rendered ? "rendered" : "not rendered") + " (last extract "
+                        + (since == Long.MAX_VALUE ? "never" : since + " ticks ago") + "), expected "
+                        + (expected ? "rendered" : "out of view"));
+    }
+
+    /**
+     * How many of the group's fish are on the side of the camera the view looks along. The shoal is
+     * free to swim the whole row, and a view whose fish have all drifted behind the camera would
+     * read as "nothing was drawn" — this is what tells those two apart in the log.
+     */
+    private static void checkFishAhead(Minecraft mc, String name, boolean expectingWest, int minimum) {
+        double cameraX = pertankCameraX();
+        int ahead = 0;
+        int total = ClientTankFlocks.fishCount(mc.level, pertankAnchorPos());
+        for (int index = 0; index < total; index++) {
+            Vec3 pos = ClientTankFlocks.worldPositionOf(mc.level, pertankAnchorPos(), index, mc.level.getGameTime());
+            if (pos == null) continue;
+            if (expectingWest ? pos.x < cameraX : pos.x > cameraX) ahead++;
+        }
+        check(name, ahead >= minimum,
+                "fishAhead=" + ahead + " of " + total + " (camera x=" + cameraX + ")");
+    }
+
+    /**
+     * The group's own account of how its fish are spread across its tanks. The two ways this can go
+     * wrong are invisible in a frame — a fish owned by nobody is never drawn, one owned by two tanks
+     * is drawn twice with the second overwriting the first's shared render state — so it is asserted
+     * here, against real geometry and real fish positions rather than a unit fixture.
+     */
+    private static void checkOwnership(Minecraft mc, String name) {
+        BlockPos anchor = pertankAnchorPos();
+        if (!(mc.level.getBlockEntity(anchor) instanceof FishTankBlockEntity be)) {
+            check(name, false, "no client tank at " + anchor);
+            return;
+        }
+        TankGroupFlock flock = ClientTankGroups.get(be, mc.level).flock();
+        if (flock == null) {
+            check(name, false, "no group runtime (nothing on screen?)");
+            return;
+        }
+        TankGroupFlock.OwnershipAudit audit = flock.auditOwnership();
+        check(name, audit.isPartition(), audit.fish() + " fish, " + audit.drawn() + " drawn once, "
+                + audit.claimedTwice() + " twice, " + audit.claimedNever() + " never, "
+                + audit.membersDrawing() + "/" + audit.members() + " tanks drawing");
+        check(name + ".multiTank", audit.membersDrawing() >= 2, audit.membersDrawing() + " tanks drawing");
+    }
+
+    /**
+     * Differentials the stocked and emptied frames of both views, against their own noise floor.
+     *
+     * <p>Each view is asked only to clear that floor, not to match the other: the shoal scatters
+     * over the whole row, so how much of it is in front of either camera is a draw, and the away
+     * view is legitimately the emptier of the two. An earlier version required the away measurement
+     * to be at least a third of the control's and failed a good build on a run where the scatter
+     * had left most of the shoal behind the other camera.
+     */
+    private static void checkPerTankDiffs(Minecraft mc) {
+        int noise = shotDifference(mc, "away_empty", "away_empty2");
+        int away = shotDifference(mc, "away_fish", "away_empty");
+        int toward = shotDifference(mc, "toward_fish", "toward_empty");
+        int floor = Math.max(PERTANK_MIN_SIGNAL, 4 * Math.max(noise, 0));
+        check("pertank.harnessSeesFish", toward > floor,
+                "toward=" + toward + " (anchor in view) noise=" + noise + " floor=" + floor);
+        check("pertank.fishWithAnchorOutOfView", away > floor,
+                "away=" + away + " (anchor's section behind the camera) noise=" + noise + " floor=" + floor);
+    }
+
+    /**
+     * Pixels that changed between two self-test shots over {@link #PERTANK_CROP_X0 the measurement
+     * crop}, counting only those that changed together with their four neighbours, or {@code -1} if
+     * either shot could not be read.
+     *
+     * <p>The shots are the PNGs the harness itself wrote, read back rather than kept in memory, so
+     * the evidence for a PASS is a file anyone can open and look at. The neighbour test is what
+     * separates the fish from the bubble wakes they trail: both vanish when the tanks are emptied,
+     * but a fish sprite is a solid blob tens of pixels across and a bubble is a handful, which
+     * erosion keeps and drops respectively. Without it, a build in which the fish were not being
+     * drawn at all could still clear the floor on their wakes alone.
+     */
+    private static int shotDifference(Minecraft mc, String shotA, String shotB) {
+        File dir = new File(mc.gameDirectory, "screenshots");
+        File fileA = new File(dir, fileName("pertank", shotA));
+        File fileB = new File(dir, fileName("pertank", shotB));
+        if (!fileA.isFile() || !fileB.isFile()) {
+            Fishtastic.LOGGER.error("[selftest] nothing to compare: {} / {}", fileA, fileB);
+            return -1;
+        }
+        try (InputStream streamA = new FileInputStream(fileA);
+             InputStream streamB = new FileInputStream(fileB);
+             NativeImage imageA = NativeImage.read(streamA);
+             NativeImage imageB = NativeImage.read(streamB)) {
+            int width = Math.min(imageA.getWidth(), imageB.getWidth());
+            int height = Math.min(imageA.getHeight(), imageB.getHeight());
+            int x0 = (int) (width * PERTANK_CROP_X0), x1 = (int) (width * PERTANK_CROP_X1);
+            int y0 = (int) (height * PERTANK_CROP_Y0), y1 = (int) (height * PERTANK_CROP_Y1);
+            int cropWidth = x1 - x0;
+            int cropHeight = y1 - y0;
+
+            boolean[] changed = new boolean[cropWidth * cropHeight];
+            for (int y = 0; y < cropHeight; y++) {
+                for (int x = 0; x < cropWidth; x++) {
+                    changed[y * cropWidth + x] = channelDelta(
+                            imageA.getPixelRGBA(x0 + x, y0 + y), imageB.getPixelRGBA(x0 + x, y0 + y)) > PERTANK_PIXEL_DELTA;
+                }
+            }
+
+            int solid = 0;
+            for (int y = 1; y < cropHeight - 1; y++) {
+                for (int x = 1; x < cropWidth - 1; x++) {
+                    int at = y * cropWidth + x;
+                    if (changed[at] && changed[at - 1] && changed[at + 1]
+                            && changed[at - cropWidth] && changed[at + cropWidth]) {
+                        solid++;
+                    }
+                }
+            }
+            return solid;
+        } catch (IOException e) {
+            Fishtastic.LOGGER.error("[selftest] could not read {}", shotA, e);
+            return -1;
+        }
+    }
+
+    /** Largest per-channel difference between two ARGB pixels ({@code NativeImage.getPixelRGBA}). */
+    private static int channelDelta(int pixelA, int pixelB) {
+        int red = Math.abs(((pixelA >> 16) & 0xFF) - ((pixelB >> 16) & 0xFF));
+        int green = Math.abs(((pixelA >> 8) & 0xFF) - ((pixelB >> 8) & 0xFF));
+        int blue = Math.abs((pixelA & 0xFF) - (pixelB & 0xFF));
+        return Math.max(red, Math.max(green, blue));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
