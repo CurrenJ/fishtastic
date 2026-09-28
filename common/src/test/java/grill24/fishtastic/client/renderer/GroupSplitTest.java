@@ -1,7 +1,7 @@
 package grill24.fishtastic.client.renderer;
 
 import grill24.fishsim.core.Locomotion;
-import grill24.fishtastic.client.renderer.TankFlockAdapter.GroupSplit;
+import grill24.fishtastic.client.renderer.TankGroupFlock.GroupSplit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

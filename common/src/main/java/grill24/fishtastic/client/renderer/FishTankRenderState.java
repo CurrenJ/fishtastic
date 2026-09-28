@@ -4,6 +4,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Rotation;
 
@@ -22,6 +23,8 @@ public class FishTankRenderState {
      * lookup on the render thread — resolution happens once in snapshot. */
     public record ResolvedStructureCosmetic(CosmeticStructure structure, Rotation rotation) {}
 
+    /** This tank's block position (26.1's {@code BlockEntityRenderState.blockPos}). */
+    public BlockPos blockPos = BlockPos.ZERO;
     /** Packed block/sky light for this tank (26.1's {@code BlockEntityRenderState.lightCoords}). */
     public int lightCoords;
     public boolean hasOpenDownFace = false;
