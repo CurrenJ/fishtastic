@@ -531,11 +531,57 @@ rather than watching for a stutter.
 | Concern | File |
 |---|---|
 | Caps, fish budget, quota, epoch, flood fill | `common/.../fishtank/TankGroups.java` |
-| Shared group + domain cache | `common/.../client/util/ClientTankGroups.java` |
+| Shared group + domain + runtime cache | `common/.../client/util/ClientTankGroups.java` |
 | Quota applied to both passes | `common/.../client/renderer/TankFlockAdapter.java` |
+| Group runtime, ownership partition, per-member buckets | `common/.../client/renderer/TankGroupFlock.java` |
+| Ownership grid — nearest member per cell | `common/.../client/renderer/GroupOwners.java` |
+| Partition and offset arithmetic | `common/src/test/.../GroupOwnersTest.java` |
 | Epoch bumps, `isFaceOpen` | `common/.../blockentity/FishTankBlockEntity.java` |
 | Spatial index | `fishsim/.../core/NeighborGrid.java` |
 | Radius derivation, index wiring | `fishsim/.../core/FlockEngine.java` |
 | Bit-exactness gate | `fishsim/src/test/.../SpatialIndexEquivalenceTest.java` |
 | Budget arithmetic | `common/src/test/.../TankGroupsBudgetTest.java` |
 | Measurement probe (skipped without `-PsimStdout`) | `fishsim/src/test/.../StepScalingProbe.java` |
+
+### 9.8 Per-member rendering — the group's fish are drawn where they swim
+
+Shipped 2026-09-28, after a player reported that on a large build *every* swimming fish in a
+multi-tank vanished at particular camera angles and positions — reproducibly, across reloads, with
+shaders on or off. The cause turned out to be structural rather than a tuning bug, and fixing it
+removed an artifact §9.4 had recorded as accepted.
+
+**What was wrong.** The group's fish were drawn by one block: the elected anchor's adapter held the
+group engine, and the anchor's block entity submitted every fish in the build. A block entity
+renderer is only invoked while *its own* chunk section is on screen — `LevelRenderer` collects block
+entities per section and dispatches only the sections that passed the frustum and occlusion graph
+(`extractVisibleBlockEntities`), and 26.1.2's `BlockEntityRenderer` no longer has a
+`getRenderBoundingBox` to widen that. So the moment the anchor block left the view, which on a build
+big enough that part of it is always off screen is most of the time something else is being looked
+at, the anchor was never extracted and the whole shoal went with it. The other two artifacts inherited
+from the same ownership fell out of the same fix: every fish was lit by the *anchor* block's light
+wherever it swam, and the group engine did not exist at all until the anchor had been rendered once,
+so approaching a big build from the far end showed an empty tank until you looked at the anchor.
+
+**What replaced it.** The group's runtime moved off the anchor's adapter into `TankGroupFlock`, one
+per group, held by the group's `ClientTankGroups.Entry` beside the `VoxelDomain` it already shared —
+so it survives a membership epoch exactly as long as the old anchor-owned engine did, carry included.
+`GroupOwners` partitions the group's bounding box by nearest member, and each member draws the fish
+inside itself: ownership follows the fish, so a fish and its renderer stand in the same chunk section
+and vanilla's own culling decides the two together. A visible fish is always submitted; an
+off-screen one now costs nothing, where previously a single visible anchor submitted the whole
+fish budget however little of the build was in frame — the render cost §3.6 left unmeasured.
+
+**What it cost.** The engine's global back-to-front sort now applies within each tank rather than
+across the whole group, because separate block entities submit in whatever order the level renderer
+walks their sections. That is how the water fill and every cosmetic already work, and how vanilla
+orders translucent block entities generally; the ordering that matters — between fish sharing a tank,
+which are the ones that overlap — is preserved by building each bucket in the engine's own `order`.
+
+**Not changed.** The simulation, the domain, the budget and the membership rules are untouched, and
+the anchor is still elected and still names the group's identity — it is simply no longer a place
+fish are drawn from. §5.4(2)'s simulation LOD is also still open: groups keep stepping while off
+screen, and only the rendering now follows visibility.
+
+Two failure modes here are silent — a fish owned by nobody is never drawn, and a fish owned by two
+tanks is drawn twice, the second submission overwriting the first's shared render state — so both are
+covered by `GroupOwnersTest`, whose bucket case fails if the partition ignores a fish's position.

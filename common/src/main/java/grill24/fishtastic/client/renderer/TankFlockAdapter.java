@@ -4,9 +4,9 @@ import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
-import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.client.util.TankFloors;
 import grill24.fishtastic.fishtank.TankGroups;
@@ -38,14 +38,12 @@ import java.util.Random;
  * {@link #engine()}. The extract path never advances simulation time — only
  * {@code ClientTankFlocks.tickAll()} steps.
  *
- * <p><b>Multi-tank preview (Task 9).</b> When this tank shares open faces with neighbours, the
- * connected group elects the smallest member position as anchor. Every member keeps rendering its
- * own non-swimming fish (floor-anchored species, non-swim animations, group-gate failures)
- * through its local engine exactly like today's hover path; the anchor additionally runs one
- * {@linkplain VoxelDomain voxel-domain} engine over every member's free swimmers and renders them
- * across the shared volume. A lone tank takes the legacy single-tank path unchanged. Known
- * preview artifacts (frustum culling at the anchor, anchor-block lighting) are accepted — the
- * server-side lock model is a separate workstream.
+ * <p><b>What this adapter is not.</b> Everything a tank shares with the tanks it is connected to
+ * belongs to the group, not to a member: the group's engine, its fish descriptors, and the decision
+ * about which member draws which fish all live in {@link TankGroupFlock}, reached through
+ * {@link #groupFlock()}. This adapter keeps only what is genuinely per-tank: the fish it holds
+ * itself, and the split that decides which of them stay here (see {@link TankGroupFlock.GroupSplit},
+ * which both halves apply so they cannot disagree).
  */
 public final class TankFlockAdapter {
 
@@ -64,36 +62,17 @@ public final class TankFlockAdapter {
     // One render state per fish (persistent, reused across frames) — see the class javadoc.
     ItemStackRenderState[] itemRenderStates = new ItemStackRenderState[0];
 
-    // ── Group state (multi-tank preview) ────────────────────────────────────
-    private List<BlockPos> cachedMembers = List.of();
+    // ── Group state (multi-tank) ────────────────────────────────────────────
     private boolean groupMode;
-    private boolean groupAnchor;
+    /** This tank's group runtime, or null while it stands alone. Refreshed every sync. */
+    private @Nullable TankGroupFlock groupFlock;
     /** Snapshot of this tank's full contents, for change detection while stacks[] is hover-filtered. */
     private ItemStack[] ownSnapshot = new ItemStack[0];
-    /** Anchor only: snapshot of every member's contents, concatenated in member order. */
-    private ItemStack[] groupSnapshot = new ItemStack[0];
-
-    private FlockEngine groupEngine;
-    ItemStack[] groupStacks = new ItemStack[0];
-    FishAnimationConfig[] groupAnims = new FishAnimationConfig[0];
-    /** Group-engine fish identity: the owning tank's packed position plus its container slot. */
-    private long[] groupKeyPos = new long[0];
-    private int[] groupKeySlot = new int[0];
-    ItemStackRenderState[] groupRenderStates = new ItemStackRenderState[0];
-    float groupOffsetX, groupOffsetY, groupOffsetZ;
 
     private int count;
     private long lastExtractTick = Long.MIN_VALUE;
-    /** Bubble-emitter edge memory, one per engine (docs/fish-tank-bubbles.md). */
+    /** Bubble-emitter edge memory for this tank's own engine (docs/fish-tank-bubbles.md). */
     final TankBubbleEmitter.State loneEmitter = new TankBubbleEmitter.State();
-    final TankBubbleEmitter.State groupEmitter = new TankBubbleEmitter.State();
-    /**
-     * Last-seen cosmetic layout, own tank and (anchor only) group-wide. Cosmetics are terrain for
-     * crawlers, so moving one has to re-shape the floor and re-place anything standing where it
-     * landed — but nothing else announces that they moved, so it is watched by fingerprint.
-     */
-    private int cosmeticFingerprint = Integer.MIN_VALUE;
-    private int groupCosmeticFingerprint = Integer.MIN_VALUE;
 
     public FlockEngine engine() {
         return engine;
@@ -103,9 +82,13 @@ public final class TankFlockAdapter {
         return count;
     }
 
-    /** The anchor's group-wide swimmer engine, or null when not simulating a group here. */
-    public FlockEngine groupEngine() {
-        return groupMode && groupAnchor ? groupEngine : null;
+    /**
+     * This tank's group runtime, or null when it stands alone. Fish the group simulates are drawn by
+     * whichever member they are inside — including this one — so the renderer asks this for the
+     * bucket to draw rather than being handed every fish in the tank.
+     */
+    public @Nullable TankGroupFlock groupFlock() {
+        return groupFlock;
     }
 
     public long lastExtractTick() {
@@ -133,28 +116,10 @@ public final class TankFlockAdapter {
     }
 
     /**
-     * World-space position of fish #{@code i} in this (anchor) tank's shared {@link #groupEngine()},
-     * or {@code null} if this tank isn't currently a group anchor. Mirrors the offset
-     * {@code FishTankBlockEntityRenderer.submitGroupSwimmers} draws it at, bob included — see
-     * {@link #localFishWorldPosition}.
+     * Species id of fish #{@code i} in this tank's own engine — see {@link #speciesId(ItemStack)},
+     * the opaque per-item-type id the engine carries per fish.
      */
-    public @Nullable Vec3 groupFishWorldPosition(BlockPos anchorPos, int i, float gameTimeTicks) {
-        if (groupEngine == null) return null;
-        float yBob = animatedYBob(groupEngine, groupAnims[i], i, gameTimeTicks);
-        return new Vec3(
-            anchorPos.getX() + groupOffsetX + groupEngine.renderX[i],
-            anchorPos.getY() + groupOffsetY + groupEngine.renderY[i] + yBob,
-            anchorPos.getZ() + groupOffsetZ + groupEngine.renderZ[i]
-        );
-    }
-
-    /**
-     * Species id of fish #{@code i} in this tank's own engine, or the group engine's if
-     * {@code group} — see {@link #speciesId(ItemStack)}, the opaque per-item-type id the engine
-     * carries per fish. {@code -1} if there's no such fish (group not simulating here).
-     */
-    public int fishSpecies(int i, boolean group) {
-        if (group) return groupEngine == null ? -1 : groupEngine.species[i];
+    public int fishSpecies(int i) {
         return engine.species[i];
     }
 
@@ -177,31 +142,25 @@ public final class TankFlockAdapter {
         this.lastExtractTick = tick;
     }
 
-    /** Scratch for {@link #setWatcher}, so the per-tick mapping allocates nothing. */
-    private final float[] watcherScratch = new float[3];
-
     /**
-     * Tells this tank's engines where the player is, so anchored creatures can react to being
+     * Tells this tank's own engine where the player is, so anchored creatures can react to being
      * looked at (docs/fish-sim-locomotion.md §3.4). Called once per client tick, before
-     * {@link #step()}.
+     * {@link #step()}. The group engine is pointed at the player by {@link TankGroupFlock}, which
+     * translates the same way in the group's own frame.
      *
-     * <p>The mapping is the whole of the work, and it is different for the two engines because
-     * they think in different frames. A lone tank's engine is <b>rotated</b> by the yaw the tank
-     * recorded from the player who placed it and its origin is the block's centre at the item
-     * baseline; the group engine is unrotated and its origin is the anchor block's corner plus the
-     * group offset. Both are the inverse of what the draw loops do to get from the engine's
-     * numbers to a position on screen — if a fish is drawn at {@code origin + render}, then the
-     * player is at {@code player − origin} in render space, and {@code toLocal} takes it the rest
-     * of the way.
+     * <p>The lone tank's engine is <b>rotated</b> by the yaw the tank recorded from the player who
+     * placed it and its origin is the block's centre at the item baseline; the inverse of what the
+     * draw loop does to get from the engine's numbers to a position on screen — if a fish is drawn
+     * at {@code origin + render}, then the player is at {@code player − origin} in render space, and
+     * {@code toLocal} takes it the rest of the way.
      *
-     * @param pos this tank's block position — the anchor's, for the group engine
+     * @param pos this tank's block position
      * @param px,py,pz the player's eye position in world space, or NaN in {@code px} for "no
-     *                 player", which clears the watcher on both engines
+     *                 player", which clears the watcher
      */
     public void setWatcher(BlockPos pos, double px, double py, double pz) {
         if (Double.isNaN(px)) {
             engine.setWatcher(false, 0f, 0f, 0f);
-            if (groupEngine != null) groupEngine.setWatcher(false, 0f, 0f, 0f);
             return;
         }
         // Lone tank: the draw loop translates by ITEM_POSITION_OFFSET (the block's centre at the
@@ -209,38 +168,28 @@ public final class TankFlockAdapter {
         float x = (float) (px - pos.getX()) - 0.5f;
         float y = (float) (py - pos.getY()) - FishTankBlockEntityRenderer.ITEM_BASELINE_Y;
         float z = (float) (pz - pos.getZ()) - 0.5f;
-        engine.toLocal(x, y, z, watcherScratch);
-        engine.setWatcher(true, watcherScratch[0], watcherScratch[1], watcherScratch[2]);
-
-        if (groupEngine != null) {
-            // Group: the draw loop translates by the group offset alone, in the anchor block's
-            // own frame, and the group engine carries no rotation — so this is a plain subtraction
-            // and toLocal is the identity. Called through it anyway, because "the group engine is
-            // unrotated" is a fact about today's rebuild call and not a law.
-            groupEngine.toLocal((float) (px - pos.getX()) - groupOffsetX,
-                    (float) (py - pos.getY()) - groupOffsetY,
-                    (float) (pz - pos.getZ()) - groupOffsetZ, watcherScratch);
-            groupEngine.setWatcher(true, watcherScratch[0], watcherScratch[1], watcherScratch[2]);
-        }
+        float[] scratch = watcherScratch;
+        engine.toLocal(x, y, z, scratch);
+        engine.setWatcher(true, scratch[0], scratch[1], scratch[2]);
     }
 
-    /** Advances the engine(s) by one fixed 20 Hz step. Runs on the client tick, never at render. */
+    /** Scratch for {@link #setWatcher}, so the per-tick mapping allocates nothing. */
+    private final float[] watcherScratch = new float[3];
+
+    /** Advances this tank's own engine by one fixed 20 Hz step. Runs on the client tick, never at render. */
     public void step() {
         engine.step();
-        if (groupMode && groupAnchor && groupEngine != null) {
-            groupEngine.step();
-        }
     }
 
     /**
-     * Writes interpolated world-space offsets for this frame's {@code partialTick} into the
-     * engine's render scratch. Called from {@code extractRenderState} every frame — read-only
-     * with respect to simulation time.
+     * Writes interpolated world-space offsets for this frame's {@code partialTick} into the engine's
+     * render scratch, and does the same for the group runtime this tank belongs to. Called from
+     * {@code extractRenderState} every frame — read-only with respect to simulation time.
      */
     void interpolate(float partialTick) {
         engine.interpolate(partialTick);
-        if (groupMode && groupAnchor && groupEngine != null) {
-            groupEngine.interpolate(partialTick);
+        if (groupFlock != null) {
+            groupFlock.interpolateIfDue(ClientTankFlocks.tickCounter(), partialTick);
         }
     }
 
@@ -258,7 +207,7 @@ public final class TankFlockAdapter {
         if (!group.isMultiTank()) {
             boolean leftGroupMode = groupMode;
             groupMode = false;
-            groupAnchor = false;
+            groupFlock = null;
             // Legacy single-tank path — behavior identical to the pre-extraction sim.
             int idx = 0;
             boolean changed = leftGroupMode || membershipChanged;
@@ -281,25 +230,30 @@ public final class TankFlockAdapter {
 
         boolean enteredGroupMode = !groupMode;
         groupMode = true;
-        groupAnchor = be.getBlockPos().equals(group.anchor());
+
+        // The group's own fish, descriptors and partition belong to the group runtime; this tank
+        // only decides which of its fish stay home. Both halves of that decision use one rule
+        // (TankGroupFlock.GroupSplit) so they cannot disagree about a slot.
+        groupFlock = entry.flock();
+        if (groupFlock != null) {
+            long tick = ClientTankFlocks.tickCounter();
+            groupFlock.touch(tick);
+            groupFlock.syncIfDue(entry, level, tick);
+        }
 
         boolean ownChanged = contentsChanged(be, ownSnapshot);
-        boolean groupChanged = groupAnchor && groupContentsChanged(level, group);
-        boolean cosmeticsChanged = false;
-        if (groupAnchor) {
-            int cosmetics = TankFloors.groupFingerprint(group, level);
-            cosmeticsChanged = cosmetics != groupCosmeticFingerprint;
-            if (cosmeticsChanged) {
-                groupCosmeticFingerprint = cosmetics;
-                // Cheap 2D pass, unlike the domain around it — see VoxelDomain.setFloor.
-                entry.domain().rebuildFloor(TankFloors.GROUP_SURFACE_OFFSET,
-                        TankFloors.groupBlockedCells(group, level));
-            }
-        }
-        if (!membershipChanged && !enteredGroupMode && !ownChanged && !groupChanged && !cosmeticsChanged) return;
-
+        if (!membershipChanged && !enteredGroupMode && !ownChanged) return;
         rebuildGroupMode(be, blockPosHash, level, entry);
     }
+
+    /** Last-seen member list, so a group that gained or lost a tank re-splits this tank's fish. */
+    private List<BlockPos> cachedMembers = List.of();
+    /**
+     * Last-seen cosmetic layout of this tank's own floor. Cosmetics are terrain for crawlers, so a
+     * moved one has to re-shape the floor and re-place anything standing where it landed — but
+     * nothing else announces that they moved, so it is watched by fingerprint.
+     */
+    private int cosmeticFingerprint = Integer.MIN_VALUE;
 
     // ── Single-tank path ────────────────────────────────────────────────────
 
@@ -373,14 +327,15 @@ public final class TankFlockAdapter {
 
     // ── Group path ──────────────────────────────────────────────────────────
 
+    /**
+     * Rebuilds what this tank keeps for itself while it is part of a group. Everything the group
+     * takes is {@link TankGroupFlock}'s; this pass uses the identical rule over the identical slots,
+     * so the two agree on every one of them — see {@link TankGroupFlock.GroupSplit}.
+     */
     private void rebuildGroupMode(FishTankBlockEntity be, int blockPosHash, Level level,
                                   ClientTankGroups.Entry entry) {
         TankGroups.Group group = entry.group();
-        // Shared with every other member and rebuilt only when membership changes — building one
-        // here per content change was a 26-109 ms hitch every time a player added a fish
-        // (docs/fish-tank-group-scaling.md §5.3a).
-        VoxelDomain domain = entry.domain();
-        float gateRun = domain.sizeGateRun();
+        float gateRun = entry.domain().sizeGateRun();
         float gateFactor = Tunables.DEFAULT.gateFactor();
         ownSnapshot = snapshot(be);
 
@@ -394,10 +349,10 @@ public final class TankFlockAdapter {
         List<FishSpec> hoverSpecs = new ArrayList<>();
         List<Integer> hoverSlots = new ArrayList<>();
         // Fish past this tank's share of the group budget stay here instead of joining. The
-        // anchor's collection pass below applies the identical rule to the identical slots, so
+        // group runtime's collection pass applies the identical rule to the identical slots, so
         // every fish is rendered exactly once — see TankGroups.perTankFishQuota.
         int quota = TankGroups.perTankFishQuota(group.members().size());
-        GroupSplit split = new GroupSplit(gateRun, gateFactor, quota);
+        TankGroupFlock.GroupSplit split = new TankGroupFlock.GroupSplit(gateRun, gateFactor, quota);
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
@@ -411,7 +366,7 @@ public final class TankFlockAdapter {
             hoverStacks.add(stack);
             hoverAnims.add(render.animation());
             hoverSlots.add(slot);
-            hoverSpecs.add(new FishSpec(length, GroupSplit.stayingHomeAs(locomotion),
+            hoverSpecs.add(new FishSpec(length, TankGroupFlock.GroupSplit.stayingHomeAs(locomotion),
                     be.isItemMirrored(slot), speciesId(stack)));
         }
         int hoverCount = hoverStacks.size();
@@ -432,149 +387,6 @@ public final class TankFlockAdapter {
                 blockPosHash, be.getFirstItemRotation(),
                 swarm.depthLayers(), swarm.xzSpread(), swarm.yRange(), swarm.rotationJitter(),
                 TankFloors.single(be));
-
-        if (!groupAnchor) {
-            groupEngine = null;
-            return;
-        }
-
-        // Anchor: one voxel-domain engine over every member's swimmers, crawlers and drifters.
-        List<ItemStack> swimStacks = new ArrayList<>();
-        List<FishAnimationConfig> swimAnims = new ArrayList<>();
-        List<FishSpec> swimSpecs = new ArrayList<>();
-        List<ItemStack> allContents = new ArrayList<>();
-        List<Long> swimKeyPos = new ArrayList<>();
-        List<Integer> swimKeySlot = new ArrayList<>();
-        for (BlockPos memberPos : group.members()) {
-            if (!(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity member)) continue;
-            // Mirrors the per-member split above exactly — same rule object, so the two passes
-            // cannot drift apart. Disagree on one slot and a fish is drawn twice or not at all.
-            GroupSplit memberSplit = new GroupSplit(gateRun, gateFactor, quota);
-            for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
-                ItemStack s = member.getItem(slot);
-                if (s.isEmpty()) continue;
-                ItemStack stack = s.copy();
-                allContents.add(stack);
-                FishTankBlockEntityRenderer.ResolvedFishRender render =
-                        FishTankBlockEntityRenderer.resolveFishRender(stack, level);
-                float length = renderedLength(stack, render.renderCalibration());
-                Locomotion locomotion = locomotionOf(render.animation());
-                if (!memberSplit.joins(locomotion, length)) continue; // stays on its own tank's engine
-                swimStacks.add(stack);
-                swimAnims.add(render.animation());
-                swimKeyPos.add(memberPos.asLong());
-                swimKeySlot.add(slot);
-                swimSpecs.add(new FishSpec(length, locomotion, member.isItemMirrored(slot), speciesId(stack)));
-            }
-        }
-        groupSnapshot = allContents.toArray(new ItemStack[0]);
-
-        int n = swimStacks.size();
-        int[] swimCarry = new int[n];
-        long[] newKeyPos = new long[n];
-        int[] newKeySlot = new int[n];
-        for (int i = 0; i < n; i++) {
-            newKeyPos[i] = swimKeyPos.get(i);
-            newKeySlot[i] = swimKeySlot.get(i);
-            swimCarry[i] = findGroupCarry(newKeyPos[i], newKeySlot[i], swimStacks.get(i));
-        }
-        groupStacks = swimStacks.toArray(new ItemStack[0]);
-        groupAnims = swimAnims.toArray(new FishAnimationConfig[0]);
-        groupKeyPos = newKeyPos;
-        groupKeySlot = newKeySlot;
-        groupRenderStates = new ItemStackRenderState[n];
-        for (int i = 0; i < n; i++) groupRenderStates[i] = new ItemStackRenderState();
-        groupOffsetX = group.offsetX();
-        groupOffsetY = group.offsetY();
-        groupOffsetZ = group.offsetZ();
-
-        boolean freshEngine = groupEngine == null;
-        if (freshEngine) groupEngine = new FlockEngine(Tunables.GROUP);
-        // A brand-new engine has nothing to carry. Membership changes re-shape the domain itself,
-        // but the carry still holds every fish that stayed put, which is the point.
-        groupEngine.rebuildPreserving(swimSpecs.toArray(new FishSpec[0]), swimCarry,
-                group.anchor().hashCode(), 0f, swarm.rotationJitter(), domain);
-    }
-
-    /**
-     * The single rule deciding whether a fish joins the anchor's group engine or stays behind on
-     * its own tank's — and, for the ones that stay, what class they keep (docs/fish-sim-locomotion.md
-     * §3.5).
-     *
-     * <p>It exists as an object rather than as two copies of an {@code if} because
-     * {@link #rebuildGroupMode} applies it twice: once per member deciding what that tank keeps,
-     * and once at the anchor collecting what the group takes. The two passes walk the same slots
-     * in the same order and <b>must agree on every one of them</b> — disagree and a fish is drawn
-     * twice or not at all — so they share this, quota counters included. One instance per tank; a
-     * fresh one per member in the anchor's pass.
-     *
-     * <p>Each simulated class counts against its <b>own</b> copy of the quota. They compete for
-     * different resources — water volume, floor area, and the vertical column a jellyfish pulses
-     * through — so a tank full of one must not evict a creature the group has ample room for.
-     */
-    static final class GroupSplit {
-        private final float gateRun;
-        private final float gateFactor;
-        private final int quota;
-        private final int[] taken = new int[Locomotion.values().length];
-
-        GroupSplit(float gateRun, float gateFactor, int quota) {
-            this.gateRun = gateRun;
-            this.gateFactor = gateFactor;
-            this.quota = quota;
-        }
-
-        /** Whether this fish joins the group engine, consuming a slot of its class's quota if so. */
-        boolean joins(Locomotion locomotion, float length) {
-            boolean eligible = switch (locomotion) {
-                // The group's size gate, applied here as well as in the engine, for the two
-                // classes that measure a straight run: a fish the group is too cramped for stays
-                // home and hovers in its own tank, which is the behaviour it has always had, and
-                // it spends none of the group's budget on the way.
-                case FREE_SWIM, GLIDE -> gateRun >= gateFactor * length;
-                // Crawlers, drifters and eels are admitted ungated and let the engine's own
-                // per-class gate demote them if it must: a demoted one still belongs in group
-                // space, on the group's sand or hanging in its water, which is where the player
-                // sees it.
-                case BENTHIC, DRIFT, ANCHORED -> true;
-                // The one class with no motion model: renders out of its own tank, frozen.
-                case STATIC -> false;
-            };
-            if (!eligible) return false;
-            int idx = locomotion.ordinal();
-            if (taken[idx] >= quota) return false;
-            taken[idx]++;
-            return true;
-        }
-
-        /**
-         * The class a fish that stayed behind runs under on its own tank's engine. A class that
-         * can move on its own in a lone tank keeps it — a crawler walks its tank's floor, a
-         * drifter drifts its own water, a glider that only lost the quota draw still glides.
-         * Everything else is pinned {@link Locomotion#STATIC}, which includes the swimmers and
-         * gliders the <em>group's</em> size gate turned away: those must not start swimming
-         * locally just because this member's own box is individually big enough. That is the
-         * asymmetry — the gate is applied in {@link #joins}, so anything reaching here having
-         * failed it is already unable to pass its own tank's copy of the same gate.
-         */
-        static Locomotion stayingHomeAs(Locomotion locomotion) {
-            return switch (locomotion) {
-                case BENTHIC, DRIFT, GLIDE, ANCHORED -> locomotion;
-                default -> Locomotion.STATIC;
-            };
-        }
-    }
-
-    /** {@link #findCarry} for the group engine, where a fish's identity is owning tank + slot. */
-    private int findGroupCarry(long posKey, int slot, ItemStack stack) {
-        int limit = Math.min(groupStacks.length, Math.min(groupKeyPos.length, groupKeySlot.length));
-        for (int i = 0; i < limit; i++) {
-            if (groupKeyPos[i] == posKey && groupKeySlot[i] == slot
-                    && FishtasticItemData.isSameItemSameData(groupStacks[i], stack)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     // ── Change detection helpers ────────────────────────────────────────────
@@ -599,20 +411,6 @@ public final class TankFlockAdapter {
         return idx != snapshot.length;
     }
 
-    private boolean groupContentsChanged(Level level, TankGroups.Group group) {
-        int idx = 0;
-        for (BlockPos memberPos : group.members()) {
-            if (!(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity member)) return true;
-            for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
-                ItemStack s = member.getItem(slot);
-                if (s.isEmpty()) continue;
-                if (idx >= groupSnapshot.length || !FishtasticItemData.isSameItemSameData(s, groupSnapshot[idx])) return true;
-                idx++;
-            }
-        }
-        return idx != groupSnapshot.length;
-    }
-
     // ── Shared helpers ──────────────────────────────────────────────────────
 
     /**
@@ -622,7 +420,7 @@ public final class TankFlockAdapter {
      * here rather than on {@link FishAnimationConfig} to keep this the only class that knows both
      * worlds.
      */
-    private static Locomotion locomotionOf(FishAnimationConfig anim) {
+    static Locomotion locomotionOf(FishAnimationConfig anim) {
         return switch (anim) {
             case FishAnimationConfig.HorizontalSwim ignored -> Locomotion.FREE_SWIM;
             case FishAnimationConfig.BellyDown      ignored -> Locomotion.GLIDE;
@@ -633,13 +431,12 @@ public final class TankFlockAdapter {
         };
     }
 
-
     /**
      * Opaque per-species id for the engine's species-aware separation/schooling: fish of the same
      * item type school together, different items keep the wider cross-species distance. The item
      * registry id is stable for the client session, which is all the engine needs.
      */
-    private static int speciesId(ItemStack stack) {
+    static int speciesId(ItemStack stack) {
         return net.minecraft.core.registries.BuiltInRegistries.ITEM.getId(stack.getItem());
     }
 
@@ -651,7 +448,7 @@ public final class TankFlockAdapter {
         for (int i = 0; i < n; i++) itemRenderStates[i] = new ItemStackRenderState();
     }
 
-    private static float renderedLength(ItemStack stack, float calibration) {
+    static float renderedLength(ItemStack stack, float calibration) {
         // Matches the render scale exactly: unrolled fish render at a flat 0.5 (never length 0,
         // which would let an unmeasured species free-swim when it shouldn't).
         if (ItemSizeHelper.hasSize(stack)) {

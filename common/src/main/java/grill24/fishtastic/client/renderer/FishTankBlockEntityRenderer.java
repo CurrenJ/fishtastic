@@ -407,34 +407,55 @@ public class FishTankBlockEntityRenderer
     }
 
     /**
-     * Draws the fish this tank's group simulates as one aquarium when this tank is the group's
-     * elected anchor
-     * (multi-tank preview, docs/fish-sim-engine-handoff.md Task 9). Positions come from the
-     * anchor's voxel-domain engine in group-local coordinates (bounding-box center origin,
-     * lateral = world X, depth = world Z — no facing rotation in the preview); the adapter's
-     * group offset maps them into this block's model space. Known artifacts, accepted for the
-     * preview: fish vanish when the anchor is frustum-culled, and all fish use the anchor
-     * block's light coords.
+     * Draws the fish the group simulates inside <em>this</em> tank (multi-tank aquariums, see
+     * {@link TankGroupFlock}). Positions come from the group's voxel-domain engine in group-local
+     * coordinates (bounding-box center origin, lateral = world X, depth = world Z — no facing
+     * rotation); {@link TankGroupFlock#localOffsetX} and friends rebase them onto this block.
+     *
+     * <p>Each member draws only the fish that are physically inside it, which is what keeps them on
+     * screen: a block entity renderer runs only while its own chunk section is visible, so a fish
+     * drawn by some other tank's block entity would disappear whenever that tank was out of view.
+     * Drawing the fish where it is means vanilla's own section culling decides the two together —
+     * and it gives each fish its own tank's light, and stops a single visible tank submitting every
+     * fish in the build.
+     *
+     * <p>The one thing this gives up is a single global depth sort: the engine orders the whole
+     * shoal back-to-front, but separate block entities submit in whatever order the level renderer
+     * walks their sections, so fish in <em>different</em> tanks blend in submission order rather than
+     * in depth order. That is how every other piece of tank geometry already works (the water fill,
+     * the cosmetics) and how vanilla orders translucent block entities generally; the ordering that
+     * matters — between fish sharing a tank, which are the ones that overlap — is preserved by
+     * {@link TankGroupFlock#bucket(int)}.
      */
     private void submitGroupSwimmers(FishTankRenderState state, PoseStack poseStack,
             SubmitNodeCollector nodes, TankFlockAdapter flock, ItemModelResolver resolver, float t) {
-        FlockEngine eng = flock.groupEngine();
-        if (eng == null || eng.count() == 0) return;
+        TankGroupFlock group = flock.groupFlock();
+        if (group == null) return;
 
-        int[] order = eng.order;
-        for (int k = 0; k < eng.count(); k++) {
-            int i = order[k];
+        int memberIndex = group.memberIndexOf(state.blockPos);
+        if (memberIndex < 0) return;
+        int bucketSize = group.bucketSize(memberIndex);
+        if (bucketSize == 0) return;
+
+        FlockEngine eng = group.engine();
+        int[] bucket = group.bucket(memberIndex);
+        float groupOffsetX = group.localOffsetX(state.blockPos);
+        float groupOffsetY = group.localOffsetY(state.blockPos);
+        float groupOffsetZ = group.localOffsetZ(state.blockPos);
+
+        for (int k = 0; k < bucketSize; k++) {
+            int i = bucket[k];
             poseStack.pushPose();
 
             float scale = eng.lengths[i];
-            FishAnimationConfig anim = flock.groupAnims[i];
+            FishAnimationConfig anim = group.anims[i];
             // The engine's Y is the sand surface for a crawler and the swim position for a
             // swimmer; only the former needs a pose lift off the floor, which floorPoseLift
             // returns 0 for everything else.
             poseStack.translate(
-                    flock.groupOffsetX + eng.renderX[i],
-                    flock.groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
-                    flock.groupOffsetZ + eng.renderZ[i]);
+                    groupOffsetX + eng.renderX[i],
+                    groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
+                    groupOffsetZ + eng.renderZ[i]);
 
             fishRandom.setSeed(eng.seeds[i]);
             // Planar model: continuous yaw, no mirror flag. The +180° maps the engine's
@@ -466,10 +487,10 @@ public class FishTankBlockEntityRenderer
 
             poseStack.scale(scale, scale, scale);
 
-            ItemStackRenderState fishRender = flock.groupRenderStates[i];
-            resolver.updateForTopItem(fishRender, flock.groupStacks[i], ItemDisplayContext.FIXED, null, null, 0);
+            ItemStackRenderState fishRender = group.renderStates[i];
+            resolver.updateForTopItem(fishRender, group.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
 
-            FishtasticWorldOutlineRenderer.capture(fishRender, flock.groupStacks[i]);
+            FishtasticWorldOutlineRenderer.capture(fishRender, group.stacks[i]);
             FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
             FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
 
