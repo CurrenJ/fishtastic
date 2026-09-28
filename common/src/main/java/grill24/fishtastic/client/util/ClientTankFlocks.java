@@ -3,8 +3,7 @@ package grill24.fishtastic.client.util;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.client.renderer.TankFlockAdapter;
-import grill24.fishsim.core.FlockEngine;
-import grill24.fishtastic.fishtank.TankGroups;
+import grill24.fishtastic.client.renderer.TankGroupFlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -39,6 +38,14 @@ public final class ClientTankFlocks {
     private ClientTankFlocks() {}
 
     /**
+     * The client tick this frame belongs to. Shared with the per-tank and per-group simulations so
+     * they can all key their "once per tick" and "once per frame" work off one monotonic clock.
+     */
+    public static long tickCounter() {
+        return tickCounter;
+    }
+
+    /**
      * Returns the flock for this tank, creating and syncing it on first call. Called from
      * {@code FishTankBlockEntityRenderer.extractRenderState} every frame.
      */
@@ -67,6 +74,7 @@ public final class ClientTankFlocks {
         // handed to each flock in that tank's own coordinates before it steps.
         Player player = Minecraft.getInstance().player;
         Vec3 eye = player == null ? null : player.getEyePosition();
+        ClientLevel clientLevel = Minecraft.getInstance().level instanceof ClientLevel level ? level : null;
         for (Map.Entry<BlockPos, TankFlockAdapter> entry : FLOCKS.entrySet()) {
             TankFlockAdapter flock = entry.getValue();
             if (eye == null) {
@@ -75,10 +83,30 @@ public final class ClientTankFlocks {
                 flock.setWatcher(entry.getKey(), eye.x, eye.y, eye.z);
             }
             flock.step();
+
+            // The group this tank belongs to is one aquarium: it is stepped, pointed at the player
+            // and bubbled from whichever member is warm, not from the group's anchor. On a large
+            // build the anchor is regularly the part of the tank that is not on screen, and it used
+            // to be the only thing keeping the whole shoal simulating. Step and bubble are stamped
+            // on the tick, so every other warm member of the same group is a no-op here.
+            TankGroupFlock group = flock.groupFlock();
+            if (group != null) {
+                group.touch(tickCounter);
+                group.stepIfDue(tickCounter);
+                if (eye == null) {
+                    group.clearWatcher();
+                } else {
+                    group.setWatcher(eye.x, eye.y, eye.z);
+                }
+                if (clientLevel != null && flock.lastExtractTick() == tickCounter - 1
+                        && group.claimBubbleTick(tickCounter)) {
+                    TankBubbleEmitter.emitGroup(clientLevel, group, entry.getKey(), eye);
+                }
+            }
+
             // Bubbles are an observer of the step just taken, and only for tanks actually on
             // screen — a warm-but-unseen flock keeps simulating without spending particles.
-            if (flock.lastExtractTick() == tickCounter - 1
-                    && Minecraft.getInstance().level instanceof ClientLevel clientLevel) {
+            if (flock.lastExtractTick() == tickCounter - 1 && clientLevel != null) {
                 TankBubbleEmitter.emit(clientLevel, entry.getKey(), flock, eye);
             }
         }
@@ -94,20 +122,29 @@ public final class ClientTankFlocks {
 
     /**
      * Total followable fish "belonging" to this tank: its own local fish, plus — if it's part of
-     * a multi-tank group (see docs/fish-tank-group-scaling.md) — the group's shared swimmers,
-     * which live only on the group's anchor tank and would otherwise be invisible from every other
-     * member. 0 if the tank isn't warm/rendered or has no block entity.
+     * a multi-tank group (see docs/fish-tank-group-scaling.md) — the group's shared swimmers, which
+     * the group simulates as one shoal and which are followable from every member. 0 if the tank
+     * isn't warm/rendered or has no block entity.
      */
     public static int fishCount(Level level, BlockPos tankPos) {
         if (!(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return 0;
         TankFlockAdapter flock = FLOCKS.get(tankPos);
         int local = flock == null ? 0 : flock.count();
 
-        TankGroups.Group group = ClientTankGroups.get(be, level).group();
-        if (!group.isMultiTank()) return local;
-        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
-        FlockEngine groupEngine = anchorFlock == null ? null : anchorFlock.groupEngine();
-        return local + (groupEngine == null ? 0 : groupEngine.count());
+        TankGroupFlock group = warmGroupFlock(be, level);
+        return local + (group == null ? 0 : group.count());
+    }
+
+    /**
+     * The group runtime behind this tank, or null if the group isn't warm — i.e. no member of it has
+     * been rendered for {@link #EVICT_AFTER_TICKS}. The group's fish are then reported for as long
+     * as the group is simulated at all, so a camera following one no longer loses it merely because
+     * the member it is standing in happens to be off screen.
+     */
+    private static TankGroupFlock warmGroupFlock(FishTankBlockEntity be, Level level) {
+        TankGroupFlock group = ClientTankGroups.get(be, level).flock();
+        if (group == null || tickCounter - group.lastWarmTick() > EVICT_AFTER_TICKS) return null;
+        return group;
     }
 
     /**
@@ -127,11 +164,9 @@ public final class ClientTankFlocks {
         int local = flock == null ? 0 : flock.count();
         if (fishIndex < local) return flock.localFishWorldPosition(tankPos, fishIndex, gameTimeTicks);
 
-        TankGroups.Group group = ClientTankGroups.get(be, level).group();
-        if (!group.isMultiTank()) return null;
-        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
-        if (anchorFlock == null) return null;
-        return anchorFlock.groupFishWorldPosition(group.anchor(), fishIndex - local, gameTimeTicks);
+        TankGroupFlock group = warmGroupFlock(be, level);
+        if (group == null) return null;
+        return group.fishWorldPosition(fishIndex - local, gameTimeTicks);
     }
 
     /**
@@ -143,13 +178,10 @@ public final class ClientTankFlocks {
         if (fishIndex < 0 || !(level.getBlockEntity(tankPos) instanceof FishTankBlockEntity be)) return -1;
         TankFlockAdapter flock = FLOCKS.get(tankPos);
         int local = flock == null ? 0 : flock.count();
-        if (fishIndex < local) return flock.fishSpecies(fishIndex, false);
+        if (fishIndex < local) return flock.fishSpecies(fishIndex);
 
-        TankGroups.Group group = ClientTankGroups.get(be, level).group();
-        if (!group.isMultiTank()) return -1;
-        TankFlockAdapter anchorFlock = FLOCKS.get(group.anchor());
-        if (anchorFlock == null) return -1;
-        return anchorFlock.fishSpecies(fishIndex - local, true);
+        TankGroupFlock group = warmGroupFlock(be, level);
+        return group == null ? -1 : group.fishSpecies(fishIndex - local);
     }
 
     /** Drops all flocks — call on world join/disconnect so block positions never leak across worlds. */

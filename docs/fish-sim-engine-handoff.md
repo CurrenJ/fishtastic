@@ -169,6 +169,10 @@ workstream (feasibility §A.7) that this project unblocks but does not include. 
 artifacts (frustum culling at the anchor, single-block lighting) in this preview; note them, don't
 fix them here.
 
+> Both expected artifacts were fixed later, and this paragraph is kept only as the record of what
+> Task 9 shipped. The group's runtime moved from the anchor's adapter to the group itself and each
+> member now draws the fish inside it — see §9.8 of `docs/fish-tank-group-scaling.md`.
+
 **Done when:** a 3×1 row of tanks runs one shoal across the shared volume in-game.
 
 ## 5. Things that will bite you
