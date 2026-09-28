@@ -138,6 +138,54 @@ public final class TankGroupFlock {
         return bucketCounts[memberIndex];
     }
 
+    /**
+     * How the group's fish are currently distributed across its members — the partition's own
+     * account of itself, for the render self-test ({@code client/selftest/RenderSelfTest}, the
+     * {@code pertank} scene). Both ways this can go wrong are invisible in any rendered frame: a
+     * fish claimed by nobody is simply never drawn, and one claimed twice has its second submission
+     * overwrite the first's shared render state, so the frame still looks plausible. The harness
+     * asserts on these counts instead of on pixels.
+     */
+    public OwnershipAudit auditOwnership() {
+        int n = count();
+        int[] claimed = new int[n];
+        for (int member = 0; member < memberCount; member++) {
+            int[] bucket = buckets[member];
+            for (int k = 0; k < bucketCounts[member]; k++) {
+                int fish = bucket[k];
+                if (fish >= 0 && fish < n) claimed[fish]++;
+            }
+        }
+        int drawn = 0;
+        int twice = 0;
+        int never = 0;
+        for (int i = 0; i < n; i++) {
+            if (claimed[i] == 1) drawn++;
+            else if (claimed[i] > 1) twice++;
+            else never++;
+        }
+        int drawing = 0;
+        for (int member = 0; member < memberCount; member++) {
+            if (bucketCounts[member] > 0) drawing++;
+        }
+        return new OwnershipAudit(n, drawn, twice, never, drawing, memberCount);
+    }
+
+    /**
+     * @param fish         fish in the group engine
+     * @param drawn        fish in exactly one member's bucket
+     * @param claimedTwice fish in more than one — drawn twice, the second overwriting the first
+     * @param claimedNever fish in none — never drawn at all
+     * @param membersDrawing members with a non-empty bucket
+     */
+    public record OwnershipAudit(int fish, int drawn, int claimedTwice, int claimedNever,
+                                 int membersDrawing, int members) {
+        /** True when every fish is drawn exactly once. */
+        public boolean isPartition() {
+            return fish > 0 && drawn == fish && claimedTwice == 0 && claimedNever == 0;
+        }
+    }
+
     /** Index of {@code pos} in the group's member list, or {@code -1} if it is not a member. */
     int memberIndexOf(BlockPos pos) {
         Integer index = memberIndices.get(pos);

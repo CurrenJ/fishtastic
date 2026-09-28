@@ -1,0 +1,1436 @@
+package grill24.fishtastic.client.selftest;
+
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import grill24.FishtasticRegistries;
+import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.blockentity.FishPileBlockEntity;
+import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.client.QuestProgressEvent;
+import grill24.fishtastic.client.QuestProgressNotificationManager;
+import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
+import grill24.fishtastic.client.renderer.FishtasticRenderPipelines;
+import grill24.fishtastic.client.renderer.TankGroupFlock;
+import grill24.fishtastic.client.util.ClientTankFlocks;
+import grill24.fishtastic.client.util.ClientTankGroups;
+import grill24.fishtastic.client.util.FishermanPoseDebug;
+import grill24.fishtastic.command.CosmeticCaptureSession;
+import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.component.FishTankMaterials;
+import grill24.fishtastic.fishtank.FishTankShape;
+import net.minecraft.world.level.block.Block;
+import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.TankGroups;
+import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
+import grill24.fishtastic.util.Ids;
+import grill24.fishtastic.util.ItemSizeHelper;
+import net.minecraft.client.CameraType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.tutorial.TutorialSteps;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.ChatVisiblity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+/**
+ * Dev harness for unattended rendering checks: drives a client run that stages rendering scenes,
+ * photographs them and quits, so visual checks need nobody at the keyboard.
+ *
+ * <p>Armed only when {@code <run dir>/fishtastic_render_selftest} exists; inert otherwise. Each
+ * non-blank, non-{@code #} line of that file names a scene to run (an empty file runs them all).
+ * Screenshots go to {@code <run dir>/screenshots/selftest-<loader>-<scene>-<shot>.png}; checks
+ * the harness can make by itself are logged as {@code [selftest] CHECK <name>: PASS|FAIL ...}.
+ * <b>The marker persists across launches and will hijack a playtest — delete it when done.</b>
+ *
+ * <p>Ported from the {@code port/1.21.1} branch, where it existed as a port-only harness (its
+ * {@code port/1.20.1} sibling differs only in the same places this branch does: the dimensions
+ * provider, {@code BundleContents}, and the pile-block item-model marker). The scenes and the
+ * {@code CHECK} vocabulary are deliberately identical, so a run on either branch is comparable.
+ * Where 26.1.2 has no equivalent of a 1.21.1 construct the scene says so rather than quietly
+ * checking something else:
+ *
+ * <ul>
+ *   <li>{@code fabulous} toggles {@code improvedTransparency} — 26.1.2 replaced
+ *       {@code GraphicsStatus.FABULOUS} with that option, and {@link Minecraft#useShaderTransparency}
+ *       now reads it off the render state.</li>
+ *   <li>{@code outline} dumps the main target rather than the outline and mask atlases: 26.1.2
+ *       creates those atlases without {@code USAGE_COPY_SRC} (usage 13), so they cannot be read
+ *       back without changing {@link FishtasticItemOutlineAtlas}. The world shots still show every
+ *       outline these atlases feed; the atlas's registration is asserted instead of its pixels.</li>
+ *   <li>{@code hud} keeps its shots and drops the two checks that read {@code FishtasticHudLayers}
+ *       counters. That class is a 1.21.1 construct: it exists there to draw the quest banners after
+ *       vanilla's toasts, a problem 26.1.2 does not have.</li>
+ *   <li>{@code prepare} sets the three world rules with commands instead of seeding them through
+ *       {@link LevelSettings}, which in 26.1.2 no longer carries a {@link GameRules}.</li>
+ * </ul>
+ */
+public final class RenderSelfTest {
+    private static final String MARKER = "fishtastic_render_selftest";
+    private static final String WORLD_NAME = "fishtastic_render_selftest";
+
+    /** Scenes in the order they run. */
+    private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
+            "guiscale", "fixes", "hud", "gizmos", "pertank");
+
+    private static Boolean armed;
+    private static Set<String> scenes;
+    private static String loader;
+    private static boolean worldRequested;
+    private static int titleTicks;
+    private static boolean started;
+    private static final Deque<Step> STEPS = new ArrayDeque<>();
+    private static int wait;
+    private static BlockPos origin;
+    private static TutorialSteps savedTutorialStep;
+    private static boolean savedPauseOnLostFocus;
+
+    private record Step(int delayTicks, Consumer<Minecraft> action) {}
+
+    /** Called once per client tick by each loader's client entrypoint. */
+    public static void tick(Minecraft mc, String loaderName) {
+        if (armed == null) {
+            File marker = new File(mc.gameDirectory, MARKER);
+            armed = marker.exists();
+            if (!armed) return;
+            loader = loaderName;
+            scenes = readScenes(marker);
+            // Unattended: a focus change must not pause the game (the integrated server would stop
+            // running the scene commands). Restored in finish().
+            savedPauseOnLostFocus = mc.options.pauseOnLostFocus;
+            mc.options.pauseOnLostFocus = false;
+            Fishtastic.LOGGER.info("[selftest] armed on {}: scenes {}", loader, scenes);
+        }
+        if (!armed) return;
+        if (mc.screen instanceof PauseScreen) mc.setScreen(null);
+
+        if (!worldRequested) {
+            if (mc.screen instanceof TitleScreen && ++titleTicks > 40) {
+                worldRequested = true;
+                createWorld(mc);
+            }
+            return;
+        }
+        if (mc.level == null || mc.player == null || mc.getSingleplayerServer() == null) return;
+
+        if (!started) {
+            started = true;
+            origin = mc.player.blockPosition();
+            queue(60, RenderSelfTest::prepare);
+            for (String scene : scenes) queueScene(scene);
+            queue(20, RenderSelfTest::finish);
+        }
+        if (wait > 0) {
+            wait--;
+            return;
+        }
+        Step step = STEPS.poll();
+        if (step == null) return;
+        step.action().accept(mc);
+        Step next = STEPS.peek();
+        if (next != null) wait = next.delayTicks();
+    }
+
+    private static Set<String> readScenes(File marker) {
+        Set<String> requested = new LinkedHashSet<>();
+        try {
+            for (String line : Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8)) {
+                String s = line.trim();
+                if (!s.isEmpty() && !s.startsWith("#")) requested.add(s);
+            }
+        } catch (IOException e) {
+            Fishtastic.LOGGER.warn("[selftest] could not read marker file", e);
+        }
+        if (requested.isEmpty()) return new LinkedHashSet<>(ALL_SCENES);
+        for (String s : requested) {
+            if (!ALL_SCENES.contains(s)) Fishtastic.LOGGER.warn("[selftest] unknown scene '{}'", s);
+        }
+        requested.retainAll(ALL_SCENES);
+        return requested;
+    }
+
+    private static void queue(int delayTicks, Consumer<Minecraft> action) {
+        if (STEPS.isEmpty() && wait == 0) wait = delayTicks;
+        STEPS.add(new Step(delayTicks, action));
+    }
+
+    // ── Setup and teardown ───────────────────────────────────────────────────
+
+    private static void createWorld(Minecraft mc) {
+        Path save = mc.gameDirectory.toPath().resolve("saves").resolve(WORLD_NAME);
+        if (Files.exists(save)) {
+            try (Stream<Path> walk = Files.walk(save)) {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+            } catch (IOException e) {
+                Fishtastic.LOGGER.warn("[selftest] could not delete the old self-test world", e);
+            }
+        }
+        Fishtastic.LOGGER.info("[selftest] creating flat world");
+        // 26.1.2's LevelSettings is (name, game type, difficulty settings, allowCommands, data
+        // configuration) with no GameRules; the quiet-world rules are set by command in prepare().
+        LevelSettings settings = new LevelSettings(WORLD_NAME, GameType.CREATIVE,
+                new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), true,
+                WorldDataConfiguration.DEFAULT);
+        mc.createWorldOpenFlows().createFreshLevel(WORLD_NAME, settings, new WorldOptions(1L, false, false),
+                access -> access.lookupOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
+                new TitleScreen());
+    }
+
+    /**
+     * Quiet world, no tutorial. Vanilla draws its toasts after every mod HUD layer, so the
+     * tutorial's hint toasts would cover our overlays: stop() alone is not enough (the step is
+     * recreated from the option), so the option is set to NONE too, and restored in {@link #finish}.
+     */
+    private static void prepare(Minecraft mc) {
+        savedTutorialStep = mc.options.tutorialStep;
+        mc.options.tutorialStep = TutorialSteps.NONE;
+        mc.getTutorial().stop();
+        mc.getToastManager().clear();
+        server(mc, s -> {
+            run(s, "gamerule sendCommandFeedback false");
+            // The quiet-world rules LevelSettings carried on 1.21.1, applied now that the world
+            // exists — still long before any scene runs.
+            run(s, "gamerule doDaylightCycle false");
+            run(s, "gamerule doMobSpawning false");
+            run(s, "gamerule doWeatherCycle false");
+            run(s, "time set 6000");
+        });
+        check("shaders.loaded", FishtasticRenderPipelines.WORLD_OUTLINE != null
+                        && FishtasticRenderPipelines.TANK_WATER_FILL != null,
+                "world_outline=" + FishtasticRenderPipelines.WORLD_OUTLINE
+                        + " tank_water_fill=" + FishtasticRenderPipelines.TANK_WATER_FILL);
+        Fishtastic.LOGGER.info("[selftest] origin {} (gui scale {}, window {}x{})", origin,
+                mc.getWindow().getGuiScale(), mc.getWindow().getWidth(), mc.getWindow().getHeight());
+    }
+
+    private static void finish(Minecraft mc) {
+        mc.options.tutorialStep = savedTutorialStep;
+        mc.options.pauseOnLostFocus = savedPauseOnLostFocus;
+        mc.options.hideGui = false;
+        mc.options.save();
+        Fishtastic.LOGGER.info("[selftest] complete, stopping");
+        mc.stop();
+    }
+
+    // ── Scenes ───────────────────────────────────────────────────────────────
+
+    private static void queueScene(String scene) {
+        switch (scene) {
+            case "tank" -> queueTankScene();
+            case "shapes" -> queueShapesScene();
+            case "stress512" -> queueStressScene();
+            case "items" -> queueItemsScene();
+            case "held" -> queueHeldScene();
+            case "outline" -> queueOutlineScene();
+            case "fabulous" -> queueFabulousScene();
+            case "guiscale" -> queueGuiScaleScene();
+            case "fixes" -> queueFixesScene();
+            case "hud" -> queueHudScene();
+            case "gizmos" -> queueGizmosScene();
+            case "pertank" -> queuePerTankScene();
+            default -> throw new IllegalArgumentException(scene);
+        }
+    }
+
+    /**
+     * A 3-tank group with 12 fish (one legendary), a chest, a lit campfire and a lit-furnace
+     * structure; a lone tank with a planted and a benthic creature; a fish pile. Photographed from
+     * outside and from inside the middle tank (the tank body's back faces are culled, so the inside
+     * view shows the BER alone).
+     */
+    private static void queueTankScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            run(s, "fill " + (x - 3) + " " + y + " " + (z - 2) + " " + (x + 5) + " " + (y + 3) + " " + (z + 2) + " minecraft:air");
+            for (int dx = -1; dx <= 1; dx++) run(s, "setblock " + (x + dx) + " " + y + " " + z + " fishtastic:fish_tank");
+            run(s, "setblock " + (x + 3) + " " + y + " " + z + " fishtastic:fish_tank");
+            run(s, "setblock " + (x + 3) + " " + y + " " + (z + 2) + " fishtastic:fish_pile");
+            // Standalone see-through blocks, for their chunk layers (FishtasticBlockRenderLayers).
+            run(s, "setblock " + (x + 3) + " " + (y + 1) + " " + z + " fishtastic:blue_clear_stained_glass");
+            run(s, "setblock " + (x - 1) + " " + (y + 1) + " " + z + " fishtastic:clear_glass");
+        }));
+        queue(5, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            String[] group = {"bluegill", "discus", "lionfish", "betta", "clown_loach", "giraffe_cichlid",
+                    "golden_trout", "arctic_char", "greenstripe_barb", "blind_cave_tetra", "lined_seahorse", "glass_catfish"};
+            for (int i = 0; i < group.length; i++) {
+                FishTankBlockEntity tank = tank(level, new BlockPos(x - 1 + i % 3, y, z));
+                ItemStack fish = fish(group[i], 25f + 3f * i);
+                if (i == 2) FishtasticItemData.set(fish, FishtasticDataComponents.FISH_QUALITY,
+                        new FishQuality(FishQuality.Quality.LEGENDARY));
+                check("tank.addItem." + group[i], tank != null && tank.addItem(fish), "");
+            }
+            FishTankBlockEntity left = tank(level, new BlockPos(x - 1, y, z));
+            FishTankBlockEntity middle = tank(level, new BlockPos(x, y, z));
+            FishTankBlockEntity right = tank(level, new BlockPos(x + 1, y, z));
+            left.setCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(
+                    Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH)));
+            middle.setCosmetic(new CosmeticGridCell(1, 2), new PlacedCosmetic(
+                    Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.LIT, true)));
+            right.setStructureCosmetic(new CosmeticGridCell(2, 2), new FishTankBlockEntity.PlacedStructureCosmetic(
+                    ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, Ids.of("fishtastic", "dynamic_duo")),
+                    Rotation.NONE), List.of(new CosmeticGridCell(2, 2)));
+
+            FishTankBlockEntity lone = tank(level, new BlockPos(x + 3, y, z));
+            lone.addItem(fish("starfish", 20f));
+            lone.addItem(fish("garden_eel", 40f));
+            lone.addItem(fish("plaice", 35f));
+
+            if (level.getBlockEntity(new BlockPos(x + 3, y, z + 2)) instanceof FishPileBlockEntity pile) {
+                for (String species : List.of("bluegill", "discus", "lionfish", "betta")) pile.insertSingle(fish(species, 30f));
+            }
+            check("tank.group.openFaces", middle.getOpenFaces().contains(Direction.EAST)
+                    && middle.getOpenFaces().contains(Direction.WEST), "middle=" + middle.getOpenFaces());
+        }));
+        queue(5, mc -> {
+            mc.options.hideGui = true;
+            camera(mc, origin.getX() + 1.0, origin.getY() + 2.2, origin.getZ() - 0.6, 180f, 12f);
+        });
+        queue(60, mc -> screenshot(mc, "tank", "outside"));
+        queue(1, mc -> camera(mc, origin.getX() + 0.5, origin.getY() + 0.55, origin.getZ() - 3.08, 180f, 8f));
+        queue(40, mc -> screenshot(mc, "tank", "inside_a"));
+        queue(10, mc -> screenshot(mc, "tank", "inside_b"));
+        queue(1, mc -> camera(mc, origin.getX() + 3.5, origin.getY() + 0.55, origin.getZ() - 3.08, 180f, 8f));
+        queue(30, mc -> screenshot(mc, "tank", "lone_inside"));
+        queue(1, mc -> camera(mc, origin.getX() + 5.2, origin.getY() + 1.8, origin.getZ() - 0.5, 150f, 45f));
+        queue(30, mc -> screenshot(mc, "tank", "lone_and_pile"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    /** Frame, sand and glass for the three material sets of the shapes scene. */
+    private static final String[][] MATERIAL_SETS = {
+            {"minecraft:oak_planks", "minecraft:sand", "fishtastic:blue_clear_stained_glass"},
+            {"minecraft:stone_bricks", "minecraft:gravel", "minecraft:glass"},
+            // Waxed copper is the blockstate-redirect case (docs/fish-tank-rendering.md).
+            {"minecraft:waxed_copper_block", "minecraft:red_sand", "fishtastic:pink_borderless_stained_glass"},
+    };
+
+    /**
+     * Every {@link FishTankShape} in each of three material sets (two rows of ten per set), an
+     * L-shaped group (diagonal corner fragments), a vertical L (edge fragments), a live material
+     * change (re-mesh), and tank items with different shapes and materials in the hotbar.
+     */
+    private static void queueShapesScene() {
+        FishTankShape[] shapes = FishTankShape.values();
+        queue(1, mc -> server(mc, s -> {
+            int x0 = origin.getX() - 10, y = origin.getY(), z0 = origin.getZ() - 20;
+            run(s, "fill " + (x0 - 2) + " " + y + " " + (z0 - 16) + " " + (x0 + 22) + " " + (y + 3) + " " + (z0 + 8) + " minecraft:air");
+            for (int set = 0; set < MATERIAL_SETS.length; set++) {
+                for (int i = 0; i < shapes.length; i++) {
+                    run(s, "setblock " + (x0 + 2 * (i % 10)) + " " + y + " " + (z0 - 6 * set - 2 * (i / 10)) + " fishtastic:fish_tank");
+                }
+            }
+            // L-group (corner fragments) and vertical L (edge fragments), default materials.
+            int lx = x0 + 2, lz = z0 + 5;
+            run(s, "setblock " + lx + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + (lx + 1) + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + lx + " " + y + " " + (lz - 1) + " fishtastic:fish_tank");
+            int vx = x0 + 8;
+            run(s, "setblock " + vx + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + (vx + 1) + " " + y + " " + lz + " fishtastic:fish_tank");
+            run(s, "setblock " + vx + " " + (y + 1) + " " + lz + " fishtastic:fish_tank");
+        }));
+        queue(5, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x0 = origin.getX() - 10, y = origin.getY(), z0 = origin.getZ() - 20;
+            for (int set = 0; set < MATERIAL_SETS.length; set++) {
+                FishTankMaterials materials = materials(MATERIAL_SETS[set]);
+                for (int i = 0; i < shapes.length; i++) {
+                    FishTankBlockEntity tank = tank(level, new BlockPos(x0 + 2 * (i % 10), y, z0 - 6 * set - 2 * (i / 10)));
+                    if (tank == null) continue;
+                    tank.setShape(shapes[i]);
+                    tank.setMaterials(materials);
+                }
+            }
+            FishTankBlockEntity corner = tank(level, new BlockPos(x0 + 2, y, z0 + 5));
+            check("shapes.lGroup.openFaces", corner != null && corner.getOpenFaces().contains(Direction.EAST)
+                    && corner.getOpenFaces().contains(Direction.NORTH), "corner=" + (corner == null ? null : corner.getOpenFaces()));
+            FishTankBlockEntity base = tank(level, new BlockPos(x0 + 8, y, z0 + 5));
+            check("shapes.verticalL.openFaces", base != null && base.getOpenFaces().contains(Direction.EAST)
+                    && base.getOpenFaces().contains(Direction.UP), "base=" + (base == null ? null : base.getOpenFaces()));
+            // Tank items: different shapes and materials, for the item model (and later the gallery).
+            for (int i = 0; i < 9; i++) {
+                ItemStack item = new ItemStack(BuiltInRegistries.ITEM.getValue(Ids.of("fishtastic", "fish_tank")));
+                FishtasticItemData.set(item, FishtasticDataComponents.FISH_TANK_SHAPE, shapes[(i * 2) % shapes.length]);
+                FishtasticItemData.set(item, FishtasticDataComponents.FISH_TANK_MATERIALS, materials(MATERIAL_SETS[i % MATERIAL_SETS.length]));
+                for (var player : s.getPlayerList().getPlayers()) player.getInventory().setItem(i, item.copy());
+            }
+        }));
+        for (int set = 0; set < MATERIAL_SETS.length; set++) {
+            int row = set;
+            queue(5, mc -> {
+                mc.options.hideGui = true;
+                camera(mc, origin.getX() - 1.0, origin.getY() + 4.0, origin.getZ() - 20 - 6 * row + 7.5, 180f, 25f);
+            });
+            queue(60, mc -> screenshot(mc, "shapes", "set" + row));
+        }
+        queue(1, mc -> camera(mc, origin.getX() - 3.0, origin.getY() + 3.0, origin.getZ() - 11.0, 180f, 30f));
+        queue(60, mc -> screenshot(mc, "shapes", "groups"));
+        queue(1, mc -> server(mc, s -> {
+            FishTankBlockEntity corner = tank(s.overworld(), new BlockPos(origin.getX() - 8, origin.getY(), origin.getZ() - 15));
+            if (corner != null) corner.setMaterials(materials(new String[]{"minecraft:diamond_block", "minecraft:red_sand", "minecraft:glass"}));
+        }));
+        queue(40, mc -> screenshot(mc, "shapes", "groups_rematerialed"));
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, s -> run(s, "gamemode creative @a"));
+        });
+        queue(40, mc -> screenshot(mc, "shapes", "hotbar"));
+    }
+
+    /**
+     * Stress: an 8x8x8 group (the 512-tank cap) whose tanks cycle through 64 frame/glass
+     * combinations the model has never baked, so the chunk-meshing threads bake them all at once
+     * and concurrently. Watch the log for exceptions and missing-texture quads.
+     */
+    private static void queueStressScene() {
+        String[] frames = {"stone_bricks", "oak_planks", "spruce_planks", "birch_planks", "dark_oak_planks", "bricks",
+                "deepslate_tiles", "polished_andesite", "quartz_block", "mud_bricks", "cherry_planks", "bamboo_planks",
+                "crimson_planks", "warped_planks", "prismarine_bricks", "waxed_copper_block"};
+        String[] glasses = {"fishtastic:blue_clear_stained_glass", "minecraft:glass", "fishtastic:clear_glass",
+                "minecraft:red_stained_glass"};
+        queue(1, mc -> server(mc, s -> {
+            int x0 = origin.getX() + 12, y = origin.getY(), z0 = origin.getZ() - 12;
+            run(s, "fill " + x0 + " " + y + " " + z0 + " " + (x0 + 7) + " " + (y + 7) + " " + (z0 + 7) + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x0 = origin.getX() + 12, y = origin.getY(), z0 = origin.getZ() - 12, placed = 0;
+            for (int i = 0; i < 512; i++) {
+                FishTankBlockEntity tank = tank(level, new BlockPos(x0 + i % 8, y + (i / 8) % 8, z0 + i / 64));
+                if (tank == null) continue;
+                placed++;
+                tank.setMaterials(new FishTankMaterials(block("minecraft:" + frames[i % 16]), block("minecraft:sand"),
+                        block(glasses[(i / 16) % 4])));
+            }
+            FishTankBlockEntity centre = tank(level, new BlockPos(x0 + 3, y + 3, z0 + 3));
+            check("stress512.placed", placed == 512, "placed=" + placed);
+            check("stress512.centreOpenFaces", centre != null && centre.getOpenFaces().size() == 6,
+                    "centre=" + (centre == null ? null : centre.getOpenFaces()));
+        }));
+        queue(5, mc -> {
+            mc.options.hideGui = true;
+            // Minecraft yaw: 0 faces +Z, 90 faces -X, 180 faces -Z; -138 looks north-east at the group.
+            camera(mc, origin.getX() + 8.0, origin.getY() + 11.0, origin.getZ() + 1.0, -138f, 35f);
+        });
+        queue(100, mc -> screenshot(mc, "stress512", "group"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    /**
+     * The builtin/entity items (26.1's custom item model types) in the hotbar, the inventory
+     * screen, item frames, on the ground and in hand; and the Shape Gallery, whose cells render
+     * tank items.
+     */
+    private static void queueItemsScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 6;
+            run(s, "fill " + (x - 4) + " " + y + " " + (z - 1) + " " + (x + 4) + " " + (y + 3) + " " + (z + 4) + " minecraft:air");
+            run(s, "fill " + (x - 4) + " " + y + " " + (z + 3) + " " + (x + 4) + " " + (y + 2) + " " + (z + 3) + " minecraft:stone");
+            run(s, "setblock " + (x + 3) + " " + y + " " + (z - 2) + " fishtastic:fish_tank_assembly");
+            List<ItemStack> items = itemsSceneStacks();
+            for (int i = 0; i < 4; i++) {
+                run(s, "summon item_frame " + (x - 1 + i) + " " + (y + 1) + " " + (z + 2) + " {Facing:2b,Fixed:1b,Invulnerable:1b}");
+            }
+            for (var player : s.getPlayerList().getPlayers()) {
+                for (int i = 0; i < 9; i++) player.getInventory().setItem(i, items.get(i).copy());
+                player.getInventory().setSelectedSlot(0);
+            }
+            ServerLevel level = s.overworld();
+            var frames = level.getEntitiesOfClass(ItemFrame.class, new AABB(x - 2, y, z + 1, x + 4, y + 3, z + 3));
+            for (int i = 0; i < frames.size() && i < 4; i++) frames.get(i).setItem(items.get(i + 1).copy(), false);
+            for (int i = 0; i < 4; i++) {
+                var entity = new ItemEntity(level, x - 1 + i + 0.5, y, z + 0.5, items.get(i).copy());
+                entity.setNeverPickUp();
+                entity.setUnlimitedLifetime();
+                entity.setDeltaMovement(0, 0, 0);
+                level.addFreshEntity(entity);
+            }
+        }));
+        queue(20, mc -> {
+            mc.options.hideGui = false;
+            mc.player.getInventory().setSelectedSlot(0);
+            server(mc, s -> {
+                run(s, "gamemode creative @a");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 1.0, (double) origin.getY(), origin.getZ() + 3.0, 0f, 25f));
+            });
+        });
+        queue(40, mc -> screenshot(mc, "items", "world_and_hotbar"));
+        queue(1, mc -> mc.setScreen(new InventoryScreen(mc.player)));
+        queue(30, mc -> screenshot(mc, "items", "inventory"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            mc.player.getInventory().setSelectedSlot(1);
+        });
+        queue(20, mc -> screenshot(mc, "items", "held_structure"));
+        queue(1, mc -> mc.player.getInventory().setSelectedSlot(5));
+        queue(20, mc -> screenshot(mc, "items", "held_pile"));
+        // The Shape Gallery: an empty-hand click on a placed assembly, as in play.
+        queue(1, mc -> {
+            grill24.fishtastic.client.FishtasticClientConfig.setShapeGalleryOpen(true);
+            mc.player.getInventory().setSelectedSlot(8);
+            mc.player.getInventory().setItem(8, ItemStack.EMPTY);
+            server(mc, s -> {
+                for (var player : s.getPlayerList().getPlayers()) player.getInventory().setItem(8, ItemStack.EMPTY);
+            });
+        });
+        queue(5, mc -> {
+            BlockPos assembly = new BlockPos(origin.getX() + 3, origin.getY(), origin.getZ() + 4);
+            mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                    new BlockHitResult(Vec3.atCenterOf(assembly), Direction.UP, assembly, false));
+        });
+        queue(40, mc -> {
+            screenshot(mc, "items", "shape_gallery");
+            check("items.assemblyOpen", mc.screen != null, "screen=" + mc.screen);
+        });
+        queue(1, mc -> mc.setScreen(null));
+    }
+
+    /**
+     * The fishing line leaves the Fishtastic rod's hand, a held fish renders at its recorded size
+     * in third person, and the leaderboard's podium puppet holds its catch in the fisherman pose.
+     */
+    private static void queueHeldScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, s -> {
+                run(s, "gamemode survival @a");
+                run(s, "fill " + (origin.getX() - 3) + " " + (origin.getY() - 1) + " " + (origin.getZ() - 12) + " "
+                        + (origin.getX() + 3) + " " + (origin.getY() - 1) + " " + (origin.getZ() - 6) + " minecraft:water");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 0.5, (double) origin.getY(), origin.getZ() - 3.5, 180f, 20f));
+                for (var player : s.getPlayerList().getPlayers()) {
+                    player.getInventory().setItem(0, item("copper_fishing_rod"));
+                    player.getInventory().setItem(1, fish("giant_manta_ray", 300f));
+                    player.getInventory().setItem(2, fish("bluegill", 12f));
+                    player.getInventory().setSelectedSlot(0);
+                }
+            });
+        });
+        queue(20, mc -> {
+            mc.player.getInventory().setSelectedSlot(0);
+            mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+        });
+        queue(40, mc -> screenshot(mc, "held", "rod_cast_first_person"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+        queue(20, mc -> screenshot(mc, "held", "rod_cast_third_person"));
+        queue(1, mc -> {
+            mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND); // reel in
+            mc.player.getInventory().setSelectedSlot(1);
+        });
+        queue(20, mc -> screenshot(mc, "held", "large_fish_third_person"));
+        queue(1, mc -> mc.player.getInventory().setSelectedSlot(2));
+        queue(20, mc -> screenshot(mc, "held", "small_fish_third_person"));
+        // The fisherman hang pose: the podium puppet's code path, forced onto the player by the
+        // debug toggle (the same check), holding the large fish.
+        queue(1, mc -> {
+            grill24.fishtastic.client.util.FishermanPoseDebug.enabledInWorld = true;
+            mc.player.getInventory().setSelectedSlot(1);
+        });
+        queue(20, mc -> screenshot(mc, "held", "fisherman_pose"));
+        queue(1, mc -> {
+            grill24.fishtastic.client.util.FishermanPoseDebug.enabledInWorld = false;
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            // The 1.21.1 harness probed gelatin-ui's PlayerAvatarRenderer$Puppet class here, because
+            // its fisherman-pose matcher keyed on that class name. 26.1.2 has a real Mannequin entity,
+            // gelatin-ui's PlayerAvatarRenderer draws a ClientMannequin, and FishermanPoseDebug keys
+            // on EntityType.MANNEQUIN instead — so the same question ("does the pose reach the podium
+            // puppet, and only things like it?") becomes an entity-type probe. The armor stand is the
+            // control: a matcher widened to everything would be wrong in the other direction.
+            check("held.gelatinPuppetClass",
+                    FishermanPoseDebug.shouldPose(EntityType.MANNEQUIN)
+                            && !FishermanPoseDebug.shouldPose(EntityType.ARMOR_STAND),
+                    "(FishermanPoseDebug.shouldPose matches MANNEQUIN, not ARMOR_STAND)");
+        });
+    }
+
+    private static final String[] QUALITIES = {"uncommon", "rare", "epic", "legendary"};
+
+    private static ItemStack qualityFish(String quality) {
+        ItemStack stack = fish("parrotfish", 30f);
+        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_QUALITY,
+                new FishQuality(FishQuality.Quality.valueOf(quality.toUpperCase(Locale.ROOT))));
+        return stack;
+    }
+
+    /**
+     * Quality glint on a held item; static and animated (legendary) GUI outlines in the hotbar and
+     * a container; world outlines on dropped items and in item frames; plus the encyclopedia's
+     * never-caught silhouettes. The common-quality fish in hotbar slot 5 is the no-outline control.
+     * Two shots 10 ticks apart: only the legendary slot should differ.
+     *
+     * <p>26.1.2 has no separately-readable atlas target to dump alongside them — the outline and
+     * mask atlases are created without {@code USAGE_COPY_SRC}, so the main target is dumped instead
+     * and the atlases are asserted to be registered (see the class javadoc).
+     */
+    private static void queueOutlineScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 14;
+            run(s, "fill " + (x - 5) + " " + y + " " + (z - 3) + " " + (x + 5) + " " + (y + 3) + " " + (z + 4) + " minecraft:air");
+            run(s, "fill " + (x - 4) + " " + y + " " + (z + 4) + " " + (x + 4) + " " + (y + 2) + " " + (z + 4) + " minecraft:stone");
+            ServerLevel level = s.overworld();
+            for (int i = 0; i < QUALITIES.length; i++) {
+                run(s, "summon item_frame " + (x - 2 + i) + " " + (y + 1) + " " + (z + 3) + " {Facing:2b,Fixed:1b,Invulnerable:1b}");
+                var entity = new ItemEntity(level, x - 1.05 + 0.7 * i, y, z + 0.9, qualityFish(QUALITIES[i]));
+                entity.setNeverPickUp();
+                entity.setUnlimitedLifetime();
+                entity.setDeltaMovement(0, 0, 0);
+                level.addFreshEntity(entity);
+            }
+            for (var player : s.getPlayerList().getPlayers()) {
+                for (int i = 0; i < 9; i++) player.getInventory().setItem(i, ItemStack.EMPTY);
+                for (int i = 0; i < QUALITIES.length; i++) player.getInventory().setItem(i, qualityFish(QUALITIES[i]));
+                player.getInventory().setItem(4, fish("parrotfish", 30f));
+                player.getInventory().setSelectedSlot(3);
+            }
+        }));
+        queue(5, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() + 14;
+            var frames = s.overworld().getEntitiesOfClass(ItemFrame.class, new AABB(x - 3, y, z + 2, x + 3, y + 3, z + 4));
+            frames.sort(Comparator.comparingDouble(net.minecraft.world.entity.Entity::getX));
+            for (int i = 0; i < frames.size() && i < QUALITIES.length; i++) frames.get(i).setItem(qualityFish(QUALITIES[i]), false);
+        }));
+        queue(5, mc -> {
+            mc.options.hideGui = false;
+            mc.player.getInventory().setSelectedSlot(3);
+            server(mc, s -> {
+                run(s, "gamemode creative @a");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 10.5, 0f, 5f));
+            });
+        });
+        queue(60, mc -> {
+            screenshot(mc, "outline", "frames_a");
+            dump(mc, mc.getMainRenderTarget(), "outline", "frame_a");
+            check("outline.atlasRegistered", atlasTextureRegistered(FishtasticItemOutlineAtlas.TEXTURE_ID)
+                            && atlasTextureRegistered(FishtasticItemOutlineAtlas.MASK_TEXTURE_ID),
+                    "outline=" + FishtasticItemOutlineAtlas.TEXTURE_ID
+                            + " mask=" + FishtasticItemOutlineAtlas.MASK_TEXTURE_ID);
+        });
+        queue(10, mc -> {
+            screenshot(mc, "outline", "frames_b");
+            dump(mc, mc.getMainRenderTarget(), "outline", "frame_b");
+            server(mc, s -> run(s, "execute as @a at @s run tp @s ~ ~ ~ 0 60"));
+        });
+        queue(20, mc -> screenshot(mc, "outline", "ground"));
+        queue(1, mc -> server(mc, s -> run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                origin.getX() + 0.5, origin.getY() - 0.4, origin.getZ() + 15.4, 0f, 0f))));
+        queue(20, mc -> screenshot(mc, "outline", "frames_close"));
+        queue(1, mc -> mc.setScreen(new InventoryScreen(mc.player)));
+        queue(30, mc -> screenshot(mc, "outline", "inventory"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            mc.player.connection.sendCommand("gelatin fish_encyclopedia");
+        });
+        queue(40, mc -> {
+            screenshot(mc, "outline", "encyclopedia");
+            check("outline.encyclopediaOpen", mc.screen != null, "screen=" + mc.screen);
+        });
+        queue(1, mc -> mc.setScreen(null));
+    }
+
+    /**
+     * Improved transparency (26.1.2's replacement for {@code GraphicsStatus.FABULOUS}): the
+     * item-entity target and the translucency chain. Runs the outline and tank scenes' subjects
+     * under it — world outlines, the tank's glass and water fill, and glass blocks. Expects the
+     * outline and tank scenes to have run first; restores the option after.
+     */
+    private static void queueFabulousScene() {
+        queue(1, mc -> {
+            savedImprovedTransparency = mc.options.improvedTransparency().get();
+            mc.options.improvedTransparency().set(true);
+            // Read straight back: if the platform refuses the option (a warn-listed GPU routes the
+            // toggle to a warning instead of switching the pipeline) the value is already false
+            // here, which tells the check below apart from a late revert.
+            improvedTransparencyAccepted = mc.options.improvedTransparency().get();
+            mc.levelRenderer.allChanged();
+            mc.options.hideGui = false;
+            server(mc, s -> run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                    origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 12.5, 0f, 35f)));
+        });
+        queue(60, mc -> {
+            boolean option = mc.options.improvedTransparency().get();
+            boolean engaged = Minecraft.useShaderTransparency();
+            if (improvedTransparencyAccepted) {
+                check("fabulous.active", engaged && option,
+                        "improvedTransparency=" + option + " engaged=" + engaged);
+            } else {
+                // The platform refused the toggle outright (this dev GPU is on the fabulous
+                // warnlist), so the transparency path is never entered on this machine however the
+                // option is poked. What is still worth asserting is that the two agree — the
+                // pipeline must not engage a mode the options say is off.
+                check("fabulous.active", !option && !engaged,
+                        "improvedTransparency refused by the platform; pipeline stays regular"
+                                + " (option=" + option + " engaged=" + engaged + ")");
+            }
+            screenshot(mc, "fabulous", "outlines");
+        });
+        queue(1, mc -> server(mc, s -> run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                origin.getX() + 0.5, origin.getY() - 0.4, origin.getZ() + 15.4, 0f, 0f))));
+        queue(20, mc -> screenshot(mc, "fabulous", "frames_close"));
+        queue(1, mc -> camera(mc, origin.getX() + 1.0, origin.getY() + 2.2, origin.getZ() - 0.6, 180f, 12f));
+        queue(40, mc -> screenshot(mc, "fabulous", "tanks"));
+        queue(1, mc -> server(mc, s -> run(s, "gamemode creative @a")));
+        queue(1, mc -> {
+            mc.options.improvedTransparency().set(savedImprovedTransparency);
+            mc.levelRenderer.allChanged();
+        });
+        queue(20, mc -> check("fabulous.restored",
+                mc.options.improvedTransparency().get() == savedImprovedTransparency, ""));
+    }
+
+    /**
+     * GUI outlines at GUI scales 1, 2 and 4: the hotbar from the outline scene, which must have run
+     * first. Restores the scale and the window size after.
+     */
+    private static void queueGuiScaleScene() {
+        queue(1, mc -> {
+            savedGuiScale = mc.options.guiScale().get();
+            savedWindowWidth = mc.getWindow().getWidth();
+            savedWindowHeight = mc.getWindow().getHeight();
+            // Scale 4 needs a window at least 1280x960 (Window.calculateScale caps the scale at
+            // width/320 and height/240); the dev runs open smaller ones.
+            mc.getWindow().setWindowed(1920, 1080);
+        });
+        for (int scale : new int[]{1, 2, 4}) {
+            queue(1, mc -> {
+                mc.options.hideGui = false;
+                mc.options.guiScale().set(scale);
+                mc.resizeGui();
+            });
+            queue(20, mc -> {
+                check("guiscale." + scale, mc.getWindow().getGuiScale() == scale, "actual=" + mc.getWindow().getGuiScale());
+                screenshot(mc, "guiscale", "scale" + scale);
+            });
+        }
+        queue(1, mc -> {
+            mc.options.guiScale().set(savedGuiScale);
+            mc.getWindow().setWindowed(savedWindowWidth, savedWindowHeight);
+            mc.resizeGui();
+        });
+    }
+
+    private static boolean savedImprovedTransparency;
+    /** Whether the platform took the option at all — see {@code queueFabulousScene}. */
+    private static boolean improvedTransparencyAccepted;
+    private static int savedGuiScale;
+    private static int savedWindowWidth;
+    private static int savedWindowHeight;
+
+    /** Pile of Fish (flat), a pile-block stack, structure cosmetics, the treasure chest and a tank. */
+    private static List<ItemStack> itemsSceneStacks() {
+        ItemStack legendary = fish("lionfish", 30f);
+        FishtasticItemData.set(legendary, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
+        List<ItemStack> contents = List.of(fish("bluegill", 25f), legendary, fish("discus", 28f), fish("betta", 20f));
+        ItemStack pile = new ItemStack(BuiltInRegistries.ITEM.getValue(Ids.of("fishtastic", "pile_of_fish")));
+        // 26.1.2's BundleContents holds ItemStackTemplates, not ItemStacks, and the pile-block icon
+        // is selected with the ITEM_MODEL component rather than a CustomModelData marker.
+        FishtasticItemData.setBundleContents(pile, new BundleContents(
+                contents.stream().map(ItemStackTemplate::fromNonEmptyStack).toList()));
+        ItemStack pileBlock = pile.copy();
+        pileBlock.set(DataComponents.ITEM_MODEL, grill24.fishtastic.client.util.FishPileIcons.PILE_BLOCK_ITEM_MODEL);
+        return List.of(
+                pile,
+                item("cosmetic_castle_ruin"),
+                item("cosmetic_fence_arch_oak"),
+                item("cosmetic_treasure_chest"),
+                item("cosmetic_coral_reef_1"),
+                pileBlock,
+                item("cosmetic_dynamic_duo"),
+                item("fish_tank"),
+                item("cosmetic_birch_tree"));
+    }
+
+    private static ItemStack item(String id) {
+        return new ItemStack(BuiltInRegistries.ITEM.getValue(Ids.of("fishtastic", id)));
+    }
+
+    private static Block block(String id) {
+        return BuiltInRegistries.BLOCK.getValue(Ids.parse(id));
+    }
+
+    private static FishTankMaterials materials(String[] set) {
+        return new FishTankMaterials(block(set[0]), block(set[1]), block(set[2]));
+    }
+
+    /**
+     * A quest banner updated in place must show the new counter and the Complete! badge; and
+     * opening a gelatin screen must not make JEI log "Received invalid gui properties" (grep
+     * latest.log for it after the run).
+     */
+    private static void queueFixesScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, s -> run(s, "gamemode creative @a"));
+            mc.player.connection.sendCommand("fishtastic testquestnotify");
+        });
+        queue(30, mc -> screenshot(mc, "fixes", "notify_first"));
+        queue(1, mc -> mc.player.connection.sendCommand("fishtastic testquestnotify complete"));
+        queue(30, mc -> screenshot(mc, "fixes", "notify_updated"));
+        queue(200, mc -> mc.player.connection.sendCommand("gelatin quest_log"));
+        queue(40, mc -> {
+            screenshot(mc, "fixes", "quest_log");
+            check("fixes.questLogOpen", mc.screen != null, "screen=" + mc.screen);
+        });
+        queue(1, mc -> mc.setScreen(null));
+    }
+
+    /**
+     * A quest banner and a vanilla toast share the top-right corner, photographed with and without
+     * a screen open. The 1.21.1 harness also counted HUD-layer frames here ({@code toastPassFrames}
+     * / {@code hudPassCalls}) to prove the banners are drawn after the toasts. 26.1.2 has no such
+     * hook — its toasts cover its HUD natively, which is why the 1.21.1 side needed one — so those
+     * two checks have no subject here and only the shots remain.
+     *
+     * <p>The notification is enqueued on the client thread rather than through
+     * {@code /fishtastic testquestnotify}: that command reaches this client-side manager from the
+     * <em>server</em> thread (fine in single-player only), which races its {@code tick} and loses
+     * the event often enough to make the screenshot unreliable. Same call, same event.
+     */
+    private static void queueHudScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.getToastManager().clear();
+            server(mc, s -> run(s, "gamemode creative @a"));
+            QuestProgressNotificationManager.getInstance().enqueue(new QuestProgressEvent(
+                    Ids.of("fishtastic", "mastery/bluegill_novice"), 2, 3, 5, false, ItemStack.EMPTY));
+            SystemToast.add(mc.getToastManager(), SystemToast.SystemToastId.NARRATOR_TOGGLE,
+                    Component.literal("Vanilla toast"),
+                    Component.literal("shares the banner's corner"));
+        });
+        // Two shots: the banner's slide-in is staggered (QuestProgressNotificationManager's
+        // nextStaggerDelay), so the first can catch it part-way across.
+        queue(20, mc -> screenshot(mc, "hud", "banner_and_toast"));
+        queue(20, mc -> {
+            check("hud.noScreen", mc.screen == null, "screen=" + mc.screen);
+            check("hud.toastOnScreen",
+                    mc.getToastManager().getToast(SystemToast.class, SystemToast.SystemToastId.NARRATOR_TOGGLE) != null,
+                    "");
+            screenshot(mc, "hud", "banner_and_toast_late");
+        });
+        // No fresh banner is needed for the second reading: the one enqueued above is still up (a
+        // 15-tick slide-in then a 60-tick hold, and nothing here moves the manager off 1x).
+        queue(1, mc -> mc.setScreen(new ChatScreen("", false)));
+        queue(2, mc -> {
+            check("hud.withScreen", mc.screen != null, "screen=" + mc.screen);
+            screenshot(mc, "hud", "banner_with_screen_toast");
+        });
+        // One step, then the shot: a capture is of the frame *before* the step that asked for it ran
+        // (Screenshot.grab reads the back buffer mid-frame), so clearing and shooting in the same
+        // step photographed the toast twice on the first run of this half.
+        queue(2, mc -> mc.getToastManager().clear());
+        queue(2, mc -> screenshot(mc, "hud", "banner_with_screen"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            mc.getToastManager().clear();
+        });
+    }
+
+    /**
+     * The cosmetic-capture wand's selection boxes: starts a session with the real command, makes
+     * the three picks the wand's right-clicks would make, re-sends the session, then cancels it
+     * (the clear packet must take the boxes away again).
+     */
+    private static void queueGizmosScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = true;
+            mc.player.connection.sendCommand("fishtastic cosmetic capture start");
+        });
+        queue(10, mc -> server(mc, s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            CosmeticCaptureSession session = CosmeticCaptureSession.get(player.getUUID());
+            if (session == null) {
+                check("gizmos.session", false, "no session after /fishtastic cosmetic capture start");
+                return;
+            }
+            session.recordClick(origin.offset(-2, 1, -2));
+            session.recordClick(origin.offset(1, 3, 2));
+            session.recordClick(origin.offset(4, 1, 0));
+            CosmeticCaptureSyncPacket.sendToPlayer(player, session);
+            check("gizmos.session", true, "corner1=" + session.corner1() + " corner2=" + session.corner2()
+                    + " anchor=" + session.anchor());
+        }));
+        queue(1, mc -> camera(mc, origin.getX() + 0.5, origin.getY() + 8.0, origin.getZ() + 14.5, 180f, 20f));
+        queue(40, mc -> screenshot(mc, "gizmos", "selection"));
+        queue(1, mc -> mc.player.connection.sendCommand("fishtastic cosmetic capture cancel"));
+        queue(30, mc -> screenshot(mc, "gizmos", "cancelled"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    // ── Per-tank group rendering ─────────────────────────────────────────────
+
+    /**
+     * How far west of the camera the group's anchor stands, in blocks.
+     *
+     * <p>This is the number that makes the scene reproduce the defect, and it is much larger than
+     * "out of view" would suggest. Vanilla culls terrain against a frustum pushed <em>back</em> along
+     * the view vector until it fully contains the 8-block cube around the camera
+     * ({@code LevelRenderer.offsetFrustum} → {@code Frustum.offsetToFullyIncludeCameraCube(8)}), which
+     * reaches roughly a dozen blocks behind the camera. A section merely a few blocks behind the
+     * camera is therefore still dispatched, and a scene staged that close measures nothing: it was
+     * tried, and {@code pertank.anchorNotRendered} is the check that caught it.
+     */
+    private static final int PERTANK_ANCHOR_BEHIND = 41;
+    /**
+     * Stocked tanks either side of the camera: a long run east of it, where the anchor is far
+     * behind, and a shorter one just west, so the control view — the same spot facing the anchor —
+     * has fish to show too. Both views have to be able to see fish, or one of the two measurements
+     * below would compare two frames that were never going to differ.
+     */
+    private static final int PERTANK_EAST_FISH_TANKS = 11;
+    private static final int PERTANK_WEST_FISH_TANKS = 4;
+    /**
+     * Fish per stocked tank. Two 85 cm fish is what a tank's size-based capacity budget accepts
+     * ({@code TankCapacity}); asking for four made {@code pertank.stocked} fail, which is what that
+     * check is for. The group scatters its fish over the whole row on rebuild, so how many end up
+     * in front of either camera is a draw from that spread — this density over fifteen tanks keeps
+     * the expected count clear of the floor {@link #checkFishAhead} enforces.
+     */
+    private static final int PERTANK_FISH_PER_TANK = 2;
+    /**
+     * Several species, so the shoal cannot school into one clump somewhere off screen. The check
+     * below counts fish <em>pixels</em>, and the fish are free to swim the whole row.
+     */
+    private static final String[] PERTANK_SPECIES = {"discus", "lionfish", "clown_loach", "greenstripe_barb"};
+    /** Eye height above the row, and how far north of it the two cameras stand. */
+    private static final double PERTANK_EYE_ABOVE = 1.6;
+    private static final double PERTANK_EYE_OFFSET_Z = 1.0;
+    /** Fish size in cm. Big enough that a human looking at the shot can see them at a glance, and
+     *  comfortably inside the group's size gate whatever it is at the row's length. */
+    private static final float PERTANK_FISH_SIZE_CM = 85f;
+    /** Where the camera stands, in blocks east of the section boundary the row is laid out from. */
+    private static final double PERTANK_CAMERA_ALONG = 2.5;
+    /** Pixels that must change before fish count as drawn, and how the camera looks along the row. */
+    private static final int PERTANK_MIN_SIGNAL = 400;
+    private static final float PERTANK_PITCH = 18f;
+    /**
+     * The frame rectangle the fish measurement covers, as fractions of the frame — the sky is
+     * cropped out of it, because the clouds move.
+     */
+    private static final double PERTANK_CROP_X0 = 0.08, PERTANK_CROP_X1 = 0.92;
+    private static final double PERTANK_CROP_Y0 = 0.30, PERTANK_CROP_Y1 = 1.0;
+    /**
+     * Per-channel difference a pixel must exceed to count as changed. PNG is lossless, so this is
+     * only here to absorb a renderer's own frame-to-frame noise.
+     */
+    private static final int PERTANK_PIXEL_DELTA = 8;
+
+    /**
+     * The multi-tank culling gate (docs/fish-tank-group-scaling.md §9.8).
+     *
+     * <p>Group fish used to be drawn by the group's anchor alone, and a block entity renderer only
+     * runs while its own chunk section is on screen — so every swimming fish in a connected build
+     * vanished the moment the anchor's section left the frustum. This scene builds exactly that
+     * configuration and measures it.
+     *
+     * <p>The row runs from the anchor, {@value #PERTANK_ANCHOR_BEHIND} blocks west of the camera,
+     * east through the boundary to the stocked tanks in front of it — a long connector run of empty
+     * tanks in between, because the distance is what the defect needs and not an accident of layout
+     * (see {@link #PERTANK_ANCHOR_BEHIND} for why a few blocks will not do). Facing east along the
+     * row puts the anchor's section far behind the camera, where vanilla's section cull cannot
+     * reach; facing west from the same spot brings it into view. Fish must be drawn in both, and the
+     * anchor's own extract tick says whether each view is what it claims: the scene fails if the
+     * anchor was rendered while the camera faced away from it.
+     *
+     * <p>Each view is shot twice, stocked and emptied, and the two frames differenced. The emptied
+     * scene is shot twice more so the measurement carries its own noise floor — this machine's
+     * animation and shader noise, measured, rather than a guessed constant. The water fill is
+     * switched off for the scene, so an animated surface over every wall stays out of the signal.
+     *
+     * <p>The difference is measured in solid runs of changed pixels rather than a flat count, so the
+     * fish are what clears the floor and the bubble wakes they trail are not — see
+     * {@link #shotDifference}. Reverting the fix was measured against this scene by hand: it takes
+     * the fish out of the away view and leaves nothing but wakes, which now fails by a factor of
+     * several rather than passing on them.
+     */
+    private static void queuePerTankScene() {
+        boolean waterFillWasOn = FishtasticClientConfig.isTankWaterFillEnabled();
+        ChatVisiblity chatWas = Minecraft.getInstance().options.chatVisibility().get();
+
+        // Stand at the row before building it: /setblock cannot touch an unloaded chunk, and the
+        // client only receives the tanks' contents once it is near them.
+        queue(1, mc -> cameraFacingRow(mc, false));
+        queue(20, mc -> {
+            FishtasticClientConfig.setTankWaterFillEnabled(false);
+            // Staging is dozens of server commands and their feedback lands in the chat overlay,
+            // which sits inside the measurement crop. Hiding it removes both a barrier over the
+            // fish and the one thing in the frame that could still be changing between two shots.
+            mc.options.chatVisibility().set(ChatVisiblity.HIDDEN);
+        });
+        queue(1, mc -> server(mc, RenderSelfTest::stagePerTankRow));
+        queue(20, mc -> server(mc, s -> check("pertank.stocked", stockPerTankRow(s.overworld()), "")));
+        queue(20, RenderSelfTest::checkPerTankGroup);
+
+        // ── Facing away from the anchor: the configuration that used to lose the shoal ──
+        queue(60, mc -> screenshot(mc, "pertank", "away_fish"));
+        queue(1, mc -> {
+            checkAnchorRendered(mc, "pertank.anchorNotRendered", false);
+            // Enough to explain the pixels, not a proxy for them: the pixel check below carries the
+            // verdict, and this only has to distinguish "the shoal drifted behind the camera" from
+            // "nothing was drawn".
+            checkFishAhead(mc, "pertank.fishAheadAway", false, 2);
+            checkOwnership(mc, "pertank.ownershipAway");
+        });
+        queue(1, mc -> server(mc, s -> emptyPerTankRow(s.overworld())));
+        queue(20, mc -> screenshot(mc, "pertank", "away_empty"));
+        queue(20, mc -> screenshot(mc, "pertank", "away_empty2"));
+
+        // ── Facing the anchor: the same fish, drawn in the same place, with the anchor in view ──
+        queue(1, mc -> server(mc, s -> check("pertank.restocked", stockPerTankRow(s.overworld()), "")));
+        queue(1, mc -> cameraFacingRow(mc, true));
+        queue(60, mc -> screenshot(mc, "pertank", "toward_fish"));
+        queue(1, mc -> {
+            checkAnchorRendered(mc, "pertank.anchorRendered", true);
+            // Fewer fish are stocked west of the camera than east, and a couple may have drifted the
+            // other way by now, so this asks for less than the away view does.
+            checkFishAhead(mc, "pertank.fishAheadToward", true, 2);
+        });
+        queue(1, mc -> server(mc, s -> emptyPerTankRow(s.overworld())));
+        queue(20, mc -> screenshot(mc, "pertank", "toward_empty"));
+
+        queue(1, mc -> {
+            FishtasticClientConfig.setTankWaterFillEnabled(waterFillWasOn);
+            mc.options.chatVisibility().set(chatWas);
+        });
+        queue(40, RenderSelfTest::checkPerTankDiffs);
+    }
+
+    /**
+     * The section boundary the row is laid out from. The row runs west from here to the anchor and
+     * east through the camera to the stocked tanks, so the anchor's section is the far side of a
+     * boundary the camera never crosses — a group whose tanks all shared one section could not
+     * reproduce the defect at all, because vanilla dispatches block entities a section at a time.
+     */
+    private static int pertankBoundary() {
+        return Math.floorDiv(origin.getX(), 16) * 16;
+    }
+
+    /** The group's anchor: the row's west end, {@value #PERTANK_ANCHOR_BEHIND} blocks behind the camera. */
+    private static BlockPos pertankAnchorPos() {
+        return new BlockPos(pertankBoundary() - PERTANK_ANCHOR_BEHIND, origin.getY(), origin.getZ() + 40);
+    }
+
+    /** Where the camera stands along the row: over a connector tank, just east of the boundary. */
+    private static double pertankCameraX() {
+        return pertankBoundary() + PERTANK_CAMERA_ALONG;
+    }
+
+    /** First of the stocked tanks east of the camera, and first of the shorter run west of it. */
+    private static int pertankFirstEastFishTankX() {
+        return (int) Math.ceil(pertankCameraX()) + 1;
+    }
+
+    private static int pertankFirstWestFishTankX() {
+        return (int) Math.floor(pertankCameraX()) - PERTANK_WEST_FISH_TANKS;
+    }
+
+    private static int pertankLastTankX() {
+        return pertankFirstEastFishTankX() + PERTANK_EAST_FISH_TANKS - 1;
+    }
+
+    private static int pertankStockedFish() {
+        return (PERTANK_EAST_FISH_TANKS + PERTANK_WEST_FISH_TANKS) * PERTANK_FISH_PER_TANK;
+    }
+
+    private static int pertankTankCount() {
+        return pertankLastTankX() - pertankAnchorPos().getX() + 1;
+    }
+
+    /**
+     * Stands the (spectator) camera beside the row, looking along it. {@code towardAnchor} faces
+     * west, which brings the anchor's section into the frustum; the other way faces east, away from
+     * it, with the whole run of connector tanks between.
+     */
+    private static void cameraFacingRow(Minecraft mc, boolean towardAnchor) {
+        BlockPos anchor = pertankAnchorPos();
+        camera(mc,
+                pertankCameraX(),
+                anchor.getY() + PERTANK_EYE_ABOVE,
+                anchor.getZ() - PERTANK_EYE_OFFSET_Z,
+                towardAnchor ? 90f : -90f,
+                PERTANK_PITCH);
+    }
+
+    private static void stagePerTankRow(MinecraftServer server) {
+        BlockPos anchor = pertankAnchorPos();
+        int x = anchor.getX(), y = anchor.getY(), z = anchor.getZ();
+        int last = pertankLastTankX();
+        run(server, "fill " + (x - 3) + " " + (y - 2) + " " + (z - 2) + " " + (last + 3) + " "
+                + (y + 3) + " " + (z + 2) + " minecraft:air");
+        for (int tankX = x; tankX <= last; tankX++) {
+            run(server, "setblock " + tankX + " " + y + " " + z + " fishtastic:fish_tank");
+        }
+        run(server, "time set 6000");
+    }
+
+    /**
+     * Stocks the tanks either side of the camera, leaving the long connector run to the anchor
+     * empty on purpose. The fish are free swimmers in the whole group, so what matters is that they
+     * start in front of the camera in both views, and {@link #checkFishAhead} measures whether they
+     * are still there when the shot is taken.
+     */
+    private static boolean stockPerTankRow(ServerLevel level) {
+        BlockPos anchor = pertankAnchorPos();
+        int y = anchor.getY(), z = anchor.getZ();
+        boolean stocked = true;
+        for (int i = 0; i < PERTANK_WEST_FISH_TANKS + PERTANK_EAST_FISH_TANKS; i++) {
+            int tankX = i < PERTANK_WEST_FISH_TANKS
+                    ? pertankFirstWestFishTankX() + i
+                    : pertankFirstEastFishTankX() + i - PERTANK_WEST_FISH_TANKS;
+            FishTankBlockEntity tank = tank(level, new BlockPos(tankX, y, z));
+            if (tank == null) {
+                stocked = false;
+                continue;
+            }
+            for (int f = 0; f < PERTANK_FISH_PER_TANK; f++) {
+                stocked &= tank.addItem(fish(PERTANK_SPECIES[(i + f) % PERTANK_SPECIES.length], PERTANK_FISH_SIZE_CM));
+            }
+        }
+        return stocked;
+    }
+
+    /**
+     * Empties every slot of every tank in the row. Deliberately {@code setItem} rather than
+     * {@code clearContent}: the latter never sends a block update, so the client would go on
+     * rendering the shoal and the "emptied" frame would be identical to the stocked one — the check
+     * would then fail with no hint why.
+     */
+    private static void emptyPerTankRow(ServerLevel level) {
+        BlockPos anchor = pertankAnchorPos();
+        int y = anchor.getY(), z = anchor.getZ();
+        for (int tankX = anchor.getX(); tankX <= pertankLastTankX(); tankX++) {
+            if (!(level.getBlockEntity(new BlockPos(tankX, y, z)) instanceof FishTankBlockEntity tank)) continue;
+            for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
+                tank.setItem(slot, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    /**
+     * Whether the row really is one group anchored at its west end, with every fish given to the
+     * group engine rather than left hovering in its own tank. Without this the scene could be
+     * measuring the single-tank path and calling it a pass.
+     */
+    private static void checkPerTankGroup(Minecraft mc) {
+        BlockPos anchor = pertankAnchorPos();
+        if (!(mc.level.getBlockEntity(anchor) instanceof FishTankBlockEntity be)) {
+            check("pertank.oneGroup", false, "no client tank at " + anchor);
+            return;
+        }
+        ClientTankGroups.Entry entry = ClientTankGroups.get(be, mc.level);
+        TankGroups.Group group = entry.group();
+        check("pertank.oneGroup", group.isMultiTank() && group.members().size() == pertankTankCount(),
+                "members=" + group.members().size() + " expected=" + pertankTankCount());
+        check("pertank.anchorAtWestEnd", group.anchor().equals(anchor),
+                "anchor=" + group.anchor() + " expected=" + anchor);
+        TankGroupFlock flock = entry.flock();
+        int stocked = pertankStockedFish();
+        int groupFish = flock == null ? -1 : flock.count();
+        check("pertank.joinedTheGroup", groupFish == stocked,
+                "groupFish=" + groupFish + " stocked=" + stocked);
+    }
+
+    /**
+     * Whether the anchor's block entity is being dispatched at all — the scene's proof that it is
+     * reproducing the configuration it claims rather than assuming it from camera geometry. A
+     * section is only handed to its renderers while it survives vanilla's frustum and occlusion
+     * tests, and facing away from the anchor exists precisely to keep it out of them.
+     */
+    private static void checkAnchorRendered(Minecraft mc, String name, boolean expected) {
+        long last = ClientTankFlocks.lastExtractTickOf(pertankAnchorPos());
+        long since = last == Long.MIN_VALUE ? Long.MAX_VALUE : ClientTankFlocks.tickCounter() - last;
+        boolean rendered = since <= 2;
+        check(name, rendered == expected,
+                "anchor " + (rendered ? "rendered" : "not rendered") + " (last extract "
+                        + (since == Long.MAX_VALUE ? "never" : since + " ticks ago") + "), expected "
+                        + (expected ? "rendered" : "out of view"));
+    }
+
+    /**
+     * How many of the group's fish are on the side of the camera the view looks along. The shoal is
+     * free to swim the whole row, and a view whose fish have all drifted behind the camera would
+     * read as "nothing was drawn" — this is what tells those two apart in the log.
+     */
+    private static void checkFishAhead(Minecraft mc, String name, boolean expectingWest, int minimum) {
+        double cameraX = pertankCameraX();
+        int ahead = 0;
+        int total = ClientTankFlocks.fishCount(mc.level, pertankAnchorPos());
+        for (int index = 0; index < total; index++) {
+            Vec3 pos = ClientTankFlocks.worldPositionOf(mc.level, pertankAnchorPos(), index, mc.level.getGameTime());
+            if (pos == null) continue;
+            if (expectingWest ? pos.x < cameraX : pos.x > cameraX) ahead++;
+        }
+        check(name, ahead >= minimum,
+                "fishAhead=" + ahead + " of " + total + " (camera x=" + cameraX + ")");
+    }
+
+    /**
+     * The group's own account of how its fish are spread across its tanks. The two ways this can go
+     * wrong are invisible in a frame — a fish owned by nobody is never drawn, one owned by two tanks
+     * is drawn twice with the second overwriting the first's shared render state — so it is asserted
+     * here, against real geometry and real fish positions rather than a unit fixture.
+     */
+    private static void checkOwnership(Minecraft mc, String name) {
+        BlockPos anchor = pertankAnchorPos();
+        if (!(mc.level.getBlockEntity(anchor) instanceof FishTankBlockEntity be)) {
+            check(name, false, "no client tank at " + anchor);
+            return;
+        }
+        TankGroupFlock flock = ClientTankGroups.get(be, mc.level).flock();
+        if (flock == null) {
+            check(name, false, "no group runtime (nothing on screen?)");
+            return;
+        }
+        TankGroupFlock.OwnershipAudit audit = flock.auditOwnership();
+        check(name, audit.isPartition(), audit.fish() + " fish, " + audit.drawn() + " drawn once, "
+                + audit.claimedTwice() + " twice, " + audit.claimedNever() + " never, "
+                + audit.membersDrawing() + "/" + audit.members() + " tanks drawing");
+        check(name + ".multiTank", audit.membersDrawing() >= 2, audit.membersDrawing() + " tanks drawing");
+    }
+
+    /**
+     * Differentials the stocked and emptied frames of both views, against their own noise floor.
+     *
+     * <p>Each view is asked only to clear that floor, not to match the other: the shoal scatters
+     * over the whole row, so how much of it is in front of either camera is a draw, and the away
+     * view is legitimately the emptier of the two. An earlier version required the away measurement
+     * to be at least a third of the control's and failed a good build on a run where the scatter
+     * had left most of the shoal behind the other camera.
+     */
+    private static void checkPerTankDiffs(Minecraft mc) {
+        int noise = shotDifference(mc, "away_empty", "away_empty2");
+        int away = shotDifference(mc, "away_fish", "away_empty");
+        int toward = shotDifference(mc, "toward_fish", "toward_empty");
+        int floor = Math.max(PERTANK_MIN_SIGNAL, 4 * Math.max(noise, 0));
+        check("pertank.harnessSeesFish", toward > floor,
+                "toward=" + toward + " (anchor in view) noise=" + noise + " floor=" + floor);
+        check("pertank.fishWithAnchorOutOfView", away > floor,
+                "away=" + away + " (anchor's section behind the camera) noise=" + noise + " floor=" + floor);
+    }
+
+    /**
+     * Pixels that changed between two self-test shots over {@link #PERTANK_CROP_X0 the measurement
+     * crop}, counting only those that changed together with their four neighbours, or {@code -1} if
+     * either shot could not be read.
+     *
+     * <p>The shots are the PNGs the harness itself wrote, read back rather than kept in memory, so
+     * the evidence for a PASS is a file anyone can open and look at. The neighbour test is what
+     * separates the fish from the bubble wakes they trail: both vanish when the tanks are emptied,
+     * but a fish sprite is a solid blob tens of pixels across and a bubble is a handful, which
+     * erosion keeps and drops respectively. Without it, a build in which the fish were not being
+     * drawn at all could still clear the floor on their wakes alone.
+     */
+    private static int shotDifference(Minecraft mc, String shotA, String shotB) {
+        File dir = new File(mc.gameDirectory, "screenshots");
+        File fileA = new File(dir, fileName("pertank", shotA));
+        File fileB = new File(dir, fileName("pertank", shotB));
+        if (!fileA.isFile() || !fileB.isFile()) {
+            Fishtastic.LOGGER.error("[selftest] nothing to compare: {} / {}", fileA, fileB);
+            return -1;
+        }
+        try (InputStream streamA = new FileInputStream(fileA);
+             InputStream streamB = new FileInputStream(fileB);
+             NativeImage imageA = NativeImage.read(streamA);
+             NativeImage imageB = NativeImage.read(streamB)) {
+            int width = Math.min(imageA.getWidth(), imageB.getWidth());
+            int height = Math.min(imageA.getHeight(), imageB.getHeight());
+            int x0 = (int) (width * PERTANK_CROP_X0), x1 = (int) (width * PERTANK_CROP_X1);
+            int y0 = (int) (height * PERTANK_CROP_Y0), y1 = (int) (height * PERTANK_CROP_Y1);
+            int cropWidth = x1 - x0;
+            int cropHeight = y1 - y0;
+
+            boolean[] changed = new boolean[cropWidth * cropHeight];
+            for (int y = 0; y < cropHeight; y++) {
+                for (int x = 0; x < cropWidth; x++) {
+                    changed[y * cropWidth + x] = channelDelta(
+                            imageA.getPixel(x0 + x, y0 + y), imageB.getPixel(x0 + x, y0 + y)) > PERTANK_PIXEL_DELTA;
+                }
+            }
+
+            int solid = 0;
+            for (int y = 1; y < cropHeight - 1; y++) {
+                for (int x = 1; x < cropWidth - 1; x++) {
+                    int at = y * cropWidth + x;
+                    if (changed[at] && changed[at - 1] && changed[at + 1]
+                            && changed[at - cropWidth] && changed[at + cropWidth]) {
+                        solid++;
+                    }
+                }
+            }
+            return solid;
+        } catch (IOException e) {
+            Fishtastic.LOGGER.error("[selftest] could not read {}", shotA, e);
+            return -1;
+        }
+    }
+
+    /** Largest per-channel difference between two ARGB pixels ({@code NativeImage.getPixel}). */
+    private static int channelDelta(int pixelA, int pixelB) {
+        int red = Math.abs(((pixelA >> 16) & 0xFF) - ((pixelB >> 16) & 0xFF));
+        int green = Math.abs(((pixelA >> 8) & 0xFF) - ((pixelB >> 8) & 0xFF));
+        int blue = Math.abs((pixelA & 0xFF) - (pixelB & 0xFF));
+        return Math.max(red, Math.max(green, blue));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static FishTankBlockEntity tank(ServerLevel level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof FishTankBlockEntity tank ? tank : null;
+    }
+
+    private static ItemStack fish(String species, float sizeCm) {
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.getValue(Ids.of("fishtastic", species)));
+        ItemSizeHelper.setSize(stack, sizeCm);
+        return stack;
+    }
+
+    /** Puts the (spectator) player's eye at an absolute position and view ({@code tp} places the feet). */
+    private static void camera(Minecraft mc, double x, double eyeY, double z, float yaw, float pitch) {
+        double feetY = eyeY - mc.player.getEyeHeight();
+        server(mc, s -> {
+            run(s, "gamemode spectator @a");
+            run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f", x, feetY, z, yaw, pitch));
+        });
+    }
+
+    private static void server(Minecraft mc, Consumer<MinecraftServer> action) {
+        MinecraftServer server = mc.getSingleplayerServer();
+        server.execute(() -> action.accept(server));
+    }
+
+    private static void run(MinecraftServer server, String command) {
+        server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
+    }
+
+    static void check(String name, boolean pass, String detail) {
+        Fishtastic.LOGGER.info("[selftest] CHECK {}: {} {}", name, pass ? "PASS" : "FAIL", detail);
+    }
+
+    private static String fileName(String scene, String shot) {
+        return "selftest-" + loader + "-" + scene + "-" + shot + ".png";
+    }
+
+    private static boolean atlasTextureRegistered(Identifier id) {
+        AbstractTexture texture = Minecraft.getInstance().getTextureManager().getTexture(id);
+        return texture != null && texture.getTexture() != null;
+    }
+
+    /** Opaque frame of the main target (Screenshot forces alpha to 1). */
+    static void screenshot(Minecraft mc, String scene, String shot) {
+        Screenshot.grab(mc.gameDirectory, fileName(scene, shot), mc.getMainRenderTarget(), 1,
+                msg -> Fishtastic.LOGGER.info("[selftest] {}", msg.getString()));
+    }
+
+    /** Colour attachment of {@code target} with its alpha intact, for anything alpha matters for. */
+    static void dump(Minecraft mc, RenderTarget target, String scene, String shot) {
+        if (target == null) {
+            check("dump." + scene + "." + shot, false, "target not created");
+            return;
+        }
+        dumpTexture(mc, target.getColorTexture(), scene, shot);
+    }
+
+    /**
+     * Reads a GPU texture back into a PNG with its alpha intact — the byte-for-byte port of the
+     * 1.21.1 {@code dump}, which existed because {@code Screenshot} forces alpha opaque (see
+     * {@code Screenshot.takeScreenshot}, whose {@code argb | 0xFF000000} this deliberately omits).
+     * Written against the same buffer/encoder calls that method uses, since 26.1.2's
+     * {@code NativeImage} no longer has a {@code downloadTexture} of its own.
+     *
+     * <p>The texture must be created with {@code USAGE_COPY_SRC}; render targets are, the outline
+     * atlases are not (see the class javadoc).
+     */
+    static void dumpTexture(Minecraft mc, GpuTexture source, String scene, String shot) {
+        if (source == null) {
+            check("dump." + scene + "." + shot, false, "texture not created");
+            return;
+        }
+        int width = source.getWidth(0);
+        int height = source.getHeight(0);
+        int pixelSize = source.getFormat().pixelSize();
+        GpuBuffer buffer = RenderSystem.getDevice().createBuffer(() -> "selftest dump buffer",
+                GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, (long) width * height * pixelSize);
+        CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+        encoder.copyTextureToBuffer(source, buffer, 0L, () -> {
+            try (GpuBuffer.MappedView read = encoder.mapBuffer(buffer, true, false);
+                 NativeImage image = new NativeImage(width, height, false)) {
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        image.setPixelABGR(x, height - y - 1, read.data().getInt((x + y * width) * pixelSize));
+                    }
+                }
+                File out = new File(new File(mc.gameDirectory, "screenshots"), fileName(scene, shot));
+                out.getParentFile().mkdirs();
+                image.writeToFile(out);
+                Fishtastic.LOGGER.info("[selftest] wrote {}", out);
+            } catch (IOException e) {
+                Fishtastic.LOGGER.error("[selftest] failed to write {}", shot, e);
+            }
+            buffer.close();
+        }, 0);
+    }
+
+    private RenderSelfTest() {}
+}

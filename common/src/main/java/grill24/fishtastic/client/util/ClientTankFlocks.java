@@ -46,6 +46,21 @@ public final class ClientTankFlocks {
     }
 
     /**
+     * Client tick at which the tank at {@code tankPos} was last extracted — i.e. last handed to its
+     * renderer — or {@link Long#MIN_VALUE} if it has no flock at all.
+     *
+     * <p>Whether a given tank's block entity is being dispatched is otherwise invisible from
+     * outside: it is decided by whether its chunk section survived vanilla's frustum and occlusion
+     * tests, not by anything this mod can see. The render self-test uses this to prove its
+     * multi-tank scene really is reproducing the configuration it claims to (§9.8 of
+     * docs/fish-tank-group-scaling.md), rather than assuming it from camera geometry.
+     */
+    public static long lastExtractTickOf(BlockPos tankPos) {
+        TankFlockAdapter flock = FLOCKS.get(tankPos);
+        return flock == null ? Long.MIN_VALUE : flock.lastExtractTick();
+    }
+
+    /**
      * Returns the flock for this tank, creating and syncing it on first call. Called from
      * {@code FishTankBlockEntityRenderer.extractRenderState} every frame.
      */

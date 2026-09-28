@@ -215,6 +215,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (isClient) ItemEffectManager.clearCache();
         });
 
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Registered separately from the handler below so it also runs with no level loaded, which is
+        // what lets it create its own world from the title screen.
+        ClientTickEvents.END_CLIENT_TICK.register(
+                client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to

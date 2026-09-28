@@ -247,6 +247,10 @@ public final class FishtasticNeoForgeClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Deliberately outside the paused/level guard below so it also runs with no level loaded,
+        // which is what lets it create its own world from the title screen.
+        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
         // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
         // release its texture while the player sits in a menu, which is when the HUD isn't drawing.
         // Production builds exclude grill24.fishtastic.mcp from the jar (dev-only tooling).
