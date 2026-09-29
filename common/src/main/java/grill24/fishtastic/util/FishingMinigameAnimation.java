@@ -14,8 +14,10 @@ import grill24.fishtastic.data.FishProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ItemStack;
@@ -44,6 +46,26 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     private record SparkleBurst(List<SparkleParticle> particles, float targetYOffset) {}
     private final List<SparkleBurst> sparkleBursts = new ArrayList<>();
+
+    // Hero-reveal confetti: screen-space, so it lives outside the bar-space sparkle bursts.
+    private final List<CelebrationConfetti> confetti = new ArrayList<>();
+    private static final Identifier CELEBRATION_RAYS_TEXTURE = Fishtastic.id("textures/gui/celebration_rays.png");
+    private static final Identifier CELEBRATION_GLOW_TEXTURE = Fishtastic.id("textures/gui/celebration_glow.png");
+    private static final int CONFETTI_COUNT = 150;
+
+    // "LEGENDARY CATCH!" bounce wave. Runs on real 20 Hz ticks rather than the celebration's clock,
+    // which crawls at 0.25x through the hold — a wave in slow motion would drift instead of hop.
+    private static final String HERO_TAG = "LEGENDARY CATCH!";
+    /** Ticks for the wave to sweep the whole line and come around again (32 = 1.6 s). */
+    private static final float WAVE_PERIOD_TICKS = 32f;
+    /** Phase lag between neighbouring letters, as a fraction of the period — the sweep speed. */
+    private static final float WAVE_LETTER_LAG = 0.035f;
+    /** Fraction of a period a single letter spends in its hop; the rest it rests on the baseline. */
+    private static final float WAVE_HOP_FRACTION = 0.20f;
+    /** Hop height as a fraction of screen height. */
+    private static final float WAVE_HEIGHT = 0.022f;
+    /** Real-tick count at the moment the reveal fired, or -1 before it. */
+    private float heroRevealTick = -1f;
 
     // Intro animation state
     private boolean isIntro = true;
@@ -243,6 +265,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             burst.particles().removeIf(p -> !p.isAlive());
         }
         sparkleBursts.removeIf(burst -> burst.particles().isEmpty());
+
+        confetti.forEach(CelebrationConfetti::tick);
+        confetti.removeIf(c -> !c.isAlive());
     }
 
     @Override
@@ -674,7 +699,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         renderZoneIcons(guiGraphics, partialTick, x, y, screenHeight);
 
         // Last, so the hero item and the flash sit on top of every other layer.
-        renderCelebration(guiGraphics, screenWidth, screenHeight);
+        renderCelebration(guiGraphics, partialTick, screenWidth, screenHeight);
     }
 
     /**
@@ -688,7 +713,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * than a crisp one. That reads as deliberate at Minecraft's art scale; if it ever doesn't, the
      * fix is to lower {@code CatchCelebration}'s peak scale rather than to leave the item path.
      */
-    private void renderCelebration(GuiGraphicsExtractor guiGraphics, int screenWidth, int screenHeight) {
+    private void renderCelebration(GuiGraphicsExtractor guiGraphics, float partialTick, int screenWidth, int screenHeight) {
         if (celebration == null) return;
 
         float flashAlpha = celebration.getFlashAlpha();
@@ -700,11 +725,21 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         ItemStack hero = celebration.getHeroStack();
         if (hero.isEmpty()) return;
 
+        // Dim-and-release: the room darkens while the silhouette strains, then lets go on the reveal.
+        float dim = celebration.getDimAlpha();
+        if (dim > 0.01f) {
+            guiGraphics.fill(0, 0, screenWidth, screenHeight, argb(dim, 0x000000));
+        }
+
+        float heroCenterX = screenWidth / 2f + celebration.getHeroOffsetX() * screenHeight;
+        float heroCenterY = screenHeight / 2f + celebration.getHeroOffsetY() * screenHeight;
+        renderHeroBurst(guiGraphics, heroCenterX, heroCenterY, screenHeight);
+
         // A normal reward item renders at (2/16) of the bar's 2*screenHeight/3 scale; the hero's
         // scale is expressed as a multiple of exactly that, so it stays proportional at any window
         // size the same way every other element of the bar does.
         float baseItemPx = (2f / 16f) * (2 * screenHeight / 3f);
-        float heroPx = baseItemPx * celebration.getHeroScale();
+        float heroPx = baseItemPx * celebration.getHeroScale() * celebration.getHeroPunchScale();
 
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
         guiGraphics.pose().pushMatrix();
@@ -732,7 +767,156 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         if (celebration.consumeSparkleBurst()) {
             spawnSparkleBurst(celebration.getSparkleCount(),
                     -celebration.getHeroOffsetY() / BAR_SPACE_TO_SCREEN_FRACTION);
+            if (celebration.getTier() == CatchCelebration.Tier.HERO) {
+                spawnConfettiBurst(celebration.getHeroOffsetX(), celebration.getHeroOffsetY());
+                heroRevealTick = tickCount + partialTick;
+            }
         }
+
+        renderConfetti(guiGraphics, partialTick, screenWidth, screenHeight);
+        renderHeroBanner(guiGraphics, hero, partialTick, screenWidth, screenHeight);
+    }
+
+    /** Spawns the reveal's confetti, centred on the hero (screen-height units from screen centre). */
+    private void spawnConfettiBurst(float originX, float originY) {
+        for (int i = 0; i < CONFETTI_COUNT; i++) {
+            confetti.add(new CelebrationConfetti(originX, originY, sparkleRandom));
+        }
+    }
+
+    /**
+     * The sunburst and glow behind the hero. Both are soft gradient textures (bilinear-filtered via
+     * their {@code .mcmeta}) tinted at draw time, so the palette lives here rather than in the art.
+     * Two rays layers turning in opposite directions at different sizes avoid the fixed-spoke
+     * look of a single rotating fan.
+     */
+    private void renderHeroBurst(GuiGraphicsExtractor guiGraphics, float cx, float cy, int screenHeight) {
+        float rayAlpha = celebration.getRayAlpha();
+        if (rayAlpha <= 0.01f) return;
+        float spin = celebration.getRaySpinDegrees();
+
+        // Glow first, so the rays read as light thrown out of it.
+        drawCenteredTexture(guiGraphics, CELEBRATION_GLOW_TEXTURE, 256, cx, cy, screenHeight * 1.15f, 0f,
+                argb(rayAlpha * 0.9f, 0xFFD23F));
+        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 2.4f, spin,
+                argb(rayAlpha * 0.75f, 0xFFF1B0));
+        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 1.7f, -spin * 1.4f + 11f,
+                argb(rayAlpha * 0.55f, 0xFF9F1C));
+    }
+
+    /** Blits a square texture centred on (cx, cy), {@code sizePx} across, rotated by {@code degrees}. */
+    private static void drawCenteredTexture(GuiGraphicsExtractor guiGraphics, Identifier texture, int texSize,
+                                            float cx, float cy, float sizePx, float degrees, int color) {
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(cx, cy);
+        guiGraphics.pose().rotate((float) Math.toRadians(degrees));
+        // Work in texel units and scale the whole matrix, the same trick renderItem uses, since
+        // blit() only takes integer coordinates.
+        float s = sizePx / texSize;
+        guiGraphics.pose().scale(s, s);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, -texSize / 2, -texSize / 2, 0f, 0f, texSize, texSize, texSize, texSize, color);
+        guiGraphics.pose().popMatrix();
+    }
+
+    private static int argb(float alpha, int rgb) {
+        return ((int) (MathUtil.clamp(alpha, 0f, 1f) * 255f) << 24) | (rgb & 0xFFFFFF);
+    }
+
+    /**
+     * Smooth confetti: each piece is one rotated, flutter-squeezed rectangle. Drawn through the pose
+     * matrix as a scaled unit quad, so it is a true sub-pixel shape rather than a grid-snapped one.
+     */
+    private void renderConfetti(GuiGraphicsExtractor guiGraphics, float partialTick, int screenWidth, int screenHeight) {
+        if (confetti.isEmpty()) return;
+        for (CelebrationConfetti c : confetti) {
+            float alpha = c.getAlpha();
+            if (alpha <= 0.01f) continue;
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(screenWidth / 2f + c.getX(partialTick) * screenHeight,
+                    screenHeight / 2f + c.getY(partialTick) * screenHeight);
+            guiGraphics.pose().rotate((float) Math.toRadians(c.getRotationDegrees(partialTick)));
+            guiGraphics.pose().scale(c.width * screenHeight * 0.5f * c.getFlutter(partialTick), c.height * screenHeight * 0.5f);
+            guiGraphics.fill(-1, -1, 1, 1, argb(alpha, c.color));
+            guiGraphics.pose().popMatrix();
+        }
+    }
+
+    /**
+     * The fish's name and a "Legendary" line, stamped in with an overshoot after the reveal.
+     * Text is drawn through a scaled pose so it stays proportional at any window size.
+     */
+    private void renderHeroBanner(GuiGraphicsExtractor guiGraphics, ItemStack hero, float partialTick, int screenWidth, int screenHeight) {
+        float scale = celebration.getBannerScale();
+        float alpha = celebration.getBannerAlpha();
+        if (scale <= 0.01f || alpha <= 0.02f) return;
+
+        var font = Minecraft.getInstance().font;
+        int a = (int) (MathUtil.clamp(alpha, 0f, 1f) * 255f);
+        if (a < 4) return; // the font renderer treats a near-zero alpha as opaque
+
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(screenWidth / 2f, screenHeight * 0.74f);
+        guiGraphics.pose().scale(scale, scale);
+
+        float nameScale = screenHeight * 0.075f / font.lineHeight;
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().scale(nameScale, nameScale);
+        guiGraphics.centeredText(font, hero.getHoverName().copy().withStyle(ChatFormatting.BOLD), 0, -font.lineHeight / 2, (a << 24) | 0xFFFFFF);
+        guiGraphics.pose().popMatrix();
+
+        float tagScale = screenHeight * 0.04f / font.lineHeight;
+        guiGraphics.pose().translate(0, screenHeight * 0.075f);
+        guiGraphics.pose().scale(tagScale, tagScale);
+        renderWaveText(guiGraphics, font, HERO_TAG, a, tagScale, screenHeight, partialTick);
+        guiGraphics.pose().popMatrix();
+    }
+
+    /**
+     * Draws {@code text} one letter at a time so each can hop: a single bounce travels left to
+     * right along the line, then the line rests before the next sweep. Letters flash toward white
+     * at the top of their hop so the wave reads as light running through the gold.
+     *
+     * <p>Laid out in the caller's already-scaled text space (widths are in font units), with the
+     * hop converted from screen fractions back into that space through {@code textScale}. The wave
+     * is held flat until the banner has finished popping in, then swells to full height.
+     */
+    private void renderWaveText(GuiGraphicsExtractor guiGraphics, net.minecraft.client.gui.Font font, String text,
+                                int alpha, float textScale, int screenHeight, float partialTick) {
+        Component[] glyphs = new Component[text.length()];
+        int[] widths = new int[text.length()];
+        int total = 0;
+        for (int i = 0; i < text.length(); i++) {
+            glyphs[i] = Component.literal(String.valueOf(text.charAt(i))).withStyle(ChatFormatting.BOLD);
+            widths[i] = font.width(glyphs[i]);
+            total += widths[i];
+        }
+
+        float clock = heroRevealTick < 0f ? 0f : tickCount + partialTick - heroRevealTick;
+        // Don't start hopping until the banner has landed (celebration clock: ~3.2 ticks after reveal).
+        float amplitude = MathUtil.clamp((celebration.getTicksSinceReveal() - 3f) / 1.2f, 0f, 1f);
+
+        float x = -total / 2f;
+        for (int i = 0; i < text.length(); i++) {
+            float phase = clock / WAVE_PERIOD_TICKS - i * WAVE_LETTER_LAG;
+            float f = phase - (float) Math.floor(phase);
+            float hop = f < WAVE_HOP_FRACTION ? (float) Math.sin(f / WAVE_HOP_FRACTION * Math.PI) : 0f;
+            hop *= amplitude;
+
+            if (glyphs[i] != null && text.charAt(i) != ' ') {
+                float lift = hop * WAVE_HEIGHT * screenHeight / textScale;
+                int rgb = blendRgb(0xFFD23F, 0xFFFFFF, hop * 0.65f);
+                guiGraphics.text(font, glyphs[i], Math.round(x), Math.round(-font.lineHeight / 2f - lift), (alpha << 24) | rgb);
+            }
+            x += widths[i];
+        }
+    }
+
+    private static int blendRgb(int from, int to, float t) {
+        t = MathUtil.clamp(t, 0f, 1f);
+        int r = (int) MathUtil.lerp((from >> 16) & 0xFF, (to >> 16) & 0xFF, t);
+        int g = (int) MathUtil.lerp((from >> 8) & 0xFF, (to >> 8) & 0xFF, t);
+        int b = (int) MathUtil.lerp(from & 0xFF, to & 0xFF, t);
+        return (r << 16) | (g << 8) | b;
     }
 
     /**

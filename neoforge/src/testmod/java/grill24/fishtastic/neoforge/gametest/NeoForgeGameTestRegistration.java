@@ -296,6 +296,16 @@ public class NeoForgeGameTestRegistration {
             CatchCelebrationGameTests::gameplaySuppressedUntilFinished);
         register(event, env, "shake_decays_then_rebuilds_into_the_reveal", 200,
             CatchCelebrationGameTests::shakeDecaysThenRebuildsIntoTheReveal);
+        register(event, env, "celebration_hero_polish_is_hero_only", 200,
+            CatchCelebrationGameTests::heroPolishIsHeroOnly);
+        register(event, env, "celebration_hero_dim_builds_then_releases_at_reveal", 200,
+            CatchCelebrationGameTests::heroDimBuildsThenReleasesAtReveal);
+        register(event, env, "celebration_hero_punch_overshoots_then_settles", 200,
+            CatchCelebrationGameTests::heroPunchOvershootsThenSettles);
+        register(event, env, "celebration_hero_rays_appear_on_reveal_and_fade_out", 200,
+            CatchCelebrationGameTests::heroRaysAppearOnRevealAndFadeOut);
+        register(event, env, "celebration_hero_banner_pops_in_with_overshoot_then_leaves", 200,
+            CatchCelebrationGameTests::heroBannerPopsInWithOvershootThenLeaves);
         register(event, env, "celebration_none_tier_is_rejected", 200,
             CatchCelebrationGameTests::noneTierIsRejected);
         register(event, env, "apply_quality_and_size_sets_both_components", 200,

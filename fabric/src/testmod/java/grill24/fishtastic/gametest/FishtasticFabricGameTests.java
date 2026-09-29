@@ -1449,6 +1449,31 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroPolishIsHeroOnly(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroPolishIsHeroOnly(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroDimBuildsThenReleasesAtReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroDimBuildsThenReleasesAtReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroPunchOvershootsThenSettles(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroPunchOvershootsThenSettles(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroRaysAppearOnRevealAndFadeOut(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroRaysAppearOnRevealAndFadeOut(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroBannerPopsInWithOvershootThenLeaves(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroBannerPopsInWithOvershootThenLeaves(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void celebrationNoneTierIsRejected(GameTestHelper helper) {
         CatchCelebrationGameTests.noneTierIsRejected(helper);
     }
