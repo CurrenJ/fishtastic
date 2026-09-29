@@ -2,6 +2,8 @@ package grill24.fishtastic.client;
 
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticDataComponents;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -178,16 +180,21 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
     }
 
     /**
-     * The material trio staged in the input slots, or {@link FishTankMaterials#defaultMaterials()}
-     * while the slots are empty or partially filled — the gallery always shows a complete tank.
+     * The material trio the gallery previews: the tank in the refit slot (or the defaults) with any
+     * blocks staged in the input slots laid over it, so each cell pictures the exact tank produced.
      */
     private FishTankMaterials materialsFromSlots() {
+        ItemStack tank = menu.slots.get(FishTankAssemblyMenu.TANK_SLOT).getItem();
         Block frame = blockIn(FishTankAssemblyMenu.FRAME_SLOT);
         Block sand = blockIn(FishTankAssemblyMenu.SAND_SLOT);
         Block glass = blockIn(FishTankAssemblyMenu.GLASS_SLOT);
-        return frame == null || sand == null || glass == null
-                ? FishTankMaterials.defaultMaterials()
-                : new FishTankMaterials(frame, sand, glass);
+        if (tank.isEmpty()) {
+            return frame == null || sand == null || glass == null
+                    ? FishTankMaterials.defaultMaterials()
+                    : new FishTankMaterials(frame, sand, glass);
+        }
+        FishTankMaterials base = FishtasticItemData.getOrDefault(tank, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials());
+        return new FishTankMaterials(frame != null ? frame : base.frame(), sand != null ? sand : base.sand(), glass != null ? glass : base.glass());
     }
 
     private Block blockIn(int slotIndex) {

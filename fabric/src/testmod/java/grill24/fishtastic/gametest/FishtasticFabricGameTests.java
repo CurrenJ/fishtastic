@@ -1247,6 +1247,55 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Fish Tank Assembly refit mode
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitOutputIsBlockedUntilSomethingChanges(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitOutputIsBlockedUntilSomethingChanges(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitShapeOnlyChangesShapeAndConsumesNoMaterials(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitShapeOnlyChangesShapeAndConsumesNoMaterials(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitCombinedChangesEverythingAndRefundsEachReplacedBlock(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitCombinedChangesEverythingAndRefundsEachReplacedBlock(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitPreservesUnrelatedComponents(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitPreservesUnrelatedComponents(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitToSandlessShapeIgnoresTheSandSlot(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitToSandlessShapeIgnoresTheSandSlot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitFromSandlessShapeDoesNotRefundPlaceholderSand(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitFromSandlessShapeDoesNotRefundPlaceholderSand(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void craftingWithoutATankIsUnchanged(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankSlotOnlyAcceptsFishTanks(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    // -------------------------------------------------------------------------
     // Creative tab tests
     // -------------------------------------------------------------------------
 
