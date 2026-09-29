@@ -107,6 +107,42 @@ public final class FishtasticRenderPipelines {
             .putFloat()  // _reserved0
             .get();
 
+    /** UBO name declared in {@code gui_item_highlight.fsh}. */
+    public static final String HIGHLIGHT_UBO_NAME = "HighlightParams";
+
+    /**
+     * std140 size of the {@code HighlightParams} UBO.
+     * Layout: vec4 color | float opacity | float width | float glow | float pulseSpeed
+     *         | float pulseAmount | float _reserved0 | float _reserved1 | float _reserved2
+     */
+    public static final int HIGHLIGHT_PARAMS_UBO_SIZE = new Std140SizeCalculator()
+            .putVec4()   // color (RGBA)
+            .putFloat()  // opacity
+            .putFloat()  // width
+            .putFloat()  // glow
+            .putFloat()  // pulseSpeed
+            .putFloat()  // pulseAmount
+            .putFloat()  // _reserved0
+            .putFloat()  // _reserved1
+            .putFloat()  // _reserved2
+            .get();
+
+    /** Creates the animated "look here" GUI item highlight pipeline (see {@link FishtasticHighlightEffect}). */
+    public static RenderPipeline createHighlightPipeline(Identifier location) {
+        return RenderPipeline.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                .withUniform(HIGHLIGHT_UBO_NAME, UniformType.UNIFORM_BUFFER)
+                .withLocation(location)
+                .withVertexShader(Ids.of("fishtastic", "core/gui_item_highlight"))
+                .withFragmentShader(Ids.of("fishtastic", "core/gui_item_highlight"))
+                .withSampler("Sampler0")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+                .build();
+    }
+
     /** Creates a per-effect basic outline pipeline with a unique location ID. */
     public static RenderPipeline createOutlinePipeline(Identifier location) {
         return RenderPipeline.builder()

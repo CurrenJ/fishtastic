@@ -108,6 +108,22 @@ public final class FishtasticGlintState {
      */
     public static final ThreadLocal<Boolean> BLACK_OUTLINE_REQUESTED = new ThreadLocal<>();
 
+    /**
+     * Maps an {@link ItemStackRenderState} identity to "draw the animated gold highlight around
+     * this item" — steers the player toward compatible items while they hold a rod / bait / hook /
+     * charm on the cursor, and drives the tutorial prompts. Populated by
+     * {@code ItemModelResolverMixin} when {@link #HIGHLIGHT_REQUESTED} is set, consumed by
+     * {@code GuiRendererMixin}. Entries are removed in {@code ItemStackRenderStateMixin} when the
+     * render state is cleared.
+     */
+    public static final IdentityHashMap<ItemStackRenderState, Boolean> GUI_HIGHLIGHT_MAP = new IdentityHashMap<>();
+
+    /**
+     * Thread-local flag set by {@code AbstractContainerScreenMixin} around each container slot's
+     * render — same pattern as {@link #SILHOUETTE_REQUESTED} / {@link #BLACK_OUTLINE_REQUESTED}.
+     */
+    public static final ThreadLocal<Boolean> HIGHLIGHT_REQUESTED = new ThreadLocal<>();
+
     private FishtasticGlintState() {}
 }
 
