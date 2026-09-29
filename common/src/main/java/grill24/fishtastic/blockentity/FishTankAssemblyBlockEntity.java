@@ -21,15 +21,17 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Holds the 3 material inputs (frame/sand/glass) for the assembly menu.
+ * Holds the 3 material inputs (frame/sand/glass) and the optional tank-to-refit for the assembly menu.
  * The crafted output is computed on the fly by {@link FishTankAssemblyMenu}
  * rather than persisted here.
  */
 public class FishTankAssemblyBlockEntity extends BlockEntity implements Container, MenuProvider {
-    public static final int CONTAINER_SIZE = 3;
+    public static final int CONTAINER_SIZE = 4;
     public static final int FRAME_SLOT = 0;
     public static final int GLASS_SLOT = 1;
     public static final int SAND_SLOT = 2;
+    /** An existing fish tank to refit (change its shape/materials) instead of crafting a new one. */
+    public static final int TANK_SLOT = 3;
 
     private final NonNullList<ItemStack> items = NonNullList.withSize(CONTAINER_SIZE, ItemStack.EMPTY);
 
