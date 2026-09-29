@@ -22,6 +22,7 @@ import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
+import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
 import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.StormCharmGameTests;
@@ -567,6 +568,26 @@ public class NeoForgeGameTestRegistration {
             helper -> RemoveTankEntryPacketGameTests.giveOrDropDeliversFishNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "give_or_drop_piles_a_second_fish_into_the_existing_pile", 200,
             helper -> RemoveTankEntryPacketGameTests.giveOrDropPilesASecondFishIntoTheExistingPile(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- Fish Tank Assembly refit mode -----
+        register(event, env, "refit_output_is_blocked_until_something_changes", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitOutputIsBlockedUntilSomethingChanges(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_replaces_only_the_staged_material_and_refunds_the_old_one", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_shape_only_changes_shape_and_consumes_no_materials", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitShapeOnlyChangesShapeAndConsumesNoMaterials(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_combined_changes_everything_and_refunds_each_replaced_block", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitCombinedChangesEverythingAndRefundsEachReplacedBlock(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_preserves_unrelated_components", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitPreservesUnrelatedComponents(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_to_sandless_shape_ignores_the_sand_slot", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitToSandlessShapeIgnoresTheSandSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "refit_from_sandless_shape_does_not_refund_placeholder_sand", 200,
+            helper -> FishTankAssemblyRefitGameTests.refitFromSandlessShapeDoesNotRefundPlaceholderSand(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "crafting_without_a_tank_is_unchanged", 200,
+            helper -> FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "tank_slot_only_accepts_fish_tanks", 200,
+            helper -> FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);
