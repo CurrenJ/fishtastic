@@ -15,7 +15,7 @@ import org.joml.Matrix4f;
 /**
  * GUI item effects for 1.21.1, called at the head of {@code GuiGraphics.renderItem}
  * ({@code mixin/GuiGraphicsMixin}): the quality outline, the fishing minigame's black gear outline,
- * and the encyclopedia's never-caught silhouette.
+ * the encyclopedia's never-caught silhouette, and the container slots' gold "look here" highlight.
  *
  * <p>26.1.2 draws all three from vanilla's {@code GuiItemAtlas} (per fragment, in
  * {@code GuiRendererMixin}). That atlas only exists from 1.21.6; 1.21.1 draws GUI items straight
@@ -58,13 +58,22 @@ public final class FishtasticGuiOutlineRenderer {
         FishtasticOutlineStyle style = Boolean.TRUE.equals(FishtasticGlintState.BLACK_OUTLINE_REQUESTED.get())
                 ? FishtasticBlackOutlineEffect.STYLE
                 : FishtasticOutlineStyle.of(ItemEffectManager.getEffectForItem(stack));
-        if (style == null) {
-            return false;
+        if (style != null) {
+            renderOutline(guiGraphics, stack, style, cx, cy, size, z);
         }
+        // Drawn after the quality ring, as 26.1.2 adds its blit after the ring's.
+        if (Boolean.TRUE.equals(FishtasticGlintState.HIGHLIGHT_REQUESTED.get())) {
+            FishtasticHighlightEffect.render(guiGraphics, stack, cx, cy, size, z);
+        }
+        return false;
+    }
+
+    private static void renderOutline(GuiGraphics guiGraphics, ItemStack stack, FishtasticOutlineStyle style,
+                                      float cx, float cy, float size, float z) {
         FishtasticItemOutlineAtlas atlas = FishtasticItemOutlineAtlas.getInstance();
         FishtasticItemOutlineAtlas.SlotView slot = atlas.requestSlot(stack, style);
         if (slot == null || atlas.outlineTextureId() < 0) {
-            return false; // queued for next frame's bake, or atlas full
+            return; // queued for next frame's bake, or atlas full
         }
 
         // Anything batched in the GUI buffer so far must land before this immediate draw.
@@ -94,7 +103,6 @@ public final class FishtasticGuiOutlineRenderer {
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
-        return false;
     }
 
     private FishtasticGuiOutlineRenderer() {}

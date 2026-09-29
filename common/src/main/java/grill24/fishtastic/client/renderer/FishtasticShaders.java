@@ -23,6 +23,7 @@ public final class FishtasticShaders {
     public static final VertexFormat OUTLINE_BAKE_FORMAT = DefaultVertexFormat.POSITION_TEX;
     public static final ResourceLocation GUI_ITEM_SILHOUETTE_ID = Ids.of("fishtastic", "gui_item_silhouette");
     public static final ResourceLocation GUI_TEXTURE_OUTLINE_ID = Ids.of("fishtastic", "gui_texture_outline");
+    public static final ResourceLocation GUI_ITEM_HIGHLIGHT_ID = Ids.of("fishtastic", "gui_item_highlight");
     /** Vertex format of the GUI effect programs (their shared {@code gui_effect.vsh}). */
     public static final VertexFormat GUI_EFFECT_FORMAT = DefaultVertexFormat.POSITION_TEX;
 
@@ -32,6 +33,8 @@ public final class FishtasticShaders {
     public static ShaderInstance guiItemSilhouette;
     /** {@link FishtasticTextureOutlineEffect}: the black edge on directly blitted GUI sprites. */
     public static ShaderInstance guiTextureOutline;
+    /** {@link FishtasticHighlightEffect}: the gold "look here" outline on container slots. */
+    public static ShaderInstance guiItemHighlight;
 
     /** Platform-neutral registration: the loader hook supplies {@code register}. */
     public interface Registrar {
@@ -43,6 +46,7 @@ public final class FishtasticShaders {
         registrar.register(OUTLINE_BAKE_LEGENDARY_ID, OUTLINE_BAKE_FORMAT, s -> outlineBakeLegendary = s);
         registrar.register(GUI_ITEM_SILHOUETTE_ID, GUI_EFFECT_FORMAT, s -> guiItemSilhouette = s);
         registrar.register(GUI_TEXTURE_OUTLINE_ID, GUI_EFFECT_FORMAT, s -> guiTextureOutline = s);
+        registrar.register(GUI_ITEM_HIGHLIGHT_ID, GUI_EFFECT_FORMAT, s -> guiItemHighlight = s);
     }
 
     private FishtasticShaders() {}

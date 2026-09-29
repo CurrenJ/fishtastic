@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.item.FishtasticFishingRodItem;
 import grill24.fishtastic.network.TutorialAdvancePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
@@ -9,6 +10,7 @@ import grill24.fishtastic.util.IGameRendererExtension;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.entity.player.Player;
@@ -148,6 +150,30 @@ public class TutorialClientHandler {
 
     public static TutorialStep getCurrentStep() { return currentStep; }
 
+    /** Where the player is within the BAIT_LOAD step. Derived each frame from the open screen and cursor — no server state. */
+    private enum BaitLoadPhase { OPEN_INVENTORY, PICK_UP_BAIT, LOAD_ROD }
+
+    private static BaitLoadPhase baitLoadPhase(Minecraft mc) {
+        if (!(mc.screen instanceof AbstractContainerScreen<?> screen)) return BaitLoadPhase.OPEN_INVENTORY;
+        return screen.getMenu().getCarried().is(FishtasticItemTags.FISHING_BAIT)
+                ? BaitLoadPhase.LOAD_ROD
+                : BaitLoadPhase.PICK_UP_BAIT;
+    }
+
+    private static boolean isBaitLoadOnContainerScreen(Minecraft mc) {
+        return currentStep == TutorialStep.BAIT_LOAD && mc.screen instanceof AbstractContainerScreen<?>;
+    }
+
+    /**
+     * True while the tutorial wants bait slots to glow even though the cursor isn't holding a
+     * rod — i.e. BAIT_LOAD is active and the cursor isn't already carrying bait.
+     * Read by {@link ItemHighlightRules#shouldHighlight}.
+     */
+    public static boolean isPromptingBaitPickup(ItemStack cursor) {
+        return currentStep == TutorialStep.BAIT_LOAD && !sentAdvanceThisStep
+                && !cursor.is(FishtasticItemTags.FISHING_BAIT);
+    }
+
     /** Call on disconnect/world-leave so the overlay doesn't persist into the main menu. */
     public static void reset() {
         currentStep = TutorialStep.COMPLETE;
@@ -205,10 +231,11 @@ public class TutorialClientHandler {
      * bleed the box onto whatever they open next.
      */
     public static void renderScreenOverlay(GuiGraphics graphics, float partialTick) {
-        if (!isScreenStep()) return;
-
         Minecraft mc = Minecraft.getInstance();
-        if (!(mc.screen instanceof QuestLogScreen)) return;
+        // BAIT_LOAD's pick-up/load prompts live on the inventory itself (the item outlines are drawn
+        // by the slots); QUEST_CLAIM/SHOP_BROWSE live on the quest log.
+        boolean onInventory = isBaitLoadOnContainerScreen(mc);
+        if (!onInventory && !(isScreenStep() && mc.screen instanceof QuestLogScreen)) return;
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
@@ -252,7 +279,7 @@ public class TutorialClientHandler {
         // renderScreenOverlay, on top of the Quest Log screen) dock top-left; everything else
         // (in-world non-minigame hints) is bottom-center.
         boolean sideLayout = isMinigameStep();
-        boolean topLeftLayout = isScreenStep();
+        boolean topLeftLayout = isScreenStep() || isBaitLoadOnContainerScreen(mc);
 
         net.minecraft.client.gui.Font font = mc.font;
         int innerPad = 10;
@@ -355,7 +382,12 @@ public class TutorialClientHandler {
 
     private static Component getBody(TutorialStep step) {
         return switch (step) {
-            case BAIT_LOAD        -> Component.translatable("tutorial.fishtastic.bait_load.body");
+            case BAIT_LOAD        -> switch (baitLoadPhase(Minecraft.getInstance())) {
+                case OPEN_INVENTORY -> Component.translatable("tutorial.fishtastic.bait_load.body_open_inventory",
+                        Minecraft.getInstance().options.keyInventory.getTranslatedKeyMessage());
+                case PICK_UP_BAIT   -> Component.translatable("tutorial.fishtastic.bait_load.body_pick_up");
+                case LOAD_ROD       -> Component.translatable("tutorial.fishtastic.bait_load.body_load_rod");
+            };
             case WAITING_FOR_CAST -> null;
             case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.body");
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.body");
