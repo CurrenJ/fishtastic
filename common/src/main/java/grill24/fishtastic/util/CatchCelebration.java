@@ -518,6 +518,101 @@ public class CatchCelebration {
     }
 
     // -------------------------------------------------------------------------
+    // Hero polish — dim-and-release, reveal punch, rays, banner
+    //
+    // All HERO-tier only (every accessor returns its neutral value for DISCOVERY), and all pure
+    // functions of the same clock as everything above. They ride the celebration's own time, so
+    // they inherit its slow motion: the rays turn lazily and the punch rings out in the hold,
+    // exactly where the player is looking.
+    // -------------------------------------------------------------------------
+
+    /** Darkest the scene gets while the silhouette strains, as overlay opacity. */
+    private static final float HERO_DIM_MAX = 0.38f;
+    /** How quickly the dim lets go after the reveal (per tick) — near-instant so the light lands as a release. */
+    private static final float HERO_DIM_RELEASE_RATE = 0.9f;
+    /** Size of the overshoot the fish gives as its real texture resolves, as a fraction of hero size. */
+    private static final float HERO_PUNCH_AMPLITUDE = 0.16f;
+    private static final float HERO_PUNCH_DECAY = 1.4f;
+    private static final float HERO_PUNCH_FREQUENCY = 3.6f;
+    /** Peak opacity of the sunburst behind the hero. */
+    private static final float HERO_RAY_ALPHA = 0.55f;
+    /** Sunburst rotation speed, degrees per tick of celebration time. */
+    private static final float HERO_RAY_SPIN_DEGREES_PER_TICK = 7f;
+    /** Ticks after the reveal before the name banner starts to pop in. */
+    private static final float HERO_BANNER_DELAY = 0.6f;
+    private static final float HERO_BANNER_POP_TICKS = 2.6f;
+
+    private boolean isHero() { return tier == Tier.HERO; }
+
+    /** Ticks since the silhouette became the real fish; negative before the reveal. */
+    public float getTicksSinceReveal() { return time - revealSwapTime(); }
+
+    private static float smoothstep(float edge0, float edge1, float x) {
+        float t = MathUtil.clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
+        return t * t * (3f - 2f * t);
+    }
+
+    /** Overshoot-and-settle ease (ease-out-back). */
+    private static float easeOutBack(float t) {
+        t = MathUtil.clamp(t, 0f, 1f);
+        float s = 2.2f;
+        return 1f + (s + 1f) * (float) Math.pow(t - 1f, 3) + s * (t - 1f) * (t - 1f);
+    }
+
+    /**
+     * Opacity of a darkening overlay: builds from the launch through the suspense hold, so the
+     * silhouette strains in a dimming room, then lets go almost instantly on the reveal. The
+     * contrast is what makes the flash and rays read as light arriving.
+     */
+    public float getDimAlpha() {
+        if (!isHero()) return 0f;
+        float swap = revealSwapTime();
+        if (time < swap) return HERO_DIM_MAX * smoothstep(timings.launchStart(), swap, time);
+        return HERO_DIM_MAX * (float) Math.exp(-(time - swap) * HERO_DIM_RELEASE_RATE);
+    }
+
+    /**
+     * Extra multiplier on the hero's size: 1 until the reveal, then a decaying ring-out around 1
+     * — the fish overshoots as it resolves and settles. Kept out of {@link #getHeroScale()} so the
+     * timeline's own scale contract (and its tests) stay untouched.
+     */
+    public float getHeroPunchScale() {
+        if (!isHero() || time < revealSwapTime()) return 1f;
+        float tr = getTicksSinceReveal();
+        return 1f + HERO_PUNCH_AMPLITUDE * (float) (Math.exp(-HERO_PUNCH_DECAY * tr) * Math.cos(HERO_PUNCH_FREQUENCY * tr));
+    }
+
+    /** Opacity of the sunburst behind the hero: swells in on the reveal, fades out through the wind-down. */
+    public float getRayAlpha() {
+        if (!isHero() || time < revealSwapTime()) return 0f;
+        float rise = smoothstep(0f, 0.7f, getTicksSinceReveal());
+        float fade = 1f - smoothstep(timings.hangStart() + timings.hang() * 0.4f,
+                timings.settleStart() + timings.settle() * 0.3f, time);
+        return HERO_RAY_ALPHA * rise * fade;
+    }
+
+    /** Sunburst rotation in degrees. Zero before the reveal. */
+    public float getRaySpinDegrees() {
+        if (!isHero() || time < revealSwapTime()) return 0f;
+        return getTicksSinceReveal() * HERO_RAY_SPIN_DEGREES_PER_TICK;
+    }
+
+    /** Scale of the name banner: pops in with overshoot shortly after the reveal, 0 before. */
+    public float getBannerScale() {
+        if (!isHero() || time < revealSwapTime()) return 0f;
+        float p = (getTicksSinceReveal() - HERO_BANNER_DELAY) / HERO_BANNER_POP_TICKS;
+        return p <= 0f ? 0f : easeOutBack(p);
+    }
+
+    /** Opacity of the name banner: solid through the hang, gone by the time the fish has left. */
+    public float getBannerAlpha() {
+        if (!isHero() || time < revealSwapTime()) return 0f;
+        float in = smoothstep(0f, 0.4f, getTicksSinceReveal() - HERO_BANNER_DELAY);
+        float out = 1f - smoothstep(timings.settleStart(), timings.settleStart() + timings.settle() * 0.35f, time);
+        return in * out;
+    }
+
+    // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
 
