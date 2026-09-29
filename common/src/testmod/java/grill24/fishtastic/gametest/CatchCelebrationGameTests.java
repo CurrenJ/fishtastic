@@ -553,6 +553,101 @@ public final class CatchCelebrationGameTests {
         helper.succeed();
     }
 
+    // -------------------------------------------------------------------------
+    // Hero polish: dim-and-release, punch, rays, banner
+    // -------------------------------------------------------------------------
+
+    /** The polish layers belong to the hero moment; a discovery celebration gets none of them. */
+    public static void heroPolishIsHeroOnly(GameTestHelper helper) {
+        CatchCelebration.Timings timings = CatchCelebration.DISCOVERY_TIMINGS;
+        CatchCelebration celebration = new CatchCelebration(
+            CatchCelebration.Tier.DISCOVERY, commonFish(), 0f, new Random(1234L));
+        advanceTo(celebration, revealSwapTime(timings) + 2f);
+
+        helper.assertTrue(celebration.getDimAlpha() == 0f, "Discovery must not dim, got " + celebration.getDimAlpha());
+        helper.assertTrue(celebration.getHeroPunchScale() == 1f, "Discovery must not punch, got " + celebration.getHeroPunchScale());
+        helper.assertTrue(celebration.getRayAlpha() == 0f, "Discovery must not show rays, got " + celebration.getRayAlpha());
+        helper.assertTrue(celebration.getBannerScale() == 0f, "Discovery must not show a banner, got " + celebration.getBannerScale());
+        helper.succeed();
+    }
+
+    /** The room darkens through the strain, then lets go almost immediately on the reveal. */
+    public static void heroDimBuildsThenReleasesAtReveal(GameTestHelper helper) {
+        CatchCelebration.Timings timings = CatchCelebration.HERO_TIMINGS;
+        CatchCelebration celebration = heroCelebration();
+
+        helper.assertTrue(celebration.getDimAlpha() == 0f, "Must start undimmed, got " + celebration.getDimAlpha());
+
+        advanceTo(celebration, revealSwapTime(timings) - 0.25f);
+        float atPeak = celebration.getDimAlpha();
+        helper.assertTrue(atPeak > 0.3f, "Must be nearly fully dimmed just before the reveal, got " + atPeak);
+
+        advanceTo(celebration, revealSwapTime(timings) + 8f);
+        helper.assertTrue(celebration.getDimAlpha() < 0.02f,
+            "Must have released shortly after the reveal, got " + celebration.getDimAlpha());
+        helper.succeed();
+    }
+
+    /** The fish overshoots as it resolves, then rings out to exactly its normal size. */
+    public static void heroPunchOvershootsThenSettles(GameTestHelper helper) {
+        CatchCelebration.Timings timings = CatchCelebration.HERO_TIMINGS;
+        CatchCelebration celebration = heroCelebration();
+
+        advanceTo(celebration, revealSwapTime(timings) - 0.5f);
+        helper.assertTrue(celebration.getHeroPunchScale() == 1f, "Must not punch before the reveal");
+
+        advanceTo(celebration, revealSwapTime(timings) + 0.3f);
+        helper.assertTrue(celebration.getHeroPunchScale() > 1.02f,
+            "Must overshoot just after the reveal, got " + celebration.getHeroPunchScale());
+
+        advanceTo(celebration, revealSwapTime(timings) + 8f);
+        helper.assertTrue(Math.abs(celebration.getHeroPunchScale() - 1f) < 0.005f,
+            "Must have settled back to normal size, got " + celebration.getHeroPunchScale());
+        helper.succeed();
+    }
+
+    /** Rays swell in on the reveal, spin, and are gone by the end of the wind-down. */
+    public static void heroRaysAppearOnRevealAndFadeOut(GameTestHelper helper) {
+        CatchCelebration.Timings timings = CatchCelebration.HERO_TIMINGS;
+        CatchCelebration celebration = heroCelebration();
+
+        advanceTo(celebration, revealSwapTime(timings) - 0.5f);
+        helper.assertTrue(celebration.getRayAlpha() == 0f, "No rays before the reveal");
+
+        advanceTo(celebration, revealSwapTime(timings) + 2f);
+        helper.assertTrue(celebration.getRayAlpha() > 0.3f, "Rays must be up shortly after the reveal, got " + celebration.getRayAlpha());
+        helper.assertTrue(celebration.getRaySpinDegrees() > 0f, "Rays must be turning");
+
+        advanceTo(celebration, timings.total());
+        helper.assertTrue(celebration.getRayAlpha() < 0.01f, "Rays must be gone by the end, got " + celebration.getRayAlpha());
+        helper.succeed();
+    }
+
+    /** The banner pops in with an overshoot after the reveal, stays through the hang, and leaves. */
+    public static void heroBannerPopsInWithOvershootThenLeaves(GameTestHelper helper) {
+        CatchCelebration.Timings timings = CatchCelebration.HERO_TIMINGS;
+        CatchCelebration celebration = heroCelebration();
+
+        advanceTo(celebration, revealSwapTime(timings) - 0.5f);
+        helper.assertTrue(celebration.getBannerScale() == 0f, "No banner before the reveal");
+
+        float peak = 0f;
+        for (float t = revealSwapTime(timings); t < revealSwapTime(timings) + 5f; t += 0.1f) {
+            advanceTo(celebration, t);
+            peak = Math.max(peak, celebration.getBannerScale());
+        }
+        helper.assertTrue(peak > 1.02f, "Banner must overshoot its final size while popping in, peak " + peak);
+
+        advanceTo(celebration, timings.hangStart() + timings.hang() * 0.5f);
+        helper.assertTrue(celebration.getBannerAlpha() > 0.95f,
+            "Banner must be fully visible mid-hang, got " + celebration.getBannerAlpha());
+
+        advanceTo(celebration, timings.total());
+        helper.assertTrue(celebration.getBannerAlpha() < 0.01f,
+            "Banner must be gone by the end, got " + celebration.getBannerAlpha());
+        helper.succeed();
+    }
+
     /** Rejects NONE outright — a tier of "no celebration" has no timeline to run. */
     public static void noneTierIsRejected(GameTestHelper helper) {
         boolean threw = false;
