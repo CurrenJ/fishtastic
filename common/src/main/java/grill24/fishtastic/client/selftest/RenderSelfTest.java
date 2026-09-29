@@ -10,9 +10,11 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.client.ItemHighlightRules;
 import grill24.fishtastic.client.QuestProgressEvent;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
@@ -131,7 +133,7 @@ public final class RenderSelfTest {
 
     /** Scenes in the order they run. */
     private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
-            "guiscale", "fixes", "hud", "gizmos", "pertank");
+            "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -288,6 +290,7 @@ public final class RenderSelfTest {
             case "hud" -> queueHudScene();
             case "gizmos" -> queueGizmosScene();
             case "pertank" -> queuePerTankScene();
+            case "highlight" -> queueHighlightScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -885,6 +888,46 @@ public final class RenderSelfTest {
         queue(1, mc -> {
             mc.setScreen(null);
             mc.getToastManager().clear();
+        });
+    }
+
+    /**
+     * The gold "look here" outline on inventory slots: a hotbar-adjacent row holding both rods, worms, a
+     * hook and a stick (the control, which must never glow), shot with bait, a rod and nothing on the
+     * cursor. Also checks the stateless rules.
+     */
+    private static void queueHighlightScene() {
+        queue(1, mc -> server(mc, s -> {
+            run(s, "gamemode survival @a");
+            run(s, "clear @a");
+            run(s, "give @a fishtastic:copper_fishing_rod");
+            run(s, "give @a fishtastic:obsidian_fishing_rod");
+            run(s, "give @a fishtastic:worms 16");
+            run(s, "give @a fishtastic:hook");
+            run(s, "give @a minecraft:stick");
+        }));
+        queue(10, mc -> {
+            mc.options.hideGui = false;
+            mc.setScreen(new InventoryScreen(mc.player));
+        });
+        ItemStack worms = new ItemStack(FishtasticItems.WORMS.value());
+        ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
+        ItemStack stick = new ItemStack(net.minecraft.world.item.Items.STICK);
+        queue(1, mc -> {
+            check("highlight.bait_to_rod", ItemHighlightRules.matches(worms, rod), "");
+            check("highlight.rod_to_bait", ItemHighlightRules.matches(rod, worms), "");
+            check("highlight.bait_to_stick", !ItemHighlightRules.matches(worms, stick), "");
+            check("highlight.empty_cursor", !ItemHighlightRules.matches(ItemStack.EMPTY, rod), "");
+            mc.player.containerMenu.setCarried(worms.copy());
+        });
+        queue(10, mc -> screenshot(mc, "highlight", "bait_on_cursor"));
+        queue(1, mc -> mc.player.containerMenu.setCarried(rod.copy()));
+        queue(10, mc -> screenshot(mc, "highlight", "rod_on_cursor"));
+        queue(1, mc -> mc.player.containerMenu.setCarried(ItemStack.EMPTY));
+        queue(10, mc -> screenshot(mc, "highlight", "empty_cursor"));
+        queue(1, mc -> {
+            mc.setScreen(null);
+            server(mc, s -> run(s, "clear @a"));
         });
     }
 
