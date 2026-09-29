@@ -1277,6 +1277,55 @@ public class FishtasticGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Fish Tank Assembly refit mode
+    // -------------------------------------------------------------------------
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitOutputIsBlockedUntilSomethingChanges(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitOutputIsBlockedUntilSomethingChanges(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitShapeOnlyChangesShapeAndConsumesNoMaterials(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitShapeOnlyChangesShapeAndConsumesNoMaterials(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitCombinedChangesEverythingAndRefundsEachReplacedBlock(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitCombinedChangesEverythingAndRefundsEachReplacedBlock(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitPreservesUnrelatedComponents(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitPreservesUnrelatedComponents(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitToSandlessShapeIgnoresTheSandSlot(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitToSandlessShapeIgnoresTheSandSlot(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void refitFromSandlessShapeDoesNotRefundPlaceholderSand(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitFromSandlessShapeDoesNotRefundPlaceholderSand(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void craftingWithoutATankIsUnchanged(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void tankSlotOnlyAcceptsFishTanks(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    // -------------------------------------------------------------------------
     // Creative tab tests
     // -------------------------------------------------------------------------
 
