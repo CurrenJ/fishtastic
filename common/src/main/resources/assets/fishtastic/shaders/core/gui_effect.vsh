@@ -1,6 +1,6 @@
 #version 150
 
-// Vertex shader shared by the GUI effect programs (gui_item_silhouette, gui_texture_outline).
+// Vertex shader shared by the GUI effect programs (gui_item_silhouette, gui_item_highlight, gui_texture_outline).
 // 1.21.1 port of the 26.1.2 GUI vertex shaders: plain uniforms instead of the DynamicTransforms /
 // Projection blocks, and POSITION_TEX (no per-vertex colour; ColorModulator carries the tint).
 

@@ -15,7 +15,7 @@ import org.joml.Matrix4f;
 /**
  * GUI item effects for 1.21.1, called at the head of {@code GuiGraphics.renderItem}
  * ({@code mixin/GuiGraphicsMixin}): the quality outline, the fishing minigame's black gear outline,
- * and the encyclopedia's never-caught silhouette.
+ * the encyclopedia's never-caught silhouette, and the container slots' gold "look here" highlight.
  *
  * <p>26.1.2 draws all three from vanilla's {@code GuiItemAtlas} (per fragment, in
  * {@code GuiRendererMixin}). That atlas only exists from 1.21.6; 1.21.1 draws GUI items straight
@@ -53,6 +53,10 @@ public final class FishtasticGuiOutlineRenderer {
             // (the next frame) nothing is drawn, so the species never shows for a frame.
             FishtasticSilhouetteEffect.render(guiGraphics, stack, cx, cy, size, z);
             return true;
+        }
+        if (Boolean.TRUE.equals(FishtasticGlintState.HIGHLIGHT_REQUESTED.get())) {
+            // In addition to any quality outline, like 26.1.2's extra blit ahead of the item's own.
+            FishtasticHighlightEffect.render(guiGraphics, stack, cx, cy, size, z);
         }
 
         FishtasticOutlineStyle style = Boolean.TRUE.equals(FishtasticGlintState.BLACK_OUTLINE_REQUESTED.get())

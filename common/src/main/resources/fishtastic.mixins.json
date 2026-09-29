@@ -5,6 +5,7 @@
   "minVersion": "0.8",
   "plugin": "grill24.fishtastic.mixin.FishtasticMixinExtrasPlugin",
   "client": [
+    "AbstractContainerScreenMixin",
     "ClientLevelTickTimeMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",

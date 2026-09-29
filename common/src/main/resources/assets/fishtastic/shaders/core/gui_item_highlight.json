@@ -1,0 +1,20 @@
+{
+    "vertex": "fishtastic:gui_effect",
+    "fragment": "fishtastic:gui_item_highlight",
+    "samplers": [
+        { "name": "Sampler0" }
+    ],
+    "uniforms": [
+        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
+        { "name": "GameTime", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "HighlightColor", "type": "float", "count": 4, "values": [ 1.0, 0.867, 0.267, 1.0 ] },
+        { "name": "Opacity", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "Width", "type": "float", "count": 1, "values": [ 0.75 ] },
+        { "name": "Glow", "type": "float", "count": 1, "values": [ 1.25 ] },
+        { "name": "PulseSpeed", "type": "float", "count": 1, "values": [ 900.0 ] },
+        { "name": "PulseAmount", "type": "float", "count": 1, "values": [ 0.45 ] },
+        { "name": "TexelsPerItemPx", "type": "float", "count": 1, "values": [ 4.0 ] }
+    ]
+}
