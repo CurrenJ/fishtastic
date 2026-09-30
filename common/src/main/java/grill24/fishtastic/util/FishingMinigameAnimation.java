@@ -1043,7 +1043,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
-        Vector2f barTopLeft = barContentTopLeft(x, y, screenHeight);
+        Vector2f barTopLeft = barContentTopLeft(layout, x, y, screenHeight);
         float slotX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE / 2f;
         float slotYTop = barTopLeft.y() + GEAR_ICON_SIZE / 2f;
         float stackGap = GEAR_ICON_SIZE + GEAR_ICON_GAP;
@@ -1095,7 +1095,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         IGuiGraphicsExtension extension = (IGuiGraphicsExtension) guiGraphics;
 
-        Vector2f barTopLeft = barContentTopLeft(x, y, screenHeight);
+        Vector2f barTopLeft = barContentTopLeft(layout, x, y, screenHeight);
         float slotX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE / 2f;
         float slotYTop = barTopLeft.y() + GEAR_ICON_SIZE / 2f;
 
@@ -1120,7 +1120,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private void renderZoneIcons(GuiGraphics guiGraphics, float partialTick, int x, int y, int screenHeight) {
         if (currentZones == null) return;
 
-        Vector2f barTopRight = barContentTopRight(x, y, screenHeight);
+        Vector2f barTopRight = barContentTopRight(layout, x, y, screenHeight);
         float slotX = barTopRight.x() + GEAR_PANEL_GAP + ZONE_ICON_SIZE / 2f;
         float slotYTop = barTopRight.y() + ZONE_ICON_SIZE / 2f;
         float stackGap = ZONE_ICON_SIZE + GEAR_ICON_GAP;
@@ -1161,9 +1161,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     /** Mirror of {@link #barContentTopLeft} — top-right corner of the bar's visible content. */
-    private static Vector2f barContentTopRight(int x, int y, int screenHeight) {
+    private static Vector2f barContentTopRight(FishingBarLayout layout, int x, int y, int screenHeight) {
         float scale = 2 * screenHeight / 3f;
-        GuiTextureItem bar = LAYOUT.bar();
+        GuiTextureItem bar = layout.bar();
         float barWidthPx = (bar.uw() / (float) bar.texWidth()) * scale;
         float barHeightPx = (bar.vh() / (float) bar.texHeight()) * scale;
         return new Vector2f(x + barWidthPx / 2f, y - barHeightPx / 2f);
@@ -1200,9 +1200,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * texture the content actually occupies (uw/texWidth wide, vh/texHeight tall) once scaled up
      * by the bar's own {@code 2 * screenHeight / 3} render scale.
      */
-    private static Vector2f barContentTopLeft(int x, int y, int screenHeight) {
+    private static Vector2f barContentTopLeft(FishingBarLayout layout, int x, int y, int screenHeight) {
         float scale = 2 * screenHeight / 3f;
-        GuiTextureItem bar = LAYOUT.bar();
+        GuiTextureItem bar = layout.bar();
         float barWidthPx = (bar.uw() / (float) bar.texWidth()) * scale;
         float barHeightPx = (bar.vh() / (float) bar.texHeight()) * scale;
         return new Vector2f(x - barWidthPx / 2f, y - barHeightPx / 2f);
@@ -1260,7 +1260,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         guiGraphics.pose().pushPose();
         float normalizedBobberPosition = minigameState.getBobberPosition();
-        float yOffset = normalizedBobberPosition * layout.bobberMaxYOffset();
+        float yOffset = normalizedBobberPosition * layout.bobberMaxYOffset() - layout.bobberMinDropOffset();
         guiGraphics.pose().translate(0, -yOffset, 0);
         renderItem(layout.bobber(), guiGraphics, minecraft, angle, 1);
         guiGraphics.pose().popPose();
@@ -1409,7 +1409,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     // -------------------------------------------------------------------------
     // Sprite layout — single source of truth for all sizing constants.
-    // To resize or reshape the bar/bobber textures, only edit LAYOUT below.
+    // Selectable looks live in FishingBarStyles; LAYOUT below is the classic 32px one.
     // -------------------------------------------------------------------------
 
     /**
@@ -1445,16 +1445,29 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * @param bobberHeightPx Pixel height of the bobber sprite within that travel zone
      * @param targetZonePx  Pixel height of the zone target icons may appear in
      *                      (typically slightly tighter than travelZonePx)
+     * @param bobberMinDropPx  Visual only: px the bobber sprite is drawn lower than travelZonePx's
+     *                      bottom at its minimum; gameplay fractions are unaffected
+     * @param bobberMaxRisePx  Visual only: px the bobber sprite is drawn higher than travelZonePx's
+     *                      top at its maximum
      */
     public record FishingBarLayout(
             GuiTextureItem bar,
             GuiTextureItem bobber,
             int travelZonePx,
             int bobberHeightPx,
-            int targetZonePx
+            int targetZonePx,
+            int bobberMinDropPx,
+            int bobberMaxRisePx
     ) {
-        /** Fraction of bar texture height the bobber can travel — passed to the renderer. */
-        public float bobberMaxYOffset() { return (float) travelZonePx / bar.texHeight(); }
+        public FishingBarLayout(GuiTextureItem bar, GuiTextureItem bobber, int travelZonePx, int bobberHeightPx, int targetZonePx) {
+            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, 0, 0);
+        }
+
+        /** Fraction of bar texture height the bobber's sprite travels — passed to the renderer. */
+        public float bobberMaxYOffset() { return (float) (travelZonePx + bobberMinDropPx + bobberMaxRisePx) / bar.texHeight(); }
+
+        /** Fraction of bar texture height the bobber sprite sits below its rest position at the bottom of its travel. */
+        public float bobberMinDropOffset() { return (float) bobberMinDropPx / bar.texHeight(); }
 
         /** Bobber size as a fraction of the travel zone — passed to FishingMinigameState. */
         public float bobberSize()       { return (float) bobberHeightPx / travelZonePx; }
