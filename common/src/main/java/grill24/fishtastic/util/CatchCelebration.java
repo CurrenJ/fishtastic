@@ -80,8 +80,13 @@ public class CatchCelebration {
     }
 
     /**
-     * The full sequence: freeze, a slow silhouetted rise, the reveal flash, a long hang at size,
-     * then time ramps back up as it shrinks away. ~2.5 seconds end to end.
+     * The full sequence: freeze, a silhouetted rise, the reveal flash, then a long hold on the
+     * revealed fish before it is released. The hold is 8 seconds by default (160 ticks) — long
+     * enough to admire, and the player can end it at any time after a short grace period with the
+     * impulse key or right-click (see {@link #skipToSettle()}), so it is never a cutscene.
+     *
+     * <p>Durations are real ticks: the celebration clock runs on real elapsed time. Only the
+     * minigame's own bobber physics sees {@code launchScale} / {@code holdScale}.
      *
      * <p>{@code peakScale} is a multiple of the normal reward item size, which renders at
      * {@code 2/16} of the bar's {@code 2 * screenHeight / 3} scale — about {@code screenHeight/12}
@@ -89,14 +94,15 @@ public class CatchCelebration {
      * without swallowing the whole HUD. Tune it live with {@code /fishtastic celebration test}.
      */
     public static final Timings HERO_TIMINGS =
-            new Timings(3f, 9f, 14f, 12f, 32f, 35f, 3.5f, 0.25f, 0.25f, 75, 4f);
+            new Timings(3f, 9f, 14f, 12f, 160f, 35f, 3.5f, 0.25f, 0.25f, 75, 4f);
 
     /**
-     * Roughly 60% of the hero timings, and no slow-motion hold — a first discovery should feel
-     * noteworthy without stopping the game every time an early-game player finds a new common fish.
+     * A shorter rise and a shorter (5 second) hold than the hero moment, and no slow-motion for the
+     * bobber — a first discovery should feel noteworthy without stopping the game every time an
+     * early-game player finds a new common fish. Skippable the same way.
      */
     public static final Timings DISCOVERY_TIMINGS =
-            new Timings(2f, 6f, 10f, 8f, 16f, 30f, 2.0f, 0.5f, 1.0f, 30, 2f);
+            new Timings(2f, 6f, 10f, 8f, 100f, 30f, 2.0f, 0.5f, 1.0f, 30, 2f);
 
     /**
      * The fishing bar renders at {@code 2 * screenHeight / 3}, so one unit of the bar's own
@@ -140,6 +146,8 @@ public class CatchCelebration {
 
     private final Tier tier;
     private final Timings timings;
+    private final Polish polish;
+    private final boolean reducedEffects;
     private final ItemStack heroStack;
     /** The caught target's vertical position at the moment of the catch, in fractions of screen height. */
     private final float startOffsetY;
@@ -164,11 +172,23 @@ public class CatchCelebration {
     private float settlePhysicsAccumulator = 0f;
 
     public CatchCelebration(Tier tier, ItemStack heroStack, float startOffsetY, Random random) {
+        this(tier, heroStack, startOffsetY, random, false);
+    }
+
+    /**
+     * @param reducedEffects the player's accessibility setting: strips the flash, shake, dim,
+     *                       confetti, sparkles, spinning rays, punch and hopping text, leaving the
+     *                       silhouette reveal, a still glow and the name banner. Decided once here
+     *                       rather than polled, so a celebration never changes character mid-play.
+     */
+    public CatchCelebration(Tier tier, ItemStack heroStack, float startOffsetY, Random random, boolean reducedEffects) {
         if (tier == Tier.NONE) {
             throw new IllegalArgumentException("CatchCelebration requires a tier above NONE");
         }
         this.tier = tier;
         this.timings = tier == Tier.HERO ? HERO_TIMINGS : DISCOVERY_TIMINGS;
+        this.polish = tier == Tier.HERO ? HERO_POLISH : DISCOVERY_POLISH;
+        this.reducedEffects = reducedEffects;
         this.heroStack = heroStack;
         this.startOffsetY = startOffsetY;
         this.random = random;
@@ -273,8 +293,17 @@ public class CatchCelebration {
      */
     public boolean isSkippable() {
         Phase phase = getPhase();
-        return phase == Phase.HANG || phase == Phase.SETTLE || phase == Phase.DONE;
+        if (phase == Phase.SETTLE || phase == Phase.DONE) return true;
+        return phase == Phase.HANG && time >= timings.hangStart() + SKIP_GRACE_TICKS;
     }
+
+    /**
+     * How long into the hold a skip stays ignored. With an 8 second hold the cost of an accidental
+     * skip is much higher: a player still hammering the impulse key as the reveal lands would
+     * otherwise cut the payoff off the instant it arrived. Half a second is long enough for the
+     * mashing to stop and the reveal to register, and short enough not to be felt as a lock-out.
+     */
+    public static final float SKIP_GRACE_TICKS = 10f;
 
     /**
      * Cuts straight to the wind-down, if the reveal has already played. Juice the player can't
@@ -457,6 +486,7 @@ public class CatchCelebration {
 
     /** Full-screen white flash alpha — one at impact, one at the reveal. 0 when neither is running. */
     public float getFlashAlpha() {
+        if (reducedEffects) return 0f;
         float impact = flashFalloff(time);
         // Fires on the edge-on frame, punctuating the substitution itself rather than the start of
         // the turn that hides it.
@@ -489,6 +519,7 @@ public class CatchCelebration {
      * be background noise by the time it mattered.
      */
     private float shakeAmplitude() {
+        if (reducedEffects) return 0f;
         // Cuts dead on the edge-on frame, so the rumble stops at the same instant the fish appears
         // rather than partway through the turn that conceals the swap.
         if (time >= revealSwapTime()) return 0f;
@@ -518,34 +549,91 @@ public class CatchCelebration {
     }
 
     // -------------------------------------------------------------------------
-    // Hero polish — dim-and-release, reveal punch, rays, banner
+    // Celebration polish — dim-and-release, reveal punch, glow and rays, banner
     //
-    // All HERO-tier only (every accessor returns its neutral value for DISCOVERY), and all pure
-    // functions of the same clock as everything above. They ride the celebration's own time, so
-    // they inherit its slow motion: the rays turn lazily and the punch rings out in the hold,
-    // exactly where the player is looking.
+    // Every tier gets the same layers; a Polish profile sets how loud they are and what colour
+    // they wear (gold and loud for the hero moment, cool and gentle for a first discovery). All
+    // pure functions of the same clock as everything above.
+    //
+    // Rates are per real tick (the celebration clock is real time). The punch, dim and banner
+    // constants are snappy on purpose — they punctuate the reveal and are gone within a second.
+    // The rays and the glow are what carry the long hold, so they breathe and turn gently.
     // -------------------------------------------------------------------------
 
-    /** Darkest the scene gets while the silhouette strains, as overlay opacity. */
-    private static final float HERO_DIM_MAX = 0.38f;
-    /** How quickly the dim lets go after the reveal (per tick) — near-instant so the light lands as a release. */
-    private static final float HERO_DIM_RELEASE_RATE = 0.9f;
-    /** Size of the overshoot the fish gives as its real texture resolves, as a fraction of hero size. */
-    private static final float HERO_PUNCH_AMPLITUDE = 0.16f;
-    private static final float HERO_PUNCH_DECAY = 1.4f;
-    private static final float HERO_PUNCH_FREQUENCY = 3.6f;
-    /** Peak opacity of the sunburst behind the hero. */
-    private static final float HERO_RAY_ALPHA = 0.55f;
-    /** Sunburst rotation speed, degrees per tick of celebration time. */
-    private static final float HERO_RAY_SPIN_DEGREES_PER_TICK = 7f;
-    /** Ticks after the reveal before the name banner starts to pop in. */
-    private static final float HERO_BANNER_DELAY = 0.6f;
-    private static final float HERO_BANNER_POP_TICKS = 2.6f;
+    /**
+     * How a tier dresses the reveal.
+     *
+     * @param dimMax          darkest the scene gets while the silhouette strains (overlay opacity)
+     * @param punchAmplitude  overshoot as the real fish resolves, as a fraction of its size
+     * @param rayAlpha        peak opacity of the sunburst
+     * @param raySize         sunburst size multiplier
+     * @param confettiCount   pieces in the reveal burst
+     * @param confettiPalette 0xRRGGBB colours the confetti is drawn from
+     * @param glowRgb         colour of the soft glow behind the fish
+     * @param rayCoreRgb      colour of the main (larger) ray layer
+     * @param rayOuterRgb     colour of the counter-rotating inner ray layer
+     * @param tagText         the line under the fish's name
+     * @param tagRgb          the tag's colour
+     * @param wavePeriodTicks real ticks for the tag's bounce wave to sweep the line once
+     */
+    public record Polish(
+            float dimMax,
+            float punchAmplitude,
+            float rayAlpha,
+            float raySize,
+            int confettiCount,
+            int[] confettiPalette,
+            int glowRgb,
+            int rayCoreRgb,
+            int rayOuterRgb,
+            String tagText,
+            int tagRgb,
+            float wavePeriodTicks
+    ) {}
 
-    private boolean isHero() { return tier == Tier.HERO; }
+    public static final Polish HERO_POLISH = new Polish(
+            0.38f, 0.16f, 0.55f, 1.0f, 150,
+            new int[]{0xFF5C7A, 0xFF9F1C, 0xFFD23F, 0x7BE35A, 0x2EC4B6, 0x3DD5F3, 0x3A86FF, 0x8B5CF6, 0xFF4FD8},
+            0xFFD23F, 0xFFF1B0, 0xFF9F1C,
+            "LEGENDARY CATCH!", 0xFFD23F, 32f);
+
+    /** Roughly half the loudness, and cool where the hero is warm — a find, not a fanfare. */
+    public static final Polish DISCOVERY_POLISH = new Polish(
+            0.16f, 0.09f, 0.34f, 0.8f, 55,
+            new int[]{0x3DD5F3, 0x2EC4B6, 0x3A86FF, 0x7BE35A, 0xFFFFFF, 0x8B5CF6},
+            0x3DD5F3, 0xC8F6FF, 0x2EC4B6,
+            "NEW SPECIES!", 0x3DD5F3, 22f);
+
+    /** How quickly the dim lets go after the reveal (per tick) — near-instant so the light lands as a release. */
+    private static final float DIM_RELEASE_RATE = 0.9f;
+    private static final float PUNCH_DECAY = 1.4f;
+    private static final float PUNCH_FREQUENCY = 3.6f;
+    /**
+     * Sunburst rotation: a fast whoosh on the reveal that decelerates into a gentle drift, so the
+     * rays feel thrown out by the flash and then simply turn for the length of the hold. Degrees =
+     * {@code SPIN_BURST * (1 - e^(-t / SPIN_BURST_TICKS)) + SPIN_DRIFT * t}.
+     */
+    private static final float RAY_SPIN_BURST_DEGREES = 24f;
+    private static final float RAY_SPIN_BURST_TICKS = 10f;
+    private static final float RAY_SPIN_DRIFT_DEGREES_PER_TICK = 1.8f;
+    /** Slow breathing of the glow through the hold: fraction of its brightness, and radians per tick. */
+    private static final float GLOW_BREATH_AMOUNT = 0.12f;
+    private static final float GLOW_BREATH_RATE = 0.22f;
+    /** Ticks after the reveal before the name banner starts to pop in, and how long the pop takes. */
+    private static final float BANNER_DELAY = 0.6f;
+    private static final float BANNER_POP_TICKS = 2.6f;
+    public Polish getPolish() { return polish; }
+
+    /** The player's reduced-effects setting, as captured when this celebration began. */
+    public boolean isReducedEffects() { return reducedEffects; }
 
     /** Ticks since the silhouette became the real fish; negative before the reveal. */
     public float getTicksSinceReveal() { return time - revealSwapTime(); }
+
+    /** Ticks since the reveal, for the polish effects. */
+    private float revealClock() {
+        return getTicksSinceReveal();
+    }
 
     private static float smoothstep(float edge0, float edge1, float x) {
         float t = MathUtil.clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
@@ -565,10 +653,10 @@ public class CatchCelebration {
      * contrast is what makes the flash and rays read as light arriving.
      */
     public float getDimAlpha() {
-        if (!isHero()) return 0f;
+        if (reducedEffects) return 0f;
         float swap = revealSwapTime();
-        if (time < swap) return HERO_DIM_MAX * smoothstep(timings.launchStart(), swap, time);
-        return HERO_DIM_MAX * (float) Math.exp(-(time - swap) * HERO_DIM_RELEASE_RATE);
+        if (time < swap) return polish.dimMax() * smoothstep(timings.launchStart(), swap, time);
+        return polish.dimMax() * (float) Math.exp(-revealClock() * DIM_RELEASE_RATE);
     }
 
     /**
@@ -577,39 +665,70 @@ public class CatchCelebration {
      * timeline's own scale contract (and its tests) stay untouched.
      */
     public float getHeroPunchScale() {
-        if (!isHero() || time < revealSwapTime()) return 1f;
-        float tr = getTicksSinceReveal();
-        return 1f + HERO_PUNCH_AMPLITUDE * (float) (Math.exp(-HERO_PUNCH_DECAY * tr) * Math.cos(HERO_PUNCH_FREQUENCY * tr));
+        if (reducedEffects || time < revealSwapTime()) return 1f;
+        float tr = revealClock();
+        return 1f + polish.punchAmplitude() * (float) (Math.exp(-PUNCH_DECAY * tr) * Math.cos(PUNCH_FREQUENCY * tr));
     }
 
-    /** Opacity of the sunburst behind the hero: swells in on the reveal, fades out through the wind-down. */
+    /** Swell-in-and-fade envelope shared by the glow and the rays, in [0, 1]. */
+    private float lightEnvelope() {
+        if (time < revealSwapTime()) return 0f;
+        float rise = smoothstep(0f, 0.7f, revealClock());
+        // Holds full through the whole hang and only fades as the item is released.
+        float fade = 1f - smoothstep(timings.settleStart(), timings.settleStart() + timings.settle() * 0.3f, time);
+        return rise * fade;
+    }
+
+    /**
+     * Opacity of the spinning sunburst. Zero under reduced effects — a rotating fan of light is
+     * precisely the motion that setting exists to remove.
+     */
     public float getRayAlpha() {
-        if (!isHero() || time < revealSwapTime()) return 0f;
-        float rise = smoothstep(0f, 0.7f, getTicksSinceReveal());
-        float fade = 1f - smoothstep(timings.hangStart() + timings.hang() * 0.4f,
-                timings.settleStart() + timings.settle() * 0.3f, time);
-        return HERO_RAY_ALPHA * rise * fade;
+        return reducedEffects ? 0f : polish.rayAlpha() * lightEnvelope();
+    }
+
+    /** Opacity of the soft glow behind the fish. Still under reduced effects, just dimmer. */
+    public float getGlowAlpha() {
+        // A slow breath keeps a long hold alive; a still glow under reduced effects.
+        float breath = reducedEffects ? 1f
+                : 1f - GLOW_BREATH_AMOUNT * (0.5f - 0.5f * (float) Math.cos(revealClock() * GLOW_BREATH_RATE));
+        return polish.rayAlpha() * lightEnvelope() * breath * (reducedEffects ? 0.6f : 1f);
     }
 
     /** Sunburst rotation in degrees. Zero before the reveal. */
     public float getRaySpinDegrees() {
-        if (!isHero() || time < revealSwapTime()) return 0f;
-        return getTicksSinceReveal() * HERO_RAY_SPIN_DEGREES_PER_TICK;
+        if (reducedEffects || time < revealSwapTime()) return 0f;
+        float t = revealClock();
+        return RAY_SPIN_BURST_DEGREES * (1f - (float) Math.exp(-t / RAY_SPIN_BURST_TICKS)) + RAY_SPIN_DRIFT_DEGREES_PER_TICK * t;
     }
 
-    /** Scale of the name banner: pops in with overshoot shortly after the reveal, 0 before. */
+    /**
+     * Scale of the name banner: pops in with overshoot shortly after the reveal, 0 before. Under
+     * reduced effects it simply appears at full size and fades in (see {@link #getBannerAlpha()}).
+     */
     public float getBannerScale() {
-        if (!isHero() || time < revealSwapTime()) return 0f;
-        float p = (getTicksSinceReveal() - HERO_BANNER_DELAY) / HERO_BANNER_POP_TICKS;
+        if (time < revealSwapTime()) return 0f;
+        float p = (revealClock() - BANNER_DELAY) / BANNER_POP_TICKS;
+        if (reducedEffects) return p > 0f ? 1f : 0f;
         return p <= 0f ? 0f : easeOutBack(p);
     }
 
     /** Opacity of the name banner: solid through the hang, gone by the time the fish has left. */
     public float getBannerAlpha() {
-        if (!isHero() || time < revealSwapTime()) return 0f;
-        float in = smoothstep(0f, 0.4f, getTicksSinceReveal() - HERO_BANNER_DELAY);
+        if (time < revealSwapTime()) return 0f;
+        float in = smoothstep(0f, 0.4f, revealClock() - BANNER_DELAY);
         float out = 1f - smoothstep(timings.settleStart(), timings.settleStart() + timings.settle() * 0.35f, time);
         return in * out;
+    }
+
+    /**
+     * How far the banner text's bounce wave has swelled, in [0, 1]: flat until the banner has
+     * finished popping in, then rising to full height. Always zero under reduced effects.
+     */
+    public float getWaveAmplitude() {
+        if (reducedEffects || time < revealSwapTime()) return 0f;
+        float settled = BANNER_DELAY + BANNER_POP_TICKS;
+        return smoothstep(settled, settled + 1.2f, revealClock());
     }
 
     // -------------------------------------------------------------------------

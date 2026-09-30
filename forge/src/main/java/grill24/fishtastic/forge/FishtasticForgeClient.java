@@ -125,6 +125,10 @@ public final class FishtasticForgeClient {
         grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
 
+        // Register reduced celebration effects sync packet client handler
+        grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 

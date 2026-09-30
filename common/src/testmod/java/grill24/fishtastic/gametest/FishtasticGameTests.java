@@ -1483,8 +1483,13 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void celebrationHeroPolishIsHeroOnly(GameTestHelper helper) {
-        CatchCelebrationGameTests.heroPolishIsHeroOnly(helper);
+    public void celebrationDiscoveryPolishIsSofterThanHero(GameTestHelper helper) {
+        CatchCelebrationGameTests.discoveryPolishIsSofterThanHero(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void celebrationReducedEffectsStripFlashShakeDimAndMotion(GameTestHelper helper) {
+        CatchCelebrationGameTests.reducedEffectsStripFlashShakeDimAndMotion(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
@@ -1505,6 +1510,16 @@ public class FishtasticGameTests {
     @GameTest(template = "fishtastic_empty")
     public void celebrationHeroBannerPopsInWithOvershootThenLeaves(GameTestHelper helper) {
         CatchCelebrationGameTests.heroBannerPopsInWithOvershootThenLeaves(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void celebrationHoldsLastSeveralSeconds(GameTestHelper helper) {
+        CatchCelebrationGameTests.holdsLastSeveralSeconds(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void celebrationSkipWorksThroughoutTheHold(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipWorksThroughoutTheHold(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
