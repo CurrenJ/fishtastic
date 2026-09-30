@@ -172,6 +172,11 @@ public class FishtasticPackets {
                 SetDayRatePacket.STREAM_CODEC,
                 SetDayRatePacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                ReducedEffectsSyncPacket.TYPE,
+                ReducedEffectsSyncPacket.STREAM_CODEC,
+                ReducedEffectsSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -193,6 +198,7 @@ public class FishtasticPackets {
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
         registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
         registrar.accept(SetDayRatePacket.TYPE, SetDayRatePacket.STREAM_CODEC);
+        registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
     }
 
     /**

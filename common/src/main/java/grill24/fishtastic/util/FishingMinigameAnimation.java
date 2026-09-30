@@ -1,9 +1,10 @@
 package grill24.fishtastic.util;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Axis;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticSounds;
+import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.TutorialClientHandler;
@@ -52,15 +53,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private final List<CelebrationConfetti> confetti = new ArrayList<>();
     private static final ResourceLocation CELEBRATION_RAYS_TEXTURE = Fishtastic.id("textures/gui/celebration_rays.png");
     private static final ResourceLocation CELEBRATION_GLOW_TEXTURE = Fishtastic.id("textures/gui/celebration_glow.png");
-    private static final int CONFETTI_COUNT = 150;
     /** PORT-ONLY: depth the celebration layers start at, above everything the bar draws (see render). */
     private static final float CELEBRATION_Z = 400f;
 
-    // "LEGENDARY CATCH!" bounce wave. Runs on real 20 Hz ticks rather than the celebration's clock,
-    // which crawls at 0.25x through the hold — a wave in slow motion would drift instead of hop.
-    private static final String HERO_TAG = "LEGENDARY CATCH!";
-    /** Ticks for the wave to sweep the whole line and come around again (32 = 1.6 s). */
-    private static final float WAVE_PERIOD_TICKS = 32f;
+    // The tag line's bounce wave. Runs on real 20 Hz ticks from the moment of the reveal, so it loops
+    // continuously through the whole hold regardless of where the celebration's own phases are.
+    // (The period comes from the tier's Polish: 32 ticks = 1.6 s for the hero.)
     /** Phase lag between neighbouring letters, as a fraction of the period — the sweep speed. */
     private static final float WAVE_LETTER_LAG = 0.035f;
     /** Fraction of a period a single letter spends in its hop; the rest it rests on the baseline. */
@@ -175,10 +173,10 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /**
      * Ceiling on how long a celebration may hold the minigame frozen, in ticks — comfortably past
-     * the longest sequence (50 ticks) so it never fires during normal play. See the watchdog note
-     * in {@link #tick()}.
+     * the longest sequence (the hero moment is 233 ticks, about 11.7 s, with its 8 s hold) so it
+     * never fires during normal play. See the watchdog note in {@link #tick()}.
      */
-    private static final int CELEBRATION_WATCHDOG_TICKS = 200;
+    private static final int CELEBRATION_WATCHDOG_TICKS = 400;
     private int celebrationWatchdogTicks = 0;
 
     /**
@@ -237,7 +235,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         target.startCelebrationHandoff();
         targets.add(target);
 
-        animation.celebration = new CatchCelebration(tier, hero, 0f, animation.sparkleRandom);
+        animation.celebration = new CatchCelebration(tier, hero, 0f, animation.sparkleRandom,
+                FishtasticClientConfig.isReducedCelebrationEffects());
         return animation;
     }
 
@@ -469,7 +468,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Bar-space offsets are negated on the way to screen space (the renderer translates by
         // -targetYOffset), and one bar unit is BAR_SPACE_TO_SCREEN_FRACTION of the screen height.
         celebration = new CatchCelebration(
-                tier, hero.copy(), -targetYOffset * BAR_SPACE_TO_SCREEN_FRACTION, sparkleRandom);
+                tier, hero.copy(), -targetYOffset * BAR_SPACE_TO_SCREEN_FRACTION, sparkleRandom,
+                FishtasticClientConfig.isReducedCelebrationEffects());
         target.startCelebrationHandoff();
 
         SoundEvent sound = tier == CatchCelebration.Tier.HERO
@@ -773,11 +773,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Fires once, the frame the reveal starts — the burst is the punctuation on the reveal, so
         // it can't be spawned back when the catch actually happened.
         if (celebration.consumeSparkleBurst()) {
-            spawnSparkleBurst(celebration.getSparkleCount(),
-                    -celebration.getHeroOffsetY() / BAR_SPACE_TO_SCREEN_FRACTION);
-            if (celebration.getTier() == CatchCelebration.Tier.HERO) {
+            heroRevealTick = tickCount + partialTick;
+            if (!celebration.isReducedEffects()) {
+                spawnSparkleBurst(celebration.getSparkleCount(),
+                        -celebration.getHeroOffsetY() / BAR_SPACE_TO_SCREEN_FRACTION);
                 spawnConfettiBurst(celebration.getHeroOffsetX(), celebration.getHeroOffsetY());
-                heroRevealTick = tickCount + partialTick;
             }
         }
 
@@ -792,8 +792,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
     /** Spawns the reveal's confetti, centred on the hero (screen-height units from screen centre). */
     private void spawnConfettiBurst(float originX, float originY) {
-        for (int i = 0; i < CONFETTI_COUNT; i++) {
-            confetti.add(new CelebrationConfetti(originX, originY, sparkleRandom));
+        CatchCelebration.Polish polish = celebration.getPolish();
+        for (int i = 0; i < polish.confettiCount(); i++) {
+            confetti.add(new CelebrationConfetti(originX, originY, sparkleRandom, polish.confettiPalette()));
         }
     }
 
@@ -804,17 +805,21 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * look of a single rotating fan.
      */
     private void renderHeroBurst(GuiGraphics guiGraphics, float cx, float cy, int screenHeight) {
+        CatchCelebration.Polish polish = celebration.getPolish();
+        float glowAlpha = celebration.getGlowAlpha();
+        if (glowAlpha <= 0.01f) return;
+
+        // Glow first, so the rays read as light thrown out of it.
+        drawCenteredTexture(guiGraphics, CELEBRATION_GLOW_TEXTURE, 256, cx, cy, screenHeight * 1.15f * polish.raySize(), 0f,
+                argb(glowAlpha * 0.9f, polish.glowRgb()));
+
         float rayAlpha = celebration.getRayAlpha();
         if (rayAlpha <= 0.01f) return;
         float spin = celebration.getRaySpinDegrees();
-
-        // Glow first, so the rays read as light thrown out of it.
-        drawCenteredTexture(guiGraphics, CELEBRATION_GLOW_TEXTURE, 256, cx, cy, screenHeight * 1.15f, 0f,
-                argb(rayAlpha * 0.9f, 0xFFD23F));
-        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 2.4f, spin,
-                argb(rayAlpha * 0.75f, 0xFFF1B0));
-        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 1.7f, -spin * 1.4f + 11f,
-                argb(rayAlpha * 0.55f, 0xFF9F1C));
+        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 2.4f * polish.raySize(), spin,
+                argb(rayAlpha * 0.75f, polish.rayCoreRgb()));
+        drawCenteredTexture(guiGraphics, CELEBRATION_RAYS_TEXTURE, 512, cx, cy, screenHeight * 1.7f * polish.raySize(), -spin * 1.4f + 11f,
+                argb(rayAlpha * 0.55f, polish.rayOuterRgb()));
     }
 
     /** Blits a square texture centred on (cx, cy), {@code sizePx} across, rotated by {@code degrees}. */
@@ -887,7 +892,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         float tagScale = screenHeight * 0.04f / font.lineHeight;
         guiGraphics.pose().translate(0, screenHeight * 0.075f, 0);
         guiGraphics.pose().scale(tagScale, tagScale, 1f);
-        renderWaveText(guiGraphics, font, HERO_TAG, a, tagScale, screenHeight, partialTick);
+        renderWaveText(guiGraphics, font, celebration.getPolish(), a, tagScale, screenHeight, partialTick);
         guiGraphics.pose().popPose();
     }
 
@@ -900,8 +905,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      * hop converted from screen fractions back into that space through {@code textScale}. The wave
      * is held flat until the banner has finished popping in, then swells to full height.
      */
-    private void renderWaveText(GuiGraphics guiGraphics, net.minecraft.client.gui.Font font, String text,
+    private void renderWaveText(GuiGraphics guiGraphics, net.minecraft.client.gui.Font font, CatchCelebration.Polish polish,
                                 int alpha, float textScale, int screenHeight, float partialTick) {
+        String text = polish.tagText();
         Component[] glyphs = new Component[text.length()];
         int[] widths = new int[text.length()];
         int total = 0;
@@ -912,19 +918,19 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         }
 
         float clock = heroRevealTick < 0f ? 0f : tickCount + partialTick - heroRevealTick;
-        // Don't start hopping until the banner has landed (celebration clock: ~3.2 ticks after reveal).
-        float amplitude = MathUtil.clamp((celebration.getTicksSinceReveal() - 3f) / 1.2f, 0f, 1f);
+        // Held flat until the banner has landed, and always flat under reduced effects.
+        float amplitude = celebration.getWaveAmplitude();
 
         float x = -total / 2f;
         for (int i = 0; i < text.length(); i++) {
-            float phase = clock / WAVE_PERIOD_TICKS - i * WAVE_LETTER_LAG;
+            float phase = clock / polish.wavePeriodTicks() - i * WAVE_LETTER_LAG;
             float f = phase - (float) Math.floor(phase);
             float hop = f < WAVE_HOP_FRACTION ? (float) Math.sin(f / WAVE_HOP_FRACTION * Math.PI) : 0f;
             hop *= amplitude;
 
             if (glyphs[i] != null && text.charAt(i) != ' ') {
                 float lift = hop * WAVE_HEIGHT * screenHeight / textScale;
-                int rgb = blendRgb(0xFFD23F, 0xFFFFFF, hop * 0.65f);
+                int rgb = blendRgb(polish.tagRgb(), 0xFFFFFF, hop * 0.65f);
                 guiGraphics.drawString(font, glyphs[i], Math.round(x), Math.round(-font.lineHeight / 2f - lift), (alpha << 24) | rgb);
             }
             x += widths[i];
