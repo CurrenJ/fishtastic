@@ -51,6 +51,8 @@ public class FishtasticCommand {
             command.then(CelebrationCommand.build());
             // Live-tunes the leaderboard/mannequin fisherman hang pose — same dev-only, client-driven pattern.
             command.then(PoseDebugCommand.build());
+            // Switches the fishing minigame's bar/bobber art — same dev-only, client-state-driven pattern.
+            command.then(FishingBarCommand.build());
         }
 
         dispatcher.register(command);

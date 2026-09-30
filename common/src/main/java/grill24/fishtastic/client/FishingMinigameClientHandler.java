@@ -56,9 +56,8 @@ public class FishingMinigameClientHandler {
 
         // Create animation with server-provided targets
         FishingMinigameAnimation animation = new FishingMinigameAnimation(
-                baitEffect != null && baitEffect.smallBobber()
-                        ? FishingMinigameAnimation.LAYOUT_SMALL
-                        : FishingMinigameAnimation.LAYOUT);
+                grill24.fishtastic.util.FishingBarStyles.select()
+                        .layout(baitEffect != null && baitEffect.smallBobber()));
 
         // Apply charm input-force bonus if the player has one equipped
         if (!charm.isEmpty()) {
