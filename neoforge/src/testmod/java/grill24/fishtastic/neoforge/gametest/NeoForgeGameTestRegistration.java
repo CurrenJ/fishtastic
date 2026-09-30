@@ -296,8 +296,10 @@ public class NeoForgeGameTestRegistration {
             CatchCelebrationGameTests::gameplaySuppressedUntilFinished);
         register(event, env, "shake_decays_then_rebuilds_into_the_reveal", 200,
             CatchCelebrationGameTests::shakeDecaysThenRebuildsIntoTheReveal);
-        register(event, env, "celebration_hero_polish_is_hero_only", 200,
-            CatchCelebrationGameTests::heroPolishIsHeroOnly);
+        register(event, env, "celebration_discovery_polish_is_softer_than_hero", 200,
+            CatchCelebrationGameTests::discoveryPolishIsSofterThanHero);
+        register(event, env, "celebration_reduced_effects_strip_flash_shake_dim_and_motion", 200,
+            CatchCelebrationGameTests::reducedEffectsStripFlashShakeDimAndMotion);
         register(event, env, "celebration_hero_dim_builds_then_releases_at_reveal", 200,
             CatchCelebrationGameTests::heroDimBuildsThenReleasesAtReveal);
         register(event, env, "celebration_hero_punch_overshoots_then_settles", 200,
@@ -306,6 +308,10 @@ public class NeoForgeGameTestRegistration {
             CatchCelebrationGameTests::heroRaysAppearOnRevealAndFadeOut);
         register(event, env, "celebration_hero_banner_pops_in_with_overshoot_then_leaves", 200,
             CatchCelebrationGameTests::heroBannerPopsInWithOvershootThenLeaves);
+        register(event, env, "celebration_holds_last_several_seconds", 200,
+            CatchCelebrationGameTests::holdsLastSeveralSeconds);
+        register(event, env, "celebration_skip_works_throughout_the_hold", 200,
+            CatchCelebrationGameTests::skipWorksThroughoutTheHold);
         register(event, env, "celebration_none_tier_is_rejected", 200,
             CatchCelebrationGameTests::noneTierIsRejected);
         register(event, env, "apply_quality_and_size_sets_both_components", 200,

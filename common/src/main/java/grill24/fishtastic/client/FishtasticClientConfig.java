@@ -20,6 +20,7 @@ public final class FishtasticClientConfig {
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
+    private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
     private static final int DEFAULT_NOTIFICATION_VOLUME = 50;
     private static final String DEFAULT_FILE_CONTENTS = """
             # Fishtastic client-side visual toggles.
@@ -36,11 +37,18 @@ public final class FishtasticClientConfig {
             # Whether the shape gallery beside the Fish Tank Assembly GUI starts revealed.
             # Toggled by the gallery button in that screen, which also rewrites this file.
             shapeGalleryOpen=true
+
+            # Accessibility: tones down the catch celebrations (legendary + first-discovery). Removes the
+            # screen flash, shake, dimming, confetti, sparkles, spinning rays and hopping text; the
+            # silhouette reveal, a still glow and the name banner remain. Set via
+            # "/fishtastic reducedeffects <true|false>" in-game, which also rewrites this file.
+            reducedCelebrationEffects=false
             """;
 
     private static Boolean tankWaterFillEnabled;
     private static Integer notificationVolume;
     private static Boolean shapeGalleryOpen;
+    private static Boolean reducedCelebrationEffects;
 
     private FishtasticClientConfig() {}
 
@@ -107,6 +115,23 @@ public final class FishtasticClientConfig {
     }
 
     /**
+     * Whether catch celebrations should play their reduced (accessibility) form. Read once when a
+     * celebration starts, so flipping it mid-celebration doesn't change one already in flight.
+     */
+    public static boolean isReducedCelebrationEffects() {
+        if (reducedCelebrationEffects == null) {
+            reducedCelebrationEffects = Boolean.parseBoolean(load().getProperty(REDUCED_CELEBRATION_EFFECTS_KEY, "false"));
+        }
+        return reducedCelebrationEffects;
+    }
+
+    /** Persists the reduced-effects setting to the properties file and caches it. */
+    public static void setReducedCelebrationEffects(boolean reduced) {
+        reducedCelebrationEffects = reduced;
+        persist();
+    }
+
+    /**
      * Writes every setting back to the properties file. Each value is read through its own getter
      * so an untouched setting round-trips its on-disk value rather than being reset to a default.
      */
@@ -116,6 +141,7 @@ public final class FishtasticClientConfig {
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
+        props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
         try (var out = Files.newOutputStream(file)) {
             props.store(out, "Fishtastic client-side visual toggles.");
         } catch (IOException ignored) {

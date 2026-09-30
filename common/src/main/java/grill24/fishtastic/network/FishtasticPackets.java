@@ -166,6 +166,11 @@ public class FishtasticPackets {
                 TankWaterFillSyncPacket.STREAM_CODEC,
                 TankWaterFillSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                ReducedEffectsSyncPacket.TYPE,
+                ReducedEffectsSyncPacket.STREAM_CODEC,
+                ReducedEffectsSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -186,6 +191,7 @@ public class FishtasticPackets {
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
         registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
+        registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
     }
 
     /**

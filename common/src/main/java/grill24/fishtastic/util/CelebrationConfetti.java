@@ -18,11 +18,6 @@ public class CelebrationConfetti {
     /** Per-tick velocity retention — air drag, so the burst blooms then hangs before it falls. */
     private static final float DRAG = 0.965f;
 
-    /** The mod's celebratory palette, as opaque 0xRRGGBB. */
-    private static final int[] PALETTE = {
-            0xFF5C7A, 0xFF9F1C, 0xFFD23F, 0x7BE35A, 0x2EC4B6, 0x3DD5F3, 0x3A86FF, 0x8B5CF6, 0xFF4FD8
-    };
-
     private float x, y, prevX, prevY;
     private float vx, vy;
     private float rotation, prevRotation;
@@ -37,7 +32,8 @@ public class CelebrationConfetti {
     /** 0xRRGGBB. */
     public final int color;
 
-    public CelebrationConfetti(float originX, float originY, Random random) {
+    /** @param palette 0xRRGGBB colours to draw this piece's colour from (per-tier, see {@code CatchCelebration.Polish}) */
+    public CelebrationConfetti(float originX, float originY, Random random, int[] palette) {
         this.x = this.prevX = originX;
         this.y = this.prevY = originY;
 
@@ -55,7 +51,7 @@ public class CelebrationConfetti {
         float size = 0.009f + random.nextFloat() * 0.012f;
         this.width = size;
         this.height = size * (random.nextFloat() < 0.5f ? 0.45f : 1f);
-        this.color = PALETTE[random.nextInt(PALETTE.length)];
+        this.color = palette[random.nextInt(palette.length)];
         this.lifetime = 45 + random.nextInt(35);
     }
 
