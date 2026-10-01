@@ -286,6 +286,7 @@ public class FishTankBlockEntityRenderer
             Vec3 cameraPos,
             ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
         BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumblingOverlay);
+        state.lightCoords = TankInteriorLight.apply(state.lightCoords);
 
         Level level = blockEntity.getLevel();
         if (level == null) return;

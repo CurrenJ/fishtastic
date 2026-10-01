@@ -4,6 +4,8 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import grill24.fishtastic.client.renderer.TankInteriorLight;
+import net.minecraft.util.LightCoordsUtil;
 import net.fabricmc.fabric.api.util.TriState;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
@@ -14,6 +16,7 @@ import net.fabricmc.fabric.api.blockgetter.v2.FabricBlockGetter;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel;
 import net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart;
 import net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter;
+import net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadTransform;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockModelRotation;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
@@ -154,11 +157,31 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
             }
         }
 
-        for (BlockStateModelPart part : cached.parts()) {
-            ((FabricBlockStateModelPart) part).emitQuads(emitter, cullTest);
+        // parts = [frame, sand, glass] (see generateCompositeModel): the frame keeps world light;
+        // the sand, glass and cosmetics are the interior and take TankInteriorLight's minimum.
+        List<BlockStateModelPart> parts = cached.parts();
+        ((FabricBlockStateModelPart) parts.get(0)).emitQuads(emitter, cullTest);
+        boolean interiorLit = TankInteriorLight.level() > 0;
+        if (interiorLit) emitter.pushTransform(INTERIOR_LIGHT);
+        try {
+            for (int i = 1; i < parts.size(); i++) {
+                ((FabricBlockStateModelPart) parts.get(i)).emitQuads(emitter, cullTest);
+            }
+            emitCosmetics(emitter, level, pos, data);
+        } finally {
+            if (interiorLit) emitter.popTransform();
         }
-        emitCosmetics(emitter, level, pos, data);
     }
+
+    /**
+     * Raises every vertex to TankInteriorLight's minimum lightmap; the renderer keeps the higher of
+     * it and world light, so the quad is never drawn darker than its surroundings would make it.
+     */
+    private static final QuadTransform INTERIOR_LIGHT = quad -> {
+        int minimum = TankInteriorLight.minimumLightmap();
+        for (int i = 0; i < 4; i++) quad.lightmap(i, LightCoordsUtil.max(quad.lightmap(i), minimum));
+        return true;
+    };
 
     /**
      * The tank's static cosmetics, baked into the same chunk mesh as its body (see
@@ -290,8 +313,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
             QuadCollection.Builder compositeBuilder = new QuadCollection.Builder();
             compositeBuilder.addAll(frameQuads);
-            compositeBuilder.addAll(sandQuads);
-            compositeBuilder.addAll(glassQuads);
+            QuadCollection.Builder glassBuilder = new QuadCollection.Builder();
+            glassBuilder.addAll(glassQuads);
             int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
 
             // Diagonal-aware corner posts: composite a small fragment back in for each corner whose
@@ -329,7 +352,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                     ResolvedModel fillModel = cornerGlassFillForShape[diagonal.ordinal() * 4 + capState];
                     QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
                     if (fillQuads != null) {
-                        compositeBuilder.addAll(fillQuads);
+                        glassBuilder.addAll(fillQuads);
                         flags |= fillQuads.materialFlags();
                     }
                 }
@@ -367,7 +390,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                         ResolvedModel fillModel = edgeGlassFillForShape[edge.ordinal() * TankDiagonal.values().length + corner.ordinal()];
                         QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
                         if (fillQuads != null) {
-                            compositeBuilder.addAll(fillQuads);
+                            glassBuilder.addAll(fillQuads);
                             flags |= fillQuads.materialFlags();
                         }
                     }
@@ -380,8 +403,12 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
             // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
             // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
             BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);
+            // Frame, sand and glass are separate parts so emitQuads can light the interior (sand,
+            // glass) apart from the frame — see TankInteriorLight.
+            BlockStateModelPart sandPart = new SimpleModelWrapper(sandQuads, false, particleMat);
+            BlockStateModelPart glassPart = new SimpleModelWrapper(glassBuilder.build(), false, particleMat);
 
-            return new CachedModel(List.of(part), particleMat, flags);
+            return new CachedModel(List.of(part, sandPart, glassPart), particleMat, flags);
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Fish Tank (Fabric): error generating composite model for {}", data, e);
             return null;

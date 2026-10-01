@@ -1,6 +1,7 @@
 package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import grill24.fishtastic.client.renderer.TankInteriorLight;
 import net.neoforged.neoforge.client.model.quad.BakedColors;
 
 import grill24.fishtastic.Fishtastic;
@@ -21,6 +22,7 @@ import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.neoforged.neoforge.client.extensions.ResolvedModelExtension;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
@@ -82,7 +84,16 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
     // ── Cache key record ──────────────────────────────────────────────────
 
-    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides, Set<TankEdgeDiagonal> edgeDiagonalOverrides) {}
+    // interiorLight: the interior quads bake TankInteriorLight's level in as their light emission,
+    // so a different level is a different model.
+    private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation, Set<TankDiagonal> diagonalOverrides, Set<TankEdgeDiagonal> edgeDiagonalOverrides, int interiorLight) {}
+
+    private static CacheKey keyFor(FishTankCompositeModelData data) {
+        return new CacheKey(
+                data.shape(), data.frameBlock(), data.sandBlock(),
+                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                data.getEdgeDiagonalOverrideMask(), TankInteriorLight.level());
+    }
 
     private record CachedModel(List<BlockStateModelPart> parts, Material.Baked particleMaterial,
                                 @BakedQuad.MaterialFlags int materialFlags) {}
@@ -113,10 +124,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         CachedModel defaultModel = generateCompositeModel(defaultData);
 
         if (defaultModel != null) {
-            CacheKey defaultKey = new CacheKey(
-                    defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
-                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask(),
-                    defaultData.getEdgeDiagonalOverrideMask());
+            CacheKey defaultKey = keyFor(defaultData);
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
             this.defaultParticleMaterial = defaultModel.particleMaterial();
@@ -147,10 +155,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             data = FishTankCompositeModelData.DEFAULT;
         }
 
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
+        CacheKey key = keyFor(data);
 
         // Fast path: check cache without locking.
         CachedModel cached = modelCache.get(key);
@@ -191,12 +196,14 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
      * {@link TankCosmeticMesh}), as two extra parts without AO like the body: the untinted quads
      * as baked, and the tinted ones re-made with their colour (from the cosmetic's own tint
      * sources) baked into NeoForge's per-vertex colours, since the tank's tint sources aren't theirs.
+     * Both take {@link TankInteriorLight}'s level as their light emission.
      */
     private static void addCosmetics(BlockAndTintGetter level, BlockPos pos, FishTankCompositeModelData data,
                                      Material.Baked particle, List<BlockStateModelPart> parts) {
         TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data.cosmetics());
+        int interiorLight = TankInteriorLight.level();
         if (!baked.untinted().getAll().isEmpty()) {
-            parts.add(new SimpleModelWrapper(baked.untinted(), false, particle));
+            parts.add(new SimpleModelWrapper(withLightEmission(baked.untinted(), interiorLight), false, particle));
         }
         if (!baked.tinted().isEmpty()) {
             QuadCollection.Builder tinted = new QuadCollection.Builder();
@@ -206,7 +213,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 BakedQuad.MaterialInfo m = q.materialInfo();
                 tinted.addUnculledFace(new BakedQuad(q.position0(), q.position1(), q.position2(), q.position3(),
                         q.packedUV0(), q.packedUV1(), q.packedUV2(), q.packedUV3(), q.direction(),
-                        new BakedQuad.MaterialInfo(m.sprite(), m.layer(), m.itemRenderType(), -1, m.shade(), m.lightEmission(), m.ambientOcclusion()),
+                        new BakedQuad.MaterialInfo(m.sprite(), m.layer(), m.itemRenderType(), -1, m.shade(), Math.max(m.lightEmission(), interiorLight), m.ambientOcclusion()),
                         q.bakedNormals(), color == -1 ? BakedColors.DEFAULT : BakedColors.of(color)));
             }
             parts.add(new SimpleModelWrapper(tinted.build(), false, particle));
@@ -231,10 +238,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
         if (data == null) return defaultParticleMaterial;
 
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
+        CacheKey key = keyFor(data);
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
     }
@@ -252,10 +256,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
         if (data == null) return defaultMaterialFlags;
 
-        CacheKey key = new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
+        CacheKey key = keyFor(data);
         CachedModel cached = modelCache.get(key);
         int body = cached != null ? cached.materialFlags() : defaultMaterialFlags;
         return body | TankCosmeticMesh.bake(data.cosmetics()).materialFlags();
@@ -269,10 +270,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
         if (data == null) data = FishTankCompositeModelData.DEFAULT;
         // Cosmetics are part of the geometry: two tanks with the same body but different contents differ.
-        return List.of(new CacheKey(
-                data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask()), data.cosmetics());
+        return List.of(keyFor(data), data.cosmetics());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -330,8 +328,8 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
             QuadCollection.Builder compositeBuilder = new QuadCollection.Builder();
             compositeBuilder.addAll(frameQuads);
-            compositeBuilder.addAll(sandQuads);
-            compositeBuilder.addAll(glassQuads);
+            QuadCollection.Builder glassBuilder = new QuadCollection.Builder();
+            glassBuilder.addAll(glassQuads);
             int flags = frameQuads.materialFlags() | sandQuads.materialFlags() | glassQuads.materialFlags();
 
             // Diagonal-aware corner posts: composite a small fragment back in for each corner whose
@@ -369,7 +367,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                     ResolvedModel fillModel = cornerGlassFillForShape[diagonal.ordinal() * 4 + capState];
                     QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
                     if (fillQuads != null) {
-                        compositeBuilder.addAll(fillQuads);
+                        glassBuilder.addAll(fillQuads);
                         flags |= fillQuads.materialFlags();
                     }
                 }
@@ -407,7 +405,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                         ResolvedModel fillModel = edgeGlassFillForShape[edge.ordinal() * TankDiagonal.values().length + corner.ordinal()];
                         QuadCollection fillQuads = bakeGeometry(fillModel, glassSlots);
                         if (fillQuads != null) {
-                            compositeBuilder.addAll(fillQuads);
+                            glassBuilder.addAll(fillQuads);
                             flags |= fillQuads.materialFlags();
                         }
                     }
@@ -421,13 +419,43 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
             // AO disabled: the tank shell is assembled from many noOcclusion() blocks, so vanilla
             // ambient occlusion compounds at internal seams and darkens the interior of large tanks.
             BlockStateModelPart part = new SimpleModelWrapper(composite, false, particleMat);
+            // The interior (sand, glass) is drawn at TankInteriorLight's level, the frame at world
+            // light — see TankInteriorLight.
+            int interiorLight = TankInteriorLight.level();
+            BlockStateModelPart sandPart = new SimpleModelWrapper(withLightEmission(sandQuads, interiorLight), false, particleMat);
+            BlockStateModelPart glassPart = new SimpleModelWrapper(withLightEmission(glassBuilder.build(), interiorLight), false, particleMat);
 
-            return new CachedModel(List.of(part), particleMat, flags);
+            return new CachedModel(List.of(part, sandPart, glassPart), particleMat, flags);
 
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Fish Tank: error generating composite model for {}", data, e);
             return null;
         }
+    }
+
+    /**
+     * {@code quads} re-made with a light emission of at least {@code level}, keeping each quad's
+     * cull face. Vanilla applies a quad's emission as a floor on both block and sky light where it
+     * meshes the quad (see {@code VertexConsumer.putBlockBakedQuad}), and unlike a block's own
+     * emission it never spreads into the world.
+     */
+    private static QuadCollection withLightEmission(QuadCollection quads, int level) {
+        if (level <= 0) return quads;
+        QuadCollection.Builder builder = new QuadCollection.Builder();
+        for (BakedQuad quad : quads.getQuads(null)) builder.addUnculledFace(withLightEmission(quad, level));
+        for (Direction direction : Direction.values()) {
+            for (BakedQuad quad : quads.getQuads(direction)) builder.addCulledFace(direction, withLightEmission(quad, level));
+        }
+        return builder.build();
+    }
+
+    private static BakedQuad withLightEmission(BakedQuad q, int level) {
+        BakedQuad.MaterialInfo m = q.materialInfo();
+        if (m.lightEmission() >= level) return q;
+        return new BakedQuad(q.position0(), q.position1(), q.position2(), q.position3(),
+                q.packedUV0(), q.packedUV1(), q.packedUV2(), q.packedUV3(), q.direction(),
+                new BakedQuad.MaterialInfo(m.sprite(), m.layer(), m.itemRenderType(), m.tintIndex(), m.shade(), level, m.ambientOcclusion()),
+                q.bakedNormals(), q.bakedColors());
     }
 
     /**

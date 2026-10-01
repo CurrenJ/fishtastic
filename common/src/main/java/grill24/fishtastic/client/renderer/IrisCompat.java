@@ -39,6 +39,7 @@ public final class IrisCompat {
     private static Method assignPipelineShadow;
     private static Class<?> programClass;
     private static Class<?> shadowProgramClass;
+    private static Method isShaderPackInUse;
     private static boolean resolved;
 
     /**
@@ -76,6 +77,22 @@ public final class IrisCompat {
         return enumClass.getField(name).get(null);
     }
 
+    /** True when a shaderpack is loaded and active; false without Iris. */
+    public static boolean isShaderPackInUse() {
+        return query(isShaderPackInUse);
+    }
+
+    private static boolean query(Method method) {
+        if (!resolve()) {
+            return false;
+        }
+        try {
+            return (Boolean) method.invoke(apiInstance);
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+    }
+
     /** @return true if the Iris API is present and its methods were resolved. */
     private static synchronized boolean resolve() {
         if (resolved) {
@@ -88,6 +105,7 @@ public final class IrisCompat {
             shadowProgramClass = Class.forName(SHADOW_PROGRAM_CLASS);
             assignPipeline = apiClass.getMethod("assignPipeline", RenderPipeline.class, programClass);
             assignPipelineShadow = apiClass.getMethod("assignPipelineShadow", RenderPipeline.class, shadowProgramClass);
+            isShaderPackInUse = apiClass.getMethod("isShaderPackInUse");
             apiInstance = apiClass.getMethod("getInstance").invoke(null);
             Fishtastic.LOGGER.info("Iris detected - registering Fishtastic render pipelines for shaderpack rendering");
         } catch (ClassNotFoundException e) {
