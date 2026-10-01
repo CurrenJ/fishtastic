@@ -8,15 +8,20 @@ import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.TankCapacity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.HangingCosmetics;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.TankColumns;
 import grill24.fishtastic.fishtank.TankGroups;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.List;
 import java.util.Set;
@@ -186,6 +191,64 @@ public final class FishTankGameTests {
 
         tank.removeCosmetic(cell);
         helper.assertTrue(tank.getCosmetics().isEmpty(), "Cosmetic must be gone after removeCosmetic");
+        helper.succeed();
+    }
+
+    /**
+     * Three stacked tanks with their floors open between them form one column: both ends are
+     * found from any storey, and the column has room for 4 × storeys − 1 segments.
+     */
+    public static void stackedTanksFormOneColumn(GameTestHelper helper) {
+        FishTankBlockEntity bottom = placeFishTank(helper);
+        FishTankBlockEntity middle = placeFishTankAt(helper, TANK_POS.above());
+        FishTankBlockEntity top = placeFishTankAt(helper, TANK_POS.above(2));
+        for (FishTankBlockEntity tank : List.of(bottom, middle, top)) {
+            tank.updateConnections(helper.getLevel(), tank.getBlockPos());
+        }
+
+        helper.assertTrue(TankColumns.floorOf(helper.getLevel(), top.getBlockPos()).equals(bottom.getBlockPos()),
+            "floorOf the top tank must be the bottom tank");
+        helper.assertTrue(TankColumns.ceilingOf(helper.getLevel(), middle.getBlockPos()).equals(top.getBlockPos()),
+            "ceilingOf the middle tank must be the top tank");
+        int storeys = TankColumns.storeys(helper.getLevel(), bottom.getBlockPos());
+        helper.assertTrue(storeys == 3, "Three stacked tanks must be 3 storeys, got " + storeys);
+        helper.assertTrue(TankColumns.maxSegments(1) == 3 && TankColumns.maxSegments(storeys) == 11,
+            "A column must hold 3 segments per lone tank and 11 in three storeys");
+        helper.succeed();
+    }
+
+    /**
+     * Hanging strands grow by the documented rules, give back one segment per removal (a
+     * lantern's links before the lantern), and survive a save/load as block + height.
+     */
+    public static void hangingCosmeticsStackAndRoundTrip(GameTestHelper helper) {
+        FishTankBlockEntity tank = placeFishTank(helper);
+        CosmeticGridCell cell = new CosmeticGridCell(2, 0);
+
+        PlacedCosmetic chain = new PlacedCosmetic(Blocks.CHAIN.defaultBlockState());
+        PlacedCosmetic lantern = HangingCosmetics.combine(chain, Blocks.LANTERN);
+        helper.assertTrue(lantern != null && lantern.block() == Blocks.LANTERN && lantern.height() == 2,
+            "A lantern added to a chain must hang from its end, got " + lantern);
+        helper.assertTrue(HangingCosmetics.combine(lantern, Blocks.HANGING_ROOTS) == null,
+            "Hanging roots must not combine with a lantern");
+        List<BlockState> segments = HangingCosmetics.segments(lantern);
+        helper.assertTrue(segments.size() == 2 && segments.get(0).is(Blocks.CHAIN)
+                && segments.get(1).getValue(BlockStateProperties.HANGING),
+            "A lantern on one chain must draw as chain then hanging lantern, got " + segments);
+
+        tank.setCeilingCosmetic(cell, lantern);
+        CompoundTag saved = tank.saveWithoutMetadata();
+        tank.removeCeilingCosmetic(cell);
+        tank.load(saved);
+        PlacedCosmetic reloaded = tank.getCeilingCosmetics().get(cell);
+        helper.assertTrue(reloaded != null && reloaded.block() == Blocks.LANTERN && reloaded.height() == 2,
+            "Ceiling cosmetic must survive a save/load, got " + reloaded);
+
+        ItemStack first = tank.removeCeilingCosmeticEntry(cell);
+        helper.assertTrue(first.is(Items.CHAIN), "The first removal must return the chain link, got " + first);
+        ItemStack second = tank.removeCeilingCosmeticEntry(cell);
+        helper.assertTrue(second.is(Items.LANTERN), "The second removal must return the lantern, got " + second);
+        helper.assertTrue(tank.getCeilingCosmetics().isEmpty(), "Ceiling must be empty after removing every segment");
         helper.succeed();
     }
 

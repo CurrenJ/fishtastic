@@ -67,6 +67,15 @@ public class CosmeticTransforms {
 
     public static void set(Block block, Transform transform) {
         TRANSFORMS.put(block, transform);
+        version++;
+    }
+
+    // Bumped by every dev-command edit. Cosmetics are baked into tank chunk meshes, which don't
+    // notice a transform changing; the tank renderer watches this and re-meshes when it moves.
+    private static volatile int version;
+
+    public static int version() {
+        return version;
     }
 
     /** Called by the resource reload listener to atomically replace all transforms. */

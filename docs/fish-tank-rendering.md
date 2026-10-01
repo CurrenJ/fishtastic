@@ -218,6 +218,40 @@ NeoForge extends the `UnbakedGeometry.bake` signature with an additional propert
 
 ---
 
+## Cosmetics in the Chunk Mesh
+
+Static cosmetics are baked into the tank's chunk mesh alongside its body, not drawn by the block
+entity renderer. A BER re-submits every block every frame (model lookup, pose copy, every face
+again), so a 1,000-block set piece cost a thousand submissions a frame; in the chunk mesh it costs
+what the same blocks would cost in the world. Measured uncapped in the `spanpreview` self-test:
+FPS with the Whale Fall and Drowned Pagoda in view matched empty tanks on both loaders.
+
+`client/compositemodel/TankCosmeticMesh` does the shared work:
+
+1. **Snapshot** (main thread, inside `getRenderData()` / `getModelData()`): every static piece the
+   tank draws — single floor cosmetics, kelp and hanging segments passing through this storey,
+   single-tank structures, and this tank's share of a spanning structure — as a block state plus
+   its pose into the tank's block space. Carried as `FishTankCompositeModelData.cosmetics`.
+2. **Bake** (meshing thread, cached per snapshot): each piece's block-model quads, transformed,
+   all in the unculled bucket, so they take the tank's own light and are never culled against the
+   world. Inside a spanning structure a face against a neighbouring solid part is dropped (the
+   generator's cull mask in `SpanStructures.Placed`).
+3. **Tint** (per mesh): a tinted quad's colour comes from the *cosmetic's* tint sources (a leaf's
+   foliage colour), because the mesher would otherwise resolve it against the tank block's. Fabric
+   writes it into the emitter's vertex colours; NeoForge re-makes the quad with `BakedColors`.
+
+Both loaders add the result after the tank body, with AO off like the body, include the snapshot
+in `createGeometryKey`, and OR its material flags into `materialFlags`.
+
+**Re-meshing.** A cosmetic stored on one tank is meshed by others: kelp by the storeys above, a
+hanging strand by the storeys below, a span by its whole box. `TankCosmeticMesh.refreshDependents`
+runs whenever a tank's data arrives on the client and refreshes those tanks' model data and
+sections. The `/fishtastic cosmetic nudge|rotate|scale` dev commands bump
+`CosmeticTransforms.version()`, and the renderer re-meshes the world once when it changes.
+
+**Still on the BER:** chests (their lid animates and their model is special-rendered), the
+particles lit furnaces and campfires spawn, the water fill, and fish.
+
 ## The `bakeTopGeometry` Cache Bug
 
 `ResolvedModel.bakeTopGeometry(TextureSlots, ModelBaker, ModelState)` is the natural API for baking a model's geometry. However, the concrete implementation (`ModelDiscovery.ModelWrapper`) maintains two internal caches keyed by `ModelState` **only**, completely ignoring `TextureSlots`:

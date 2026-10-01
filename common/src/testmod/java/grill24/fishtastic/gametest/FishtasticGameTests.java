@@ -622,6 +622,16 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void stackedTanksFormOneColumn(GameTestHelper helper) {
+        FishTankGameTests.stackedTanksFormOneColumn(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void hangingCosmeticsStackAndRoundTrip(GameTestHelper helper) {
+        FishTankGameTests.hangingCosmeticsStackAndRoundTrip(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

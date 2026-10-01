@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -261,6 +262,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 return;
             }
             CosmeticCaptureClientState.render(pose, consumers, context.camera().getPosition());
+            // Highlight the tank cell a held cosmetic would be placed in
+            CosmeticPlacementPreview.render(pose, consumers, context.camera().getPosition());
         });
 
         // PORT-ONLY: 1.21.1's Fabric API has one HUD hook (HudRenderCallback) rather than 26.1's

@@ -6,7 +6,7 @@ import grill24.fishtastic.network.codec.BufCodec;
 
 /** What kind of entry a {@code RemoveTankEntryPacket} targets within one tank segment. */
 public enum TankEntryKind {
-    FISH, COSMETIC, STRUCTURE_COSMETIC;
+    FISH, COSMETIC, STRUCTURE_COSMETIC, CEILING_COSMETIC;
 
     public static final BufCodec<TankEntryKind> STREAM_CODEC = BufCodecs.idMapper(
             i -> TankEntryKind.values()[i],

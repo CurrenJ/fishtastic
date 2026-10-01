@@ -68,6 +68,9 @@ public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int
                 case STRUCTURE_COSMETIC -> isValidCell(packet.key())
                         ? fishTank.removeStructureCosmeticEntry(CosmeticGridCell.unpack(packet.key()))
                         : ItemStack.EMPTY;
+                case CEILING_COSMETIC -> isValidCell(packet.key())
+                        ? fishTank.removeCeilingCosmeticEntry(CosmeticGridCell.unpack(packet.key()))
+                        : ItemStack.EMPTY;
             };
 
             giveOrDrop(player, toGive);

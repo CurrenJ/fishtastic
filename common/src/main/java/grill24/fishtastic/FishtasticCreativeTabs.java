@@ -158,6 +158,8 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_DYNAMIC_DUO.value());
                     output.accept(FishtasticItems.COSMETIC_VINTAGE_VINE.value());
                     output.accept(FishtasticItems.COSMETIC_CASTLE_RUIN.value());
+                    output.accept(FishtasticItems.COSMETIC_DROWNED_PAGODA.value());
+                    output.accept(FishtasticItems.COSMETIC_WHALE_FALL.value());
                     output.accept(FishtasticItems.COSMETIC_WAX_SKULL_CANDLE.value());
 
                     // Lamp variants

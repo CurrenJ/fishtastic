@@ -1,0 +1,7 @@
+{
+  "display_name": "Drowned Pagoda",
+  "description": "A five-tiered pagoda rising through three storeys, verdigris roofs hung with lanterns and windows still lit, for your fish tank.",
+  "cost": 120,
+  "reward": [{ "id": "fishtastic:cosmetic_drowned_pagoda", "count": 1 }],
+  "daily_max_purchases": 1
+}
