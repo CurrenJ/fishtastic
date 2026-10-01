@@ -3,6 +3,8 @@ package grill24.fishtastic.client.renderer;
 import net.minecraft.client.renderer.RenderType;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Method;
+
 /**
  * PORT-ONLY: the 1.21.1 counterpart of 26.1's Iris registration, kept as a <b>no-op with the same
  * shape</b> so the call sites in {@link FishtasticRenderTypes} read the same as 26.1's
@@ -19,9 +21,17 @@ import org.jetbrains.annotations.Nullable;
  * entity. The rendering spike confirmed it: {@code TANK_WATER_FILL} and {@code ITEM_OUTLINE} draw
  * correctly under Complementary Reimagined with no registration.
  *
+ * <p>{@link #isShaderPackInUse()} is real on both branches: Iris 1.8's v0 API has the same method.
+ *
  * <p><b>[1.20.1]</b> the same no-op.
  */
 public final class IrisCompat {
+    private static final String API_CLASS = "net.irisshaders.iris.api.v0.IrisApi";
+
+    /** Resolved lazily on first use; {@code null} once {@link #resolved} is set means "Iris absent". */
+    private static Object apiInstance;
+    private static Method isShaderPackInUse;
+    private static boolean resolved;
 
     /**
      * No-op on 1.21.1 — see the class comment. Kept with 26.1's parameter list (a render type in
@@ -34,6 +44,38 @@ public final class IrisCompat {
     @SuppressWarnings("unused")
     public static void assignPipeline(RenderType renderType, String program, @Nullable String shadowProgram) {
         // Intentionally empty: nothing to register with Iris 1.8. See the class comment.
+    }
+
+    /** True when a shaderpack is loaded and active; false without Iris. */
+    public static boolean isShaderPackInUse() {
+        return query(isShaderPackInUse);
+    }
+
+    private static boolean query(Method method) {
+        if (!resolve()) {
+            return false;
+        }
+        try {
+            return (Boolean) method.invoke(apiInstance);
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+    }
+
+    /** @return true if the Iris API is present and its methods were resolved. */
+    private static synchronized boolean resolve() {
+        if (resolved) {
+            return apiInstance != null;
+        }
+        resolved = true;
+        try {
+            Class<?> apiClass = Class.forName(API_CLASS);
+            isShaderPackInUse = apiClass.getMethod("isShaderPackInUse");
+            apiInstance = apiClass.getMethod("getInstance").invoke(null);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            apiInstance = null;
+        }
+        return apiInstance != null;
     }
 
     private IrisCompat() {}

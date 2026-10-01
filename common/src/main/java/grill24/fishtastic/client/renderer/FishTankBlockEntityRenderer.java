@@ -271,7 +271,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         if (level == null) return null;
 
         FishTankRenderState state = new FishTankRenderState();
-        state.lightCoords = lightCoords;
+        state.lightCoords = TankInteriorLight.apply(lightCoords);
         state.blockPos = blockEntity.getBlockPos();
 
         state.hasOpenDownFace = blockEntity.getOpenFaces().contains(Direction.DOWN);

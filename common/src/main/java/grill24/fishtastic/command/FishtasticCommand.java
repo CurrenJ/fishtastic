@@ -40,6 +40,7 @@ public class FishtasticCommand {
                 .then(TokenBalanceCommand.build())
                 .then(NotificationVolumeCommand.build())
                 .then(TankWaterFillCommand.build())
+                .then(TankInteriorLightCommand.build())
                 .then(ReducedEffectsCommand.build())
                 .then(SimulateFishingCommand.build())
                 .then(BackupCommand.build())

@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.client.compositemodel.FishTankGeometry;
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import grill24.fishtastic.client.renderer.TankInteriorLight;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
@@ -22,6 +23,8 @@ import net.neoforged.neoforge.common.util.TriState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +41,9 @@ public class FishTankBakedModel implements IDynamicBakedModel {
     private final FishTankGeometry geometry;
     private final ItemOverrides itemOverrides;
     private final Map<Block, RenderType> chunkLayers = new ConcurrentHashMap<>();
+    /** Interior quads re-made at {@link #litLevel}'s light, by the identity of the quad they were made from. */
+    private final Map<BakedQuad, BakedQuad> litQuads = Collections.synchronizedMap(new IdentityHashMap<>());
+    private volatile int litLevel = -1;
 
     FishTankBakedModel(FishTankGeometry geometry) {
         this.geometry = geometry;
@@ -75,7 +81,12 @@ public class FishTankBakedModel implements IDynamicBakedModel {
         List<BakedQuad> quads = new ArrayList<>();
         for (FishTankGeometry.LayerQuads layer : composite.layers()) {
             if (renderType == null || chunkLayer(layer.source()) == renderType) {
-                quads.addAll(layer.get(side));
+                // The frame keeps world light; the sand and glass are the interior (TankInteriorLight).
+                if (layer.layer() == FishTankGeometry.Layer.FRAME) {
+                    quads.addAll(layer.get(side));
+                } else {
+                    for (BakedQuad quad : layer.get(side)) quads.add(withLightEmission(quad));
+                }
             }
         }
         if (side == null) {
@@ -96,7 +107,7 @@ public class FishTankBakedModel implements IDynamicBakedModel {
     private void addCosmetics(ModelData extraData, @Nullable RenderType renderType, List<BakedQuad> quads) {
         TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data(extraData).cosmetics());
         for (TankCosmeticMesh.Quad quad : baked.untinted()) {
-            if (renderType == null || chunkLayer(quad.tintState().getBlock()) == renderType) quads.add(quad.quad());
+            if (renderType == null || chunkLayer(quad.tintState().getBlock()) == renderType) quads.add(withLightEmission(quad.quad()));
         }
         List<TankCosmeticMesh.Quad> tinted = extraData.get(FishTankModelData.TINTED_COSMETICS_PROPERTY);
         if (tinted == null) return;
@@ -113,9 +124,42 @@ public class FishTankBakedModel implements IDynamicBakedModel {
         List<TankCosmeticMesh.Quad> tinted = new ArrayList<>(baked.tinted().size());
         for (TankCosmeticMesh.Quad quad : baked.tinted()) {
             int color = TankCosmeticMesh.tintColor(quad, level, pos);
-            tinted.add(new TankCosmeticMesh.Quad(TankCosmeticMesh.withBakedColor(quad.quad(), color), quad.tintState()));
+            BakedQuad colored = TankCosmeticMesh.withBakedColor(quad.quad(), color);
+            int interiorLight = TankInteriorLight.level();
+            tinted.add(new TankCosmeticMesh.Quad(interiorLight > 0 ? withLightEmission(colored, interiorLight) : colored, quad.tintState()));
         }
         return modelData.derive().with(FishTankModelData.TINTED_COSMETICS_PROPERTY, List.copyOf(tinted)).build();
+    }
+
+    /**
+     * {@code quad} drawn at no less than {@link TankInteriorLight}'s level, cached per source quad
+     * (the composite and cosmetic caches hand out the same quads mesh after mesh).
+     */
+    private BakedQuad withLightEmission(BakedQuad quad) {
+        int level = TankInteriorLight.level();
+        if (level <= 0) return quad;
+        if (litLevel != level || litQuads.size() > 65536) {
+            litQuads.clear();
+            litLevel = level;
+        }
+        return litQuads.computeIfAbsent(quad, q -> withLightEmission(q, level));
+    }
+
+    /**
+     * {@code q} re-made with a baked block-light floor of {@code level}. PORT-ONLY mechanism: 26.1.2
+     * uses the quad's light emission, which raises sky light too; NeoForge 1.21.1's patched
+     * {@code putBulkData} takes the per-vertex maximum of world light and the lightmap baked into the
+     * quad ({@code IVertexConsumerExtension#applyBakedLighting}), so this raises block light alone,
+     * as Fabric does on both versions. Like emission, it never spreads into the world.
+     */
+    private static BakedQuad withLightEmission(BakedQuad q, int level) {
+        int[] vertices = q.getVertices().clone();
+        int minimum = TankInteriorLight.minimumLightmap();
+        for (int v = 0; v < 4; v++) {
+            int uv2 = v * 8 + 6;
+            vertices[uv2] = TankInteriorLight.max(vertices[uv2], minimum);
+        }
+        return new BakedQuad(vertices, q.getTintIndex(), q.getDirection(), q.getSprite(), q.isShade(), q.hasAmbientOcclusion());
     }
 
     @Override
