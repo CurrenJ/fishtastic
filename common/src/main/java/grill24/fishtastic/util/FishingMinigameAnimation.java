@@ -3,6 +3,7 @@ package grill24.fishtastic.util;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Axis;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.FishtasticKeyBinds;
@@ -1285,6 +1286,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             // Get the display item - use generic fish for FishtasticFish items during active/fail states
             boolean showRarityOutline = equippedCharmEffect != null && equippedCharmEffect.showRarityOutline();
             ItemStack displayItem = target.getDisplayItemStack(showRarityOutline);
+            // The tall/lava styles draw their own fish icon instead of the generic item (see
+            // FishingBarLayout#fishTargetSprite); real reward items keep their own art.
+            boolean styleTargetArt = layout.fishTargetSprite() != null && displayItem.is(FishtasticItems.GENERIC_FISH);
 
             if (targetState == FishingTarget.TargetState.ACTIVE) {
                 // Existing rendering logic for active targets
@@ -1309,7 +1313,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 // Calculate scale based on catch progress
                 float scaleMultiplier = 0.5f + (catchProgress * 0.5f);
-                final float itemScale = (2 / 16f) * scaleMultiplier;
+                final float itemScale = layout.targetScale() * (2 / 16f) * scaleMultiplier;
 
                 float prog = Math.max(0, (0.5f - catchProgress) * 2f);
                 Vector3f color = Utility.interpolateColor(
@@ -1345,7 +1349,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 guiGraphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(shakeAngle)));
                 guiGraphics.pose().scale(itemScale * squashX, itemScale * squashY, itemScale * squashY);
                 // setColor removed in 26.1 - render without tinting
-                extension.fishtastic$renderItem(displayItem, 0, 0);
+                if (styleTargetArt) {
+                    extension.fishtastic$renderSprite(displayItem, layout.fishTargetSprite(), 0, 0);
+                } else {
+                    extension.fishtastic$renderItem(displayItem, 0, 0);
+                }
 
             } else if (targetState == FishingTarget.TargetState.ANIMATING_SUCCESS) {
                 // Collection animation: physics-based movement with rotation on all axes
@@ -1353,7 +1361,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f;
                 float targetYOffset = targetPosition * itemMaxYOffset;
 
-                final float itemScale = (2 / 16f);
+                final float itemScale = layout.targetScale() * (2 / 16f);
 
                 for (PhysicsSimulation simulation : target.getPhysicsSimulations()) {
                     guiGraphics.pose().pushPose();
@@ -1381,13 +1389,17 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 // Match the active-state scale (0.5 + catchProgress*0.5) so there's no pop on transition.
                 // catchProgress is 0 at failure time, so this is always 0.5× — matching the smallest active size.
                 float scaleMultiplier = 0.5f + (target.getCatchProgress() * 0.5f);
-                final float itemScale = (2 / 16f) * scaleMultiplier * collectScale;
+                final float itemScale = layout.targetScale() * (2 / 16f) * scaleMultiplier * collectScale;
 
                 guiGraphics.pose().translate(0, -targetYOffset, 0);
                 // Y-axis spin doesn't apply in 2D - use scale-x for a flip effect
                 float flipScale = (float) Math.cos(Math.toRadians(spinAngle));
                 guiGraphics.pose().scale(itemScale * flipScale, itemScale, itemScale);
-                extension.fishtastic$renderItem(displayItem, 0, 0);
+                if (styleTargetArt) {
+                    extension.fishtastic$renderSprite(displayItem, layout.fishTargetSprite(), 0, 0);
+                } else {
+                    extension.fishtastic$renderItem(displayItem, 0, 0);
+                }
             }
 
             guiGraphics.pose().popPose();
@@ -1449,6 +1461,11 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      *                      bottom at its minimum; gameplay fractions are unaffected
      * @param bobberMaxRisePx  Visual only: px the bobber sprite is drawn higher than travelZonePx's
      *                      top at its maximum
+     * @param fishTargetSprite Sprite that replaces the generic fish item icon for fish/trash
+     *                      targets, or null to keep the item icon (classic). PORT-ONLY: 26.1.2
+     *                      swaps the stack's item-model component, which 1.21.1 has no counterpart
+     *                      for, so a style carries its own sprite instead.
+     * @param targetScale   Multiplier on every target icon's on-screen size (1 = classic)
      */
     public record FishingBarLayout(
             GuiTextureItem bar,
@@ -1457,14 +1474,30 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             int bobberHeightPx,
             int targetZonePx,
             int bobberMinDropPx,
-            int bobberMaxRisePx
+            int bobberMaxRisePx,
+            @Nullable GuiTextureItem fishTargetSprite,
+            float targetScale
     ) {
         public FishingBarLayout(GuiTextureItem bar, GuiTextureItem bobber, int travelZonePx, int bobberHeightPx, int targetZonePx) {
-            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, 0, 0);
+            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, 0, 0, null, 1f);
         }
 
-        /** Fraction of bar texture height the bobber's sprite travels — passed to the renderer. */
-        public float bobberMaxYOffset() { return (float) (travelZonePx + bobberMinDropPx + bobberMaxRisePx) / bar.texHeight(); }
+        public FishingBarLayout(GuiTextureItem bar, GuiTextureItem bobber, int travelZonePx, int bobberHeightPx, int targetZonePx,
+                                int bobberMinDropPx, int bobberMaxRisePx) {
+            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, bobberMinDropPx, bobberMaxRisePx, null, 1f);
+        }
+
+        /**
+         * Fraction of bar texture height the bobber's sprite travels per unit of bobber position —
+         * passed to the renderer. Position tops out at {@code 1 - bobberSize()}, so the span is divided
+         * by that to make the sprite land exactly on the ceiling (travel - bobber height + drop + rise px)
+         * at the maximum; without it the drop/rise extras left the tall styles short of the art line.
+         * Classic layouts (no drop/rise) are unchanged by the divisor — see FishingBarLayoutTest.
+         */
+        public float bobberMaxYOffset() {
+            float span = travelZonePx - bobberHeightPx + bobberMinDropPx + bobberMaxRisePx;
+            return span / (1f - bobberSize()) / bar.texHeight();
+        }
 
         /** Fraction of bar texture height the bobber sprite sits below its rest position at the bottom of its travel. */
         public float bobberMinDropOffset() { return (float) bobberMinDropPx / bar.texHeight(); }
@@ -1508,8 +1541,20 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private static void renderItem(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics, Minecraft minecraft, float angle, int zOffset) {
         guiGraphics.pose().pushPose();
 
-        Vector2f pivot = guiTextureItem.localPivot();
         guiGraphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(angle))); // Rotate around sprite center
+        renderSprite(guiTextureItem, guiGraphics);
+
+        guiGraphics.pose().popPose();
+    }
+
+    /**
+     * Draws one sprite as a direct texture blit, centered on the current pose origin and occupying a
+     * 1×1 unit box, so callers set the on-screen size purely via their own pose scale. Public for
+     * {@code GuiGraphicsMixin}'s {@code fishtastic$renderSprite}, the 1.21.1 replacement for 26.1.2's
+     * item-model swap.
+     */
+    public static void renderSprite(GuiTextureItem guiTextureItem, GuiGraphics guiGraphics) {
+        Vector2f pivot = guiTextureItem.localPivot();
         guiGraphics.pose().translate(-pivot.x(), -pivot.y(), 0); // Center sprite content at screen origin
 
         // blit() takes integer coords, so work in texel units and shrink one texel to 1/texWidth of
@@ -1519,7 +1564,5 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().scale(1f / texW, 1f / texH, 1f / texH);
         guiGraphics.blit(guiTextureItem.texture(),
                 -texW / 2, -texH / 2, 0f, 0f, texW, texH, texW, texH);
-
-        guiGraphics.pose().popPose();
     }
 }
