@@ -6,7 +6,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // No dotenv dependency - this file is small enough to hand-roll and keeps the shim dependency-free
 // beyond the MCP SDK itself.
-export function loadEnvFile() {
+//
+// `override` lets the file win over values already in process.env. The bridge's token is new on every
+// `/fishtastic mcp start`, so httpClient re-reads the file per call with override=true - a fresh token
+// written to .env (by hand, or by the self-test's mcpsession scene) works without reconnecting /mcp.
+export function loadEnvFile({ override = false } = {}) {
   const envPath = path.join(__dirname, "..", ".env");
   let contents;
   try {
@@ -26,7 +30,7 @@ export function loadEnvFile() {
     }
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) {
+    if (override || !(key in process.env)) {
       process.env[key] = value;
     }
   }
