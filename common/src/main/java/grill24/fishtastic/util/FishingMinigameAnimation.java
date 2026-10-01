@@ -1,6 +1,7 @@
 package grill24.fishtastic.util;
 
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.FishtasticKeyBinds;
@@ -1265,6 +1266,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             // Get the display item - use generic fish for FishtasticFish items during active/fail states
             boolean showRarityOutline = equippedCharmEffect != null && equippedCharmEffect.showRarityOutline();
             ItemStack displayItem = target.getDisplayItemStack(showRarityOutline);
+            if (layout.fishTargetModel() != null && displayItem.is(FishtasticItems.GENERIC_FISH)) {
+                displayItem.set(net.minecraft.core.component.DataComponents.ITEM_MODEL, layout.fishTargetModel());
+            }
 
             if (targetState == FishingTarget.TargetState.ACTIVE) {
                 // Existing rendering logic for active targets
@@ -1289,7 +1293,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
                 // Calculate scale based on catch progress
                 float scaleMultiplier = 0.5f + (catchProgress * 0.5f);
-                final float itemScale = (2 / 16f) * scaleMultiplier;
+                final float itemScale = layout.targetScale() * (2 / 16f) * scaleMultiplier;
 
                 float prog = Math.max(0, (0.5f - catchProgress) * 2f);
                 Vector3f color = Utility.interpolateColor(
@@ -1333,7 +1337,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 float targetPosition = target.getInterpolatedPosition(partialTick) - 0.5f;
                 float targetYOffset = targetPosition * itemMaxYOffset;
 
-                final float itemScale = (2 / 16f);
+                final float itemScale = layout.targetScale() * (2 / 16f);
 
                 for (PhysicsSimulation simulation : target.getPhysicsSimulations()) {
                     guiGraphics.pose().pushMatrix();
@@ -1361,7 +1365,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 // Match the active-state scale (0.5 + catchProgress*0.5) so there's no pop on transition.
                 // catchProgress is 0 at failure time, so this is always 0.5× — matching the smallest active size.
                 float scaleMultiplier = 0.5f + (target.getCatchProgress() * 0.5f);
-                final float itemScale = (2 / 16f) * scaleMultiplier * collectScale;
+                final float itemScale = layout.targetScale() * (2 / 16f) * scaleMultiplier * collectScale;
 
                 guiGraphics.pose().translate(0, -targetYOffset);
                 // Y-axis spin doesn't apply in 2D - use scale-x for a flip effect
@@ -1429,6 +1433,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
      *                      bottom at its minimum; gameplay fractions are unaffected
      * @param bobberMaxRisePx  Visual only: px the bobber sprite is drawn higher than travelZonePx's
      *                      top at its maximum
+     * @param fishTargetModel Item model id that replaces the generic fish icon for FISH/TRASH targets,
+     *                      or null to keep the default item model
+     * @param targetScale   Multiplier on every target icon's on-screen size (1 = classic)
      */
     public record FishingBarLayout(
             GuiTextureItem bar,
@@ -1437,14 +1444,29 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             int bobberHeightPx,
             int targetZonePx,
             int bobberMinDropPx,
-            int bobberMaxRisePx
+            int bobberMaxRisePx,
+            Identifier fishTargetModel,
+            float targetScale
     ) {
         public FishingBarLayout(GuiTextureItem bar, GuiTextureItem bobber, int travelZonePx, int bobberHeightPx, int targetZonePx) {
-            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, 0, 0);
+            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, 0, 0, null, 1f);
         }
 
-        /** Fraction of bar texture height the bobber's sprite travels — passed to the renderer. */
-        public float bobberMaxYOffset() { return (float) (travelZonePx + bobberMinDropPx + bobberMaxRisePx) / bar.texHeight(); }
+        public FishingBarLayout(GuiTextureItem bar, GuiTextureItem bobber, int travelZonePx, int bobberHeightPx, int targetZonePx,
+                                int bobberMinDropPx, int bobberMaxRisePx) {
+            this(bar, bobber, travelZonePx, bobberHeightPx, targetZonePx, bobberMinDropPx, bobberMaxRisePx, null, 1f);
+        }
+
+        /**
+         * Fraction of bar texture height the bobber's sprite travels per unit of bobber position —
+         * passed to the renderer. Position tops out at {@code 1 - bobberSize()}, so the span is divided
+         * by that to make the sprite land exactly on the ceiling (travel - bobber height + drop + rise px)
+         * at the maximum; without it the drop/rise extras left the tall styles short of the art line.
+         */
+        public float bobberMaxYOffset() {
+            float span = travelZonePx - bobberHeightPx + bobberMinDropPx + bobberMaxRisePx;
+            return span / (1f - bobberSize()) / bar.texHeight();
+        }
 
         /** Fraction of bar texture height the bobber sprite sits below its rest position at the bottom of its travel. */
         public float bobberMinDropOffset() { return (float) bobberMinDropPx / bar.texHeight(); }
