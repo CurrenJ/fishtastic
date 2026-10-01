@@ -30,6 +30,7 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import net.minecraft.world.level.block.Block;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.TankColumns;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import grill24.fishtastic.util.Ids;
@@ -71,6 +72,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
@@ -135,8 +137,14 @@ public final class RenderSelfTest {
     private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
+    /** Scenes that run only when the marker names them (they need something the default run lacks). */
+    private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
+            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench");
+
     private static Boolean armed;
     private static Set<String> scenes;
+    /** {@code key=value} marker lines, for scenes that take arguments; a key may repeat. */
+    private static final java.util.Map<String, List<String>> PARAMS = new java.util.HashMap<>();
     private static String loader;
     private static boolean worldRequested;
     private static int titleTicks;
@@ -198,17 +206,29 @@ public final class RenderSelfTest {
         try {
             for (String line : Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8)) {
                 String s = line.trim();
-                if (!s.isEmpty() && !s.startsWith("#")) requested.add(s);
+                if (s.isEmpty() || s.startsWith("#")) continue;
+                int eq = s.indexOf('=');
+                if (eq > 0) PARAMS.computeIfAbsent(s.substring(0, eq).trim(), k -> new java.util.ArrayList<>()).add(s.substring(eq + 1).trim());
+                else requested.add(s);
             }
         } catch (IOException e) {
             Fishtastic.LOGGER.warn("[selftest] could not read marker file", e);
         }
         if (requested.isEmpty()) return new LinkedHashSet<>(ALL_SCENES);
         for (String s : requested) {
-            if (!ALL_SCENES.contains(s)) Fishtastic.LOGGER.warn("[selftest] unknown scene '{}'", s);
+            if (!ALL_SCENES.contains(s) && !OPT_IN_SCENES.contains(s)) Fishtastic.LOGGER.warn("[selftest] unknown scene '{}'", s);
         }
-        requested.retainAll(ALL_SCENES);
+        requested.removeIf(s -> !ALL_SCENES.contains(s) && !OPT_IN_SCENES.contains(s));
         return requested;
+    }
+
+    private static List<String> params(String key) {
+        return PARAMS.getOrDefault(key, List.of());
+    }
+
+    private static String param(String key, String fallback) {
+        List<String> values = params(key);
+        return values.isEmpty() ? fallback : values.get(values.size() - 1);
     }
 
     private static void queue(int delayTicks, Consumer<Minecraft> action) {
@@ -291,6 +311,15 @@ public final class RenderSelfTest {
             case "gizmos" -> queueGizmosScene();
             case "pertank" -> queuePerTankScene();
             case "highlight" -> queueHighlightScene();
+            case "matte" -> queueMatteScene();
+            case "matteclip" -> queueMatteClipScene();
+            case "fourwaters" -> queueFourWatersScene();
+            case "cathedral" -> queueCathedralScene();
+            case "columns" -> queueColumnsScene();
+            case "spanpreview" -> queueSpanPreviewScene();
+            case "perfbench" -> queuePerfBenchScene();
+            case "mcpsession" -> queueMcpSessionScene();
+            case "cosmeticpreview" -> queueCosmeticPreviewScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -359,6 +388,1064 @@ public final class RenderSelfTest {
         queue(1, mc -> camera(mc, origin.getX() + 5.2, origin.getY() + 1.8, origin.getZ() - 0.5, 150f, 45f));
         queue(30, mc -> screenshot(mc, "tank", "lone_and_pile"));
         queue(1, mc -> mc.options.hideGui = false);
+    }
+
+
+    /**
+     * Opt-in: cool-cam's alpha capture on a tank group floating in an emptied world. Needs the
+     * cool-cam jar published to mavenLocal (this repo resolves it from there); it is driven through
+     * its {@code /cc} commands so this class has no dependency on it. Checks, in order:
+     * a single frame's alpha, that two captures of the frozen world are identical, a frozen orbit,
+     * and an animated orbit that steps world ticks. Output lands in {@code <run dir>/coolcam_capture}.
+     */
+    private static void queueMatteScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            // Empty the flat world's ground so nothing but the tanks is left to be in frame.
+            int[][] halves = {{-72, -1}, {0, 71}};
+            for (int[] hx : halves) {
+                for (int[] hz : halves) {
+                    run(s, "fill " + (x + hx[0]) + " " + (y - 4) + " " + (z + hz[0]) + " " + (x + hx[1]) + " " + (y - 1) + " " + (z + hz[1]) + " minecraft:air");
+                }
+            }
+            for (int dx = -1; dx <= 1; dx++) run(s, "setblock " + (x + dx) + " " + y + " " + z + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            String[] group = {"bluegill", "discus", "lionfish", "betta", "clown_loach", "giraffe_cichlid"};
+            for (int i = 0; i < group.length; i++) {
+                FishTankBlockEntity tank = tank(level, new BlockPos(x - 1 + i % 3, y, z));
+                check("matte.addItem." + group[i], tank != null && tank.addItem(fish(group[i], 25f + 3f * i)), "");
+            }
+        }));
+        queue(5, mc -> {
+            // Nothing exists beyond the emptied 72-block radius, so keep the view inside it.
+            savedRenderDistance = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(3);
+            mc.options.hideGui = true;
+            camera(mc, origin.getX() + 0.5, origin.getY() + 1.6, origin.getZ() + 1.2, 180f, 6f);
+        });
+        // Let the chunks mesh and the fish settle, then freeze for the single-frame checks.
+        queue(100, mc -> server(mc, s -> run(s, "tick freeze")));
+        queue(30, mc -> mc.player.connection.sendCommand("cc matte single_a"));
+        queue(60, mc -> mc.player.connection.sendCommand("cc matte single_b"));
+        queue(60, mc -> {
+            File a = captureFrame("single_a", 0), b = captureFrame("single_b", 0);
+            matteStats("single", a);
+            check("matte.deterministic", sameImage(a, b), "two captures of the frozen world " + (sameImage(a, b) ? "match" : "differ"));
+            server(mc, s -> run(s, "tick unfreeze"));
+        });
+        // A frozen orbit: 8 frames round the tank group.
+        double cx = origin.getX() + 0.5, cy = origin.getY() + 0.5, cz = origin.getZ() - 3.5;
+        queue(20, mc -> {
+            mc.player.connection.sendCommand("cc capture ticks 0");
+            mc.player.connection.sendCommand("cc capture fov 40");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit orbit_frozen 8 6 2.0 %.2f %.2f %.2f", cx, cy, cz));
+        });
+        queue(400, mc -> {
+            int present = 0;
+            for (int i = 0; i < 8; i++) if (captureFrame("orbit_frozen", i).isFile()) present++;
+            check("matte.orbit.frames", present == 8, present + " of 8 frames written");
+            File f0 = captureFrame("orbit_frozen", 0), f2 = captureFrame("orbit_frozen", 2);
+            if (present == 8) {
+                matteStats("orbit0", f0);
+                check("matte.orbit.rotates", !sameImage(f0, f2), "frame 0 and frame 2 (90 degrees apart) differ");
+            }
+            check("matte.orbit.encodeNotes", new File(new File(mc.gameDirectory, "coolcam_capture/orbit_frozen"), "encode.txt").isFile(), "");
+            // Frozen first, so the only ticks that pass are the ones the capture steps.
+            server(mc, s -> run(s, "tick freeze"));
+        });
+        // An animated orbit: 20 tps at 30 fps is 2/3 of a tick per frame, so 12 frames step 7 ticks.
+        queue(20, mc -> {
+            animatedStartTime = mc.level.getGameTime();
+            mc.player.connection.sendCommand("cc capture ticks 0.6667");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit orbit_anim 12 6 2.0 %.2f %.2f %.2f", cx, cy, cz));
+        });
+        queue(600, mc -> {
+            int present = 0;
+            for (int i = 0; i < 12; i++) if (captureFrame("orbit_anim", i).isFile()) present++;
+            long advanced = mc.level.getGameTime() - animatedStartTime;
+            check("matte.anim.frames", present == 12, present + " of 12 frames written");
+            check("matte.anim.ticksStepped", advanced == 7, "world advanced " + advanced + " tick(s) (7 expected)");
+            check("matte.anim.stayedFrozen", mc.level.tickRateManager().isFrozen(), "frozen=" + mc.level.tickRateManager().isFrozen());
+            server(mc, s -> run(s, "tick unfreeze"));
+            mc.player.connection.sendCommand("cc capture ticks 0");
+            mc.player.connection.sendCommand("cc capture fov off");
+            mc.options.renderDistance().set(savedRenderDistance);
+            mc.options.hideGui = false;
+        });
+    }
+
+    /**
+     * Opt-in: one long animated orbit for promo test clips — a 3-tank group with 12 fish (one
+     * legendary) floating in an emptied world, 150 frames at 2/3 tick per frame (30 fps real time).
+     */
+    private static void queueMatteClipScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            int[][] halves = {{-72, -1}, {0, 71}};
+            for (int[] hx : halves) {
+                for (int[] hz : halves) {
+                    run(s, "fill " + (x + hx[0]) + " " + (y - 4) + " " + (z + hz[0]) + " " + (x + hx[1]) + " " + (y - 1) + " " + (z + hz[1]) + " minecraft:air");
+                }
+            }
+            for (int dx = -1; dx <= 1; dx++) run(s, "setblock " + (x + dx) + " " + y + " " + z + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            String[] group = {"bluegill", "discus", "lionfish", "betta", "clown_loach", "giraffe_cichlid",
+                    "golden_trout", "arctic_char", "greenstripe_barb", "blind_cave_tetra", "lined_seahorse", "glass_catfish"};
+            for (int i = 0; i < group.length; i++) {
+                FishTankBlockEntity tank = tank(level, new BlockPos(x - 1 + i % 3, y, z));
+                ItemStack fish = fish(group[i], 25f + 3f * i);
+                if (i == 2) FishtasticItemData.set(fish, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
+                if (tank != null) tank.addItem(fish);
+            }
+        }));
+        queue(5, mc -> {
+            savedRenderDistance = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(3);
+            mc.options.hideGui = true;
+            camera(mc, origin.getX() + 0.5, origin.getY() + 1.6, origin.getZ() + 1.2, 180f, 6f);
+        });
+        queue(160, mc -> {
+            double cx = origin.getX() + 0.5, cy = origin.getY() + 0.5, cz = origin.getZ() - 3.5;
+            mc.player.connection.sendCommand("cc capture ticks 0.6667");
+            mc.player.connection.sendCommand("cc capture fov 38");
+            mc.player.connection.sendCommand("cc capture size 1920 1080");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit promo_orbit 150 5.2 1.6 %.2f %.2f %.2f", cx, cy, cz));
+        });
+        queue(1800, mc -> {
+            int present = 0;
+            for (int i = 0; i < 150; i++) if (captureFrame("promo_orbit", i).isFile()) present++;
+            check("matteclip.frames", present == 150, present + " of 150 frames written");
+            mc.player.connection.sendCommand("cc capture ticks 0");
+            mc.player.connection.sendCommand("cc capture fov off");
+            mc.player.connection.sendCommand("cc capture size off");
+            mc.options.renderDistance().set(savedRenderDistance);
+            mc.options.hideGui = false;
+        });
+    }
+
+    /**
+     * Opt-in promo piece, "Four Waters": a 60 fps, 20 s alpha-matte orbit. The centre is the sea as
+     * one connected three-high column, shading from sunlit quartz under a glass cupola down through
+     * prismarine to a deepslate floor; around it stand three separate waters. Earth is a desert pool
+     * of pupfish and killifish over red sand and bleached coral. Air is an all-glass box of glass
+     * creatures hung in the air. Fire is a blackstone forge over magma for the molten idol.
+     */
+    private static void queueFourWatersScene() {
+        final int frames = 1200;
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            clearVoid(s, x, y, z);
+            for (BlockPos p : fourWatersTanks()) run(s, "setblock " + p.getX() + " " + p.getY() + " " + p.getZ() + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+
+            // Water: the sea, surface to floor, as one connected volume.
+            FishTankBlockEntity floor = tank(level, new BlockPos(x, y, z));
+            FishTankBlockEntity middle = tank(level, new BlockPos(x, y + 1, z));
+            FishTankBlockEntity surface = tank(level, new BlockPos(x, y + 2, z));
+            floor.setShape(FishTankShape.RAMPART);
+            floor.setMaterials(materials(new String[]{"minecraft:deepslate_tiles", "minecraft:gravel", "fishtastic:blue_clear_stained_glass"}));
+            middle.setShape(FishTankShape.MULLION);
+            middle.setMaterials(materials(new String[]{"minecraft:prismarine_bricks", "minecraft:sand", "fishtastic:light_blue_clear_stained_glass"}));
+            surface.setShape(FishTankShape.CUPOLA);
+            surface.setMaterials(materials(new String[]{"minecraft:smooth_quartz", "minecraft:sand", "fishtastic:clear_glass"}));
+            floor.setCosmetic(new CosmeticGridCell(0, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 3));
+            floor.setCosmetic(new CosmeticGridCell(2, 1), new PlacedCosmetic(Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 4)));
+            floor.setCosmetic(new CosmeticGridCell(1, 0), new PlacedCosmetic(Blocks.TUBE_CORAL_FAN.defaultBlockState()));
+            floor.setStructureCosmetic(new CosmeticGridCell(1, 1), new FishTankBlockEntity.PlacedStructureCosmetic(
+                    structure("coral_reef_1"), Rotation.NONE), List.of(new CosmeticGridCell(1, 1)));
+            stock("fourwaters.floor", floor, fish("japanese_spider_crab", 55f), fish("flapjack_octopus", 26f), fish("angler_fish", 33f),
+                    fish("chaunacops", 28f), fish("royal_garden_eel", 40f));
+            stock("fourwaters.middle", middle, fish("lionfish", 32f), fish("leafy_sea_dragon", 45f), fish("lined_seahorse", 16f),
+                    fish("lined_seahorse", 17f), fish("yellowstripe_grunt", 24f), fish("yellowstripe_grunt", 25f), fish("yellowstripe_grunt", 26f));
+            stock("fourwaters.surface", surface, fish("moorish_idol", 52f), fish("parrotfish", 48f), fish("rainfordia", 15f), fish("rainfordia", 14f),
+                    fish("neon_goby", 5f), fish("neon_goby", 5.5f), fish("neon_goby", 4.5f), fish("neon_goby", 5f));
+
+            // Earth: a desert's memory of a sea. Two dunes joined into one hill.
+            FishTankBlockEntity duneA = tank(level, new BlockPos(x - 2, y, z + 1));
+            FishTankBlockEntity duneB = tank(level, new BlockPos(x - 2, y, z + 2));
+            for (FishTankBlockEntity dune : List.of(duneA, duneB)) {
+                dune.setShape(FishTankShape.DUNE);
+                dune.setMaterials(materials(new String[]{"minecraft:cut_red_sandstone", "minecraft:red_sand", "fishtastic:clear_glass"}));
+            }
+            duneA.setCosmetic(new CosmeticGridCell(0, 0), new PlacedCosmetic(Blocks.DEAD_BUSH.defaultBlockState()));
+            duneA.setCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.DEAD_BRAIN_CORAL_FAN.defaultBlockState()));
+            duneB.setCosmetic(new CosmeticGridCell(2, 1), new PlacedCosmetic(Blocks.DEAD_BUSH.defaultBlockState()));
+            duneB.setCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.DEAD_TUBE_CORAL_FAN.defaultBlockState()));
+            stock("fourwaters.duneA", duneA, fish("devils_hole_pupfish", 9f), fish("devils_hole_pupfish", 10f), fish("devils_hole_pupfish", 8.5f),
+                    fish("orange_australe_killifish", 10f), fish("orange_australe_killifish", 11f), fish("starfish", 40f));
+            stock("fourwaters.duneB", duneB, fish("devils_hole_pupfish", 9.5f), fish("devils_hole_pupfish", 9f), fish("orange_australe_killifish", 9.5f),
+                    fish("sulphur_molly", 12f), fish("sulphur_molly", 11f), fish("garden_eel", 35f), fish("garden_eel", 33f));
+
+            // Air: see-through creatures, in a see-through box, hung in see-through air.
+            FishTankBlockEntity air = tank(level, new BlockPos(x - 1, y + 2, z - 2));
+            air.setShape(FishTankShape.VITRINE);
+            air.setMaterials(materials(new String[]{"minecraft:calcite", "minecraft:sand", "fishtastic:borderless_glass"}));
+            stock("fourwaters.air", air, fish("glass_squid", 40f), fish("portuguese_man_o_war", 38f), fish("indian_glassy_fish", 13f),
+                    fish("indian_glassy_fish", 14f), fish("indian_glassy_fish", 12.5f), fish("glass_catfish", 18f), fish("glass_catfish", 19f));
+
+            // Fire: a forge where the idol was remade in magma, and a campfire that burns underwater.
+            FishTankBlockEntity fire = tank(level, new BlockPos(x + 2, y, z - 1));
+            fire.setShape(FishTankShape.BASTION);
+            fire.setMaterials(materials(new String[]{"minecraft:gilded_blackstone", "minecraft:magma_block", "fishtastic:clear_glass"}));
+            fire.setCosmetic(new CosmeticGridCell(1, 2), new PlacedCosmetic(Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.LIT, true)));
+            fire.setCosmetic(new CosmeticGridCell(1, 0), new PlacedCosmetic(Blocks.FIRE_CORAL_FAN.defaultBlockState()));
+            ItemStack idol = fish("molten_moorish_idol", 58f);
+            FishtasticItemData.set(idol, FishtasticDataComponents.FISH_QUALITY, new FishQuality(FishQuality.Quality.LEGENDARY));
+            stock("fourwaters.fire", fire, idol, fish("fire_dartfish", 14f), fish("fire_dartfish", 13f), fish("fire_dartfish", 15f), fish("blazed_grub", 28f));
+        }));
+        queuePromoOrbit("four_waters", frames, new Vec3(origin.getX() + 0.5, origin.getY() + 1.4, origin.getZ() - 3.5), 9.0, 1.8, 36);
+    }
+
+    /**
+     * Opt-in promo piece, "Drowned Cathedral": one 5x2x2 tank of ARCH segments, whose arches run on
+     * across the seams into a two-storey arcade, a sunken nave. Moss climbs the lower storey; a kelp
+     * forest rises through both, lamps hang from the vault; schools fill it like a choir, with a ruin and two lamps for altar.
+     */
+    private static void queueCathedralScene() {
+        final int frames = 1200;
+        final int length = 5, depth = 2, height = 2;
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            clearVoid(s, x, y, z);
+            run(s, "fill " + x + " " + y + " " + z + " " + (x + length - 1) + " " + (y + height - 1) + " " + (z + depth - 1) + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            List<FishTankBlockEntity> all = new java.util.ArrayList<>();
+            for (int dy = 0; dy < height; dy++) {
+                for (int dx = 0; dx < length; dx++) {
+                    for (int dz = 0; dz < depth; dz++) {
+                        FishTankBlockEntity tank = tank(level, new BlockPos(x + dx, y + dy, z + dz));
+                        tank.setShape(FishTankShape.ARCH);
+                        tank.setMaterials(materials(new String[]{dy == 0 ? "minecraft:mossy_stone_bricks" : "minecraft:stone_bricks",
+                                "minecraft:sand", "fishtastic:clear_glass"}));
+                        all.add(tank);
+                    }
+                }
+            }
+
+            // The altar end: a sunken ruin, lamps for candles, a boulder and a coral clump in the aisles.
+            nave(level, 1, 0).setStructureCosmetic(new CosmeticGridCell(1, 1), new FishTankBlockEntity.PlacedStructureCosmetic(
+                    structure("castle_ruin"), Rotation.NONE), List.of(new CosmeticGridCell(1, 1), new CosmeticGridCell(0, 0), new CosmeticGridCell(0, 1),
+                    new CosmeticGridCell(1, 0), new CosmeticGridCell(2, 0), new CosmeticGridCell(2, 1), new CosmeticGridCell(2, 2)));
+            placeStructure(nave(level, 0, 1), "cosmetic_lamp_prismarine_bricks", 1, 1);
+            placeStructure(nave(level, 4, 0), "cosmetic_lamp_prismarine_bricks", 1, 1);
+            placeStructure(nave(level, 3, 1), "mossy_boulder", 0, 1);
+            placeStructure(nave(level, 2, 1), "coral_reef_2", 2, 1);
+
+            // The kelp forest: seeded, so every render grows the same one. Strands that reach the
+            // lower storey's ceiling sometimes carry on up through the upper one.
+            java.util.Random rng = new java.util.Random(1517);
+            for (int dx = 0; dx < length; dx++) {
+                for (int dz = 0; dz < depth; dz++) {
+                    FishTankBlockEntity floor = tank(level, new BlockPos(x + dx, y, z + dz));
+                    for (int gx = 0; gx < 3; gx++) {
+                        for (int gz = 0; gz < 3; gz++) {
+                            CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
+                            if (floor.getStructureAnchor(cell) != null) continue;
+                            double roll = rng.nextDouble();
+                            if (roll < 0.5) {
+                                // One strand per cell, rooted in the floor tank and growing on up through
+                                // the open storey above (up to TankColumns.maxSegments(2) = 7 segments).
+                                int h = rng.nextDouble() < 0.6 ? 3 : 2;
+                                if (h == 3 && rng.nextDouble() < 0.55) h += 1 + rng.nextInt(4);
+                                floor.setCosmetic(cell, new PlacedCosmetic(Blocks.KELP.defaultBlockState(), h));
+                            } else if (roll < 0.75) {
+                                floor.setCosmetic(cell, new PlacedCosmetic(Blocks.SEAGRASS.defaultBlockState()));
+                            } else if (roll < 0.8) {
+                                floor.setCosmetic(cell, new PlacedCosmetic(Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 1 + rng.nextInt(3))));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // The upper storey's own decoration: lamps hung from the vault on chains, roots and
+            // glow berries trailing down between them. Hanging cosmetics live on the top tank's lid.
+            for (int dx = 0; dx < length; dx++) {
+                FishTankBlockEntity vault = tank(level, new BlockPos(x + dx, y + height - 1, z + (dx % 2)));
+                if (dx % 2 == 0) {
+                    vault.setCeilingCosmetic(new CosmeticGridCell(1, 1), new PlacedCosmetic(Blocks.LANTERN.defaultBlockState(), 2 + dx % 3));
+                } else {
+                    vault.setCeilingCosmetic(new CosmeticGridCell(1, 1), new PlacedCosmetic(Blocks.SOUL_LANTERN.defaultBlockState(), 3));
+                }
+                vault.setCeilingCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.HANGING_ROOTS.defaultBlockState()));
+                vault.setCeilingCosmetic(new CosmeticGridCell(2, 0), new PlacedCosmetic(Blocks.CAVE_VINES.defaultBlockState(), 2 + rng.nextInt(3)));
+            }
+            tank(level, new BlockPos(x + 2, y + height - 1, z + 1)).setCeilingCosmetic(new CosmeticGridCell(1, 1),
+                    new PlacedCosmetic(Blocks.POINTED_DRIPSTONE.defaultBlockState(), 4));
+            tank(level, new BlockPos(x + 3, y + height - 1, z)).setCeilingCosmetic(new CosmeticGridCell(1, 1),
+                    new PlacedCosmetic(Blocks.IRON_CHAIN.defaultBlockState(), 5));
+
+            // The choir: schools of small fish, a few medium voices, and the quiet ones in the weeds.
+            List<ItemStack> fish = new java.util.ArrayList<>();
+            school(fish, rng, "neon_tetra", 24, 10f);
+            school(fish, rng, "bridle_shiner", 16, 9f);
+            school(fish, rng, "greenstripe_barb", 14, 12f);
+            school(fish, rng, "yellowline_goby", 10, 10f);
+            school(fish, rng, "yellowstripe_grunt", 16, 22f);
+            school(fish, rng, "rainfordia", 10, 13f);
+            school(fish, rng, "moorish_idol", 6, 38f);
+            school(fish, rng, "parrotfish", 3, 40f);
+            school(fish, rng, "lined_seahorse", 4, 15f);
+            school(fish, rng, "leafy_sea_dragon", 2, 40f);
+            school(fish, rng, "garden_eel", 5, 32f);
+            school(fish, rng, "willans_chromodoris", 2, 14f);
+            school(fish, rng, "trapania_scurra", 2, 12f);
+            int added = 0, next = 0;
+            for (ItemStack f : fish) {
+                for (int tries = 0; tries < all.size(); tries++) {
+                    FishTankBlockEntity tank = all.get(next++ % all.size());
+                    if (tank.addItem(f)) { added++; break; }
+                }
+            }
+            check("cathedral.stocked", added == fish.size(), added + " of " + fish.size() + " fish added");
+        }));
+        queuePromoOrbit("drowned_cathedral", frames, new Vec3(origin.getX() + length / 2.0, origin.getY() + 1.0, origin.getZ() - 4 + depth / 2.0), 7.6, 1.7, 36);
+    }
+
+    /**
+     * Column cosmetics (docs/fish-tanks.md §6): a 2-wide, 3-storey stack with kelp grown from the
+     * bottom sand up through the open floors, and chains, lanterns, dripstone and vines hung from the
+     * top lids down through them; beside it a lone tank holding the single-tank maxima (3 kelp, a
+     * lantern on 2 chains). Every segment is drawn by the tank it starts in, so the strands should
+     * read as continuous across both seams.
+     */
+    private static void queueColumnsScene() {
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            clearVoid(s, x, y, z);
+            run(s, "fill " + x + " " + y + " " + z + " " + (x + 1) + " " + (y + 2) + " " + z + " fishtastic:fish_tank");
+            run(s, "setblock " + (x + 3) + " " + y + " " + z + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+            BlockPos bottom = new BlockPos(x, y, z), top = new BlockPos(x, y + 2, z);
+            check("columns.storeys", TankColumns.storeys(level, bottom) == 3, "storeys=" + TankColumns.storeys(level, bottom));
+            check("columns.ends", TankColumns.ceilingOf(level, bottom).equals(top) && TankColumns.floorOf(level, top).equals(bottom),
+                    "ceilingOf=" + TankColumns.ceilingOf(level, bottom) + " floorOf=" + TankColumns.floorOf(level, top));
+            check("columns.room", TankColumns.maxSegments(1) == 3 && TankColumns.maxSegments(3) == 11, "");
+
+            FishTankBlockEntity left = tank(level, bottom), right = tank(level, bottom.east());
+            left.setCosmetic(new CosmeticGridCell(0, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 11));
+            left.setCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 6));
+            right.setCosmetic(new CosmeticGridCell(1, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 9));
+            right.setCosmetic(new CosmeticGridCell(2, 0), new PlacedCosmetic(Blocks.SEAGRASS.defaultBlockState()));
+
+            FishTankBlockEntity leftLid = tank(level, top), rightLid = tank(level, top.east());
+            leftLid.setCeilingCosmetic(new CosmeticGridCell(2, 0), new PlacedCosmetic(Blocks.LANTERN.defaultBlockState(), 6));
+            leftLid.setCeilingCosmetic(new CosmeticGridCell(1, 2), new PlacedCosmetic(Blocks.POINTED_DRIPSTONE.defaultBlockState(), 5));
+            rightLid.setCeilingCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.CAVE_VINES.defaultBlockState(), 7));
+            rightLid.setCeilingCosmetic(new CosmeticGridCell(2, 1), new PlacedCosmetic(Blocks.SOUL_LANTERN.defaultBlockState(), 2));
+            rightLid.setCeilingCosmetic(new CosmeticGridCell(0, 0), new PlacedCosmetic(Blocks.HANGING_ROOTS.defaultBlockState()));
+            rightLid.setCeilingCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.SPORE_BLOSSOM.defaultBlockState()));
+
+            FishTankBlockEntity lone = tank(level, new BlockPos(x + 3, y, z));
+            lone.setCosmetic(new CosmeticGridCell(0, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 3));
+            lone.setCeilingCosmetic(new CosmeticGridCell(2, 1), new PlacedCosmetic(Blocks.LANTERN.defaultBlockState(), 3));
+            lone.setCeilingCosmetic(new CosmeticGridCell(1, 2), new PlacedCosmetic(Blocks.WEEPING_VINES.defaultBlockState(), 2));
+            lone.setCeilingCosmetic(new CosmeticGridCell(0, 0), new PlacedCosmetic(Blocks.IRON_CHAIN.defaultBlockState(), 2));
+        }));
+        queue(5, mc -> camera(mc, origin.getX() + 2.0, origin.getY() + 1.5, origin.getZ() - 4 + 5.5, 180f, 0f));
+        queue(80, mc -> screenshot(mc, "columns", "front"));
+        queue(1, mc -> camera(mc, origin.getX() + 1.0, origin.getY() + 2.6, origin.getZ() - 4 + 2.6, 180f, 10f));
+        queue(40, mc -> screenshot(mc, "columns", "upper"));
+        queue(1, mc -> camera(mc, origin.getX() + 1.0, origin.getY() + 0.9, origin.getZ() - 4 + 2.6, 180f, -10f));
+        queue(40, mc -> screenshot(mc, "columns", "lower"));
+        queue(1, mc -> camera(mc, origin.getX() + 3.5, origin.getY() + 0.6, origin.getZ() - 4 + 1.8, 180f, 0f));
+        queue(40, mc -> screenshot(mc, "columns", "lone"));
+
+        // Placement preview (CosmeticPlacementPreview): a creative player holding a cosmetic, aimed
+        // at a cell. Green = a click would place there, red = refused.
+        int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+        // Sea pickle at the lone tank's empty centre cell: green on the sand.
+        queue(1, mc -> { mc.options.hideGui = true; aimHolding(mc, x + 3.5, y + 1.9, z + 1.6, x + 3.5, y + 0.125, z + 0.5, "minecraft:sea_pickle"); });
+        queue(30, mc -> screenshot(mc, "columns", "preview_floor"));
+        // Kelp at the left column's 11-segment strand, already at the 3-storey maximum: red.
+        queue(1, mc -> aimHolding(mc, x + 0.2, y + 1.5, z + 1.8, x + 0.21, y + 1.4, z + 0.5, "minecraft:kelp"));
+        queue(30, mc -> screenshot(mc, "columns", "preview_kelp_full"));
+        // Lantern aimed up at the right column's empty centre lid cell: green under the top lid.
+        queue(1, mc -> aimHolding(mc, x + 1.5, y + 1.6, z + 1.6, x + 1.5, y + 2.9375, z + 0.5, "minecraft:lantern"));
+        queue(30, mc -> screenshot(mc, "columns", "preview_lid"));
+        // Pass-through: from beside the right column, looking west through its glass and down
+        // onto the left column's bottom sand. The highlight belongs to the left tank.
+        queue(1, mc -> aimHolding(mc, x + 2.6, y + 1.2, z + 0.21, x + 0.5, y + 0.125, z + 0.21, "minecraft:sea_pickle"));
+        queue(30, mc -> screenshot(mc, "columns", "preview_passthrough"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    /**
+     * Spanning structures (SpanStructures): a 4x2 tank, 2 storeys tall, for the Whale Fall and a
+     * 2x2 tank, 3 storeys tall, for the Drowned Pagoda. Each is placed by a creative player
+     * right-clicking its item at the bottom sand through the upper storey's glass — the real
+     * client interaction path — after a shot of the placement preview (box outline + footprint).
+     * Checks that every tank in each box resolves to the span, then photographs both from several
+     * angles, and logs FPS on the same view before and after placing, as a rough cost reading.
+     */
+    private static void queueSpanPreviewScene() {
+        int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+        BlockPos whaleMin = new BlockPos(x - 4, y, z), pagodaMin = new BlockPos(x + 3, y, z);
+        int[] fps = new int[4];
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fill " + (x - 8) + " " + (y - 1) + " " + (z - 4) + " " + (x + 8) + " " + (y + 5) + " " + (z + 6) + " minecraft:air");
+            run(s, "fill " + whaleMin.getX() + " " + y + " " + z + " " + (whaleMin.getX() + 3) + " " + (y + 1) + " " + (z + 1) + " fishtastic:fish_tank");
+            run(s, "fill " + pagodaMin.getX() + " " + y + " " + z + " " + (pagodaMin.getX() + 1) + " " + (y + 2) + " " + (z + 1) + " fishtastic:fish_tank");
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            for (BlockPos pos : BlockPos.betweenClosed(whaleMin, whaleMin.offset(3, 1, 1))) {
+                FishTankBlockEntity tank = tank(level, pos);
+                if (tank != null) tank.setMaterials(materials(new String[]{"minecraft:polished_deepslate", "minecraft:sand", "fishtastic:clear_glass"}));
+            }
+            for (BlockPos pos : BlockPos.betweenClosed(pagodaMin, pagodaMin.offset(1, 2, 1))) {
+                FishTankBlockEntity tank = tank(level, pos);
+                if (tank != null) tank.setMaterials(materials(new String[]{"minecraft:dark_oak_planks", "minecraft:sand", "fishtastic:clear_glass"}));
+            }
+        }));
+        // FPS on the final framing, empty tanks — uncapped, so the reading means something.
+        int[] savedLimit = new int[1];
+        boolean[] savedVsync = new boolean[1];
+        queue(20, mc -> {
+            savedLimit[0] = mc.options.framerateLimit().get();
+            savedVsync[0] = mc.options.enableVsync().get();
+            mc.options.framerateLimit().set(260);
+            mc.options.enableVsync().set(false);
+            mc.options.hideGui = true;
+            camera(mc, x + 0.5, y + 1.6, z + 7.5, 180f, 8f);
+        });
+        queue(100, mc -> fps[0] = mc.getFps());
+        queue(40, mc -> fps[1] = mc.getFps());
+
+        // Whale Fall: aim through the upper storey at the bottom sand of the second tank along.
+        queue(1, mc -> aimHolding(mc, whaleMin.getX() + 1.5, y + 2.7, z + 3.2, whaleMin.getX() + 1.5, y + 0.125, z + 0.9, "fishtastic:cosmetic_whale_fall"));
+        queue(30, mc -> screenshot(mc, "spanpreview", "whale_preview"));
+        queue(1, mc -> {
+            if (mc.hitResult instanceof BlockHitResult hit) mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
+            else check("spanpreview.whale.aimed", false, "no block under the crosshair");
+        });
+        // Drowned Pagoda: aim through the upper storeys at the bottom sand.
+        queue(20, mc -> aimHolding(mc, pagodaMin.getX() + 1.0, y + 3.7, z + 3.4, pagodaMin.getX() + 0.8, y + 0.125, z + 0.8, "fishtastic:cosmetic_drowned_pagoda"));
+        queue(30, mc -> screenshot(mc, "spanpreview", "pagoda_preview"));
+        queue(1, mc -> {
+            if (mc.hitResult instanceof BlockHitResult hit) mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
+            else check("spanpreview.pagoda.aimed", false, "no block under the crosshair");
+        });
+        queue(20, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            checkSpanBox(level, "whale", whaleMin, 4, 2, 2, "whale_fall");
+            checkSpanBox(level, "pagoda", pagodaMin, 2, 3, 2, "drowned_pagoda");
+            run(s, "item replace entity @a weapon.mainhand with minecraft:air");
+        }));
+
+        // Same framing as the empty reading, now with both structures.
+        queue(1, mc -> camera(mc, x + 0.5, y + 1.6, z + 7.5, 180f, 8f));
+        queue(100, mc -> fps[2] = mc.getFps());
+        queue(40, mc -> {
+            fps[3] = mc.getFps();
+            check("spanpreview.fps", true, "uncapped: empty " + fps[0] + "/" + fps[1] + " fps, with both structures " + fps[2] + "/" + fps[3] + " fps");
+            mc.options.framerateLimit().set(savedLimit[0]);
+            mc.options.enableVsync().set(savedVsync[0]);
+            screenshot(mc, "spanpreview", "both");
+        });
+        double wx = whaleMin.getX() + 2.0, pzc = pagodaMin.getX() + 1.0;
+        Object[][] shots = {
+                {"whale_front", wx, y + 1.0, z + 5.2, 180f, 4f},
+                {"whale_quarter", wx + 3.6, y + 1.9, z + 4.6, 140f, 18f},
+                {"whale_head", whaleMin.getX() - 2.6, y + 1.2, z + 1.0, -90f, 10f},
+                {"whale_high", wx - 1.0, y + 3.6, z + 4.4, 200f, 38f},
+                {"whale_inside", wx - 0.4, y + 0.55, z + 1.0, -90f, 0f},
+                {"pagoda_front", pzc, y + 1.5, z + 5.8, 180f, 2f},
+                {"pagoda_quarter", pzc + 3.2, y + 2.4, z + 4.4, 145f, 14f},
+                {"pagoda_up", pzc, y + 0.4, z + 3.0, 180f, -38f},
+                {"pagoda_high", pzc - 2.4, y + 4.6, z + 4.2, 210f, 32f},
+        };
+        for (Object[] shot : shots) {
+            queue(1, mc -> camera(mc, (double) shot[1], (double) shot[2], (double) shot[3], (float) shot[4], (float) shot[5]));
+            queue(40, mc -> screenshot(mc, "spanpreview", (String) shot[0]));
+        }
+
+        // Placement facing: a structure's front must turn toward the player who placed it. A skull
+        // candle placed from the south, photographed from where that player stood.
+        BlockPos lone = new BlockPos(x - 6, y, z + 3);
+        queue(1, mc -> server(mc, s -> run(s, "setblock " + lone.getX() + " " + y + " " + lone.getZ() + " fishtastic:fish_tank")));
+        queue(10, mc -> aimHolding(mc, lone.getX() + 0.5, y + 1.7, lone.getZ() + 2.2, lone.getX() + 0.5, y + 0.125, lone.getZ() + 0.5, "fishtastic:cosmetic_wax_skull_candle"));
+        queue(20, mc -> {
+            if (mc.hitResult instanceof BlockHitResult hit) mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
+        });
+        queue(20, mc -> server(mc, s -> {
+            FishTankBlockEntity tank = tank(s.overworld(), lone);
+            var placed = tank == null ? null : tank.getStructureCosmetics().values().stream().findFirst().orElse(null);
+            check("spanpreview.facesPlayer", placed != null && placed.rotation() == Rotation.NONE,
+                    placed == null ? "skull candle not placed" : "placed facing north (from the south) got rotation " + placed.rotation());
+        }));
+        queue(1, mc -> camera(mc, lone.getX() + 0.5, y + 0.6, lone.getZ() + 1.6, 180f, 5f));
+        queue(30, mc -> screenshot(mc, "spanpreview", "skull_facing"));
+
+        // Tinted cosmetics in the chunk mesh must take their own tint (leaves green, not grey):
+        // an oak and a birch tree, plus seagrass, coral, pickles and a chest (still per-frame).
+        BlockPos grove = lone.east(2);
+        queue(1, mc -> server(mc, s -> run(s, "fill " + grove.getX() + " " + y + " " + grove.getZ() + " " + (grove.getX() + 1) + " " + y + " " + grove.getZ() + " fishtastic:fish_tank")));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            FishTankBlockEntity a = tank(level, grove), b = tank(level, grove.east());
+            if (a == null || b == null) { check("spanpreview.grove", false, "tanks missing"); return; }
+            placeStructure(a, "oak_tree", 1, 1);
+            placeStructure(b, "birch_tree", 1, 1);
+            a.setCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.SEAGRASS.defaultBlockState()));
+            a.setCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 3)));
+            b.setCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.TUBE_CORAL_FAN.defaultBlockState()));
+            b.setCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.CHEST.defaultBlockState()));
+        }));
+        queue(1, mc -> camera(mc, grove.getX() + 1.0, y + 0.8, grove.getZ() + 2.4, 180f, 8f));
+        queue(40, mc -> screenshot(mc, "spanpreview", "grove"));
+        queue(1, mc -> mc.options.hideGui = false);
+    }
+
+    // ── perfbench: cosmetic rendering, chunk mesh vs per-frame ──────────────────────────────
+
+    /** One benchmark workload: builds its tanks and cosmetics, returns the tanks it made; and where to look from. */
+    private record BenchScene(String name, java.util.function.Function<ServerLevel, List<BlockPos>> build,
+                              double camX, double camY, double camZ, float yaw, float pitch) {}
+
+    /**
+     * Measures cosmetic rendering cost (see {@link grill24.fishtastic.client.perf.CosmeticBenchmark}).
+     * For each workload, under each mode — NONE (no cosmetics: the baseline), PER_FRAME (the previous
+     * path: every cosmetic block submitted every frame) and MESH (baked into the chunk mesh) — in a
+     * rotating order over {@code rounds=} rounds: switch mode, re-mesh every section and wait until
+     * all are built, warm up, then record {@code frames=} frames uncapped with vsync off. Logs one
+     * {@code [bench] RESULT} line per measurement and one {@code [bench] BAKE} line per mesh build;
+     * raw per-frame samples go to {@code <run>/fishtastic_bench/}. Marker params: {@code frames=},
+     * {@code rounds=}, {@code label=} (e.g. the shader setting, for the file names).
+     */
+    private static void queuePerfBenchScene() {
+        int frames = Integer.parseInt(param("frames", "3000"));
+        int rounds = Integer.parseInt(param("rounds", "2"));
+        String label = param("label", "default");
+        int x0 = origin.getX() - 9, y = origin.getY(), z0 = origin.getZ() - 4;
+        String[] structures = {"castle_ruin", "coral_reef_1", "oak_tree", "birch_tree", "spruce_gazebo", "mossy_boulder"};
+
+        List<BenchScene> scenes = List.of(
+                new BenchScene("typical", level -> {
+                    List<BlockPos> tanks = new java.util.ArrayList<>();
+                    for (int i = 0; i < 24; i++) {
+                        BlockPos pos = new BlockPos(x0 + (i % 6) * 2, y, z0 + (i / 6) * 2);
+                        level.setBlockAndUpdate(pos, grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState());
+                        FishTankBlockEntity t = tank(level, pos);
+                        if (t == null) continue;
+                        t.setCosmetic(new CosmeticGridCell(0, 0), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 3));
+                        t.setCosmetic(new CosmeticGridCell(2, 0), new PlacedCosmetic(Blocks.SEAGRASS.defaultBlockState()));
+                        t.setCosmetic(new CosmeticGridCell(0, 2), new PlacedCosmetic(Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 3)));
+                        t.setCosmetic(new CosmeticGridCell(2, 2), new PlacedCosmetic(Blocks.TUBE_CORAL_FAN.defaultBlockState()));
+                        t.setCosmetic(new CosmeticGridCell(1, 0), new PlacedCosmetic(Blocks.BRAIN_CORAL_FAN.defaultBlockState()));
+                        t.setCeilingCosmetic(new CosmeticGridCell(2, 1), new PlacedCosmetic(Blocks.LANTERN.defaultBlockState(), 2));
+                        placeStructure(t, structures[i % structures.length], 1, 1);
+                        tanks.add(pos);
+                    }
+                    return tanks;
+                }, x0 + 5.5, y + 5.0, z0 - 4.5, 0f, 35f),
+                new BenchScene("setpieces", level -> benchSpans(level, x0, y, z0, 1),
+                        x0 + 4.0, y + 2.6, z0 - 6.0, 0f, 12f),
+                new BenchScene("stress", level -> benchSpans(level, x0, y, z0, 4),
+                        x0 + 9.5, y + 3.2, z0 - 9.0, 0f, 12f));
+
+        grill24.fishtastic.client.perf.CosmeticBenchmark.Mode[] modes = grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.values();
+        int[] savedLimit = new int[1];
+        boolean[] savedVsync = new boolean[1];
+        Object[] savedInactivity = new Object[1];
+        queue(1, mc -> {
+            savedLimit[0] = mc.options.framerateLimit().get();
+            savedVsync[0] = mc.options.enableVsync().get();
+            savedInactivity[0] = mc.options.inactivityFpsLimit().get();
+            mc.options.framerateLimit().set(260);
+            mc.options.enableVsync().set(false);
+            // Nobody is at the keyboard: the AFK limiter would drop to 30 fps a minute in.
+            mc.options.inactivityFpsLimit().set(net.minecraft.client.InactivityFpsLimit.MINIMIZED);
+            mc.options.hideGui = true;
+            Fishtastic.LOGGER.info("[bench] START loader={} label={} frames={} rounds={} window={}x{}", loader, label, frames, rounds,
+                    mc.getWindow().getWidth(), mc.getWindow().getHeight());
+        });
+
+        for (BenchScene scene : scenes) {
+            List<BlockPos> tanks = new java.util.ArrayList<>();
+            queue(1, mc -> server(mc, s -> run(s, "fill " + (x0 - 2) + " " + (y - 1) + " " + (z0 - 2) + " " + (x0 + 22) + " " + (y + 4) + " " + (z0 + 12) + " minecraft:air")));
+            queue(5, mc -> server(mc, s -> { tanks.clear(); tanks.addAll(scene.build().apply(s.overworld())); }));
+            queue(20, mc -> camera(mc, scene.camX(), scene.camY(), scene.camZ(), scene.yaw(), scene.pitch()));
+            queue(20, mc -> screenshot(mc, "perfbench", scene.name()));
+            for (int round = 0; round < rounds; round++) {
+                for (int k = 0; k < modes.length; k++) {
+                    var mode = modes[(k + round) % modes.length];   // rotate the order each round
+                    String tag = loader + "_" + label + "_" + scene.name() + "_" + mode.name().toLowerCase(Locale.ROOT) + "_r" + (round + 1);
+                    queue(1, mc -> {
+                        grill24.fishtastic.client.perf.CosmeticBenchmark.mode = mode;
+                        grill24.fishtastic.client.compositemodel.TankCosmeticMesh.clearCache();
+                        grill24.fishtastic.client.perf.CosmeticBenchmark.resetBakeStats();
+                        for (BlockPos pos : tanks) {
+                            if (mc.level.getBlockEntity(pos) instanceof FishTankBlockEntity t) {
+                                grill24.fishtastic.architectury.RegistrationApiSided.getInstance().requestModelDataUpdate(t);
+                            }
+                        }
+                        mc.levelRenderer.allChanged();
+                    });
+                    long[] rebuildStart = new long[1];
+                    queue(1, mc -> rebuildStart[0] = System.nanoTime());
+                    waitFor(1, 600, mc -> mc.levelRenderer.hasRenderedAllSections(), mc -> {
+                        var b = grill24.fishtastic.client.perf.CosmeticBenchmark.class;
+                        Fishtastic.LOGGER.info(String.format(Locale.ROOT,
+                                "[bench] BAKE %s rebuild_wait_ms=%.0f snapshots=%d snapshot_ms_total=%.2f bakes=%d bake_ms_total=%.2f pieces=%d quads=%d",
+                                tag, (System.nanoTime() - rebuildStart[0]) / 1e6,
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.snapshotCount.get(),
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.snapshotNanos.get() / 1e6,
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.bakeCount.get(),
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.bakeNanos.get() / 1e6,
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.bakedPieces.get(),
+                                grill24.fishtastic.client.perf.CosmeticBenchmark.bakedQuads.get()));
+                    });
+                    queue(40, mc -> grill24.fishtastic.client.perf.CosmeticBenchmark.start(frames));
+                    waitFor(1, 4000, mc -> {
+                        grill24.fishtastic.client.perf.CosmeticBenchmark.drain();
+                        return grill24.fishtastic.client.perf.CosmeticBenchmark.isDone();
+                    }, mc -> Fishtastic.LOGGER.info("[bench] RESULT {} {}", tag, grill24.fishtastic.client.perf.CosmeticBenchmark.finish(tag)));
+                }
+            }
+        }
+        queue(1, mc -> {
+            grill24.fishtastic.client.perf.CosmeticBenchmark.mode = grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.MESH;
+            mc.options.framerateLimit().set(savedLimit[0]);
+            mc.options.enableVsync().set(savedVsync[0]);
+            mc.options.inactivityFpsLimit().set((net.minecraft.client.InactivityFpsLimit) savedInactivity[0]);
+            mc.options.hideGui = false;
+            mc.levelRenderer.allChanged();
+            Fishtastic.LOGGER.info("[bench] DONE");
+        });
+    }
+
+    /** {@code count} Whale Falls in a row and {@code count} Drowned Pagodas in a row behind them, placed directly. */
+    private static List<BlockPos> benchSpans(ServerLevel level, int x0, int y, int z0, int count) {
+        List<BlockPos> tanks = new java.util.ArrayList<>();
+        var tankState = grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState();
+        for (int i = 0; i < count; i++) {
+            BlockPos whale = new BlockPos(x0 + i * 5, y, z0);
+            BlockPos pagoda = new BlockPos(x0 + i * 3, y, z0 + 4);
+            for (BlockPos pos : BlockPos.betweenClosed(whale, whale.offset(3, 1, 1))) { level.setBlockAndUpdate(pos, tankState); tanks.add(pos.immutable()); }
+            for (BlockPos pos : BlockPos.betweenClosed(pagoda, pagoda.offset(1, 2, 1))) { level.setBlockAndUpdate(pos, tankState); tanks.add(pos.immutable()); }
+        }
+        var registry = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+        for (int i = 0; i < count; i++) {
+            benchPlaceSpan(level, registry, new BlockPos(x0 + i * 5, y, z0), "whale_fall");
+            benchPlaceSpan(level, registry, new BlockPos(x0 + i * 3, y, z0 + 4), "drowned_pagoda");
+        }
+        return tanks;
+    }
+
+    private static void benchPlaceSpan(ServerLevel level, net.minecraft.core.Registry<grill24.fishtastic.fishtank.CosmeticStructure> registry,
+                                       BlockPos min, String name) {
+        var structure = registry.getOptional(structure(name)).orElse(null);
+        if (structure == null || structure.span().isEmpty()) { check("perfbench.structure." + name, false, "not loaded"); return; }
+        var box = grill24.fishtastic.fishtank.SpanStructures.rotated(structure.span().get(), Rotation.NONE);
+        grill24.fishtastic.fishtank.SpanStructures.place(level, new grill24.fishtastic.fishtank.SpanStructures.Fit(min, box, null),
+                new FishTankBlockEntity.PlacedStructureCosmetic(structure(name), Rotation.NONE), structure);
+    }
+
+    /** Every tank in the box at {@code min} must resolve to the span anchored there, holding {@code name}. */
+    private static void checkSpanBox(ServerLevel level, String label, BlockPos min, int sx, int sy, int sz, String name) {
+        int ok = 0, total = sx * sy * sz;
+        for (BlockPos pos : BlockPos.betweenClosed(min, min.offset(sx - 1, sy - 1, sz - 1))) {
+            FishTankBlockEntity tank = tank(level, pos);
+            var ref = tank == null ? null : grill24.fishtastic.fishtank.SpanStructures.resolve(level, tank);
+            if (ref != null && ref.anchor().getBlockPos().equals(min) && ref.placed().structureId().equals(structure(name))) ok++;
+        }
+        check("spanpreview." + label + ".placed", ok == total, ok + " of " + total + " tanks resolve to " + name + " anchored at " + min.toShortString());
+    }
+
+    /**
+     * Stands a creative player (on a barrier, so it doesn't fall) with its eye at the given point,
+     * looking at the target point, holding {@code itemId} — for shots of the placement preview,
+     * which a spectator never gets because spectators don't target blocks.
+     */
+    private static void aimHolding(Minecraft mc, double eyeX, double eyeY, double eyeZ,
+                                   double targetX, double targetY, double targetZ, String itemId) {
+        // Feet snap to a whole block (standing on the barrier), so aim from where the eye really ends up.
+        double feetY = Math.floor(eyeY - mc.player.getEyeHeight());
+        double realEyeY = feetY + mc.player.getEyeHeight();
+        double dx = targetX - eyeX, dy = targetY - realEyeY, dz = targetZ - eyeZ;
+        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+        server(mc, s -> {
+            run(s, "gamemode creative @a");
+            run(s, String.format(Locale.ROOT, "setblock %d %d %d minecraft:barrier",
+                    (int) Math.floor(eyeX), (int) feetY - 1, (int) Math.floor(eyeZ)));
+            run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.2f %.2f", eyeX, feetY, eyeZ, yaw, pitch));
+            run(s, "item replace entity @a weapon.mainhand with " + itemId);
+        });
+    }
+
+    private static FishTankBlockEntity nave(ServerLevel level, int dx, int dz) {
+        return tank(level, new BlockPos(origin.getX() + dx, origin.getY(), origin.getZ() - 4 + dz));
+    }
+
+    private static void placeStructure(FishTankBlockEntity tank, String name, int gx, int gz) {
+        CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
+        tank.setStructureCosmetic(cell, new FishTankBlockEntity.PlacedStructureCosmetic(structure(name), Rotation.NONE), List.of(cell));
+    }
+
+    /** {@code count} fish of one species, sizes scattered a little round {@code sizeCm}. */
+    private static void school(List<ItemStack> out, java.util.Random rng, String species, int count, float sizeCm) {
+        for (int i = 0; i < count; i++) out.add(fish(species, sizeCm * (0.85f + 0.3f * rng.nextFloat())));
+    }
+
+    /** Empties the flat world's ground round the scene, so nothing but the subject is in frame. */
+    private static void clearVoid(MinecraftServer s, int x, int y, int z) {
+        int[][] halves = {{-72, -1}, {0, 71}};
+        for (int[] hx : halves) {
+            for (int[] hz : halves) {
+                run(s, "fill " + (x + hx[0]) + " " + (y - 4) + " " + (z + hz[0]) + " " + (x + hx[1]) + " " + (y - 1) + " " + (z + hz[1]) + " minecraft:air");
+            }
+        }
+        run(s, "fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x + 6) + " " + (y + 4) + " " + (z + 3) + " minecraft:air");
+    }
+
+    /**
+     * The shared tail of the promo scenes: let chunks mesh and the shoals spread, then a 60 fps
+     * animated alpha orbit (a third of a tick per frame), waiting for the last frame before tidying up.
+     */
+    private static void queuePromoOrbit(String name, int frames, Vec3 center, double radius, double height, int fov) {
+        queue(5, mc -> {
+            savedRenderDistance = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(3);
+            mc.options.hideGui = true;
+            camera(mc, center.x, center.y + 1.5, center.z + 8.0, 180f, 10f);
+        });
+        queue(240, mc -> {
+            mc.player.connection.sendCommand("cc capture ticks 0.3333333333333333");
+            mc.player.connection.sendCommand("cc capture fov " + fov);
+            mc.player.connection.sendCommand("cc capture size 1920 1080");
+            mc.player.connection.sendCommand("cc capture warmup 3");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit %s %d %.2f %.2f %.2f %.2f %.2f",
+                    name, frames, radius, height, center.x, center.y, center.z));
+        });
+        waitFor(20, 72000, mc -> captureFrame(name, frames - 1).isFile(), mc -> {
+            int present = 0;
+            for (int i = 0; i < frames; i++) if (captureFrame(name, i).isFile()) present++;
+            check(name + ".frames", present == frames, present + " of " + frames + " frames written");
+            mc.player.connection.sendCommand("cc capture ticks 0");
+            mc.player.connection.sendCommand("cc capture fov off");
+            mc.player.connection.sendCommand("cc capture size off");
+            mc.options.renderDistance().set(savedRenderDistance);
+            mc.options.hideGui = false;
+        });
+    }
+
+    private static List<BlockPos> fourWatersTanks() {
+        int x = origin.getX(), y = origin.getY(), z = origin.getZ() - 4;
+        return List.of(new BlockPos(x, y, z), new BlockPos(x, y + 1, z), new BlockPos(x, y + 2, z),
+                new BlockPos(x - 2, y, z + 1), new BlockPos(x - 2, y, z + 2),
+                new BlockPos(x - 1, y + 2, z - 2), new BlockPos(x + 2, y, z - 1));
+    }
+
+    private static ResourceKey<grill24.fishtastic.fishtank.CosmeticStructure> structure(String name) {
+        return ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, Ids.of("fishtastic", name));
+    }
+
+    /** Adds every fish to {@code tank}, checking each one fits its budget. */
+    private static void stock(String label, FishTankBlockEntity tank, ItemStack... fish) {
+        int added = 0;
+        for (ItemStack f : fish) if (tank != null && tank.addItem(f)) added++;
+        check(label + ".stocked", added == fish.length, added + " of " + fish.length + " fish added");
+    }
+
+    /** Polls {@code done} every {@code everyTicks} until it holds or {@code timeoutTicks} pass, then runs {@code then}. */
+    private static void waitFor(int everyTicks, int timeoutTicks, java.util.function.Predicate<Minecraft> done, Consumer<Minecraft> then) {
+        int[] waited = {0};
+        Consumer<Minecraft>[] poll = new Consumer[1];
+        poll[0] = mc -> {
+            waited[0] += everyTicks;
+            if (done.test(mc) || waited[0] >= timeoutTicks) {
+                then.accept(mc);
+            } else {
+                STEPS.addFirst(new Step(everyTicks, poll[0]));
+            }
+        };
+        queue(everyTicks, poll[0]);
+    }
+
+    // ── Cosmetic authoring (the cosmetic-from-description skill) ───────────────
+
+    /** Where {@code mcpsession} writes the bridge's port and token, in the node bridge's .env format. */
+    private static final String MCP_SESSION_FILE = "fishtastic_mcp_session.env";
+    /** Created by the driving agent to end an {@code mcpsession}. */
+    private static final String MCP_SESSION_DONE = "fishtastic_mcp_session_done";
+    /** Half-width of the cleared, region-fenced build site, and its height. */
+    private static final int BUILD_SITE_RADIUS = 10, BUILD_SITE_HEIGHT = 14;
+
+    /**
+     * Opt-in: holds an empty void world open with the MCP bridge running, for an agent to build
+     * cosmetic structures in and capture them. Needs {@code enabled=true} in
+     * {@code config/fishtastic-mcp.properties} (the bridge's own opt-in gate, left to the agent so it
+     * is never on by accident). Starts the bridge as the world owner, fences the build site with the
+     * bridge region, writes the port and token to {@link #MCP_SESSION_FILE}, then waits (up to
+     * {@code timeoutMinutes}, default 90) for {@link #MCP_SESSION_DONE} to appear before stopping the
+     * bridge and quitting. The build site's centre floor block is logged and written to the file.
+     */
+    private static void queueMcpSessionScene() {
+        File sessionFile = new File(Minecraft.getInstance().gameDirectory, MCP_SESSION_FILE);
+        File doneFile = new File(Minecraft.getInstance().gameDirectory, MCP_SESSION_DONE);
+        sessionFile.delete();
+        doneFile.delete();
+        queue(1, mc -> server(mc, s -> {
+            BlockPos site = buildSite();
+            clearVoid(s, site.getX(), site.getY(), site.getZ());
+            run(s, String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air",
+                    site.getX() - BUILD_SITE_RADIUS, site.getY(), site.getZ() - BUILD_SITE_RADIUS,
+                    site.getX() + BUILD_SITE_RADIUS, site.getY() + BUILD_SITE_HEIGHT, site.getZ() + BUILD_SITE_RADIUS));
+            run(s, "gamemode creative @a");
+        }));
+        queue(10, mc -> {
+            BlockPos site = buildSite();
+            mc.player.getAbilities().flying = true;
+            mc.player.onUpdateAbilities();
+            server(mc, s -> run(s, String.format(Locale.ROOT, "tp @a %.1f %.1f %.1f 180 25",
+                    site.getX() + 0.5, site.getY() + 4.0, site.getZ() + 9.5)));
+            // Sent as the player: the bridge only starts for the singleplayer owner.
+            mc.player.connection.sendCommand("fishtastic mcp start");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "fishtastic mcp region set %d %d %d %d %d %d",
+                    site.getX() - BUILD_SITE_RADIUS, site.getY(), site.getZ() - BUILD_SITE_RADIUS,
+                    site.getX() + BUILD_SITE_RADIUS, site.getY() + BUILD_SITE_HEIGHT, site.getZ() + BUILD_SITE_RADIUS));
+        });
+        queue(20, mc -> {
+            BlockPos site = buildSite();
+            boolean running = grill24.fishtastic.mcp.McpBridgeState.isRunning();
+            check("mcpsession.bridgeRunning", running, running ? "port " + grill24.fishtastic.mcp.McpBridgeState.getPort()
+                    : "not running - is enabled=true in config/fishtastic-mcp.properties?");
+            if (!running) return;
+            String text = "# Written by the RenderSelfTest mcpsession scene; copy over tools/mcp-bridge/.env.\n"
+                    + "FISHTASTIC_MCP_PORT=" + grill24.fishtastic.mcp.McpBridgeState.getPort() + "\n"
+                    + "FISHTASTIC_MCP_TOKEN=" + grill24.fishtastic.mcp.McpBridgeState.getToken() + "\n"
+                    + "# build site centre floor block (anchor here): " + site.getX() + " " + site.getY() + " " + site.getZ() + "\n"
+                    + "# region: " + (site.getX() - BUILD_SITE_RADIUS) + " " + site.getY() + " " + (site.getZ() - BUILD_SITE_RADIUS)
+                    + " to " + (site.getX() + BUILD_SITE_RADIUS) + " " + (site.getY() + BUILD_SITE_HEIGHT) + " " + (site.getZ() + BUILD_SITE_RADIUS) + "\n";
+            try {
+                Files.writeString(sessionFile.toPath(), text);
+            } catch (IOException e) {
+                check("mcpsession.sessionFile", false, e.toString());
+                return;
+            }
+            Fishtastic.LOGGER.info("[selftest] mcp session ready: site {} {} {}, session file {}, create {} to end",
+                    site.getX(), site.getY(), site.getZ(), sessionFile, doneFile);
+        });
+        int timeoutTicks = 20 * 60 * Integer.parseInt(param("timeoutMinutes", "90"));
+        waitFor(20, timeoutTicks, mc -> doneFile.isFile() || !grill24.fishtastic.mcp.McpBridgeState.isRunning(), mc -> {
+            check("mcpsession.endedByAgent", doneFile.isFile(), doneFile.isFile() ? "" : "timed out or the bridge stopped");
+            mc.player.connection.sendCommand("fishtastic mcp stop");
+            sessionFile.delete();
+            doneFile.delete();
+        });
+    }
+
+    /** The {@code mcpsession} build site: its centre floor block, clear of the player's spawn. */
+    private static BlockPos buildSite() {
+        return new BlockPos(origin.getX(), origin.getY(), origin.getZ() - 8);
+    }
+
+    /**
+     * Opt-in: for each structure named by a {@code cosmetic=<name>} marker line, places it in a lone
+     * SKYLIGHT tank (glass roof, so the high orbit sees in) and takes two frozen 8-frame alpha orbits
+     * with cool-cam: {@code coolcam_capture/preview_<name>_low} (just above the floor, the angle
+     * players see it from) and {@code preview_<name>_high} (looking down through the roof). Checks the
+     * structure loaded from the datapack, that its footprint fits the grid at all four rotations, and,
+     * informationally, whether {@code cosmetic_<name>} is registered as an item yet.
+     */
+    private static void queueCosmeticPreviewScene() {
+        List<String> names = params("cosmetic");
+        check("cosmeticpreview.names", !names.isEmpty(), "marker names " + names);
+        queue(1, mc -> {
+            savedRenderDistance = mc.options.renderDistance().get();
+            mc.options.renderDistance().set(3);
+            mc.options.hideGui = true;
+            server(mc, s -> clearVoid(s, origin.getX(), origin.getY(), origin.getZ() - 4));
+            camera(mc, origin.getX() + 0.5, origin.getY() + 1.5, origin.getZ(), 180f, 10f);
+            mc.player.connection.sendCommand("cc capture ticks 0");
+            mc.player.connection.sendCommand("cc capture fov 40");
+            mc.player.connection.sendCommand("cc capture size 1280 720");
+        });
+        Vec3 center = new Vec3(origin.getX() + 0.5, origin.getY() + 0.4, origin.getZ() - 4 + 0.5);
+        for (String name : names) {
+            queue(10, mc -> server(mc, s -> {
+                BlockPos pos = new BlockPos(origin.getX(), origin.getY(), origin.getZ() - 4);
+                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
+                ServerLevel level = s.overworld();
+                ResourceKey<grill24.fishtastic.fishtank.CosmeticStructure> key = structure(name);
+                var found = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY).getOptional(key);
+                check("cosmeticpreview." + name + ".loaded", found.isPresent(), found.map(st -> st.parts().size() + " parts, scale " + st.scale()
+                        + ", footprint " + st.footprintCells().size() + " cell(s)").orElse("not in the datapack registry"));
+                boolean item = BuiltInRegistries.ITEM.containsKey(Ids.of("fishtastic", "cosmetic_" + name));
+                check("cosmeticpreview." + name + ".itemRegistered", item, item ? "" : "(expected before the item is wired up)");
+                if (found.isEmpty()) return;
+                for (Rotation rotation : Rotation.values()) {
+                    check("cosmeticpreview." + name + ".fits." + rotation.name().toLowerCase(Locale.ROOT), footprintAt(found.get(), rotation) != null, "");
+                }
+                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " fishtastic:fish_tank");
+                FishTankBlockEntity tank = tank(level, pos);
+                List<CosmeticGridCell> cells = footprintAt(found.get(), Rotation.NONE);
+                if (tank != null && cells != null) {
+                    tank.setShape(FishTankShape.SKYLIGHT);
+                    tank.setStructureCosmetic(cells.get(0), new FishTankBlockEntity.PlacedStructureCosmetic(key, Rotation.NONE), cells);
+                }
+            }));
+            for (String[] orbit : new String[][]{{"low", "0.55"}, {"high", "1.9"}}) {
+                String capture = "preview_" + name + "_" + orbit[0];
+                queue(40, mc -> mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit %s 8 2.1 %s %.2f %.2f %.2f",
+                        capture, orbit[1], center.x, center.y, center.z)));
+                waitFor(10, 1200, mc -> captureFrame(capture, 7).isFile(),
+                        mc -> check("cosmeticpreview." + capture, captureFrame(capture, 7).isFile(), captureFrame(capture, 0).getParent()));
+            }
+            queueCosmeticItemChecks(name);
+        }
+        queue(10, mc -> {
+            mc.player.connection.sendCommand("cc capture fov off");
+            mc.player.connection.sendCommand("cc capture size off");
+            mc.options.renderDistance().set(savedRenderDistance);
+            mc.options.hideGui = false;
+        });
+    }
+
+    /**
+     * The item side of a cosmetic, checked in game: {@code cosmetic_<name>} targets the structure, has
+     * a lang name, and has a loaded shop entry that sells it; then a creative player standing on a
+     * SKYLIGHT tank right-clicks the item into it through the real client interaction path, the server
+     * is checked for the placed structure. Shots, looking down through the roof: {@code <name>_held}
+     * (item in hand and hotbar, before the click) and {@code <name>_placed} (after). Skipped while the item isn't registered yet.
+     */
+    private static void queueCosmeticItemChecks(String name) {
+        Identifier itemId = Ids.of("fishtastic", "cosmetic_" + name);
+        BlockPos pos = new BlockPos(origin.getX() + 3, origin.getY(), origin.getZ() - 4);
+        boolean[] registered = {false};
+        queue(5, mc -> {
+            registered[0] = BuiltInRegistries.ITEM.containsKey(itemId);
+            if (!registered[0]) return;
+            var item = BuiltInRegistries.ITEM.getValue(itemId);
+            boolean targets = item instanceof grill24.fishtastic.item.FishTankStructureCosmeticItem cosmetic
+                    && cosmetic.getStructureId().equals(structure(name));
+            check("cosmeticpreview." + name + ".itemTargetsStructure", targets, item.getClass().getSimpleName());
+            String langKey = "item.fishtastic.cosmetic_" + name;
+            boolean named = net.minecraft.locale.Language.getInstance().has(langKey);
+            check("cosmeticpreview." + name + ".langName", named, named ? net.minecraft.locale.Language.getInstance().getOrDefault(langKey) : "missing " + langKey);
+            server(mc, s -> {
+                var entry = s.registryAccess().lookupOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY)
+                        .getOptional(ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, itemId));
+                boolean sells = entry.isPresent() && entry.get().cost() > 0
+                        && entry.get().reward().stream().anyMatch(r -> r.itemId().equals(itemId));
+                check("cosmeticpreview." + name + ".shopEntry", sells, entry.map(e -> "'" + e.displayName() + "' for " + e.cost()
+                        + ", daily max " + e.dailyMaxPurchases() + ", weight " + e.weight()).orElse("no shop_entry/cosmetic_" + name + ".json loaded"));
+                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
+                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " fishtastic:fish_tank");
+                FishTankBlockEntity tank = tank(s.overworld(), pos);
+                if (tank != null) tank.setShape(FishTankShape.SKYLIGHT);
+                run(s, "gamemode creative @a");
+                run(s, "item replace entity @a weapon.mainhand with " + itemId);
+                run(s, String.format(Locale.ROOT, "tp @a %.2f %.2f %.2f 180 90", pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5));
+            });
+        });
+        queue(20, mc -> {
+            if (!registered[0]) return;
+            mc.options.hideGui = false;
+            mc.player.getInventory().setSelectedSlot(0);
+            mc.gui.getChat().clearMessages(false);
+        });
+        queue(10, mc -> {
+            if (!registered[0]) return;
+            screenshot(mc, "cosmeticpreview", name + "_held");
+        });
+        queue(5, mc -> {
+            if (!registered[0]) return;
+            mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                    new BlockHitResult(new Vec3(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5), Direction.UP, pos, false));
+        });
+        queue(20, mc -> {
+            if (!registered[0]) return;
+            mc.gui.getChat().clearMessages(false);
+            screenshot(mc, "cosmeticpreview", name + "_placed");
+            server(mc, s -> {
+                FishTankBlockEntity tank = tank(s.overworld(), pos);
+                boolean placed = tank != null && tank.getStructureCosmetics().values().stream()
+                        .anyMatch(c -> c.structureId().equals(structure(name)));
+                check("cosmeticpreview." + name + ".placesFromItem", placed, placed ? "placed by right-click" : "no structure in the tank after useItemOn");
+                run(s, "item replace entity @a weapon.mainhand with minecraft:air");
+                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
+            });
+        });
+        queue(5, mc -> mc.options.hideGui = true);
+    }
+
+    /**
+     * The anchor (first) and the other cells {@code structure} occupies at {@code rotation}, for the
+     * first anchor where every rotated cell lands on the grid — the centre is tried first — or null.
+     */
+    private static List<CosmeticGridCell> footprintAt(grill24.fishtastic.fishtank.CosmeticStructure structure, Rotation rotation) {
+        int[][] anchors = {{1, 1}, {0, 0}, {1, 0}, {0, 1}, {2, 2}, {2, 1}, {1, 2}, {2, 0}, {0, 2}};
+        for (int[] a : anchors) {
+            List<CosmeticGridCell> cells = new java.util.ArrayList<>();
+            cells.add(new CosmeticGridCell(a[0], a[1]));
+            boolean fits = true;
+            for (var offset : structure.footprintCells()) {
+                var r = grill24.fishtastic.fishtank.CosmeticStructures.rotateFootprintCell(rotation, offset);
+                int gx = a[0] + r.dx(), gz = a[1] + r.dz();
+                if (!CosmeticGridCell.isValid(gx, gz)) { fits = false; break; }
+                CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
+                if (!cells.contains(cell)) cells.add(cell);
+            }
+            if (fits) return cells;
+        }
+        return null;
+    }
+
+    private static long animatedStartTime;
+
+    private static File captureFrame(String name, int frame) {
+        return new File(Minecraft.getInstance().gameDirectory, String.format(Locale.ROOT, "coolcam_capture/%s/frame_%04d.png", name, frame));
+    }
+
+    /** Alpha sanity for a solved frame: empty corner, a solid subject, and partial alpha where glass and water are. */
+    private static void matteStats(String label, File out) {
+        check("matte." + label + ".written", out.isFile(), out.toString());
+        if (!out.isFile()) return;
+        try (InputStream in = new FileInputStream(out); NativeImage image = NativeImage.read(in)) {
+            int w = image.getWidth(), h = image.getHeight(), empty = 0, solid = 0, partial = 0;
+            for (int py = 0; py < h; py += 2) {
+                for (int px = 0; px < w; px += 2) {
+                    int a = image.getPixel(px, py) >>> 24;
+                    if (a <= 2) empty++; else if (a >= 253) solid++; else partial++;
+                }
+            }
+            int corner = image.getPixel(2, 2) >>> 24;
+            check("matte." + label + ".cornerEmpty", corner <= 2, "corner alpha=" + corner);
+            check("matte." + label + ".hasSolid", solid > 500, "solid=" + solid);
+            check("matte." + label + ".hasPartial", partial > 200, "partial=" + partial + " (glass/water/edges)");
+            check("matte." + label + ".mostlyEmpty", empty > (w / 2) * (h / 2) / 4, "empty=" + empty + " of " + (w / 2) * (h / 2));
+        } catch (IOException e) {
+            check("matte." + label + ".read", false, e.toString());
+        }
+    }
+
+    private static boolean sameImage(File a, File b) {
+        if (!a.isFile() || !b.isFile()) return false;
+        try (InputStream ia = new FileInputStream(a); InputStream ib = new FileInputStream(b);
+             NativeImage x = NativeImage.read(ia); NativeImage y = NativeImage.read(ib)) {
+            if (x.getWidth() != y.getWidth() || x.getHeight() != y.getHeight()) return false;
+            return java.util.Arrays.equals(x.getPixelsABGR(), y.getPixelsABGR());
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /** Frame, sand and glass for the three material sets of the shapes scene. */
@@ -779,6 +1866,7 @@ public final class RenderSelfTest {
     /** Whether the platform took the option at all — see {@code queueFabulousScene}. */
     private static boolean improvedTransparencyAccepted;
     private static int savedGuiScale;
+    private static int savedRenderDistance;
     private static int savedWindowWidth;
     private static int savedWindowHeight;
 

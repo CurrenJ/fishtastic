@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
@@ -272,6 +273,8 @@ public final class FishtasticNeoForgeClient {
             QuestProgressNotificationManager.getInstance().tick();
             // Draw the cosmetic-capture wand selection preview, if a session is active
             CosmeticCaptureClientState.tickGizmos();
+            // Highlight the tank cell a held cosmetic would be placed in
+            CosmeticPlacementPreview.tickGizmos();
         }
     }
 

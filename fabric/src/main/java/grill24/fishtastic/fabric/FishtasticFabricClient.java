@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.fabric.compat.coolcam.CoolCamFollowBridge;
 import grill24.fishtastic.fabric.compat.coolcam.FishtasticCoolCamCommands;
@@ -244,6 +245,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 QuestProgressNotificationManager.getInstance().tick();
                 // Draw the cosmetic-capture wand selection preview, if a session is active
                 CosmeticCaptureClientState.tickGizmos();
+                // Highlight the tank cell a held cosmetic would be placed in
+                CosmeticPlacementPreview.tickGizmos();
             }
         });
 

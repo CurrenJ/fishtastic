@@ -1,5 +1,8 @@
 package grill24.fishtastic.neoforge.fishtank;
 
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import net.neoforged.neoforge.client.model.quad.BakedColors;
+
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
@@ -102,6 +105,8 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         this.cornerGlassFillModels = cornerGlassFillModels;
         this.edgeFragmentModels = edgeFragmentModels;
         this.edgeGlassFillModels = edgeGlassFillModels;
+        // A fresh bake means fresh models and sprites: drop cosmetic quads baked from the old ones.
+        TankCosmeticMesh.clearCache();
 
         // Pre-bake the default model (permutation 0, default textures).
         FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
@@ -178,6 +183,34 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         }
 
         parts.addAll(cached.parts());
+        addCosmetics(level, pos, data, cached.particleMaterial(), parts);
+    }
+
+    /**
+     * The tank's static cosmetics, baked into the same chunk mesh as its body (see
+     * {@link TankCosmeticMesh}), as two extra parts without AO like the body: the untinted quads
+     * as baked, and the tinted ones re-made with their colour (from the cosmetic's own tint
+     * sources) baked into NeoForge's per-vertex colours, since the tank's tint sources aren't theirs.
+     */
+    private static void addCosmetics(BlockAndTintGetter level, BlockPos pos, FishTankCompositeModelData data,
+                                     Material.Baked particle, List<BlockStateModelPart> parts) {
+        TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data.cosmetics());
+        if (!baked.untinted().getAll().isEmpty()) {
+            parts.add(new SimpleModelWrapper(baked.untinted(), false, particle));
+        }
+        if (!baked.tinted().isEmpty()) {
+            QuadCollection.Builder tinted = new QuadCollection.Builder();
+            for (TankCosmeticMesh.Quad quad : baked.tinted()) {
+                int color = TankCosmeticMesh.tintColor(quad, level, pos);
+                BakedQuad q = quad.quad();
+                BakedQuad.MaterialInfo m = q.materialInfo();
+                tinted.addUnculledFace(new BakedQuad(q.position0(), q.position1(), q.position2(), q.position3(),
+                        q.packedUV0(), q.packedUV1(), q.packedUV2(), q.packedUV3(), q.direction(),
+                        new BakedQuad.MaterialInfo(m.sprite(), m.layer(), m.itemRenderType(), -1, m.shade(), m.lightEmission(), m.ambientOcclusion()),
+                        q.bakedNormals(), color == -1 ? BakedColors.DEFAULT : BakedColors.of(color)));
+            }
+            parts.add(new SimpleModelWrapper(tinted.build(), false, particle));
+        }
     }
 
     @Override
@@ -224,7 +257,8 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
                 data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
-        return cached != null ? cached.materialFlags() : defaultMaterialFlags;
+        int body = cached != null ? cached.materialFlags() : defaultMaterialFlags;
+        return body | TankCosmeticMesh.bake(data.cosmetics()).materialFlags();
     }
 
     @Override
@@ -234,10 +268,11 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
         ModelData modelData = level.getModelData(pos);
         FishTankCompositeModelData data = modelData.get(FishTankModelData.DATA_PROPERTY);
         if (data == null) data = FishTankCompositeModelData.DEFAULT;
-        return new CacheKey(
+        // Cosmetics are part of the geometry: two tanks with the same body but different contents differ.
+        return List.of(new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
+                data.getEdgeDiagonalOverrideMask()), data.cosmetics());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

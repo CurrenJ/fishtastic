@@ -388,6 +388,10 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::firstItemRotationReflectsSlotZeroInsert);
         register(event, env, "cosmetics_round_trip", 200,
             FishTankGameTests::cosmeticsRoundTrip);
+        register(event, env, "stacked_tanks_form_one_column", 200,
+            FishTankGameTests::stackedTanksFormOneColumn);
+        register(event, env, "hanging_cosmetics_stack_and_round_trip", 200,
+            FishTankGameTests::hangingCosmeticsStackAndRoundTrip);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
         register(event, env, "honeycomb_sealed_face_is_blocked_even_when_grouped_via_another_path", 200,

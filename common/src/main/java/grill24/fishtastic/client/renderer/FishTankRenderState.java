@@ -2,14 +2,18 @@ package grill24.fishtastic.client.renderer;
 
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.SpanStructures;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,6 +21,7 @@ public class FishTankRenderState extends BlockEntityRenderState {
     /** A placed structure resolved to its actual definition, so rendering never does a registry
      * lookup on the render thread — resolution happens once in extractRenderState. */
     public record ResolvedStructureCosmetic(CosmeticStructure structure, Rotation rotation) {}
+
 
     public boolean hasOpenDownFace = false;
     /** Faces open to a connected neighbor tank (no glass there) — a copy of the block entity's set. */
@@ -29,6 +34,11 @@ public class FishTankRenderState extends BlockEntityRenderState {
     public int blockPosHash = 0;
     /** Cosmetic decorations placed in this tank's 3×3 floor grid. */
     public Map<CosmeticGridCell, PlacedCosmetic> cosmetics = Collections.emptyMap();
+    /** Benchmark only (CosmeticBenchmark.Mode.PER_FRAME): every static cosmetic piece, submitted per frame. */
+    public List<grill24.fishtastic.client.compositemodel.TankCosmeticMesh.Piece> benchPieces = Collections.emptyList();
+    /** This tank's share of a spanning structure's chests (positions relative to this block), and that structure's scale; the rest is in the chunk mesh. */
+    public List<SpanStructures.Placed> spanParts = Collections.emptyList();
+    public float spanScale = 1f;
     /** Multi-block structure cosmetics, keyed by their anchor cell. */
     public Map<CosmeticGridCell, ResolvedStructureCosmetic> structureCosmetics = Collections.emptyMap();
     /**

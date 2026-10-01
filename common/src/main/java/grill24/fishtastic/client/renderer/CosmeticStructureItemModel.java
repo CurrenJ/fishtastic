@@ -154,9 +154,14 @@ public class CosmeticStructureItemModel implements ItemModel {
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
         float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
+        // A spanning structure's offsets are min corners in blocks of `scale`; a normal one's are
+        // part centres in grid cells.
+        boolean span = structure.span().isPresent();
+        float xzUnit = span ? scale : (float) CosmeticGridCell.CELL_WIDTH;
+        float xzShift = span ? 0.5f : 0f;
         for (CosmeticStructure.StructurePart part : structure.parts()) {
-            float partX = part.offsetX() * (float) CosmeticGridCell.CELL_WIDTH;
-            float partZ = part.offsetZ() * (float) CosmeticGridCell.CELL_WIDTH;
+            float partX = (part.offsetX() + xzShift) * xzUnit;
+            float partZ = (part.offsetZ() + xzShift) * xzUnit;
             float partY = part.offsetY() * scale;
             placements.add(new PartPlacement(part.state(), partX, partY, partZ));
 

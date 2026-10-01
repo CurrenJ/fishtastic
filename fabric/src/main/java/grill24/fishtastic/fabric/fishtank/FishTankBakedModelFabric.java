@@ -3,6 +3,9 @@ package grill24.fishtastic.fabric.fishtank;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import net.fabricmc.fabric.api.util.TriState;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.TankDiagonal;
@@ -91,6 +94,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         this.cornerGlassFillModels = cornerGlassFillModels;
         this.edgeFragmentModels = edgeFragmentModels;
         this.edgeGlassFillModels = edgeGlassFillModels;
+        // A fresh bake means fresh models and sprites: drop cosmetic quads baked from the old ones.
+        TankCosmeticMesh.clearCache();
 
         FishTankCompositeModelData defaultData = FishTankCompositeModelData.DEFAULT;
         CachedModel defaultModel = generateCompositeModel(defaultData);
@@ -152,15 +157,41 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         for (BlockStateModelPart part : cached.parts()) {
             ((FabricBlockStateModelPart) part).emitQuads(emitter, cullTest);
         }
+        emitCosmetics(emitter, level, pos, data);
+    }
+
+    /**
+     * The tank's static cosmetics, baked into the same chunk mesh as its body (see
+     * {@link TankCosmeticMesh}). Never culled against the world and without AO, like the body; a
+     * tinted quad takes its colour from the cosmetic's own tint sources, written into the vertices.
+     */
+    private static void emitCosmetics(QuadEmitter emitter, BlockAndTintGetter level, BlockPos pos, FishTankCompositeModelData data) {
+        TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data.cosmetics());
+        for (BakedQuad quad : baked.untinted().getAll()) {
+            emitter.fromBakedQuad(quad);
+            emitter.cullFace(null);
+            emitter.ambientOcclusion(TriState.FALSE);
+            emitter.emit();
+        }
+        for (TankCosmeticMesh.Quad quad : baked.tinted()) {
+            int color = TankCosmeticMesh.tintColor(quad, level, pos);
+            emitter.fromBakedQuad(quad.quad());
+            emitter.tintIndex(-1);
+            if (color != -1) emitter.color(color, color, color, color);
+            emitter.cullFace(null);
+            emitter.ambientOcclusion(TriState.FALSE);
+            emitter.emit();
+        }
     }
 
     @Override
     public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
-        return new CacheKey(
+        // Cosmetics are part of the geometry: two tanks with the same body but different contents differ.
+        return List.of(new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
                 data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
-                data.getEdgeDiagonalOverrideMask());
+                data.getEdgeDiagonalOverrideMask()), data.cosmetics());
     }
 
     @Override
@@ -182,7 +213,8 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
                 data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
-        return cached != null ? cached.materialFlags() : defaultMaterialFlags;
+        int body = cached != null ? cached.materialFlags() : defaultMaterialFlags;
+        return body | TankCosmeticMesh.bake(data.cosmetics()).materialFlags();
     }
 
     // ── Vanilla BlockStateModel fallback (no world context) ───────────────
