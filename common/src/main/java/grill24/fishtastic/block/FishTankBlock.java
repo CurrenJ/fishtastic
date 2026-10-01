@@ -11,10 +11,11 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.CosmeticPlacement;
+import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
-import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -64,8 +65,6 @@ import java.util.Map;
 import java.util.Optional;
 
 public class FishTankBlock extends Block implements EntityBlock {
-    /** At scale 0.25 each kelp segment is 0.25 blocks tall; 3 segments fills the tank interior exactly. */
-    private static final int MAX_KELP_HEIGHT = 3;
 
     public FishTankBlock(Properties properties) {
         super(properties);
@@ -251,63 +250,20 @@ public class FishTankBlock extends Block implements EntityBlock {
             }
         }
 
-        // Cosmetic placement: custom FishTankCosmeticItem or any vanilla item in the #tank_cosmetics tag.
-        Block cosmeticBlock = getCosmeticBlock(itemStack);
-        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND && cosmeticBlock != null) {
-            BlockEntity be = level.getBlockEntity(blockPos);
-            if (be instanceof FishTankBlockEntity fishTank) {
-                CosmeticGridCell cell = findTargetedCell(player, blockPos, fishTank);
-                if (cell != null) {
-                    PlacedCosmetic existing = fishTank.getCosmetics().get(cell);
-                    // Sea pickle: right-clicking an occupied sea pickle with another sea pickle adds one more pickle.
-                    if (existing != null
-                            && existing.block() instanceof SeaPickleBlock
-                            && cosmeticBlock instanceof SeaPickleBlock) {
-                        int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
-                        if (current < SeaPickleBlock.MAX_PICKLES) {
-                            BlockState newState = existing.blockState()
-                                    .setValue(BlockStateProperties.PICKLES, current + 1);
-                            fishTank.setCosmetic(cell, new PlacedCosmetic(newState));
-                            itemStack.shrink(1);
-                            return InteractionResult.SUCCESS;
-                        }
-                        return InteractionResult.FAIL;
-                    }
-                    // Kelp: right-clicking an existing kelp cosmetic with another kelp extends it upward.
-                    if (existing != null
-                            && existing.block() == Blocks.KELP
-                            && cosmeticBlock == Blocks.KELP) {
-                        if (existing.height() < MAX_KELP_HEIGHT) {
-                            fishTank.setCosmetic(cell, new PlacedCosmetic(existing.blockState(), existing.height() + 1));
-                            itemStack.shrink(1);
-                            return InteractionResult.SUCCESS;
-                        }
-                        return InteractionResult.FAIL;
-                    }
-                    // Normal placement into an empty cell.
-                    if (existing == null) {
-                        BlockState placedState = cosmeticBlock.defaultBlockState();
-                        // Any cosmetic with a horizontal-facing property (e.g. the treasure chest)
-                        // orients toward the placing player, mirroring firstItemRotation for fish.
-                        if (placedState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-                            float rotation = calculateRotationTowardPlayer(player, blockPos);
-                            placedState = placedState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.fromYRot(rotation));
-                        }
-                        fishTank.setCosmetic(cell, new PlacedCosmetic(placedState));
-                        itemStack.shrink(1);
-                        return InteractionResult.SUCCESS;
-                    }
+        // Cosmetic placement: single-cell floor cosmetics, kelp, hanging cosmetics and structures.
+        // CosmeticPlacement decides where the held cosmetic goes and whether it fits — the same
+        // plan the client previews as a highlighted cell (CosmeticPlacementPreview).
+        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND
+                && level.getBlockEntity(blockPos) instanceof FishTankBlockEntity clicked) {
+            CosmeticPlacement.Plan plan = CosmeticPlacement.plan(player, clicked, itemStack);
+            if (plan != null) {
+                if (!plan.valid()) {
+                    if (plan.failMessage() != null) player.sendSystemMessage(Component.literal(plan.failMessage()));
+                    return InteractionResult.FAIL;
                 }
-                return InteractionResult.FAIL;
-            }
-        }
-
-        // Structure cosmetic placement: custom FishTankStructureCosmeticItem spanning multiple cells.
-        ResourceKey<CosmeticStructure> cosmeticStructureId = getCosmeticStructureId(itemStack);
-        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND && cosmeticStructureId != null) {
-            BlockEntity be = level.getBlockEntity(blockPos);
-            if (be instanceof FishTankBlockEntity fishTank) {
-                return placeStructureCosmetic(level, blockPos, player, itemStack, fishTank, cosmeticStructureId);
+                plan.apply().run();
+                itemStack.shrink(1);
+                return InteractionResult.SUCCESS;
             }
         }
 
@@ -506,162 +462,10 @@ public class FishTankBlock extends Block implements EntityBlock {
     }
 
     /**
-     * Returns the block to use as a cosmetic from the held stack, or null if the item
-     * cannot be used as a cosmetic. Accepts custom {@link FishTankCosmeticItem}s and any
-     * vanilla {@link BlockItem} whose block is in the {@code #fishtastic:tank_cosmetics} tag.
-     */
-    @Nullable
-    private static Block getCosmeticBlock(ItemStack stack) {
-        if (stack.getItem() instanceof FishTankCosmeticItem custom) return custom.getRenderBlock();
-        if (stack.getItem() instanceof BlockItem bi
-                && bi.getBlock().defaultBlockState().is(FishtasticBlockTags.TANK_COSMETICS)) return bi.getBlock();
-        return null;
-    }
-
-    /** Returns the structure to place from the held stack, or null if it isn't a structure cosmetic item. */
-    @Nullable
-    private static ResourceKey<CosmeticStructure> getCosmeticStructureId(ItemStack stack) {
-        if (stack.getItem() instanceof FishTankStructureCosmeticItem custom) return custom.getStructureId();
-        return null;
-    }
-
-    /**
-     * Resolves the structure, rotates its footprint by the placing player's 4-way facing, validates
-     * every resulting cell (in-bounds and unoccupied by either single-block or structure cosmetics),
-     * and places it. Footprint cells are rotated before any validation runs, so the shape checked is
-     * always the shape that gets rendered.
-     */
-    private InteractionResult placeStructureCosmetic(Level level, BlockPos blockPos, Player player, ItemStack itemStack,
-                                                       FishTankBlockEntity fishTank, ResourceKey<CosmeticStructure> structureId) {
-        Optional<CosmeticStructure> structure = level.registryAccess()
-                .registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
-                .getOptional(structureId);
-        if (structure.isEmpty()) {
-            grill24.fishtastic.Fishtastic.LOGGER.warn("[FishTankBlock] cosmetic structure lookup returned nothing for id={}", structureId);
-            player.sendSystemMessage(Component.literal("That cosmetic is no longer available"));
-            return InteractionResult.FAIL;
-        }
-
-        CosmeticGridCell anchor = findTargetedCell(player, blockPos, fishTank);
-        if (anchor == null) {
-            return InteractionResult.FAIL;
-        }
-
-        Rotation rotation = rotationFromPlayerFacing(player);
-
-        List<CosmeticGridCell> footprintCells = new ArrayList<>(structure.get().footprintCells().size());
-        for (CosmeticStructure.GridOffset offset : structure.get().footprintCells()) {
-            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
-            int gx = anchor.gridX() + rotated.dx();
-            int gz = anchor.gridZ() + rotated.dz();
-            if (!CosmeticGridCell.isValid(gx, gz)) {
-                player.sendSystemMessage(Component.literal("Not enough room to place that here"));
-                return InteractionResult.FAIL;
-            }
-            CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
-            if (fishTank.getCosmetics().containsKey(cell) || fishTank.getStructureAnchor(cell) != null) {
-                player.sendSystemMessage(Component.literal("That space is already occupied"));
-                return InteractionResult.FAIL;
-            }
-            footprintCells.add(cell);
-        }
-
-        fishTank.setStructureCosmetic(anchor, new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation), footprintCells);
-        itemStack.shrink(1);
-        return InteractionResult.SUCCESS;
-    }
-
-    /** Maps the placing player's 4-way horizontal facing to the {@link Rotation} that turns a
-     * structure authored facing south to face the same way. */
-    private static Rotation rotationFromPlayerFacing(Player player) {
-        Direction facing = player.getDirection();
-        for (Rotation rotation : Rotation.values()) {
-            if (rotation.rotate(Direction.SOUTH) == facing) {
-                return rotation;
-            }
-        }
-        return Rotation.NONE;
-    }
-
-    /** Returns the grid cell the player is targeting in the given tank, or null. */
-    @Nullable
-    private CosmeticGridCell findTargetedCell(Player player, BlockPos blockPos, FishTankBlockEntity tankBE) {
-        Vec3 eye = player.getEyePosition();
-        Vec3 look = player.getLookAngle();
-        double reach = player.blockInteractionRange();
-        Vec3 end = eye.add(look.scale(reach));
-
-        // Check existing cosmetic AABBs first (priority for removal)
-        CosmeticGridCell fromCosmetic = findTargetedCosmetic(tankBE, eye, end, blockPos);
-        if (fromCosmetic != null) return fromCosmetic;
-
-        // Fall back to floor-plane intersection (for placement)
-        return findFloorCell(eye, look, blockPos, reach);
-    }
-
-    /** Fixed hit-box height for structure footprint cells — independent of the actual part model,
-     * since a footprint cell may host parts of any height; generous enough to be easy to target. */
-    private static final float STRUCTURE_HIT_HEIGHT = 0.5f;
-
-    @Nullable
-    private CosmeticGridCell findTargetedCosmetic(FishTankBlockEntity be, Vec3 eye, Vec3 end, BlockPos blockPos) {
-        CosmeticGridCell closest = null;
-        double closestDist = Double.MAX_VALUE;
-        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : be.getCosmetics().entrySet()) {
-            CosmeticGridCell cell = entry.getKey();
-            CosmeticTransforms.Transform t = CosmeticTransforms.get(entry.getValue().block());
-            double wx = blockPos.getX() + cell.localX() + t.offsetX();
-            double wy = blockPos.getY() + CosmeticGridCell.FLOOR_Y + t.offsetY();
-            double wz = blockPos.getZ() + cell.localZ() + t.offsetZ();
-            float half = t.scale() / 2f;
-            AABB box = new AABB(wx - half, wy, wz - half, wx + half, wy + t.scale(), wz + half);
-            Optional<Vec3> hit = box.clip(eye, end);
-            if (hit.isPresent()) {
-                double dist = hit.get().distanceToSqr(eye);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = cell;
-                }
-            }
-        }
-        // Structure cosmetics: test the union of every occupied footprint cell (not per-part), so
-        // aiming anywhere within a placed structure's footprint hits it, matching single-cosmetic behavior.
-        for (CosmeticGridCell cell : be.getStructureCellIndex().keySet()) {
-            double wx = blockPos.getX() + cell.localX();
-            double wy = blockPos.getY() + CosmeticGridCell.FLOOR_Y;
-            double wz = blockPos.getZ() + cell.localZ();
-            double half = CosmeticGridCell.CELL_WIDTH / 2.0;
-            AABB box = new AABB(wx - half, wy, wz - half, wx + half, wy + STRUCTURE_HIT_HEIGHT, wz + half);
-            Optional<Vec3> hit = box.clip(eye, end);
-            if (hit.isPresent()) {
-                double dist = hit.get().distanceToSqr(eye);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = cell;
-                }
-            }
-        }
-        return closest;
-    }
-
-    @Nullable
-    private CosmeticGridCell findFloorCell(Vec3 eye, Vec3 look, BlockPos blockPos, double reach) {
-        if (Math.abs(look.y) < 0.001) return null;
-        double t = (blockPos.getY() + CosmeticGridCell.FLOOR_Y - eye.y) / look.y;
-        if (t < 0 || t > reach) return null;
-        double localX = eye.x + t * look.x - blockPos.getX();
-        double localZ = eye.z + t * look.z - blockPos.getZ();
-        if (localX < 0 || localX >= 1 || localZ < 0 || localZ >= 1) return null;
-        int gx = Math.min(CosmeticGridCell.GRID_SIZE - 1, (int)(localX * CosmeticGridCell.GRID_SIZE));
-        int gz = Math.min(CosmeticGridCell.GRID_SIZE - 1, (int)(localZ * CosmeticGridCell.GRID_SIZE));
-        return new CosmeticGridCell(gx, gz);
-    }
-
-    /**
      * Calculate the Y-axis rotation angle for an item to face toward the player.
      * Returns angle in degrees.
      */
-    private float calculateRotationTowardPlayer(Player player, BlockPos blockPos) {
+    public static float calculateRotationTowardPlayer(Player player, BlockPos blockPos) {
         // Get the center of the block
         double blockCenterX = blockPos.getX() + 0.5;
         double blockCenterZ = blockPos.getZ() + 0.5;

@@ -23,6 +23,9 @@ public record CosmeticGridCell(int gridX, int gridZ) {
     public static final float FLOOR_Y =
         (FRAME_FLOOR_PIXELS + SAND_LAYER_PIXELS) / (float) BLOCK_PIXELS;
 
+    /** Y of the underside of the tank's lid in local block space — where hanging cosmetics attach. */
+    public static final float CEILING_Y = (BLOCK_PIXELS - FRAME_FLOOR_PIXELS) / (float) BLOCK_PIXELS;
+
     /** Sand layer height in block units — used externally to compute item lift offsets. */
     public static final float SAND_LAYER_HEIGHT = SAND_LAYER_PIXELS / (float) BLOCK_PIXELS;
 

@@ -1,6 +1,7 @@
 package grill24.fishtastic.fabric.blockentity;
 
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,6 +24,7 @@ public class FishTankBlockEntityFabric extends FishTankBlockEntity {
     // Overrides the default RenderDataBlockEntity.getRenderData() (interface-injected by Fabric API).
     // Returns an immutable snapshot safe for background-thread chunk meshing.
     public Object getRenderData() {
-        return new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces(), getFilledDiagonals(), getFilledEdgeDiagonals());
+        return new FishTankCompositeModelData(getShape(), getFrameBlock(), getSandBlock(), getGlassBlock(), getOpenFaces(), getFilledDiagonals(), getFilledEdgeDiagonals(),
+                TankCosmeticMesh.snapshot(this));
     }
 }

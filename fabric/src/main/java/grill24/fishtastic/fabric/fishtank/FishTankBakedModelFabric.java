@@ -3,6 +3,7 @@ package grill24.fishtastic.fabric.fishtank;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.client.compositemodel.FishTankGeometry;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -48,6 +49,8 @@ public class FishTankBakedModelFabric implements BakedModel {
 
     FishTankBakedModelFabric(FishTankGeometry geometry) {
         this.geometry = geometry;
+        // A fresh bake means fresh models and sprites: drop cosmetic quads baked from the old ones.
+        TankCosmeticMesh.clearCache();
     }
 
     // ── Fabric Renderer API ───────────────────────────────────────────────
@@ -63,6 +66,33 @@ public class FishTankBakedModelFabric implements BakedModel {
         Object renderData = ((FabricBlockView) level).getBlockEntityRenderData(pos);
         FishTankCompositeModelData data = renderData instanceof FishTankCompositeModelData d ? d : FishTankCompositeModelData.DEFAULT;
         emit(geometry.composite(data), context.getEmitter());
+        emitCosmetics(context.getEmitter(), level, pos, data);
+    }
+
+    /**
+     * The tank's static cosmetics, baked into the same chunk mesh as its body (see
+     * {@link TankCosmeticMesh}). Never culled against the world and without AO, like the body; a
+     * tinted quad takes its colour from the cosmetic's own tint sources, written into the vertices.
+     * PORT-ONLY: each quad goes out with its cosmetic block's own blend mode, which 26.1.2 carries
+     * on the quad's material.
+     */
+    private void emitCosmetics(QuadEmitter emitter, BlockAndTintGetter level, BlockPos pos, FishTankCompositeModelData data) {
+        TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data.cosmetics());
+        for (TankCosmeticMesh.Quad quad : baked.untinted()) {
+            emitter.fromVanilla(quad.quad(), cosmeticMaterial(quad), null);
+            emitter.emit();
+        }
+        for (TankCosmeticMesh.Quad quad : baked.tinted()) {
+            int color = TankCosmeticMesh.tintColor(quad, level, pos);
+            emitter.fromVanilla(quad.quad(), cosmeticMaterial(quad), null);
+            emitter.colorIndex(-1);
+            if (color != -1) emitter.color(color, color, color, color);
+            emitter.emit();
+        }
+    }
+
+    private RenderMaterial cosmeticMaterial(TankCosmeticMesh.Quad quad) {
+        return material(BlendMode.fromRenderLayer(ItemBlockRenderTypes.getChunkRenderType(quad.tintState())));
     }
 
     @Override

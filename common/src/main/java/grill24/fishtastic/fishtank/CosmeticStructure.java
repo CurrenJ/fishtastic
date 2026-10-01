@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A multi-block cosmetic decoration spanning a reserved footprint in a fish tank's 3×3 floor grid
@@ -13,8 +14,8 @@ import java.util.List;
  * (not replacing) single-block {@link PlacedCosmetic}s. Loaded as datapack content, synced to clients
  * the same way {@code Quest}/{@code ShopEntry} are.
  * <p>
- * Authored assuming the structure faces south; the placing player's facing supplies the
- * {@link net.minecraft.world.level.block.Rotation} applied at placement (see {@code FishTankBlock}).
+ * Authored assuming the structure faces south; at placement it is turned so that front faces the
+ * placing player (see {@code CosmeticPlacement#rotationFromPlayerFacing}).
  * <p>
  * {@code scale} shrinks every part uniformly. Part offsets are in grid-cell units and get converted
  * to block-local space by multiplying by {@link CosmeticGridCell#CELL_WIDTH} — the same pitch a plain
@@ -30,21 +31,39 @@ import java.util.List;
  * distinct from placement in a tank, which never reads this field. Reuses the same
  * {@link CosmeticTransforms.Transform} shape single-block cosmetics use, but its {@code scale} is a
  * multiplier on the auto-fit (default {@code 1.0}, identity), not an absolute block scale.
+ * <p>
+ * <b>Spanning structures.</b> With a {@code span} the structure is a set piece for a whole tank
+ * arrangement rather than one tank's floor grid: {@code span} names the box of tanks it needs
+ * (e.g. 4 long, 2 deep, 2 storeys) and the parts are laid out in that box's own build-block
+ * coordinates instead — {@code offsetX/Y/Z} are a part's min corner, counted in blocks of
+ * {@code scale} from the box's interior corner on the sand (see {@link SpanStructures}). Such a
+ * structure's floor footprint is derived from its lowest parts, so {@code footprint_cells} is
+ * ignored. Placement, storage and rendering across the box live in {@link SpanStructures}.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
-                                 CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement) {
+                                 CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
+                                 Optional<Span> span) {
+
+    /** The box of tanks a spanning structure fills: {@code x} long, {@code z} deep, {@code y} storeys, as authored (facing south). */
+    public record Span(int x, int y, int z) {
+        public static final Codec<Span> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(1, SpanStructures.MAX_SPAN).fieldOf("x").forGetter(Span::x),
+                Codec.intRange(1, SpanStructures.MAX_SPAN).fieldOf("y").forGetter(Span::y),
+                Codec.intRange(1, SpanStructures.MAX_SPAN).fieldOf("z").forGetter(Span::z)
+        ).apply(i, Span::new));
+    }
 
     /** Identity item-icon transform: auto-fit only, no authored position/scale/rotation nudge. */
     private static final CosmeticTransforms.Transform ITEM_ICON_DEFAULT =
             new CosmeticTransforms.Transform(0f, 0f, 0f, 0f, 0f, 0f, 1f);
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale) {
-        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false);
+        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false, Optional.empty());
     }
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                              CosmeticTransforms.Transform itemIcon) {
-        this(footprintCells, parts, scale, itemIcon, false);
+        this(footprintCells, parts, scale, itemIcon, false, Optional.empty());
     }
 
     public record GridOffset(int dx, int dz) {
@@ -75,11 +94,12 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
     }
 
     private static final Codec<CosmeticStructure> RAW_CODEC = RecordCodecBuilder.create(i -> i.group(
-            GridOffset.CODEC.listOf().fieldOf("footprint_cells").forGetter(CosmeticStructure::footprintCells),
+            GridOffset.CODEC.listOf().optionalFieldOf("footprint_cells", List.of()).forGetter(CosmeticStructure::footprintCells),
             StructurePart.CODEC.listOf().fieldOf("parts").forGetter(CosmeticStructure::parts),
             Codec.FLOAT.optionalFieldOf("scale", (float) CosmeticGridCell.CELL_WIDTH).forGetter(CosmeticStructure::scale),
             CosmeticTransforms.Transform.MAP_CODEC.codec().optionalFieldOf("item_icon", ITEM_ICON_DEFAULT).forGetter(CosmeticStructure::itemIcon),
-            Codec.BOOL.optionalFieldOf("bypass_anchor_cell_requirement", false).forGetter(CosmeticStructure::bypassAnchorCellRequirement)
+            Codec.BOOL.optionalFieldOf("bypass_anchor_cell_requirement", false).forGetter(CosmeticStructure::bypassAnchorCellRequirement),
+            Span.CODEC.optionalFieldOf("span").forGetter(CosmeticStructure::span)
     ).apply(i, CosmeticStructure::new));
 
     public static final Codec<CosmeticStructure> CODEC = RAW_CODEC.flatXmap(
@@ -88,6 +108,7 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
     );
 
     private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
+        if (structure.span.isPresent()) return SpanStructures.validate(structure);
         if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {
             return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)"
                     + " (set \"bypass_anchor_cell_requirement\": true to override)");

@@ -20,6 +20,8 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
 import grill24.fishtastic.fishtank.TankGroups;
+import grill24.fishtastic.fishtank.HangingCosmetics;
+import grill24.fishtastic.fishtank.SpanStructures;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -67,6 +69,13 @@ import java.util.Set;
 public class FishTankBlockEntity extends BlockEntity implements Container, MenuProvider {
     /** A placed multi-block structure cosmetic, anchored at one grid cell. */
     public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
+
+    /**
+     * This tank's place in a spanning structure anchored in another tank of its box
+     * ({@link SpanStructures}): the offset to that anchor, and the floor cells the structure covers
+     * here. Only trusted once {@link SpanStructures#resolve} confirms the anchor still agrees.
+     */
+    public record SpanLink(BlockPos toAnchor, List<CosmeticGridCell> cells) {}
 
     /** Identifies one part within a placed structure cosmetic, for per-part particle throttling. */
     public record FurnacePartKey(CosmeticGridCell anchor, int partIndex) {}
@@ -123,6 +132,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
 
     // Cosmetic decorations placed in the tank's 3×3 floor grid
     private Map<CosmeticGridCell, PlacedCosmetic> cosmetics = new HashMap<>();
+
+    // Cosmetics hung from the lid, on a 3×3 grid mirroring the floor's (see HangingCosmetics)
+    private Map<CosmeticGridCell, PlacedCosmetic> ceilingCosmetics = new HashMap<>();
+
+    // Link to a spanning structure anchored in another tank of this one's box, or null
+    @Nullable
+    private SpanLink spanLink;
 
     // Multi-block structure cosmetics, keyed by their anchor cell
     private Map<CosmeticGridCell, PlacedStructureCosmetic> structureCosmetics = new HashMap<>();
@@ -331,6 +347,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
      * Called when the block is placed or when neighboring blocks change.
      */
     public void updateConnections(Level level, BlockPos pos) {
+        // A neighbour changing is when a span's anchor may have gone (broken and carried off in
+        // its item): drop a link that no longer resolves, freeing the floor cells it held.
+        if (!level.isClientSide() && spanLink != null && SpanStructures.resolve(level, this) == null) {
+            clearSpanLink();
+        }
+
         Set<Direction> newOpenFaces = EnumSet.noneOf(Direction.class);
 
         // Check all 6 directions for adjacent fish tanks
@@ -538,6 +560,25 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
         }
 
+        // Save ceiling cosmetics: block and segment count only — every segment's state is derived
+        // from those by HangingCosmetics, so nothing else needs to round-trip.
+        ListTag ceilingList = BlockEntityNbt.childrenList(output, "CeilingCosmetics");
+        for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : ceilingCosmetics.entrySet()) {
+            CompoundTag child = BlockEntityNbt.addChild(ceilingList);
+            child.putInt("GridX", entry.getKey().gridX());
+            child.putInt("GridZ", entry.getKey().gridZ());
+            child.putString("Block", BuiltInRegistries.BLOCK.getKey(entry.getValue().block()).toString());
+            child.putInt("Height", entry.getValue().height());
+        }
+
+        if (spanLink != null) {
+            CompoundTag link = BlockEntityNbt.child(output, "SpanLink");
+            link.putInt("DX", spanLink.toAnchor().getX());
+            link.putInt("DY", spanLink.toAnchor().getY());
+            link.putInt("DZ", spanLink.toAnchor().getZ());
+            link.putIntArray("Cells", spanLink.cells().stream().mapToInt(CosmeticGridCell::packed).toArray());
+        }
+
         // Save structure cosmetics (anchor cells only; footprint is re-derived from the structure
         // definition on load, not stored here).
         ListTag structureCosmeticsList = BlockEntityNbt.childrenList(output, "StructureCosmetics");
@@ -708,6 +749,21 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
         });
 
+        // Load ceiling cosmetics
+        ceilingCosmetics.clear();
+        BlockEntityNbt.childrenListOrEmpty(input, "CeilingCosmetics").forEach(child -> {
+            int gridX = BlockEntityNbt.getIntOr(child, "GridX", -1);
+            int gridZ = BlockEntityNbt.getIntOr(child, "GridZ", -1);
+            ResourceLocation blockId = Ids.tryParse(BlockEntityNbt.getStringOr(child, "Block", ""));
+            if (!CosmeticGridCell.isValid(gridX, gridZ) || blockId == null) return;
+            Block b = BuiltInRegistries.BLOCK.get(blockId);
+            if (b == null || b == Blocks.AIR) {
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, ceiling cosmetic block lookup returned nothing for id={}", worldPosition, blockId);
+                return;
+            }
+            ceilingCosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(b.defaultBlockState(), Math.max(1, BlockEntityNbt.getIntOr(child, "Height", 1))));
+        });
+
         // Load structure cosmetics and rebuild the derived cell index from each structure's footprint.
         structureCosmetics.clear();
         structureCellIndex.clear();
@@ -734,14 +790,34 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
 
             CosmeticGridCell anchor = new CosmeticGridCell(gridX, gridZ);
-            List<CosmeticGridCell> footprintCells = rotatedFootprintCells(structure.get(), rotation, anchor);
+            List<CosmeticGridCell> footprintCells = structure.get().span().isPresent()
+                    ? SpanStructures.footprint(structure.get(), rotation).getOrDefault(BlockPos.ZERO, List.of())
+                    : rotatedFootprintCells(structure.get(), rotation, anchor);
             structureCosmetics.put(anchor, new PlacedStructureCosmetic(key, rotation));
             for (CosmeticGridCell footprintCell : footprintCells) {
                 structureCellIndex.put(footprintCell, anchor);
             }
         });
 
+        spanLink = BlockEntityNbt.readChild(input, "SpanLink").map(link -> {
+            List<CosmeticGridCell> cells = new java.util.ArrayList<>();
+            for (int packed : link.getIntArray("Cells")) {
+                if (packed >= 0 && packed < CosmeticGridCell.GRID_SIZE * CosmeticGridCell.GRID_SIZE) {
+                    cells.add(CosmeticGridCell.unpack(packed));
+                }
+            }
+            return new SpanLink(new BlockPos(BlockEntityNbt.getIntOr(link, "DX", 0), BlockEntityNbt.getIntOr(link, "DY", 0), BlockEntityNbt.getIntOr(link, "DZ", 0)), List.copyOf(cells));
+        }).orElse(null);
+        if (spanLink != null) {
+            for (CosmeticGridCell cell : spanLink.cells()) structureCellIndex.put(cell, cell);
+        }
+
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
+        // Cosmetics stored here are also meshed by other tanks (kelp above, hanging strands below,
+        // a span's box): they need re-meshing too. Client only — the mesh class is client code.
+        if (level != null && level.isClientSide()) {
+            grill24.fishtastic.client.compositemodel.TankCosmeticMesh.refreshDependents(this);
+        }
     }
 
     /** Rotates a structure's footprint cells and translates them to the given anchor. */
@@ -1011,11 +1087,89 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
     }
 
+    /** Cosmetics hung from this tank's lid, keyed by their ceiling-grid cell. */
+    public Map<CosmeticGridCell, PlacedCosmetic> getCeilingCosmetics() {
+        return Collections.unmodifiableMap(ceilingCosmetics);
+    }
+
+    public void setCeilingCosmetic(CosmeticGridCell cell, PlacedCosmetic cosmetic) {
+        ceilingCosmetics.put(cell, cosmetic);
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    public void removeCeilingCosmetic(CosmeticGridCell cell) {
+        if (ceilingCosmetics.remove(cell) != null) {
+            setChanged();
+            if (level != null && !level.isClientSide()) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            }
+        }
+    }
+
+    /**
+     * Takes one segment off the hanging cosmetic at {@code cell} (see
+     * {@link HangingCosmetics#removeOne}) and returns its item, or {@link ItemStack#EMPTY} if the
+     * cell held nothing.
+     */
+    public ItemStack removeCeilingCosmeticEntry(CosmeticGridCell cell) {
+        PlacedCosmetic existing = ceilingCosmetics.get(cell);
+        if (existing == null) {
+            return ItemStack.EMPTY;
+        }
+        HangingCosmetics.Removal removal = HangingCosmetics.removeOne(existing);
+        if (removal.remaining() != null) {
+            setCeilingCosmetic(cell, removal.remaining());
+        } else {
+            removeCeilingCosmetic(cell);
+        }
+        Item returnItem = removal.returned().asItem();
+        return returnItem == Items.AIR ? ItemStack.EMPTY : new ItemStack(returnItem);
+    }
+
     public Map<CosmeticGridCell, PlacedStructureCosmetic> getStructureCosmetics() {
         return Collections.unmodifiableMap(structureCosmetics);
     }
 
-    /** Every cell occupied by a placed structure (including anchors), mapped to that structure's anchor. */
+    /** This tank's link into a spanning structure anchored elsewhere, if any (unvalidated — see {@link SpanStructures#resolve}). */
+    @Nullable
+    public SpanLink getSpanLink() {
+        return spanLink;
+    }
+
+    public void setSpanLink(SpanLink link) {
+        clearSpanLinkCells();
+        spanLink = link;
+        for (CosmeticGridCell cell : link.cells()) structureCellIndex.put(cell, cell);
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    public void clearSpanLink() {
+        if (spanLink == null) return;
+        clearSpanLinkCells();
+        spanLink = null;
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    private void clearSpanLinkCells() {
+        if (spanLink != null) {
+            for (CosmeticGridCell cell : spanLink.cells()) structureCellIndex.remove(cell, cell);
+        }
+    }
+
+    /**
+     * Every cell occupied by a placed structure (including anchors), mapped to that structure's
+     * anchor cell — or, for cells a spanning structure anchored in another tank covers here, to
+     * the cell itself.
+     */
     public Map<CosmeticGridCell, CosmeticGridCell> getStructureCellIndex() {
         return Collections.unmodifiableMap(structureCellIndex);
     }
@@ -1092,6 +1246,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         PlacedStructureCosmetic placed = structureCosmetics.get(anchor);
         if (placed == null) {
             return ItemStack.EMPTY;
+        }
+        if (level != null && !level.isClientSide()) {
+            SpanStructures.clearLinks(level, this, placed);
         }
         removeStructureCosmetic(anchor);
         FishTankStructureCosmeticItem returnItem = FishTankStructureCosmeticItem.forStructure(placed.structureId());

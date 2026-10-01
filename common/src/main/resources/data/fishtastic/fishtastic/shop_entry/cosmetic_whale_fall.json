@@ -1,0 +1,7 @@
+{
+  "display_name": "Whale Fall",
+  "description": "A great whale's skeleton settled across a long two-storey tank, ribs arching like a nave over a glowing feast of worms and pickles, for your fish tank.",
+  "cost": 100,
+  "reward": [{ "id": "fishtastic:cosmetic_whale_fall", "count": 1 }],
+  "daily_max_purchases": 1
+}

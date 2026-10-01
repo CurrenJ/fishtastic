@@ -13,6 +13,7 @@
     "ItemInHandLayerMixin",
     "ItemRendererMixin",
     "ItemStackMixin",
+    "MinecraftFrameBenchMixin",
     "RenderBuffersMixin",
     "accessor.BufferSourceAccessor"
   ],

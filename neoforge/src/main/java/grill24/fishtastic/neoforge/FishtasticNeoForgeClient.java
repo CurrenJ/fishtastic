@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -282,6 +283,9 @@ public final class FishtasticNeoForgeClient {
             return;
         }
         CosmeticCaptureClientState.render(event.getPoseStack(),
+                Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
+        // Highlight the tank cell a held cosmetic would be placed in
+        CosmeticPlacementPreview.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
     }
 

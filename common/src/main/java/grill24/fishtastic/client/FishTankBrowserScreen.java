@@ -147,6 +147,9 @@ public class FishTankBrowserScreen extends GelatinUIScreen<FishTankBrowserMenu> 
                 for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : member.getCosmetics().entrySet()) {
                     addIfNotPending(cosmeticPlacements, cosmeticIcon(entry.getValue()), TankEntryKind.COSMETIC, pos, entry.getKey().packed());
                 }
+                for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : member.getCeilingCosmetics().entrySet()) {
+                    addIfNotPending(cosmeticPlacements, cosmeticIcon(entry.getValue()), TankEntryKind.CEILING_COSMETIC, pos, entry.getKey().packed());
+                }
                 for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : member.getStructureCosmetics().entrySet()) {
                     addIfNotPending(cosmeticPlacements, structureIcon(entry.getValue()), TankEntryKind.STRUCTURE_COSMETIC, pos, entry.getKey().packed());
                 }

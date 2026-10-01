@@ -1,6 +1,7 @@
 package grill24.fishtastic.neoforge.fishtank;
 
 import grill24.fishtastic.client.compositemodel.FishTankGeometry;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
@@ -8,8 +9,10 @@ import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
@@ -39,6 +42,8 @@ public class FishTankBakedModel implements IDynamicBakedModel {
     FishTankBakedModel(FishTankGeometry geometry) {
         this.geometry = geometry;
         this.itemOverrides = new FishTankItemModel(this);
+        // A fresh bake means fresh models and sprites: drop cosmetic quads baked from the old ones.
+        TankCosmeticMesh.clearCache();
     }
 
     FishTankGeometry geometry() {
@@ -73,7 +78,44 @@ public class FishTankBakedModel implements IDynamicBakedModel {
                 quads.addAll(layer.get(side));
             }
         }
+        if (side == null) {
+            addCosmetics(extraData, renderType, quads);
+        }
         return quads;
+    }
+
+    /**
+     * The tank's static cosmetics, baked into the same chunk mesh as its body (see
+     * {@link TankCosmeticMesh}), unculled and without AO like the body: the untinted quads as
+     * baked, and the tinted ones re-made with their colour (from the cosmetic's own tint sources)
+     * baked into the vertex colours, since the tank's tint sources aren't theirs. PORT-ONLY: 1.21.1's
+     * {@code getQuads} has no level or position, so the tinted quads are coloured earlier, in
+     * {@link #getModelData(BlockAndTintGetter, BlockPos, BlockState, ModelData)}, and each quad goes to
+     * its cosmetic block's own chunk layer.
+     */
+    private void addCosmetics(ModelData extraData, @Nullable RenderType renderType, List<BakedQuad> quads) {
+        TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data(extraData).cosmetics());
+        for (TankCosmeticMesh.Quad quad : baked.untinted()) {
+            if (renderType == null || chunkLayer(quad.tintState().getBlock()) == renderType) quads.add(quad.quad());
+        }
+        List<TankCosmeticMesh.Quad> tinted = extraData.get(FishTankModelData.TINTED_COSMETICS_PROPERTY);
+        if (tinted == null) return;
+        for (TankCosmeticMesh.Quad quad : tinted) {
+            if (renderType == null || chunkLayer(quad.tintState().getBlock()) == renderType) quads.add(quad.quad());
+        }
+    }
+
+    /** Runs on the meshing thread with the section's level view: colours the tinted cosmetic quads for this position. */
+    @Override
+    public ModelData getModelData(BlockAndTintGetter level, BlockPos pos, BlockState state, ModelData modelData) {
+        TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(data(modelData).cosmetics());
+        if (baked.tinted().isEmpty()) return modelData;
+        List<TankCosmeticMesh.Quad> tinted = new ArrayList<>(baked.tinted().size());
+        for (TankCosmeticMesh.Quad quad : baked.tinted()) {
+            int color = TankCosmeticMesh.tintColor(quad, level, pos);
+            tinted.add(new TankCosmeticMesh.Quad(TankCosmeticMesh.withBakedColor(quad.quad(), color), quad.tintState()));
+        }
+        return modelData.derive().with(FishTankModelData.TINTED_COSMETICS_PROPERTY, List.copyOf(tinted)).build();
     }
 
     @Override
@@ -82,6 +124,9 @@ public class FishTankBakedModel implements IDynamicBakedModel {
         for (FishTankGeometry.LayerQuads layer : geometry.composite(data(data)).layers()) {
             types.add(chunkLayer(layer.source()));
         }
+        TankCosmeticMesh.Baked cosmetics = TankCosmeticMesh.bake(data(data).cosmetics());
+        for (TankCosmeticMesh.Quad quad : cosmetics.untinted()) types.add(chunkLayer(quad.tintState().getBlock()));
+        for (TankCosmeticMesh.Quad quad : cosmetics.tinted()) types.add(chunkLayer(quad.tintState().getBlock()));
         return ChunkRenderTypeSet.of(types);
     }
 

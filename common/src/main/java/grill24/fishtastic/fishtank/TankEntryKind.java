@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 
 /** What kind of entry a {@code RemoveTankEntryPacket} targets within one tank segment. */
 public enum TankEntryKind {
-    FISH, COSMETIC, STRUCTURE_COSMETIC;
+    FISH, COSMETIC, STRUCTURE_COSMETIC, CEILING_COSMETIC;
 
     public static final StreamCodec<ByteBuf, TankEntryKind> STREAM_CODEC = ByteBufCodecs.idMapper(
             i -> TankEntryKind.values()[i],
