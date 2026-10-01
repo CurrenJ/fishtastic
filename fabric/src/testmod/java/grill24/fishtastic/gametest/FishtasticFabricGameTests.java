@@ -595,6 +595,16 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void stackedTanksFormOneColumn(GameTestHelper helper) {
+        FishTankGameTests.stackedTanksFormOneColumn(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void hangingCosmeticsStackAndRoundTrip(GameTestHelper helper) {
+        FishTankGameTests.hangingCosmeticsStackAndRoundTrip(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }
@@ -1247,6 +1257,55 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Fish Tank Assembly refit mode
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitOutputIsBlockedUntilSomethingChanges(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitOutputIsBlockedUntilSomethingChanges(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitReplacesOnlyTheStagedMaterialAndRefundsTheOldOne(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitShapeOnlyChangesShapeAndConsumesNoMaterials(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitShapeOnlyChangesShapeAndConsumesNoMaterials(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitCombinedChangesEverythingAndRefundsEachReplacedBlock(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitCombinedChangesEverythingAndRefundsEachReplacedBlock(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitPreservesUnrelatedComponents(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitPreservesUnrelatedComponents(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitToSandlessShapeIgnoresTheSandSlot(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitToSandlessShapeIgnoresTheSandSlot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void refitFromSandlessShapeDoesNotRefundPlaceholderSand(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.refitFromSandlessShapeDoesNotRefundPlaceholderSand(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void craftingWithoutATankIsUnchanged(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankSlotOnlyAcceptsFishTanks(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    // -------------------------------------------------------------------------
     // Creative tab tests
     // -------------------------------------------------------------------------
 
@@ -1397,6 +1456,46 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void shakeDecaysThenRebuildsIntoTheReveal(GameTestHelper helper) {
         CatchCelebrationGameTests.shakeDecaysThenRebuildsIntoTheReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationDiscoveryPolishIsSofterThanHero(GameTestHelper helper) {
+        CatchCelebrationGameTests.discoveryPolishIsSofterThanHero(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationReducedEffectsStripFlashShakeDimAndMotion(GameTestHelper helper) {
+        CatchCelebrationGameTests.reducedEffectsStripFlashShakeDimAndMotion(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroDimBuildsThenReleasesAtReveal(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroDimBuildsThenReleasesAtReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroPunchOvershootsThenSettles(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroPunchOvershootsThenSettles(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroRaysAppearOnRevealAndFadeOut(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroRaysAppearOnRevealAndFadeOut(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHeroBannerPopsInWithOvershootThenLeaves(GameTestHelper helper) {
+        CatchCelebrationGameTests.heroBannerPopsInWithOvershootThenLeaves(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationHoldsLastSeveralSeconds(GameTestHelper helper) {
+        CatchCelebrationGameTests.holdsLastSeveralSeconds(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void celebrationSkipWorksThroughoutTheHold(GameTestHelper helper) {
+        CatchCelebrationGameTests.skipWorksThroughoutTheHold(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

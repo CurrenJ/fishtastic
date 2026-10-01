@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_25",
   "minVersion": "0.8",
   "client": [
+    "AbstractContainerScreenMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",
@@ -19,6 +20,7 @@
     "ItemStackMixin",
     "ItemStackRenderStateMixin",
     "LevelRendererMixin",
+    "MinecraftFrameBenchMixin",
     "RenderBuffersMixin",
     "RenderTypeMixin",
     "accessor.BufferSourceAccessor"

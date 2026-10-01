@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
@@ -107,6 +108,14 @@ public final class FishtasticNeoForgeClient {
         // Register tank water fill toggle sync packet client handler
         grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
+
+        // Register tank interior light sync packet client handler
+        grill24.fishtastic.network.TankInteriorLightSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
+
+        // Register reduced celebration effects sync packet client handler
+        grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
@@ -247,6 +256,10 @@ public final class FishtasticNeoForgeClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Deliberately outside the paused/level guard below so it also runs with no level loaded,
+        // which is what lets it create its own world from the title screen.
+        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
         // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
         // release its texture while the player sits in a menu, which is when the HUD isn't drawing.
         // Production builds exclude grill24.fishtastic.mcp from the jar (dev-only tooling).
@@ -264,6 +277,8 @@ public final class FishtasticNeoForgeClient {
             QuestProgressNotificationManager.getInstance().tick();
             // Draw the cosmetic-capture wand selection preview, if a session is active
             CosmeticCaptureClientState.tickGizmos();
+            // Highlight the tank cell a held cosmetic would be placed in
+            CosmeticPlacementPreview.tickGizmos();
         }
     }
 

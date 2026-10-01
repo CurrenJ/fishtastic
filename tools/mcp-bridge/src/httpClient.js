@@ -1,3 +1,5 @@
+import { loadEnvFile } from "./loadEnv.js";
+
 const DEFAULT_PORT = 25599;
 
 function baseUrl() {
@@ -17,6 +19,7 @@ function token() {
 }
 
 export async function callBridge(path, body) {
+  loadEnvFile({ override: true });
   const response = await fetch(`${baseUrl()}${path}`, {
     method: "POST",
     headers: {

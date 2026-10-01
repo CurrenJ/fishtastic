@@ -18,6 +18,9 @@ import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import grill24.fishtastic.fishtank.SpanStructures;
+import grill24.fishtastic.fishtank.TankColumns;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.Ids;
@@ -283,6 +286,7 @@ public class FishTankBlockEntityRenderer
             Vec3 cameraPos,
             ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
         BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumblingOverlay);
+        state.lightCoords = TankInteriorLight.apply(state.lightCoords);
 
         Level level = blockEntity.getLevel();
         if (level == null) return;
@@ -293,6 +297,9 @@ public class FishTankBlockEntityRenderer
         state.gameTimeTicks = level.getGameTime() + partialTick;
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
         state.structureCosmetics = resolveStructureCosmetics(blockEntity, level);
+        collectSpanParts(blockEntity, level, state);
+        remeshOnTransformEdit();
+        state.benchPieces = benchPiecesFor(blockEntity);
 
         int blockPosHash = blockEntity.getBlockPos().hashCode();
         state.blockPosHash = blockPosHash;
@@ -407,34 +414,55 @@ public class FishTankBlockEntityRenderer
     }
 
     /**
-     * Draws the fish this tank's group simulates as one aquarium when this tank is the group's
-     * elected anchor
-     * (multi-tank preview, docs/fish-sim-engine-handoff.md Task 9). Positions come from the
-     * anchor's voxel-domain engine in group-local coordinates (bounding-box center origin,
-     * lateral = world X, depth = world Z — no facing rotation in the preview); the adapter's
-     * group offset maps them into this block's model space. Known artifacts, accepted for the
-     * preview: fish vanish when the anchor is frustum-culled, and all fish use the anchor
-     * block's light coords.
+     * Draws the fish the group simulates inside <em>this</em> tank (multi-tank aquariums, see
+     * {@link TankGroupFlock}). Positions come from the group's voxel-domain engine in group-local
+     * coordinates (bounding-box center origin, lateral = world X, depth = world Z — no facing
+     * rotation); {@link TankGroupFlock#localOffsetX} and friends rebase them onto this block.
+     *
+     * <p>Each member draws only the fish that are physically inside it, which is what keeps them on
+     * screen: a block entity renderer runs only while its own chunk section is visible, so a fish
+     * drawn by some other tank's block entity would disappear whenever that tank was out of view.
+     * Drawing the fish where it is means vanilla's own section culling decides the two together —
+     * and it gives each fish its own tank's light, and stops a single visible tank submitting every
+     * fish in the build.
+     *
+     * <p>The one thing this gives up is a single global depth sort: the engine orders the whole
+     * shoal back-to-front, but separate block entities submit in whatever order the level renderer
+     * walks their sections, so fish in <em>different</em> tanks blend in submission order rather than
+     * in depth order. That is how every other piece of tank geometry already works (the water fill,
+     * the cosmetics) and how vanilla orders translucent block entities generally; the ordering that
+     * matters — between fish sharing a tank, which are the ones that overlap — is preserved by
+     * {@link TankGroupFlock#bucket(int)}.
      */
     private void submitGroupSwimmers(FishTankRenderState state, PoseStack poseStack,
             SubmitNodeCollector nodes, TankFlockAdapter flock, ItemModelResolver resolver, float t) {
-        FlockEngine eng = flock.groupEngine();
-        if (eng == null || eng.count() == 0) return;
+        TankGroupFlock group = flock.groupFlock();
+        if (group == null) return;
 
-        int[] order = eng.order;
-        for (int k = 0; k < eng.count(); k++) {
-            int i = order[k];
+        int memberIndex = group.memberIndexOf(state.blockPos);
+        if (memberIndex < 0) return;
+        int bucketSize = group.bucketSize(memberIndex);
+        if (bucketSize == 0) return;
+
+        FlockEngine eng = group.engine();
+        int[] bucket = group.bucket(memberIndex);
+        float groupOffsetX = group.localOffsetX(state.blockPos);
+        float groupOffsetY = group.localOffsetY(state.blockPos);
+        float groupOffsetZ = group.localOffsetZ(state.blockPos);
+
+        for (int k = 0; k < bucketSize; k++) {
+            int i = bucket[k];
             poseStack.pushPose();
 
             float scale = eng.lengths[i];
-            FishAnimationConfig anim = flock.groupAnims[i];
+            FishAnimationConfig anim = group.anims[i];
             // The engine's Y is the sand surface for a crawler and the swim position for a
             // swimmer; only the former needs a pose lift off the floor, which floorPoseLift
             // returns 0 for everything else.
             poseStack.translate(
-                    flock.groupOffsetX + eng.renderX[i],
-                    flock.groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
-                    flock.groupOffsetZ + eng.renderZ[i]);
+                    groupOffsetX + eng.renderX[i],
+                    groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
+                    groupOffsetZ + eng.renderZ[i]);
 
             fishRandom.setSeed(eng.seeds[i]);
             // Planar model: continuous yaw, no mirror flag. The +180° maps the engine's
@@ -466,10 +494,10 @@ public class FishTankBlockEntityRenderer
 
             poseStack.scale(scale, scale, scale);
 
-            ItemStackRenderState fishRender = flock.groupRenderStates[i];
-            resolver.updateForTopItem(fishRender, flock.groupStacks[i], ItemDisplayContext.FIXED, null, null, 0);
+            ItemStackRenderState fishRender = group.renderStates[i];
+            resolver.updateForTopItem(fishRender, group.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
 
-            FishtasticWorldOutlineRenderer.capture(fishRender, flock.groupStacks[i]);
+            FishtasticWorldOutlineRenderer.capture(fishRender, group.stacks[i]);
             FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
             FishtasticGlintState.WORLD_OUTLINE_MAP.remove(fishRender);
 
@@ -584,10 +612,115 @@ public class FishTankBlockEntityRenderer
         var registry = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
         Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> resolved = new HashMap<>();
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
-            registry.getOptional(entry.getValue().structureId()).ifPresent(structure ->
+            registry.getOptional(entry.getValue().structureId())
+                    // Spanning structures draw through collectSpanParts, tank by tank, instead.
+                    .filter(structure -> structure.span().isEmpty())
+                    .ifPresent(structure ->
                     resolved.put(entry.getKey(), new FishTankRenderState.ResolvedStructureCosmetic(structure, entry.getValue().rotation())));
         }
         return resolved;
+    }
+
+    // ── Benchmark: the previous per-frame path (CosmeticBenchmark.Mode.PER_FRAME) ──────────────
+    // Same pieces and poses the chunk mesh bakes, submitted block by block every frame, the way
+    // static cosmetics were drawn before they moved into the mesh. Snapshots are cached per tank
+    // for the run, so this reading leaves out the per-frame transform maths the old path also did:
+    // if anything it flatters the old path.
+    private final Map<BlockPos, List<TankCosmeticMesh.Piece>> benchPieceCache = new HashMap<>();
+
+    private List<TankCosmeticMesh.Piece> benchPiecesFor(FishTankBlockEntity blockEntity) {
+        if (grill24.fishtastic.client.perf.CosmeticBenchmark.mode != grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.PER_FRAME) {
+            if (!benchPieceCache.isEmpty()) benchPieceCache.clear();
+            return List.of();
+        }
+        return benchPieceCache.computeIfAbsent(blockEntity.getBlockPos().immutable(), p -> TankCosmeticMesh.compute(blockEntity).pieces());
+    }
+
+    private void renderBenchPieces(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+        if (state.benchPieces.isEmpty()) return;
+        BlockModelRenderState blockModelState = new BlockModelRenderState();
+        for (TankCosmeticMesh.Piece piece : state.benchPieces) {
+            poseStack.pushPose();
+            poseStack.mulPose(piece.pose());
+            blockModelResolver.update(blockModelState, piece.state(), BLOCK_DISPLAY_CONTEXT);
+            blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+            poseStack.popPose();
+        }
+    }
+
+    private static int seenTransformVersion = CosmeticTransforms.version();
+
+    /**
+     * A dev command (/fishtastic cosmetic nudge/rotate/scale) edited a cosmetic transform: the
+     * cosmetics baked into tank chunk meshes (TankCosmeticMesh) are stale, so re-mesh the world once.
+     */
+    private static void remeshOnTransformEdit() {
+        int version = CosmeticTransforms.version();
+        if (version == seenTransformVersion) return;
+        seenTransformVersion = version;
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.levelRenderer.allChanged());
+    }
+
+    /** Last span share computed per tank, reused while the span it came from is unchanged. */
+    private record SpanShare(FishTankBlockEntity anchor, FishTankBlockEntity.PlacedStructureCosmetic placed,
+                             CosmeticStructure structure, BlockPos offset, List<SpanStructures.Placed> parts) {}
+    private final Map<BlockPos, SpanShare> spanShares = new HashMap<>();
+
+    /**
+     * This tank's share of the spanning structure it belongs to, if any: the parts whose centre
+     * lies inside this block (see {@link SpanStructures}). Every tank in the box draws its own
+     * share, for the same reason kelp segments and group fish are drawn where they are — a block
+     * entity renders only while its own section is visible.
+     */
+    private void collectSpanParts(FishTankBlockEntity blockEntity, Level level, FishTankRenderState state) {
+        state.spanParts = List.of();
+        if (blockEntity.getSpanLink() == null && blockEntity.getStructureCosmetics().isEmpty()) {
+            spanShares.remove(blockEntity.getBlockPos());
+            return;
+        }
+        SpanStructures.Ref ref = SpanStructures.resolve(level, blockEntity);
+        if (ref == null) {
+            spanShares.remove(blockEntity.getBlockPos());
+            return;
+        }
+        SpanShare share = spanShares.get(blockEntity.getBlockPos());
+        if (share == null || share.anchor() != ref.anchor() || !share.placed().equals(ref.placed())
+                || share.structure() != ref.structure() || !share.offset().equals(ref.offsetInBox())) {
+            share = new SpanShare(ref.anchor(), ref.placed(), ref.structure(), ref.offsetInBox(),
+                    SpanStructures.partsIn(ref.structure(), ref.placed().rotation(), ref.offsetInBox()).stream()
+                            // Everything else in the span is in the chunk mesh (TankCosmeticMesh).
+                            .filter(part -> TankCosmeticMesh.rendersDynamically(part.state()))
+                            .toList());
+            spanShares.put(blockEntity.getBlockPos().immutable(), share);
+        }
+        state.spanParts = share.parts();
+        state.spanScale = ref.structure().scale();
+    }
+
+    private void renderSpanParts(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
+        if (state.spanParts.isEmpty()) return;
+        BlockModelRenderState blockModelState = new BlockModelRenderState();
+        float s = state.spanScale;
+        for (SpanStructures.Placed part : state.spanParts) {
+            BlockState partState = part.state();
+            poseStack.pushPose();
+            poseStack.translate(part.x() + s / 2f, part.y(), part.z() + s / 2f);
+            // Same chest special case as renderStructureCosmetics: its lid is posed from FACING.
+            if (partState.getBlock() == Blocks.CHEST) {
+                Direction facing = partState.getValue(net.minecraft.world.level.block.ChestBlock.FACING);
+                poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
+            }
+            poseStack.scale(s, s, s);
+            poseStack.translate(-0.5f, 0f, -0.5f);
+            if (partState.getBlock() == Blocks.CHEST) {
+                nodes.submitModel(chestModel, 0f, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
+            } else {
+                blockModelResolver.update(blockModelState, partState, BLOCK_DISPLAY_CONTEXT);
+                blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+            }
+            poseStack.popPose();
+        }
     }
 
     /**
@@ -703,114 +836,67 @@ public class FishTankBlockEntityRenderer
                 .setNormal(pose, nx, ny, nz);
     }
 
+    /**
+     * Draws the cosmetics that can't live in the chunk mesh — the ones whose look changes frame to
+     * frame. Everything static (single cosmetics, kelp and hanging strands, structures, spanning
+     * structures) is baked into the tank's chunk mesh instead, where it costs what the same blocks
+     * would cost in the world (see {@link TankCosmeticMesh}). What's left is the chest, whose lid
+     * opens and closes on a timer and whose model is special-rendered.
+     */
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
         renderStructureCosmetics(state, poseStack, nodes);
-
-        if (state.cosmetics.isEmpty()) return;
-
-        BlockModelRenderState blockModelState = new BlockModelRenderState();
+        renderSpanParts(state, poseStack, nodes);
+        renderBenchPieces(state, poseStack, nodes);
 
         for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : state.cosmetics.entrySet()) {
             CosmeticGridCell cell = entry.getKey();
             PlacedCosmetic cosmetic = entry.getValue();
+            if (cosmetic.block() != Blocks.CHEST) continue;
             CosmeticTransforms.Transform transform = CosmeticTransforms.get(cosmetic.block());
 
             poseStack.pushPose();
-
-            double cellX = cell.localX() + transform.offsetX();
-            double cellY = COSMETIC_FLOOR_Y + transform.offsetY();
-            double cellZ = cell.localZ() + transform.offsetZ();
-            poseStack.translate(cellX, cellY, cellZ);
-
+            poseStack.translate(cell.localX() + transform.offsetX(), COSMETIC_FLOOR_Y + transform.offsetY(), cell.localZ() + transform.offsetZ());
             if (transform.rotX() != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(transform.rotX()));
             if (transform.rotY() != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(transform.rotY()));
             if (transform.rotZ() != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(transform.rotZ()));
-
-            // Chest facing must be applied before the scale/recenter below: PoseStack composes
-            // transforms in reverse call order, so a rotation pushed after the -0.5,-0.5 recenter
-            // would pivot the model's raw (un-recentered) vertices around the cell corner instead
-            // of the model's own center, producing an offset that grows with rotation angle.
-            if (cosmetic.block() == Blocks.CHEST) {
-                Direction facing = cosmetic.blockState().getValue(net.minecraft.world.level.block.ChestBlock.FACING);
-                poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
-            }
-
+            // Facing before the scale/recenter: PoseStack composes in reverse call order, so a
+            // rotation pushed after the -0.5,-0.5 recenter would pivot around the cell corner.
+            Direction facing = cosmetic.blockState().getValue(net.minecraft.world.level.block.ChestBlock.FACING);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
             float s = transform.scale();
             poseStack.scale(s, s, s);
             poseStack.translate(-0.5f, 0f, -0.5f);
-
-            if (cosmetic.block() == Blocks.CHEST) {
-                long seed = cellSeed(state.blockPosHash, cell);
-                float openness = chestOpenness(chestCycle(seed), state.gameTimeTicks);
-                nodes.submitModel(chestModel, openness, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
-            } else if (cosmetic.block() == Blocks.KELP && cosmetic.height() > 1) {
-                for (int seg = 0; seg < cosmetic.height(); seg++) {
-                    poseStack.pushPose();
-                    poseStack.translate(0f, seg, 0f);
-                    net.minecraft.world.level.block.state.BlockState segState = seg < cosmetic.height() - 1
-                            ? Blocks.KELP_PLANT.defaultBlockState()
-                            : Blocks.KELP.defaultBlockState();
-                    blockModelResolver.update(blockModelState, segState, BLOCK_DISPLAY_CONTEXT);
-                    blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
-                    poseStack.popPose();
-                }
-            } else {
-                blockModelResolver.update(blockModelState, cosmetic.blockState(), BLOCK_DISPLAY_CONTEXT);
-                blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
-            }
-
+            float openness = chestOpenness(chestCycle(cellSeed(state.blockPosHash, cell)), state.gameTimeTicks);
+            nodes.submitModel(chestModel, openness, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
             poseStack.popPose();
         }
     }
 
     /**
-     * Renders every placed multi-block structure. Each part's footprint offset is rotated (Section 2's
-     * {@link CosmeticStructures#rotateOffset}) and converted from grid-cell units to block-local units
-     * via {@link CosmeticGridCell#CELL_WIDTH}; each part's {@link BlockState} is rotated the same way a
-     * structure template rotates its blocks. The chest special case needs its {@code FACING} read off
-     * the rotated state — reading the authored state's facing would rotate the rest of the structure
-     * correctly while leaving the chest's lid pointing the original way.
+     * Draws the chests in placed single-tank structures (the rest of each structure is in the chunk
+     * mesh — see {@link TankCosmeticMesh}). Each part's offset is rotated with the structure and
+     * converted from grid cells to block space via {@link CosmeticGridCell#CELL_WIDTH}; the chest's
+     * {@code FACING} is read off the rotated state, so its lid turns with the rest of the structure.
      */
     private void renderStructureCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
-        if (state.structureCosmetics.isEmpty()) return;
-
-        BlockModelRenderState blockModelState = new BlockModelRenderState();
-
         for (Map.Entry<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> entry : state.structureCosmetics.entrySet()) {
             CosmeticGridCell anchor = entry.getKey();
             CosmeticStructure structure = entry.getValue().structure();
             Rotation rotation = entry.getValue().rotation();
             float scale = structure.scale();
-
             for (CosmeticStructure.StructurePart part : structure.parts()) {
-                poseStack.pushPose();
-
-                float[] rotatedXZ = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
-                double partX = anchor.localX() + rotatedXZ[0] * CosmeticGridCell.CELL_WIDTH;
-                double partZ = anchor.localZ() + rotatedXZ[1] * CosmeticGridCell.CELL_WIDTH;
-                double partY = COSMETIC_FLOOR_Y + part.offsetY() * scale;
-                poseStack.translate(partX, partY, partZ);
-
                 BlockState partState = part.state().rotate(rotation);
-
-                // Chest fix: ChestModel poses its lid manually from FACING rather than deriving it from
-                // a baked model variant, so it needs the same explicit pose rotation single-cosmetic
-                // chests do above — but read off the rotated state, not the authored one.
-                if (partState.getBlock() == Blocks.CHEST) {
-                    Direction facing = partState.getValue(net.minecraft.world.level.block.ChestBlock.FACING);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
-                }
-
+                if (partState.getBlock() != Blocks.CHEST) continue;
+                float[] rotatedXZ = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
+                poseStack.pushPose();
+                poseStack.translate(anchor.localX() + rotatedXZ[0] * CosmeticGridCell.CELL_WIDTH,
+                        COSMETIC_FLOOR_Y + part.offsetY() * scale,
+                        anchor.localZ() + rotatedXZ[1] * CosmeticGridCell.CELL_WIDTH);
+                Direction facing = partState.getValue(net.minecraft.world.level.block.ChestBlock.FACING);
+                poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
                 poseStack.scale(scale, scale, scale);
                 poseStack.translate(-0.5f, 0f, -0.5f);
-
-                if (partState.getBlock() == Blocks.CHEST) {
-                    nodes.submitModel(chestModel, 0f, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
-                } else {
-                    blockModelResolver.update(blockModelState, partState, BLOCK_DISPLAY_CONTEXT);
-                    blockModelState.submit(poseStack, nodes, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
-                }
-
+                nodes.submitModel(chestModel, 0f, poseStack, state.lightCoords, OverlayTexture.NO_OVERLAY, -1, CHEST_SPRITE, chestSprites, 0, null);
                 poseStack.popPose();
             }
         }

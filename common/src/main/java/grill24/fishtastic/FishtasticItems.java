@@ -130,6 +130,8 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_DYNAMIC_DUO;
     public static Holder<Item> COSMETIC_VINTAGE_VINE;
     public static Holder<Item> COSMETIC_CASTLE_RUIN;
+    public static Holder<Item> COSMETIC_DROWNED_PAGODA;
+    public static Holder<Item> COSMETIC_WHALE_FALL;
     public static Holder<Item> COSMETIC_WAX_SKULL_CANDLE;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
@@ -501,6 +503,14 @@ public class FishtasticItems {
         COSMETIC_CASTLE_RUIN = RegistrationApiSided.getInstance().registerItem("cosmetic_castle_ruin",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("castle_ruin")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_DROWNED_PAGODA = RegistrationApiSided.getInstance().registerItem("cosmetic_drowned_pagoda",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("drowned_pagoda")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_WHALE_FALL = RegistrationApiSided.getInstance().registerItem("cosmetic_whale_fall",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("whale_fall")),
                         props(loc).stacksTo(1)));
         COSMETIC_WAX_SKULL_CANDLE = RegistrationApiSided.getInstance().registerItem("cosmetic_wax_skull_candle",
                 loc -> new FishTankStructureCosmeticItem(

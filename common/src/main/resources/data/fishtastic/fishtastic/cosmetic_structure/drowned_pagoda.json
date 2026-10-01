@@ -1,0 +1,11228 @@
+{
+ "span": {
+  "x": 2,
+  "y": 3,
+  "z": 2
+ },
+ "scale": 0.125,
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 14,
+   "offsetY": 0,
+   "offsetZ": 14
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 1,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "2",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 1,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1,
+   "offsetY": 1,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 1,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 2,
+   "offsetY": 1,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 5,
+   "offsetY": 1,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 9,
+   "offsetY": 1,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "1",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 1,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 12,
+   "offsetY": 1,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 1,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 13,
+   "offsetY": 1,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "3",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 1,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 13,
+   "offsetY": 1,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 1,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "false"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 2,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 2,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "false"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 2,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 4,
+   "offsetY": 2,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 7,
+   "offsetY": 2,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 7,
+   "offsetY": 2,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 10,
+   "offsetY": 2,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 2,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 2,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "false"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 2,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 13,
+   "offsetY": 2,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "false"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 2,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 3,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 4,
+   "offsetY": 3,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 7,
+   "offsetY": 3,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 7,
+   "offsetY": 3,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:dark_oak_planks"
+   },
+   "offsetX": 10,
+   "offsetY": 3,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 3,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 3,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 13,
+   "offsetY": 3,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 4,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 4,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 4,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 4,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 4,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 4,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 13,
+   "offsetY": 4,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 4,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 5,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 6,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 6,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 6,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 6,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 6,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 6,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp"
+   },
+   "offsetX": 13,
+   "offsetY": 6,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 6,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 7,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 7,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 7,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 4,
+   "offsetY": 7,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 7,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 7,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 10,
+   "offsetY": 7,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 7,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 7,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 7,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 7,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 8,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 9,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 9,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 1,
+   "offsetY": 9,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 9,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 9,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp"
+   },
+   "offsetX": 12,
+   "offsetY": 9,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 9,
+   "offsetZ": 1
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 13,
+   "offsetY": 9,
+   "offsetZ": 13
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 10,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 10,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 10,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 5,
+   "offsetY": 10,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 10,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 10,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 9,
+   "offsetY": 10,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 10,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 10,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 10,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 11,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1,
+   "offsetY": 12,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 12,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 12,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 12,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 12,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 12,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp"
+   },
+   "offsetX": 1,
+   "offsetY": 13,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 13,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 13,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 5,
+   "offsetY": 13,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 13,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 13,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 9,
+   "offsetY": 13,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 13,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 13,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 13,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 14,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 15,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 2,
+   "offsetY": 15,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 7,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 15,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 15,
+   "offsetZ": 2
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 12,
+   "offsetY": 15,
+   "offsetZ": 12
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 16,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 16,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 16,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 16,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 16,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 16,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 16,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 6,
+   "offsetY": 16,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 16,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 16,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 7,
+   "offsetY": 16,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 16,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:ochre_froglight"
+   },
+   "offsetX": 8,
+   "offsetY": 16,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 16,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 16,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 16,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 16,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:stripped_mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 16,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 16,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:lantern",
+    "Properties": {
+     "hanging": "true"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 16,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 4,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 10,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 4
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 10
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_slab",
+    "Properties": {
+     "type": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 17,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 18,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 3,
+   "offsetY": 18,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 18,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 18,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 18,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 5,
+   "offsetY": 18,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 5,
+   "offsetY": 18,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 18,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 18,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 18,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 6,
+   "offsetY": 18,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 6,
+   "offsetY": 18,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 18,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 18,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:gold_block"
+   },
+   "offsetX": 7,
+   "offsetY": 18,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 18,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 18,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 18,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 18,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 18,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 8,
+   "offsetY": 18,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 8,
+   "offsetY": 18,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 18,
+   "offsetZ": 5
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 18,
+   "offsetZ": 6
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 18,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 9,
+   "offsetY": 18,
+   "offsetZ": 8
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper"
+   },
+   "offsetX": 9,
+   "offsetY": 18,
+   "offsetZ": 9
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 18,
+   "offsetZ": 3
+  },
+  {
+   "state": {
+    "Name": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "bottom"
+    }
+   },
+   "offsetX": 11,
+   "offsetY": 18,
+   "offsetZ": 11
+  },
+  {
+   "state": {
+    "Name": "minecraft:gold_block"
+   },
+   "offsetX": 7,
+   "offsetY": 19,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:oxidized_lightning_rod",
+    "Properties": {
+     "facing": "up"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 20,
+   "offsetZ": 7
+  },
+  {
+   "state": {
+    "Name": "minecraft:end_rod",
+    "Properties": {
+     "facing": "up"
+    }
+   },
+   "offsetX": 7,
+   "offsetY": 21,
+   "offsetZ": 7
+  }
+ ],
+ "item_icon": {
+  "rotY": -30,
+  "rotX": 15,
+  "scale": 1.0
+ }
+}

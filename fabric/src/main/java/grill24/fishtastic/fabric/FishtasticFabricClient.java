@@ -4,6 +4,7 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
+import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.fabric.compat.coolcam.CoolCamFollowBridge;
 import grill24.fishtastic.fabric.compat.coolcam.FishtasticCoolCamCommands;
@@ -162,6 +163,14 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
 
+        // Register tank interior light sync packet client handler
+        grill24.fishtastic.network.TankInteriorLightSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
+
+        // Register reduced celebration effects sync packet client handler
+        grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
@@ -215,6 +224,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (isClient) ItemEffectManager.clearCache();
         });
 
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Registered separately from the handler below so it also runs with no level loaded, which is
+        // what lets it create its own world from the title screen.
+        ClientTickEvents.END_CLIENT_TICK.register(
+                client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
@@ -234,6 +249,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 QuestProgressNotificationManager.getInstance().tick();
                 // Draw the cosmetic-capture wand selection preview, if a session is active
                 CosmeticCaptureClientState.tickGizmos();
+                // Highlight the tank cell a held cosmetic would be placed in
+                CosmeticPlacementPreview.tickGizmos();
             }
         });
 

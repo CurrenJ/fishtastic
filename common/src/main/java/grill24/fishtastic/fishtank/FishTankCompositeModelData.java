@@ -1,6 +1,7 @@
 package grill24.fishtastic.fishtank;
 
 import grill24.fishtastic.FishtasticBlocks;
+import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
@@ -15,17 +16,21 @@ import java.util.Set;
  * and glass layers, and which faces are open (connected to an adjacent tank).
  *
  * <p>Platform adapters pass this around as Fabric render data or a NeoForge {@code ModelProperty} value.
+ * {@code cosmetics} carries the tank's static cosmetics into the same chunk mesh ({@link TankCosmeticMesh}).
  */
-public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces, Set<TankDiagonal> filledDiagonals, Set<TankEdgeDiagonal> filledEdgeDiagonals) {
+public record FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock, Set<Direction> openFaces, Set<TankDiagonal> filledDiagonals, Set<TankEdgeDiagonal> filledEdgeDiagonals,
+                                         TankCosmeticMesh.Snapshot cosmetics) {
 
     public static final FishTankCompositeModelData DEFAULT = new FishTankCompositeModelData(
             FishTankShape.STANDARD, Blocks.OAK_PLANKS, Blocks.SAND,
             FishtasticBlocks.CLEAR_STAINED_GLASS.get(DyeColor.BLUE).value(),
-            EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class)
+            EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class),
+            TankCosmeticMesh.Snapshot.EMPTY
     );
 
     public FishTankCompositeModelData(FishTankShape shape, Block frameBlock, Block sandBlock, Block glassBlock) {
-        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class));
+        this(shape, frameBlock, sandBlock, glassBlock, EnumSet.noneOf(Direction.class), EnumSet.noneOf(TankDiagonal.class), EnumSet.noneOf(TankEdgeDiagonal.class),
+                TankCosmeticMesh.Snapshot.EMPTY);
     }
 
     /**

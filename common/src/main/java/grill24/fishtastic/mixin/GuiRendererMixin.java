@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import grill24.fishtastic.client.renderer.FishtasticBlackOutlineEffect;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
+import grill24.fishtastic.client.renderer.FishtasticHighlightEffect;
 import grill24.fishtastic.client.renderer.FishtasticSilhouetteEffect;
 import grill24.fishtastic.itemeffect.ItemEffect;
 import net.minecraft.client.gui.render.GuiItemAtlas;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiItemRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -103,6 +105,50 @@ public abstract class GuiRendererMixin {
                 slotView.v0(),
                 slotView.v1(),
                 effect.outlineColor(),
+                itemState.scissorArea()
+        ));
+    }
+
+    /**
+     * Animated gold "look here" outline (see {@link FishtasticHighlightEffect}). The quad is padded
+     * {@link FishtasticHighlightEffect#PAD_PX} item pixels past the slot so the glow can spill
+     * outside the 16x16 cell; the UVs are extrapolated to match, which puts the pad's texture
+     * coordinates in neighbouring atlas cells. So the shader can't derive the item's own cell from
+     * the UV, and instead reads it from the vertex colour: R = column, G = row counted from the top.
+     */
+    @Inject(method = "submitBlitFromItemAtlas", at = @At("HEAD"))
+    private void fishtastic$addHighlightBlit(
+            GuiItemRenderState itemState,
+            GuiItemAtlas.SlotView slotView,
+            CallbackInfo ci) {
+
+        if (!FishtasticGlintState.GUI_HIGHLIGHT_MAP.containsKey(itemState.itemStackRenderState())) {
+            return;
+        }
+
+        int pad = FishtasticHighlightEffect.PAD_PX;
+        float u0 = slotView.u0(), u1 = slotView.u1(), v0 = slotView.v0(), v1 = slotView.v1();
+        float du = (u1 - u0) / 16f * pad;
+        float dv = (v1 - v0) / 16f * pad;
+
+        int col = Mth.clamp(Math.round(Math.min(u0, u1) / Math.abs(u1 - u0)), 0, 255);
+        int row = Mth.clamp(Math.round((1f - Math.max(v0, v1)) / Math.abs(v1 - v0)), 0, 255);
+
+        this.renderState.addBlitToCurrentLayer(new BlitRenderState(
+                FishtasticHighlightEffect.getOrCreatePipeline(),
+                TextureSetup.singleTexture(
+                        slotView.textureView(),
+                        RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
+                itemState.pose(),
+                itemState.x() - pad,
+                itemState.y() - pad,
+                itemState.x() + 16 + pad,
+                itemState.y() + 16 + pad,
+                u0 - du,
+                u1 + du,
+                v0 - dv,
+                v1 + dv,
+                0xFF000000 | (col << 16) | (row << 8),
                 itemState.scissorArea()
         ));
     }
