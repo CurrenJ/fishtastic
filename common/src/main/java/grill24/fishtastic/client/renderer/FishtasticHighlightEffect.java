@@ -13,23 +13,22 @@ import org.joml.Matrix4f;
 /**
  * The animated warm-gold "look here" outline drawn around GUI items the player is being steered
  * toward (rods while holding bait/hook/charm on the cursor, bait/hooks/charms while holding a rod,
- * and the tutorial's bait/rod prompts), requested through
- * {@link FishtasticGlintState#HIGHLIGHT_REQUESTED}.
+ * and the tutorial's bait/rod prompts).
  *
- * <p>Same shape as {@link FishtasticBlackOutlineEffect}: UI-context driven, fixed look. Unlike the
- * quality-tier outlines it pulses, so it can't be mistaken for a rarity.
+ * <p>Same shape as {@link FishtasticBlackOutlineEffect}: UI-context driven (see
+ * {@link FishtasticGlintState#HIGHLIGHT_REQUESTED}), fixed look. Unlike the quality-tier outlines it
+ * pulses, so it can't be mistaken for a rarity.
  *
- * <p>26.1.2 draws it with a {@code RenderPipeline} + params UBO over the item's cell in vanilla's
- * GUI item atlas, the cell passed in the vertex colour because the padded quad's UVs spill into
- * neighbouring cells. On 1.20.1 (as for {@link FishtasticSilhouetteEffect}) the
+ * <p>26.1.2 builds a {@code RenderPipeline} + params UBO and samples the item's cell in vanilla's GUI
+ * item atlas. 1.21.1 has neither, so — like {@link FishtasticSilhouetteEffect} — the
  * {@code gui_item_highlight} {@link ShaderInstance} samples the item's slot in
- * {@link FishtasticItemOutlineAtlas}'s mask, with the parameters as plain uniforms. That slot is
- * already padded {@link FishtasticItemOutlineAtlas#PAD_PX} texels past the item, more than this
- * effect's {@link #PAD_PX}, so the quad stays inside its own slot and no cell bounds are needed.
+ * {@link FishtasticItemOutlineAtlas}'s mask, with the parameters as plain uniforms. The mask slot is
+ * already padded past the item (4 item pixels a side), so the padded quad never reaches a
+ * neighbouring slot; the slot's bounds are still passed so the distance search can't either.
  */
 public final class FishtasticHighlightEffect {
 
-    /** How far past the 16x16 item slot the quad extends, in item pixels, so the glow isn't clipped. */
+    /** How far past the 16x16 item slot the blit quad extends, in item pixels, so the glow isn't clipped. */
     public static final int PAD_PX = 2;
 
     /** Warm gold, matching the tutorial's hotbar box (0xFFFFDD44). */
@@ -48,8 +47,7 @@ public final class FishtasticHighlightEffect {
 
     /**
      * Draws the highlight around {@code stack}'s {@code size}-wide square centred on ({@code cx},
-     * {@code cy}) at depth {@code z}, before the item itself is drawn. Nothing is drawn until the
-     * item's mask is baked (the next frame).
+     * {@code cy}) at depth {@code z}. Nothing is drawn until the item's mask is baked (next frame).
      */
     static void render(GuiGraphics guiGraphics, ItemStack stack, float cx, float cy, float size, float z) {
         ShaderInstance shader = FishtasticShaders.guiItemHighlight;
@@ -58,10 +56,7 @@ public final class FishtasticHighlightEffect {
         if (shader == null || slot == null || atlas.maskTextureId() < 0) {
             return;
         }
-        // The item's 16x16 area grown by PAD_PX item pixels on every side, in atlas UV.
-        float inset = (float) (FishtasticItemOutlineAtlas.PAD_PX - PAD_PX * FishtasticItemOutlineAtlas.TEXELS_PER_ITEM_PX)
-                / FishtasticItemOutlineAtlas.TEXTURE_SIZE;
-        float u0 = slot.u0() + inset, v0 = slot.v0() - inset, u1 = slot.u1() - inset, v1 = slot.v1() + inset;
+        FishtasticItemOutlineAtlas.SlotView item = FishtasticItemOutlineAtlas.innerView(slot);
 
         guiGraphics.flush();
 
@@ -72,6 +67,9 @@ public final class FishtasticHighlightEffect {
         shader.safeGetUniform("PulseSpeed").set(PULSE_SPEED);
         shader.safeGetUniform("PulseAmount").set(PULSE_AMOUNT);
         shader.safeGetUniform("TexelsPerItemPx").set((float) FishtasticItemOutlineAtlas.TEXELS_PER_ITEM_PX);
+        shader.safeGetUniform("SlotBounds").set(
+                Math.min(slot.u0(), slot.u1()), Math.min(slot.v0(), slot.v1()),
+                Math.max(slot.u0(), slot.u1()), Math.max(slot.v0(), slot.v1()));
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, atlas.maskTextureId());
         RenderSystem.enableBlend();
@@ -79,14 +77,23 @@ public final class FishtasticHighlightEffect {
         // No depth write: the quad is mostly transparent and must not occlude the item drawn next.
         RenderSystem.depthMask(false);
 
-        float half = size * (8 + PAD_PX) / 16.0F;
+        // Pad the quad and extrapolate the UVs to match: the item's 16 px span item.u0..u1.
+        float half = size / 2.0F;
+        float padGui = size * PAD_PX / 16.0F;
+        float du = (item.u1() - item.u0()) / 16.0F * PAD_PX;
+        float dv = (item.v1() - item.v0()) / 16.0F * PAD_PX;
+        float x0 = cx - half - padGui, x1 = cx + half + padGui;
+        float y0 = cy - half - padGui, y1 = cy + half + padGui;
+        float u0 = item.u0() - du, u1 = item.u1() + du;
+        float v0 = item.v0() - dv, v1 = item.v1() + dv;
+
         Matrix4f pose = guiGraphics.pose().last().pose();
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.QUADS, FishtasticShaders.GUI_EFFECT_FORMAT);
-        buffer.vertex(pose, cx - half, cy - half, z).uv(u0, v0).endVertex();
-        buffer.vertex(pose, cx - half, cy + half, z).uv(u0, v1).endVertex();
-        buffer.vertex(pose, cx + half, cy + half, z).uv(u1, v1).endVertex();
-        buffer.vertex(pose, cx + half, cy - half, z).uv(u1, v0).endVertex();
+        buffer.vertex(pose, x0, y0, z).uv(u0, v0).endVertex();
+        buffer.vertex(pose, x0, y1, z).uv(u0, v1).endVertex();
+        buffer.vertex(pose, x1, y1, z).uv(u1, v1).endVertex();
+        buffer.vertex(pose, x1, y0, z).uv(u1, v0).endVertex();
         BufferUploader.drawWithShader(buffer.end());
 
         RenderSystem.depthMask(true);

@@ -53,6 +53,8 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     private final List<CelebrationConfetti> confetti = new ArrayList<>();
     private static final ResourceLocation CELEBRATION_RAYS_TEXTURE = Fishtastic.id("textures/gui/celebration_rays.png");
     private static final ResourceLocation CELEBRATION_GLOW_TEXTURE = Fishtastic.id("textures/gui/celebration_glow.png");
+    /** PORT-ONLY: depth the celebration layers start at, above everything the bar draws (see render). */
+    private static final float CELEBRATION_Z = 400f;
 
     // The tag line's bounce wave. Runs on real 20 Hz ticks from the moment of the reveal, so it loops
     // continuously through the whole hold regardless of where the celebration's own phases are.
@@ -700,7 +702,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         renderZoneIcons(guiGraphics, partialTick, x, y, screenHeight);
 
         // Last, so the hero item and the flash sit on top of every other layer.
+        // PORT-ONLY: 1.21.1's GUI depth-tests (26.1.2's 2D pose has none), so "last" alone isn't
+        // enough — the bar's items sit above z=0 and would poke through the flash and the dim.
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, CELEBRATION_Z);
         renderCelebration(guiGraphics, partialTick, screenWidth, screenHeight);
+        guiGraphics.pose().popPose();
     }
 
     /**
@@ -774,8 +781,13 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
         }
 
+        // PORT-ONLY: 1.21.1's GUI depth-tests, so paint order alone can't put these over the hero
+        // item (26.1.2's 2D pose has no depth); lift them past the item's deepest possible z.
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, heroPx + 1f);
         renderConfetti(guiGraphics, partialTick, screenWidth, screenHeight);
         renderHeroBanner(guiGraphics, hero, partialTick, screenWidth, screenHeight);
+        guiGraphics.pose().popPose();
     }
 
     /** Spawns the reveal's confetti, centred on the hero (screen-height units from screen centre). */
@@ -819,12 +831,12 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // Work in texel units and scale the whole matrix, the same trick renderItem uses, since
         // blit() only takes integer coordinates.
         float s = sizePx / texSize;
-        guiGraphics.pose().scale(s, s, 1);
-        // 1.20.1's blit has no colour argument: tint through the shader colour, blended like
-        // 26.1.2's GUI_TEXTURED pipeline.
+        guiGraphics.pose().scale(s, s, 1f);
+        // 1.21.1's blit takes no colour: tint through the shader colour, with blending on.
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(((color >> 16) & 0xFF) / 255f, ((color >> 8) & 0xFF) / 255f, (color & 0xFF) / 255f, ((color >>> 24) & 0xFF) / 255f);
+        RenderSystem.setShaderColor(((color >> 16) & 0xFF) / 255f, ((color >> 8) & 0xFF) / 255f,
+                (color & 0xFF) / 255f, ((color >>> 24) & 0xFF) / 255f);
         guiGraphics.blit(texture, -texSize / 2, -texSize / 2, 0f, 0f, texSize, texSize, texSize, texSize);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.disableBlend();
@@ -848,7 +860,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             guiGraphics.pose().translate(screenWidth / 2f + c.getX(partialTick) * screenHeight,
                     screenHeight / 2f + c.getY(partialTick) * screenHeight, 0);
             guiGraphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(c.getRotationDegrees(partialTick))));
-            guiGraphics.pose().scale(c.width * screenHeight * 0.5f * c.getFlutter(partialTick), c.height * screenHeight * 0.5f, 1);
+            guiGraphics.pose().scale(c.width * screenHeight * 0.5f * c.getFlutter(partialTick), c.height * screenHeight * 0.5f, 1f);
             guiGraphics.fill(-1, -1, 1, 1, argb(alpha, c.color));
             guiGraphics.pose().popPose();
         }
@@ -869,17 +881,17 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(screenWidth / 2f, screenHeight * 0.74f, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
+        guiGraphics.pose().scale(scale, scale, 1f);
 
         float nameScale = screenHeight * 0.075f / font.lineHeight;
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().scale(nameScale, nameScale, 1);
+        guiGraphics.pose().scale(nameScale, nameScale, 1f);
         guiGraphics.drawCenteredString(font, hero.getHoverName().copy().withStyle(ChatFormatting.BOLD), 0, -font.lineHeight / 2, (a << 24) | 0xFFFFFF);
         guiGraphics.pose().popPose();
 
         float tagScale = screenHeight * 0.04f / font.lineHeight;
         guiGraphics.pose().translate(0, screenHeight * 0.075f, 0);
-        guiGraphics.pose().scale(tagScale, tagScale, 1);
+        guiGraphics.pose().scale(tagScale, tagScale, 1f);
         renderWaveText(guiGraphics, font, celebration.getPolish(), a, tagScale, screenHeight, partialTick);
         guiGraphics.pose().popPose();
     }

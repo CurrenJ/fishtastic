@@ -15,12 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Flags each container slot's item for the gold highlight outline while it is being drawn.
- * {@code renderSlot} draws the item through {@code GuiGraphics.renderItem}, whose head
- * ({@code GuiGraphicsMixin} → {@code FishtasticGuiOutlineRenderer}) reads
- * {@link FishtasticGlintState#HIGHLIGHT_REQUESTED} at that moment — same pattern as the silhouette
- * and black-outline effects. The cursor's own item is drawn by {@code renderFloatingItem}, not here,
- * so it is never highlighted. (26.1.2 hooks {@code extractSlot}, the same method after the
- * render-state split.)
+ * {@code guiGraphics.renderItem(...)} runs synchronously inside {@code renderSlot} (26.1.2's
+ * {@code extractSlot}), and {@code FishtasticGuiOutlineRenderer} reads
+ * {@link FishtasticGlintState#HIGHLIGHT_REQUESTED} at its head — same pattern as the silhouette and
+ * black-outline effects. The cursor's own item is drawn by {@code renderFloatingItem}, not here, so
+ * it is never highlighted.
  */
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin {

@@ -54,21 +54,26 @@ public final class FishtasticGuiOutlineRenderer {
             FishtasticSilhouetteEffect.render(guiGraphics, stack, cx, cy, size, z);
             return true;
         }
-        if (Boolean.TRUE.equals(FishtasticGlintState.HIGHLIGHT_REQUESTED.get())) {
-            // In addition to any quality outline, like 26.1.2's extra blit ahead of the item's own.
-            FishtasticHighlightEffect.render(guiGraphics, stack, cx, cy, size, z);
-        }
 
         FishtasticOutlineStyle style = Boolean.TRUE.equals(FishtasticGlintState.BLACK_OUTLINE_REQUESTED.get())
                 ? FishtasticBlackOutlineEffect.STYLE
                 : FishtasticOutlineStyle.of(ItemEffectManager.getEffectForItem(stack));
-        if (style == null) {
-            return false;
+        if (style != null) {
+            renderOutline(guiGraphics, stack, style, cx, cy, size, z);
         }
+        // Drawn after the quality ring, as 26.1.2 adds its blit after the ring's.
+        if (Boolean.TRUE.equals(FishtasticGlintState.HIGHLIGHT_REQUESTED.get())) {
+            FishtasticHighlightEffect.render(guiGraphics, stack, cx, cy, size, z);
+        }
+        return false;
+    }
+
+    private static void renderOutline(GuiGraphics guiGraphics, ItemStack stack, FishtasticOutlineStyle style,
+                                      float cx, float cy, float size, float z) {
         FishtasticItemOutlineAtlas atlas = FishtasticItemOutlineAtlas.getInstance();
         FishtasticItemOutlineAtlas.SlotView slot = atlas.requestSlot(stack, style);
         if (slot == null || atlas.outlineTextureId() < 0) {
-            return false; // queued for next frame's bake, or atlas full
+            return; // queued for next frame's bake, or atlas full
         }
 
         // Anything batched in the GUI buffer so far must land before this immediate draw.
@@ -99,7 +104,6 @@ public final class FishtasticGuiOutlineRenderer {
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
-        return false;
     }
 
     private FishtasticGuiOutlineRenderer() {}
