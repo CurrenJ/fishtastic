@@ -196,6 +196,12 @@ public class FishtasticPackets {
                 SetDayRatePacket::handleServerToClient
         );
         registrar.registerServerToClient(
+                TankInteriorLightSyncPacket.TYPE,
+                TankInteriorLightSyncPacket.class,
+                TankInteriorLightSyncPacket.STREAM_CODEC,
+                TankInteriorLightSyncPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
                 ReducedEffectsSyncPacket.TYPE,
                 ReducedEffectsSyncPacket.class,
                 ReducedEffectsSyncPacket.STREAM_CODEC,
@@ -222,6 +228,7 @@ public class FishtasticPackets {
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
         registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
         registrar.accept(SetDayRatePacket.TYPE, SetDayRatePacket.STREAM_CODEC);
+        registrar.accept(TankInteriorLightSyncPacket.TYPE, TankInteriorLightSyncPacket.STREAM_CODEC);
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
     }
 

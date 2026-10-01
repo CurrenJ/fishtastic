@@ -4,6 +4,7 @@ import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.client.compositemodel.FishTankGeometry;
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
+import grill24.fishtastic.client.renderer.TankInteriorLight;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -65,9 +66,30 @@ public class FishTankBakedModelFabric implements BakedModel {
                                RenderContext context) {
         Object renderData = ((FabricBlockView) level).getBlockEntityRenderData(pos);
         FishTankCompositeModelData data = renderData instanceof FishTankCompositeModelData d ? d : FishTankCompositeModelData.DEFAULT;
-        emit(geometry.composite(data), context.getEmitter());
-        emitCosmetics(context.getEmitter(), level, pos, data);
+        FishTankGeometry.Composite composite = geometry.composite(data);
+        QuadEmitter emitter = context.getEmitter();
+        // The frame keeps world light; the sand, glass and cosmetics are the interior and take
+        // TankInteriorLight's minimum.
+        emitLayers(composite, emitter, false);
+        boolean interiorLit = TankInteriorLight.level() > 0;
+        if (interiorLit) context.pushTransform(INTERIOR_LIGHT);
+        try {
+            emitLayers(composite, emitter, true);
+            emitCosmetics(emitter, level, pos, data);
+        } finally {
+            if (interiorLit) context.popTransform();
+        }
     }
+
+    /**
+     * Raises every vertex to TankInteriorLight's minimum lightmap; the renderer keeps the higher of
+     * it and world light, so the quad is never drawn darker than its surroundings would make it.
+     */
+    private static final RenderContext.QuadTransform INTERIOR_LIGHT = quad -> {
+        int minimum = TankInteriorLight.minimumLightmap();
+        for (int i = 0; i < 4; i++) quad.lightmap(i, TankInteriorLight.max(quad.lightmap(i), minimum));
+        return true;
+    };
 
     /**
      * The tank's static cosmetics, baked into the same chunk mesh as its body (see
@@ -101,7 +123,14 @@ public class FishTankBakedModelFabric implements BakedModel {
     }
 
     private void emit(FishTankGeometry.Composite composite, QuadEmitter emitter) {
+        emitLayers(composite, emitter, false);
+        emitLayers(composite, emitter, true);
+    }
+
+    /** The frame layer ({@code interior == false}), or the sand and glass layers ({@code interior == true}). */
+    private void emitLayers(FishTankGeometry.Composite composite, QuadEmitter emitter, boolean interior) {
         for (FishTankGeometry.LayerQuads layer : composite.layers()) {
+            if ((layer.layer() != FishTankGeometry.Layer.FRAME) != interior) continue;
             RenderMaterial material = material(BlendMode.fromRenderLayer(
                     ItemBlockRenderTypes.getChunkRenderType(layer.source().defaultBlockState())));
             for (int side = 0; side < 7; side++) {

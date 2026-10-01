@@ -16,6 +16,8 @@ import grill24.fishtastic.client.QuestProgressEvent;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
 import grill24.fishtastic.client.renderer.FishtasticItemOutlineAtlas;
 import grill24.fishtastic.client.renderer.FishtasticShaders;
+import grill24.fishtastic.client.renderer.IrisCompat;
+import grill24.fishtastic.client.renderer.TankInteriorLight;
 import grill24.fishtastic.command.CosmeticCaptureSession;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.FishTankMaterials;
@@ -59,6 +61,7 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Blocks;
@@ -66,6 +69,7 @@ import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SeaPickleBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
@@ -107,7 +111,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     // PORT-ONLY: 26.1.2's cool-cam and MCP-bridge scenes (matte, matteclip, fourwaters, cathedral,
     // mcpsession, cosmeticpreview) are not ported - neither mod side exists on this branch (D4).
-    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench");
+    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -275,6 +279,7 @@ public final class RenderSelfTest {
             case "columns" -> queueColumnsScene();
             case "spanpreview" -> queueSpanPreviewScene();
             case "perfbench" -> queuePerfBenchScene();
+            case "lighting" -> queueLightingScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -345,6 +350,209 @@ public final class RenderSelfTest {
         queue(1, mc -> mc.options.hideGui = false);
     }
 
+
+    // ── Lighting experiment ──────────────────────────────────────────────────
+
+    /**
+     * Opt-in: A/B shots of what lights a tank's interior, for comparing shaders on and off (run it
+     * once per Iris setting). Two copies of the same 3-tank group: one outdoors at noon, one sealed
+     * in a stone room. The world is frozen once the fish are stocked, so the only thing that differs
+     * between two shots of a station is the variable under test: the tank's own light level (0/4/8/15,
+     * patched on its block states), the {@link TankInteriorLight} level, the water fill, a
+     * sea-lantern "hood" above each tank, and a glowstone-lit vs pitch-dark room. Each shot logs the
+     * block light measured in front of the group so the patch is proven to have taken.
+     *
+     * <p>[1.20.1] there is no {@code /tick freeze} (1.20.3+), so the flocks keep swimming between
+     * shots; nothing the checks read depends on it.
+     */
+    private static void queueLightingScene() {
+        final int[] stations = LIGHTING_STATIONS;
+        queue(1, mc -> server(mc, s -> {
+            int y = origin.getY(), z = origin.getZ() - 8;
+            for (int sx : stations) {
+                int x = origin.getX() + sx;
+                run(s, "fill " + (x - 7) + " " + (y - 1) + " " + (z - 6) + " " + (x + 7) + " " + (y + 7) + " " + (z + 8) + " minecraft:air");
+                run(s, "fill " + (x - 7) + " " + (y - 1) + " " + (z - 6) + " " + (x + 7) + " " + (y - 1) + " " + (z + 8) + " minecraft:smooth_stone");
+            }
+            int rx = origin.getX() + stations[1];
+            run(s, "fill " + (rx - 5) + " " + (y - 1) + " " + (z - 3) + " " + (rx + 5) + " " + (y + 5) + " " + (z + 6) + " minecraft:stone_bricks hollow");
+            for (int sx : stations) {
+                for (int dx = -1; dx <= 1; dx++) run(s, "setblock " + (origin.getX() + sx + dx) + " " + y + " " + z + " fishtastic:fish_tank");
+            }
+        }));
+        queue(10, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            int y = origin.getY(), z = origin.getZ() - 8;
+            for (int sx : stations) {
+                int x = origin.getX() + sx;
+                FishTankBlockEntity left = tank(level, new BlockPos(x - 1, y, z));
+                FishTankBlockEntity middle = tank(level, new BlockPos(x, y, z));
+                FishTankBlockEntity right = tank(level, new BlockPos(x + 1, y, z));
+                left.setCosmetic(new CosmeticGridCell(0, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 3));
+                left.setCosmetic(new CosmeticGridCell(2, 0), new PlacedCosmetic(Blocks.TUBE_CORAL_FAN.defaultBlockState()));
+                middle.setStructureCosmetic(new CosmeticGridCell(1, 1), new FishTankBlockEntity.PlacedStructureCosmetic(
+                        structure("coral_reef_1"), Rotation.NONE), List.of(new CosmeticGridCell(1, 1)));
+                right.setCosmetic(new CosmeticGridCell(1, 0), new PlacedCosmetic(Blocks.BRAIN_CORAL.defaultBlockState()));
+                stock("lighting.left." + sx, left, fish("moorish_idol", 40f), fish("bluegill", 25f), fish("discus", 22f));
+                stock("lighting.middle." + sx, middle, fish("lionfish", 32f), fish("clown_loach", 20f), fish("betta", 12f));
+                stock("lighting.right." + sx, right, fish("parrotfish", 38f), fish("neon_goby", 5f), fish("neon_goby", 5.5f), fish("starfish", 20f));
+            }
+        }));
+        queue(5, mc -> check("lighting.iris", true, "shaderPackInUse=" + IrisCompat.isShaderPackInUse()));
+        queue(5, mc -> mc.options.hideGui = true);
+
+        // Every shot sets the interior light explicitly: the setting defaults on, and the "before"
+        // shots need it off. The player's own value is restored at the end.
+        // Outdoors at noon: the sun already lights the interior, so the interior light should not matter.
+        lightingShot("out", stations[0], "baseline", 8, mc -> interior(mc, 0));
+        lightingShot("out", stations[0], "fill_off", 8, mc -> setFill(false));
+        lightingShot("out", stations[0], "i13", 8, mc -> {
+            setFill(true);
+            interior(mc, 13);
+        });
+
+        // Sealed room, no other light: only the tank lights it.
+        lightingShot("room", stations[1], "dark_l8", 8, mc -> interior(mc, 0));
+        lightingShot("room", stations[1], "dark_l0", 0, mc -> {});
+        lightingShot("room", stations[1], "dark_l15", 15, mc -> {});
+        // Interior light: the inside is drawn brighter, the room gets only the block's own light.
+        lightingShot("room", stations[1], "dark_l8_i13", 8, mc -> interior(mc, 13));
+        lightingShot("room", stations[1], "dark_l4_i13", 4, mc -> {});
+        lightingShot("room", stations[1], "dark_l0_i13", 0, mc -> {});
+        lightingShot("room", stations[1], "dark_l8_i10", 8, mc -> interior(mc, 10));
+        lightingShot("room", stations[1], "dark_l8_i15", 8, mc -> interior(mc, 15));
+        lightingShot("room", stations[1], "dark_l8_fill_off", 8, mc -> {
+            interior(mc, 0);
+            setFill(false);
+        });
+        lightingShot("room", stations[1], "dark_l8_hood", 8, mc -> {
+            setFill(true);
+            hood(mc, stations[1], "minecraft:sea_lantern");
+        });
+        lightingShot("room", stations[1], "dark_l0_hood", 0, mc -> {});
+        // A lived-in room: glowstone in the ceiling, the case players actually have.
+        lightingShot("room", stations[1], "lit_l8", 8, mc -> {
+            hood(mc, stations[1], "minecraft:air");
+            server(mc, s -> {
+                int x = origin.getX() + stations[1], y = origin.getY(), z = origin.getZ() - 8;
+                run(s, "setblock " + (x - 2) + " " + (y + 5) + " " + (z + 3) + " minecraft:glowstone");
+                run(s, "setblock " + (x + 2) + " " + (y + 5) + " " + (z + 3) + " minecraft:glowstone");
+            });
+        });
+        lightingShot("room", stations[1], "lit_l8_hood", 8, mc -> hood(mc, stations[1], "minecraft:sea_lantern"));
+        lightingShot("room", stations[1], "lit_l8_i13", 8, mc -> {
+            hood(mc, stations[1], "minecraft:air");
+            interior(mc, 13);
+        });
+
+        // The real control path: command -> sync packet -> client handler -> config.
+        queue(1, mc -> {
+            if (savedInterior == null) savedInterior = FishtasticClientConfig.getTankInteriorLight();
+            server(mc, s -> run(s, "execute as @p run fishtastic tank interiorlight 7"));
+        });
+        queue(10, mc -> check("lighting.command", FishtasticClientConfig.getTankInteriorLight() == 7,
+                "tankInteriorLight=" + FishtasticClientConfig.getTankInteriorLight()));
+        queue(1, mc -> {
+            setTankEmission(8);
+            if (savedInterior != null) FishtasticClientConfig.setTankInteriorLight(savedInterior);
+            remeshTanks(mc);
+            if (savedFill != null) FishtasticClientConfig.setTankWaterFillEnabled(savedFill);
+            mc.options.hideGui = false;
+        });
+    }
+
+    private static final int[] LIGHTING_STATIONS = {0, 24};
+
+    /** Applies {@code setup} and the tank light level, waits for relighting, then shoots front and close-up. */
+    private static void lightingShot(String where, int stationX, String shot, int emission, Consumer<Minecraft> setup) {
+        queue(1, mc -> {
+            setup.accept(mc);
+            if (setTankEmission(emission)) relightTanks(mc);
+        });
+        queue(1, mc -> camera(mc, origin.getX() + stationX + 0.5, origin.getY() + 1.4, origin.getZ() - 8 + 4.5, 180f, 8f));
+        queue(60, mc -> {
+            BlockPos front = new BlockPos(origin.getX() + stationX, origin.getY(), origin.getZ() - 8 + 1);
+            check("lighting." + where + "." + shot + ".light", true, "emission=" + emission
+                    + " stateEmission=" + grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState().getLightEmission()
+                    + " blockLightInFront=" + mc.level.getBrightness(LightLayer.BLOCK, front)
+                    + " skyLightInFront=" + mc.level.getBrightness(LightLayer.SKY, front)
+                    + " blockLightAtTank=" + mc.level.getBrightness(LightLayer.BLOCK, front.north()));
+            screenshot(mc, "lighting", where + "-" + shot + "-front");
+        });
+        queue(1, mc -> camera(mc, origin.getX() + stationX + 0.5, origin.getY() + 0.7, origin.getZ() - 8 + 1.9, 180f, 4f));
+        queue(30, mc -> screenshot(mc, "lighting", where + "-" + shot + "-close"));
+    }
+
+    private static int tankEmission = 8;
+
+    /** Rewrites the cached light emission on every fish tank block state; true when it changed. */
+    private static boolean setTankEmission(int emission) {
+        if (emission == tankEmission) return false;
+        try {
+            java.lang.reflect.Field field = BlockBehaviour.BlockStateBase.class.getDeclaredField("lightEmission");
+            field.setAccessible(true);
+            for (var state : grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().getStateDefinition().getPossibleStates()) {
+                field.setInt(state, emission);
+            }
+            tankEmission = emission;
+            return true;
+        } catch (ReflectiveOperationException e) {
+            check("lighting.emission", false, e.toString());
+            return false;
+        }
+    }
+
+    /**
+     * Re-runs block light at every tank on both sides: the server's engine (for the record) and the
+     * client's own, which is what chunk meshes and block entities actually sample. The client's
+     * sections are then marked dirty so the chunk mesh is rebuilt with the new light.
+     */
+    private static void relightTanks(Minecraft mc) {
+        List<BlockPos> tanks = new java.util.ArrayList<>();
+        for (int sx : LIGHTING_STATIONS) {
+            for (int dx = -1; dx <= 1; dx++) tanks.add(new BlockPos(origin.getX() + sx + dx, origin.getY(), origin.getZ() - 8));
+        }
+        server(mc, s -> tanks.forEach(p -> s.overworld().getChunkSource().getLightEngine().checkBlock(p)));
+        var clientLight = mc.level.getChunkSource().getLightEngine();
+        tanks.forEach(clientLight::checkBlock);
+        clientLight.runLightUpdates();
+        for (BlockPos p : tanks) mc.levelRenderer.setBlocksDirty(p.getX() - 16, p.getY() - 16, p.getZ() - 16, p.getX() + 16, p.getY() + 16, p.getZ() + 16);
+        remeshTanks(mc);
+    }
+
+    private static Integer savedInterior;
+
+    /**
+     * Sets the {@link TankInteriorLight} level and re-meshes just the scene's tanks (cheaper and
+     * quicker to settle than {@link TankInteriorLight#set}'s full re-mesh).
+     */
+    private static void interior(Minecraft mc, int level) {
+        if (savedInterior == null) savedInterior = FishtasticClientConfig.getTankInteriorLight();
+        FishtasticClientConfig.setTankInteriorLight(level);
+        remeshTanks(mc);
+    }
+
+    private static void remeshTanks(Minecraft mc) {
+        for (int sx : LIGHTING_STATIONS) {
+            int x = origin.getX() + sx, y = origin.getY(), z = origin.getZ() - 8;
+            mc.levelRenderer.setBlocksDirty(x - 2, y - 1, z - 1, x + 2, y + 1, z + 1);
+        }
+    }
+
+    private static void hood(Minecraft mc, int stationX, String block) {
+        server(mc, s -> {
+            for (int dx = -1; dx <= 1; dx++) {
+                run(s, "setblock " + (origin.getX() + stationX + dx) + " " + (origin.getY() + 1) + " " + (origin.getZ() - 8) + " " + block);
+            }
+        });
+    }
+
+    private static Boolean savedFill;
+
+    private static void setFill(boolean enabled) {
+        if (savedFill == null) savedFill = FishtasticClientConfig.isTankWaterFillEnabled();
+        FishtasticClientConfig.setTankWaterFillEnabled(enabled);
+    }
 
     /**
      * Column cosmetics (docs/fish-tanks.md §6): a 2-wide, 3-storey stack with kelp grown from the

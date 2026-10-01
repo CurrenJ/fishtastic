@@ -18,6 +18,8 @@ import java.util.Properties;
 public final class FishtasticClientConfig {
     private static final String FILE_NAME = "fishtastic-client.properties";
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
+    private static final String TANK_INTERIOR_LIGHT_KEY = "tankInteriorLight";
+    private static final int DEFAULT_TANK_INTERIOR_LIGHT = 13;
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
@@ -29,6 +31,12 @@ public final class FishtasticClientConfig {
             # Draws an animated water fill behind fish tank glass. Toggled via
             # "/fishtastic tank waterfill <true|false>" in-game, which also rewrites this file.
             tankWaterFillEnabled=true
+
+            # Light level (0-15) fish tank interiors (fish, water, sand, decorations, glass) are drawn
+            # with, so a tank in a dark room stays bright without lighting the room around it.
+            # 0 turns it off and leaves tanks lit by the world alone. Set via
+            # "/fishtastic tank interiorlight <0-15>" in-game, which also rewrites this file.
+            tankInteriorLight=13
 
             # Volume (0-100) of quest/notification banner sounds. Set via
             # "/fishtastic notifications volume <0-100>" in-game, which also rewrites this file.
@@ -46,6 +54,7 @@ public final class FishtasticClientConfig {
             """;
 
     private static Boolean tankWaterFillEnabled;
+    private static Integer tankInteriorLight;
     private static Integer notificationVolume;
     private static Boolean shapeGalleryOpen;
     private static Boolean reducedCelebrationEffects;
@@ -70,6 +79,29 @@ public final class FishtasticClientConfig {
      */
     public static void setTankWaterFillEnabled(boolean enabled) {
         tankWaterFillEnabled = enabled;
+        persist();
+    }
+
+    /** Minimum light level (0-15) tank interiors are drawn with; 0 is off. */
+    public static int getTankInteriorLight() {
+        if (tankInteriorLight == null) {
+            try {
+                tankInteriorLight = Mth.clamp(Integer.parseInt(load().getProperty(
+                        TANK_INTERIOR_LIGHT_KEY, String.valueOf(DEFAULT_TANK_INTERIOR_LIGHT))), 0, 15);
+            } catch (NumberFormatException e) {
+                tankInteriorLight = DEFAULT_TANK_INTERIOR_LIGHT;
+            }
+        }
+        return tankInteriorLight;
+    }
+
+    /**
+     * Persists a new tank interior light level (0-15) and caches it. Tank chunk meshes bake this
+     * value in, so callers go through {@link grill24.fishtastic.client.renderer.TankInteriorLight#set}
+     * to have them rebuilt.
+     */
+    public static void setTankInteriorLight(int level) {
+        tankInteriorLight = Mth.clamp(level, 0, 15);
         persist();
     }
 
@@ -140,6 +172,7 @@ public final class FishtasticClientConfig {
         Properties props = load();
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
+        props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
         try (var out = Files.newOutputStream(file)) {
