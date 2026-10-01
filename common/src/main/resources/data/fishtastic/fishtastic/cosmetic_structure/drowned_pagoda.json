@@ -11199,7 +11199,7 @@
   },
   {
    "state": {
-    "Name": "minecraft:oxidized_lightning_rod",
+    "Name": "minecraft:lightning_rod",
     "Properties": {
      "facing": "up"
     }
