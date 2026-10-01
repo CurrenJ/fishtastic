@@ -52,6 +52,18 @@ public final class BlockEntityNbt {
         return child;
     }
 
+    /** {@code ValueOutput#child}: a new compound stored under {@code key}. */
+    public static CompoundTag child(CompoundTag tag, String key) {
+        CompoundTag child = new CompoundTag();
+        tag.put(key, child);
+        return child;
+    }
+
+    /** {@code ValueInput#child}: the compound under {@code key}, if there is one. */
+    public static Optional<CompoundTag> readChild(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_COMPOUND) ? Optional.of(tag.getCompound(key)) : Optional.empty();
+    }
+
     /** {@code ValueInput#childrenListOrEmpty}: the compounds in list {@code key}, or none. */
     public static List<CompoundTag> childrenListOrEmpty(CompoundTag tag, String key) {
         ListTag list = tag.getList(key, Tag.TAG_COMPOUND);

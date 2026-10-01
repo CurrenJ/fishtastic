@@ -567,8 +567,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
 
         if (spanLink != null) {
-            CompoundTag link = new CompoundTag();
-            output.put("SpanLink", link);
+            CompoundTag link = BlockEntityNbt.child(output, "SpanLink");
             link.putInt("DX", spanLink.toAnchor().getX());
             link.putInt("DY", spanLink.toAnchor().getY());
             link.putInt("DZ", spanLink.toAnchor().getZ());
@@ -601,10 +600,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     frameBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, frameBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, frameBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse FrameBlock id='{}'", worldPosition, frameBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse FrameBlock id='{}'", worldPosition, frameBlockStr);
             }
         }
 
@@ -617,10 +616,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     sandBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, sandBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, sandBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse SandBlock id='{}'", worldPosition, sandBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse SandBlock id='{}'", worldPosition, sandBlockStr);
             }
         }
 
@@ -633,10 +632,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (b != null) {
                     glassBlock = b;
                 } else {
-                    Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, glassBlock registry lookup returned null for id={}", worldPosition, blockId);
+                    Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, glassBlock registry lookup returned null for id={}", worldPosition, blockId);
                 }
             } else {
-                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse GlassBlock id='{}'", worldPosition, glassBlockStr);
             }
         }
 
@@ -739,7 +738,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                         int height = BlockEntityNbt.getIntOr(child, "Height", 1);
                         cosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(state, height));
                     } else {
-                        Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
+                        Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, cosmetic block lookup returned null for id={}", worldPosition, blockId);
                     }
                 }
             }
@@ -754,7 +753,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             if (!CosmeticGridCell.isValid(gridX, gridZ) || blockId == null) return;
             Block b = BuiltInRegistries.BLOCK.get(blockId);
             if (b == null || b == Blocks.AIR) {
-                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, ceiling cosmetic block lookup returned nothing for id={}", worldPosition, blockId);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, ceiling cosmetic block lookup returned nothing for id={}", worldPosition, blockId);
                 return;
             }
             ceilingCosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedCosmetic(b.defaultBlockState(), Math.max(1, BlockEntityNbt.getIntOr(child, "Height", 1))));
@@ -776,7 +775,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
             ResourceLocation structureId = Ids.tryParse(structureIdStr);
             if (structureId == null) {
-                Fishtastic.LOGGER.warn("[FishTankBE.load] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
+                Fishtastic.LOGGER.warn("[FishTankBE.loadAdditional] pos={}, failed to parse StructureId '{}'", worldPosition, structureIdStr);
                 return;
             }
             Rotation rotation = BlockEntityNbt.read(child, "Rotation", Rotation.CODEC).orElse(Rotation.NONE);
@@ -784,7 +783,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             structureCosmetics.put(new CosmeticGridCell(gridX, gridZ), new PlacedStructureCosmetic(key, rotation));
         });
 
-        spanLink = !input.contains("SpanLink", net.minecraft.nbt.Tag.TAG_COMPOUND) ? null : java.util.Optional.of(input.getCompound("SpanLink")).map(link -> {
+        spanLink = BlockEntityNbt.readChild(input, "SpanLink").map(link -> {
             List<CosmeticGridCell> cells = new java.util.ArrayList<>();
             for (int packed : link.getIntArray("Cells")) {
                 if (packed >= 0 && packed < CosmeticGridCell.GRID_SIZE * CosmeticGridCell.GRID_SIZE) {

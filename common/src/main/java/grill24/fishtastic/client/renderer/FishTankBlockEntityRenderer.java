@@ -266,7 +266,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
      * dispatcher allocates, so every frame-to-frame behaviour matches. Returns null when there is
      * no level to read.
      */
-    private FishTankRenderState snapshot(FishTankBlockEntity blockEntity, float partialTick, int lightCoords) {
+    private static FishTankRenderState snapshot(FishTankBlockEntity blockEntity, float partialTick, int lightCoords) {
         Level level = blockEntity.getLevel();
         if (level == null) return null;
 
@@ -604,9 +604,9 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     // static cosmetics were drawn before they moved into the mesh. Snapshots are cached per tank
     // for the run, so this reading leaves out the per-frame transform maths the old path also did:
     // if anything it flatters the old path.
-    private final Map<BlockPos, List<TankCosmeticMesh.Piece>> benchPieceCache = new HashMap<>();
+    private static final Map<BlockPos, List<TankCosmeticMesh.Piece>> benchPieceCache = new HashMap<>();
 
-    private List<TankCosmeticMesh.Piece> benchPiecesFor(FishTankBlockEntity blockEntity) {
+    private static List<TankCosmeticMesh.Piece> benchPiecesFor(FishTankBlockEntity blockEntity) {
         if (grill24.fishtastic.client.perf.CosmeticBenchmark.mode != grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.PER_FRAME) {
             if (!benchPieceCache.isEmpty()) benchPieceCache.clear();
             return List.of();
@@ -641,7 +641,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     /** Last span share computed per tank, reused while the span it came from is unchanged. */
     private record SpanShare(FishTankBlockEntity anchor, FishTankBlockEntity.PlacedStructureCosmetic placed,
                              CosmeticStructure structure, BlockPos offset, List<SpanStructures.Placed> parts) {}
-    private final Map<BlockPos, SpanShare> spanShares = new HashMap<>();
+    private static final Map<BlockPos, SpanShare> spanShares = new HashMap<>();
 
     /**
      * This tank's share of the spanning structure it belongs to, if any: the parts whose centre
@@ -649,7 +649,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
      * share, for the same reason kelp segments and group fish are drawn where they are — a block
      * entity renders only while its own section is visible.
      */
-    private void collectSpanParts(FishTankBlockEntity blockEntity, Level level, FishTankRenderState state) {
+    private static void collectSpanParts(FishTankBlockEntity blockEntity, Level level, FishTankRenderState state) {
         state.spanParts = List.of();
         if (blockEntity.getSpanLink() == null && blockEntity.getStructureCosmetics().isEmpty()) {
             spanShares.remove(blockEntity.getBlockPos());

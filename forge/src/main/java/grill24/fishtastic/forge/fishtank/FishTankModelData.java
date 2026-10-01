@@ -17,7 +17,7 @@ public final class FishTankModelData {
      * ({@code FishTankBakedModel#getModelData}). Forge 47's {@code getQuads} has no level or
      * position, so the per-mesh tint 26.1.2 resolves inside its quad collection rides here.
      */
-    public static final ModelProperty<List<BakedQuad>> COSMETIC_TINTED_PROPERTY = new ModelProperty<>();
+    public static final ModelProperty<List<BakedQuad>> TINTED_COSMETICS_PROPERTY = new ModelProperty<>();
 
     private FishTankModelData() {}
 }

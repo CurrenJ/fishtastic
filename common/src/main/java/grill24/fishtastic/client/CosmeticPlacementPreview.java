@@ -44,12 +44,8 @@ public final class CosmeticPlacementPreview {
 
     private CosmeticPlacementPreview() {}
 
-    /**
-     * Called from the loaders' world-render hooks with the world-space pose stack, the level's
-     * buffer source and the partial-tick camera position (26.1: {@code tickGizmos}, from the client
-     * tick).
-     */
-    public static void render(PoseStack poseStack, MultiBufferSource buffers, Vec3 camera) {
+    /** Called from the loaders' world-render hooks with a world-space pose stack (see {@link CosmeticCaptureClientState#render}). */
+    public static void render(PoseStack pose, MultiBufferSource buffers, Vec3 camera) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
         // Sneaking with an item in hand skips Block#useItemOn entirely, so nothing would be placed.
@@ -66,7 +62,7 @@ public final class CosmeticPlacementPreview {
         int fill = plan.valid() ? VALID_FILL : INVALID_FILL;
         if (plan.region() != null) {
             // A spanning structure: outline the whole box of tanks it would fill.
-            stroke(poseStack, buffers, camera, plan.region().deflate(0.02), stroke);
+            stroke(pose, buffers, camera, plan.region().deflate(0.02), stroke);
         }
         double half = CosmeticGridCell.CELL_WIDTH / 2.0 - INSET;
         for (CosmeticPlacement.TankCell target : plan.cells()) {
@@ -88,8 +84,8 @@ public final class CosmeticPlacementPreview {
                     ? pos.getY() + CosmeticGridCell.CEILING_Y - height
                     : pos.getY() + CosmeticGridCell.FLOOR_Y;
             AABB box = new AABB(x - half, y0, z - half, x + half, y0 + height, z + half);
-            fill(poseStack, buffers, camera, box, fill);
-            stroke(poseStack, buffers, camera, box, stroke);
+            fill(pose, buffers, camera, box, fill);
+            stroke(pose, buffers, camera, box, stroke);
         }
     }
 

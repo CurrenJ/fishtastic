@@ -304,13 +304,8 @@ public final class TankCosmeticMesh {
             vertices[base] = Float.floatToRawIntBits(v.x);
             vertices[base + 1] = Float.floatToRawIntBits(v.y);
             vertices[base + 2] = Float.floatToRawIntBits(v.z);
-            int packed = vertices[base + NORMAL_OFFSET];
-            if ((packed & 0xFFFFFF) != 0) {
-                v.set((byte) packed / 127f, (byte) (packed >> 8) / 127f, (byte) (packed >> 16) / 127f);
-                normalPose.transform(v).normalize();
-                vertices[base + NORMAL_OFFSET] = (packed & 0xFF000000)
-                        | ((int) (v.z * 127f) & 0xFF) << 16 | ((int) (v.y * 127f) & 0xFF) << 8 | ((int) (v.x * 127f) & 0xFF);
-            }
+            // The packed normal no longer matches the rotated face; let the renderer derive it.
+            vertices[base + NORMAL_OFFSET] = 0;
         }
         // The face's direction (diffuse shading, and Fabric's nominal face) follows the pose's rotation.
         v.set(quad.getDirection().getStepX(), quad.getDirection().getStepY(), quad.getDirection().getStepZ());
@@ -341,7 +336,7 @@ public final class TankCosmeticMesh {
      * block colours (1.20.1's terrain path multiplies vertex colours in). 26.1's NeoForge model does
      * the same with {@code BakedColors}; Fabric sets the emitter's colours instead.
      */
-    public static BakedQuad withColor(BakedQuad quad, int argb) {
+    public static BakedQuad withBakedColor(BakedQuad quad, int argb) {
         int[] vertices = quad.getVertices().clone();
         if (argb != -1) {
             float r = ((argb >> 16) & 0xFF) / 255f, g = ((argb >> 8) & 0xFF) / 255f, b = (argb & 0xFF) / 255f;

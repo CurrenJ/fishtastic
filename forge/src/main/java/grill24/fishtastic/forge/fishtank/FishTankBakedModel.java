@@ -107,15 +107,15 @@ public class FishTankBakedModel implements IDynamicBakedModel {
             if (renderType == null || quad.layer() == renderType) out.add(withLightEmission(quad.quad()));
         }
         if (baked.tinted().isEmpty()) return;
-        List<BakedQuad> coloured = extraData.get(FishTankModelData.COSMETIC_TINTED_PROPERTY);
+        List<BakedQuad> coloured = extraData.get(FishTankModelData.TINTED_COSMETICS_PROPERTY);
         for (int i = 0; i < baked.tinted().size(); i++) {
             TankCosmeticMesh.Quad quad = baked.tinted().get(i);
             if (renderType != null && quad.layer() != renderType) continue;
-            out.add(coloured != null && i < coloured.size() ? coloured.get(i) : TankCosmeticMesh.withColor(quad.quad(), -1));
+            out.add(coloured != null && i < coloured.size() ? coloured.get(i) : TankCosmeticMesh.withBakedColor(quad.quad(), -1));
         }
     }
 
-    /** Colours the tank's tinted cosmetic quads for this mesh (see {@link FishTankModelData#COSMETIC_TINTED_PROPERTY}). */
+    /** Colours the tank's tinted cosmetic quads for this mesh (see {@link FishTankModelData#TINTED_COSMETICS_PROPERTY}). */
     @Override
     public @NotNull ModelData getModelData(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state,
                                            @NotNull ModelData modelData) {
@@ -124,10 +124,10 @@ public class FishTankBakedModel implements IDynamicBakedModel {
         List<BakedQuad> coloured = new ArrayList<>(baked.tinted().size());
         int interiorLight = TankInteriorLight.level();
         for (TankCosmeticMesh.Quad quad : baked.tinted()) {
-            BakedQuad color = TankCosmeticMesh.withColor(quad.quad(), TankCosmeticMesh.tintColor(quad, level, pos));
+            BakedQuad color = TankCosmeticMesh.withBakedColor(quad.quad(), TankCosmeticMesh.tintColor(quad, level, pos));
             coloured.add(interiorLight > 0 ? withLightEmission(color, interiorLight) : color);
         }
-        return modelData.derive().with(FishTankModelData.COSMETIC_TINTED_PROPERTY, coloured).build();
+        return modelData.derive().with(FishTankModelData.TINTED_COSMETICS_PROPERTY, coloured).build();
     }
 
     /**
