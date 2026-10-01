@@ -3,6 +3,7 @@ package grill24.fishtastic.mixin;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishtastic.client.renderer.FishtasticGuiOutlineRenderer;
+import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGuiGraphicsExtension;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
@@ -103,6 +104,20 @@ public abstract class GuiGraphicsMixin implements IGuiGraphicsExtension {
     @Override
     public void fishtastic$renderItem(ItemStack itemStack, int i, int j, int k, int l) {
         this.fishtastic$renderItem(this.minecraft.player, this.minecraft.level, itemStack, i, j, k, l);
+    }
+
+    /**
+     * PORT-ONLY: {@code itemStack}'s GUI effects, then {@code sprite} drawn in the item's place — the
+     * 1.20.1 replacement for 26.1.2's item-model swap (the fishing minigame's tall styles draw their
+     * own fish icon). Both draws are centred on the origin and one unit wide, so the caller's pose
+     * scale sizes them identically.
+     */
+    @Override
+    public void fishtastic$renderSprite(ItemStack itemStack, FishingMinigameAnimation.GuiTextureItem sprite, int i, int j) {
+        if (!itemStack.isEmpty() && FishtasticGuiOutlineRenderer.renderAround((GuiGraphics) (Object) this, itemStack, 0.0F, 0.0F, 1.0F, 0.0F)) {
+            return;
+        }
+        FishingMinigameAnimation.renderSprite(sprite, (GuiGraphics) (Object) this);
     }
 
     @Override
