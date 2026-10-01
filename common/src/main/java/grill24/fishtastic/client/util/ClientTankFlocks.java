@@ -81,6 +81,10 @@ public final class ClientTankFlocks {
      * Call once per client tick (both loaders).
      */
     public static void tickAll() {
+        // Client ticks keep running while the world is frozen (/tick freeze), which the level does
+        // not; the shoal has to freeze with it, and advance on /tick step like everything else.
+        // Frame-exact capture (cool-cam) depends on this: both passes of a frame must see one world.
+        if (Minecraft.getInstance().level instanceof ClientLevel frozenCheck && !frozenCheck.tickRateManager().runsNormally()) return;
         tickCounter++;
         FLOCKS.entrySet().removeIf(e -> tickCounter - e.getValue().lastExtractTick() > EVICT_AFTER_TICKS);
 
