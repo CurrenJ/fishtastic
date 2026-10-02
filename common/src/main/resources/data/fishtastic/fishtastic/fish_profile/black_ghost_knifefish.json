@@ -17,5 +17,6 @@
   "temperament": "fishtastic:ghost",
   "animation": {
     "mode": "horizontal_swim"
-  }
+  },
+  "swarm": { "shelter": "lurker" }
 }

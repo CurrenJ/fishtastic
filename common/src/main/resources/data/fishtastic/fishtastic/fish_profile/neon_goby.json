@@ -8,5 +8,6 @@
   "temperament": "fishtastic:docile",
   "time_weights": [
     { "time": "night", "multiplier": 1.5 }
-  ]
+  ],
+  "swarm": { "shelter": "visitor" }
 }

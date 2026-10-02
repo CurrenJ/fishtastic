@@ -16,5 +16,6 @@
   "temperament": "fishtastic:skittish",
   "weather_weights": [
     { "weather": "rain", "multiplier": 0.5 }
-  ]
+  ],
+  "swarm": { "shelter": "skittish" }
 }

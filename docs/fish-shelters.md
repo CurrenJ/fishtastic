@@ -110,9 +110,11 @@ per-species simulation tuning, so no new codec):
 | Value | Behaviour | Starting cast |
 |---|---|---|
 | *(absent)* | Never uses shelters. The default, so **no existing profile changes**. | everything else |
-| `visitor` | Occasional unhurried visits: in, linger, out. | clown loach, neon goby, yellowline goby, glass catfish |
-| `skittish` | Visits occasionally, and bolts for cover when the watcher approaches (§5.3). | neon tetra, discus, blind cave tetra |
-| `lurker` | Claims one shelter as home and rests in its mouth facing out; makes short sorties (§5.5). | ornate bichir, ophisternon candidum, black ghost knifefish, lizardfish |
+| `visitor` | Occasional unhurried visits: in, linger, out. | clown loach, neon goby, yellowline goby, rainfordia, blind cave tetra |
+| `skittish` | Visits occasionally, and bolts for cover when the watcher approaches (§5.3). | neon tetra, fire dartfish |
+| `lurker` | Claims one shelter as home and rests in its mouth facing out; makes short sorties (§5.5). | ornate bichir, ophisternon candidum, black ghost knifefish |
+
+**Shipped cast (Phase 5).** This differs from the first pass in four places. The discus is out: it is a tall disc, so the 0.4 height ratio in the mouth gate (§5.2) is wrong for it and it would clip through a 0.18 mouth. The lizardfish is out: at a mean of 0.47 blocks it fails the Hollow Log's mouth gate, and it's a sand-percher, not a cave fish. The glass catfish is out: it's a mid-water schooler, and ducking into a log works against how it looks. The blind cave tetra moved to `visitor`, because a blind fish shouldn't bolt from a watcher it can't see. Rainfordia (a reef goby that keeps to the rockwork) and the fire dartfish (which dives into its burrow when startled) were added. Every opted-in species uses the `horizontal_swim` pose, since shelters only take `FREE_SWIM` fish.
 
 **Considered and rejected: deriving this from `temperament`.** Temperament has suggestive names
 (`skittish`, `ambusher`, `ghost`), but it tunes the fishing minigame. Coupling the two would mean a
