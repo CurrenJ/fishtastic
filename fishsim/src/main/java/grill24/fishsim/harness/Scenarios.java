@@ -54,13 +54,24 @@ public final class Scenarios {
         return specs;
     }
 
-    /** A named cast: {@code mixed} ({@link #specs}), {@code visitors}, {@code loaches} or {@code skittish}. */
+    /**
+     * A bichir-sized lurker (0.30 blocks, a little shorter than the real one so it clears the Hollow
+     * Log's mouth) among {@code n − 1} visiting loaches — the Phase 4 cast.
+     */
+    public static FishSpec[] lurker(int n, long seed) {
+        FishSpec[] specs = loaches(n, seed);
+        specs[0] = new FishSpec(0.30f, Locomotion.FREE_SWIM, false, 2, ShelterUse.LURKER);
+        return specs;
+    }
+
+    /** A named cast: {@code mixed} ({@link #specs}), {@code visitors}, {@code loaches}, {@code skittish} or {@code lurker}. */
     public static FishSpec[] cast(String name, int n, long seed) {
         return switch (name) {
             case "mixed" -> specs(n, seed);
             case "visitors" -> visitors(n, seed);
             case "loaches" -> loaches(n, seed);
             case "skittish" -> skittish(n, seed);
+            case "lurker" -> lurker(n, seed);
             default -> throw new IllegalArgumentException("Unknown cast: " + name);
         };
     }

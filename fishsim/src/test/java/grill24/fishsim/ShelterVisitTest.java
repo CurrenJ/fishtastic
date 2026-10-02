@@ -44,7 +44,7 @@ class ShelterVisitTest {
     private static List<Config> matrix() {
         List<Config> list = new ArrayList<>();
         for (String domain : new String[]{"3x1x1+log", "L+log", "2x2slab+log", "4x1x2+log"}) {
-            for (String cast : new String[]{"loaches", "visitors"}) {
+            for (String cast : new String[]{"loaches", "visitors", "lurker"}) {
                 for (long seed : new long[]{12345L, -987654321L}) {
                     list.add(new Config(domain, cast, 8, seed));
                 }
@@ -107,7 +107,7 @@ class ShelterVisitTest {
                 }
                 if (st == FlockEngine.SHELTER_APPROACH) {
                     approachTicks[i]++;
-                    if (approachTicks[i] * 0.05f > FlockEngine.APPROACH_TIMEOUT_SECONDS + 0.05f) {
+                    if (approachTicks[i] * 0.05f > e.approachTimeoutSeconds(i) + 0.05f) {
                         longApproaches++;
                         note("fish " + i + " approaching for " + approachTicks[i] + " ticks");
                     }

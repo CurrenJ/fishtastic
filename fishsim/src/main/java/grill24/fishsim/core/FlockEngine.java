@@ -618,6 +618,39 @@ public final class FlockEngine {
     public static final int SHELTER_ENTER = 2;
     public static final int SHELTER_INSIDE = 3;
     public static final int SHELTER_EXIT = 4;
+    /**
+     * A lurker at home (docs/fish-shelters.md §5.5): body inside, head at the mouth plane, facing
+     * out, holding position. The most visible thing in the tank, so it counts as visible for the
+     * hidden budget.
+     */
+    public static final int SHELTER_RESTING = 5;
+
+    // ── Lurkers (§5.5) ───────────────────────────────────────────────────────
+    /** A lurker's interior gate: only this share of its length has to fit — its head stays out. */
+    static final float LURKER_LENGTH_SHARE = 0.6f;
+    /** The rest pose puts the fish's centre this share of its length inside the mouth plane. */
+    static final float REST_DEPTH_SHARE = 0.45f;
+    /** Before settling, a lurker goes this much deeper than its rest point, so it turns to face out. */
+    static final float REST_TURN_DEPTH = 0.10f;
+    /** Speed settling into the rest pose, as a share of patrol. */
+    static final float SETTLE_SPEED = 0.5f;
+    /** Within this of the rest point it is resting, blocks. */
+    static final float REST_ARRIVE = 0.03f;
+    /** How hard a resting lurker holds its point, per second. */
+    static final float REST_HOLD_GAIN = 1.2f;
+    /** Sway around the rest point: amplitude (blocks) and period (seconds). */
+    static final float REST_SWAY = 0.012f, REST_SWAY_SECONDS = 4f;
+    /** Seconds at home between sorties, and how long a sortie lasts. */
+    static final float SORTIE_EVERY_MIN_SECONDS = 30f, SORTIE_EVERY_MAX_SECONDS = 60f;
+    static final float SORTIE_SECONDS = 10f;
+    /** A lurker heading home gets longer than a visitor before it gives up, then tries again. */
+    public static final float HOME_APPROACH_TIMEOUT_SECONDS = 12f;
+    static final float HOME_RETRY_SECONDS = 2f;
+
+    /** The shelter each lurker has claimed as home, or −1 (never set for any other fish). */
+    private int[] shelterClaim = new int[0];
+    /** Per shelter: the fish that has claimed it, or −1. */
+    private int[] claimedBy = new int[0];
 
     /** Mean seconds between spontaneous visits; each fish's own mean is jittered ±35% off its seed. */
     static final float VISIT_MEAN_SECONDS = 40f;
@@ -1126,6 +1159,7 @@ public final class FlockEngine {
     private long[] cShelterRng = new long[0];
     private boolean[] cStartleArmed = new boolean[0], cStartled = new boolean[0];
     private float[] cShelterBlend = new float[0], cVisitUrge = new float[0];
+    private int[] cShelterClaim = new int[0];
 
     private void captureCarry(int[] carryFrom, int n) {
         carrying = carryFrom != null;
@@ -1160,6 +1194,7 @@ public final class FlockEngine {
             cShelterRng[i] = shelterRng[from];
             cStartleArmed[i] = startleArmed[from]; cStartled[i] = startled[from];
             cShelterBlend[i] = shelterBlend[from]; cVisitUrge[i] = visitUrge[from];
+            cShelterClaim[i] = shelterClaim[from];
         }
     }
 
@@ -1199,6 +1234,8 @@ public final class FlockEngine {
             shelterRng[i] = cShelterRng[i];
             startleArmed[i] = cStartleArmed[i]; startled[i] = cStartled[i];
             shelterBlend[i] = cShelterBlend[i]; visitUrge[i] = cVisitUrge[i];
+            // A claim only survives if the fish is still a lurker.
+            shelterClaim[i] = shelterUse[i] == ShelterUse.LURKER ? cShelterClaim[i] : -1;
 
             // A crawler's world can change under it: a cosmetic dropped into the cell it was
             // standing in, or a group re-shaped around it. Carrying it there would leave it
@@ -1240,6 +1277,7 @@ public final class FlockEngine {
         cShelterTimer = new float[n]; cShelterRng = new long[n];
         cStartleArmed = new boolean[n]; cStartled = new boolean[n];
         cShelterBlend = new float[n]; cVisitUrge = new float[n];
+        cShelterClaim = new int[n];
     }
 
     private void initFish(int i, FishSpec spec, float lateral, float y, float depth,
@@ -1257,6 +1295,7 @@ public final class FlockEngine {
         shelterBlend[i] = 0f;
         startleArmed[i] = false; // a fish that has never seen the watcher leave has nothing to react to
         startled[i] = false;
+        shelterClaim[i] = -1;
         species[i] = spec.species();
         hoverMirrored[i] = spec.mirrored();
         locomotion[i] = gate(spec.locomotion(), spec.length());
@@ -1446,6 +1485,18 @@ public final class FlockEngine {
         exitVelL = new float[n]; exitVelY = new float[n]; exitVelD = new float[n];
         startleArmed = new boolean[n];
         startled = new boolean[n];
+        shelterClaim = new int[n];
+        Arrays.fill(shelterClaim, -1);
+    }
+
+    /** The shelter lurker #{@code i} calls home, or −1. */
+    public int shelterClaim(int i) { return shelterClaim[i]; }
+
+    /** How long fish #{@code i}'s current approach may last before it gives up, seconds. */
+    public float approachTimeoutSeconds(int i) {
+        if (startled[i]) return STARTLE_APPROACH_TIMEOUT_SECONDS;
+        if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) return HOME_APPROACH_TIMEOUT_SECONDS;
+        return APPROACH_TIMEOUT_SECONDS;
     }
 
     /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md §5.3). */
@@ -1460,7 +1511,8 @@ public final class FlockEngine {
      */
     public int shelterUsing(int i) {
         int st = shelterState[i];
-        return st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT ? shelterIndex[i] : -1;
+        return st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT || st == SHELTER_RESTING
+                ? shelterIndex[i] : -1;
     }
 
     /** Fish #{@code i}'s visit state, one of the {@code SHELTER_*} constants. */
@@ -1546,13 +1598,21 @@ public final class FlockEngine {
             }
             int old = shelterIndex[i];
             int now = previous != null && old >= 0 && old < previous.size() ? shelters.indexOf(previous.get(old)) : -1;
-            if (now < 0 || (shelterState[i] != SHELTER_INSIDE && !shelterUsable[now])) {
+            boolean inside = shelterState[i] == SHELTER_INSIDE || shelterState[i] == SHELTER_RESTING;
+            if (now < 0 || (!inside && !shelterUsable[now])) {
                 shelterState[i] = SHELTER_ROAMING;
                 shelterIndex[i] = -1;
                 shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
             } else {
                 shelterIndex[i] = now;
             }
+        }
+        // A claim follows its shelter to its new index, or lapses with it.
+        for (int i = 0; i < count; i++) {
+            int old = shelterClaim[i];
+            if (old < 0) continue;
+            int now = previous != null && old < previous.size() ? shelters.indexOf(previous.get(old)) : -1;
+            shelterClaim[i] = now >= 0 && shelterUsable[now] ? now : -1;
         }
         if (!planar) return;
         for (int i = 0; i < count; i++) {
@@ -1595,13 +1655,157 @@ public final class FlockEngine {
         for (int i = 0; i < count; i++) {
             if (locomotion[i] == Locomotion.FREE_SWIM) swimmerCount++;
             int st = shelterState[i];
+            boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
             if (st == SHELTER_APPROACH || st == SHELTER_ENTER || st == SHELTER_INSIDE) {
                 pendingHidden++;
-                if (shelterIndex[i] >= 0) shelterReserved[shelterIndex[i]]++;
+                // A lurker's own home costs everyone else one place for good (claimedBy, below),
+                // so its comings and goings never take a second one.
+                if (shelterIndex[i] >= 0 && !home) shelterReserved[shelterIndex[i]]++;
             }
-            if (st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT) anyInShelter = true;
+            if (st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT || st == SHELTER_RESTING) {
+                anyInShelter = true;
+            }
         }
+        if (claimedBy.length != shelterReserved.length) claimedBy = new int[shelterReserved.length];
+        Arrays.fill(claimedBy, -1);
+        for (int i = 0; i < count; i++) {
+            if (shelterClaim[i] >= 0) claimedBy[shelterClaim[i]] = i;
+        }
+        claimHomes();
         hiddenBudget = Math.max(1, (int) Math.floor(HIDDEN_FRACTION * swimmerCount));
+    }
+
+    /**
+     * Gives every lurker without a home the nearest shelter that fits it, one lurker per shelter
+     * (§5.5). Claims are kept across rebuilds and list changes (they move with their shelter), so
+     * this only ever fills gaps: a lurker added later takes what is left, it never takes over.
+     * A lurker with nothing to claim behaves as a visitor.
+     */
+    private void claimHomes() {
+        for (int i = 0; i < count; i++) {
+            if (shelterUse[i] != ShelterUse.LURKER || shelterClaim[i] >= 0 || locomotion[i] != Locomotion.FREE_SWIM) continue;
+            int best = -1;
+            float bestD2 = Float.MAX_VALUE;
+            for (int s = 0; s < avoidHullsSource.size(); s++) {
+                if (claimedBy[s] >= 0 || !lurkerFits(i, s)) continue;
+                Shelter.OrientedBox hull = avoidHullsSource.get(s).hull();
+                float dl = hull.centerL() - posL[i], dy = hull.centerY() - posY[i], dd = hull.centerD() - posD[i];
+                float d2 = dl * dl + dy * dy + dd * dd;
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    best = s;
+                }
+            }
+            if (best < 0) continue;
+            shelterClaim[i] = best;
+            claimedBy[best] = i;
+        }
+    }
+
+    /** Whether lurker #{@code i} fits shelter {@code s}: its gates, and a mouth it can line up on. */
+    private boolean lurkerFits(int i, int s) {
+        Shelter shelter = avoidHullsSource.get(s);
+        float len = lengths[i];
+        if (!shelterUsable[s] || LURKER_LENGTH_SHARE * len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) return false;
+        return homeMouth(i, s) >= 0;
+    }
+
+    /** The mouth of shelter {@code s} nearest fish #{@code i} that it fits and can line up on, or −1. */
+    private int homeMouth(int i, int s) {
+        Shelter shelter = avoidHullsSource.get(s);
+        float len = lengths[i], stage = len + STAGING_CLEARANCE;
+        int best = -1;
+        float bestD2 = Float.MAX_VALUE;
+        for (int m = 0; m < shelter.mouths().size(); m++) {
+            if (!mouthUsable[s][m]) continue;
+            Shelter.Mouth mouth = shelter.mouths().get(m);
+            if (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize()) continue;
+            float sl = mouth.centerL() - mouth.normalL() * stage;
+            float sy = mouth.centerY() - mouth.normalY() * stage;
+            float sd = mouth.centerD() - mouth.normalD() * stage;
+            if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd)) continue;
+            float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
+            float d2 = dl * dl + dy * dy + dd * dd;
+            if (d2 < bestD2) {
+                bestD2 = d2;
+                best = m;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Whether mouth {@code m} of shelter {@code s} is the doorway of the lurker that claimed it —
+     * closed to every other fish ({@code i}), home or not. Sharing it had visitors swim in through
+     * a resting bichir: measured, it shoved the rest pose 0.05 off its point.
+     */
+    private boolean lurkersMouth(int s, int m, int i) {
+        int owner = claimedBy[s];
+        if (owner < 0 || owner == i) return false;
+        return homeMouthOf(owner, s) == m;
+    }
+
+    /** The mouth lurker {@code owner} uses: the one it is using now, else the one it would go home by. */
+    private int homeMouthOf(int owner, int s) {
+        return shelterIndex[owner] == s ? shelterMouth[owner] : homeMouth(owner, s);
+    }
+
+    /** Sends a lurker home, if the hidden budget has room for its trip in. No reach limit, no cooldown. */
+    private void tryReturnHome(int i) {
+        if (pendingHidden >= hiddenBudget) return;
+        int s = shelterClaim[i];
+        int m = homeMouth(i, s);
+        if (m < 0) return;
+        startled[i] = false;
+        shelterState[i] = SHELTER_APPROACH;
+        shelterIndex[i] = s;
+        shelterMouth[i] = m;
+        shelterTimer[i] = 0f;
+        pendingHidden++;
+    }
+
+    /**
+     * If the straight swim from {@code a} to {@code b} passes through a hull (as fish steer round
+     * it, margin included), the height that clears the highest such hull; otherwise −∞.
+     */
+    private float hullTopInTheWay(float aL, float aY, float aD, float bL, float bY, float bD) {
+        float clear = Float.NEGATIVE_INFINITY;
+        float[] qa = shelterSteerScratch, qb = hullGrad;
+        for (AvoidHull hull : avoidHulls) {
+            Shelter.OrientedBox box = hull.box();
+            box.toBox(aL, aY, aD, qa);
+            float a0 = qa[0], a1 = qa[1], a2 = qa[2];
+            box.toBox(bL, bY, bD, qb);
+            float tMin = 0f, tMax = 1f;
+            boolean hit = true;
+            for (int axis = 0; axis < 3 && hit; axis++) {
+                float from = axis == 0 ? a0 : axis == 1 ? a1 : a2;
+                float delta = qb[axis] - from;
+                float half = (axis == 0 ? box.halfL() : axis == 1 ? box.halfY() : box.halfD()) + HULL_MARGIN * 0.5f;
+                if (Math.abs(delta) < 1e-6f) {
+                    hit = Math.abs(from) <= half;
+                } else {
+                    float t0 = (-half - from) / delta, t1 = (half - from) / delta;
+                    tMin = Math.max(tMin, Math.min(t0, t1));
+                    tMax = Math.min(tMax, Math.max(t0, t1));
+                    hit = tMin <= tMax;
+                }
+            }
+            if (hit) clear = Math.max(clear, box.centerY() + box.halfY() + HULL_MARGIN);
+        }
+        return clear;
+    }
+
+    /** Whether fish #{@code i} is a lurker at, or settling out to, its rest point — and so faces out. */
+    private boolean facesOut(int i) {
+        int st = shelterState[i];
+        return st == SHELTER_RESTING
+                || (st == SHELTER_INSIDE && shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i] && shelterTimer[i] < 0f);
+    }
+
+    /** Fish #{@code i}'s rest point: on its mouth's axis, {@link #REST_DEPTH_SHARE} of its length in. */
+    private float restDepth(int i) {
+        return REST_DEPTH_SHARE * lengths[i];
     }
 
     /** The next number in fish #{@code i}'s own stream, uniform in [0, 1). */
@@ -1634,6 +1838,15 @@ public final class FlockEngine {
                 : Math.min(1f, shelterBlend[i] + fade);
         switch (shelterState[i]) {
             case SHELTER_ROAMING -> {
+                if (shelterClaim[i] >= 0) {
+                    // A lurker out on a sortie: home again when it is over, no cooldown, no clock.
+                    if (shelterTimer[i] > 0f) {
+                        shelterTimer[i] = Math.max(0f, shelterTimer[i] - dt);
+                    } else {
+                        tryReturnHome(i);
+                    }
+                    return;
+                }
                 // The startle is an event — the watcher arriving — and fires through the cooldown:
                 // a frightened fish does not wait to have been seen in the open long enough.
                 if (shelterUse[i] == ShelterUse.SKITTISH && startleArmed[i] && watcherWithin(i, STARTLE_RADIUS)) {
@@ -1662,18 +1875,24 @@ public final class FlockEngine {
                 if (inEntryCone(i)) {
                     shelterState[i] = SHELTER_ENTER;
                     shelterTimer[i] = 0f;
-                } else if (shelterTimer[i] >= (startled[i] ? STARTLE_APPROACH_TIMEOUT_SECONDS : APPROACH_TIMEOUT_SECONDS)) {
+                } else if (shelterTimer[i] >= approachTimeoutSeconds(i)) {
                     exitVelL[i] = velL[i];
                     exitVelY[i] = velY[i];
                     exitVelD[i] = velD[i];
+                    boolean home = shelterClaim[i] >= 0;
                     leaveToRoaming(i);
+                    if (home) shelterTimer[i] = HOME_RETRY_SECONDS;
                 }
             }
             case SHELTER_ENTER -> {
                 shelterTimer[i] += dt;
                 Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
                 shelterBlend[i] = 1f;
-                if (shelter.interior().contains(posL[i], posY[i], posD[i])) {
+                if (shelter.interior().contains(posL[i], posY[i], posD[i])
+                        && shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) {
+                    shelterState[i] = SHELTER_INSIDE;
+                    shelterTimer[i] = 0f; // ≥ 0: still going in to turn round
+                } else if (shelter.interior().contains(posL[i], posY[i], posD[i])) {
                     shelterState[i] = SHELTER_INSIDE;
                     float min = startled[i] ? STARTLE_DWELL_MIN_SECONDS : DWELL_MIN_SECONDS;
                     float max = startled[i] ? STARTLE_DWELL_MAX_SECONDS : DWELL_MAX_SECONDS;
@@ -1684,6 +1903,21 @@ public final class FlockEngine {
                 }
             }
             case SHELTER_INSIDE -> {
+                if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) {
+                    // Settling in: deep enough to have turned round, then out to the rest point.
+                    Shelter.Mouth mouth = chosenMouth(i);
+                    float along = (posL[i] - mouth.centerL()) * mouth.normalL()
+                            + (posY[i] - mouth.centerY()) * mouth.normalY()
+                            + (posD[i] - mouth.centerD()) * mouth.normalD();
+                    if (shelterTimer[i] >= 0f && along >= restDepth(i) + REST_TURN_DEPTH * 0.8f) {
+                        shelterTimer[i] = -1f; // turned: now heading back out to rest
+                    } else if (shelterTimer[i] < 0f && Math.abs(along - restDepth(i)) < REST_ARRIVE) {
+                        shelterState[i] = SHELTER_RESTING;
+                        shelterTimer[i] = SORTIE_EVERY_MIN_SECONDS
+                                + nextShelterUnit(i) * (SORTIE_EVERY_MAX_SECONDS - SORTIE_EVERY_MIN_SECONDS);
+                    }
+                    return;
+                }
                 shelterTimer[i] -= dt;
                 // A startled fish comes out only once the watcher has stopped coming closer — a
                 // player standing still is furniture — or, if the watcher keeps on coming (or the
@@ -1691,6 +1925,13 @@ public final class FlockEngine {
                 boolean mayLeave = shelterTimer[i] <= 0f
                         && (!startled[i] || shelterTimer[i] <= -STARTLE_HOLD_MAX_SECONDS || watcherSettled(i));
                 if (mayLeave) {
+                    shelterState[i] = SHELTER_EXIT;
+                    shelterTimer[i] = 0f;
+                }
+            }
+            case SHELTER_RESTING -> {
+                shelterTimer[i] -= dt;
+                if (shelterTimer[i] <= 0f) {
                     shelterState[i] = SHELTER_EXIT;
                     shelterTimer[i] = 0f;
                 }
@@ -1706,7 +1947,9 @@ public final class FlockEngine {
                     exitVelL[i] = -mouth.normalL() * speed;
                     exitVelY[i] = -mouth.normalY() * speed;
                     exitVelD[i] = -mouth.normalD() * speed;
+                    boolean sortie = shelterClaim[i] >= 0;
                     leaveToRoaming(i);
+                    if (sortie) shelterTimer[i] = SORTIE_SECONDS; // out for a cruise, then home
                 }
             }
             default -> { }
@@ -1788,10 +2031,11 @@ public final class FlockEngine {
         List<Shelter> shelters = avoidHullsSource;
         for (int s = 0; s < shelters.size(); s++) {
             Shelter shelter = shelters.get(s);
-            if (!shelterUsable[s] || shelterReserved[s] >= shelter.capacity()) continue;
+            int room = shelter.capacity() - (claimedBy[s] >= 0 && claimedBy[s] != i ? 1 : 0);
+            if (!shelterUsable[s] || shelterReserved[s] >= room) continue;
             if (len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
             for (int m = 0; m < shelter.mouths().size(); m++) {
-                if (!mouthUsable[s][m]) continue;
+                if (!mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
                 Shelter.Mouth mouth = shelter.mouths().get(m);
                 if (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize()) continue;
                 float sl = mouth.centerL() - mouth.normalL() * stage;
@@ -1849,6 +2093,12 @@ public final class FlockEngine {
                 out[0] = tl * seek * (1f - near) + (nL * axisSpeed - pL * CORRIDOR_GAIN) * near;
                 out[1] = ty * seek * (1f - near) + (nY * axisSpeed - pY * CORRIDOR_GAIN) * near;
                 out[2] = td * seek * (1f - near) + (nD * axisSpeed - pD * CORRIDOR_GAIN) * near;
+                // Not pathfinding, one step short of it: a hull square in the way is climbed over.
+                // Measured: a lurker behind its log's closed end in a one-deep row (where both
+                // flanks are closed gaps) sat against the back wall through every 12 s approach
+                // for ten minutes and never got home.
+                float climbTo = hullTopInTheWay(posL[i], posY[i], posD[i], posL[i] + tl, posY[i] + ty, posD[i] + td);
+                if (climbTo > posY[i]) out[1] = Math.max(out[1], dash);
                 return shelterBlend[i];
             }
             case SHELTER_ENTER -> {
@@ -1860,12 +2110,40 @@ public final class FlockEngine {
                 return 1f;
             }
             case SHELTER_INSIDE -> {
+                if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) {
+                    // Settling: on the axis, in past the rest point to turn round, then back out
+                    // to it — the way back out is what turns the fish to face the mouth.
+                    float target = shelterTimer[i] >= 0f ? restDepth(i) + REST_TURN_DEPTH : restDepth(i);
+                    float speed = patrol * SETTLE_SPEED;
+                    // Full settling speed until the last REST_ARRIVE, so it arrives rather than
+                    // creeping up on the point exponentially (measured: 24 s to settle with a
+                    // proportional ramp).
+                    float go = SimMath.clamp((target - along) / REST_ARRIVE, -1f, 1f) * speed;
+                    out[0] = nL * go - pL * CORRIDOR_GAIN;
+                    out[1] = nY * go - pY * CORRIDOR_GAIN;
+                    out[2] = nD * go - pD * CORRIDOR_GAIN;
+                    interiorConfinement(shelter.interior(), i, avoid, nL, nY, nD);
+                    return 1f;
+                }
                 float yr = (float) Math.toRadians(yawDeg[i]);
                 float speed = patrol * INSIDE_SPEED;
                 out[0] = (float) Math.cos(yr) * speed;
                 out[1] = 0f;
                 out[2] = -(float) Math.sin(yr) * speed;
                 interiorConfinement(shelter.interior(), i, avoid, 0f, 0f, 0f);
+                return 1f;
+            }
+            case SHELTER_RESTING -> {
+                // Holding the rest point on the mouth's axis with a slow sway along it. Slow enough
+                // that the sprite keeps the heading it settled with, facing out.
+                float phase = (float) (2.0 * Math.PI * (simTick * p.dt() / REST_SWAY_SECONDS
+                        + (unitFromHash(seeds[i], 0x2E57L) + 1f) * 0.5f));
+                float target = restDepth(i) + REST_SWAY * (float) Math.sin(phase);
+                float hold = (target - along) * REST_HOLD_GAIN;
+                out[0] = nL * hold - pL * REST_HOLD_GAIN;
+                out[1] = nY * hold - pY * REST_HOLD_GAIN;
+                out[2] = nD * hold - pD * REST_HOLD_GAIN;
+                interiorConfinement(shelter.interior(), i, avoid, nL, nY, nD);
                 return 1f;
             }
             case SHELTER_EXIT -> {
@@ -2421,7 +2699,16 @@ public final class FlockEngine {
 
         // Sprite yaw chases the travel direction with a turn-rate cap; bank leans into the turn.
         float hsp2 = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
-        if (hsp2 > PLANAR_YAW_MIN_SPEED) {
+        if (shelterSim && !glide && facesOut(i)) {
+            // A lurker settling into its mouth, and resting there, faces out (§5.5) — whatever its
+            // creeping velocity says, which at a rest pose's speeds says nothing at all.
+            Shelter.Mouth mouth = chosenMouth(i);
+            float target = (float) Math.toDegrees(Math.atan2(mouth.normalD(), -mouth.normalL()));
+            float turnRate = (p.turnRateDegPerTick() > 0f ? p.turnRateDegPerTick() : PLANAR_TURN_RATE)
+                    * turnScale[i];
+            yawDeg[i] = wrapDeg(yawDeg[i] + SimMath.clamp(wrapDeg(target - yawDeg[i]), -turnRate, turnRate));
+            bank[i] *= 0.9f;
+        } else if (hsp2 > PLANAR_YAW_MIN_SPEED) {
             float target = (float) Math.toDegrees(Math.atan2(-velD[i], velL[i]));
             float diff = wrapDeg(target - yawDeg[i]);
             // The same rate that bounds the trajectory above, so sprite and travel agree by
