@@ -43,7 +43,7 @@ public final class HeadlessRunner {
         Path outDir = Path.of("build", "sim-export");
         boolean heatmap = true;
         String cast = "mixed";
-        boolean pacingWatcher = false;
+        String watcher = "none";
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -55,8 +55,9 @@ public final class HeadlessRunner {
                 case "--out" -> outDir = Path.of(args[++i]);
                 case "--no-heatmap" -> heatmap = false;
                 case "--cast" -> cast = args[++i];
-                // A player walking up to the glass at +lateral and away again every 30 s.
-                case "--watcher" -> pacingWatcher = args[++i].equals("pace");
+                // pace: a player walking up to the glass at +lateral and away again every 30 s.
+                // hover: one who stays by the tank, stepping between 3.5 and 1.1 blocks every 10 s.
+                case "--watcher" -> watcher = args[++i];
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
         }
@@ -87,19 +88,31 @@ public final class HeadlessRunner {
         // The first fish to make a whole shelter visit, filmed from the start of its approach to
         // the end of its exit (docs/fish-shelters.md §10) — a sheet to read, where the GIF is to
         // watch. Empty when the domain has no shelters or nobody visits.
-        VisitFilm visit = new VisitFilm(engine.count(), pacingWatcher);
+        boolean watched = !watcher.equals("none");
+        VisitFilm visit = new VisitFilm(engine.count(), watched);
+        // The first lunge that sends the shoal every way at once: some dash for cover, the rest
+        // flinch (docs/fish-shelters.md §5.3.2).
+        StartleFilm startle = new StartleFilm(engine.count());
+        float watcherAt = 7.5f;
 
         File gifFile = outDir.resolve(tag + ".gif").toFile();
         try (FileImageOutputStream gifOut = new FileImageOutputStream(gifFile)) {
             GifSequenceWriter gif = null;
             for (int t = 0; t < ticks; t++) {
-                if (pacingWatcher) {
-                    boolean close = (t / 600) % 2 == 1;
-                    engine.setWatcher(true, domain(engine) + (close ? 1.1f : 7.5f), 0f, 0f);
+                if (watched) {
+                    // Walks, at a player's 4.3 blocks/s, rather than teleporting: the startle
+                    // reads the watcher's approach over the last second.
+                    float target = watcher.equals("hover")
+                            ? ((t / 200) % 2 == 1 ? 1.1f : 3.5f)
+                            : ((t / 600) % 2 == 1 ? 1.1f : 7.5f);
+                    float step = 4.3f * tunables.dt();
+                    watcherAt += Math.max(-step, Math.min(step, target - watcherAt));
+                    engine.setWatcher(true, domain(engine) + watcherAt, 0f, 0f);
                 }
                 engine.step();
                 metrics.sample();
                 visit.observe(engine, renderer, tunables, t);
+                if (watched) startle.observe(engine, renderer, tunables, t);
                 for (int i = 0; i < engine.count(); i++) {
                     trailL[i][t] = engine.posL()[i];
                     trailY[i][t] = engine.posY()[i];
@@ -125,6 +138,10 @@ public final class HeadlessRunner {
         if (visit.done()) {
             writePng(visit.sheet(), outDir.resolve(tag + "-visit.png"));
             System.out.println("Visit sheet: fish " + visit.fish + ", " + visit.frames.size() + " frames");
+        }
+        if (startle.done()) {
+            writePng(startle.sheet(), outDir.resolve(tag + "-startle.png"));
+            System.out.println("Startle sheet: from tick " + startle.start + ", " + startle.frames.size() + " frames");
         }
         Files.writeString(outDir.resolve(tag + "-metrics.csv"),
                 Metrics.csvHeader() + "\n" + metrics.csvRow() + "\n");
@@ -184,7 +201,7 @@ public final class HeadlessRunner {
      * times out is discarded and the next one filmed instead.
      */
     private static final class VisitFilm {
-        static final int EVERY = 10, COLUMNS = 6, MAX_FRAMES = 60;
+        static final int EVERY = 10, DASH_EVERY = 3, COLUMNS = 6, MAX_FRAMES = 60;
         final int[] prev;
         final java.util.List<BufferedImage> frames = new java.util.ArrayList<>();
         final java.util.List<String> labels = new java.util.ArrayList<>();
@@ -225,10 +242,25 @@ public final class HeadlessRunner {
                 }
                 return;
             }
-            if (tick % EVERY == 0 && frames.size() < MAX_FRAMES) {
-                frames.add(renderer.render(engine, tunables, FrameRenderer.View.SIDE));
+            // A dash lasts a few seconds, so it is filmed three times as densely as a visit.
+            if (tick % (engine.dashing(fish) ? DASH_EVERY : EVERY) == 0 && frames.size() < MAX_FRAMES) {
+                BufferedImage frame = renderer.render(engine, tunables, FrameRenderer.View.SIDE);
+                // Ring the filmed fish: in a crowded tank the label alone doesn't say which it is.
+                Graphics2D g = frame.createGraphics();
+                try {
+                    float x = renderer.mapX(engine.domain(), engine.posL()[fish]);
+                    float y = renderer.mapY(engine.domain(), FrameRenderer.View.SIDE, engine.posY()[fish], engine.posD()[fish]);
+                    g.setColor(new Color(255, 80, 80));
+                    g.setStroke(new java.awt.BasicStroke(2f));
+                    g.drawOval(Math.round(x) - 14, Math.round(y) - 14, 28, 28);
+                } finally {
+                    g.dispose();
+                }
+                frames.add(frame);
+                float v = (float) Math.sqrt(engine.velL()[fish] * engine.velL()[fish]
+                        + engine.velY()[fish] * engine.velY()[fish] + engine.velD()[fish] * engine.velD()[fish]);
                 labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit", "rest"}[st]
-                        + (engine.startled(fish) ? " (startled)" : ""));
+                        + (engine.startled(fish) ? " (startled)" : "") + String.format(" v=%.2f", v));
             }
         }
 
@@ -243,6 +275,78 @@ public final class HeadlessRunner {
                     g.drawImage(frames.get(k), x, y, null);
                     g.setColor(new Color(255, 230, 120));
                     g.drawString("fish " + fish + " · " + labels.get(k), x + 6, y + h - 6);
+                }
+            } finally {
+                g.dispose();
+            }
+            return out;
+        }
+    }
+
+    /**
+     * The whole tank from the first tick at least {@link #MIN_FLINCHERS} fish start flinching
+     * together: dashing fish ringed cyan, flinching ones orange, every {@link #EVERY} ticks.
+     */
+    private static final class StartleFilm {
+        static final int EVERY = 2, FRAMES = 42, COLUMNS = 6, MIN_FLINCHERS = 3;
+        final boolean[] wasFlinching;
+        final java.util.List<BufferedImage> frames = new java.util.ArrayList<>();
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        int start = -1;
+
+        StartleFilm(int n) {
+            wasFlinching = new boolean[n];
+        }
+
+        boolean done() {
+            return frames.size() >= FRAMES;
+        }
+
+        void observe(FlockEngine engine, FrameRenderer renderer, Tunables tunables, int tick) {
+            if (done()) return;
+            if (start < 0) {
+                int started = 0;
+                for (int i = 0; i < engine.count(); i++) {
+                    if (engine.flinching(i) && !wasFlinching[i]) started++;
+                    wasFlinching[i] = engine.flinching(i);
+                }
+                if (started < MIN_FLINCHERS) return;
+                start = tick;
+            }
+            if ((tick - start) % EVERY != 0) return;
+            BufferedImage frame = renderer.render(engine, tunables, FrameRenderer.View.SIDE);
+            Graphics2D g = frame.createGraphics();
+            int dashing = 0, flinching = 0;
+            try {
+                g.setStroke(new java.awt.BasicStroke(2f));
+                for (int i = 0; i < engine.count(); i++) {
+                    boolean d = engine.dashing(i), f = engine.flinching(i);
+                    if (!d && !f) continue;
+                    if (d) dashing++;
+                    if (f) flinching++;
+                    g.setColor(d ? new Color(80, 220, 255) : new Color(255, 150, 40));
+                    float x = renderer.mapX(engine.domain(), engine.posL()[i]);
+                    float y = renderer.mapY(engine.domain(), FrameRenderer.View.SIDE, engine.posY()[i], engine.posD()[i]);
+                    g.drawOval(Math.round(x) - 12, Math.round(y) - 12, 24, 24);
+                }
+            } finally {
+                g.dispose();
+            }
+            frames.add(frame);
+            labels.add(String.format("t+%.1fs  dashing %d  flinching %d", (tick - start) * tunables.dt(), dashing, flinching));
+        }
+
+        BufferedImage sheet() {
+            int w = frames.get(0).getWidth(), h = frames.get(0).getHeight();
+            int rows = (frames.size() + COLUMNS - 1) / COLUMNS;
+            BufferedImage out = new BufferedImage(w * COLUMNS, h * rows, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = out.createGraphics();
+            try {
+                for (int k = 0; k < frames.size(); k++) {
+                    int x = (k % COLUMNS) * w, y = (k / COLUMNS) * h;
+                    g.drawImage(frames.get(k), x, y, null);
+                    g.setColor(new Color(255, 230, 120));
+                    g.drawString(labels.get(k), x + 6, y + h - 6);
                 }
             } finally {
                 g.dispose();
