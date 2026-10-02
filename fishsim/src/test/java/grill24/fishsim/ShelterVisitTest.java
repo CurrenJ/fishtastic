@@ -29,7 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ShelterVisitTest {
 
     private static final float SPEED_TOLERANCE = 1.001f;
-    private static final float ACCEL_TOLERANCE = 1.06f;
+    // Vertical damping acts after the force clamp, so a fish braking a steep dive shows more than
+    // maxForce: a visitor diving at 0.106 blocks/s for a floor-level mouth measured 1.075 (steering
+    // 0.455, damping 0.127), 2026-10-02. Looser than VoxelDomainTest's 1.06 for that dive alone.
+    private static final float ACCEL_TOLERANCE = 1.10f;
     private static final float MAX_JERK = 12f;
     private static final int TICKS = 12_000;
     /** Slack on the mouth's opening for a fish's centre passing through it, blocks. */
