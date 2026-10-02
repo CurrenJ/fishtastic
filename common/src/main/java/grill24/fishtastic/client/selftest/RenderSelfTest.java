@@ -273,12 +273,13 @@ public final class RenderSelfTest {
         mc.getTutorial().stop();
         mc.getToastManager().clear();
         server(mc, s -> {
-            run(s, "gamerule sendCommandFeedback false");
+            run(s, "gamerule send_command_feedback false");
             // The quiet-world rules LevelSettings carried on 1.21.1, applied now that the world
-            // exists — still long before any scene runs.
-            run(s, "gamerule doDaylightCycle false");
-            run(s, "gamerule doMobSpawning false");
-            run(s, "gamerule doWeatherCycle false");
+            // exists — still long before any scene runs. 26.1 renamed them to snake_case; the old
+            // camelCase names fail silently, which let the clock run (mcpsession builds went dark).
+            run(s, "gamerule advance_time false");
+            run(s, "gamerule spawn_mobs false");
+            run(s, "gamerule advance_weather false");
             run(s, "time set 6000");
         });
         check("shaders.loaded", FishtasticRenderPipelines.WORLD_OUTLINE != null
