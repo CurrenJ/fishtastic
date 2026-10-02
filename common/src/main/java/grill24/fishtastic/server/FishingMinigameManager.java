@@ -25,6 +25,7 @@ import grill24.fishtastic.item.PileOfFishItem;
 import grill24.fishtastic.item.StormCharmItem;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
+import grill24.fishtastic.util.FishingBarContext;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.IFishingHookExtension;
@@ -42,6 +43,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -51,7 +53,9 @@ import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -301,13 +305,25 @@ public class FishingMinigameManager {
         Set<Identifier> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
 
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved));
+                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved,
+                resolveBarContext(level, sessionPos, sessionBiome)));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
                 sessionId, player.getName().getString(), targets.size());
 
         return sessionId;
+    }
+
+    /**
+     * Cosmetic bar/bobber flavour for a session, sampled where the bobber is actually sitting.
+     * Lava beats the biome egg — a lava pool in the End draws lava art, matching the lava particles
+     * {@code FishingHookMixin} already emits from the same fluid check.
+     */
+    private static FishingBarContext resolveBarContext(Level level, BlockPos pos, Holder<Biome> biome) {
+        if (level.getFluidState(pos).is(FluidTags.LAVA)) return FishingBarContext.LAVA;
+        if (level.dimension() == Level.END || biome.is(Biomes.MUSHROOM_FIELDS)) return FishingBarContext.CLASSIC;
+        return FishingBarContext.DEFAULT;
     }
 
     /** Starts a simplified tutorial session: one slow-moving Bluegill, no difficulty. */
@@ -349,7 +365,8 @@ public class FishingMinigameManager {
         // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
         // the undiscovered set is deliberately empty regardless of the player's catch history.
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of(), baitWillBeSaved));
+                sessionId, List.of(tutorialTarget), true, List.of(), tutorialZones, Set.of(), baitWillBeSaved,
+                resolveBarContext(level, tutorialPos, biome)));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started TUTORIAL minigame session {} for player {}", sessionId, player.getName().getString());

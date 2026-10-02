@@ -3,6 +3,7 @@ package grill24.fishtastic.network;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
+import grill24.fishtastic.util.FishingBarContext;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -32,6 +33,10 @@ import java.util.Set;
  *                         charm actually saves it. The server applies this same decision in
  *                         {@code FishingMinigameManager#handleMinigameComplete} so client and
  *                         server never disagree about whether the bait was consumed.
+ * @param barContext which bar/bobber look this session should draw — resolved server-side from the
+ *                   hook position (see {@code FishingMinigameManager#resolveBarContext}) so the art
+ *                   matches the lava particles and biome the player is actually seeing. The client
+ *                   only maps it to a style; it never re-derives the context.
  */
 public record StartFishingMinigamePacket(
         int sessionId,
@@ -40,7 +45,8 @@ public record StartFishingMinigamePacket(
         List<ItemStack> topWeightedFishPreviews,
         Set<FishProfile.Zone> zones,
         Set<Identifier> undiscoveredSpecies,
-        boolean baitWillBeSaved
+        boolean baitWillBeSaved,
+        FishingBarContext barContext
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<StartFishingMinigamePacket> TYPE =
@@ -64,6 +70,11 @@ public record StartFishingMinigamePacket(
             StartFishingMinigamePacket::undiscoveredSpecies,
             ByteBufCodecs.BOOL,
             StartFishingMinigamePacket::baitWillBeSaved,
+            ByteBufCodecs.INT.map(
+                    i -> FishingBarContext.values()[i],
+                    Enum::ordinal
+            ),
+            StartFishingMinigamePacket::barContext,
             StartFishingMinigamePacket::new
     );
 

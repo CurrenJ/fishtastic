@@ -15,8 +15,12 @@ import java.util.Map;
  * dropped in by declaring a new style here — sizing is expressed in texture pixels and the
  * renderer scales every style to the same on-screen height.
  *
- * <p>To try a different look, use the client command {@code /fishingbar <style>}. To pick per game context later, make
- * {@link #select} consult that context instead of returning {@link #active()}.
+ * <p>{@link #select} maps the server-resolved {@link FishingBarContext} to a style: {@link #TALL}
+ * is the ordinary look, {@link #LAVA} takes over while the bobber sits in lava, and {@link #CLASSIC}
+ * is a legacy easter egg that appears in the End and mushroom island biomes.
+ *
+ * <p>To force a look regardless of context, use the dev command {@code /fishingbar <style>} (and
+ * {@code /fishingbar auto} to release it).
  */
 public final class FishingBarStyles {
     /** A named bar/bobber look. {@code small} is used when the equipped bait shrinks the bobber. */
@@ -32,7 +36,7 @@ public final class FishingBarStyles {
 
     private static final Map<String, Style> STYLES = new LinkedHashMap<>();
 
-    /** The original 32px art (textures/item). */
+    /** The original 32px art (textures/item) — legacy look, now only {@link FishingBarContext#CLASSIC}. */
     public static final Style CLASSIC = register(new Style("classic",
             FishingMinigameAnimation.LAYOUT, FishingMinigameAnimation.LAYOUT_SMALL));
 
@@ -46,33 +50,47 @@ public final class FishingBarStyles {
     /** Same geometry as {@link #TALL} with the lava bar art (fishing_bar_3). */
     public static final Style LAVA = register(tall("lava", "fishing_bar_3.png", "fishing_bobber_2.png"));
 
-    private static volatile Style active = CLASSIC;
+    /** Dev-command override, or null when the {@link FishingBarContext} decides. */
+    private static volatile Style override = null;
 
     private FishingBarStyles() {}
 
-    /** Style for a new minigame session — the hook for future per-context selection. */
-    public static Style select() {
-        return active;
+    /** Style for a new minigame session, resolved from the server-provided {@code context}. */
+    public static Style select(FishingBarContext context) {
+        Style forced = override;
+        if (forced != null) return forced;
+        return switch (context) {
+            case LAVA -> LAVA;
+            case CLASSIC -> CLASSIC;
+            case DEFAULT -> TALL;
+        };
     }
 
-    public static Style active() {
-        return active;
+    /** The style the dev command is forcing on new sessions, or null if context-driven. */
+    public static Style override() {
+        return override;
     }
 
-    /** Switches the style used by new sessions; false if {@code id} names no registered style. */
-    public static boolean setActive(String id) {
+    /** Forces {@code id} on new sessions; false if {@code id} names no registered style. */
+    public static boolean setOverride(String id) {
         Style style = STYLES.get(id);
         if (style == null) return false;
-        active = style;
+        override = style;
         return true;
+    }
+
+    /** Releases the dev override so new sessions follow {@link FishingBarContext} again. */
+    public static void clearOverride() {
+        override = null;
     }
 
     public static java.util.Collection<String> ids() {
         return STYLES.keySet();
     }
 
+    /** Lookup by id, falling back to the default look ({@link #TALL}) for unknown ids. */
     public static Style byId(String id) {
-        return STYLES.getOrDefault(id, CLASSIC);
+        return STYLES.getOrDefault(id, TALL);
     }
 
     private static Style register(Style style) {
