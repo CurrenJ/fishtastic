@@ -11,6 +11,7 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.client.util.TankFloors;
+import grill24.fishtastic.client.util.TankObstacles;
 import grill24.fishtastic.client.util.TankShelters;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
@@ -308,7 +309,7 @@ public final class TankFlockAdapter {
         System.arraycopy(newAnims, 0, anims, 0, n);
         slots = newSlots;
 
-        if (wantsShelters(be, specs, level)) {
+        if (wantsShelters(be, specs, level) || wantsObstacles(be, specs, level)) {
             rebuildPromoted(be, specs, carryFrom, blockPosHash, swarm, level);
             return;
         }
@@ -333,6 +334,23 @@ public final class TankFlockAdapter {
             }
         }
         return anyUser && TankShelters.hasShelter(be, level);
+    }
+
+    /**
+     * Whether this lone tank runs the planar engine so its swimmers steer round its cosmetics
+     * (docs/fish-shelters.md §12.8, open question 6): it holds a structure with a solid part
+     * <i>and</i> a fish that swims. The binary model cannot learn obstacles, and a fish swimming
+     * through a castle wall reads as a bug wherever players keep it.
+     */
+    private static boolean wantsObstacles(FishTankBlockEntity be, FishSpec[] fish, Level level) {
+        boolean anySwimmer = false;
+        for (FishSpec spec : fish) {
+            if (spec.locomotion() == Locomotion.FREE_SWIM || spec.locomotion() == Locomotion.GLIDE) {
+                anySwimmer = true;
+                break;
+            }
+        }
+        return anySwimmer && TankObstacles.hasSolid(be, level);
     }
 
     /**
@@ -362,6 +380,7 @@ public final class TankFlockAdapter {
         VoxelDomain domain = new VoxelDomain(new boolean[][][]{{{true}}}, VoxelDomain.DEFAULT_INSET,
                 TankFloors.GROUP_SURFACE_OFFSET, TankFloors.blockedCells(be));
         domain.rebuildShelters(TankShelters.single(be, level, yaw));
+        domain.rebuildObstacles(TankObstacles.single(be, level, yaw));
         engine.rebuildPreserving(specs, carryFrom, blockPosHash, yaw, swarm.rotationJitter(), domain);
     }
 

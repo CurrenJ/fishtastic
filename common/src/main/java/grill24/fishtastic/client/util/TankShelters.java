@@ -157,12 +157,19 @@ public final class TankShelters {
     private static Shelter.OrientedBox box(ShelterGeometry.Cell min, ShelterGeometry.Cell max, float scale,
                                            float anchorX, float anchorZ, Rotation rotation) {
         // Build-unit extents: a cell spans ±0.5 about its centre horizontally, [by, by + 1] vertically.
-        float[] a = CosmeticStructures.rotateOffset(rotation, min.x() - 0.5f, min.z() - 0.5f);
-        float[] b = CosmeticStructures.rotateOffset(rotation, max.x() + 0.5f, max.z() + 0.5f);
+        return box(min.x() - 0.5f, min.y(), min.z() - 0.5f, max.x() + 0.5f, max.y() + 1, max.z() + 0.5f,
+                scale, anchorX, anchorZ, rotation);
+    }
+
+    /** The block-frame box covering build-unit bounds {@code min..max}, turned with the structure. */
+    static Shelter.OrientedBox box(float minX, float minY, float minZ, float maxX, float maxY, float maxZ,
+                                   float scale, float anchorX, float anchorZ, Rotation rotation) {
+        float[] a = CosmeticStructures.rotateOffset(rotation, minX, minZ);
+        float[] b = CosmeticStructures.rotateOffset(rotation, maxX, maxZ);
         return Shelter.OrientedBox.ofBounds(
-                anchorX + Math.min(a[0], b[0]) * scale, CosmeticGridCell.FLOOR_Y + min.y() * scale,
+                anchorX + Math.min(a[0], b[0]) * scale, CosmeticGridCell.FLOOR_Y + minY * scale,
                 anchorZ + Math.min(a[1], b[1]) * scale,
-                anchorX + Math.max(a[0], b[0]) * scale, CosmeticGridCell.FLOOR_Y + (max.y() + 1) * scale,
+                anchorX + Math.max(a[0], b[0]) * scale, CosmeticGridCell.FLOOR_Y + maxY * scale,
                 anchorZ + Math.max(a[1], b[1]) * scale);
     }
 
@@ -187,7 +194,7 @@ public final class TankShelters {
                 mouths, s.capacity(), s.interiorRun());
     }
 
-    private static Shelter.OrientedBox toEngine(Shelter.OrientedBox b, float ox, float oy, float oz,
+    static Shelter.OrientedBox toEngine(Shelter.OrientedBox b, float ox, float oy, float oz,
                                                 float cosR, float sinR) {
         float x = b.centerL() - ox, z = b.centerD() - oz;
         return new Shelter.OrientedBox(

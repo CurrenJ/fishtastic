@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.fishtank.CosmeticObstacles;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.CosmeticPlacementPreview;
 import grill24.fishtastic.env.DevEnvironmentCheck;
@@ -246,6 +247,7 @@ public final class FishtasticNeoForgeClient {
     public static void onTagsUpdated(TagsUpdatedEvent event) {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
             ItemEffectManager.clearCache();
+            CosmeticObstacles.clearCache();
         }
     }
 

@@ -37,4 +37,10 @@ dependencies {
 // Use JUnit Platform for unit tests
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    // ObstacleExport writes the obstacle files the fishsim harness reads (--obstacles), only when
+    // asked: ./gradlew :common:test --tests '*ObstacleExport*' -PexportObstacles=DIR
+    if (project.hasProperty('exportObstacles')) {
+        systemProperty 'exportObstacles', rootProject.file(project.property('exportObstacles').toString()).absolutePath
+        outputs.upToDateWhen { false }
+    }
 }

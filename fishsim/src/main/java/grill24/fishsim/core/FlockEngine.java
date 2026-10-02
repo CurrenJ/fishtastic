@@ -975,6 +975,17 @@ public final class FlockEngine {
         configureGrid();
     }
 
+    /**
+     * Verification hook: puts every obstacle in one bin, so each fish checks them all. The bins are
+     * meant to be a pure optimisation — a box outside a fish's bin is out of its reach and adds
+     * nothing — and {@code ObstacleBinningEquivalenceTest} holds them to it bit for bit.
+     * Production code must never call this.
+     */
+    public void setObstacleBinningEnabled(boolean enabled) {
+        this.obstacleBinning = enabled;
+        this.obstacleSource = null; // re-bin on the next step
+    }
+
     public Tunables tunables() { return t; }
 
     /**
@@ -1701,7 +1712,7 @@ public final class FlockEngine {
         avoidHullsDomain = domain;
         avoidHullsGap = t.wallMargin();
         avoidHulls = new AvoidHull[shelters.size()];
-        for (int s = 0; s < avoidHulls.length; s++) avoidHulls[s] = closeGaps(shelters.get(s).hull());
+        for (int s = 0; s < avoidHulls.length; s++) avoidHulls[s] = closeGaps(shelters.get(s).hull(), avoidHullsGap);
 
         shelterUsable = new boolean[shelters.size()];
         mouthUsable = new boolean[shelters.size()][];
@@ -1865,7 +1876,7 @@ public final class FlockEngine {
             float sl = mouth.centerL() - mouth.normalL() * stage;
             float sy = mouth.centerY() - mouth.normalY() * stage;
             float sd = mouth.centerD() - mouth.normalD() * stage;
-            if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd)) continue;
+            if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
             float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
             float d2 = dl * dl + dy * dy + dd * dd;
             if (d2 < bestD2) {
@@ -1894,6 +1905,7 @@ public final class FlockEngine {
             if (m == shelterMouth[i] || !mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
             Shelter.Mouth out = mouths.get(m);
             if (MOUTH_HEIGHT_RATIO * lengths[i] > 2f * out.halfSize()) continue;
+            if (corridorBlocked(out, lengths[i] + STAGING_CLEARANCE)) continue;
             float cos = in.normalL() * out.normalL() + in.normalY() * out.normalY() + in.normalD() * out.normalD();
             if (cos < bestCos) {
                 bestCos = cos;
@@ -1943,34 +1955,66 @@ public final class FlockEngine {
      * swim starts inside the margin of isn't ahead: it is beside the fish, which the hull's own
      * avoidance handles. Counting it made the answer flicker for a fish level with a hull's
      * corner, and a dash's climb with it (jerk 14.3 against 12).
+     *
+     * <p>Hulls only. An approach that climbed obstacles as well was sent for the top of whatever
+     * decoration lay on the line — a sprig on a log's back, the lantern on a gazebo — and near
+     * the lid that climb fought the ceiling's push (jerk 14.4). A route blocked by an obstacle is
+     * left to the soft avoidance and the approach's timeout; see {@link #pathBlocked} for the
+     * question "is anything at all in the way".
      */
     private float hullTopInTheWay(float aL, float aY, float aD, float bL, float bY, float bD) {
         float clear = Float.NEGATIVE_INFINITY;
-        float[] qa = shelterSteerScratch, qb = hullGrad;
         for (AvoidHull hull : avoidHulls) {
             Shelter.OrientedBox box = hull.box();
-            box.toBox(aL, aY, aD, qa);
-            float a0 = qa[0], a1 = qa[1], a2 = qa[2];
-            box.toBox(bL, bY, bD, qb);
-            float tMin = 0f, tMax = 1f;
-            boolean hit = true;
-            for (int axis = 0; axis < 3 && hit; axis++) {
-                float from = axis == 0 ? a0 : axis == 1 ? a1 : a2;
-                float delta = qb[axis] - from;
-                float half = (axis == 0 ? box.halfL() : axis == 1 ? box.halfY() : box.halfD()) + HULL_MARGIN * 0.5f;
-                if (Math.abs(delta) < 1e-6f) {
-                    hit = Math.abs(from) <= half;
-                } else {
-                    float t0 = (-half - from) / delta, t1 = (half - from) / delta;
-                    tMin = Math.max(tMin, Math.min(t0, t1));
-                    tMax = Math.min(tMax, Math.max(t0, t1));
-                    hit = tMin <= tMax;
-                }
+            if (segmentEntry(box, HULL_MARGIN * 0.5f, aL, aY, aD, bL, bY, bD) > 0f) {
+                clear = Math.max(clear, box.centerY() + box.halfY() + HULL_MARGIN);
             }
-            if (hit && tMin > 0f) clear = Math.max(clear, box.centerY() + box.halfY() + HULL_MARGIN);
         }
         return clear;
     }
+
+    /**
+     * Whether the straight swim from {@code a} to {@code b} runs into a hull or an obstacle ahead,
+     * by the same test as {@link #hullTopInTheWay}.
+     */
+    private boolean pathBlocked(float aL, float aY, float aD, float bL, float bY, float bD) {
+        if (hullTopInTheWay(aL, aY, aD, bL, bY, bD) != Float.NEGATIVE_INFINITY) return true;
+        if (!obstacleSim) return false;
+        for (AvoidHull obstacle : obstacleHulls) {
+            if (segmentEntry(obstacle.box(), HULL_MARGIN * 0.5f, aL, aY, aD, bL, bY, bD) > 0f) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Where the straight segment from {@code a} to {@code b} first enters {@code box} grown by
+     * {@code pad} on every side, as a fraction of the way along it, or −1 if it misses. 0 when
+     * {@code a} is already inside.
+     */
+    private float segmentEntry(Shelter.OrientedBox box, float pad,
+                               float aL, float aY, float aD, float bL, float bY, float bD) {
+        float[] qa = segmentScratchA, qb = segmentScratchB;
+        box.toBox(aL, aY, aD, qa);
+        box.toBox(bL, bY, bD, qb);
+        float tMin = 0f, tMax = 1f;
+        for (int axis = 0; axis < 3; axis++) {
+            float from = qa[axis];
+            float delta = qb[axis] - from;
+            float half = (axis == 0 ? box.halfL() : axis == 1 ? box.halfY() : box.halfD()) + pad;
+            if (Math.abs(delta) < 1e-6f) {
+                if (Math.abs(from) > half) return -1f;
+            } else {
+                float t0 = (-half - from) / delta, t1 = (half - from) / delta;
+                tMin = Math.max(tMin, Math.min(t0, t1));
+                tMax = Math.min(tMax, Math.max(t0, t1));
+                if (tMin > tMax) return -1f;
+            }
+        }
+        return tMin;
+    }
+
+    private final float[] segmentScratchA = new float[3];
+    private final float[] segmentScratchB = new float[3];
 
     /** Whether fish #{@code i} is a lurker at, or settling out to, its rest point — and so faces out. */
     private boolean facesOut(int i) {
@@ -2250,7 +2294,7 @@ public final class FlockEngine {
                 float sd = mouth.centerD() - mouth.normalD() * stage;
                 // A staging point outside the water or inside a hull is a mouth this fish cannot
                 // line up on — a log nosed against the glass, or two shelters mouth to mouth.
-                if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd)) continue;
+                if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
                 float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
                 float d2 = dl * dl + dy * dy + dd * dd;
                 if (d2 < bestD2) {
@@ -2374,9 +2418,8 @@ public final class FlockEngine {
             double turn = Math.toRadians(SimMath.clamp(spread + detour, -90f, 90f));
             float c = (float) Math.cos(turn), sn = (float) Math.sin(turn);
             float dirL = awayL * c - awayD * sn, dirD = awayL * sn + awayD * c;
-            if (hullTopInTheWay(posL[i], posY[i], posD[i],
-                    posL[i] + dirL * FLINCH_CLEARANCE, posY[i], posD[i] + dirD * FLINCH_CLEARANCE)
-                    != Float.NEGATIVE_INFINITY) continue;
+            if (pathBlocked(posL[i], posY[i], posD[i],
+                    posL[i] + dirL * FLINCH_CLEARANCE, posY[i], posD[i] + dirD * FLINCH_CLEARANCE)) continue;
             flinchL[i] = dirL;
             flinchD[i] = dirD;
             flinchTimer[i] = FLINCH_SECONDS;
@@ -2595,20 +2638,34 @@ public final class FlockEngine {
      * to there if the probe has left the water. The centre and not the corners: a hull's base
      * sits on the sand, below the swim volume's floor, so every bottom corner is "out", and
      * probing corners closed every side of a log lying on the sand.
+     *
+     * <p>A box whose centre is above or below the water (a cosmetic's beam that reaches the lid)
+     * has its side faces probed at the middle of the part of it that is in the water instead.
+     * Probed at the centre, every side probe was "out", so a fence arch's top beam closed both of
+     * its broad faces and grew to fill the tank front to back: a fish in the strip between it and
+     * the glass was pressed into the glass, and the hard backstop held it there (76 engagements
+     * in 12k fish-ticks). A box centred in the water probes where it always did.
      */
-    private AvoidHull closeGaps(Shelter.OrientedBox box) {
+    private AvoidHull closeGaps(Shelter.OrientedBox box, float gap) {
         float[] lo = {-box.halfL(), -box.halfY(), -box.halfD()};
         float[] hi = {box.halfL(), box.halfY(), box.halfD()};
         float[] probe = new float[3];
+        float sideY = 0f;
+        if (box.centerY() > domain.maxVertical() || box.centerY() < domain.minVertical()) {
+            float wetLo = Math.max(box.centerY() - box.halfY(), domain.minVertical());
+            float wetHi = Math.min(box.centerY() + box.halfY(), domain.maxVertical());
+            if (wetLo < wetHi) sideY = (wetLo + wetHi) * 0.5f - box.centerY();
+        }
         int closed = 0;
         for (int axis = 0; axis < 3; axis++) {
             for (int side = -1; side <= 1; side += 2) {
                 probe[0] = probe[1] = probe[2] = 0f;
-                probe[axis] = (side < 0 ? lo[axis] : hi[axis]) + side * avoidHullsGap;
+                if (axis != 1) probe[1] = sideY;
+                probe[axis] = (side < 0 ? lo[axis] : hi[axis]) + side * gap;
                 float l = box.centerL() + probe[0] * box.cos() - probe[2] * box.sin();
                 float d = box.centerD() + probe[0] * box.sin() + probe[2] * box.cos();
                 if (domain.contains(l, box.centerY() + probe[1], d)) continue;
-                if (side < 0) lo[axis] -= avoidHullsGap; else hi[axis] += avoidHullsGap;
+                if (side < 0) lo[axis] -= gap; else hi[axis] += gap;
                 closed |= 1 << (2 * axis + (side > 0 ? 1 : 0));
             }
         }
@@ -2658,10 +2715,130 @@ public final class FlockEngine {
      */
     private boolean insideAnyHull(float l, float y, float d) {
         List<Shelter> shelters = domain.shelters();
-        if (shelters.isEmpty()) return false;
-        refreshAvoidHulls(shelters);
-        for (AvoidHull hull : avoidHulls) {
-            if (hull.box().contains(l, y, d)) return true;
+        if (!shelters.isEmpty()) {
+            refreshAvoidHulls(shelters);
+            for (AvoidHull hull : avoidHulls) {
+                if (hull.box().contains(l, y, d)) return true;
+            }
+        }
+        List<Shelter.OrientedBox> obstacles = domain.obstacles();
+        if (obstacles.isEmpty()) return false;
+        refreshObstacles(obstacles);
+        for (int k : obstacleBins[binOf(l, y, d)]) {
+            if (obstacleHulls[k].box().contains(l, y, d)) return true;
+        }
+        return false;
+    }
+
+    // ── Obstacles (docs/fish-shelters.md §12.3) ─────────────────────────────
+    // The solid parts of every cosmetic, as boxes steered round exactly like a shelter's hull. A
+    // domain with none takes none of this code, which keeps every existing trajectory bitwise.
+
+    /** The obstacles as fish steer round them, gaps to the glass closed as for hulls. */
+    private AvoidHull[] obstacleHulls = new AvoidHull[0];
+    private List<Shelter.OrientedBox> obstacleSource;
+    private FlockDomain obstacleDomain;
+    private float obstacleGap;
+    /**
+     * Per block-sized bin over the domain's bounding box, the obstacles whose box, grown by the
+     * avoidance margin, reaches into it. A fish reads only its own bin, so its cost stays flat
+     * however decorated the group (§12.3 "Binned").
+     */
+    private int[][] obstacleBins = new int[0][];
+    private float binMinL, binMinY, binMinD;
+    private int binsL = 1, binsY = 1, binsD = 1;
+    /** This step steers round obstacles: a planar domain with some in it. */
+    private boolean obstacleSim;
+    /** Verification hook only — see {@link #setObstacleBinningEnabled}. */
+    private boolean obstacleBinning = true;
+
+    /** Rebuilds {@link #obstacleHulls} and the bins when the domain has swapped its obstacle list. */
+    private void refreshObstacles(List<Shelter.OrientedBox> obstacles) {
+        if (obstacles == obstacleSource && domain == obstacleDomain && t.wallMargin() == obstacleGap) return;
+        obstacleSource = obstacles;
+        obstacleDomain = domain;
+        obstacleGap = t.wallMargin();
+        obstacleHulls = new AvoidHull[obstacles.size()];
+        for (int k = 0; k < obstacleHulls.length; k++) obstacleHulls[k] = closeGaps(obstacles.get(k), obstacleGap);
+
+        binMinL = domain.minLateral();
+        binMinY = domain.minVertical();
+        binMinD = domain.minDepth();
+        binsL = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxLateral() - binMinL)) : 1;
+        binsY = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxVertical() - binMinY)) : 1;
+        binsD = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxDepth() - binMinD)) : 1;
+        int[] sizes = new int[binsL * binsY * binsD];
+        int[][] ranges = new int[obstacleHulls.length][];
+        for (int k = 0; k < obstacleHulls.length; k++) {
+            Shelter.OrientedBox b = obstacleHulls[k].box();
+            float c = Math.abs(b.cos()), sn = Math.abs(b.sin());
+            float hl = c * b.halfL() + sn * b.halfD() + HULL_MARGIN;
+            float hd = sn * b.halfL() + c * b.halfD() + HULL_MARGIN;
+            float hy = b.halfY() + HULL_MARGIN;
+            ranges[k] = new int[]{
+                    binIndex(b.centerL() - hl, binMinL, binsL), binIndex(b.centerL() + hl, binMinL, binsL),
+                    binIndex(b.centerY() - hy, binMinY, binsY), binIndex(b.centerY() + hy, binMinY, binsY),
+                    binIndex(b.centerD() - hd, binMinD, binsD), binIndex(b.centerD() + hd, binMinD, binsD)};
+            for (int bin : binsIn(ranges[k])) sizes[bin]++;
+        }
+        obstacleBins = new int[sizes.length][];
+        for (int bin = 0; bin < sizes.length; bin++) obstacleBins[bin] = new int[sizes[bin]];
+        int[] fill = new int[sizes.length];
+        for (int k = 0; k < obstacleHulls.length; k++) {
+            for (int bin : binsIn(ranges[k])) obstacleBins[bin][fill[bin]++] = k;
+        }
+    }
+
+    private static int binIndex(float v, float min, int bins) {
+        return Math.max(0, Math.min(bins - 1, (int) Math.floor(v - min)));
+    }
+
+    /** The bins of an inclusive {@code (l0, l1, y0, y1, d0, d1)} range. */
+    private int[] binsIn(int[] r) {
+        int[] out = new int[(r[1] - r[0] + 1) * (r[3] - r[2] + 1) * (r[5] - r[4] + 1)];
+        int n = 0;
+        for (int x = r[0]; x <= r[1]; x++)
+            for (int y = r[2]; y <= r[3]; y++)
+                for (int z = r[4]; z <= r[5]; z++) out[n++] = (x * binsY + y) * binsD + z;
+        return out;
+    }
+
+    /** The bin a point lies in, clamped onto the grid. */
+    private int binOf(float l, float y, float d) {
+        return (binIndex(l, binMinL, binsL) * binsY + binIndex(y, binMinY, binsY)) * binsD + binIndex(d, binMinD, binsD);
+    }
+
+    /**
+     * Adds the soft repulsion of every obstacle near fish #{@code i} to {@code out}: the hull ramp
+     * (§4.1) against each obstacle box in its bin, summed with the walls and hulls the same way.
+     */
+    private void addObstacleAvoidance(int i, float[] out) {
+        for (int k : obstacleBins[binOf(posL[i], posY[i], posD[i])]) {
+            float dist = hullDistance(obstacleHulls[k], posL[i], posY[i], posD[i], hullGrad);
+            if (dist >= HULL_MARGIN) continue;
+            float w = Math.min((HULL_MARGIN - dist) / HULL_MARGIN, HULL_MAX_WEIGHT);
+            out[0] += hullGrad[0] * w;
+            out[1] += hullGrad[1] * w;
+            out[2] += hullGrad[2] * w;
+        }
+    }
+
+    /**
+     * Whether the straight swim between a shelter's mouth and the staging point {@code stage}
+     * blocks out from it crosses an obstacle (as fish steer round it, half the margin included).
+     * Such a mouth is one a fish could only reach through solid rock, so it is not offered: a
+     * cosmetic placed across a shelter's doorway closes that doorway rather than trapping fish in it.
+     */
+    private boolean corridorBlocked(Shelter.Mouth mouth, float stage) {
+        List<Shelter.OrientedBox> obstacles = domain.obstacles();
+        if (obstacles.isEmpty()) return false;
+        refreshObstacles(obstacles);
+        float bL = mouth.centerL() - mouth.normalL() * stage;
+        float bY = mouth.centerY() - mouth.normalY() * stage;
+        float bD = mouth.centerD() - mouth.normalD() * stage;
+        for (AvoidHull obstacle : obstacleHulls) {
+            if (segmentEntry(obstacle.box(), HULL_MARGIN * 0.5f,
+                    mouth.centerL(), mouth.centerY(), mouth.centerD(), bL, bY, bD) >= 0f) return true;
         }
         return false;
     }
@@ -2698,6 +2875,11 @@ public final class FlockEngine {
         } else {
             anyInShelter = false;
         }
+        List<Shelter.OrientedBox> obstacles = domain.obstacles();
+        if (obstacles != obstacleSource || domain != obstacleDomain || t.wallMargin() != obstacleGap) {
+            refreshObstacles(obstacles);
+        }
+        obstacleSim = planar && !obstacles.isEmpty();
         // Colony relocation runs ahead of the per-fish dispatch below: a colony that finishes
         // repositioning this tick is already at its new spot by the time stepAnchored runs for its
         // members, so there is nothing to interpolate across.
@@ -2818,6 +3000,7 @@ public final class FlockEngine {
         // and loosen formation as a fish nears one — summed in before avoidMag is taken.
         List<Shelter> shelters = domain.shelters();
         if (!shelters.isEmpty()) addHullAvoidance(i, shelters, avoidScratch);
+        if (obstacleSim) addObstacleAvoidance(i, avoidScratch);
         float avoidMag = (float) Math.sqrt(avoidScratch[0] * avoidScratch[0]
                 + avoidScratch[1] * avoidScratch[1] + avoidScratch[2] * avoidScratch[2]);
         if (avoidMag > 1f) avoidMag = 1f;
@@ -3093,12 +3276,13 @@ public final class FlockEngine {
             velL[i] *= k; velY[i] *= k; velD[i] *= k;
             sp = cap;
         }
-        if (shelterSim) {
+        if (shelterSim || obstacleSim) {
             // The whole tick's change of velocity is held to maxForce, not just the steering's.
             // Vertical damping and the speed cap act after the force clamp, and on a dash they
             // add up: braking out of a fast dive measured 0.65 against 0.5, and a dash ending
             // dropped its cap by half in one tick. Held here, the end of a dash is a slow-down
-            // over a second or so, not a jolt.
+            // over a second or so, not a jolt. Obstacles need it too: a fish turned hard by a
+            // pagoda's eaves at its top speed measured 0.56.
             float dvL = velL[i] - oldVelL, dvY = velY[i] - oldVelY, dvD = velD[i] - oldVelD;
             float dv = (float) Math.sqrt(dvL * dvL + dvY * dvY + dvD * dvD);
             float most = p.maxForce() * p.dt();

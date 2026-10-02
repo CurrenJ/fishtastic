@@ -9,6 +9,7 @@ import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.client.util.TankFloors;
+import grill24.fishtastic.client.util.TankObstacles;
 import grill24.fishtastic.client.util.TankShelters;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
@@ -239,6 +240,7 @@ public final class TankGroupFlock {
             entry.domain().rebuildFloor(TankFloors.GROUP_SURFACE_OFFSET,
                     TankFloors.groupBlockedCells(group, level));
             entry.domain().rebuildShelters(TankShelters.group(group, level));
+            entry.domain().rebuildObstacles(TankObstacles.group(group, level));
         }
 
         if (!membershipChanged && !domainChanged && !contentsChanged && !cosmeticsChanged) return;
