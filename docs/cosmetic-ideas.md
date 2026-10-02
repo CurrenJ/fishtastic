@@ -83,7 +83,7 @@ tag (coral fans, sea pickle, kelp, seagrass, dead bush) and sit on a 3×3 floor 
 
 22. **Hiding caves and holes**: a cave mouth or hollow log that fish swim into and out of, a
     moray-style eel cave, and a burrow for the garden eels. Fish going in and out are the best moments
-    on video.
+    on video. Spec drafted 2026-10-02: [`fish-shelters.md`](fish-shelters.md).
 23. **A cleaning station**: a rock that fish queue up at and pause beside.
 24. **A feeding ring or floating feeder** that fish gather under. It would give an orbit clip a
     natural focal point.
