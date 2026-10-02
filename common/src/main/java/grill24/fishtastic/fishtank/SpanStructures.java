@@ -285,6 +285,19 @@ public final class SpanStructures {
      */
     public static Fit fit(Level level, Set<BlockPos> group, FishTankBlockEntity target, double aimX, double aimZ,
                           CosmeticStructure structure, Rotation rotation) {
+        return fit(level, group, target, aimX, aimZ, structure, rotation, false);
+    }
+
+    /**
+     * {@link #fit(Level, Set, FishTankBlockEntity, double, double, CosmeticStructure, Rotation)}
+     * with {@code ignoreCosmeticConflicts} for the shift-click force placement: boxes holding
+     * other structures or decorated footprint cells become candidates too, because the caller is
+     * going to clear them (see {@code CosmeticPlacement#planSpan}). The box geometry itself —
+     * tanks present, open faces, sand under the bottom layer — is always enforced; a span can
+     * never be forced into a hole that isn't there.
+     */
+    public static Fit fit(Level level, Set<BlockPos> group, FishTankBlockEntity target, double aimX, double aimZ,
+                          CosmeticStructure structure, Rotation rotation, boolean ignoreCosmeticConflicts) {
         CosmeticStructure.Span box = rotated(structure.span().orElseThrow(), rotation);
         Map<BlockPos, List<CosmeticGridCell>> footprint = footprint(structure, rotation);
         Fit bestOk = null, bestAny = null;
@@ -294,7 +307,7 @@ public final class SpanStructures {
                 BlockPos min = target.getBlockPos().offset(-ox, 0, -oz);
                 double dx = min.getX() + box.x() / 2.0 - aimX, dz = min.getZ() + box.z() / 2.0 - aimZ;
                 double dist = dx * dx + dz * dz;
-                Fit candidate = new Fit(min, box, problemWith(level, group, min, box, footprint));
+                Fit candidate = new Fit(min, box, problemWith(level, group, min, box, footprint, ignoreCosmeticConflicts));
                 if (candidate.problem() == null && dist < bestOkDist) { bestOk = candidate; bestOkDist = dist; }
                 if (dist < bestAnyDist) { bestAny = candidate; bestAnyDist = dist; }
             }
@@ -304,7 +317,7 @@ public final class SpanStructures {
 
     @Nullable
     private static String problemWith(Level level, Set<BlockPos> group, BlockPos min, CosmeticStructure.Span box,
-                                      Map<BlockPos, List<CosmeticGridCell>> footprint) {
+                                      Map<BlockPos, List<CosmeticGridCell>> footprint, boolean ignoreCosmeticConflicts) {
         String needs = "This needs a tank " + box.x() + " long, " + box.z() + " deep and " + box.y() + " tall";
         for (int x = 0; x < box.x(); x++) {
             for (int y = 0; y < box.y(); y++) {
@@ -316,13 +329,14 @@ public final class SpanStructures {
                     if (z + 1 < box.z() && !tank.isFaceOpen(Direction.SOUTH)) return needs;
                     if (y + 1 < box.y() && !tank.isFaceOpen(Direction.UP)) return needs;
                     if (y == 0 && tank.isFaceOpen(Direction.DOWN)) return needs;
+                    if (ignoreCosmeticConflicts) continue;
                     if (!tank.getStructureCosmetics().isEmpty() || resolve(level, tank) != null) {
-                        return "Another structure is in the way";
+                        return "Another structure is in the way" + CosmeticPlacement.FORCE_HINT;
                     }
                     if (y == 0) {
                         for (CosmeticGridCell cell : footprint.getOrDefault(new BlockPos(x, 0, z), List.of())) {
                             if (tank.getCosmetics().containsKey(cell) || tank.getStructureAnchor(cell) != null) {
-                                return "Clear the floor first";
+                                return "Clear the floor first" + CosmeticPlacement.FORCE_HINT;
                             }
                         }
                     }

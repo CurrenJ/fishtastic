@@ -6,12 +6,18 @@ import grill24.fishtastic.block.FishTankBlock;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.network.RemoveTankEntryPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -25,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +47,12 @@ import java.util.Optional;
  * just the tank that was clicked: aiming through one tank's glass at the sand (or a cosmetic, or
  * the lid) of a tank behind or below it targets that tank. The nearest hit along the ray wins, so
  * a cosmetic standing in front of a floor still takes priority over the floor behind it.
+ *
+ * <p>A <i>forced</i> plan ({@link #tryForcePlace}, the shift-click placement) is the same rule set
+ * with the occupancy refusals turned into removals: any decoration the placement overlaps —
+ * single-cell cosmetics and whole structures alike — is cleared away and handed back to the
+ * player. Geometry is never forced: a footprint that doesn't fit the grid or a span whose box of
+ * tanks doesn't exist still refuses.
  */
 public final class CosmeticPlacement {
 
@@ -54,25 +67,43 @@ public final class CosmeticPlacement {
      * a spanning structure would fill ({@code region}, else null), and — when the placement is
      * allowed — the mutation that performs it. {@code failMessage} is shown to the player when a
      * click is refused for a reason worth explaining.
+     *
+     * <p>{@code cleared} is the forced plan's debris list: every cell that will lose its occupant
+     * — floor cosmetics and every cell of any structure removed whole, which can reach well past
+     * the new footprint. Empty for ordinary plans; the preview draws these cells amber so the
+     * player can see what a shift-click will remove before making it.
      */
     public record Plan(List<TankCell> cells, boolean ceiling, @Nullable AABB region,
-                       @Nullable Runnable apply, @Nullable String failMessage) {
+                       @Nullable Runnable apply, @Nullable String failMessage, List<TankCell> cleared) {
         public boolean valid() {
             return apply != null;
         }
 
         static Plan none(boolean ceiling) {
-            return new Plan(List.of(), ceiling, null, null, null);
+            return new Plan(List.of(), ceiling, null, null, null, List.of());
         }
 
         static Plan refused(Target target, boolean ceiling) {
-            return new Plan(List.of(new TankCell(target.tank(), target.cell())), ceiling, null, null, null);
+            return new Plan(List.of(new TankCell(target.tank(), target.cell())), ceiling, null, null, null, List.of());
         }
 
         static Plan of(Target target, boolean ceiling, Runnable apply) {
-            return new Plan(List.of(new TankCell(target.tank(), target.cell())), ceiling, null, apply, null);
+            return new Plan(List.of(new TankCell(target.tank(), target.cell())), ceiling, null, apply, null, List.of());
         }
     }
+
+    /** A structure cosmetic a forced placement removes: the tank holding its anchor, and that anchor cell. */
+    private record StructureConflict(BlockPos ownerPos, CosmeticGridCell anchor) {}
+
+    /** The cell a spanning structure always anchors at in its own tank (see {@link SpanStructures}). */
+    private static final CosmeticGridCell SPAN_ANCHOR_CELL = new CosmeticGridCell(0, 0);
+
+    /**
+     * Appended to the refusals a forced placement could clear, so a player who only ever plain-clicks
+     * learns the shift-click override exists. Geometry refusals (no room, no such tank box) don't
+     * get it — shift-clicking can't fix those.
+     */
+    public static final String FORCE_HINT = " — shift-click to clear the way";
 
     /** True if {@code stack} is anything that places as a tank cosmetic. */
     public static boolean isCosmetic(ItemStack stack) {
@@ -82,13 +113,185 @@ public final class CosmeticPlacement {
     /** The plan for placing {@code held} where {@code player} is aiming, or null if it isn't a cosmetic. */
     @Nullable
     public static Plan plan(Player player, FishTankBlockEntity clicked, ItemStack held) {
+        return plan(player, clicked, held, false);
+    }
+
+    /**
+     * {@link #plan(Player, FishTankBlockEntity, ItemStack)} with {@code force} for the shift-click
+     * placement: anything the placement overlaps is cleared away (and refunded) instead of
+     * refusing the plan. Geometry failures — no floor target, footprint outside the grid, a span
+     * box that doesn't fit — are never forced.
+     */
+    @Nullable
+    public static Plan plan(Player player, FishTankBlockEntity clicked, ItemStack held, boolean force) {
         Block hanging = HangingCosmetics.blockOf(held);
-        if (hanging != null) return planHanging(player, clicked, hanging);
+        if (hanging != null) return planHanging(player, clicked, hanging, force);
         Block cosmetic = cosmeticBlockOf(held);
-        if (cosmetic != null) return planFloor(player, clicked, cosmetic);
+        if (cosmetic != null) return planFloor(player, clicked, cosmetic, force);
         ResourceKey<CosmeticStructure> structureId = structureIdOf(held);
-        if (structureId != null) return planStructure(player, clicked, structureId);
+        if (structureId != null) return planStructure(player, clicked, structureId, force);
         return null;
+    }
+
+    /**
+     * Entry point for the shift-click force placement, called from the {@code ItemStack#useOn}
+     * mixin. Vanilla skips {@code Block#useItemOn} entirely while sneaking with anything in hand
+     * ({@code ServerPlayerGameMode#useItemOn}'s {@code suppressUsingBlock}) and calls
+     * {@code ItemStack#useOn} with the player's real {@code BlockHitResult} instead, so the block
+     * never sees the click. Hooking there covers every cosmetic item — including the plain vanilla
+     * {@link BlockItem}s tagged {@code #fishtastic:tank_cosmetics}, which can't override anything
+     * themselves.
+     *
+     * @return {@code null} when this isn't a force placement — not sneaking, not the main hand, or
+     *         not aiming at a tank with a cosmetic — so the mixin can fall through to vanilla.
+     */
+    @Nullable
+    public static InteractionResult tryForcePlace(UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null || !player.isSecondaryUseActive() || context.getHand() != InteractionHand.MAIN_HAND) {
+            return null;
+        }
+        if (!(context.getLevel().getBlockEntity(context.getClickedPos()) instanceof FishTankBlockEntity clicked)) {
+            return null;
+        }
+        ItemStack held = context.getItemInHand();
+        Plan plan = plan(player, clicked, held, true);
+        if (plan == null) {
+            return null;
+        }
+        // The client always lets the server decide, exactly like FishTankBlock#useItemOn's client
+        // branch: predicting a refusal from possibly-stale tank state would swallow the swing.
+        if (context.getLevel().isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        if (!plan.valid()) {
+            if (plan.failMessage() != null) {
+                player.sendSystemMessage(Component.literal(plan.failMessage()));
+            }
+            return InteractionResult.FAIL;
+        }
+        plan.apply().run();
+        // Vanilla's suppressed-item path wraps useOn in a creative count save/restore, so this
+        // shrinks the held stack in survival and leaves a creative player's stack alone.
+        held.shrink(1);
+        return InteractionResult.SUCCESS;
+    }
+
+    // ── Forced-placement plumbing ───────────────────────────────────────────────
+
+    /**
+     * The whole structure covering {@code cell} — anchored in this very tank, or, for a spanning
+     * structure, anchored in another tank this one links to — or null when the cell is free. A
+     * link is only trusted once {@code resolve} checks it out, so stale links (an anchor broken
+     * and carried off) are never treated as conflicts.
+     */
+    @Nullable
+    private static StructureConflict structureConflictAt(Level level, FishTankBlockEntity tank, CosmeticGridCell cell) {
+        CosmeticGridCell anchor = tank.getStructureAnchor(cell);
+        if (anchor == null) {
+            return null;
+        }
+        if (tank.getStructureCosmetics().containsKey(anchor)) {
+            return new StructureConflict(tank.getBlockPos(), anchor);
+        }
+        SpanStructures.Ref ref = SpanStructures.resolve(level, tank);
+        return ref == null ? null : new StructureConflict(ref.anchor().getBlockPos(), SPAN_ANCHOR_CELL);
+    }
+
+    /** Every cell a conflicting structure occupies, so a forced preview can show the whole thing going. */
+    private static List<TankCell> structureCells(Level level, StructureConflict conflict) {
+        if (!(level.getBlockEntity(conflict.ownerPos()) instanceof FishTankBlockEntity owner)) {
+            return List.of();
+        }
+        FishTankBlockEntity.PlacedStructureCosmetic placed = owner.getStructureCosmetics().get(conflict.anchor());
+        if (placed == null) {
+            return List.of();
+        }
+        Optional<CosmeticStructure> structure = lookupStructure(level, placed.structureId());
+        if (structure.isPresent() && structure.get().span().isPresent()) {
+            return spanCells(level, owner.getBlockPos(), structure.get(), placed.rotation());
+        }
+        List<TankCell> cells = new ArrayList<>();
+        for (Map.Entry<CosmeticGridCell, CosmeticGridCell> entry : owner.getStructureCellIndex().entrySet()) {
+            if (entry.getValue().equals(conflict.anchor())) {
+                cells.add(new TankCell(owner, entry.getKey()));
+            }
+        }
+        return cells;
+    }
+
+    /** The floor cells a span covers, per tank of its box, anchored at {@code min}. */
+    private static List<TankCell> spanCells(Level level, BlockPos min, CosmeticStructure structure, Rotation rotation) {
+        List<TankCell> cells = new ArrayList<>();
+        for (Map.Entry<BlockPos, List<CosmeticGridCell>> entry : SpanStructures.footprint(structure, rotation).entrySet()) {
+            if (level.getBlockEntity(min.offset(entry.getKey())) instanceof FishTankBlockEntity tank) {
+                for (CosmeticGridCell cell : entry.getValue()) {
+                    cells.add(new TankCell(tank, cell));
+                }
+            }
+        }
+        return cells;
+    }
+
+    /** Distinct conflicts, in encounter order — the same structure can be hit from several cells. */
+    private static List<StructureConflict> distinct(List<StructureConflict> conflicts) {
+        return List.copyOf(new LinkedHashSet<>(conflicts));
+    }
+
+    /** Empties a floor cell of its single-cell cosmetic, refunding every unit (all kelp segments, every pickle). */
+    private static List<ItemStack> clearFloorCell(FishTankBlockEntity tank, CosmeticGridCell cell) {
+        List<ItemStack> refunds = new ArrayList<>();
+        ItemStack refund;
+        while (!(refund = tank.removeCosmeticEntry(cell)).isEmpty()) {
+            refunds.add(refund);
+        }
+        return refunds;
+    }
+
+    /**
+     * The mutation a forced placement performs: remove the conflicting structures, empty the
+     * conflicting floor cells, place, then hand every cleared decoration back to the player and
+     * report the count. Server-only — it's the {@link Plan#apply()} the click runs.
+     */
+    private static Runnable forcedApply(Level level, Player player, List<StructureConflict> conflicts,
+                                        List<TankCell> floorCells, Runnable place) {
+        return () -> {
+            List<ItemStack> refunds = new ArrayList<>();
+            int decorations = 0;
+            for (StructureConflict conflict : conflicts) {
+                if (level.getBlockEntity(conflict.ownerPos()) instanceof FishTankBlockEntity owner
+                        && owner.getStructureCosmetics().containsKey(conflict.anchor())) {
+                    refunds.add(owner.removeStructureCosmeticEntry(conflict.anchor()));
+                    decorations++;
+                }
+            }
+            for (TankCell cell : floorCells) {
+                List<ItemStack> cleared = clearFloorCell(cell.tank(), cell.cell());
+                if (!cleared.isEmpty()) {
+                    decorations++;
+                }
+                refunds.addAll(cleared);
+            }
+            place.run();
+            if (player instanceof ServerPlayer serverPlayer) {
+                for (ItemStack refund : refunds) {
+                    RemoveTankEntryPacket.giveOrDrop(serverPlayer, refund);
+                }
+            }
+            reportRemovals(player, decorations);
+        };
+    }
+
+    /** Tells the player what a forced placement cleared away, once it has cleared anything. */
+    private static void reportRemovals(Player player, int decorations) {
+        if (decorations > 0) {
+            player.sendSystemMessage(Component.literal(
+                    "Removed " + decorations + (decorations == 1 ? " decoration" : " decorations") + " to make room"));
+        }
+    }
+
+    private static Optional<CosmeticStructure> lookupStructure(Level level, ResourceKey<CosmeticStructure> id) {
+        return level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY).getOptional(id);
     }
 
     /**
@@ -118,46 +321,67 @@ public final class CosmeticPlacement {
      * takes another segment while its column has room ({@link TankColumns#maxSegments}) — kelp
      * roots only on sand, so the target is always a column's bottom tank, and in a stack of open
      * tanks a strand carries on up through every storey.
+     *
+     * <p>Forced, an occupied cell — a covering structure, or a cosmetic that can't combine (a
+     * different block, a full pickle cluster, a kelp column that has hit the ceiling) — is cleared
+     * away and the new cosmetic put down fresh.
      */
-    private static Plan planFloor(Player player, FishTankBlockEntity clicked, Block block) {
+    private static Plan planFloor(Player player, FishTankBlockEntity clicked, Block block, boolean force) {
         Target target = findFloorTarget(player, clicked);
         if (target == null) return Plan.none(false);
         FishTankBlockEntity tank = target.tank();
         CosmeticGridCell cell = target.cell();
-        if (tank.getStructureAnchor(cell) != null) return Plan.refused(target, false);
+        Level level = tank.getLevel();
+
+        BlockState fresh = block.defaultBlockState();
+        // Any cosmetic with a horizontal-facing property (e.g. the treasure chest) orients
+        // toward the placing player, mirroring firstItemRotation for fish.
+        if (fresh.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            float rotation = FishTankBlock.calculateRotationTowardPlayer(player, tank.getBlockPos());
+            fresh = fresh.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.fromYRot(rotation));
+        }
 
         PlacedCosmetic existing = tank.getCosmetics().get(cell);
+        StructureConflict conflict = level != null ? structureConflictAt(level, tank, cell) : null;
+        boolean covering = tank.getStructureAnchor(cell) != null;
         PlacedCosmetic placed = null;
-        if (existing == null) {
-            BlockState state = block.defaultBlockState();
-            // Any cosmetic with a horizontal-facing property (e.g. the treasure chest) orients
-            // toward the placing player, mirroring firstItemRotation for fish.
-            if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-                float rotation = FishTankBlock.calculateRotationTowardPlayer(player, tank.getBlockPos());
-                state = state.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.fromYRot(rotation));
-            }
-            placed = new PlacedCosmetic(state);
-        } else if (existing.block() instanceof SeaPickleBlock && block instanceof SeaPickleBlock) {
-            int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
-            if (current < SeaPickleBlock.MAX_PICKLES) {
-                placed = new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current + 1));
-            }
-        } else if (existing.block() == Blocks.KELP && block == Blocks.KELP) {
-            Level level = tank.getLevel();
-            if (level != null && existing.height() < TankColumns.maxSegments(TankColumns.storeys(level, tank.getBlockPos()))) {
-                placed = new PlacedCosmetic(existing.blockState(), existing.height() + 1);
+        if (!covering) {
+            if (existing == null) {
+                placed = new PlacedCosmetic(fresh);
+            } else if (existing.block() instanceof SeaPickleBlock && block instanceof SeaPickleBlock) {
+                int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
+                if (current < SeaPickleBlock.MAX_PICKLES) {
+                    placed = new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current + 1));
+                }
+            } else if (existing.block() == Blocks.KELP && block == Blocks.KELP) {
+                if (level != null && existing.height() < TankColumns.maxSegments(TankColumns.storeys(level, tank.getBlockPos()))) {
+                    placed = new PlacedCosmetic(existing.blockState(), existing.height() + 1);
+                }
             }
         }
-        if (placed == null) return Plan.refused(target, false);
-        PlacedCosmetic result = placed;
-        return Plan.of(target, false, () -> tank.setCosmetic(cell, result));
+        if (placed != null) {
+            PlacedCosmetic result = placed;
+            return Plan.of(target, false, () -> tank.setCosmetic(cell, result));
+        }
+        if (!force || level == null) return Plan.refused(target, false);
+
+        List<StructureConflict> conflicts = conflict != null ? List.of(conflict) : List.of();
+        List<TankCell> floorCells = existing != null ? List.of(new TankCell(tank, cell)) : List.of();
+        List<TankCell> cleared = new ArrayList<>();
+        for (StructureConflict c : conflicts) cleared.addAll(structureCells(level, c));
+        cleared.addAll(floorCells);
+        PlacedCosmetic result = new PlacedCosmetic(fresh);
+        Runnable apply = forcedApply(level, player, conflicts, floorCells, () -> tank.setCosmetic(cell, result));
+        return new Plan(List.of(new TankCell(tank, cell)), false, null, apply, null, List.copyOf(cleared));
     }
 
     /**
      * A hanging cosmetic: an empty lid cell takes it, or the strand already hanging there grows
-     * (see {@link HangingCosmetics#combine}) while its column has room below the lid.
+     * (see {@link HangingCosmetics#combine}) while its column has room below the lid. Forced, a
+     * strand that won't combine — a different block, or one already at the column's full length —
+     * is cut down and the new item hung from a clean lid instead.
      */
-    private static Plan planHanging(Player player, FishTankBlockEntity clicked, Block block) {
+    private static Plan planHanging(Player player, FishTankBlockEntity clicked, Block block, boolean force) {
         Target target = findCeilingTarget(player, clicked);
         if (target == null) return Plan.none(true);
         FishTankBlockEntity tank = target.tank();
@@ -170,25 +394,41 @@ public final class CosmeticPlacement {
                 ? new PlacedCosmetic(block.defaultBlockState())
                 : HangingCosmetics.combine(existing, block);
         int room = TankColumns.maxSegments(TankColumns.storeys(level, TankColumns.floorOf(level, tank.getBlockPos())));
-        if (placed == null || placed.height() > room) return Plan.refused(target, true);
-        return Plan.of(target, true, () -> tank.setCeilingCosmetic(cell, placed));
+        if (placed != null && placed.height() <= room) {
+            PlacedCosmetic result = placed;
+            return Plan.of(target, true, () -> tank.setCeilingCosmetic(cell, result));
+        }
+        if (!force) return Plan.refused(target, true);
+
+        PlacedCosmetic result = new PlacedCosmetic(block.defaultBlockState());
+        TankCell cleared = new TankCell(tank, cell);
+        Runnable apply = () -> {
+            List<ItemStack> refunds = new ArrayList<>();
+            ItemStack refund;
+            while (!(refund = tank.removeCeilingCosmeticEntry(cell)).isEmpty()) refunds.add(refund);
+            tank.setCeilingCosmetic(cell, result);
+            if (player instanceof ServerPlayer serverPlayer) {
+                for (ItemStack stack : refunds) RemoveTankEntryPacket.giveOrDrop(serverPlayer, stack);
+            }
+            if (!refunds.isEmpty()) reportRemovals(player, 1);
+        };
+        return new Plan(List.of(cleared), true, null, apply, null, List.of(cleared));
     }
 
     /**
      * A multi-cell structure: its footprint is rotated by the placing player's 4-way facing before
      * any validation runs, so the shape checked (and previewed) is always the shape that gets
-     * rendered; every cell must be in bounds and free of both single-cell and structure cosmetics.
+     * rendered; every cell must be in bounds and free of both single-cell and structure cosmetics
+     * — unless forced, which clears what the footprint overlaps and stands the structure anyway.
      */
-    private static Plan planStructure(Player player, FishTankBlockEntity clicked, ResourceKey<CosmeticStructure> structureId) {
+    private static Plan planStructure(Player player, FishTankBlockEntity clicked, ResourceKey<CosmeticStructure> structureId, boolean force) {
         Level level = clicked.getLevel();
         if (level == null) return Plan.none(false);
-        Optional<CosmeticStructure> structure = level.registryAccess()
-                .lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
-                .getOptional(structureId);
+        Optional<CosmeticStructure> structure = lookupStructure(level, structureId);
         if (structure.isEmpty()) {
-            return new Plan(List.of(), false, null, null, "That cosmetic is no longer available");
+            return new Plan(List.of(), false, null, null, "That cosmetic is no longer available", List.of());
         }
-        if (structure.get().span().isPresent()) return planSpan(player, clicked, level, structureId, structure.get());
+        if (structure.get().span().isPresent()) return planSpan(player, clicked, level, structureId, structure.get(), force);
 
         Target target = findFloorTarget(player, clicked);
         if (target == null) return Plan.none(false);
@@ -198,6 +438,8 @@ public final class CosmeticPlacement {
 
         List<CosmeticGridCell> footprint = new ArrayList<>(structure.get().footprintCells().size());
         List<TankCell> shown = new ArrayList<>();
+        List<StructureConflict> conflicts = new ArrayList<>();
+        List<TankCell> floorCells = new ArrayList<>();
         String failMessage = null;
         for (CosmeticStructure.GridOffset offset : structure.get().footprintCells()) {
             CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
@@ -208,24 +450,45 @@ public final class CosmeticPlacement {
                 continue;
             }
             CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
-            if (failMessage == null && (tank.getCosmetics().containsKey(cell) || tank.getStructureAnchor(cell) != null)) {
-                failMessage = "That space is already occupied";
+            if (failMessage == null) {
+                boolean floorOccupied = tank.getCosmetics().containsKey(cell);
+                StructureConflict conflict = structureConflictAt(level, tank, cell);
+                if (floorOccupied || conflict != null) {
+                    if (!force) {
+                        failMessage = "That space is already occupied" + FORCE_HINT;
+                    } else {
+                        if (floorOccupied) floorCells.add(new TankCell(tank, cell));
+                        if (conflict != null) conflicts.add(conflict);
+                    }
+                }
             }
             footprint.add(cell);
             shown.add(new TankCell(tank, cell));
         }
-        if (failMessage != null) return new Plan(shown, false, null, null, failMessage);
-        return new Plan(shown, false, null, () -> tank.setStructureCosmetic(anchor,
-                new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation), footprint), null);
+        if (failMessage != null) return new Plan(shown, false, null, null, failMessage, List.of());
+        FishTankBlockEntity.PlacedStructureCosmetic placed = new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation);
+        List<StructureConflict> unique = distinct(conflicts);
+        if (unique.isEmpty() && floorCells.isEmpty()) {
+            return new Plan(shown, false, null,
+                    () -> tank.setStructureCosmetic(anchor, placed, footprint), null, List.of());
+        }
+        List<TankCell> cleared = new ArrayList<>();
+        for (StructureConflict conflict : unique) cleared.addAll(structureCells(level, conflict));
+        cleared.addAll(floorCells);
+        Runnable apply = forcedApply(level, player, unique, floorCells,
+                () -> tank.setStructureCosmetic(anchor, placed, footprint));
+        return new Plan(shown, false, null, apply, null, List.copyOf(cleared));
     }
 
     /**
      * A spanning structure ({@link SpanStructures}): the aimed floor tank picks the box — the
      * nearest one of the right size that contains it and fits — and the plan shows that box plus
-     * every floor cell the structure would stand on.
+     * every floor cell the structure would stand on. Forced, boxes holding other structures or
+     * decorated floors count as fitting, and their contents are cleared along with the box's
+     * footprint cells.
      */
     private static Plan planSpan(Player player, FishTankBlockEntity clicked, Level level,
-                                 ResourceKey<CosmeticStructure> structureId, CosmeticStructure structure) {
+                                 ResourceKey<CosmeticStructure> structureId, CosmeticStructure structure, boolean force) {
         Target target = findFloorTarget(player, clicked);
         if (target == null) return Plan.none(false);
         Rotation rotation = rotationFromPlayerFacing(player);
@@ -234,17 +497,47 @@ public final class CosmeticPlacement {
 
         BlockPos tp = target.tank().getBlockPos();
         SpanStructures.Fit fit = SpanStructures.fit(level, group, target.tank(),
-                tp.getX() + target.cell().localX(), tp.getZ() + target.cell().localZ(), structure, rotation);
+                tp.getX() + target.cell().localX(), tp.getZ() + target.cell().localZ(), structure, rotation, force);
 
-        List<TankCell> shown = new ArrayList<>();
-        for (Map.Entry<BlockPos, List<CosmeticGridCell>> entry : SpanStructures.footprint(structure, rotation).entrySet()) {
-            if (level.getBlockEntity(fit.min().offset(entry.getKey())) instanceof FishTankBlockEntity tank) {
-                for (CosmeticGridCell cell : entry.getValue()) shown.add(new TankCell(tank, cell));
+        List<TankCell> shown = spanCells(level, fit.min(), structure, rotation);
+        if (fit.problem() != null) return new Plan(shown, false, fit.bounds(), null, fit.problem(), List.of());
+
+        List<StructureConflict> conflicts = new ArrayList<>();
+        List<TankCell> floorCells = new ArrayList<>();
+        if (force) {
+            Map<BlockPos, List<CosmeticGridCell>> footprint = SpanStructures.footprint(structure, rotation);
+            CosmeticStructure.Span box = fit.box();
+            for (int x = 0; x < box.x(); x++) {
+                for (int y = 0; y < box.y(); y++) {
+                    for (int z = 0; z < box.z(); z++) {
+                        BlockPos offset = new BlockPos(x, y, z);
+                        if (!(level.getBlockEntity(fit.min().offset(offset)) instanceof FishTankBlockEntity tank)) continue;
+                        for (CosmeticGridCell anchor : tank.getStructureCosmetics().keySet()) {
+                            conflicts.add(new StructureConflict(tank.getBlockPos(), anchor));
+                        }
+                        SpanStructures.Ref ref = SpanStructures.resolve(level, tank);
+                        if (ref != null) conflicts.add(new StructureConflict(ref.anchor().getBlockPos(), SPAN_ANCHOR_CELL));
+                        if (y == 0) {
+                            for (CosmeticGridCell cell : footprint.getOrDefault(offset, List.of())) {
+                                if (tank.getCosmetics().containsKey(cell)) floorCells.add(new TankCell(tank, cell));
+                            }
+                        }
+                    }
+                }
             }
         }
-        if (fit.problem() != null) return new Plan(shown, false, fit.bounds(), null, fit.problem());
         FishTankBlockEntity.PlacedStructureCosmetic placed = new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation);
-        return new Plan(shown, false, fit.bounds(), () -> SpanStructures.place(level, fit, placed, structure), null);
+        List<StructureConflict> unique = distinct(conflicts);
+        if (unique.isEmpty() && floorCells.isEmpty()) {
+            return new Plan(shown, false, fit.bounds(),
+                    () -> SpanStructures.place(level, fit, placed, structure), null, List.of());
+        }
+        List<TankCell> cleared = new ArrayList<>();
+        for (StructureConflict conflict : unique) cleared.addAll(structureCells(level, conflict));
+        cleared.addAll(floorCells);
+        Runnable apply = forcedApply(level, player, unique, floorCells,
+                () -> SpanStructures.place(level, fit, placed, structure));
+        return new Plan(shown, false, fit.bounds(), apply, null, List.copyOf(cleared));
     }
 
     /** Maps the placing player's 4-way horizontal facing to the {@link Rotation} that turns a

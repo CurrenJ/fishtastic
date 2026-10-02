@@ -30,6 +30,7 @@
   },
   "mixins": [
     "FishingHookMixin",
+    "ItemStackUseOnMixin",
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
     "SizedItemClickMixin"
