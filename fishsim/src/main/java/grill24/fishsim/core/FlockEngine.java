@@ -660,13 +660,23 @@ public final class FlockEngine {
     /** Per shelter: the fish that has claimed it, or −1. */
     private int[] claimedBy = new int[0];
 
-    /** Mean seconds between spontaneous visits; each fish's own mean is jittered ±35% off its seed. */
-    static final float VISIT_MEAN_SECONDS = 40f;
+    /**
+     * Mean seconds between spontaneous visits; each fish's own mean is jittered ±35% off its seed.
+     * Raised from 40 when the reach went up to {@link #VISIT_REACH}: with nearly every urge now
+     * finding a shelter, 40 would keep the hidden budget full.
+     */
+    static final float VISIT_MEAN_SECONDS = 60f;
     static final float VISIT_JITTER = 0.35f;
     /** At least this long out in the open after every visit (§5.4). */
     public static final float SHELTER_COOLDOWN_SECONDS = 20f;
-    /** An approach gives up after this long and goes to cooldown — what makes "no pathfinding" safe. */
+    /**
+     * An approach gives up after this long at least, and goes to cooldown: what makes "no
+     * pathfinding" safe. A visitor's own timeout is longer, to cover its reach (see
+     * {@link #approachTimeoutSeconds}).
+     */
     public static final float APPROACH_TIMEOUT_SECONDS = 6f;
+    /** Time a visitor's approach is allowed beyond swimming its whole reach, seconds. */
+    static final float APPROACH_TIMEOUT_SLACK_SECONDS = 4f;
     /**
      * An entry that has not reached the interior by this many times the time it should take turns
      * back, plus {@link #ENTER_TIMEOUT_SLACK_SECONDS}.
@@ -677,8 +687,20 @@ public final class FlockEngine {
      * edge (the fish arriving within reach), not a standing condition — then lapses.
      */
     static final float VISIT_URGE_SECONDS = 20f;
-    /** Only a staging point this many seconds of patrol away is in reach of a visit. */
-    static final float APPROACH_REACH_SECONDS = 4f;
+    /**
+     * Only a staging point this far away is in reach of a visit, blocks. It was 4 s of patrol
+     * (about 0.28 blocks), which in a 5x2x1 left a roaming fish in reach of the owner's pipe 2% of
+     * the time: 11 loaches visited 0.7 times a minute between them. At 1 block a fish on the
+     * shelter's storey, or low in the one above, can go.
+     */
+    static final float VISIT_REACH = 1.0f;
+    /**
+     * A visitor swims to the shelter at this multiple of its patrol speed (0.14 blocks/s), planning
+     * its arrival like the dash: unhurried patrol speed made a block-long approach look aimless.
+     */
+    static final float VISIT_APPROACH_SPEED = 2f;
+    /** The deceleration a visitor's approach plans its arrival with, blocks/s². */
+    static final float VISIT_BRAKE = 0.3f;
     /**
      * Wall margin for a fish on a visit, blocks. A shelter stands on the sand, so its mouth is low,
      * and the ordinary margin (0.20, applied vertically too in a voxel domain) holds a fish further
@@ -1588,7 +1610,8 @@ public final class FlockEngine {
     public float approachTimeoutSeconds(int i) {
         if (startled[i]) return STARTLE_APPROACH_TIMEOUT_SECONDS;
         if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) return HOME_APPROACH_TIMEOUT_SECONDS;
-        return APPROACH_TIMEOUT_SECONDS;
+        float speed = t.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED;
+        return Math.max(APPROACH_TIMEOUT_SECONDS, VISIT_REACH / speed + APPROACH_TIMEOUT_SLACK_SECONDS);
     }
 
     /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md §5.3). */
@@ -1608,6 +1631,12 @@ public final class FlockEngine {
     /** Whether fish #{@code i} is flinching away from the watcher (§5.3.2). */
     public boolean flinching(int i) {
         return flinchTimer[i] > 0f;
+    }
+
+    /** The horizontal direction of fish #{@code i}'s flinch, (lateral, depth), into {@code out}. */
+    public void flinchDirection(int i, float[] out) {
+        out[0] = flinchL[i];
+        out[1] = flinchD[i];
     }
 
     /** Fish #{@code i}'s speed cap: the dash's while dashing, the flinch's while flinching. */
@@ -2204,7 +2233,7 @@ public final class FlockEngine {
         float len = lengths[i];
         float stage = len + STAGING_CLEARANCE;
         int bestS = -1, bestM = -1;
-        float reach = startle ? STARTLE_REACH : p.patrolSpeed() * patrolScale[i] * APPROACH_REACH_SECONDS;
+        float reach = startle ? STARTLE_REACH : VISIT_REACH;
         float bestD2 = reach * reach;
         List<Shelter> shelters = avoidHullsSource;
         for (int s = 0; s < shelters.size(); s++) {
@@ -2266,7 +2295,46 @@ public final class FlockEngine {
             // One reaction per lunge, whether or not it finds cover.
             startleRefractory[i] = STARTLE_REFRACTORY_SECONDS;
             tryStartApproach(i, t, true);
+            if (shelterState[i] != SHELTER_APPROACH) bumpAVisitorFor(i);
             if (shelterState[i] != SHELTER_APPROACH) startFlinch(i);
+        }
+    }
+
+    /**
+     * A frightened fish beats a casual one to the door (§5.3.2): when startled fish #{@code i}
+     * finds no place in cover, a visitor still swimming to a shelter gives its place up, if that
+     * makes room for {@code i}, and turns away. Only a visitor farther from its staging point than
+     * {@code i} is from cover: one already at the door keeps its place, rather than turning away
+     * from a mouth it's nosing into for a fish a block off. Visitors already entering or inside
+     * keep theirs, and so does a lurker on its way home. With visits common, the hidden budget was
+     * so often full that the dashes in a 5x2x1 with two logs fell from 40-58 to 10-23 in ten
+     * minutes.
+     */
+    private void bumpAVisitorFor(int i) {
+        float mine = startleCoverD2[i];
+        for (int v = 0; v < count; v++) {
+            if (v == i || shelterState[v] != SHELTER_APPROACH || startled[v]) continue;
+            int s = shelterIndex[v];
+            if (shelterClaim[v] >= 0 && s == shelterClaim[v]) continue;
+            Shelter.Mouth mouth = chosenMouth(v);
+            float stage = lengths[v] + STAGING_CLEARANCE;
+            float dl = posL[v] - (mouth.centerL() - mouth.normalL() * stage);
+            float dy = posY[v] - (mouth.centerY() - mouth.normalY() * stage);
+            float dd = posD[v] - (mouth.centerD() - mouth.normalD() * stage);
+            if (dl * dl + dy * dy + dd * dd <= mine) continue;
+            shelterReserved[s]--;
+            pendingHidden--;
+            tryStartApproach(i, t, true);
+            if (shelterState[i] == SHELTER_APPROACH) {
+                // Turns away carrying on as it was going, the way a visit ends (exitVel).
+                exitVelL[v] = velL[v];
+                exitVelY[v] = velY[v];
+                exitVelD[v] = velD[v];
+                leaveToRoaming(v);
+                return;
+            }
+            shelterReserved[s]++;
+            pendingHidden++;
         }
     }
 
@@ -2301,8 +2369,9 @@ public final class FlockEngine {
         float spread = FLINCH_SPREAD_DEG * (2f * nextShelterUnit(i) - 1f);
         for (float detour : FLINCH_DETOURS) {
             // Never past a quarter turn off straight away: a flinch never heads for the watcher.
-            if (Math.abs(spread + detour) > 90f) continue;
-            double turn = Math.toRadians(spread + detour);
+            // Clamped, not skipped, so straight sideways is always tried: a fish at a log's open
+            // end, with the log between it and straight away, had nothing clear short of it.
+            double turn = Math.toRadians(SimMath.clamp(spread + detour, -90f, 90f));
             float c = (float) Math.cos(turn), sn = (float) Math.sin(turn);
             float dirL = awayL * c - awayD * sn, dirD = awayL * sn + awayD * c;
             if (hullTopInTheWay(posL[i], posY[i], posD[i],
@@ -2347,10 +2416,13 @@ public final class FlockEngine {
                 float axisSpeed = patrol * (startled[i] ? STARTLE_ENTER_SPEED : ENTER_SPEED);
                 // A startled fish dashes, planning its arrival so it reaches the staging point at
                 // its entry speed: the fastest speed from which STARTLE_BRAKE stops it in time.
+                boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
                 float dash = startled[i]
                         ? Math.min(STARTLE_DASH_SPEED * patrolScale[i],
                                 axisSpeed + (float) Math.sqrt(2f * STARTLE_BRAKE * dist))
-                        : patrol;
+                        : home ? patrol
+                        : Math.min(patrol * VISIT_APPROACH_SPEED,
+                                axisSpeed + (float) Math.sqrt(2f * VISIT_BRAKE * dist));
                 float seek = dist > 1e-5f ? dash / dist : 0f;
                 out[0] = tl * seek * (1f - near) + (nL * axisSpeed - pL * CORRIDOR_GAIN) * near;
                 out[1] = ty * seek * (1f - near) + (nY * axisSpeed - pY * CORRIDOR_GAIN) * near;
