@@ -42,6 +42,7 @@ public final class HeadlessRunner {
         int stripEvery = 1_000;  // one strip frame per N ticks
         Path outDir = Path.of("build", "sim-export");
         boolean heatmap = true;
+        String cast = "mixed";
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -52,6 +53,7 @@ public final class HeadlessRunner {
                 case "--gif-ticks" -> gifTicks = Integer.parseInt(args[++i]);
                 case "--out" -> outDir = Path.of(args[++i]);
                 case "--no-heatmap" -> heatmap = false;
+                case "--cast" -> cast = args[++i];
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
         }
@@ -60,7 +62,7 @@ public final class HeadlessRunner {
         // Box = the single-tank parity set; voxel domains = the multi-tank canonical set.
         Tunables tunables = domainName.equals("box") ? Tunables.DEFAULT : Tunables.GROUP;
         FlockEngine engine = new FlockEngine(tunables);
-        FishSpec[] specs = Scenarios.specs(fish, seed);
+        FishSpec[] specs = Scenarios.cast(cast, fish, seed);
         if (domainName.equals("box")) {
             engine.rebuild(specs, seed, 0f, 3, 0.35f, 0.3f, 20f);
         } else {
@@ -70,7 +72,7 @@ public final class HeadlessRunner {
         FrameRenderer renderer = new FrameRenderer(120, heatmap, true);
         Metrics metrics = new Metrics(engine, tunables, 200);
 
-        String tag = domainName + "-n" + fish + "-s" + seed;
+        String tag = domainName + (cast.equals("mixed") ? "" : "-" + cast) + "-n" + fish + "-s" + seed;
 
         // Trajectory capture (positions every tick) + strip frames + tail-end GIF frames.
         float[][] trailL = new float[engine.count()][ticks];
@@ -79,12 +81,18 @@ public final class HeadlessRunner {
         java.util.List<BufferedImage> stripFrames = new java.util.ArrayList<>();
         int gifStart = Math.max(0, ticks - gifTicks);
 
+        // The first fish to make a whole shelter visit, filmed from the start of its approach to
+        // the end of its exit (docs/fish-shelters.md §10) — a sheet to read, where the GIF is to
+        // watch. Empty when the domain has no shelters or nobody visits.
+        VisitFilm visit = new VisitFilm(engine.count());
+
         File gifFile = outDir.resolve(tag + ".gif").toFile();
         try (FileImageOutputStream gifOut = new FileImageOutputStream(gifFile)) {
             GifSequenceWriter gif = null;
             for (int t = 0; t < ticks; t++) {
                 engine.step();
                 metrics.sample();
+                visit.observe(engine, renderer, tunables, t);
                 for (int i = 0; i < engine.count(); i++) {
                     trailL[i][t] = engine.posL()[i];
                     trailY[i][t] = engine.posY()[i];
@@ -107,6 +115,10 @@ public final class HeadlessRunner {
         writePng(trajectoryPlot(renderer, engine, tunables, FrameRenderer.View.TOP, trailL, trailY, trailD),
                 outDir.resolve(tag + "-trajectory-top.png"));
         writePng(strip(stripFrames), outDir.resolve(tag + "-strip.png"));
+        if (visit.done()) {
+            writePng(visit.sheet(), outDir.resolve(tag + "-visit.png"));
+            System.out.println("Visit sheet: fish " + visit.fish + ", " + visit.frames.size() + " frames");
+        }
         Files.writeString(outDir.resolve(tag + "-metrics.csv"),
                 Metrics.csvHeader() + "\n" + metrics.csvRow() + "\n");
 
@@ -157,6 +169,72 @@ public final class HeadlessRunner {
             g.dispose();
         }
         return out;
+    }
+
+    /**
+     * Films one whole visit: the first fish to go from ROAMING into APPROACH and on through to
+     * INSIDE, a frame every {@link #EVERY} ticks until it is ROAMING again. An approach that
+     * times out is discarded and the next one filmed instead.
+     */
+    private static final class VisitFilm {
+        static final int EVERY = 10, COLUMNS = 6, MAX_FRAMES = 60;
+        final int[] prev;
+        final java.util.List<BufferedImage> frames = new java.util.ArrayList<>();
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        int fish = -1;
+        boolean reachedInside, finished;
+
+        VisitFilm(int n) {
+            prev = new int[n];
+        }
+
+        boolean done() {
+            return finished;
+        }
+
+        void observe(FlockEngine engine, FrameRenderer renderer, Tunables tunables, int tick) {
+            if (finished) return;
+            for (int i = 0; i < engine.count(); i++) {
+                int st = engine.shelterState(i);
+                if (fish < 0 && st == FlockEngine.SHELTER_APPROACH && prev[i] == FlockEngine.SHELTER_ROAMING) fish = i;
+                prev[i] = st;
+            }
+            if (fish < 0) return;
+            int st = engine.shelterState(fish);
+            if (st == FlockEngine.SHELTER_INSIDE) reachedInside = true;
+            if (st == FlockEngine.SHELTER_ROAMING) {
+                if (reachedInside) {
+                    finished = true;
+                } else { // timed out on the way: film the next one
+                    fish = -1;
+                    frames.clear();
+                    labels.clear();
+                }
+                return;
+            }
+            if (tick % EVERY == 0 && frames.size() < MAX_FRAMES) {
+                frames.add(renderer.render(engine, tunables, FrameRenderer.View.SIDE));
+                labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit"}[st]);
+            }
+        }
+
+        BufferedImage sheet() {
+            int w = frames.get(0).getWidth(), h = frames.get(0).getHeight();
+            int rows = (frames.size() + COLUMNS - 1) / COLUMNS;
+            BufferedImage out = new BufferedImage(w * COLUMNS, h * rows, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = out.createGraphics();
+            try {
+                for (int k = 0; k < frames.size(); k++) {
+                    int x = (k % COLUMNS) * w, y = (k / COLUMNS) * h;
+                    g.drawImage(frames.get(k), x, y, null);
+                    g.setColor(new Color(255, 230, 120));
+                    g.drawString("fish " + fish + " · " + labels.get(k), x + 6, y + h - 6);
+                }
+            } finally {
+                g.dispose();
+            }
+            return out;
+        }
     }
 
     private static void writePng(BufferedImage image, Path path) throws IOException {

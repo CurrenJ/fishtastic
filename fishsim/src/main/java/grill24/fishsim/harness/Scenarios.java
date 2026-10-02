@@ -2,6 +2,7 @@ package grill24.fishsim.harness;
 
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
+import grill24.fishsim.core.ShelterUse;
 import grill24.fishsim.domain.Shelter;
 import grill24.fishsim.domain.VoxelDomain;
 
@@ -23,6 +24,37 @@ public final class Scenarios {
             specs[i] = new FishSpec(0.06f + r.nextFloat() * 0.2f, Locomotion.FREE_SWIM, r.nextBoolean(), r.nextInt(3));
         }
         return specs;
+    }
+
+    /**
+     * A shoal of clown loaches (0.26 blocks, give or take a little) that visit shelters — the
+     * Phase 2 acceptance cast (docs/fish-shelters.md §9).
+     */
+    public static FishSpec[] loaches(int n, long seed) {
+        Random r = new Random(seed * 31 + n);
+        FishSpec[] specs = new FishSpec[n];
+        for (int i = 0; i < n; i++) {
+            specs[i] = new FishSpec(0.24f + r.nextFloat() * 0.04f, Locomotion.FREE_SWIM, r.nextBoolean(), 1,
+                    ShelterUse.VISITOR);
+        }
+        return specs;
+    }
+
+    /** {@link #specs}, every fish a shelter visitor — sizes from a goby's to a loach's. */
+    public static FishSpec[] visitors(int n, long seed) {
+        FishSpec[] specs = specs(n, seed);
+        for (int i = 0; i < n; i++) specs[i] = specs[i].withShelterUse(ShelterUse.VISITOR);
+        return specs;
+    }
+
+    /** A named cast: {@code mixed} ({@link #specs}), {@code visitors} or {@code loaches}. */
+    public static FishSpec[] cast(String name, int n, long seed) {
+        return switch (name) {
+            case "mixed" -> specs(n, seed);
+            case "visitors" -> visitors(n, seed);
+            case "loaches" -> loaches(n, seed);
+            default -> throw new IllegalArgumentException("Unknown cast: " + name);
+        };
     }
 
     /** Named domain occupancies: {@code L}, {@code 2x2slab}, or {@code WxHxD} full grids. */

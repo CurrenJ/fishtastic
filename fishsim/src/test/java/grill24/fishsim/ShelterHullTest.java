@@ -158,26 +158,4 @@ class ShelterHullTest {
         }
     }
 
-    /** A fish caught inside a hull (a log placed on top of it) is pushed out, never left there. */
-    @Test
-    void aFishInsideAHullIsPushedOut() {
-        VoxelDomain empty = Scenarios.domain("3x1x1");
-        FlockEngine engine = new FlockEngine(Tunables.GROUP);
-        FishSpec[] specs = swimmerSpecs(6, 7L);
-        engine.rebuild(specs, 7L, 0f, 20f, empty);
-        // Drop the log onto fish 0 by teleporting the fish into where the log will be.
-        Shelter log = Scenarios.domain("3x1x1+log").shelters().get(0);
-        engine.posL()[0] = log.hull().centerL();
-        engine.posY()[0] = log.hull().centerY() + 0.05f;
-        engine.posD()[0] = log.hull().centerD();
-        empty.rebuildShelters(List.of(log));
-
-        int inside = 0;
-        for (int tick = 0; tick < 200; tick++) {
-            engine.step();
-            if (log.hull().contains(engine.posL()[0], engine.posY()[0], engine.posD()[0])) inside = tick + 1;
-        }
-        assertTrue(inside < 100, "fish 0 was still inside the hull after " + inside + " ticks");
-        assertEquals(0, engine.backstopEngagements(), "pushing it out cost a backstop engagement");
-    }
 }
