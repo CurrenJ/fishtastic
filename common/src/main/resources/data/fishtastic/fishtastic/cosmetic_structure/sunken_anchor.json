@@ -1,0 +1,273 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 0,
+      "dz": 1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "powered": "false",
+          "open": "false",
+          "half": "bottom",
+          "facing": "east"
+        },
+        "Name": "minecraft:iron_trapdoor"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:raw_iron_block"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetX": -0.2914286
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true"
+        },
+        "Name": "minecraft:fire_coral"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "true"
+        },
+        "Name": "minecraft:tube_coral_fan"
+      },
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      }
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:raw_iron_block"
+      },
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:dark_oak_log"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:dark_oak_log"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:dark_oak_log"
+      },
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:dark_oak_log"
+      },
+      "offsetY": 5.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:dark_oak_log"
+      },
+      "offsetY": 5.0,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "y"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetY": 7.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetX": 0.2914286
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "y"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "z"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "z"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:raw_iron_block"
+      },
+      "offsetX": 0.5828572
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "x"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetX": 0.5828572,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:iron_block"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "axis": "x"
+        },
+        "Name": "minecraft:iron_chain"
+      },
+      "offsetX": 0.8742858,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "powered": "false",
+          "open": "false",
+          "half": "bottom",
+          "facing": "west"
+        },
+        "Name": "minecraft:iron_trapdoor"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 3.0
+    }
+  ],
+  "scale": 0.085
+}

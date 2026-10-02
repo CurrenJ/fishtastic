@@ -1,0 +1,7 @@
+{
+  "display_name": "Amethyst Geode",
+  "description": "A basalt geode split open on a heart of glowing amethyst, for your fish tank.",
+  "cost": 40,
+  "reward": [{ "id": "fishtastic:cosmetic_amethyst_geode", "count": 1 }],
+  "daily_max_purchases": 1
+}

@@ -1,0 +1,7 @@
+{
+  "display_name": "Lighthouse",
+  "description": "A red-and-white lighthouse on a dark rock, its lamp still burning, for your fish tank.",
+  "cost": 30,
+  "reward": [{ "id": "fishtastic:cosmetic_lighthouse", "count": 1 }],
+  "daily_max_purchases": 1
+}

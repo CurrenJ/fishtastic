@@ -1,0 +1,7 @@
+{
+  "display_name": "Torii Gate",
+  "description": "A vermilion gate with a moss-touched black lintel for your fish to swim beneath, for your fish tank.",
+  "cost": 35,
+  "reward": [{ "id": "fishtastic:cosmetic_torii_gate", "count": 1 }],
+  "daily_max_purchases": 1
+}

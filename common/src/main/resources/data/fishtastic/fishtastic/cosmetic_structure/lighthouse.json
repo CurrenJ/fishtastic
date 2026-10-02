@@ -1,0 +1,1109 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.61714286,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.61714286
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.61714286,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:cobbled_deepslate_slab"
+      },
+      "offsetX": -0.61714286,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.41142857,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:cobbled_deepslate_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 8.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.20571429,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": -0.20571429,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 1.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 1.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 2.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 2.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 3.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 3.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 4.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 4.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 5.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 5.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 6.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 6.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 7.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 7.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 7.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 8.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:polished_blackstone_wall"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 9.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:glowstone"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 9.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:polished_blackstone_wall"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 9.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 10.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 10.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": -0.20571429,
+      "offsetY": 10.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:cobbled_deepslate_slab"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 2.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 3.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetY": 4.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 5.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 6.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetY": 6.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetY": 7.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetY": 7.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetY": 8.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetY": 8.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetY": 8.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetY": 8.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:glowstone"
+      },
+      "offsetY": 9.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:glowstone"
+      },
+      "offsetY": 9.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetY": 10.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_nether_bricks"
+      },
+      "offsetY": 10.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetY": 10.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "powered": "false",
+          "facing": "up"
+        },
+        "Name": "minecraft:lightning_rod"
+      },
+      "offsetY": 11.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.20571429,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.20571429,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 1.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 1.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 2.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 2.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 3.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 3.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 4.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 4.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 5.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 5.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 6.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 6.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:white_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 6.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 7.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 7.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:red_concrete"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 7.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 8.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:polished_blackstone"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 8.0,
+      "offsetZ": 0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:polished_blackstone_wall"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 9.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:glowstone"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 9.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "west": "none",
+          "waterlogged": "false",
+          "up": "true",
+          "south": "none",
+          "north": "none",
+          "east": "none"
+        },
+        "Name": "minecraft:polished_blackstone_wall"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 9.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 10.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 10.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:red_nether_brick_slab"
+      },
+      "offsetX": 0.20571429,
+      "offsetY": 10.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:cobbled_deepslate_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:cobbled_deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 1.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 2.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:deepslate"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": -0.41142857
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": -0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 8.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": 0.20571429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "top"
+        },
+        "Name": "minecraft:polished_blackstone_slab"
+      },
+      "offsetX": 0.41142857,
+      "offsetY": 8.0,
+      "offsetZ": 0.41142857
+    }
+  ],
+  "scale": 0.06
+}

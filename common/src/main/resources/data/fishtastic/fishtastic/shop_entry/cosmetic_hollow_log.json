@@ -1,0 +1,7 @@
+{
+  "display_name": "Hollow Log",
+  "description": "A mossy fallen log, hollow enough for a shy fish to hide in, for your fish tank.",
+  "cost": 30,
+  "reward": [{ "id": "fishtastic:cosmetic_hollow_log", "count": 1 }],
+  "daily_max_purchases": 1
+}
