@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,10 +40,17 @@ import java.util.Optional;
  * {@code scale} from the box's interior corner on the sand (see {@link SpanStructures}). Such a
  * structure's floor footprint is derived from its lowest parts, so {@code footprint_cells} is
  * ignored. Placement, storage and rendering across the box live in {@link SpanStructures}.
+ * <p>
+ * <b>Shelters.</b> With a {@code shelter} the structure has a hollow fish can swim into
+ * (docs/fish-shelters.md §3): {@code interior} lists the build-grid cells of the hollow (the
+ * integer grid the parts were captured on, before {@code scale}, facing south — for a span, the
+ * box's own build grid). Mouths, hull and run are derived from those cells and the parts by
+ * {@link ShelterGeometry}, and a hollow with no way out fails validation. Rotation follows the
+ * parts: the stored shelter is unrotated and turns with the structure at placement.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                                  CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
-                                 Optional<Span> span) {
+                                 Optional<Span> span, Optional<ShelterSpec> shelter) {
 
     /** The box of tanks a spanning structure fills: {@code x} long, {@code z} deep, {@code y} storeys, as authored (facing south). */
     public record Span(int x, int y, int z) {
@@ -53,17 +61,66 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         ).apply(i, Span::new));
     }
 
+    /**
+     * The authored half of a shelter: the hollow's cells and, optionally, how many fish it holds
+     * at once (default {@link ShelterGeometry#defaultCapacity}).
+     */
+    public record ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity) {
+        private static final Codec<ShelterGeometry.Cell> CELL_CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.INT.fieldOf("x").forGetter(ShelterGeometry.Cell::x),
+                Codec.INT.fieldOf("y").forGetter(ShelterGeometry.Cell::y),
+                Codec.INT.fieldOf("z").forGetter(ShelterGeometry.Cell::z)
+        ).apply(i, ShelterGeometry.Cell::new));
+
+        public static final Codec<ShelterSpec> CODEC = RecordCodecBuilder.create(i -> i.group(
+                CELL_CODEC.listOf().fieldOf("interior").forGetter(ShelterSpec::interior),
+                Codec.intRange(1, 64).optionalFieldOf("capacity").forGetter(ShelterSpec::capacity)
+        ).apply(i, ShelterSpec::new));
+
+        public int capacityOrDefault() {
+            return capacity.orElseGet(() -> ShelterGeometry.defaultCapacity(interior.size()));
+        }
+    }
+
     /** Identity item-icon transform: auto-fit only, no authored position/scale/rotation nudge. */
     private static final CosmeticTransforms.Transform ITEM_ICON_DEFAULT =
             new CosmeticTransforms.Transform(0f, 0f, 0f, 0f, 0f, 0f, 1f);
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale) {
-        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false, Optional.empty());
+        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false, Optional.empty(), Optional.empty());
     }
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                              CosmeticTransforms.Transform itemIcon) {
-        this(footprintCells, parts, scale, itemIcon, false, Optional.empty());
+        this(footprintCells, parts, scale, itemIcon, false, Optional.empty(), Optional.empty());
+    }
+
+    /** This structure with its hollow marked as a shelter. */
+    public CosmeticStructure withShelter(Optional<ShelterSpec> shelter) {
+        return new CosmeticStructure(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelter);
+    }
+
+    /**
+     * Each part's cell in the build grid — the inverse of how capture laid the parts out. A span's
+     * offsets are already build blocks; a floor structure's horizontal offsets were compressed by
+     * {@code scale / CELL_WIDTH} at capture (see {@code CosmeticCommand.capture}) and are expanded
+     * back, while its {@code offsetY} was never compressed.
+     */
+    public List<ShelterGeometry.Cell> partCells() {
+        float xzRatio = span.isPresent() ? 1f : scale / (float) CosmeticGridCell.CELL_WIDTH;
+        List<ShelterGeometry.Cell> cells = new ArrayList<>(parts.size());
+        for (StructurePart part : parts) {
+            cells.add(new ShelterGeometry.Cell(Math.round(part.offsetX() / xzRatio),
+                    Math.round(part.offsetY()), Math.round(part.offsetZ() / xzRatio)));
+        }
+        return cells;
+    }
+
+    /** The derived shape of this structure's shelter, or empty when it has none (or it fails validation). */
+    public Optional<ShelterGeometry.Shape> shelterShape() {
+        return shelter.map(spec -> ShelterGeometry.derive(spec.interior(), partCells()))
+                .filter(ShelterGeometry.Result::ok)
+                .map(ShelterGeometry.Result::shape);
     }
 
     public record GridOffset(int dx, int dz) {
@@ -99,7 +156,8 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             Codec.FLOAT.optionalFieldOf("scale", (float) CosmeticGridCell.CELL_WIDTH).forGetter(CosmeticStructure::scale),
             CosmeticTransforms.Transform.MAP_CODEC.codec().optionalFieldOf("item_icon", ITEM_ICON_DEFAULT).forGetter(CosmeticStructure::itemIcon),
             Codec.BOOL.optionalFieldOf("bypass_anchor_cell_requirement", false).forGetter(CosmeticStructure::bypassAnchorCellRequirement),
-            Span.CODEC.optionalFieldOf("span").forGetter(CosmeticStructure::span)
+            Span.CODEC.optionalFieldOf("span").forGetter(CosmeticStructure::span),
+            ShelterSpec.CODEC.optionalFieldOf("shelter").forGetter(CosmeticStructure::shelter)
     ).apply(i, CosmeticStructure::new));
 
     public static final Codec<CosmeticStructure> CODEC = RAW_CODEC.flatXmap(
@@ -108,6 +166,10 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
     );
 
     private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
+        if (structure.shelter.isPresent()) {
+            ShelterGeometry.Result shelter = ShelterGeometry.derive(structure.shelter.get().interior(), structure.partCells());
+            if (!shelter.ok()) return DataResult.error(shelter::error);
+        }
         if (structure.span.isPresent()) return SpanStructures.validate(structure);
         if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {
             return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)"

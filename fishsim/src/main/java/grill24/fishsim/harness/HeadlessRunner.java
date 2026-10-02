@@ -3,7 +3,6 @@ package grill24.fishsim.harness;
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
-import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishsim.render.FrameRenderer;
 
 import javax.imageio.ImageIO;
@@ -65,7 +64,7 @@ public final class HeadlessRunner {
         if (domainName.equals("box")) {
             engine.rebuild(specs, seed, 0f, 3, 0.35f, 0.3f, 20f);
         } else {
-            engine.rebuild(specs, seed, 0f, 20f, new VoxelDomain(Scenarios.occupancy(domainName)));
+            engine.rebuild(specs, seed, 0f, 20f, Scenarios.domain(domainName));
         }
 
         FrameRenderer renderer = new FrameRenderer(120, heatmap, true);

@@ -2,6 +2,8 @@ package grill24.fishsim.domain;
 
 import grill24.fishsim.core.SimMath;
 
+import java.util.List;
+
 /**
  * The volume fish are simulated within, expressed in tank-local coordinates:
  *
@@ -42,6 +44,16 @@ public interface FlockDomain {
      * creatures, ignored entirely by swimmers.
      */
     FloorField floor();
+
+    /**
+     * The shelters in this domain, in its own frame (docs/fish-shelters.md §3). Empty unless the
+     * host supplied some: a lone tank's {@link Box} never has any, because the bitwise-locked
+     * binary model cannot use them — a lone tank that needs its shelters is promoted to a
+     * one-block {@link VoxelDomain} instead.
+     */
+    default List<Shelter> shelters() {
+        return List.of();
+    }
 
     /** Whether the point lies inside the swimmable interior. */
     boolean contains(float l, float y, float d);
