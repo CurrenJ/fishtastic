@@ -47,12 +47,20 @@ public final class Scenarios {
         return specs;
     }
 
-    /** A named cast: {@code mixed} ({@link #specs}), {@code visitors} or {@code loaches}. */
+    /** {@link #loaches} that bolt for cover when the watcher walks up — think neon tetras. */
+    public static FishSpec[] skittish(int n, long seed) {
+        FishSpec[] specs = loaches(n, seed);
+        for (int i = 0; i < n; i++) specs[i] = specs[i].withShelterUse(ShelterUse.SKITTISH);
+        return specs;
+    }
+
+    /** A named cast: {@code mixed} ({@link #specs}), {@code visitors}, {@code loaches} or {@code skittish}. */
     public static FishSpec[] cast(String name, int n, long seed) {
         return switch (name) {
             case "mixed" -> specs(n, seed);
             case "visitors" -> visitors(n, seed);
             case "loaches" -> loaches(n, seed);
+            case "skittish" -> skittish(n, seed);
             default -> throw new IllegalArgumentException("Unknown cast: " + name);
         };
     }
