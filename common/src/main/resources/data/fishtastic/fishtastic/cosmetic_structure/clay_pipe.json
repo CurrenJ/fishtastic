@@ -1,0 +1,598 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": -1
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 1
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": -0.9257143,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": -0.3085714,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      }
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:terracotta"
+      },
+      "offsetX": 0.3085714,
+      "offsetY": 3
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 1,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 1,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2,
+      "offsetZ": 0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3,
+      "offsetZ": -0.3085714
+    },
+    {
+      "state": {
+        "Name": "minecraft:brown_terracotta"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 3
+    }
+  ],
+  "scale": 0.09,
+  "shelter": {
+    "interior": [
+      {
+        "x": -3,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": -3,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": -3,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": -3,
+        "y": 2,
+        "z": 0
+      },
+      {
+        "x": -2,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": -2,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": -2,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": -2,
+        "y": 2,
+        "z": 0
+      },
+      {
+        "x": -1,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": -1,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": -1,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": -1,
+        "y": 2,
+        "z": 0
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "z": 0
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "z": 0
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "z": -1
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "z": 0
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "z": -1
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "z": 0
+      }
+    ],
+    "capacity": 2
+  }
+}

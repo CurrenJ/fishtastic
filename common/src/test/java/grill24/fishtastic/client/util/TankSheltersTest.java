@@ -8,6 +8,8 @@ import grill24.fishsim.domain.Shelter;
 import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.SpanStructures;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.ShelterGeometry;
 import net.minecraft.world.level.block.Rotation;
@@ -88,6 +90,84 @@ class TankSheltersTest {
             assertFalse(s.interior().contains(closedEnd[0], closedEnd[1], closedEnd[2]), rotation + " closed end in interior");
             assertTrue(s.hull().contains(closedEnd[0], closedEnd[1], closedEnd[2]), rotation + " closed end outside hull");
             assertEquals(3 * SCALE, s.interiorRun(), EPS);
+        }
+    }
+
+    /** The Whale Fall's box: 4 long, 2 storeys, 2 deep, at 0.125 blocks a build cell. */
+    private static final float WHALE_SCALE = 0.125f;
+    private static final float WALL = 1f / 16f;
+
+    private static final CosmeticStructure.Span WHALE_BOX = new CosmeticStructure.Span(4, 2, 2);
+
+    /**
+     * Build cell {@code (bx, bz)}'s centre by {@link SpanStructures}' documented contract, not its
+     * formula: authored facing south, a cell's min corner sits {@code bx·scale} from the box's
+     * interior west wall and {@code bz·scale} from its north wall, and a rotation turns the whole
+     * layout about the box's centre (the renderer's own {@link CosmeticStructures#rotateOffset}).
+     */
+    private static float[] spanCellCentre(int bx, int bz, Rotation rotation) {
+        CosmeticStructure.Span span = WHALE_BOX;
+        CosmeticStructure.Span turned = SpanStructures.rotated(span, rotation);
+        float fromCentreX = WALL + (bx + 0.5f) * WHALE_SCALE - span.x() / 2f;
+        float fromCentreZ = WALL + (bz + 0.5f) * WHALE_SCALE - span.z() / 2f;
+        float[] r = CosmeticStructures.rotateOffset(rotation, fromCentreX, fromCentreZ);
+        return new float[]{turned.x() / 2f + r[0], turned.z() / 2f + r[1]};
+    }
+
+    /**
+     * A spanning structure's build origin puts every build cell where its parts are drawn, at each
+     * rotation: the far corners and a cell in the middle of the whale's 31 x 15 grid.
+     */
+    @Test
+    void aSpanShelterSitsWhereItsPartsAre() {
+        int[][] cells = {{0, 0}, {30, 14}, {6, 3}, {6, 11}, {17, 7}};
+        for (Rotation rotation : Rotation.values()) {
+            float[] origin = SpanStructures.buildOrigin(WHALE_BOX, WHALE_SCALE, rotation);
+            for (int[] c : cells) {
+                float[] r = CosmeticStructures.rotateOffset(rotation, c[0], c[1]);
+                float[] want = spanCellCentre(c[0], c[1], rotation);
+                assertEquals(want[0], origin[0] + r[0] * WHALE_SCALE, EPS, rotation + " cell " + c[0] + "," + c[1] + " x");
+                assertEquals(want[1], origin[1] + r[1] * WHALE_SCALE, EPS, rotation + " cell " + c[0] + "," + c[1] + " z");
+            }
+        }
+    }
+
+    /**
+     * The whale's skull, mapped at each rotation: each eye mouth sits halfway between its socket
+     * and the hollow cell behind it, where the bone around the socket is drawn, and points in.
+     */
+    @Test
+    void theWhalesEyesLandOnItsSockets() {
+        // A 1x2 hollow across z = 4..10 at x = 6, open through sockets at z = 3 and z = 11.
+        Set<ShelterGeometry.Cell> hollow = new HashSet<>();
+        for (int z = 4; z <= 10; z++) for (int y = 1; y <= 2; y++) hollow.add(cell(6, y, z));
+        Set<ShelterGeometry.Cell> parts = new HashSet<>();
+        for (int x = 5; x <= 7; x++)
+            for (int y = 0; y <= 3; y++)
+                for (int z = 3; z <= 11; z++) {
+                    ShelterGeometry.Cell c = cell(x, y, z);
+                    boolean socket = x == 6 && (y == 1 || y == 2) && (z == 3 || z == 11);
+                    if (!hollow.contains(c) && !socket) parts.add(c);
+                }
+        ShelterGeometry.Result result = ShelterGeometry.derive(hollow, parts);
+        assertTrue(result.ok(), result.error());
+        for (Rotation rotation : Rotation.values()) {
+            float[] origin = SpanStructures.buildOrigin(WHALE_BOX, WHALE_SCALE, rotation);
+            Shelter s = TankShelters.inBlockFrame(result.shape(), 3, WHALE_SCALE, origin[0], origin[1], rotation);
+            assertEquals(2, s.mouths().size(), rotation + " mouths");
+            for (int[] eye : new int[][]{{3, 4}, {11, 10}}) {
+                float[] socket = spanCellCentre(6, eye[0], rotation), behind = spanCellCentre(6, eye[1], rotation);
+                float midX = (socket[0] + behind[0]) / 2f, midZ = (socket[1] + behind[1]) / 2f;
+                boolean found = false;
+                for (Shelter.Mouth m : s.mouths()) {
+                    if (Math.abs(m.centerL() - midX) > EPS || Math.abs(m.centerD() - midZ) > EPS) continue;
+                    found = true;
+                    assertEquals((behind[0] - socket[0]) / WHALE_SCALE, m.normalL(), EPS, rotation + " normal x");
+                    assertEquals((behind[1] - socket[1]) / WHALE_SCALE, m.normalD(), EPS, rotation + " normal z");
+                    assertEquals(CosmeticGridCell.FLOOR_Y + 2f * WHALE_SCALE, m.centerY(), EPS, rotation + " eye height");
+                }
+                assertTrue(found, rotation + ": no mouth at the socket at z = " + eye[0] + "; mouths " + s.mouths());
+            }
         }
     }
 
