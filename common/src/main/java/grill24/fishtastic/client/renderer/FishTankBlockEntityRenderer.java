@@ -339,6 +339,13 @@ public class FishTankBlockEntityRenderer
         FlockEngine eng = flock.engine();
         int n = flock.count();
         int[] order = eng.order;
+        // A lone tank promoted to the planar model (it holds a shelter and a fish that uses it,
+        // docs/fish-shelters.md §7) is posed as a group's fish are — continuous yaw, no mirror —
+        // but in the tank's own turned frame, so the frame's turn is added to every yaw. Its
+        // vertical is the engine's own, measured from the item baseline like the shelters it
+        // swims into, with no sand-layer nudge.
+        boolean planar = eng.planar();
+        float frameYaw = planar ? eng.frameYawDeg() : 0f;
 
         for (int k = 0; k < n; k++) {
             int i = order[k];
@@ -346,7 +353,9 @@ public class FishTankBlockEntityRenderer
 
             float scale = eng.lengths[i];
             FishAnimationConfig anim = flock.anims[i];
-            float baseY = computeBaseY(anim, state.hasOpenDownFace, scale);
+            float baseY = planar && !isFloorAnchored(anim)
+                    ? ITEM_POSITION_OFFSET.y()
+                    : computeBaseY(anim, state.hasOpenDownFace, scale);
             // Swarm's yRange jitter is an absolute world-space offset meant to spread swimmers
             // across a water column — it says nothing about an anchored creature's own size, so
             // applying it there sinks/floats them relative to the sand by a fixed amount that's
@@ -370,7 +379,10 @@ public class FishTankBlockEntityRenderer
             // the pre-fix `heading < 0` mapping rendered every swimmer facing backwards), so a
             // fish travelling +lateral is the one that needs the 180° mirror.
             boolean mirrored = eng.swimmers[i] ? eng.heading[i] > 0f : eng.hoverMirrored[i];
-            if (eng.swimmers[i]) {
+            if (eng.swimmers[i] && planar) {
+                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
+                        eng.renderPhase[i], eng.renderYaw[i] + frameYaw + 180f, false, eng.speedFactor(i), eng.bank[i]);
+            } else if (eng.swimmers[i]) {
                 // Simulated swimmers animate on the engine's speed-integrated clock, not game
                 // time — that's what couples tail-beat frequency to swim speed without the
                 // phase-teleport jitter of scaling the sine frequency per frame.
@@ -379,10 +391,10 @@ public class FishTankBlockEntityRenderer
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 // A crawler faces where it is walking. The +180° is the same mapping the group
                 // swimmers use: the sprite's nose points along −lateral at rotation 0.
-                FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + frameYaw + 180f,
                         eng.baseRotations[i], scale, false, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.GLIDE) {
-                FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
+                FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + frameYaw + 180f,
                         eng.bankFraction(i), eng.baseRotations[i], scale, false);
             } else if (eng.locomotion[i] == Locomotion.DRIFT) {
                 // The bell contracts on the engine's own pulse rather than on a clock of its own;

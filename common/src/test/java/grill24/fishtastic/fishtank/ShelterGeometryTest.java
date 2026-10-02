@@ -136,12 +136,13 @@ class ShelterGeometryTest {
     }
 
     /**
-     * The shipped Hollow Log, read from its datapack file: its 2×2 bore opens at the high-x end.
-     * Guards {@code partCells}' undoing of capture's horizontal compression, which every other case
-     * here skips by building cells directly.
+     * The shipped Hollow Log, read from its datapack file with the interior it ships with: its
+     * 2×2 bore opens at the high-x end, and a gap in the roof above the bore's closed end is a
+     * second, upward mouth. Guards {@code partCells}' undoing of capture's horizontal
+     * compression, which every other case here skips by building cells directly.
      */
     @Test
-    void theHollowLogBoreOpensAtItsEnd() throws IOException {
+    void theHollowLogOpensAtItsEndAndThroughItsRoof() throws IOException {
         Path file = Path.of("src/main/resources/data/fishtastic/fishtastic/cosmetic_structure/hollow_log.json");
         JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
         float scale = json.get("scale").getAsFloat();
@@ -153,17 +154,28 @@ class ShelterGeometryTest {
                     Math.round(get(p, "offsetZ") / xzRatio)));
         }
         List<ShelterGeometry.Cell> bore = new ArrayList<>();
-        for (int x = 0; x <= 2; x++) for (int y = 1; y <= 2; y++) for (int z = -1; z <= 0; z++) bore.add(c(x, y, z));
+        for (JsonElement e : json.getAsJsonObject("shelter").getAsJsonArray("interior")) {
+            JsonObject cell = e.getAsJsonObject();
+            bore.add(c(cell.get("x").getAsInt(), cell.get("y").getAsInt(), cell.get("z").getAsInt()));
+        }
+        assertEquals(20, bore.size(), "a 5-long, 2×2 bore");
 
         ShelterGeometry.Result result = ShelterGeometry.derive(bore, parts);
         assertTrue(result.ok(), result.error());
-        ShelterGeometry.Mouth end = null;
-        for (ShelterGeometry.Mouth m : result.shape().mouths()) {
+        List<ShelterGeometry.Mouth> mouths = result.shape().mouths();
+        assertEquals(2, mouths.size(), "mouths: " + mouths);
+
+        ShelterGeometry.Mouth end = null, roof = null;
+        for (ShelterGeometry.Mouth m : mouths) {
             if (m.outward()[0] == 1) end = m;
+            if (m.outward()[1] == 1) roof = m;
         }
-        assertNotNull(end, "no mouth at the open end: " + result.shape().mouths());
+        assertNotNull(end, "no mouth at the open end");
         assertEquals(2, end.span(1));
         assertEquals(2, end.span(2));
+        assertNotNull(roof, "no mouth through the roof");
+        assertEquals(-2, roof.min().x(), "the roof gap is over the closed end");
+        assertEquals(5, result.shape().interiorRun());
     }
 
     private static float get(JsonObject o, String key) {
