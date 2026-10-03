@@ -1672,7 +1672,11 @@ public final class RenderSelfTest {
     private static void queueCosmeticPreviewScene() {
         List<String> names = params("cosmetic");
         check("cosmeticpreview.names", !names.isEmpty(), "marker names " + names);
+        // reactionOpen=<0..1>: every reaction held that far open (docs/fish-shelters.md §12.13), orbits suffixed _open.
+        float open = Float.parseFloat(param("reactionOpen", "-1"));
+        String suffix = open >= 0f ? "_open" : "";
         queue(1, mc -> {
+            grill24.fishtastic.client.util.ClientCosmeticReactions.forcedOpenness = open;
             savedRenderDistance = mc.options.renderDistance().get();
             mc.options.renderDistance().set(3);
             mc.options.hideGui = true;
@@ -1725,7 +1729,7 @@ public final class RenderSelfTest {
                 }
             }));
             for (String[] orbit : new String[][]{{"low", "0.55"}, {"high", "1.9"}}) {
-                String capture = "preview_" + name + "_" + orbit[0];
+                String capture = "preview_" + name + "_" + orbit[0] + suffix;
                 boolean low = orbit[0].equals("low");
                 queue(40, mc -> mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit %s 8 %.2f %.2f %.2f %.2f %.2f",
                         capture, frame[3], low ? frame[4] : frame[5], frame[0], frame[1], frame[2])));
@@ -1735,6 +1739,7 @@ public final class RenderSelfTest {
             queueCosmeticItemChecks(name);
         }
         queue(10, mc -> {
+            grill24.fishtastic.client.util.ClientCosmeticReactions.forcedOpenness = -1f;
             mc.player.connection.sendCommand("cc capture fov off");
             mc.player.connection.sendCommand("cc capture size off");
             mc.options.renderDistance().set(savedRenderDistance);

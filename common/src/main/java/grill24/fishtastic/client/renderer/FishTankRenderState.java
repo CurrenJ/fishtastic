@@ -41,6 +41,8 @@ public class FishTankRenderState extends BlockEntityRenderState {
     public float spanScale = 1f;
     /** Multi-block structure cosmetics, keyed by their anchor cell. */
     public Map<CosmeticGridCell, ResolvedStructureCosmetic> structureCosmetics = Collections.emptyMap();
+    /** Per structure under way, how open each of its reactions is this frame (docs/fish-shelters.md §12.13). */
+    public Map<CosmeticGridCell, float[]> reactionOpenness = Collections.emptyMap();
     /**
      * The per-tank flock simulation driving this frame's fish. Attached in extractRenderState and
      * read by submit; the simulation state itself lives in {@link ClientTankFlocks} (keyed by block

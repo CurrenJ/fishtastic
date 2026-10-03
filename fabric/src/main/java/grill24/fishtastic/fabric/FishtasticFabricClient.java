@@ -164,6 +164,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         grill24.fishtastic.network.TankWaterFillSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setTankWaterFillEnabled(packet.enabled()));
 
+        // Dev: cosmetic reaction clock boost (/fishtastic cosmetic reactionboost)
+        grill24.fishtastic.network.ReactionBoostSyncPacket.registerClientHandler(
+                packet -> grill24.fishsim.core.FlockEngine.setTriggerRateBoost(packet.boost()));
+
         // Register tank interior light sync packet client handler
         grill24.fishtastic.network.TankInteriorLightSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));

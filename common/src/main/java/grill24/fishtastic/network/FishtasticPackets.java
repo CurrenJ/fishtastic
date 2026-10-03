@@ -172,6 +172,11 @@ public class FishtasticPackets {
                 TankInteriorLightSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
+                ReactionBoostSyncPacket.TYPE,
+                ReactionBoostSyncPacket.STREAM_CODEC,
+                ReactionBoostSyncPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
                 ReducedEffectsSyncPacket.TYPE,
                 ReducedEffectsSyncPacket.STREAM_CODEC,
                 ReducedEffectsSyncPacket::handleServerToClient
@@ -198,6 +203,7 @@ public class FishtasticPackets {
         registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
         registrar.accept(TankInteriorLightSyncPacket.TYPE, TankInteriorLightSyncPacket.STREAM_CODEC);
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
+        registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
     }
 
     /**

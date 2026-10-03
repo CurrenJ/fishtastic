@@ -4,6 +4,7 @@ import grill24.fishsim.domain.FlockDomain;
 import grill24.fishsim.domain.FloorField;
 import grill24.fishsim.domain.Shelter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -897,6 +898,60 @@ public final class FlockEngine {
     private boolean anyVisibleShelter;
     private final float[] shelterSteer = new float[3];
 
+    // ── Triggers (docs/fish-shelters.md §12.13) ─────────────────────────────
+    // A structure that reacts to a fish: a clam that opens when a fish noses its lip, a portcullis
+    // that rises for a fish. Each such shelter runs its own rare clock (§12.2); when it fires, the
+    // structure sends the nearest free fish. One reaction at a time per domain, then a rest.
+
+    /** After a reaction ends, no structure's clock may send a fish for this long, seconds. */
+    static final float TRIGGER_REFRACTORY_SECONDS = 30f;
+    /** A structure's clock sends the nearest free fish whose staging point is within this, blocks. */
+    static final float TRIGGER_REACH = 2.5f;
+    /**
+     * A fish nosing an anchor stops with its centre this share of its length out from the
+     * surface: the sprite's nose, a little short of its tip, is on the surface.
+     */
+    static final float NOSE_STANDOFF_SHARE = 0.45f;
+    /**
+     * Where the straight swim out from a nose anchor is first checked for obstacles, blocks out
+     * from the surface: the anchor sits on the structure, so the first half margin of that swim is
+     * always inside the structure's own obstacle.
+     */
+    static final float NOSE_CORRIDOR_START = HULL_MARGIN * 0.5f + 0.01f;
+    /** The narrowest a nose anchor's entry cone gets, blocks off its axis. */
+    static final float NOSE_CONE_MIN = 0.06f;
+
+    /** Something a structure does because of a fish: a reaction {@code start}s, or it ends. */
+    public record TriggerEvent(Object key, boolean start, int fish) {}
+
+    /**
+     * Multiplies every structure's trigger clock rate: 1 in play. A dev setting, for watching a
+     * reaction without waiting minutes for it.
+     */
+    private static volatile float triggerRateBoost = 1f;
+
+    public static void setTriggerRateBoost(float boost) {
+        triggerRateBoost = Math.max(0f, boost);
+    }
+
+    public static float triggerRateBoost() {
+        return triggerRateBoost;
+    }
+
+    /** Per shelter: the fish its clock has sent, or −1. */
+    private int[] triggerFish = new int[0];
+    /** Per shelter: its reaction has started (and so will be ended), for the fish it sent. */
+    private boolean[] triggerStarted = new boolean[0];
+    /** The shelter whose reaction is under way, or −1: one at a time per domain. */
+    private int triggerBusy = -1;
+    /** Seconds before any clock may send a fish again. */
+    private float triggerRefractory;
+    /** Some shelter in the domain has a trigger. */
+    private boolean anyTrigger;
+    /** The clocks' own random stream, so a trigger never shifts any fish's visit timing. */
+    private long triggerRng;
+    private final List<TriggerEvent> triggerEvents = new ArrayList<>();
+
     // A gap between a hull and the edge of the swimmable water narrower than the wall margin is
     // treated as part of the hull (see closeGaps). The wall's push covers all of such a gap, so
     // it is not water a fish can hold, and one that wandered in was squeezed against the glass:
@@ -1630,7 +1685,8 @@ public final class FlockEngine {
         if (startled[i]) return STARTLE_APPROACH_TIMEOUT_SECONDS;
         if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) return HOME_APPROACH_TIMEOUT_SECONDS;
         float speed = t.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED;
-        return Math.max(APPROACH_TIMEOUT_SECONDS, VISIT_REACH / speed + APPROACH_TIMEOUT_SLACK_SECONDS);
+        float reach = sentByTrigger(i) ? TRIGGER_REACH : VISIT_REACH;
+        return Math.max(APPROACH_TIMEOUT_SECONDS, reach / speed + APPROACH_TIMEOUT_SLACK_SECONDS);
     }
 
     /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md §5.3). */
@@ -1702,7 +1758,7 @@ public final class FlockEngine {
     private void addHullAvoidance(int i, List<Shelter> shelters, float[] out) {
         refreshAvoidHulls(shelters);
         for (int s = 0; s < avoidHulls.length; s++) {
-            if (s == shelterUsing(i) || avoidHulls[s] == null) continue;
+            if (s == shelterUsing(i) || avoidHulls[s] == null || triggerFish[s] == i) continue;
             float dist = hullDistance(avoidHulls[s], posL[i], posY[i], posD[i], hullGrad);
             if (dist >= HULL_MARGIN) continue;
             float w = Math.min((HULL_MARGIN - dist) / HULL_MARGIN, HULL_MAX_WEIGHT);
@@ -1723,9 +1779,28 @@ public final class FlockEngine {
         anyVisibleShelter = false;
         for (int s = 0; s < avoidHulls.length; s++) {
             Shelter shelter = shelters.get(s);
-            avoidHulls[s] = shelter.kind() == Shelter.Kind.GATE ? null : closeGaps(shelter.hull(), avoidHullsGap);
-            anyVisibleShelter |= !shelter.kind().hides() || (shelter.kind() == Shelter.Kind.HOLLOW && isTunnel(s));
+            // A locked gate's opening is solid while it is shut: its interior is its hull then.
+            avoidHulls[s] = shelter.kind() == Shelter.Kind.TRIGGER ? null
+                    : shelter.kind() != Shelter.Kind.GATE ? closeGaps(shelter.hull(), avoidHullsGap)
+                    : shelter.trigger() != null ? closeGaps(shelter.interior(), avoidHullsGap) : null;
+            // A trigger is never visited of a fish's own accord, so it is nothing on show.
+            if (shelter.trigger() == null) {
+                anyVisibleShelter |= !shelter.kind().hides() || (shelter.kind() == Shelter.Kind.HOLLOW && isTunnel(s));
+            }
         }
+        // A reaction under way on the old list ends; its fish is let go by the remap below.
+        for (int s = 0; s < triggerFish.length; s++) {
+            if (triggerStarted[s] && previous != null && s < previous.size() && previous.get(s).trigger() != null) {
+                triggerEvents.add(new TriggerEvent(previous.get(s).trigger().key(), false, triggerFish[s]));
+            }
+        }
+        triggerFish = new int[shelters.size()];
+        Arrays.fill(triggerFish, -1);
+        triggerStarted = new boolean[shelters.size()];
+        triggerBusy = -1;
+        anyTrigger = false;
+        for (Shelter shelter : shelters) anyTrigger |= shelter.trigger() != null;
+        triggerRng = 0x7216_6E25_A11CL ^ shelters.size();
 
         shelterUsable = new boolean[shelters.size()];
         mouthUsable = new boolean[shelters.size()][];
@@ -1771,7 +1846,8 @@ public final class FlockEngine {
             int old = shelterIndex[i];
             int now = previous != null && old >= 0 && old < previous.size() ? shelters.indexOf(previous.get(old)) : -1;
             boolean inside = shelterState[i] == SHELTER_INSIDE || shelterState[i] == SHELTER_RESTING;
-            if (now < 0 || (!inside && !shelterUsable[now])) {
+            // An errand a structure's clock sent a fish on ends with the old list (see refreshAvoidHulls).
+            if (now < 0 || (!inside && !shelterUsable[now]) || shelters.get(now).trigger() != null) {
                 shelterState[i] = SHELTER_ROAMING;
                 shelterIndex[i] = -1;
                 shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
@@ -1792,7 +1868,8 @@ public final class FlockEngine {
             for (int s = 0; s < shelters.size(); s++) {
                 Shelter shelter = shelters.get(s);
                 // A gate's opening is open water: a fish there was never inside anything.
-                if (shelter.kind() == Shelter.Kind.GATE || !shelter.hull().contains(posL[i], posY[i], posD[i])) continue;
+                if (shelter.kind() == Shelter.Kind.GATE || shelter.kind() == Shelter.Kind.TRIGGER
+                        || !shelter.hull().contains(posL[i], posY[i], posD[i])) continue;
                 if (!shelterUsable[s]) break; // nowhere to leave by: the hull's push takes it out
                 shelterState[i] = SHELTER_INSIDE;
                 shelterIndex[i] = s;
@@ -2158,7 +2235,17 @@ public final class FlockEngine {
                 Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
                 shelterBlend[i] = 1f;
                 int through;
-                if (passesThrough(i, shelterIndex[i]) && shelter.interior().contains(posL[i], posY[i], posD[i])
+                if (shelter.kind() == Shelter.Kind.TRIGGER) {
+                    // Nose to the anchor: the reaction starts, and the fish holds there a moment.
+                    if (alongMouth(i) >= -NOSE_STANDOFF_SHARE * lengths[i]) {
+                        shelterState[i] = SHELTER_INSIDE;
+                        shelterTimer[i] = shelter.trigger().holdSeconds();
+                        startTrigger(shelterIndex[i]);
+                    } else if (shelterTimer[i] >= enterTimeoutSeconds(i, p)) {
+                        shelterState[i] = SHELTER_EXIT;
+                        shelterTimer[i] = 0f;
+                    }
+                } else if (passesThrough(i, shelterIndex[i]) && shelter.interior().contains(posL[i], posY[i], posD[i])
                         && (through = throughMouth(i)) >= 0) {
                     // A gate, or a tunnel taken by a fish that never hides, is swum through without
                     // stopping (§12.4): in at one side, straight on out of the other.
@@ -2256,6 +2343,8 @@ public final class FlockEngine {
         if (along >= 0f || along < -(stage + ENTRY_CONE_DEPTH)) return false;
         float pL = rL - along * nL, pY = rY - along * nY, pD = rD - along * nD;
         float limit = ENTRY_CONE_WIDTH * mouth.halfSize();
+        // An anchor can be one voxel of a rope: lining up on that is no harder than on a doorway.
+        if (avoidHullsSource.get(shelterIndex[i]).kind() == Shelter.Kind.TRIGGER) limit = Math.max(limit, NOSE_CONE_MIN);
         if (pL * pL + pY * pY + pD * pD > limit * limit) return false;
         float nh = (float) Math.sqrt(nL * nL + nD * nD);
         if (nh < 1e-4f) return false;
@@ -2410,6 +2499,142 @@ public final class FlockEngine {
     /** A gate is taken only with the heading within 45° of straight through (§12.4). */
     static final float GATE_HEADING_COS = 0.70710677f;
 
+    /** Whether fish #{@code i} is on an errand a structure's clock sent it on. */
+    private boolean sentByTrigger(int i) {
+        int s = shelterIndex[i];
+        return s >= 0 && s < triggerFish.length && triggerFish[s] == i;
+    }
+
+    /**
+     * The trigger clocks, once per step before anyone moves (docs/fish-shelters.md §12.2, §12.13):
+     * an errand that has ended lets its structure go; then, unless a reaction is under way or the
+     * domain is resting after one, each structure's Poisson clock may fire and send a fish.
+     */
+    private void stepTriggers() {
+        float dt = t.dt();
+        for (int s = 0; s < triggerFish.length; s++) {
+            int f = triggerFish[s];
+            // The fish is done (it left, gave up, or was let go by a rebuild): the reaction ends.
+            if (f >= 0 && (f >= count || shelterIndex[f] != s || shelterState[f] == SHELTER_ROAMING)) releaseTrigger(s);
+        }
+        if (triggerRefractory > 0f) triggerRefractory = Math.max(0f, triggerRefractory - dt);
+        if (triggerBusy >= 0 || triggerRefractory > 0f) return;
+        List<Shelter> shelters = avoidHullsSource;
+        float boost = triggerRateBoost;
+        for (int s = 0; s < shelters.size(); s++) {
+            Shelter.Trigger trigger = shelters.get(s).trigger();
+            if (trigger == null) continue;
+            if (nextTriggerUnit() < dt * boost / Math.max(1f, trigger.meanSeconds()) && sendForTrigger(s)) return;
+        }
+    }
+
+    /**
+     * Sends the nearest free fish to shelter {@code s}'s trigger: a swimmer roaming with nothing
+     * else to do, whose staging point is in the water, within {@link #TRIGGER_REACH}, with a clear
+     * swim to the anchor. False, and the clock simply waits for its next firing, if there is none.
+     * A locked gate's reaction starts as the fish sets off, so its door is open when it gets there;
+     * a nose trigger's starts at the touch.
+     */
+    private boolean sendForTrigger(int s) {
+        if (!shelterUsable[s]) return false;
+        Shelter shelter = avoidHullsSource.get(s);
+        boolean nose = shelter.kind() == Shelter.Kind.TRIGGER;
+        int bestI = -1, bestM = -1;
+        float bestD2 = TRIGGER_REACH * TRIGGER_REACH;
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] != Locomotion.FREE_SWIM || shelterState[i] != SHELTER_ROAMING
+                    || shelterClaim[i] >= 0 || flinchTimer[i] > 0f) continue;
+            float len = lengths[i], stage = len + STAGING_CLEARANCE;
+            for (int m = 0; m < shelter.mouths().size(); m++) {
+                if (!mouthUsable[s][m]) continue;
+                Shelter.Mouth mouth = shelter.mouths().get(m);
+                if (!nose && (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize() || throughMouth(i, s, m) < 0)) continue;
+                float sl = mouth.centerL() - mouth.normalL() * stage;
+                float sy = mouth.centerY() - mouth.normalY() * stage;
+                float sd = mouth.centerD() - mouth.normalD() * stage;
+                if (!stagingReachable(sl, sy, sd)) continue;
+                if (nose ? noseCorridorBlocked(mouth, stage) : corridorBlocked(mouth, stage)) continue;
+                float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
+                float d2 = dl * dl + dy * dy + dd * dd;
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    bestI = i;
+                    bestM = m;
+                }
+            }
+        }
+        if (bestI < 0) return false;
+        int i = bestI;
+        climbBlend[i] = 0f;
+        visitUrge[i] = 0f;
+        startled[i] = false;
+        shelterState[i] = SHELTER_APPROACH;
+        shelterIndex[i] = s;
+        shelterMouth[i] = bestM;
+        shelterTimer[i] = 0f;
+        shelterReserved[s]++;
+        triggerFish[s] = i;
+        triggerBusy = s;
+        if (!nose) startTrigger(s);
+        return true;
+    }
+
+    /** {@link #corridorBlocked} for a nose anchor: checked from just clear of the structure it sits on. */
+    private boolean noseCorridorBlocked(Shelter.Mouth mouth, float stage) {
+        List<Shelter.OrientedBox> obstacles = domain.obstacles();
+        if (obstacles.isEmpty()) return false;
+        refreshObstacles(obstacles);
+        float aL = mouth.centerL() - mouth.normalL() * NOSE_CORRIDOR_START;
+        float aY = mouth.centerY() - mouth.normalY() * NOSE_CORRIDOR_START;
+        float aD = mouth.centerD() - mouth.normalD() * NOSE_CORRIDOR_START;
+        float bL = mouth.centerL() - mouth.normalL() * stage;
+        float bY = mouth.centerY() - mouth.normalY() * stage;
+        float bD = mouth.centerD() - mouth.normalD() * stage;
+        for (AvoidHull obstacle : obstacleHulls) {
+            if (segmentEntry(obstacle.box(), HULL_MARGIN * 0.5f, aL, aY, aD, bL, bY, bD) >= 0f) return true;
+        }
+        return false;
+    }
+
+    private void startTrigger(int s) {
+        if (triggerStarted[s]) return;
+        triggerStarted[s] = true;
+        triggerEvents.add(new TriggerEvent(avoidHullsSource.get(s).trigger().key(), true, triggerFish[s]));
+    }
+
+    private void releaseTrigger(int s) {
+        if (triggerStarted[s]) {
+            triggerEvents.add(new TriggerEvent(avoidHullsSource.get(s).trigger().key(), false, triggerFish[s]));
+        }
+        triggerStarted[s] = false;
+        triggerFish[s] = -1;
+        if (triggerBusy == s) {
+            triggerBusy = -1;
+            triggerRefractory = TRIGGER_REFRACTORY_SECONDS;
+        }
+    }
+
+    /** The next number in the trigger clocks' stream, uniform in [0, 1). */
+    private float nextTriggerUnit() {
+        long z = (triggerRng += 0x9E3779B97F4A7C15L);
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z ^= z >>> 31;
+        return (z >>> 40) * (1f / 16777216f);
+    }
+
+    /** Hands every reaction started or ended since the last call to {@code sink}, in order, and forgets them. */
+    public void drainTriggerEvents(java.util.function.Consumer<TriggerEvent> sink) {
+        if (triggerEvents.isEmpty()) return;
+        for (TriggerEvent event : triggerEvents) sink.accept(event);
+        triggerEvents.clear();
+    }
+
+    /** The fish shelter {@code s}'s clock has sent, or −1. */
+    public int triggerFish(int s) {
+        return s < triggerFish.length ? triggerFish[s] : -1;
+    }
+
     /** {@link #findCover}'s answer: the shelter and mouth, and the squared distance to its staging point. */
     private int coverS, coverM;
     private float coverD2;
@@ -2431,6 +2656,8 @@ public final class FlockEngine {
         List<Shelter> shelters = avoidHullsSource;
         for (int s = 0; s < shelters.size(); s++) {
             Shelter shelter = shelters.get(s);
+            // A trigger, or a locked gate, is only ever gone to when its structure sends a fish.
+            if (shelter.trigger() != null) continue;
             Shelter.Kind kind = shelter.kind();
             boolean through = passesThrough(i, s);
             if (through && kind != Shelter.Kind.GATE) {
@@ -2625,7 +2852,7 @@ public final class FlockEngine {
                 // its entry speed: the fastest speed from which STARTLE_BRAKE stops it in time.
                 boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
                 // A gate is on the fish's way already: it carries on at its own pace, no hurry.
-                boolean onItsWay = home || passesThrough(i, shelterIndex[i]);
+                boolean onItsWay = home || (passesThrough(i, shelterIndex[i]) && !sentByTrigger(i));
                 float dash = startled[i]
                         ? Math.min(STARTLE_DASH_SPEED * patrolScale[i],
                                 axisSpeed + (float) Math.sqrt(2f * STARTLE_BRAKE * dist))
@@ -2657,6 +2884,9 @@ public final class FlockEngine {
                 return shelterBlend[i];
             }
             case SHELTER_ENTER -> {
+                if (shelter.kind() == Shelter.Kind.TRIGGER) {
+                    return noseSteering(i, along, pL, pY, pD, nL, nY, nD, patrol * ENTER_SPEED, out, avoid);
+                }
                 float speed = patrol * (startled[i] ? STARTLE_ENTER_SPEED : ENTER_SPEED);
                 out[0] = nL * speed - pL * CORRIDOR_GAIN;
                 out[1] = nY * speed - pY * CORRIDOR_GAIN;
@@ -2665,6 +2895,7 @@ public final class FlockEngine {
                 return 1f;
             }
             case SHELTER_INSIDE -> {
+                if (shelter.kind() == Shelter.Kind.TRIGGER) return noseSteering(i, along, pL, pY, pD, nL, nY, nD, 0f, out, avoid);
                 if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) {
                     // Settling: on the axis, in past the rest point to turn round, then back out
                     // to it — the way back out is what turns the fish to face the mouth.
@@ -2724,6 +2955,36 @@ public final class FlockEngine {
                 return 0f;
             }
         }
+    }
+
+    /**
+     * A fish nosing a trigger's anchor: up the mouth's axis at {@code speed} until its nose is on
+     * the surface, then (with no speed) held there on the axis, as a lurker holds its rest point.
+     * The structure's own push back is dropped along the axis (only along it: a fish still keeps
+     * off the sides), because the anchor is on the structure and touching it is the point.
+     */
+    private float noseSteering(int i, float along, float pL, float pY, float pD, float nL, float nY, float nD,
+                               float speed, float[] out, float[] avoid) {
+        float target = -NOSE_STANDOFF_SHARE * lengths[i];
+        float go = speed > 0f ? speed : (target - along) * REST_HOLD_GAIN;
+        out[0] = nL * go - pL * REST_HOLD_GAIN;
+        out[1] = nY * go - pY * REST_HOLD_GAIN;
+        out[2] = nD * go - pD * REST_HOLD_GAIN;
+        float a = avoid[0] * nL + avoid[1] * nY + avoid[2] * nD;
+        if (a < 0f) {
+            avoid[0] -= a * nL;
+            avoid[1] -= a * nY;
+            avoid[2] -= a * nD;
+        }
+        return 1f;
+    }
+
+    /** How far fish #{@code i}'s centre is past its chosen mouth's plane, inward; negative outside. */
+    private float alongMouth(int i) {
+        Shelter.Mouth mouth = chosenMouth(i);
+        return (posL[i] - mouth.centerL()) * mouth.normalL()
+                + (posY[i] - mouth.centerY()) * mouth.normalY()
+                + (posD[i] - mouth.centerD()) * mouth.normalD();
     }
 
     /**
@@ -3038,6 +3299,7 @@ public final class FlockEngine {
             watcherHistD[watcherHistHead] = watcherD;
             countShelterOccupancy();
             resolveStartles();
+            if (anyTrigger) stepTriggers();
         } else {
             anyInShelter = false;
         }

@@ -268,6 +268,7 @@ public final class TankGroupFlock {
         if (lastStepTick == tick) return;
         lastStepTick = tick;
         engine.step();
+        engine.drainTriggerEvents(grill24.fishtastic.client.util.ClientCosmeticReactions::accept);
     }
 
     /**

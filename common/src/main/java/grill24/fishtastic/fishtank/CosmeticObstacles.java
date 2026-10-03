@@ -62,6 +62,15 @@ public final class CosmeticObstacles {
         return !of(structure).isEmpty();
     }
 
+    /** The groups that move for a gate a reaction locks: a portcullis's bars (docs/fish-shelters.md §12.13). */
+    public static java.util.Set<String> lockedGateDoors(CosmeticStructure structure) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (CosmeticReaction reaction : structure.reactions()) {
+            if (reaction.gate().isPresent()) out.addAll(reaction.movingGroups());
+        }
+        return out;
+    }
+
     public static List<ObstacleGeometry.Box> derive(CosmeticStructure structure, Predicate<BlockState> soft) {
         // Build units per stored offset, as in CosmeticStructure.partCells, but not rounded: a span's
         // offsets are build blocks already; a floor structure's horizontal ones were compressed by
@@ -69,7 +78,11 @@ public final class CosmeticObstacles {
         // centre (a span's build cell 0 is centred on its build origin) and its bottom.
         float xzRatio = structure.span().isPresent() ? 1f : structure.scale() / (float) CosmeticGridCell.CELL_WIDTH;
         List<ObstacleGeometry.Part> parts = new ArrayList<>(structure.parts().size());
+        java.util.Set<String> doors = lockedGateDoors(structure);
         for (CosmeticStructure.StructurePart part : structure.parts()) {
+            // A locked gate's door moves out of the way for the fish it lets through, and while it
+            // is shut the engine closes the doorway itself (FlockEngine: the locked gate's hull).
+            if (part.group().filter(doors::contains).isPresent()) continue;
             BlockState state = part.state();
             List<float[]> shape = new ArrayList<>();
             // The outline shape, which is what the model draws: a collision shape can fall back to

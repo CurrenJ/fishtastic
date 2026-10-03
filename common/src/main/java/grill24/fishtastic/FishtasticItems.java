@@ -139,6 +139,9 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_FALLEN_COLUMN;
     public static Holder<Item> COSMETIC_SUNKEN_ANCHOR;
     public static Holder<Item> COSMETIC_GIANT_CLAM;
+    public static Holder<Item> COSMETIC_SUNKEN_STRONGBOX;
+    public static Holder<Item> COSMETIC_WAYSIDE_SHRINE;
+    public static Holder<Item> COSMETIC_SUNKEN_GATEHOUSE;
     public static Holder<Item> COSMETIC_AMETHYST_GEODE;
     public static Holder<Item> COSMETIC_HOLLOW_LOG;
     public static Holder<Item> COSMETIC_CLAY_PIPE;
@@ -559,6 +562,18 @@ public class FishtasticItems {
         COSMETIC_GIANT_CLAM = RegistrationApiSided.getInstance().registerItem("cosmetic_giant_clam",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("giant_clam")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_SUNKEN_STRONGBOX = RegistrationApiSided.getInstance().registerItem("cosmetic_sunken_strongbox",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("sunken_strongbox")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_WAYSIDE_SHRINE = RegistrationApiSided.getInstance().registerItem("cosmetic_wayside_shrine",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("wayside_shrine")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_SUNKEN_GATEHOUSE = RegistrationApiSided.getInstance().registerItem("cosmetic_sunken_gatehouse",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("sunken_gatehouse")),
                         props(loc).stacksTo(1)));
         COSMETIC_AMETHYST_GEODE = RegistrationApiSided.getInstance().registerItem("cosmetic_amethyst_geode",
                 loc -> new FishTankStructureCosmeticItem(

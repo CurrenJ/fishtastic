@@ -183,6 +183,7 @@ public final class TankFlockAdapter {
     /** Advances this tank's own engine by one fixed 20 Hz step. Runs on the client tick, never at render. */
     public void step() {
         engine.step();
+        engine.drainTriggerEvents(grill24.fishtastic.client.util.ClientCosmeticReactions::accept);
     }
 
     /**

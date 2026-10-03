@@ -22,13 +22,42 @@ import java.util.List;
  * @param kind         what a visit there looks like (§12.1)
  * @param minLength    the shortest fish that may use it, in blocks; 0 for any. A seat kept for the
  *                     biggest fish in the tank (§12.9) is passed over by the small fry
+ * @param trigger      the reaction a fish sets off here (§12.13), or null. A {@link Kind#TRIGGER}
+ *                     always has one; a {@link Kind#GATE} with one is <i>locked</i>: shut to every
+ *                     fish but the one its clock sends through
  */
 public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity,
-                      float interiorRun, Kind kind, float minLength) {
+                      float interiorRun, Kind kind, float minLength, Trigger trigger) {
 
     public Shelter {
         mouths = List.copyOf(mouths);
+        if (kind == Kind.TRIGGER && trigger == null) throw new IllegalArgumentException("a trigger shelter needs a trigger");
     }
+
+    /** A shelter nothing is set off at. */
+    public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity,
+                   float interiorRun, Kind kind, float minLength) {
+        this(hull, interior, mouths, capacity, interiorRun, kind, minLength, null);
+    }
+
+    /** This shelter with a reaction set off in it. */
+    public Shelter withTrigger(Trigger trigger) {
+        return new Shelter(hull, interior, mouths, capacity, interiorRun, kind, minLength, trigger);
+    }
+
+    /**
+     * A reaction a fish sets off (docs/fish-shelters.md §12.13): a clam opening, a portcullis
+     * rising. The engine never decides what happens, only when, and reports it as an event
+     * carrying {@code key}, which is the host's own handle on the structure.
+     *
+     * @param meanSeconds mean time between firings of this structure's own clock (§12.2: a rare
+     *                    clock runs per structure, not per fish)
+     * @param holdSeconds how long a fish holds its nose to a {@link Kind#TRIGGER}'s anchor
+     * @param key         the host's handle, handed back with every event; compared by
+     *                    {@code equals}, so a value the host rebuilds identically keeps its
+     *                    identity across a shelter list rebuild
+     */
+    public record Trigger(float meanSeconds, float holdSeconds, Object key) {}
 
     /** A {@link Kind#HOLLOW} — every shelter before §12.4's gates. */
     public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity, float interiorRun) {
@@ -58,7 +87,15 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
          * only by a fish already heading through it, by any swimmer that fits, with no length gate
          * and no dwell. It has no hull: its posts are obstacles, and the opening is open water.
          */
-        GATE;
+        GATE,
+        /**
+         * A spot a fish noses to set a reaction off (docs/fish-shelters.md §12.13): a clam's lip, a
+         * chest's lock. Its interior is the anchor, just inside the structure's surface, and its
+         * one mouth is that surface. No fish visits it of its own accord: only the structure's
+         * clock sends one, which swims up, touches it with its nose, holds, and backs off. It has
+         * no hull: the structure round it is obstacles.
+         */
+        TRIGGER;
 
         /** Whether a fish in it is out of sight — what the hidden budget counts (§5.4). */
         public boolean hides() {

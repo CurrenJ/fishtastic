@@ -1,0 +1,12 @@
+{
+  "display_name": "Sunken Strongbox",
+  "description": "A captain's strongbox bound in verdigris copper. When a curious fish noses its gold lock, the lid creaks up on a hoard of treasure.",
+  "cost": 40,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_sunken_strongbox",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

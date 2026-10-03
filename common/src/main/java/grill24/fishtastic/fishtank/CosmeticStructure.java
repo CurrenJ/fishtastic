@@ -67,14 +67,28 @@ import java.util.Optional;
  * footprint cell is occupied. A span lists its occupied cells across the whole box, {@code dx}
  * and {@code dz} counting floor cells from the box's north-west corner as authored (facing
  * south); missing, they are derived from its lowest parts ({@link SpanStructures#footprint}).
+ * <p>
+ * <b>Reactions.</b> Optional {@code reactions} make a floor structure react to a fish: a clam
+ * that opens when one noses its lip, a portcullis that rises to let one through
+ * ({@link CosmeticReaction}, docs/fish-shelters.md §12.13). Their moving and glowing parts are
+ * named by each part's optional {@code group}.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                                  CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
-                                 Optional<Span> span, List<ShelterSpec> shelters, List<GridOffset> occupiedCells) {
+                                 Optional<Span> span, List<ShelterSpec> shelters, List<GridOffset> occupiedCells,
+                                 List<CosmeticReaction> reactions) {
 
     public CosmeticStructure {
         shelters = List.copyOf(shelters);
         occupiedCells = List.copyOf(occupiedCells);
+        reactions = List.copyOf(reactions);
+    }
+
+    /** A structure that reacts to nothing. */
+    public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
+                             CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
+                             Optional<Span> span, List<ShelterSpec> shelters, List<GridOffset> occupiedCells) {
+        this(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelters, occupiedCells, List.of());
     }
 
     /** The floor cells that block other cosmetics, relative to the anchor: {@code occupied_cells}, or the whole footprint. Floor structures only. */
@@ -161,7 +175,7 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
 
     /** This structure with these shelters marked in it. */
     public CosmeticStructure withShelters(List<ShelterSpec> shelters) {
-        return new CosmeticStructure(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelters, occupiedCells);
+        return new CosmeticStructure(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelters, occupiedCells, reactions);
     }
 
     /** A shelter paired with the shape derived for it. */
@@ -194,6 +208,20 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         List<ShelterGeometry.Cell> cells = partCells();
         if (spec.kind() == ShelterKind.GATE) cells.removeAll(new HashSet<>(spec.interior()));
         return cells;
+    }
+
+    /**
+     * Whether part {@code index} is a locked gate's door: in a group a gate reaction moves
+     * ({@link CosmeticReaction}). It stands in the doorway at rest, and fish pass only once it
+     * has moved, so it is neither wall nor obstacle.
+     */
+    public boolean isGateDoor(int index) {
+        java.util.Optional<String> group = parts.get(index).group();
+        if (group.isEmpty()) return false;
+        for (CosmeticReaction reaction : reactions) {
+            if (reaction.gate().isPresent() && reaction.movingGroups().contains(group.get())) return true;
+        }
+        return false;
     }
 
     /** Derives one of this structure's shelters against its parts. */
@@ -231,9 +259,15 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
      * Turning a structure changes neither a part's block nor whether a furnace is lit, so the
      * parts as authored decide. Arrays are shared: don't write to them.
      */
-    public record LiveParts(int[] chests, int[] litFurnaces) {}
+    public record LiveParts(int[] chests, int[] litFurnaces, boolean[] animated, int[] animatedParts) {
 
-    private static final LiveParts NO_LIVE_PARTS = new LiveParts(new int[0], new int[0]);
+        /** Whether part {@code index} belongs to a group some reaction moves or lights, and so is drawn every frame. */
+        public boolean animated(int index) {
+            return index < animated.length && animated[index];
+        }
+    }
+
+    private static final LiveParts NO_LIVE_PARTS = new LiveParts(new int[0], new int[0], new boolean[0], new int[0]);
 
     /** Live parts per structure instance, keyed by identity as {@link #DERIVED} is; a datapack reload makes new instances. */
     private static final Map<CosmeticStructure, LiveParts> LIVE =
@@ -244,15 +278,24 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         if (LIVE.size() > 256) LIVE.clear();
         return LIVE.computeIfAbsent(this, s -> {
             List<Integer> chests = new ArrayList<>(), furnaces = new ArrayList<>();
+            java.util.Set<String> groups = new HashSet<>();
+            for (CosmeticReaction reaction : s.reactions) groups.addAll(reaction.groups());
+            boolean[] animated = new boolean[groups.isEmpty() ? 0 : s.parts.size()];
+            List<Integer> animatedParts = new ArrayList<>();
             for (int i = 0; i < s.parts.size(); i++) {
                 BlockState state = s.parts.get(i).state();
                 if (state.getBlock() == net.minecraft.world.level.block.Blocks.CHEST) chests.add(i);
                 if (state.getBlock() instanceof net.minecraft.world.level.block.AbstractFurnaceBlock
                         && state.getValue(net.minecraft.world.level.block.AbstractFurnaceBlock.LIT)) furnaces.add(i);
+                if (!groups.isEmpty() && s.parts.get(i).group().filter(groups::contains).isPresent()) {
+                    animated[i] = true;
+                    animatedParts.add(i);
+                }
             }
-            if (chests.isEmpty() && furnaces.isEmpty()) return NO_LIVE_PARTS;
+            if (chests.isEmpty() && furnaces.isEmpty() && animatedParts.isEmpty()) return NO_LIVE_PARTS;
             return new LiveParts(chests.stream().mapToInt(Integer::intValue).toArray(),
-                    furnaces.stream().mapToInt(Integer::intValue).toArray());
+                    furnaces.stream().mapToInt(Integer::intValue).toArray(), animated,
+                    animatedParts.stream().mapToInt(Integer::intValue).toArray());
         });
     }
 
@@ -279,13 +322,19 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
      * shrink applied to X/Z spacing — so vertically stacked parts (e.g. a multi-block fence post) stay
      * flush instead of drifting apart as {@code scale} shrinks the models but not the gap between them.
      */
-    public record StructurePart(BlockState state, float offsetX, float offsetY, float offsetZ) {
+    public record StructurePart(BlockState state, float offsetX, float offsetY, float offsetZ, Optional<String> group) {
         public static final Codec<StructurePart> CODEC = RecordCodecBuilder.create(i -> i.group(
                 BlockState.CODEC.fieldOf("state").forGetter(StructurePart::state),
                 Codec.FLOAT.optionalFieldOf("offsetX", 0f).forGetter(StructurePart::offsetX),
                 Codec.FLOAT.optionalFieldOf("offsetY", 0f).forGetter(StructurePart::offsetY),
-                Codec.FLOAT.optionalFieldOf("offsetZ", 0f).forGetter(StructurePart::offsetZ)
+                Codec.FLOAT.optionalFieldOf("offsetZ", 0f).forGetter(StructurePart::offsetZ),
+                Codec.STRING.optionalFieldOf("group").forGetter(StructurePart::group)
         ).apply(i, StructurePart::new));
+
+        /** A part in no group: it never moves. */
+        public StructurePart(BlockState state, float offsetX, float offsetY, float offsetZ) {
+            this(state, offsetX, offsetY, offsetZ, Optional.empty());
+        }
     }
 
     private static final Codec<CosmeticStructure> RAW_CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -300,12 +349,13 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
                     .forGetter(s -> s.shelters.size() == 1 ? Optional.of(s.shelters.get(0)) : Optional.empty()),
             ShelterSpec.CODEC.listOf().optionalFieldOf("shelters", List.of())
                     .forGetter(s -> s.shelters.size() == 1 ? List.of() : s.shelters),
-            GridOffset.CODEC.listOf().optionalFieldOf("occupied_cells", List.of()).forGetter(CosmeticStructure::occupiedCells)
-    ).apply(i, (footprint, parts, scale, icon, bypass, span, one, many, occupied) -> {
+            GridOffset.CODEC.listOf().optionalFieldOf("occupied_cells", List.of()).forGetter(CosmeticStructure::occupiedCells),
+            CosmeticReaction.CODEC.listOf().optionalFieldOf("reactions", List.of()).forGetter(CosmeticStructure::reactions)
+    ).apply(i, (footprint, parts, scale, icon, bypass, span, one, many, occupied, reactions) -> {
         List<ShelterSpec> shelters = new ArrayList<>();
         one.ifPresent(shelters::add);
         shelters.addAll(many);
-        return new CosmeticStructure(footprint, parts, scale, icon, bypass, span, shelters, occupied);
+        return new CosmeticStructure(footprint, parts, scale, icon, bypass, span, shelters, occupied, reactions);
     }));
 
     public static final Codec<CosmeticStructure> CODEC = RAW_CODEC.flatXmap(
@@ -357,6 +407,44 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         return null;
     }
 
+    /**
+     * Why a structure's reactions can't work, or null when they can: on a spanning structure (not
+     * supported); naming a group no part is in; a gate that is not a gate shelter, or locked twice;
+     * or a nose anchor whose face is buried, with a part in front of it where the fish would be.
+     */
+    static String reactionError(CosmeticStructure structure) {
+        if (structure.reactions.isEmpty()) return null;
+        if (structure.span.isPresent()) return "reactions are for floor structures only";
+        java.util.Set<String> named = new HashSet<>();
+        for (StructurePart part : structure.parts) part.group().ifPresent(named::add);
+        java.util.Set<Integer> locked = new HashSet<>();
+        java.util.Set<ShelterGeometry.Cell> partCells = new HashSet<>(structure.partCells());
+        for (int r = 0; r < structure.reactions.size(); r++) {
+            CosmeticReaction reaction = structure.reactions.get(r);
+            String which = "reaction " + r + ": ";
+            for (String group : reaction.groups()) {
+                if (!named.contains(group)) return which + "no part is in the group \"" + group + "\"";
+            }
+            if (reaction.gate().isPresent()) {
+                int g = reaction.gate().get();
+                if (g >= structure.shelters.size() || structure.shelters.get(g).kind() != ShelterKind.GATE) {
+                    return which + "gate " + g + " is not a gate shelter";
+                }
+                if (!locked.add(g)) return which + "gate " + g + " is locked by two reactions";
+            }
+            if (reaction.nose().isPresent()) {
+                CosmeticReaction.Nose nose = reaction.nose().get();
+                net.minecraft.core.Direction f = nose.facing();
+                for (ShelterGeometry.Cell cell : nose.cells()) {
+                    ShelterGeometry.Cell front = new ShelterGeometry.Cell(cell.x() + f.getStepX(), cell.y(), cell.z() + f.getStepZ());
+                    if (nose.cells().contains(front)) continue;
+                    if (partCells.contains(front)) return which + "the nose anchor's face is covered at " + front;
+                }
+            }
+        }
+        return null;
+    }
+
     private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
         List<ShelterGeometry.Shape> shapes = new ArrayList<>();
         for (int n = 0; n < structure.shelters.size(); n++) {
@@ -371,6 +459,8 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         }
         String overlap = overlap(structure.shelters, shapes);
         if (overlap != null) return DataResult.error(() -> overlap);
+        String reactions = reactionError(structure);
+        if (reactions != null) return DataResult.error(() -> reactions);
         if (structure.span.isPresent()) return SpanStructures.validate(structure);
         if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {
             return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)"
