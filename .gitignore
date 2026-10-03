@@ -124,3 +124,6 @@ debug/**
 CLAUDE.md
 .claude/
 /wiki/
+
+## Vanilla block textures for tools/sticker_sheet.html (Mojang assets, never commit)
+/tools/block_textures/
