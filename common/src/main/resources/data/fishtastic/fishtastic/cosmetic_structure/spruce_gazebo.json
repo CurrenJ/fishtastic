@@ -45,8 +45,8 @@
         },
         "Name": "minecraft:stripped_spruce_log"
       },
-      "offsetX": -0.51428574,
-      "offsetZ": -0.51428574
+      "offsetX": -0.4457143,
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -58,7 +58,7 @@
         },
         "Name": "minecraft:spruce_stairs"
       },
-      "offsetX": -0.51428574
+      "offsetX": -0.4457143
     },
     {
       "state": {
@@ -67,8 +67,8 @@
         },
         "Name": "minecraft:stripped_spruce_log"
       },
-      "offsetX": -0.51428574,
-      "offsetZ": 0.51428574
+      "offsetX": -0.4457143,
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -81,9 +81,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 1.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -96,9 +96,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 1.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -111,9 +111,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 2.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -126,9 +126,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 2.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -138,9 +138,9 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 3.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -150,7 +150,7 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 3.0
     },
     {
@@ -161,9 +161,9 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": -0.51428574,
+      "offsetX": -0.4457143,
       "offsetY": 3.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -175,7 +175,7 @@
         },
         "Name": "minecraft:spruce_stairs"
       },
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -192,7 +192,7 @@
         },
         "Name": "minecraft:spruce_stairs"
       },
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -213,7 +213,7 @@
         "Name": "minecraft:spruce_slab"
       },
       "offsetY": 3.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -234,7 +234,7 @@
         "Name": "minecraft:spruce_slab"
       },
       "offsetY": 3.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -243,8 +243,8 @@
         },
         "Name": "minecraft:stripped_spruce_log"
       },
-      "offsetX": 0.51428574,
-      "offsetZ": -0.51428574
+      "offsetX": 0.4457143,
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -256,7 +256,7 @@
         },
         "Name": "minecraft:spruce_stairs"
       },
-      "offsetX": 0.51428574
+      "offsetX": 0.4457143
     },
     {
       "state": {
@@ -265,8 +265,8 @@
         },
         "Name": "minecraft:stripped_spruce_log"
       },
-      "offsetX": 0.51428574,
-      "offsetZ": 0.51428574
+      "offsetX": 0.4457143,
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -279,9 +279,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 1.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -294,9 +294,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 1.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -309,9 +309,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 2.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -324,9 +324,9 @@
         },
         "Name": "minecraft:spruce_fence"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 2.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     },
     {
       "state": {
@@ -336,9 +336,9 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 3.0,
-      "offsetZ": -0.51428574
+      "offsetZ": -0.4457143
     },
     {
       "state": {
@@ -348,7 +348,7 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 3.0
     },
     {
@@ -359,10 +359,20 @@
         },
         "Name": "minecraft:spruce_slab"
       },
-      "offsetX": 0.51428574,
+      "offsetX": 0.4457143,
       "offsetY": 3.0,
-      "offsetZ": 0.51428574
+      "offsetZ": 0.4457143
     }
   ],
-  "scale": 0.15
+  "scale": 0.13,
+  "shelter": {
+    "kind": "open",
+    "interior": [
+      { "x": 0, "y": 1, "z": 0 },
+      { "x": -1, "y": 1, "z": 0 },
+      { "x": 1, "y": 1, "z": 0 },
+      { "x": 0, "y": 1, "z": -1 },
+      { "x": 0, "y": 1, "z": 1 }
+    ]
+  }
 }

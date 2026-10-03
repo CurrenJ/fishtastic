@@ -64,8 +64,8 @@ class ObstacleShelterAccessTest {
                 anchorZ = (float) anchor.localZ();
             }
             VoxelDomain domain = new VoxelDomain(occupancy);
-            domain.rebuildShelters(List.of(TankShelters.toEngine(TankShelters.inBlockFrame(structure.shelterShape().orElseThrow(),
-                    structure.shelter().get().capacityOrDefault(), structure.scale(), anchorX, anchorZ, Rotation.NONE), ox, oy, oz, 0f)));
+            domain.rebuildShelters(List.of(TankShelters.toEngine(
+                    TankShelters.inBlockFrame(structure, anchorX, anchorZ, Rotation.NONE).orElseThrow(), ox, oy, oz, 0f)));
             if (obstacles) {
                 domain.rebuildObstacles(TankObstacles.toEngine(TankObstacles.inBlockFrame(
                         CosmeticObstacles.derive(structure, ShippedStructures.softTag()), structure.scale(),

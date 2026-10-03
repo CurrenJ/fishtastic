@@ -19,12 +19,44 @@ import java.util.List;
  * @param capacity     how many fish may be inside at once
  * @param interiorRun  the longest straight horizontal run through the interior, in blocks — what
  *                     the length gate measures against (§5.2)
+ * @param kind         what a visit there looks like (§12.1)
  */
 public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity,
-                      float interiorRun) {
+                      float interiorRun, Kind kind) {
 
     public Shelter {
         mouths = List.copyOf(mouths);
+    }
+
+    /** A {@link Kind#HOLLOW} — every shelter before §12.4's gates. */
+    public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity, float interiorRun) {
+        this(hull, interior, mouths, capacity, interiorRun, Kind.HOLLOW);
+    }
+
+    /** What a visit looks like (docs/fish-shelters.md §12.1, §12.4). */
+    public enum Kind {
+        /**
+         * A hollow fish hide in (the Hollow Log, the Clay Pipe): opt-in species only, counted
+         * against the hidden budget, cover for a startle and a home for a lurker.
+         */
+        HOLLOW,
+        /**
+         * A space fish visit on show (the Spruce Gazebo's floor, under its roof): visited like a
+         * hollow, but a fish in it is in plain view, so any swimmer that fits may go, it never
+         * counts as hidden, and it is neither cover nor a home.
+         */
+        OPEN,
+        /**
+         * An opening swum straight through without stopping (a fence arch, the Torii Gate): taken
+         * only by a fish already heading through it, by any swimmer that fits, with no length gate
+         * and no dwell. It has no hull: its posts are obstacles, and the opening is open water.
+         */
+        GATE;
+
+        /** Whether a fish in it is out of sight — what the hidden budget counts (§5.4). */
+        public boolean hides() {
+            return this == HOLLOW;
+        }
     }
 
     /**

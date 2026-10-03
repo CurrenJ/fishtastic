@@ -64,7 +64,8 @@ class TankObstaclesTest {
      * Every full-cube solid part of every floor structure, at each rotation, is inside the boxes
      * where the chunk mesh draws it: {@code anchor + rotateOffset(offset) × CELL_WIDTH}
      * horizontally, {@code FLOOR_Y + offsetY × scale} up (TankCosmeticMesh.addStructures).
-     * Parts inside a shelter's hull are the shelter's, and skipped.
+     * Parts inside a shelter's hull are the shelter's, and skipped — but a gate has no hull, so its
+     * posts are checked like any part.
      */
     @Test
     void floorStructuresLandWhereTheyAreDrawn() {
@@ -75,8 +76,8 @@ class TankObstaclesTest {
             for (Rotation rotation : Rotation.values()) {
                 List<Shelter.OrientedBox> boxes = TankObstacles.inBlockFrame(CosmeticObstacles.derive(structure, SOFT),
                         structure.scale(), (float) anchor.localX(), (float) anchor.localZ(), rotation);
-                List<Shelter> hull = structure.shelterShape().map(shape -> List.of(TankShelters.inBlockFrame(shape, 1,
-                        structure.scale(), (float) anchor.localX(), (float) anchor.localZ(), rotation))).orElse(List.of());
+                List<Shelter> hull = TankShelters.inBlockFrame(structure, (float) anchor.localX(), (float) anchor.localZ(), rotation)
+                        .filter(shelter -> shelter.kind() != Shelter.Kind.GATE).map(List::of).orElse(List.of());
                 float s = structure.scale();
                 for (CosmeticStructure.StructurePart part : structure.parts()) {
                     if (SOFT.test(part.state()) || !fullCube(part.state())) continue;
@@ -104,8 +105,8 @@ class TankObstaclesTest {
                 float[] origin = SpanStructures.buildOrigin(structure, rotation);
                 List<Shelter.OrientedBox> boxes = TankObstacles.inBlockFrame(CosmeticObstacles.derive(structure, SOFT),
                         s, origin[0], origin[1], rotation);
-                List<Shelter> hull = structure.shelterShape().map(shape -> List.of(TankShelters.inBlockFrame(shape, 1,
-                        s, origin[0], origin[1], rotation))).orElse(List.of());
+                List<Shelter> hull = TankShelters.inBlockFrame(structure, origin[0], origin[1], rotation)
+                        .filter(shelter -> shelter.kind() != Shelter.Kind.GATE).map(List::of).orElse(List.of());
                 List<SpanStructures.Placed> placed = SpanStructures.layout(structure, rotation);
                 for (int i = 0; i < placed.size(); i++) {
                     BlockState authored = structure.parts().get(i).state();
