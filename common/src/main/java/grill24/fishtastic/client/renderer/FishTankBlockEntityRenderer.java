@@ -306,7 +306,7 @@ public class FishTankBlockEntityRenderer
 
         if (level instanceof ClientLevel clientLevel) {
             spawnDueChestBubbles(clientLevel, blockEntity.getBlockPos(), blockPosHash, state);
-            spawnDueFurnaceParticles(clientLevel, blockEntity, state);
+            if (!grill24.fishtastic.client.perf.CosmeticBenchmark.skipStructureScans) spawnDueFurnaceParticles(clientLevel, blockEntity, state);
             spawnDueCampfireSmoke(clientLevel, blockEntity, state);
         }
 
@@ -859,7 +859,7 @@ public class FishTankBlockEntityRenderer
      * opens and closes on a timer and whose model is special-rendered.
      */
     private void renderCosmetics(FishTankRenderState state, PoseStack poseStack, SubmitNodeCollector nodes) {
-        renderStructureCosmetics(state, poseStack, nodes);
+        if (!grill24.fishtastic.client.perf.CosmeticBenchmark.skipStructureScans) renderStructureCosmetics(state, poseStack, nodes);
         renderSpanParts(state, poseStack, nodes);
         renderBenchPieces(state, poseStack, nodes);
 
@@ -899,9 +899,9 @@ public class FishTankBlockEntityRenderer
             CosmeticStructure structure = entry.getValue().structure();
             Rotation rotation = entry.getValue().rotation();
             float scale = structure.scale();
-            for (CosmeticStructure.StructurePart part : structure.parts()) {
+            for (int index : structure.liveParts().chests()) {
+                CosmeticStructure.StructurePart part = structure.parts().get(index);
                 BlockState partState = part.state().rotate(rotation);
-                if (partState.getBlock() != Blocks.CHEST) continue;
                 float[] rotatedXZ = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
                 poseStack.pushPose();
                 poseStack.translate(anchor.localX() + rotatedXZ[0] * CosmeticGridCell.CELL_WIDTH,
@@ -1014,19 +1014,14 @@ public class FishTankBlockEntityRenderer
             Rotation rotation = entry.getValue().rotation();
             List<CosmeticStructure.StructurePart> parts = structure.parts();
 
-            for (int i = 0; i < parts.size(); i++) {
+            for (int i : structure.liveParts().litFurnaces()) {
                 CosmeticStructure.StructurePart part = parts.get(i);
-                BlockState partState = part.state().rotate(rotation);
-                if (!(partState.getBlock() instanceof AbstractFurnaceBlock) || !partState.getValue(AbstractFurnaceBlock.LIT)) {
-                    continue;
-                }
-
                 FishTankBlockEntity.FurnacePartKey key = new FishTankBlockEntity.FurnacePartKey(anchor, i);
                 Long lastSpawnTick = lastParticleTick.get(key);
                 if (lastSpawnTick != null && gameTime - lastSpawnTick < FURNACE_PARTICLE_INTERVAL_TICKS) continue;
 
                 lastParticleTick.put(key, gameTime);
-                spawnFurnaceParticles(level, blockPos, anchor, rotation, part, partState, structure.scale());
+                spawnFurnaceParticles(level, blockPos, anchor, rotation, part, part.state().rotate(rotation), structure.scale());
             }
         }
     }

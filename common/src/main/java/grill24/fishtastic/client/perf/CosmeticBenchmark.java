@@ -35,6 +35,9 @@ public final class CosmeticBenchmark {
     /** Which path draws static cosmetics. Read by TankCosmeticMesh and the tank renderer. */
     public static volatile Mode mode = Mode.MESH;
 
+    /** Benchmark only: skip the per-frame scans of floor-structure parts (chest render, furnace particles), to measure them. */
+    public static volatile boolean skipStructureScans = false;
+
     // Bake/snapshot cost accounting (TankCosmeticMesh), reset per scene.
     public static final AtomicLong snapshotNanos = new AtomicLong();
     public static final AtomicLong snapshotCount = new AtomicLong();
