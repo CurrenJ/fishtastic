@@ -89,6 +89,14 @@ public final class TankGroupFlock {
     private List<BlockPos> cachedMembers = List.of();
     /** The domain the engine was built against — a new epoch hands us a new one and forces a rebuild. */
     private VoxelDomain builtDomain;
+    /**
+     * The fish budget of the last rebuild, computed from the members' contents there — the members'
+     * own hover passes read <em>this</em> rather than recomputing, so the two halves of the
+     * swim/hover split are guaranteed to use one set of numbers even if a tank's contents change
+     * between them. Starts as "the group takes nothing", so before the first rebuild every fish
+     * stays visible as a hover instead of being claimed twice or by nobody.
+     */
+    private TankFishBudget budget = TankFishBudget.uniformCap(0);
     /** Snapshot of every member's contents, concatenated in member order. */
     private ItemStack[] contentsSnapshot = new ItemStack[0];
     private int cosmeticFingerprint = Integer.MIN_VALUE;
@@ -105,6 +113,14 @@ public final class TankGroupFlock {
 
     FlockEngine engine() {
         return engine;
+    }
+
+    /**
+     * The fish budget of the last rebuild — what each member's hover pass must apply, so both
+     * halves of the split use one set of numbers (see the field).
+     */
+    TankFishBudget budget() {
+        return budget;
     }
 
     public int count() {
@@ -368,7 +384,10 @@ public final class TankGroupFlock {
         VoxelDomain domain = entry.domain();
         float gateRun = domain.sizeGateRun();
         float gateFactor = Tunables.DEFAULT.gateFactor();
-        int quota = TankGroups.perTankFishQuota(group.members().size());
+        // What the group's own contents allow: the cap both this pass and the members' hover pass
+        // apply, from the same counts, so the two cannot disagree about a slot. Stored, and read
+        // back by the hover passes rather than recomputed.
+        budget = TankFishBudget.forGroup(group, level);
 
         // The group inherits the anchor's swarm shape, exactly as it did when the anchor built it.
         // Members whose block entity is not loaded are skipped by the collection loop below; an
@@ -387,7 +406,7 @@ public final class TankGroupFlock {
             if (!(level.getBlockEntity(memberPos) instanceof FishTankBlockEntity member)) continue;
             // Mirrors the per-member split in TankFlockAdapter exactly — same rule object, so the two
             // passes cannot drift apart. Disagree on one slot and a fish is drawn twice or not at all.
-            GroupSplit memberSplit = new GroupSplit(gateRun, gateFactor, quota);
+            GroupSplit memberSplit = new GroupSplit(gateRun, gateFactor, budget);
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
                 ItemStack s = member.getItem(slot);
                 if (s.isEmpty()) continue;
@@ -491,25 +510,26 @@ public final class TankGroupFlock {
      * once per member (deciding what that tank keeps, in {@link TankFlockAdapter}) and once here
      * (collecting what the group takes). The two passes walk the same slots in the same order and
      * <b>must agree on every one of them</b> — disagree and a fish is drawn twice or not at all — so
-     * they share this, quota counters included. One instance per tank; a fresh one per member here.
+     * they share this, budget and counters included. One instance per tank; a fresh one per member
+     * here, both built from the one {@link TankFishBudget} the caller computed.
      *
-     * <p>Each simulated class counts against its <b>own</b> copy of the quota. They compete for
+     * <p>Each simulated class counts against its <b>own</b> cap. They compete for
      * different resources — water volume, floor area, and the vertical column a jellyfish pulses
      * through — so a tank full of one must not evict a creature the group has ample room for.
      */
     static final class GroupSplit {
         private final float gateRun;
         private final float gateFactor;
-        private final int quota;
+        private final TankFishBudget budget;
         private final int[] taken = new int[Locomotion.values().length];
 
-        GroupSplit(float gateRun, float gateFactor, int quota) {
+        GroupSplit(float gateRun, float gateFactor, TankFishBudget budget) {
             this.gateRun = gateRun;
             this.gateFactor = gateFactor;
-            this.quota = quota;
+            this.budget = budget;
         }
 
-        /** Whether this fish joins the group engine, consuming a slot of its class's quota if so. */
+        /** Whether this fish joins the group engine, consuming a slot of its class's cap if so. */
         boolean joins(Locomotion locomotion, float length) {
             boolean eligible = switch (locomotion) {
                 // The group's size gate, applied here as well as in the engine, for the two
@@ -527,7 +547,7 @@ public final class TankGroupFlock {
             };
             if (!eligible) return false;
             int idx = locomotion.ordinal();
-            if (taken[idx] >= quota) return false;
+            if (taken[idx] >= budget.perTankCap(locomotion)) return false;
             taken[idx]++;
             return true;
         }
