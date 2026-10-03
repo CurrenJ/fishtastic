@@ -9,5 +9,6 @@
   "time_weights": [
     { "time": "day", "multiplier": 1.5 },
     { "time": "dawn", "multiplier": 2.0 }
-  ]
+  ],
+  "swarm": { "shelter": "skittish" }
 }

@@ -14,6 +14,7 @@ import grill24.fishtastic.fishtank.ShippedStructures;
 import grill24.fishtastic.fishtank.SpanStructures;
 import net.minecraft.world.level.block.Rotation;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -61,11 +63,15 @@ class ShelterBandVisitTest {
                 new Case("leviathans_seat", "3x1x1", 0.45f, ShelterUse.NONE, each(0)),
                 new Case("moon_gate", "1x1x3", 0.60f, ShelterUse.NONE, each(0)),
                 new Case("sea_arch", "2x2x2", 0.60f, ShelterUse.NONE, each(0)),
+                // A fish that never hides takes a tunnel as it takes a gate: the keyhole and the eye.
+                new Case("sea_arch", "2x2x2", 0.30f, ShelterUse.NONE, new int[][]{{2, 3}}),
                 new Case("sea_arch", "2x2x2", 0.50f, ShelterUse.LURKER, each(1)),
                 new Case("sea_arch", "2x2x2", 0.30f, ShelterUse.VISITOR, new int[][]{{2, 3}, {4}}),
                 new Case("sea_arch", "2x2x2", 0.15f, ShelterUse.VISITOR, new int[][]{{5, 6, 7}}),
                 new Case("sunken_ziggurat", "4x2x1", 0.50f, ShelterUse.VISITOR, each(0)),
                 new Case("sunken_ziggurat", "4x2x1", 0.15f, ShelterUse.NONE, each(1)),
+                new Case("sunken_ziggurat", "4x2x1", 0.50f, ShelterUse.NONE, each(0)),
+                new Case("clay_pipe", "3x1x1", 0.15f, ShelterUse.NONE, each(0)),
                 new Case("capsized_galleon", "3x2x1", 0.50f, ShelterUse.LURKER, each(0)),
                 new Case("whale_fall", "4x2x2", 0.60f, ShelterUse.NONE, each(1)),
                 new Case("drowned_cathedral", "4x2x2", 0.60f, ShelterUse.NONE, each(0)),
@@ -75,11 +81,10 @@ class ShelterBandVisitTest {
                 new Case("coral_warren", "3x2x1", 0.35f, ShelterUse.NONE, each(1)));
     }
 
-    /** Entries into each of the structure's shelters, summed over the seeds. */
-    private static int[] entries(Case c) {
+    /** An engine running case {@code c}'s structure in its domain, with its shelters and obstacles, stocked for {@code seed}. */
+    private static FlockEngine engineFor(Case c, long seed) {
         CosmeticStructure structure = ShippedStructures.all().get(c.structure());
-        int[] counts = new int[structure.shelters().size()];
-        for (long seed : SEEDS) {
+        {
             boolean[][][] occupancy = Scenarios.occupancy(c.domain());
             int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
             boolean span = structure.span().isPresent();
@@ -111,6 +116,15 @@ class ShelterBandVisitTest {
             }
             FlockEngine engine = new FlockEngine(Tunables.GROUP);
             engine.rebuild(specs, seed, 0f, 20f, domain);
+            return engine;
+        }
+    }
+
+    /** Entries into each of the structure's shelters, summed over the seeds. */
+    private static int[] entries(Case c) {
+        int[] counts = new int[ShippedStructures.all().get(c.structure()).shelters().size()];
+        for (long seed : SEEDS) {
+            FlockEngine engine = engineFor(c, seed);
             int[] state = new int[FISH];
             for (int tick = 0; tick < TICKS; tick++) {
                 engine.step();
@@ -143,5 +157,20 @@ class ShelterBandVisitTest {
             }));
         }
         return tests;
+    }
+
+    /**
+     * A lurker takes a one-mouth den over a tunnel, so its resting in the mouth doesn't shut a way
+     * through: in the Sea Arch the cave (1), never the keyhole (2) or the stack's eye (3), though
+     * all three fit it.
+     */
+    @Test
+    void aLurkerPrefersADenToATunnel() {
+        Case c = new Case("sea_arch", "2x2x2", 0.50f, ShelterUse.LURKER, each(1));
+        for (long seed : SEEDS) {
+            FlockEngine engine = engineFor(c, seed);
+            for (int tick = 0; tick < 40; tick++) engine.step();
+            assertEquals(1, engine.shelterClaim(0), "seed " + seed + ": the lurker should claim the cave");
+        }
     }
 }

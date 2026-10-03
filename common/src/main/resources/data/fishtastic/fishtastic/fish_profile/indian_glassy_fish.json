@@ -10,6 +10,7 @@
   ],
   "temperament": "fishtastic:skittish",
   "swarm": {
+    "shelter": "skittish",
     "count": 3,
     "depth_layers": 2,
     "xz_spread": 0.2,
