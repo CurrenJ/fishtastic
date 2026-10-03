@@ -46,9 +46,10 @@ class CosmeticObstaclesTest {
     }
 
     private static boolean inHull(CosmeticStructure structure, float x, float y, float z) {
-        return structure.shelterShape().map(s -> x >= s.hullMin().x() - 0.5f && x <= s.hullMax().x() + 0.5f
-                && y >= s.hullMin().y() && y <= s.hullMax().y() + 1
-                && z >= s.hullMin().z() - 0.5f && z <= s.hullMax().z() + 0.5f).orElse(false);
+        return structure.shelterShapes().stream().map(CosmeticStructure.DerivedShelter::shape)
+                .anyMatch(s -> x >= s.hullMin().x() - 0.5f && x <= s.hullMax().x() + 0.5f
+                        && y >= s.hullMin().y() && y <= s.hullMax().y() + 1
+                        && z >= s.hullMin().z() - 0.5f && z <= s.hullMax().z() + 0.5f);
     }
 
     /** Sampled points checked over the whole shipped set — see {@link #theCoverageCheckIsNotVacuous}. */
@@ -85,7 +86,7 @@ class CosmeticObstaclesTest {
                         }
                     }
                 }
-                if (structure.shelterShape().isEmpty()) {
+                if (!structure.hasShelter()) {
                     // A structure with no hull skips no point, so every solid part must be checked.
                     // One with a hull legitimately checks nothing when all its parts sit inside it
                     // (the Clay Pipe's walls are its shelter); the set-wide total below is its guard.
@@ -144,8 +145,11 @@ class CosmeticObstaclesTest {
                     parts.add(new ObstacleGeometry.Part(0f, 0f, 0f, List.of(f), false));
                 }
                 ObstacleGeometry.Voxels before = ObstacleGeometry.rasterise(parts);
-                // A shelter's hull is carved out on purpose: put it back before asking.
-                structure.shelterShape().ifPresent(s -> {
+                // A shelter's hull is carved out on purpose: put it back before asking. A gate's
+                // never was: it has none.
+                structure.shelterShapes().stream()
+                        .filter(d -> d.spec().kind() != CosmeticStructure.ShelterKind.GATE)
+                        .map(CosmeticStructure.DerivedShelter::shape).forEach(s -> {
                     for (int x = s.hullMin().x(); x <= s.hullMax().x(); x++)
                         for (int y = s.hullMin().y(); y <= s.hullMax().y(); y++)
                             for (int z = s.hullMin().z(); z <= s.hullMax().z(); z++)
@@ -173,11 +177,13 @@ class CosmeticObstaclesTest {
         int shelters = 0;
         for (Map.Entry<String, CosmeticStructure> e : ShippedStructures.all().entrySet()) {
             CosmeticStructure structure = e.getValue();
-            if (structure.shelterShape().isEmpty()) continue;
+            if (!structure.hasShelter()) continue;
             shelters++;
             List<ObstacleGeometry.Box> boxes = boxes(structure);
-            for (ShelterGeometry.Cell cell : structure.shelterShape().get().interior()) {
-                assertFalse(covered(boxes, cell.x(), cell.y() + 0.5f, cell.z()), e.getKey() + " interior cell " + cell);
+            for (CosmeticStructure.DerivedShelter d : structure.shelterShapes()) {
+                for (ShelterGeometry.Cell cell : d.shape().interior()) {
+                    assertFalse(covered(boxes, cell.x(), cell.y() + 0.5f, cell.z()), e.getKey() + " interior cell " + cell);
+                }
             }
         }
         assertTrue(shelters >= 3, "the Hollow Log, Clay Pipe and Whale Fall are all shelters");

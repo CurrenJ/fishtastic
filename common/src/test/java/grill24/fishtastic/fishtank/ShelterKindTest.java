@@ -26,18 +26,25 @@ class ShelterKindTest {
     void theShippedShelterKinds() {
         Set<String> gates = new TreeSet<>(), open = new TreeSet<>(), hollows = new TreeSet<>();
         for (Map.Entry<String, CosmeticStructure> e : ShippedStructures.all().entrySet()) {
-            e.getValue().shelter().ifPresent(spec -> (switch (spec.kind()) {
-                case GATE -> gates;
-                case OPEN -> open;
-                case HOLLOW -> hollows;
-            }).add(e.getKey()));
+            for (CosmeticStructure.ShelterSpec spec : e.getValue().shelters()) {
+                (switch (spec.kind()) {
+                    case GATE -> gates;
+                    case OPEN -> open;
+                    case HOLLOW -> hollows;
+                }).add(e.getKey());
+            }
         }
         for (String name : ShippedStructures.all().keySet()) {
             if (name.startsWith("cosmetic_fence_arch_")) assertTrue(gates.contains(name), name + " is a gate");
         }
         assertTrue(gates.contains("torii_gate"), "the Torii Gate is a gate: " + gates);
-        assertEquals(Set.of("spruce_gazebo"), open);
-        assertEquals(Set.of("clay_pipe", "hollow_log", "whale_fall"), hollows, "a shelter without a kind is a hollow");
+        for (String gate : List.of("moon_gate", "sea_arch", "drowned_cathedral", "coral_warren")) {
+            assertTrue(gates.contains(gate), gate + " is a gate: " + gates);
+        }
+        assertEquals(Set.of("spruce_gazebo", "mangrove_knees", "leviathans_seat", "sunken_ziggurat", "whale_fall",
+                "drowned_cathedral"), open);
+        assertEquals(Set.of("clay_pipe", "hollow_log", "whale_fall", "amphora", "drowned_bell", "basalt_grotto",
+                "sunken_ziggurat", "capsized_galleon", "drowned_cathedral"), hollows, "a shelter without a kind is a hollow");
     }
 
     /** Every shipped gate opens on both sides, horizontally — the way through it. */
@@ -45,12 +52,14 @@ class ShelterKindTest {
     void everyShippedGateOpensBothWays() {
         for (Map.Entry<String, CosmeticStructure> e : ShippedStructures.all().entrySet()) {
             CosmeticStructure s = e.getValue();
-            if (s.shelter().map(spec -> spec.kind() != CosmeticStructure.ShelterKind.GATE).orElse(true)) continue;
-            ShelterGeometry.Shape shape = s.shelterShape().orElseThrow();
-            int sideways = 0;
-            for (ShelterGeometry.Mouth m : shape.mouths()) if (m.outward()[1] == 0) sideways++;
-            assertEquals(2, sideways, e.getKey() + ": one mouth front, one back");
-            assertTrue(CosmeticStructure.opensBothWays(shape), e.getKey());
+            for (CosmeticStructure.DerivedShelter d : s.shelterShapes()) {
+                if (d.spec().kind() != CosmeticStructure.ShelterKind.GATE) continue;
+                ShelterGeometry.Shape shape = d.shape();
+                int sideways = 0;
+                for (ShelterGeometry.Mouth m : shape.mouths()) if (m.outward()[1] == 0) sideways++;
+                assertEquals(2, sideways, e.getKey() + ": one mouth front, one back");
+                assertTrue(CosmeticStructure.opensBothWays(shape), e.getKey());
+            }
         }
     }
 
@@ -63,14 +72,16 @@ class ShelterKindTest {
         int checked = 0;
         for (Map.Entry<String, CosmeticStructure> e : ShippedStructures.all().entrySet()) {
             CosmeticStructure s = e.getValue();
-            if (s.shelter().map(spec -> spec.kind() != CosmeticStructure.ShelterKind.GATE).orElse(true)) continue;
-            Set<ShelterGeometry.Cell> opening = Set.copyOf(s.shelter().get().interior());
-            List<ShelterGeometry.Cell> cells = s.partCells();
-            for (int k = 0; k < cells.size(); k++) {
-                if (!opening.contains(cells.get(k))) continue;
-                assertTrue(ShippedStructures.softTag().test(s.parts().get(k).state()),
-                        e.getKey() + ": solid " + s.parts().get(k).state() + " in the gateway at " + cells.get(k));
-                checked++;
+            for (CosmeticStructure.ShelterSpec spec : s.shelters()) {
+                if (spec.kind() != CosmeticStructure.ShelterKind.GATE) continue;
+                Set<ShelterGeometry.Cell> opening = Set.copyOf(spec.interior());
+                List<ShelterGeometry.Cell> cells = s.partCells();
+                for (int k = 0; k < cells.size(); k++) {
+                    if (!opening.contains(cells.get(k))) continue;
+                    assertTrue(ShippedStructures.softTag().test(s.parts().get(k).state()),
+                            e.getKey() + ": solid " + s.parts().get(k).state() + " in the gateway at " + cells.get(k));
+                    checked++;
+                }
             }
         }
         assertTrue(checked >= 11, "every fence arch's lantern hangs in its gateway: " + checked);
@@ -79,7 +90,7 @@ class ShelterKindTest {
     /** The gazebo's floor is open on all four sides, between its corner posts. */
     @Test
     void theGazeboOpensOnEverySide() {
-        ShelterGeometry.Shape shape = ShippedStructures.all().get("spruce_gazebo").shelterShape().orElseThrow();
+        ShelterGeometry.Shape shape = ShippedStructures.all().get("spruce_gazebo").shelterShapes().get(0).shape();
         Set<String> sides = new TreeSet<>();
         for (ShelterGeometry.Mouth m : shape.mouths()) {
             if (m.outward()[1] == 0) sides.add(m.outward()[0] + "," + m.outward()[2]);

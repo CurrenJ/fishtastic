@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
@@ -82,10 +81,24 @@ public final class CosmeticObstacles {
             parts.add(new ObstacleGeometry.Part(part.offsetX() / xzRatio - 0.5f, part.offsetY(),
                     part.offsetZ() / xzRatio - 0.5f, shape, soft.test(state)));
         }
-        ObstacleGeometry.Voxels voxels = ObstacleGeometry.fillPockets(ObstacleGeometry.rasterise(parts), clearanceVoxels(structure));
-        Optional<ShelterGeometry.Shape> shelter = structure.shelterShape();
-        boolean gate = structure.shelter().map(s -> s.kind() == CosmeticStructure.ShelterKind.GATE).orElse(false);
-        if (!gate) shelter.ifPresent(shape -> ObstacleGeometry.carve(voxels, shape.hullMin(), shape.hullMax()));
+        // Pockets are filled with every hull solid: a hull is solid to the fish not using its
+        // shelter, so water it walls off against the other parts is a pocket to them. A big boxy
+        // hull (the whale's ribcage, the mangrove's nursery) can do that; a small one never did.
+        // A gate has no hull, so nothing of it is solid but its parts.
+        List<CosmeticStructure.DerivedShelter> hulled = new ArrayList<>();
+        for (CosmeticStructure.DerivedShelter shelter : structure.shelterShapes()) {
+            if (shelter.spec().kind() != CosmeticStructure.ShelterKind.GATE) hulled.add(shelter);
+        }
+        List<ObstacleGeometry.Part> solid = new ArrayList<>(parts);
+        for (CosmeticStructure.DerivedShelter shelter : hulled) {
+            ShelterGeometry.Cell min = shelter.shape().hullMin(), max = shelter.shape().hullMax();
+            solid.add(new ObstacleGeometry.Part(min.x() - 0.5f, min.y(), min.z() - 0.5f,
+                    List.of(new float[]{0f, 0f, 0f, max.x() - min.x() + 1, max.y() - min.y() + 1, max.z() - min.z() + 1}), false));
+        }
+        ObstacleGeometry.Voxels voxels = ObstacleGeometry.fillPockets(ObstacleGeometry.rasterise(solid), clearanceVoxels(structure));
+        for (CosmeticStructure.DerivedShelter shelter : hulled) {
+            ObstacleGeometry.carve(voxels, shelter.shape().hullMin(), shelter.shape().hullMax());
+        }
         return List.copyOf(ObstacleGeometry.merge(voxels));
     }
 }

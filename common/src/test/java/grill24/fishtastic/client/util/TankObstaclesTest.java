@@ -77,7 +77,7 @@ class TankObstaclesTest {
                 List<Shelter.OrientedBox> boxes = TankObstacles.inBlockFrame(CosmeticObstacles.derive(structure, SOFT),
                         structure.scale(), (float) anchor.localX(), (float) anchor.localZ(), rotation);
                 List<Shelter> hull = TankShelters.inBlockFrame(structure, (float) anchor.localX(), (float) anchor.localZ(), rotation)
-                        .filter(shelter -> shelter.kind() != Shelter.Kind.GATE).map(List::of).orElse(List.of());
+                        .stream().filter(shelter -> shelter.kind() != Shelter.Kind.GATE).toList();
                 float s = structure.scale();
                 for (CosmeticStructure.StructurePart part : structure.parts()) {
                     if (SOFT.test(part.state()) || !fullCube(part.state())) continue;
@@ -85,7 +85,7 @@ class TankObstaclesTest {
                     float[] c = {(float) (anchor.localX() + r[0] * CosmeticGridCell.CELL_WIDTH),
                             CosmeticGridCell.FLOOR_Y + part.offsetY() * s + s / 2f,
                             (float) (anchor.localZ() + r[1] * CosmeticGridCell.CELL_WIDTH)};
-                    if (!hull.isEmpty() && hull.get(0).hull().contains(c[0], c[1], c[2])) continue;
+                    if (hull.stream().anyMatch(shelter -> shelter.hull().contains(c[0], c[1], c[2]))) continue;
                     assertPartCovered(boxes, c, s, name + " " + rotation + " " + part.state());
                     checked++;
                 }
@@ -106,14 +106,14 @@ class TankObstaclesTest {
                 List<Shelter.OrientedBox> boxes = TankObstacles.inBlockFrame(CosmeticObstacles.derive(structure, SOFT),
                         s, origin[0], origin[1], rotation);
                 List<Shelter> hull = TankShelters.inBlockFrame(structure, origin[0], origin[1], rotation)
-                        .filter(shelter -> shelter.kind() != Shelter.Kind.GATE).map(List::of).orElse(List.of());
+                        .stream().filter(shelter -> shelter.kind() != Shelter.Kind.GATE).toList();
                 List<SpanStructures.Placed> placed = SpanStructures.layout(structure, rotation);
                 for (int i = 0; i < placed.size(); i++) {
                     BlockState authored = structure.parts().get(i).state();
                     if (SOFT.test(authored) || !fullCube(authored)) continue;
                     SpanStructures.Placed p = placed.get(i);
                     float[] c = {p.x() + s / 2f, p.y() + s / 2f, p.z() + s / 2f};
-                    if (!hull.isEmpty() && hull.get(0).hull().contains(c[0], c[1], c[2])) continue;
+                    if (hull.stream().anyMatch(shelter -> shelter.hull().contains(c[0], c[1], c[2]))) continue;
                     assertPartCovered(boxes, c, s, e.getKey() + " " + rotation + " part " + i);
                 }
             }

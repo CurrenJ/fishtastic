@@ -1,0 +1,12 @@
+{
+  "display_name": "Capsized Galleon",
+  "description": "A warship turned keel-up on the floor of a long two-storey tank, its broken stern a dark lair for the biggest fish and a glint of gold deep inside, for your fish tank.",
+  "cost": 80,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_capsized_galleon",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

@@ -1472,7 +1472,9 @@ public final class RenderSelfTest {
      * with cool-cam: {@code coolcam_capture/preview_<name>_low} (just above the floor, the angle
      * players see it from) and {@code preview_<name>_high} (looking down through the roof). Checks the
      * structure loaded from the datapack, that its footprint fits the grid at all four rotations, and,
-     * informationally, whether {@code cosmetic_<name>} is registered as an item yet.
+     * informationally, whether {@code cosmetic_<name>} is registered as an item yet. A spanning
+     * structure is placed across a box of SKYLIGHT tanks of its span instead, and the orbits are
+     * framed to the box.
      */
     private static void queueCosmeticPreviewScene() {
         List<String> names = params("cosmetic");
@@ -1489,9 +1491,12 @@ public final class RenderSelfTest {
         });
         Vec3 center = new Vec3(origin.getX() + 0.5, origin.getY() + 0.4, origin.getZ() - 4 + 0.5);
         for (String name : names) {
+            // The orbit's centre, radius and low/high heights: a lone tank's, unless the structure spans a box.
+            double[] frame = {center.x, center.y, center.z, 2.1, 0.55, 1.9};
             queue(10, mc -> server(mc, s -> {
                 BlockPos pos = new BlockPos(origin.getX(), origin.getY(), origin.getZ() - 4);
-                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
+                run(s, "fill " + (pos.getX() - 3) + " " + pos.getY() + " " + (pos.getZ() - 3) + " " + (pos.getX() + 3) + " "
+                        + (pos.getY() + 3) + " " + (pos.getZ() + 3) + " minecraft:air");
                 ServerLevel level = s.overworld();
                 ResourceKey<grill24.fishtastic.fishtank.CosmeticStructure> key = structure(name);
                 var found = level.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY).getOptional(key);
@@ -1500,6 +1505,21 @@ public final class RenderSelfTest {
                 boolean item = BuiltInRegistries.ITEM.containsKey(Ids.of("fishtastic", "cosmetic_" + name));
                 check("cosmeticpreview." + name + ".itemRegistered", item, item ? "" : "(expected before the item is wired up)");
                 if (found.isEmpty()) return;
+                if (found.get().span().isPresent()) {
+                    var span = found.get().span().get();
+                    BlockPos min = spanPreviewMin(pos, span);
+                    placeSpanBox(s, min, span);
+                    var box = grill24.fishtastic.fishtank.SpanStructures.rotated(span, Rotation.NONE);
+                    grill24.fishtastic.fishtank.SpanStructures.place(level, new grill24.fishtastic.fishtank.SpanStructures.Fit(min, box, null),
+                            new FishTankBlockEntity.PlacedStructureCosmetic(key, Rotation.NONE), found.get());
+                    frame[0] = min.getX() + span.x() / 2.0;
+                    frame[1] = min.getY() + 0.25 * span.y();
+                    frame[2] = min.getZ() + span.z() / 2.0;
+                    frame[3] = 1.15 * Math.max(span.x(), span.z()) + 1.6;
+                    frame[4] = 0.3 + 0.3 * span.y();
+                    frame[5] = 1.4 * span.y() + 1.0;
+                    return;
+                }
                 for (Rotation rotation : Rotation.values()) {
                     check("cosmeticpreview." + name + ".fits." + rotation.name().toLowerCase(Locale.ROOT), footprintAt(found.get(), rotation) != null, "");
                 }
@@ -1513,8 +1533,9 @@ public final class RenderSelfTest {
             }));
             for (String[] orbit : new String[][]{{"low", "0.55"}, {"high", "1.9"}}) {
                 String capture = "preview_" + name + "_" + orbit[0];
-                queue(40, mc -> mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit %s 8 2.1 %s %.2f %.2f %.2f",
-                        capture, orbit[1], center.x, center.y, center.z)));
+                boolean low = orbit[0].equals("low");
+                queue(40, mc -> mc.player.connection.sendCommand(String.format(Locale.ROOT, "cc capture orbit %s 8 %.2f %.2f %.2f %.2f %.2f",
+                        capture, frame[3], low ? frame[4] : frame[5], frame[0], frame[1], frame[2])));
                 waitFor(10, 1200, mc -> captureFrame(capture, 7).isFile(),
                         mc -> check("cosmeticpreview." + capture, captureFrame(capture, 7).isFile(), captureFrame(capture, 0).getParent()));
             }
@@ -1528,6 +1549,23 @@ public final class RenderSelfTest {
         });
     }
 
+    /** Where a spanning structure's preview box starts: centred on {@code pos} along x and z. */
+    private static BlockPos spanPreviewMin(BlockPos pos, grill24.fishtastic.fishtank.CosmeticStructure.Span span) {
+        return new BlockPos(pos.getX() - span.x() / 2, pos.getY(), pos.getZ() - span.z() / 2);
+    }
+
+    /** Clears round a span-sized box at {@code min} and fills it with SKYLIGHT tanks. */
+    private static void placeSpanBox(net.minecraft.server.MinecraftServer s, BlockPos min, grill24.fishtastic.fishtank.CosmeticStructure.Span span) {
+        run(s, "fill " + (min.getX() - 1) + " " + min.getY() + " " + (min.getZ() - 1) + " " + (min.getX() + span.x()) + " "
+                + (min.getY() + span.y()) + " " + (min.getZ() + span.z()) + " minecraft:air");
+        run(s, "fill " + min.getX() + " " + min.getY() + " " + min.getZ() + " " + (min.getX() + span.x() - 1) + " "
+                + (min.getY() + span.y() - 1) + " " + (min.getZ() + span.z() - 1) + " fishtastic:fish_tank");
+        for (BlockPos p : BlockPos.betweenClosed(min, min.offset(span.x() - 1, span.y() - 1, span.z() - 1))) {
+            FishTankBlockEntity tank = tank(s.overworld(), p);
+            if (tank != null) tank.setShape(FishTankShape.SKYLIGHT);
+        }
+    }
+
     /**
      * The item side of a cosmetic, checked in game: {@code cosmetic_<name>} targets the structure, has
      * a lang name, and has a loaded shop entry that sells it; then a creative player standing on a
@@ -1537,7 +1575,10 @@ public final class RenderSelfTest {
      */
     private static void queueCosmeticItemChecks(String name) {
         Identifier itemId = Ids.of("fishtastic", "cosmetic_" + name);
-        BlockPos pos = new BlockPos(origin.getX() + 3, origin.getY(), origin.getZ() - 4);
+        // A lone tank, or for a spanning structure the top tank at the corner of a box of its span,
+        // well clear of the preview box; and the tanks, for the placed check and the clean-up.
+        BlockPos[] at = {new BlockPos(origin.getX() + 3, origin.getY(), origin.getZ() - 4)};
+        List<BlockPos> box = new java.util.ArrayList<>();
         boolean[] registered = {false};
         queue(5, mc -> {
             registered[0] = BuiltInRegistries.ITEM.containsKey(itemId);
@@ -1556,10 +1597,24 @@ public final class RenderSelfTest {
                         && entry.get().reward().stream().anyMatch(r -> r.itemId().equals(itemId));
                 check("cosmeticpreview." + name + ".shopEntry", sells, entry.map(e -> "'" + e.displayName() + "' for " + e.cost()
                         + ", daily max " + e.dailyMaxPurchases() + ", weight " + e.weight()).orElse("no shop_entry/cosmetic_" + name + ".json loaded"));
-                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
-                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " fishtastic:fish_tank");
-                FishTankBlockEntity tank = tank(s.overworld(), pos);
-                if (tank != null) tank.setShape(FishTankShape.SKYLIGHT);
+                var structure = s.registryAccess().lookupOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY)
+                        .getOptional(structure(name)).orElse(null);
+                box.clear();
+                if (structure != null && structure.span().isPresent()) {
+                    var span = structure.span().get();
+                    BlockPos min = new BlockPos(origin.getX() + 6, origin.getY(), origin.getZ() - 4);
+                    placeSpanBox(s, min, span);
+                    for (BlockPos p : BlockPos.betweenClosed(min, min.offset(span.x() - 1, span.y() - 1, span.z() - 1))) box.add(p.immutable());
+                    at[0] = min.offset(0, span.y() - 1, 0);
+                } else {
+                    BlockPos lone = at[0];
+                    run(s, "setblock " + lone.getX() + " " + lone.getY() + " " + lone.getZ() + " minecraft:air");
+                    run(s, "setblock " + lone.getX() + " " + lone.getY() + " " + lone.getZ() + " fishtastic:fish_tank");
+                    FishTankBlockEntity tank = tank(s.overworld(), lone);
+                    if (tank != null) tank.setShape(FishTankShape.SKYLIGHT);
+                    box.add(lone);
+                }
+                BlockPos pos = at[0];
                 run(s, "gamemode creative @a");
                 run(s, "item replace entity @a weapon.mainhand with " + itemId);
                 run(s, String.format(Locale.ROOT, "tp @a %.2f %.2f %.2f 180 90", pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5));
@@ -1577,6 +1632,7 @@ public final class RenderSelfTest {
         });
         queue(5, mc -> {
             if (!registered[0]) return;
+            BlockPos pos = at[0];
             mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
                     new BlockHitResult(new Vec3(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5), Direction.UP, pos, false));
         });
@@ -1585,12 +1641,11 @@ public final class RenderSelfTest {
             mc.gui.getChat().clearMessages(false);
             screenshot(mc, "cosmeticpreview", name + "_placed");
             server(mc, s -> {
-                FishTankBlockEntity tank = tank(s.overworld(), pos);
-                boolean placed = tank != null && tank.getStructureCosmetics().values().stream()
-                        .anyMatch(c -> c.structureId().equals(structure(name)));
+                boolean placed = box.stream().map(p -> tank(s.overworld(), p)).anyMatch(tank -> tank != null
+                        && tank.getStructureCosmetics().values().stream().anyMatch(c -> c.structureId().equals(structure(name))));
                 check("cosmeticpreview." + name + ".placesFromItem", placed, placed ? "placed by right-click" : "no structure in the tank after useItemOn");
                 run(s, "item replace entity @a weapon.mainhand with minecraft:air");
-                run(s, "setblock " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " minecraft:air");
+                for (BlockPos p : box) run(s, "setblock " + p.getX() + " " + p.getY() + " " + p.getZ() + " minecraft:air");
             });
         });
         queue(5, mc -> mc.options.hideGui = true);

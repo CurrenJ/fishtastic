@@ -1,0 +1,12 @@
+{
+  "display_name": "Drowned Bell",
+  "description": "A verdigris temple bell fallen on its side, its dark throat a hiding place for small and medium fish, for your fish tank.",
+  "cost": 35,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_drowned_bell",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

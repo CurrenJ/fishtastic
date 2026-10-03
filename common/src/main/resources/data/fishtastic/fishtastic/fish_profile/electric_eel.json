@@ -13,5 +13,6 @@
   },
   "moon_weights": [
     { "phase": "full_moon", "multiplier": 2.0 }
-  ]
+  ],
+  "swarm": { "shelter": "lurker" }
 }

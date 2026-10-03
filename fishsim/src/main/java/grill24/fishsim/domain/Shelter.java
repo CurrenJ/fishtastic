@@ -20,9 +20,11 @@ import java.util.List;
  * @param interiorRun  the longest straight horizontal run through the interior, in blocks — what
  *                     the length gate measures against (§5.2)
  * @param kind         what a visit there looks like (§12.1)
+ * @param minLength    the shortest fish that may use it, in blocks; 0 for any. A seat kept for the
+ *                     biggest fish in the tank (§12.9) is passed over by the small fry
  */
 public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity,
-                      float interiorRun, Kind kind) {
+                      float interiorRun, Kind kind, float minLength) {
 
     public Shelter {
         mouths = List.copyOf(mouths);
@@ -31,6 +33,11 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
     /** A {@link Kind#HOLLOW} — every shelter before §12.4's gates. */
     public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity, float interiorRun) {
         this(hull, interior, mouths, capacity, interiorRun, Kind.HOLLOW);
+    }
+
+    /** A shelter any fish that fits may use, whatever its size. */
+    public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity, float interiorRun, Kind kind) {
+        this(hull, interior, mouths, capacity, interiorRun, kind, 0f);
     }
 
     /** What a visit looks like (docs/fish-shelters.md §12.1, §12.4). */

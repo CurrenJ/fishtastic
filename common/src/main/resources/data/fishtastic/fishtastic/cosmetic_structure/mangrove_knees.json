@@ -1,0 +1,3695 @@
+{
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": -1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": -1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": 1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": -1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": 1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": 1.3371429,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:muddy_mangrove_roots"
+   },
+   "offsetX": 1.3371429,
+   "offsetY": 0,
+   "offsetZ": 1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:moss_carpet"
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 1,
+   "offsetZ": -1.1142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 1,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 1,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 1,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 2,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 2,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 2,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 3,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 3,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 3,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_roots"
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_log",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 9,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 9,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 9,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 9,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 9,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 9,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 9,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 10,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 10,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 10,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 10,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 10,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 11,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 11,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 11,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mangrove_leaves",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  }
+ ],
+ "scale": 0.065,
+ "shelter": {
+  "kind": "open",
+  "interior": [
+   {
+    "x": -3,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 2
+   }
+  ],
+  "capacity": 3
+ }
+}

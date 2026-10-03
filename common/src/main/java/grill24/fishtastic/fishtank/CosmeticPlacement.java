@@ -418,8 +418,10 @@ public final class CosmeticPlacement {
     /**
      * A multi-cell structure: its footprint is rotated by the placing player's 4-way facing before
      * any validation runs, so the shape checked (and previewed) is always the shape that gets
-     * rendered; every cell must be in bounds and free of both single-cell and structure cosmetics
-     * — unless forced, which clears what the footprint overlaps and stands the structure anyway.
+     * rendered; every footprint cell must be in bounds, and every occupied cell
+     * ({@link CosmeticStructure#occupied}) free of both single-cell and structure cosmetics —
+     * unless forced, which clears what the occupied cells overlap and stands the structure anyway.
+     * The rest of the footprint may overlap neighbours: parts reaching there are slight enough.
      */
     private static Plan planStructure(Player player, FishTankBlockEntity clicked, ResourceKey<CosmeticStructure> structureId, boolean force) {
         Level level = clicked.getLevel();
@@ -436,19 +438,29 @@ public final class CosmeticPlacement {
         CosmeticGridCell anchor = target.cell();
         Rotation rotation = rotationFromPlayerFacing(player);
 
-        List<CosmeticGridCell> footprint = new ArrayList<>(structure.get().footprintCells().size());
+        List<CosmeticGridCell> footprint = new ArrayList<>(structure.get().occupied().size());
         List<TankCell> shown = new ArrayList<>();
         List<StructureConflict> conflicts = new ArrayList<>();
         List<TankCell> floorCells = new ArrayList<>();
         String failMessage = null;
         for (CosmeticStructure.GridOffset offset : structure.get().footprintCells()) {
             CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
+            if (!CosmeticGridCell.isValid(anchor.gridX() + rotated.dx(), anchor.gridZ() + rotated.dz())) {
+                failMessage = "Not enough room to place that here";
+            }
+        }
+        // Structures are stored by anchor cell, so a second one anchored there would replace the
+        // first, even where the first doesn't occupy its own anchor (a span's anchor tank, a
+        // bypass_anchor_cell_requirement structure).
+        if (failMessage == null && tank.getStructureCosmetics().containsKey(anchor)) {
+            if (!force) failMessage = "That space is already occupied" + FORCE_HINT;
+            else conflicts.add(new StructureConflict(tank.getBlockPos(), anchor));
+        }
+        for (CosmeticStructure.GridOffset offset : structure.get().occupied()) {
+            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
             int gx = anchor.gridX() + rotated.dx();
             int gz = anchor.gridZ() + rotated.dz();
-            if (!CosmeticGridCell.isValid(gx, gz)) {
-                failMessage = "Not enough room to place that here";
-                continue;
-            }
+            if (!CosmeticGridCell.isValid(gx, gz)) continue;
             CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
             if (failMessage == null) {
                 boolean floorOccupied = tank.getCosmetics().containsKey(cell);

@@ -147,10 +147,12 @@ public final class SpanStructures {
     }
 
     /**
-     * The floor cells the structure's lowest parts stand on, per tank, keyed by the tank's offset
-     * from the anchor (always on the bottom layer).
+     * The floor cells the structure occupies, per tank, keyed by the tank's offset from the anchor
+     * (always on the bottom layer): its authored {@code occupied_cells}, turned with the box, or
+     * else every cell its lowest parts stand on.
      */
     public static Map<BlockPos, List<CosmeticGridCell>> footprint(CosmeticStructure structure, Rotation rotation) {
+        if (!structure.occupiedCells().isEmpty()) return authoredFootprint(structure, rotation);
         Layout layout = layoutWithHeights(structure, rotation);
         float s = structure.scale();
         Map<BlockPos, java.util.LinkedHashSet<CosmeticGridCell>> cells = new LinkedHashMap<>();
@@ -165,6 +167,35 @@ public final class SpanStructures {
         Map<BlockPos, List<CosmeticGridCell>> out = new LinkedHashMap<>();
         cells.forEach((pos, set) -> out.put(pos, List.copyOf(set)));
         return out;
+    }
+
+    /**
+     * {@code occupied_cells} turned with the box: each authored cell's centre is rotated about the
+     * box's centre, as {@link #computeLayout} turns a part's, and lands in the rotated cell.
+     */
+    private static Map<BlockPos, List<CosmeticGridCell>> authoredFootprint(CosmeticStructure structure, Rotation rotation) {
+        CosmeticStructure.Span span = structure.span().orElseThrow();
+        CosmeticStructure.Span turned = rotated(span, rotation);
+        Map<BlockPos, java.util.LinkedHashSet<CosmeticGridCell>> cells = new LinkedHashMap<>();
+        for (CosmeticStructure.GridOffset cell : structure.occupiedCells()) {
+            double ax = cellCentre(cell.dx()) - span.x() / 2.0;
+            double az = cellCentre(cell.dz()) - span.z() / 2.0;
+            float[] r = CosmeticStructures.rotateOffset(rotation, (float) ax, (float) az);
+            double cx = turned.x() / 2.0 + r[0], cz = turned.z() / 2.0 + r[1];
+            int bx = (int) Math.floor(cx), bz = (int) Math.floor(cz);
+            cells.computeIfAbsent(new BlockPos(bx, 0, bz), k -> new java.util.LinkedHashSet<>())
+                    .add(cellAt(cx - bx, cz - bz));
+        }
+        Map<BlockPos, List<CosmeticGridCell>> out = new LinkedHashMap<>();
+        cells.forEach((pos, set) -> out.put(pos, List.copyOf(set)));
+        return out;
+    }
+
+    /** Centre of the {@code index}th floor cell along a box's edge, in blocks from its min corner. */
+    private static double cellCentre(int index) {
+        int tank = Math.floorDiv(index, CosmeticGridCell.GRID_SIZE);
+        int cell = Math.floorMod(index, CosmeticGridCell.GRID_SIZE);
+        return tank + WALL + (cell + 0.5) * CosmeticGridCell.CELL_WIDTH;
     }
 
     /** The parts whose centre lies in the block at {@code offset} from the box's min corner, positioned relative to that block. */
@@ -192,6 +223,12 @@ public final class SpanStructures {
         CosmeticStructure.Span span = structure.span().orElseThrow();
         float s = structure.scale();
         double maxX = interiorX(span) / s, maxY = interiorY(span) / s, maxZ = interiorZ(span) / s;
+        for (CosmeticStructure.GridOffset cell : structure.occupiedCells()) {
+            if (cell.dx() < 0 || cell.dx() >= span.x() * CosmeticGridCell.GRID_SIZE
+                    || cell.dz() < 0 || cell.dz() >= span.z() * CosmeticGridCell.GRID_SIZE) {
+                return DataResult.error(() -> "occupied cell " + cell + " is outside the " + span.x() + "x" + span.z() + " box's floor");
+            }
+        }
         for (CosmeticStructure.StructurePart part : structure.parts()) {
             if (part.offsetX() < 0 || part.offsetX() + 1 > maxX + 1e-3
                     || part.offsetY() < 0 || part.offsetY() + 1 > maxY + 1e-3

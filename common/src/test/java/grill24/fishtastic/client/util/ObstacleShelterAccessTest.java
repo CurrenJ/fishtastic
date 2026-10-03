@@ -45,6 +45,23 @@ class ObstacleShelterAccessTest {
     /** Approaches, entries, the mouths entered by, and the visits that left by another mouth. */
     private record Visits(int approaches, int entries, Set<Integer> mouths, int throughs) {}
 
+    /**
+     * {@link Scenarios#visitors}, a goby's size to a loach's, unless the structure keeps its
+     * shelters for big fish: then the same cast grown to just over its {@code min_length}, the
+     * smallest fish it takes.
+     */
+    private static FishSpec[] castFor(CosmeticStructure structure, long seed) {
+        FishSpec[] specs = Scenarios.visitors(FISH, seed);
+        float floor = 0f;
+        for (CosmeticStructure.ShelterSpec spec : structure.shelters()) floor = Math.max(floor, spec.minLength().orElse(0f));
+        if (floor == 0f) return specs;
+        for (int i = 0; i < specs.length; i++) {
+            FishSpec f = specs[i];
+            specs[i] = new FishSpec(floor + 0.01f + 0.5f * (f.length() - 0.06f), f.locomotion(), f.mirrored(), f.species(), f.shelterUse());
+        }
+        return specs;
+    }
+
     private static Visits run(CosmeticStructure structure, String domainName, boolean obstacles) {
         int approaches = 0, entries = 0, throughs = 0;
         Set<Integer> mouths = new TreeSet<>();
@@ -64,15 +81,15 @@ class ObstacleShelterAccessTest {
                 anchorZ = (float) anchor.localZ();
             }
             VoxelDomain domain = new VoxelDomain(occupancy);
-            domain.rebuildShelters(List.of(TankShelters.toEngine(
-                    TankShelters.inBlockFrame(structure, anchorX, anchorZ, Rotation.NONE).orElseThrow(), ox, oy, oz, 0f)));
+            domain.rebuildShelters(TankShelters.inBlockFrame(structure, anchorX, anchorZ, Rotation.NONE).stream()
+                    .map(shelter -> TankShelters.toEngine(shelter, ox, oy, oz, 0f)).toList());
             if (obstacles) {
                 domain.rebuildObstacles(TankObstacles.toEngine(TankObstacles.inBlockFrame(
                         CosmeticObstacles.derive(structure, ShippedStructures.softTag()), structure.scale(),
                         anchorX, anchorZ, Rotation.NONE), ox, oy, oz, 0f));
             }
             FlockEngine engine = new FlockEngine(Tunables.GROUP);
-            FishSpec[] specs = Scenarios.visitors(FISH, seed);
+            FishSpec[] specs = castFor(structure, seed);
             engine.rebuild(specs, seed, 0f, 20f, domain);
             int[] state = new int[FISH], enteredBy = new int[FISH];
             for (int tick = 0; tick < TICKS; tick++) {
@@ -101,7 +118,7 @@ class ObstacleShelterAccessTest {
         List<DynamicTest> tests = new ArrayList<>();
         for (Map.Entry<String, CosmeticStructure> e : ShippedStructures.all().entrySet()) {
             CosmeticStructure structure = e.getValue();
-            if (structure.shelterShape().isEmpty()) continue;
+            if (!structure.hasShelter()) continue;
             String domainName = structure.span()
                     .map(s -> s.x() + "x" + s.y() + "x" + s.z()).orElse("3x1x1");
             tests.add(DynamicTest.dynamicTest(e.getKey(), () -> {
