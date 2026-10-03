@@ -947,3 +947,34 @@ Notes:
   cosmetics freed cells take aren't swim obstacles, so plants don't matter, but two structures
   placed close together can block each other's approach corridors. That is the player's arrangement,
   not a lone-tank invariant.
+
+### 12.11 Second pass: off the box (2026-10-03)
+
+The Sea Arch, Leviathan's Seat, Capsized Galleon and Sunken Ziggurat were rebuilt to read as
+objects, not extrusions. The new tools are in `tools/shelter-structure-gen/sculpt.py`:
+
+- **`Openings`** carves each shelter's interior and the water in front of its mouths, then walls
+  every other face. A noisy surface then can't leak a mouth or seal one. `keep` is what decoration
+  must leave alone.
+- **`Ramp`** is an ordered run of blocks from light to dark, close in brightness and hue, dithered
+  between steps. Each voxel gets a tone from light and weather: sunlit tops pale, undersides and
+  hollow mouths dark, a gradient toward the sand. Per-voxel dice read as camouflage; a ramp reads
+  as one material. `tools/shelter-structure-gen/swatch.py` measures a block texture's mean colour
+  to pick the steps.
+- **`bevel`** turns exposed edges into stairs and slabs.
+
+Under the tank's water fog, pale blocks of one family (every sandstone) look alike and terracotta
+turns mauve. Contrast has to come from brightness and from saturated life (coral).
+
+| Structure | What changed | Parts | Occupied cells |
+|---|---|---|---|
+| Sea Arch | Sculpted from noise. Tilted strata with soft beds worn back, a wave-cut notch, a flared window, a limestone ramp. **Eight shelters**: the window (gate), a sea cave at the back of a cove (lurker), a keyhole through the headland and an eye through the stack (pass-through), a fallen slab (open), three pigeonholes | 700 → 1,087 | 12 → 11 |
+| Leviathan's Seat | A real vertebra: barrel centrum with a lipped seat, neural arch round an open canal, articular knobs, a raked spine, blade arms curling up. Bone ramp, a fallen rib and vertebra | 260 → 328 | 4 → 6 |
+| Capsized Galleon | A real hull section (tumblehome, full bilge) that lists and hogs. Strakes with butt joints, wales, recessed ports, sprung planks showing frames, copper weathering teal → sage → brown, a hole torn amidships with ribs against the water, a sand drift | 1,001 → 1,470 | 11 → 20 |
+| Sunken Ziggurat | Talud-tablero tiers with projecting cornices and recessed panels of faded stucco, a stairway cut into the face, a pierced roof comb, a slumped corner and scree, fanged and crested serpent heads, vines from the ledges | 1,663 → 2,393 | 16 → 22 |
+
+Floor-level interiors must stay about 0.16 blocks from the glass. The voxel domain's floor-wall
+corner is rounded, and an interior corner outside it makes the shelter unusable without any
+error (`FlockEngine` `shelterUsable`). The Sea Arch's cave sits on a rock sill for this. The
+Ziggurat keeps kelp between the sanctum's columns: without it the one-voxel gaps became mouths
+only the smallest fish fit, and `ObstacleShelterAccessTest` flagged them as unreliable.
