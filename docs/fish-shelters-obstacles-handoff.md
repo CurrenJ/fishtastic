@@ -1,6 +1,6 @@
 # Solid Cosmetics — Handoff
 
-**Written:** 2026-10-02, at the end of the shelters work (accepted in game through `7d0a75f5`).
+**Written:** 2026-10-02, at the end of the shelters work (accepted in game through `be54e6f7`).
 
 > **Status (2026-10-02, later):** built, uncommitted, awaiting the owner's in-game look. What was
 > built, the measurements, and the three places it departs from the decisions below (no box cap,
