@@ -53,6 +53,8 @@ FULL_CUBES = {
     "spruce_planks", "stripped_spruce_log", "waxed_exposed_cut_copper", "waxed_weathered_cut_copper", "sand", "raw_gold_block", "oak_log",
     "polished_andesite", "tuff_bricks", "polished_tuff", "cobbled_deepslate", "prismarine_bricks", "dark_prismarine",
     "polished_granite", "pink_terracotta", "red_terracotta", "mossy_cobblestone", "light_gray_terracotta", "polished_diorite",
+    "white_concrete", "red_concrete", "chiseled_deepslate", "deepslate_bricks", "polished_blackstone", "cobblestone",
+    "diorite", "andesite",
 }
 
 
