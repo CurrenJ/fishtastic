@@ -607,13 +607,124 @@ public final class FlockEngine {
      */
     static final float HULL_MAX_WEIGHT = 2f;
 
-    /**
-     * Which shelter each fish is using, as an index into {@code domain.shelters()}, or −1. A fish
-     * ignores the hull of the shelter it is using (it is swimming into it). Always −1 until the
-     * visit state machine (docs/fish-shelters.md §5) drives it.
-     */
-    private int[] shelterUsing = new int[0];
     private final float[] hullGrad = new float[3];
+
+    // ── The visit state machine (docs/fish-shelters.md §5) ──────────────────
+    // One state per fish, layered on the planar swimmer. ROAMING is today's flocking, untouched;
+    // everything else steers toward, into, around inside, or out of one chosen shelter.
+
+    public static final int SHELTER_ROAMING = 0;
+    public static final int SHELTER_APPROACH = 1;
+    public static final int SHELTER_ENTER = 2;
+    public static final int SHELTER_INSIDE = 3;
+    public static final int SHELTER_EXIT = 4;
+
+    /** Mean seconds between spontaneous visits; each fish's own mean is jittered ±35% off its seed. */
+    static final float VISIT_MEAN_SECONDS = 40f;
+    static final float VISIT_JITTER = 0.35f;
+    /** At least this long out in the open after every visit (§5.4). */
+    public static final float SHELTER_COOLDOWN_SECONDS = 20f;
+    /** An approach gives up after this long and goes to cooldown — what makes "no pathfinding" safe. */
+    public static final float APPROACH_TIMEOUT_SECONDS = 6f;
+    /**
+     * An entry that has not reached the interior by this many times the time it should take turns
+     * back, plus {@link #ENTER_TIMEOUT_SLACK_SECONDS}.
+     */
+    static final float ENTER_TIMEOUT_FACTOR = 1.5f, ENTER_TIMEOUT_SLACK_SECONDS = 2f;
+    /**
+     * A visit urge with no shelter in reach waits this long for one to come into reach — an
+     * edge (the fish arriving within reach), not a standing condition — then lapses.
+     */
+    static final float VISIT_URGE_SECONDS = 20f;
+    /** Only a staging point this many seconds of patrol away is in reach of a visit. */
+    static final float APPROACH_REACH_SECONDS = 4f;
+    /**
+     * Wall margin for a fish on a visit, blocks. A shelter stands on the sand, so its mouth is low,
+     * and the ordinary margin (0.20, applied vertically too in a voxel domain) holds a fish further
+     * off the floor than a Hollow Log's mouth is above it: measured, fish reached the staging
+     * point consistently too high and almost every approach timed out. A visiting fish is slow, so
+     * the narrow margin is safe; ROAMING fish keep the ordinary one.
+     */
+    static final float VISIT_WALL_MARGIN = 0.08f;
+    static final float DWELL_MIN_SECONDS = 3f, DWELL_MAX_SECONDS = 8f;
+    /** A fish a shelter was placed around stays only briefly, then leaves by a mouth (§4.3). */
+    static final float ADOPTED_DWELL_SECONDS = 1.5f;
+    /** At most this share of a domain's swimmers may be hidden (or heading to hide) at once. */
+    static final float HIDDEN_FRACTION = 0.25f;
+    /** An entry starts only with the heading within 30° of the mouth's normal. */
+    static final float ENTER_ALIGN_COS = 0.8660254f;
+    /**
+     * The entry cone: a fish starts its entry once it is outside the mouth, at most this far beyond
+     * the staging point along the mouth's axis, blocks...
+     */
+    static final float ENTRY_CONE_DEPTH = 0.15f;
+    /** ...and off the axis by at most this share of the mouth's narrower half-opening. */
+    static final float ENTRY_CONE_WIDTH = 0.8f;
+    /** Staging sits one body length plus this outside the mouth. */
+    static final float STAGING_CLEARANCE = 0.02f;
+    /** Within this of the staging point the approach turns to line up with the mouth, blocks. */
+    static final float APPROACH_ALIGN_RANGE = 0.3f;
+    /** Flocking fades out over this long once an approach starts, and back in after a visit. */
+    static final float APPROACH_FADE_SECONDS = 1f;
+    /**
+     * Speeds per state, as fractions of the fish's own patrol speed. Entry and exit run near
+     * cruise: at 0.6 both, the acceptance sheet showed a loach taking 6 s to swim in and 8 s to
+     * swim out against a 6 s dwell — more time loitering in the doorway than hidden.
+     */
+    static final float ENTER_SPEED = 1.0f, INSIDE_SPEED = 0.2f, EXIT_SPEED = 0.8f;
+    /** How hard a fish in the mouth corridor is pulled back onto the mouth's axis, per second. */
+    static final float CORRIDOR_GAIN = 1.5f;
+    /**
+     * Separation between fish sharing a shelter, as a share of the ordinary. At full strength a
+     * fish resting inside held the next one out of the mouth — the shoaling radius (0.24 for
+     * same-species fish) is wider than a Hollow Log's bore — and a third of the loaches' entries
+     * turned back.
+     */
+    static final float SHELTER_SEPARATION = 0.25f;
+
+    /** Soft confinement zone inside the interior box, blocks (capped at 45% of each half-extent). */
+    static final float INTERIOR_MARGIN = 0.04f;
+    /** Size gates (§5.2): sprite height to length, and slack on the interior's run. */
+    static final float MOUTH_HEIGHT_RATIO = 0.4f, INTERIOR_LENGTH_SLACK = 1.1f;
+
+    private ShelterUse[] shelterUse = new ShelterUse[0];
+    private int[] shelterState = new int[0];
+    /** The shelter each fish has chosen (from APPROACH on), as an index into the shelter list, or −1. */
+    private int[] shelterIndex = new int[0];
+    private int[] shelterMouth = new int[0];
+    /**
+     * Per-state clock, seconds: cooldown left while ROAMING, time spent while APPROACH, ENTER and
+     * EXIT, dwell left while INSIDE.
+     */
+    private float[] shelterTimer = new float[0];
+    /** Each fish's own random stream for visit timing and dwell — never the flocking noise's. */
+    private long[] shelterRng = new long[0];
+    /** Seconds left on a visit urge waiting for a shelter to come into reach; 0 when there is none. */
+    private float[] visitUrge = new float[0];
+    /**
+     * How far each fish's steering has been handed to its visit, 0 (flocking) to 1. It moves at
+     * 1/{@link #APPROACH_FADE_SECONDS} per second rather than switching, so no state change jolts
+     * the fish — measured, snapping straight back to flocking at the end of a visit pushed the
+     * jerk past the matrix's bound. Always 0 in a domain without shelters.
+     */
+    private float[] shelterBlend = new float[0];
+    /** The velocity a fish left its shelter with, held while flocking fades back in. */
+    private float[] exitVelL = new float[0], exitVelY = new float[0], exitVelD = new float[0];
+
+    /** Whether each shelter's interior lies in the water, so a fish inside it is contained. */
+    private boolean[] shelterUsable = new boolean[0];
+    /** Per shelter, per mouth: horizontal (sprites cannot dive into a hole) and in the water. */
+    private boolean[][] mouthUsable = new boolean[0][];
+    /** Fish that have chosen each shelter and not yet left it (APPROACH, ENTER, INSIDE). */
+    private int[] shelterReserved = new int[0];
+    /** Fish hidden or on their way to hide, domain-wide, against {@link #hiddenBudget}. */
+    private int pendingHidden;
+    private int hiddenBudget;
+    /** This step runs the state machine at all: a planar domain with shelters in it. */
+    private boolean shelterSim;
+    /** Some fish is in a shelter — only then do neighbour scans filter by shelter. */
+    private boolean anyInShelter;
+    private final float[] shelterSteer = new float[3];
 
     // A gap between a hull and the edge of the swimmable water narrower than the wall margin is
     // treated as part of the hull (see closeGaps). The wall's push covers all of such a gap, so
@@ -970,6 +1081,12 @@ public final class FlockEngine {
     private float[] cWanderState = new float[0], cWanderStateY = new float[0], cSpinState = new float[0];
     private float[] cBurstPhase = new float[0], cBurstDrive = new float[0];
     private long[] cNoiseState = new long[0];
+    // The visit (docs/fish-shelters.md §5.1): carried like anchorTimer, so a rebuild — a fish
+    // added, a cosmetic moved — never yanks a fish out of a log. The index is re-resolved against
+    // the shelter list once it is known (remapShelterState).
+    private int[] cShelterState = new int[0], cShelterIndex = new int[0], cShelterMouth = new int[0];
+    private float[] cShelterTimer = new float[0];
+    private long[] cShelterRng = new long[0];
 
     private void captureCarry(int[] carryFrom, int n) {
         carrying = carryFrom != null;
@@ -999,6 +1116,9 @@ public final class FlockEngine {
             cSpinState[i] = spinState[from];
             cNoiseState[i] = noiseState[from]; cBurstPhase[i] = burstPhase[from];
             cBurstDrive[i] = burstDrive[from];
+            cShelterState[i] = shelterState[from]; cShelterIndex[i] = shelterIndex[from];
+            cShelterMouth[i] = shelterMouth[from]; cShelterTimer[i] = shelterTimer[from];
+            cShelterRng[i] = shelterRng[from];
         }
     }
 
@@ -1033,6 +1153,9 @@ public final class FlockEngine {
             spinState[i] = cSpinState[i];
             noiseState[i] = cNoiseState[i]; burstPhase[i] = cBurstPhase[i];
             burstDrive[i] = cBurstDrive[i];
+            shelterState[i] = cShelterState[i]; shelterIndex[i] = cShelterIndex[i];
+            shelterMouth[i] = cShelterMouth[i]; shelterTimer[i] = cShelterTimer[i];
+            shelterRng[i] = cShelterRng[i];
 
             // A crawler's world can change under it: a cosmetic dropped into the cell it was
             // standing in, or a group re-shaped around it. Carrying it there would leave it
@@ -1070,6 +1193,8 @@ public final class FlockEngine {
         cSeeds = new long[n];
         cWanderState = new float[n]; cWanderStateY = new float[n]; cSpinState = new float[n];
         cNoiseState = new long[n]; cBurstPhase = new float[n]; cBurstDrive = new float[n];
+        cShelterState = new int[n]; cShelterIndex = new int[n]; cShelterMouth = new int[n];
+        cShelterTimer = new float[n]; cShelterRng = new long[n];
     }
 
     private void initFish(int i, FishSpec spec, float lateral, float y, float depth,
@@ -1077,6 +1202,14 @@ public final class FlockEngine {
         lengths[i] = spec.length();
         baseRotations[i] = baseRotation;
         seeds[i] = seed;
+        shelterUse[i] = spec.shelterUse();
+        shelterState[i] = SHELTER_ROAMING;
+        shelterIndex[i] = -1;
+        shelterMouth[i] = 0;
+        shelterTimer[i] = 0f;
+        shelterRng[i] = seed ^ 0x51E17E25L;
+        visitUrge[i] = 0f;
+        shelterBlend[i] = 0f;
         species[i] = spec.species();
         hoverMirrored[i] = spec.mirrored();
         locomotion[i] = gate(spec.locomotion(), spec.length());
@@ -1253,14 +1386,42 @@ public final class FlockEngine {
         yawDeg = new float[n]; prevYawDeg = new float[n]; renderYaw = new float[n];
         order = new int[n];
         placedL = new float[n]; placedY = new float[n]; placedD = new float[n];
-        shelterUsing = new int[n];
-        Arrays.fill(shelterUsing, -1);
+        shelterUse = new ShelterUse[n];
+        Arrays.fill(shelterUse, ShelterUse.NONE);
+        shelterState = new int[n];
+        shelterIndex = new int[n];
+        Arrays.fill(shelterIndex, -1);
+        shelterMouth = new int[n];
+        shelterTimer = new float[n];
+        shelterRng = new long[n];
+        visitUrge = new float[n];
+        shelterBlend = new float[n];
+        exitVelL = new float[n]; exitVelY = new float[n]; exitVelD = new float[n];
     }
 
-    /** The shelter fish #{@code i} is using, or −1 (docs/fish-shelters.md §5.1). */
+    /**
+     * The shelter fish #{@code i} is inside or passing through the mouth of (ENTER, INSIDE, EXIT),
+     * or −1. A fish ignores that shelter's hull — it is swimming into it — and only that one.
+     */
     public int shelterUsing(int i) {
-        return shelterUsing[i];
+        int st = shelterState[i];
+        return st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT ? shelterIndex[i] : -1;
     }
+
+    /** Fish #{@code i}'s visit state, one of the {@code SHELTER_*} constants. */
+    public int shelterState(int i) { return shelterState[i]; }
+
+    /** The shelter fish #{@code i} has chosen, from APPROACH through EXIT, or −1. */
+    public int shelterIndex(int i) { return shelterIndex[i]; }
+
+    /** The mouth of {@link #shelterIndex} fish #{@code i} is using. */
+    public int shelterMouth(int i) { return shelterMouth[i]; }
+
+    /** Fish #{@code i}'s per-state clock, seconds (see the field). */
+    public float shelterTimer(int i) { return shelterTimer[i]; }
+
+    /** At most this many fish may be hidden or heading to hide at once (§5.4). */
+    public int hiddenBudget() { return hiddenBudget; }
 
     /**
      * Adds every shelter hull's soft repulsion to {@code out} — the wall ramp's shape, measured
@@ -1273,7 +1434,7 @@ public final class FlockEngine {
     private void addHullAvoidance(int i, List<Shelter> shelters, float[] out) {
         refreshAvoidHulls(shelters);
         for (int s = 0; s < avoidHulls.length; s++) {
-            if (s == shelterUsing[i]) continue;
+            if (s == shelterUsing(i)) continue;
             float dist = hullDistance(avoidHulls[s], posL[i], posY[i], posD[i], hullGrad);
             if (dist >= HULL_MARGIN) continue;
             float w = Math.min((HULL_MARGIN - dist) / HULL_MARGIN, HULL_MAX_WEIGHT);
@@ -1286,12 +1447,387 @@ public final class FlockEngine {
     /** Rebuilds {@link #avoidHulls} when the domain has swapped its shelter list. */
     private void refreshAvoidHulls(List<Shelter> shelters) {
         if (shelters == avoidHullsSource && domain == avoidHullsDomain && t.wallMargin() == avoidHullsGap) return;
+        List<Shelter> previous = avoidHullsSource;
         avoidHullsSource = shelters;
         avoidHullsDomain = domain;
         avoidHullsGap = t.wallMargin();
         avoidHulls = new AvoidHull[shelters.size()];
         for (int s = 0; s < avoidHulls.length; s++) avoidHulls[s] = closeGaps(shelters.get(s).hull());
+
+        shelterUsable = new boolean[shelters.size()];
+        mouthUsable = new boolean[shelters.size()][];
+        shelterReserved = new int[shelters.size()];
+        float[] corner = new float[3];
+        for (int s = 0; s < shelters.size(); s++) {
+            Shelter shelter = shelters.get(s);
+            boolean usable = true;
+            for (int c = 0; c < 8 && usable; c++) {
+                shelter.interior().corner(c, corner);
+                usable = domain.contains(corner[0], corner[1], corner[2]);
+            }
+            shelterUsable[s] = usable;
+            mouthUsable[s] = new boolean[shelter.mouths().size()];
+            for (int m = 0; m < mouthUsable[s].length; m++) {
+                Shelter.Mouth mouth = shelter.mouths().get(m);
+                mouthUsable[s][m] = usable && Math.abs(mouth.normalY()) < 0.5f
+                        && domain.contains(mouth.centerL(), mouth.centerY(), mouth.centerD());
+            }
+        }
+        remapShelterState(previous, shelters);
     }
+
+    /**
+     * Carries every fish's visit across a change of shelter list (docs/fish-shelters.md §4.3): a
+     * fish whose shelter is still there keeps it under its new index; one whose shelter has gone
+     * drops to ROAMING right where it is, which is open water now. Then any swimmer a new hull has
+     * landed on is adopted: put INSIDE that shelter and sent out by a mouth, never pushed through
+     * its walls. Capacity may be briefly exceeded by adoption, and nothing enters until it is back.
+     */
+    private void remapShelterState(List<Shelter> previous, List<Shelter> shelters) {
+        for (int i = 0; i < count; i++) {
+            if (shelterState[i] == SHELTER_ROAMING) {
+                shelterIndex[i] = -1;
+                continue;
+            }
+            int old = shelterIndex[i];
+            int now = previous != null && old >= 0 && old < previous.size() ? shelters.indexOf(previous.get(old)) : -1;
+            if (now < 0 || (shelterState[i] != SHELTER_INSIDE && !shelterUsable[now])) {
+                shelterState[i] = SHELTER_ROAMING;
+                shelterIndex[i] = -1;
+                shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
+            } else {
+                shelterIndex[i] = now;
+            }
+        }
+        if (!planar) return;
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] != Locomotion.FREE_SWIM || shelterUsing(i) >= 0) continue;
+            for (int s = 0; s < shelters.size(); s++) {
+                Shelter shelter = shelters.get(s);
+                if (!shelter.hull().contains(posL[i], posY[i], posD[i])) continue;
+                if (!shelterUsable[s]) break; // nowhere to leave by: the hull's push takes it out
+                shelterState[i] = SHELTER_INSIDE;
+                shelterIndex[i] = s;
+                shelterMouth[i] = nearestMouth(shelter, s, posL[i], posY[i], posD[i]);
+                shelterTimer[i] = ADOPTED_DWELL_SECONDS;
+                break;
+            }
+        }
+    }
+
+    /** The usable mouth nearest a point (any mouth, if none is usable). */
+    private int nearestMouth(Shelter shelter, int s, float l, float y, float d) {
+        int best = 0;
+        float bestD2 = Float.MAX_VALUE;
+        for (int m = 0; m < shelter.mouths().size(); m++) {
+            Shelter.Mouth mouth = shelter.mouths().get(m);
+            float dl = mouth.centerL() - l, dy = mouth.centerY() - y, dd = mouth.centerD() - d;
+            float d2 = dl * dl + dy * dy + dd * dd + (mouthUsable[s][m] ? 0f : 1e6f);
+            if (d2 < bestD2) {
+                bestD2 = d2;
+                best = m;
+            }
+        }
+        return best;
+    }
+
+    /** Recounts reservations and the hidden budget at the start of a step. */
+    private void countShelterOccupancy() {
+        Arrays.fill(shelterReserved, 0);
+        pendingHidden = 0;
+        anyInShelter = false;
+        int swimmerCount = 0;
+        for (int i = 0; i < count; i++) {
+            if (locomotion[i] == Locomotion.FREE_SWIM) swimmerCount++;
+            int st = shelterState[i];
+            if (st == SHELTER_APPROACH || st == SHELTER_ENTER || st == SHELTER_INSIDE) {
+                pendingHidden++;
+                if (shelterIndex[i] >= 0) shelterReserved[shelterIndex[i]]++;
+            }
+            if (st == SHELTER_ENTER || st == SHELTER_INSIDE || st == SHELTER_EXIT) anyInShelter = true;
+        }
+        hiddenBudget = Math.max(1, (int) Math.floor(HIDDEN_FRACTION * swimmerCount));
+    }
+
+    /** The next number in fish #{@code i}'s own stream, uniform in [0, 1). */
+    private float nextShelterUnit(int i) {
+        long z = (shelterRng[i] += 0x9E3779B97F4A7C15L);
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z ^= z >>> 31;
+        return (z >>> 40) * (1f / 16777216f);
+    }
+
+    /** Fish #{@code i}'s own mean time between visits, seconds. */
+    private float visitMeanSeconds(int i) {
+        return VISIT_MEAN_SECONDS * (1f + VISIT_JITTER * unitFromHash(seeds[i], 0x5E17E2L));
+    }
+
+    /**
+     * Advances fish #{@code i}'s visit by one tick: the triggers (§5.3) and every transition of
+     * §5.1, with the bounds of §5.4. Steering lives in {@link #shelterSteering}.
+     */
+    private void updateShelterState(int i, Tunables p) {
+        float dt = p.dt();
+        float fade = dt / APPROACH_FADE_SECONDS;
+        shelterBlend[i] = shelterState[i] == SHELTER_ROAMING
+                ? Math.max(0f, shelterBlend[i] - fade)
+                : Math.min(1f, shelterBlend[i] + fade);
+        switch (shelterState[i]) {
+            case SHELTER_ROAMING -> {
+                if (shelterTimer[i] > 0f) {
+                    shelterTimer[i] = Math.max(0f, shelterTimer[i] - dt);
+                    return;
+                }
+                if (shelterUse[i] == ShelterUse.NONE) return;
+                // A Poisson clock: an event, not a state — it fires at a moment, and never because
+                // a fish happens to be somewhere. An urge with no shelter in reach waits a while
+                // for one to come into reach, then lapses.
+                if (visitUrge[i] > 0f) {
+                    visitUrge[i] = Math.max(0f, visitUrge[i] - dt);
+                    tryStartApproach(i, p);
+                } else if (nextShelterUnit(i) < dt / visitMeanSeconds(i)) {
+                    visitUrge[i] = VISIT_URGE_SECONDS;
+                    tryStartApproach(i, p);
+                }
+            }
+            case SHELTER_APPROACH -> {
+                shelterTimer[i] += dt;
+                if (inEntryCone(i)) {
+                    shelterState[i] = SHELTER_ENTER;
+                    shelterTimer[i] = 0f;
+                } else if (shelterTimer[i] >= APPROACH_TIMEOUT_SECONDS) {
+                    exitVelL[i] = velL[i];
+                    exitVelY[i] = velY[i];
+                    exitVelD[i] = velD[i];
+                    leaveToRoaming(i);
+                }
+            }
+            case SHELTER_ENTER -> {
+                shelterTimer[i] += dt;
+                Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
+                shelterBlend[i] = 1f;
+                if (shelter.interior().contains(posL[i], posY[i], posD[i])) {
+                    shelterState[i] = SHELTER_INSIDE;
+                    shelterTimer[i] = DWELL_MIN_SECONDS + nextShelterUnit(i) * (DWELL_MAX_SECONDS - DWELL_MIN_SECONDS);
+                } else if (shelterTimer[i] >= enterTimeoutSeconds(i, p)) {
+                    shelterState[i] = SHELTER_EXIT;
+                    shelterTimer[i] = 0f;
+                }
+            }
+            case SHELTER_INSIDE -> {
+                shelterTimer[i] -= dt;
+                if (shelterTimer[i] <= 0f) {
+                    shelterState[i] = SHELTER_EXIT;
+                    shelterTimer[i] = 0f;
+                }
+            }
+            case SHELTER_EXIT -> {
+                shelterTimer[i] += dt;
+                Shelter.Mouth mouth = chosenMouth(i);
+                float out = -((posL[i] - mouth.centerL()) * mouth.normalL()
+                        + (posY[i] - mouth.centerY()) * mouth.normalY()
+                        + (posD[i] - mouth.centerD()) * mouth.normalD());
+                if (out >= lengths[i] + STAGING_CLEARANCE) {
+                    float speed = p.patrolSpeed() * patrolScale[i] * EXIT_SPEED;
+                    exitVelL[i] = -mouth.normalL() * speed;
+                    exitVelY[i] = -mouth.normalY() * speed;
+                    exitVelD[i] = -mouth.normalD() * speed;
+                    leaveToRoaming(i);
+                }
+            }
+            default -> { }
+        }
+    }
+
+    /**
+     * Whether fish #{@code i} may start its entry: outside its mouth, no further out than the
+     * staging point plus {@link #ENTRY_CONE_DEPTH}, on the mouth's axis to within
+     * {@link #ENTRY_CONE_WIDTH} of the opening, and heading within 30° of straight in. A cone
+     * rather than a point: a fish that lines up a little short or a little wide of the staging
+     * point is exactly as well placed to swim in.
+     */
+    private boolean inEntryCone(int i) {
+        Shelter.Mouth mouth = chosenMouth(i);
+        float nL = mouth.normalL(), nY = mouth.normalY(), nD = mouth.normalD();
+        float rL = posL[i] - mouth.centerL(), rY = posY[i] - mouth.centerY(), rD = posD[i] - mouth.centerD();
+        float along = rL * nL + rY * nY + rD * nD;
+        float stage = lengths[i] + STAGING_CLEARANCE;
+        if (along >= 0f || along < -(stage + ENTRY_CONE_DEPTH)) return false;
+        float pL = rL - along * nL, pY = rY - along * nY, pD = rD - along * nD;
+        float limit = ENTRY_CONE_WIDTH * mouth.halfSize();
+        if (pL * pL + pY * pY + pD * pD > limit * limit) return false;
+        float nh = (float) Math.sqrt(nL * nL + nD * nD);
+        if (nh < 1e-4f) return false;
+        float yr = (float) Math.toRadians(yawDeg[i]);
+        return ((float) Math.cos(yr) * nL - (float) Math.sin(yr) * nD) / nh >= ENTER_ALIGN_COS;
+    }
+
+    /** How long an entry may take before it turns back: from the staging point in, with slack. */
+    private float enterTimeoutSeconds(int i, Tunables p) {
+        float distance = lengths[i] + STAGING_CLEARANCE + ENTRY_CONE_DEPTH;
+        return distance / (p.patrolSpeed() * patrolScale[i] * ENTER_SPEED) * ENTER_TIMEOUT_FACTOR
+                + ENTER_TIMEOUT_SLACK_SECONDS;
+    }
+
+    private Shelter.Mouth chosenMouth(int i) {
+        return avoidHullsSource.get(shelterIndex[i]).mouths().get(shelterMouth[i]);
+    }
+
+    private void leaveToRoaming(int i) {
+        shelterState[i] = SHELTER_ROAMING;
+        shelterIndex[i] = -1;
+        shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
+    }
+
+    /**
+     * Picks the nearest shelter that fits this fish and has room, measured to its staging point,
+     * and commits to it (§5.3: chosen once, never re-scored). Nothing happens if none qualifies or
+     * the hidden budget is spent.
+     */
+    private void tryStartApproach(int i, Tunables p) {
+        if (pendingHidden >= hiddenBudget) return;
+        float len = lengths[i];
+        float stage = len + STAGING_CLEARANCE;
+        int bestS = -1, bestM = -1;
+        float reach = p.patrolSpeed() * patrolScale[i] * APPROACH_REACH_SECONDS;
+        float bestD2 = reach * reach;
+        List<Shelter> shelters = avoidHullsSource;
+        for (int s = 0; s < shelters.size(); s++) {
+            Shelter shelter = shelters.get(s);
+            if (!shelterUsable[s] || shelterReserved[s] >= shelter.capacity()) continue;
+            if (len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
+            for (int m = 0; m < shelter.mouths().size(); m++) {
+                if (!mouthUsable[s][m]) continue;
+                Shelter.Mouth mouth = shelter.mouths().get(m);
+                if (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize()) continue;
+                float sl = mouth.centerL() - mouth.normalL() * stage;
+                float sy = mouth.centerY() - mouth.normalY() * stage;
+                float sd = mouth.centerD() - mouth.normalD() * stage;
+                // A staging point outside the water or inside a hull is a mouth this fish cannot
+                // line up on — a log nosed against the glass, or two shelters mouth to mouth.
+                if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd)) continue;
+                float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
+                float d2 = dl * dl + dy * dy + dd * dd;
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    bestS = s;
+                    bestM = m;
+                }
+            }
+        }
+        if (bestS < 0) return;
+        visitUrge[i] = 0f;
+        shelterState[i] = SHELTER_APPROACH;
+        shelterIndex[i] = bestS;
+        shelterMouth[i] = bestM;
+        shelterTimer[i] = 0f;
+        shelterReserved[bestS]++;
+        pendingHidden++;
+    }
+
+    /**
+     * The desired velocity for fish #{@code i} in a non-ROAMING state, into {@code out}, and the
+     * weight it takes over the flocking's (1 = all). Where the fish is behind the mouth plane, the
+     * wall avoidance in {@code avoid} is replaced by a soft confinement to the interior box (the
+     * interior lies in the water, so the walls have nothing to add there).
+     */
+    private float shelterSteering(int i, Tunables p, int state, float[] out, float[] avoid) {
+        Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
+        Shelter.Mouth mouth = shelter.mouths().get(shelterMouth[i]);
+        float nL = mouth.normalL(), nY = mouth.normalY(), nD = mouth.normalD();
+        float patrol = p.patrolSpeed() * patrolScale[i];
+        float rL = posL[i] - mouth.centerL(), rY = posY[i] - mouth.centerY(), rD = posD[i] - mouth.centerD();
+        float along = rL * nL + rY * nY + rD * nD; // > 0 once past the mouth plane, inside
+        float pL = rL - along * nL, pY = rY - along * nY, pD = rD - along * nD; // off the mouth's axis
+
+        switch (state) {
+            case SHELTER_APPROACH -> {
+                // Far off: head for the staging point. Close in: swim the mouth's axis toward the
+                // mouth, pulled onto it like the entry corridor, so the fish arrives lined up.
+                float stage = lengths[i] + STAGING_CLEARANCE;
+                float tl = -nL * stage - rL, ty = -nY * stage - rY, td = -nD * stage - rD;
+                float dist = (float) Math.sqrt(tl * tl + ty * ty + td * td);
+                float near = SimMath.clamp(1f - dist / APPROACH_ALIGN_RANGE, 0f, 1f);
+                float seek = dist > 1e-5f ? patrol / dist : 0f;
+                float axisSpeed = patrol * ENTER_SPEED;
+                out[0] = tl * seek * (1f - near) + (nL * axisSpeed - pL * CORRIDOR_GAIN) * near;
+                out[1] = ty * seek * (1f - near) + (nY * axisSpeed - pY * CORRIDOR_GAIN) * near;
+                out[2] = td * seek * (1f - near) + (nD * axisSpeed - pD * CORRIDOR_GAIN) * near;
+                return shelterBlend[i];
+            }
+            case SHELTER_ENTER -> {
+                float speed = patrol * ENTER_SPEED;
+                out[0] = nL * speed - pL * CORRIDOR_GAIN;
+                out[1] = nY * speed - pY * CORRIDOR_GAIN;
+                out[2] = nD * speed - pD * CORRIDOR_GAIN;
+                if (along > 0f) interiorConfinement(shelter.interior(), i, avoid, nL, nY, nD);
+                return 1f;
+            }
+            case SHELTER_INSIDE -> {
+                float yr = (float) Math.toRadians(yawDeg[i]);
+                float speed = patrol * INSIDE_SPEED;
+                out[0] = (float) Math.cos(yr) * speed;
+                out[1] = 0f;
+                out[2] = -(float) Math.sin(yr) * speed;
+                interiorConfinement(shelter.interior(), i, avoid, 0f, 0f, 0f);
+                return 1f;
+            }
+            case SHELTER_EXIT -> {
+                float speed = patrol * EXIT_SPEED;
+                if (along > 0f) {
+                    // Still inside: head for the middle of the mouth (turning round in there,
+                    // out of sight), confined to the interior on every side but the mouth's.
+                    float r = (float) Math.sqrt(rL * rL + rY * rY + rD * rD);
+                    float k = r > 1e-5f ? speed / r : 0f;
+                    out[0] = -rL * k - pL * CORRIDOR_GAIN;
+                    out[1] = -rY * k - pY * CORRIDOR_GAIN;
+                    out[2] = -rD * k - pD * CORRIDOR_GAIN;
+                    interiorConfinement(shelter.interior(), i, avoid, nL, nY, nD);
+                } else {
+                    out[0] = -nL * speed - pL * CORRIDOR_GAIN;
+                    out[1] = -nY * speed - pY * CORRIDOR_GAIN;
+                    out[2] = -nD * speed - pD * CORRIDOR_GAIN;
+                }
+                return 1f;
+            }
+            default -> {
+                out[0] = out[1] = out[2] = 0f;
+                return 0f;
+            }
+        }
+    }
+
+    /**
+     * Soft confinement to an interior box, into {@code out}: the wall ramp turned inside out, per
+     * box axis. With a mouth normal given, the component along it is dropped, so a fish entering or
+     * leaving is never held back at the open face.
+     */
+    private void interiorConfinement(Shelter.OrientedBox box, int i, float[] out, float nL, float nY, float nD) {
+        float[] q = shelterSteerScratch;
+        box.toBox(posL[i], posY[i], posD[i], q);
+        float cu = boxAxisConfinement(q[0], box.halfL());
+        float cv = boxAxisConfinement(q[1], box.halfY());
+        float cw = boxAxisConfinement(q[2], box.halfD());
+        out[0] = cu * box.cos() - cw * box.sin();
+        out[1] = cv;
+        out[2] = cu * box.sin() + cw * box.cos();
+        float a = out[0] * nL + out[1] * nY + out[2] * nD;
+        out[0] -= a * nL;
+        out[1] -= a * nY;
+        out[2] -= a * nD;
+    }
+
+    private final float[] shelterSteerScratch = new float[3];
+
+    private static float boxAxisConfinement(float q, float half) {
+        float margin = Math.min(INTERIOR_MARGIN, half * 0.45f);
+        float lo = -half + margin, hi = half - margin;
+        if (q > hi) return -(q - hi) / margin;
+        if (q < lo) return (lo - q) / margin;
+        return 0f;
+    }
+
 
     /**
      * The hull grown across every gap to the edge of the swimmable water thinner than the wall
@@ -1383,6 +1919,19 @@ public final class FlockEngine {
         System.arraycopy(shapeDrive, 0, prevShapeDrive, 0, count);
         if (planar || continuousYaw()) System.arraycopy(yawDeg, 0, prevYawDeg, 0, count);
         if (planar) grid.build(prevL, prevY, prevD, count);
+        // Shelters (docs/fish-shelters.md): a list swapped since last step re-derives the hulls and
+        // carries every visit across. A domain with none — every Box, every group without a
+        // shelter cosmetic — passes two reference checks and touches nothing else.
+        List<Shelter> shelters = domain.shelters();
+        if (shelters != avoidHullsSource || domain != avoidHullsDomain || t.wallMargin() != avoidHullsGap) {
+            refreshAvoidHulls(shelters);
+        }
+        shelterSim = planar && !shelters.isEmpty();
+        if (shelterSim) {
+            countShelterOccupancy();
+        } else {
+            anyInShelter = false;
+        }
         // Colony relocation runs ahead of the per-fish dispatch below: a colony that finishes
         // repositioning this tick is already at its new spot by the time stepAnchored runs for its
         // members, so there is nothing to interpolate across.
@@ -1458,6 +2007,15 @@ public final class FlockEngine {
         // numbers, which is the whole of what makes a ray a ray (docs/fish-sim-locomotion.md §3.3).
         final Tunables p = params(i);
         final boolean glide = locomotion[i] == Locomotion.GLIDE;
+        // The visit state machine runs for free swimmers in a domain with shelters; a fish that is
+        // ROAMING (as every fish is in a domain without any) reaches exactly the code below.
+        final int visit;
+        if (shelterSim && !glide) {
+            updateShelterState(i, p);
+            visit = shelterState[i];
+        } else {
+            visit = SHELTER_ROAMING;
+        }
         // One grid query feeds both radius-limited passes below (separation and the neighbour
         // search). Positions are still this fish's own start-of-step values — stepFishPlanar
         // integrates i at the very end — so the query point matches what the index was built on.
@@ -1486,7 +2044,10 @@ public final class FlockEngine {
 
         // Wall avoidance is sampled up front (it depends only on position, which does not change
         // until integration below) because the burst needs to know how close the glass is.
-        domain.avoidance(posL[i], posY[i], posD[i], p.wallMargin(), p.wallMarginVertical(), avoidScratch);
+        float blend = shelterSim && !glide ? shelterBlend[i] : 0f;
+        float wallMargin = blend == 0f ? p.wallMargin()
+                : p.wallMargin() + (Math.min(p.wallMargin(), VISIT_WALL_MARGIN) - p.wallMargin()) * blend;
+        domain.avoidance(posL[i], posY[i], posD[i], wallMargin, p.wallMarginVertical(), avoidScratch);
         // Shelter hulls are walls too (docs/fish-shelters.md §4.1), so they also calm the burst
         // and loosen formation as a fish nears one — summed in before avoidMag is taken.
         List<Shelter> shelters = domain.shelters();
@@ -1539,6 +2100,9 @@ public final class FlockEngine {
         for (int c = 0; c < scanned; c++) {
             int j = cand != null ? cand[c] : c;
             if (j == i) continue;
+            // A fish in a shelter and one outside it do not see each other — there is a wall
+            // between them; fish sharing a shelter still keep apart in it.
+            if (anyInShelter && shelterUsing(j) != shelterUsing(i)) continue;
             float radius = species[i] == species[j] ? p.separationRadius() : p.separationRadiusOther();
             float radius2 = species[i] == species[j] ? p.separationRadius2() : p.separationRadiusOther2();
             float dx = posL[i] - posL[j], dy = posY[i] - posY[j], dz = posD[i] - posD[j];
@@ -1656,6 +2220,23 @@ public final class FlockEngine {
             float match = (neighSpeed - own) * p.speedMatchWeight();
             dL += dirL * match;
             dD += dirD * match;
+        }
+
+        // A fish on a visit steers by its state instead (docs/fish-shelters.md §5.1), keeping only
+        // its separation — which, inside a shelter, is from the fish sharing it.
+        if (visit == SHELTER_ROAMING && blend > 0f) {
+            dL += (exitVelL[i] - dL) * blend;
+            dY += (exitVelY[i] - dY) * blend;
+            dD += (exitVelD[i] - dD) * blend;
+        } else if (visit != SHELTER_ROAMING) {
+            float f = shelterSteering(i, p, visit, shelterSteer, avoidScratch);
+            float sepK = p.separationSpeed() * sepScale * (shelterUsing(i) >= 0 ? SHELTER_SEPARATION : 1f);
+            float sL = shelterSteer[0] + sepL * sepK;
+            float sY = shelterSteer[1] + sepY * sepK;
+            float sD = shelterSteer[2] + sepD * sepK;
+            dL += (sL - dL) * f;
+            dY += (sY - dY) * f;
+            dD += (sD - dD) * f;
         }
 
         // (avoidScratch was filled at the top of this method.)
@@ -1994,6 +2575,7 @@ public final class FlockEngine {
         for (int c = 0; c < scanned; c++) {
             int j = cand != null ? cand[c] : c;
             if (j == i || !swimmers[j]) continue;
+            if (anyInShelter && shelterUsing(j) != shelterUsing(i)) continue; // see the separation scan
             // Planar model: only shoal-mates align/cohere — each species schools with its own.
             // Never filters in the binary single-tank model (bitwise parity).
             if (planar && species[j] != species[i]) continue;
