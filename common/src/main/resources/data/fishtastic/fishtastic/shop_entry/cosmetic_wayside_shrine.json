@@ -1,0 +1,12 @@
+{
+  "display_name": "Wayside Shrine",
+  "description": "A little shrine under a sea-green copper roof, with a culvert fish swim through. When a fish noses its bell rope, the bell sways and the candles kindle.",
+  "cost": 45,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_wayside_shrine",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

@@ -59,6 +59,9 @@ public final class CreativeTabGameTests {
         expected.add(FishtasticItems.COSMETIC_FALLEN_COLUMN.value());
         expected.add(FishtasticItems.COSMETIC_SUNKEN_ANCHOR.value());
         expected.add(FishtasticItems.COSMETIC_GIANT_CLAM.value());
+        expected.add(FishtasticItems.COSMETIC_SUNKEN_STRONGBOX.value());
+        expected.add(FishtasticItems.COSMETIC_WAYSIDE_SHRINE.value());
+        expected.add(FishtasticItems.COSMETIC_SUNKEN_GATEHOUSE.value());
         expected.add(FishtasticItems.COSMETIC_AMETHYST_GEODE.value());
         expected.add(FishtasticItems.COSMETIC_HOLLOW_LOG.value());
         expected.add(FishtasticItems.COSMETIC_CLAY_PIPE.value());

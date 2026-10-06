@@ -1,0 +1,12 @@
+{
+  "display_name": "Sunken Gatehouse",
+  "description": "The gate of a drowned castle between two mossy towers. Now and then its portcullis grinds up to let a single fish through.",
+  "cost": 50,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_sunken_gatehouse",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

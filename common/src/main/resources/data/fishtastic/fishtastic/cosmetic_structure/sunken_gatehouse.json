@@ -1,0 +1,6544 @@
+{
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_cobblestone"
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 0,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 0,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_cobblestone"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:cobblestone"
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "bottom",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 1,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 4,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 4,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 5,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 5,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 6,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 6,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:iron_bars",
+    "Properties": {
+     "east": "true",
+     "west": "true",
+     "north": "false",
+     "south": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "portcullis"
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 7,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 7,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tile_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tile_stairs",
+    "Properties": {
+     "facing": "east",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tile_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tile_stairs",
+    "Properties": {
+     "facing": "west",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:deepslate_tiles"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 1.2,
+   "offsetY": 8,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 8,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 8,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:soul_lantern",
+    "Properties": {
+     "hanging": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_deepslate"
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_deepslate"
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:soul_lantern",
+    "Properties": {
+     "hanging": "false",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 9,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 9,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": -1.2,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_deepslate"
+   },
+   "offsetX": 1.0285714,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 10,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 10,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 11,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 11,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.2,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 11,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:chiseled_stone_bricks"
+   },
+   "offsetX": 1.3714286,
+   "offsetY": 11,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 12,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:cracked_stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 12,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 12,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 13,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "north",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 13,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 13,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 13,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 13,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_stairs",
+    "Properties": {
+     "facing": "south",
+     "half": "top",
+     "shape": "straight",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 13,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.2,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 14,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 14,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mossy_stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 14,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true",
+     "north": "none",
+     "south": "none",
+     "east": "none",
+     "west": "none",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 15,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true",
+     "north": "none",
+     "south": "none",
+     "east": "none",
+     "west": "none",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 15,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.3714286,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.2,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -1.0285714,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true",
+     "north": "none",
+     "south": "none",
+     "east": "none",
+     "west": "none",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 15,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_wall",
+    "Properties": {
+     "up": "true",
+     "north": "none",
+     "south": "none",
+     "east": "none",
+     "west": "none",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 15,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.0,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 15,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_brick_slab",
+    "Properties": {
+     "type": "bottom",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 15,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:stone_bricks"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 15,
+   "offsetZ": 0.3428571
+  }
+ ],
+ "scale": 0.05,
+ "shelter": {
+  "kind": "gate",
+  "interior": [
+   {
+    "x": -3,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": 1
+   }
+  ]
+ },
+ "reactions": [
+  {
+   "gate": 0,
+   "open_ticks": 30,
+   "hold_ticks": 16,
+   "close_ticks": 10,
+   "motions": [
+    {
+     "group": "portcullis",
+     "offset": [
+      0,
+      8,
+      0
+     ]
+    }
+   ],
+   "bursts": [
+    {
+     "at": [
+      0,
+      0.3,
+      0
+     ],
+     "count": 6
+    }
+   ],
+   "open_sound": {
+    "id": "minecraft:block.iron_door.open",
+    "volume": 0.22,
+    "pitch": 0.5
+   },
+   "close_sound": {
+    "id": "minecraft:block.iron_door.close",
+    "volume": 0.25,
+    "pitch": 0.5
+   }
+  }
+ ]
+}

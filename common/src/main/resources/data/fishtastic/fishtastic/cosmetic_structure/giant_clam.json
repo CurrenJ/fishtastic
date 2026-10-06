@@ -1,629 +1,2458 @@
 {
-  "footprint_cells": [
-    {
-      "dx": 0,
-      "dz": 0
-    },
-    {
-      "dx": 0,
-      "dz": -1
-    },
-    {
-      "dx": 0,
-      "dz": 1
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.2,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -0.72,
+   "offsetY": 0,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 0,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 0,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.24,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.24,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 0,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 0,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.96,
+   "offsetY": 0,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
     }
-  ],
-  "parts": [
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 1.0
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 3.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.48000002,
-      "offsetY": 4.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:cyan_concrete"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 2.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 3.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:purple_concrete"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 3.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 4.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 4.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 5.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": -0.24000001,
-      "offsetY": 5.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 1.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 1.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetY": 1.0
-    },
-    {
-      "state": {
-        "Name": "minecraft:purple_concrete"
-      },
-      "offsetY": 1.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetY": 1.0,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 1.0,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:cyan_concrete"
-      },
-      "offsetY": 2.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Properties": {
-          "axis": "y"
-        },
-        "Name": "minecraft:pearlescent_froglight"
-      },
-      "offsetY": 2.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetY": 2.0,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 3.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:purple_concrete"
-      },
-      "offsetY": 3.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 4.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 4.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 5.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetY": 5.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetY": 6.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:light_blue_concrete"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 1.0,
-      "offsetZ": 0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:cyan_concrete"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 2.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 3.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:purple_concrete"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 3.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 4.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 4.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 5.0,
-      "offsetZ": -0.96000004
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.24000001,
-      "offsetY": 5.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 1.0
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 1.0,
-      "offsetZ": 0.48000002
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": -0.48000002
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": -0.24000001
-    },
-    {
-      "state": {
-        "Properties": {
-          "waterlogged": "false",
-          "type": "bottom"
-        },
-        "Name": "minecraft:diorite_slab"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 2.0,
-      "offsetZ": 0.24000001
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 3.0,
-      "offsetZ": -0.72
-    },
-    {
-      "state": {
-        "Name": "minecraft:calcite"
-      },
-      "offsetX": 0.48000002,
-      "offsetY": 4.0,
-      "offsetZ": -0.96000004
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1.2,
+   "offsetY": 0,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
     }
-  ],
-  "scale": 0.07
+   },
+   "offsetX": -1.2,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 1,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 1,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 1,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 1,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 2,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -1.2,
+   "offsetY": 2,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 2,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.96,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.96,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.96,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 2,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": -0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:purple_concrete"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:light_blue_concrete"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": 0.48,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 2,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": -0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:cyan_concrete"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": 0.24,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 2,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 1.2,
+   "offsetY": 2,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 3,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -1.2,
+   "offsetY": 3,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 3,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 3,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 3,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 3,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 3,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 3,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 3,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 3,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:pearlescent_froglight",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "mantle"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 3,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 3,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 3,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 3,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 3,
+   "offsetZ": -0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 3,
+   "offsetZ": 0.72
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 3,
+   "offsetZ": -0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 3,
+   "offsetZ": 0.48
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 3,
+   "offsetZ": -0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 3,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 1.2,
+   "offsetY": 3,
+   "offsetZ": 0.24
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -1.2,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -1.2,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.96,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 4,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 4,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 4,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": -0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 4,
+   "offsetZ": 0.72,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 4,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 1.2,
+   "offsetY": 4,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 1.2,
+   "offsetY": 4,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.96,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.72,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.72,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 5,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.48,
+   "offsetY": 5,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.24,
+   "offsetY": 5,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 5,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.24,
+   "offsetY": 5,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 5,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 5,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.48,
+   "offsetY": 5,
+   "offsetZ": 0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 5,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.72,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.72,
+   "offsetY": 5,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 5,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": -0.48,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 6,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": -0.24,
+   "offsetY": 6,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 6,
+   "offsetZ": -0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:dripstone_block"
+   },
+   "offsetX": 0.24,
+   "offsetY": 6,
+   "offsetZ": 0.24,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.48,
+   "offsetY": 6,
+   "offsetZ": -0.48,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:calcite"
+   },
+   "offsetX": 0.48,
+   "offsetY": 6,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.48,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "lid"
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "2",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.24,
+   "offsetY": 7,
+   "offsetZ": 0.0,
+   "group": "lid"
+  }
+ ],
+ "scale": 0.07,
+ "reactions": [
+  {
+   "nose": {
+    "min": {
+     "x": -1,
+     "y": 2,
+     "z": 3
+    },
+    "max": {
+     "x": 1,
+     "y": 3,
+     "z": 3
+    },
+    "facing": "south"
+   },
+   "hold_seconds": 2.5,
+   "open_ticks": 18,
+   "hold_ticks": 60,
+   "close_ticks": 22,
+   "motions": [
+    {
+     "group": "lid",
+     "pivot": [
+      0,
+      3,
+      -3.5
+     ],
+     "axis": "x",
+     "degrees": -48
+    }
+   ],
+   "glows": [
+    "mantle"
+   ],
+   "bursts": [
+    {
+     "at": [
+      0,
+      3.5,
+      0.5
+     ],
+     "count": 8
+    }
+   ],
+   "open_sound": {
+    "id": "minecraft:block.shulker_box.open",
+    "volume": 0.18,
+    "pitch": 0.7
+   },
+   "close_sound": {
+    "id": "minecraft:block.shulker_box.close",
+    "volume": 0.2,
+    "pitch": 0.75
+   }
+  }
+ ]
 }

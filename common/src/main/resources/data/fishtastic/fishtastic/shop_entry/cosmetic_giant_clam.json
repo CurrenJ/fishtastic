@@ -1,6 +1,6 @@
 {
   "display_name": "Giant Clam",
-  "description": "A giant clam yawning open on a single glowing pearl, for your fish tank.",
+  "description": "A giant clam with scalloped, interlocking lips. When a fish noses it, it yawns open on a glowing mantle and a single pearl.",
   "cost": 35,
   "reward": [{ "id": "fishtastic:cosmetic_giant_clam", "count": 1 }],
   "daily_max_purchases": 1

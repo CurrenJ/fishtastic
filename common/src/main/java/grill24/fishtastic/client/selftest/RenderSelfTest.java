@@ -1177,7 +1177,11 @@ public final class RenderSelfTest {
     private static void queueCosmeticPreviewScene() {
         List<String> names = params("cosmetic");
         check("cosmeticpreview.names", !names.isEmpty(), "marker names " + names);
+        // reactionOpen=<0..1>: every reaction held that far open (docs/fish-shelters.md §12.13), orbits suffixed _open.
+        float open = Float.parseFloat(param("reactionOpen", "-1"));
+        String suffix = open >= 0f ? "_open" : "";
         queue(1, mc -> {
+            grill24.fishtastic.client.util.ClientCosmeticReactions.forcedOpenness = open;
             savedRenderDistance = mc.options.renderDistance().get();
             mc.options.renderDistance().set(3);
             mc.options.hideGui = true;
@@ -1228,11 +1232,12 @@ public final class RenderSelfTest {
             // decision D4), so this branch keeps only the checks and the item shots.
             queue(40, mc -> {
                 camera(mc, frame[0], frame[1] + frame[4], frame[2] + frame[3], 180f, 10f);
-                screenshot(mc, "cosmeticpreview", name + "_tank");
+                screenshot(mc, "cosmeticpreview", name + "_tank" + suffix);
             });
             queueCosmeticItemChecks(name);
         }
         queue(10, mc -> {
+            grill24.fishtastic.client.util.ClientCosmeticReactions.forcedOpenness = -1f;
             mc.options.renderDistance().set(savedRenderDistance);
             mc.options.hideGui = false;
         });
