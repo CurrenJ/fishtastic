@@ -178,6 +178,81 @@ class ShelterGeometryTest {
         assertEquals(5, result.shape().interiorRun());
     }
 
+    /**
+     * The shipped Clay Pipe (cosmetic_structure/clay_pipe.json): the log's body with both ends
+     * open and a whole roof, so its 6-long, 2x2 bore has a mouth at each end and nowhere else.
+     * That pair of opposite mouths is what makes fish swim through it (§12.4).
+     */
+    @Test
+    void theClayPipeOpensAtBothEnds() throws IOException {
+        ShelterGeometry.Result result = deriveShipped("clay_pipe");
+        assertTrue(result.ok(), result.error());
+        List<ShelterGeometry.Mouth> mouths = result.shape().mouths();
+        assertEquals(2, mouths.size(), "mouths: " + mouths);
+        int low = 0, high = 0;
+        for (ShelterGeometry.Mouth m : mouths) {
+            if (m.outward()[0] == -1) low++;
+            if (m.outward()[0] == 1) high++;
+            assertEquals(2, m.span(1));
+            assertEquals(2, m.span(2));
+        }
+        assertEquals(1, low, "no mouth at the low-x end");
+        assertEquals(1, high, "no mouth at the high-x end");
+        assertEquals(6, result.shape().interiorRun());
+    }
+
+    /**
+     * The shipped Whale Fall's skull (tools/span-structure-gen/gen.py): its hollow opens through
+     * the two eye sockets, which face each other across it, so a fish small enough for them swims
+     * in one eye and out of the other. Each socket is one cell wide and two tall. Any other mouth
+     * (the blowhole) must not face sideways, or fish would use it.
+     */
+    @Test
+    void theWhaleSkullOpensThroughBothEyes() throws IOException {
+        ShelterGeometry.Result result = deriveShipped("whale_fall");
+        assertTrue(result.ok(), result.error());
+        List<ShelterGeometry.Mouth> eyes = new ArrayList<>();
+        for (ShelterGeometry.Mouth m : result.shape().mouths()) {
+            if (m.outward()[1] == 0) eyes.add(m);
+        }
+        assertEquals(2, eyes.size(), "sideways mouths: " + describe(result.shape().mouths()));
+        ShelterGeometry.Mouth a = eyes.get(0), b = eyes.get(1);
+        assertEquals(2, a.normalAxis(), "the eyes face across the skull, along z: " + eyes);
+        assertEquals(-a.outward()[2], b.outward()[2], "the eyes face opposite ways: " + eyes);
+        for (ShelterGeometry.Mouth eye : eyes) {
+            assertEquals(6, eye.min().x(), "an eye socket is at x = 6");
+            assertEquals(1, eye.span(0), "one cell wide");
+            assertEquals(2, eye.span(1), "two cells tall");
+        }
+    }
+
+    /** Derives a shipped structure's shelter from its JSON, as {@code CosmeticStructure.partCells} would. */
+    private static ShelterGeometry.Result deriveShipped(String name) throws IOException {
+        Path file = Path.of("src/main/resources/data/fishtastic/fishtastic/cosmetic_structure/" + name + ".json");
+        JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+        float xzRatio = json.has("span") ? 1f : json.get("scale").getAsFloat() / (float) CosmeticGridCell.CELL_WIDTH;
+        List<ShelterGeometry.Cell> parts = new ArrayList<>();
+        for (JsonElement e : json.getAsJsonArray("parts")) {
+            JsonObject p = e.getAsJsonObject();
+            parts.add(c(Math.round(get(p, "offsetX") / xzRatio), Math.round(get(p, "offsetY")),
+                    Math.round(get(p, "offsetZ") / xzRatio)));
+        }
+        List<ShelterGeometry.Cell> interior = new ArrayList<>();
+        for (JsonElement e : json.getAsJsonObject("shelter").getAsJsonArray("interior")) {
+            JsonObject cell = e.getAsJsonObject();
+            interior.add(c(cell.get("x").getAsInt(), cell.get("y").getAsInt(), cell.get("z").getAsInt()));
+        }
+        return ShelterGeometry.derive(interior, parts);
+    }
+
+    private static String describe(List<ShelterGeometry.Mouth> mouths) {
+        StringBuilder b = new StringBuilder();
+        for (ShelterGeometry.Mouth m : mouths) {
+            b.append(java.util.Arrays.toString(m.outward())).append(' ').append(m.min()).append("..").append(m.max()).append("; ");
+        }
+        return b.toString();
+    }
+
     private static float get(JsonObject o, String key) {
         return o.has(key) ? o.get(key).getAsFloat() : 0f;
     }

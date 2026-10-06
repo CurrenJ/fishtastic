@@ -75,7 +75,9 @@ Everything else is **derived at load**, so there's nothing for an author to get 
 - **Mouths** are the interior cells' faces that open onto a non-part cell from which the outside of
   the structure's bounding box can be reached by flood fill. A hollow with no mouth fails
   validation ("shelter interior is sealed"). A face that opens into a pocket that doesn't reach the
-  outside is not a mouth.
+  outside is not a mouth. The flood never goes below the build grid's floor (y = 0): a structure
+  stands on the sand, so a pocket open only through gaps in its floor, like the Whale Fall's
+  snout, is still a pocket.
 - **The hull** is the bounding box of the parts adjacent to the interior: the walls the fish must
   not pass through. It's a box, not the exact shape. §4.1 explains why that is enough.
 - Each mouth carries a **centre**, an **inward normal** and a **half-size** (its opening in
@@ -110,11 +112,11 @@ per-species simulation tuning, so no new codec):
 | Value | Behaviour | Starting cast |
 |---|---|---|
 | *(absent)* | Never uses shelters. The default, so **no existing profile changes**. | everything else |
-| `visitor` | Occasional unhurried visits: in, linger, out. | clown loach, neon goby, yellowline goby, rainfordia, blind cave tetra |
+| `visitor` | Occasional unhurried visits: in, linger, out. | clown loach, neon goby, yellowline goby, rainfordia, blind cave tetra, bridle shiner |
 | `skittish` | Visits occasionally, and bolts for cover when the watcher approaches (§5.3). | neon tetra, fire dartfish |
 | `lurker` | Claims one shelter as home and rests in its mouth facing out; makes short sorties (§5.5). | ornate bichir, ophisternon candidum, black ghost knifefish |
 
-**Shipped cast (Phase 5).** This differs from the first pass in four places. The discus is out: it is a tall disc, so the 0.4 height ratio in the mouth gate (§5.2) is wrong for it and it would clip through a 0.18 mouth. The lizardfish is out: at a mean of 0.47 blocks it fails the Hollow Log's mouth gate, and it's a sand-percher, not a cave fish. The glass catfish is out: it's a mid-water schooler, and ducking into a log works against how it looks. The blind cave tetra moved to `visitor`, because a blind fish shouldn't bolt from a watcher it can't see. Rainfordia (a reef goby that keeps to the rockwork) and the fire dartfish (which dives into its burrow when startled) were added. Every opted-in species uses the `horizontal_swim` pose, since shelters only take `FREE_SWIM` fish.
+**Shipped cast (Phase 5).** This differs from the first pass in four places. The discus is out: it is a tall disc, so the 0.4 height ratio in the mouth gate (§5.2) is wrong for it and it would clip through a 0.18 mouth. The lizardfish is out: at a mean of 0.47 blocks it fails the Hollow Log's mouth gate, and it's a sand-percher, not a cave fish. The glass catfish is out: it's a mid-water schooler, and ducking into a log works against how it looks. The blind cave tetra moved to `visitor`, because a blind fish shouldn't bolt from a watcher it can't see. Rainfordia (a reef goby that keeps to the rockwork) and the fire dartfish (which dives into its burrow when startled) were added. Every opted-in species uses the `horizontal_swim` pose, since shelters only take `FREE_SWIM` fish. The bridle shiner joined on 2026-10-02 for the Whale Fall's skull: at 0.14 blocks on average (0.23 at three sigma) it clears the eye sockets' 0.31 limit, and the log's too.
 
 **Considered and rejected: deriving this from `temperament`.** Temperament has suggestive names
 (`skittish`, `ambusher`, `ghost`), but it tunes the fishing minigame. Coupling the two would mean a
@@ -368,11 +370,11 @@ The behaviour is worth only as much as the shelters on offer. Each is built thro
 | Cosmetic | Mouth | Fits | Notes |
 |---|---|---|---|
 | **Hollow Log** (shipped 2026-10-02) | one end, plus a closed back | small fish | retrofit: hand-add `shelter.interior` for its 2×2×4 hollow |
-| **Clay Pipe** | both ends | small fish | the classic aquarium hide, and the one fish swim *through* |
+| **Clay Pipe** (shipped 2026-10-02) | both ends | small fish | the log's body in terracotta, open at both ends with a whole roof; fish swim *through* it (§12.4) |
 | **Rock Cave** | one wide arch | medium fish | sized for the bichir; the default lurker home |
 | **Moray Rock** | two small holes | lurkers | stacked stone with holes at different heights |
 | **Coconut Half** | one notch | tiny fish | a one-cell accent for gobies |
-| **Whale Fall** (span) | between the ribs | many | the first spanning shelter; `gen.py` emits the interior |
+| **Whale Fall** (span; skull shipped 2026-10-02) | the two eye sockets | fish up to ~0.31 blocks | the first spanning shelter. `gen.py` emits the skull's widest part (cells 5..7 x 1..2 x 4..10, capacity 3); the eyes face each other, so fish swim in one and out the other. Only that part, because the engine confines a fish to the interior's bounding box and the whole hollow narrows toward the snout. Between the ribs is still to come |
 
 Shop descriptions should name who fits ("a hide for small, shy fish").
 
@@ -550,9 +552,14 @@ and a fish that uses one. Obstacles would promote nearly every decorated lone ta
 
 ### 12.4 Pass-through and gates
 
-- **Mouth choice on exit.** For a pass-through, `EXIT` takes the mouth whose normal is most opposed
-  to the entry mouth's, so a fish goes *through* the pipe, not back out of it. A one-mouth shelter
-  is unchanged.
+- **Mouth choice on exit** *(built 2026-10-02)*. When a visit ends, `EXIT` takes the usable mouth
+  that the fish fits and whose normal is most opposed to the entry mouth's, if one is within ~60°
+  of opposite (`FlockEngine.throughMouth`). So a fish goes *through* the pipe, or across the whale's
+  skull from eye to eye, instead of turning round and backing out. A one-mouth shelter is
+  unchanged, and a lurker at home always leaves by its own mouth. `ShelterPassThroughTest`: every
+  pipe visit leaves by the far end, and the log is still backed out of. The pipe joins
+  `ShelterVisitTest`'s matrix. A span's shelter is placed from its anchor tank
+  (`SpanStructures.buildOrigin`, `TankShelters`).
 - **Gates are taken in the direction of travel.** A roaming fish is a candidate for a gate only if
   its heading already points through it within ~45°. Choosing it never needs a turn, so a fish
   never U-turns to go through an arch. It reads as "the fish chose the doorway", not "the fish was

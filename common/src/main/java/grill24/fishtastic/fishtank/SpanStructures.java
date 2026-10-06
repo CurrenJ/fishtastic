@@ -123,6 +123,25 @@ public final class SpanStructures {
         return new Layout(List.copyOf(parts), buildY);
     }
 
+    /**
+     * Where build cell {@code (0, 0)}'s centre lands horizontally, in blocks from the box's min
+     * corner: the origin a build cell {@code (bx, bz)} is offset from by
+     * {@code rotateOffset(rotation, bx, bz) × scale}, the convention a floor structure's anchor
+     * cell follows. {@link #computeLayout} places every part this way, because rotating the
+     * offset is linear. Lets a span's shelter be placed exactly where its parts are drawn.
+     */
+    public static float[] buildOrigin(CosmeticStructure structure, Rotation rotation) {
+        return buildOrigin(structure.span().orElseThrow(), structure.scale(), rotation);
+    }
+
+    /** {@link #buildOrigin(CosmeticStructure, Rotation)} from the span's box and scale alone. */
+    public static float[] buildOrigin(CosmeticStructure.Span span, float s, Rotation rotation) {
+        CosmeticStructure.Span turned = rotated(span, rotation);
+        float[] r = CosmeticStructures.rotateOffset(rotation,
+                (float) (0.5 - interiorX(span) / s / 2.0), (float) (0.5 - interiorZ(span) / s / 2.0));
+        return new float[]{(float) (turned.x() / 2.0 + r[0] * s), (float) (turned.z() / 2.0 + r[1] * s)};
+    }
+
     private static BlockPos gridPos(CosmeticStructure.StructurePart part) {
         return new BlockPos(Math.round(part.offsetX()), Math.round(part.offsetY()), Math.round(part.offsetZ()));
     }

@@ -31,6 +31,10 @@ class Build:
     def __init__(self, nx, ny, nz):
         self.nx, self.ny, self.nz = nx, ny, nz
         self.v = {}
+        # A hollow fish can swim into (docs/fish-shelters.md §3.1): its build-grid cells, and how
+        # many fish it holds. The mouths are derived in game from these and the parts.
+        self.shelter_cells = None
+        self.shelter_capacity = None
 
     def inside(self, x, y, z):
         return 0 <= x < self.nx and 0 <= y < self.ny and 0 <= z < self.nz
@@ -49,6 +53,19 @@ class Build:
 
     def get(self, x, y, z):
         return self.v.get((x, y, z))
+
+    def hollow(self, seed, within):
+        """The empty cells reachable from `seed` through empty cells for which `within(x, y, z)`
+        holds: a shelter's interior, bounded by the walls `within` describes."""
+        seen, todo = set(), [seed]
+        while todo:
+            c = todo.pop()
+            if c in seen or c in self.v or not self.inside(*c) or not within(*c):
+                continue
+            seen.add(c)
+            x, y, z = c
+            todo += [(x + 1, y, z), (x - 1, y, z), (x, y + 1, z), (x, y - 1, z), (x, y, z + 1), (x, y, z - 1)]
+        return seen
 
     def full(self, x, y, z):
         if y < 0:
@@ -74,8 +91,13 @@ class Build:
         data = {"span": {"x": span[0], "y": span[1], "z": span[2]}, "scale": scale, "parts": parts}
         if item_icon:
             data["item_icon"] = item_icon
+        if self.shelter_cells:
+            shelter = {"interior": [{"x": x, "y": y, "z": z} for x, y, z in sorted(self.shelter_cells)]}
+            if self.shelter_capacity:
+                shelter["capacity"] = self.shelter_capacity
+            data["shelter"] = shelter
         path = os.path.join(OUT_DIR, name + ".json")
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8", newline=chr(10)) as f:
             json.dump(data, f, indent=1)
             f.write("\n")
         return path, len(parts)
@@ -124,10 +146,12 @@ def whale_fall():
         b.set(x, y, z, "bone_block", axis=axis)
 
     # Skull: a broad, flat baleen-whale skull, rostrum narrowing toward the snout (x = 0).
+    skull = {}                                    # x -> (z0, z1, top): its walls and roof
     for x in range(0, 9):
         w = 1.4 + 3.4 * (x / 8)
         top = round(1 + 3.2 * (x / 8) ** 1.3)
         z0, z1 = round(cz - w - 0.5), round(cz + w - 0.5)
+        skull[x] = (z0, z1, top)
         for z in range(z0, z1 + 1):
             for y in range(0, top + 1):
                 edge = z in (z0, z1) or y == top or x in (0, 8)
@@ -249,6 +273,20 @@ def whale_fall():
         b.setdefault(x, round(1 + 3.2 * (x / 8) ** 1.3) + 1, spine_z + 2, "sea_pickle", pickles=2, waterlogged=True)
 
     culled = b.cull()
+
+    # The skull's hollow is a shelter, entered and left by the eye sockets: the sockets face each
+    # other across it, so a fish small enough for them swims in one eye and out the other
+    # (docs/fish-shelters.md §12.4). Only the skull's widest part, x = 5..7, two cells high: there
+    # the hollow is a clean box, which is what the engine confines a fish to. The whole hollow
+    # narrows and lowers toward the snout, so its bounding box would run through the bone and out
+    # beside the rostrum.
+    def in_skull(x, y, z):
+        if not 5 <= x <= 7:
+            return False
+        z0, z1, top = skull[x]
+        return z0 < z < z1 and 1 <= y <= 2 and y < top
+    b.shelter_cells = b.hollow((6, 1, spine_z), in_skull)
+    b.shelter_capacity = 3
     return b, "whale_fall", span, scale, culled, {"rotY": -30, "rotX": 20, "scale": 1.1}
 
 
@@ -423,6 +461,7 @@ if __name__ == "__main__":
     for design in (whale_fall, drowned_pagoda):
         b, name, span, scale, culled, icon = design()
         path, n = b.export(name, span, scale, icon)
-        print(f"{name}: {n} parts ({culled} hidden culled), grid {b.nx}x{b.ny}x{b.nz}, span {span}, scale {scale} -> {path}")
+        hollow = f", shelter of {len(b.shelter_cells)} cells" if b.shelter_cells else ""
+        print(f"{name}: {n} parts ({culled} hidden culled){hollow}, grid {b.nx}x{b.ny}x{b.nz}, span {span}, scale {scale} -> {path}")
         if "--preview" in sys.argv:
             print("  preview:", preview(b, name))

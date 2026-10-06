@@ -44,6 +44,7 @@ public final class HeadlessRunner {
         boolean heatmap = true;
         String cast = "mixed";
         String watcher = "none";
+        FrameRenderer.View filmView = FrameRenderer.View.SIDE;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -58,6 +59,9 @@ public final class HeadlessRunner {
                 // pace: a player walking up to the glass at +lateral and away again every 30 s.
                 // hover: one who stays by the tank, stepping between 3.5 and 1.1 blocks every 10 s.
                 case "--watcher" -> watcher = args[++i];
+                // The contact sheets' view: top for a shelter passed through along the depth axis,
+                // like the Whale Fall's skull from eye to eye.
+                case "--film-view" -> filmView = FrameRenderer.View.valueOf(args[++i].toUpperCase());
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
         }
@@ -89,7 +93,7 @@ public final class HeadlessRunner {
         // the end of its exit (docs/fish-shelters.md §10) — a sheet to read, where the GIF is to
         // watch. Empty when the domain has no shelters or nobody visits.
         boolean watched = !watcher.equals("none");
-        VisitFilm visit = new VisitFilm(engine.count(), watched);
+        VisitFilm visit = new VisitFilm(engine.count(), watched, filmView);
         // The first lunge that sends the shoal every way at once: some dash for cover, the rest
         // flinch (docs/fish-shelters.md §5.3.2).
         StartleFilm startle = new StartleFilm(engine.count());
@@ -209,10 +213,12 @@ public final class HeadlessRunner {
         boolean reachedInside, finished;
         /** Film only a startle — with a pacing watcher, that is the visit worth reading. */
         final boolean startledOnly;
+        final FrameRenderer.View view;
 
-        VisitFilm(int n, boolean startledOnly) {
+        VisitFilm(int n, boolean startledOnly, FrameRenderer.View view) {
             prev = new int[n];
             this.startledOnly = startledOnly;
+            this.view = view;
         }
 
         boolean done() {
@@ -244,12 +250,12 @@ public final class HeadlessRunner {
             }
             // A dash lasts a few seconds, so it is filmed three times as densely as a visit.
             if (tick % (engine.dashing(fish) ? DASH_EVERY : EVERY) == 0 && frames.size() < MAX_FRAMES) {
-                BufferedImage frame = renderer.render(engine, tunables, FrameRenderer.View.SIDE);
+                BufferedImage frame = renderer.render(engine, tunables, view);
                 // Ring the filmed fish: in a crowded tank the label alone doesn't say which it is.
                 Graphics2D g = frame.createGraphics();
                 try {
                     float x = renderer.mapX(engine.domain(), engine.posL()[fish]);
-                    float y = renderer.mapY(engine.domain(), FrameRenderer.View.SIDE, engine.posY()[fish], engine.posD()[fish]);
+                    float y = renderer.mapY(engine.domain(), view, engine.posY()[fish], engine.posD()[fish]);
                     g.setColor(new Color(255, 80, 80));
                     g.setStroke(new java.awt.BasicStroke(2f));
                     g.drawOval(Math.round(x) - 14, Math.round(y) - 14, 28, 28);
