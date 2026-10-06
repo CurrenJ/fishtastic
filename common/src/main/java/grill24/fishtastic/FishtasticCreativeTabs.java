@@ -170,6 +170,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_SUNKEN_STRONGBOX.value());
                     output.accept(FishtasticItems.COSMETIC_WAYSIDE_SHRINE.value());
                     output.accept(FishtasticItems.COSMETIC_SUNKEN_GATEHOUSE.value());
+                    output.accept(FishtasticItems.COSMETIC_REEF_CROWNED_SKULL.value());
                     output.accept(FishtasticItems.COSMETIC_AMETHYST_GEODE.value());
                     output.accept(FishtasticItems.COSMETIC_HOLLOW_LOG.value());
                     output.accept(FishtasticItems.COSMETIC_CLAY_PIPE.value());

@@ -65,13 +65,10 @@ Where the code lives:
 
 1. ~~**Watch it live.**~~ Done 2026-10-03: the owner checked it in game and was happy. Headless
    runs still have no fish in reactive tanks; that is how the world-load crash slipped through.
-2. **Art pass on the shrine and gatehouse.**
-   - The shrine reads as a tall red frame more than a little house.
-   - The gatehouse is one flat blue-grey wall; the deepslate surround barely shows.
-   - Both are thin by necessity (see constraints). Find depth through value, overhangs above the
-     swim band, plinths, plants and colour accents, not through bulk.
-3. **Clam palette.** The `dripstone_block` furrows read mauve, and the closed dome reads
-   onion-like.
+2. ~~**Art pass on the shrine and gatehouse.**~~ Done 2026-10-03, uncommitted pending the owner's
+   look: [`fish-shelters.md`](fish-shelters.md) §12.13 "Art pass". The shrine now claims 3 grid
+   cells, not 1, because of its podium.
+3. ~~**Clam palette.**~~ Done in the same pass.
 4. **Giant Clam footprint changed** from a north–south column of 3 cells to a 3×3 extent (it only
    blocks the centre cells). Clams already placed in a world may overlap neighbours. Tell the
    owner if it matters.

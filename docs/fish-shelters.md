@@ -1055,3 +1055,18 @@ Two constraints learned building them:
   sand). In a one-deep row, a deeper one leaves no lane in front or behind. Fish crossing from
   the side stall at its corners (no pathfinding), and entries fell to 0. Depth goes on the sand
   (plinths) or up high (crowns, eaves).
+  - The art pass hit this again from the other side. Gatehouse towers 5 deep in a lone tank
+    narrowed the lane behind them to 0.225. One fish was pushed out of the water domain there and
+    held in place: 418 hard backstop engagements (`ObstacleInvariantTest`, 1x1x1, seed 12345).
+    No obstacle box was within 0.2 of it. At 3 deep it is gone.
+
+Art pass (2026-10-03), judged by headless renders:
+- **Shrine:** stands on a stepped mossy stone podium with the gate as a culvert through it, and the
+  house sits on a dark timber sill. The old vermilion stilts read as a tall red frame. The podium
+  fills the cells either side at sand level, so it claims 3 cells, not 1.
+- **Gatehouse:** a tall corbelled west tower, a fallen east stump, and the gate block between
+  them. A deepslate frame and relieving arch surround the passage, and a copper-roofed hoist house
+  on top swallows the raised portcullis.
+- **Clam:** a low, wide shell in one grey ramp (diorite to andesite), its cap and foot bevelled
+  into stairs and slabs. A continuous zigzag of blue mantle runs along the gape. Dripstone furrows
+  had read mauve, and stripes up a tall dome read as an onion.

@@ -72,6 +72,14 @@ class ShelterSizeBandsTest {
     }
 
     @Test
+    void theSkullsTemplesTakeMediumFishAndItsJawSmall() {
+        admits("reef_crowned_skull", 0, 0.10f, 0.26f, 0.36f, 0.38f);
+        refuses("reef_crowned_skull", 0, 0.48f);
+        admits("reef_crowned_skull", 1, 0.08f, 0.12f, 0.16f);
+        refuses("reef_crowned_skull", 1, 0.22f);
+    }
+
+    @Test
     void gatesTakeTheBiggest() {
         admits("moon_gate", 0, 0.10f, 0.55f, 0.76f);
         admits("sea_arch", 0, 0.10f, 0.60f, 0.76f);
