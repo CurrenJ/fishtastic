@@ -25,7 +25,7 @@ den only works if its mouth faces open water, and only the fish small enough to 
 
 ### 1.1 Non-goals
 
-- **General water obstruction.** Swimmers still pass through ordinary cosmetics after this work.
+- **General water obstruction.** Swimmers still pass through ordinary cosmetics after this work (§12.3 proposes changing that).
   Only shelters become solid to swimmers (§4). Blocking the water for every cosmetic needs a
   sub-block `DistanceField`, which is a separate decision ([`fish-sim-locomotion.md`](fish-sim-locomotion.md) §4.1).
 - **Pathfinding.** Fish reach a shelter by steering, not by planning. A shelter they can't reach
@@ -272,8 +272,6 @@ room changing no faster than the bob itself moves while a fish enters.
 
 ---
 
----
-
 ## 6. Benthic dens (later)
 
 The octopus is the most iconic den animal there is, and it is `BENTHIC`. A floor-level shelter
@@ -375,3 +373,195 @@ walk up, the bichir in its cave, and the edge-on entry (§5.6).
    light signal, and adding one is out of scope here. Worth noting for after.
 5. **Quests.** A `tank_snapshot` objective such as "a fish living in a den" would reward building
    one. It's out of scope, and it must stay a snapshot of tank state, never a need.
+
+---
+
+## 12. Beyond hiding: affordances
+
+**Written:** 2026-10-02, after the Hollow Log passed its in-game look. Draft; nothing here is built.
+
+The visit state machine (§5.1) is more general than shelters. Its real shape is *go to a spot on a
+structure, do something there, leave*. Hiding is one verb. This section adds more verbs on the same
+base, sets how often each happens, and makes the obstacle change that gates can't work without
+(§12.3).
+
+### 12.1 One base, several verbs
+
+| Verb | What the fish does | Example cosmetics | New plumbing |
+|---|---|---|---|
+| **Hide** (shipped) | Enters a hollow, lingers, leaves by the mouth it came in by | Hollow Log, Rock Cave, Coconut Half | none |
+| **Pass through** | Enters one mouth, leaves by another | Clay Pipe, Whale Fall ribs | small: `EXIT` picks a mouth other than `chosenMouth(i)` |
+| **Gate** | Swims through an opening without stopping | the fence arches, Torii Gate, Castle Ruin windows | none beyond pass-through: a gate is a pass-through shelter with no dwell |
+| **Den** | A benthic crawler walks in and stays | floor-level caves for the octopus | §6: the floor field's blocked cells |
+| **Trigger** | Noses an anchor point, and the structure reacts | Giant Clam, a chest, a bubbler, a lantern | new: engine events and moving parts (§12.5) |
+| **Perch / graze** | Rests on top of a structure, or picks at its surface | Mossy Boulder, coral reefs | small: a staging point on a surface, no interior |
+
+**A gate is a pass-through shelter, not a new type.** Its opening is marked with interior cells
+exactly as a hollow is (§3.2), and the derivation already finds a mouth on each side. What makes it
+a gate is a dwell of zero and no length gate, and both follow from the hollow's shape: a run
+shorter than the fish is a gate to that fish. So no new field is needed, and the data surface stays
+at the one optional field §3.1 promised.
+
+### 12.2 Rarity scales with spectacle
+
+Some interactions are wallpaper and some are moments. A moment that happens every ten seconds stops
+being one. So every verb has a **rarity tier**, and the more striking the interaction, the rarer
+it is:
+
+| Tier | Verbs | Clock | Feel |
+|---|---|---|---|
+| **Common** | hide, pass through, gate | per fish, Poisson, mean ~40 s (§5.3 as shipped) | the tank is always doing something small |
+| **Uncommon** | perch, graze, den | per fish, mean ~2 min | noticed if you watch for a minute |
+| **Rare** | trigger (clam, chest, bubbler) | **per structure**, mean ~4 min, plus a tank-wide budget | a moment you'd call someone over for |
+
+Two rules carry over from §5.4 and get stricter as the tier goes up:
+
+- **Rare clocks run per structure, not per fish.** A per-fish clock makes a ten-fish tank ten times
+  as eventful, which is exactly the stocking dependence §5.4 exists to prevent. A clam opens about
+  once every four minutes whether two fish or twenty could do it. When its clock fires, the
+  structure picks the nearest eligible fish. If none is eligible, the clock re-arms and nothing
+  happens.
+- **One rare moment at a time per domain.** Two clams opening together reads as a timer, not as
+  life. A domain-wide lock is held from `APPROACH` until the reaction ends, then a short refractory
+  period (~30 s) follows before any rare clock may fire again.
+
+The tier is a property of the verb by default. A structure can override it (`"rarity": "rare"`)
+for a common verb that its look makes special, e.g. a gate through a lighthouse's lit doorway.
+
+The rates are first numbers for the in-game look, not derived ones. As the swarm work learned
+([`fish-swarm-realism.md`](fish-swarm-realism.md), "Lesson for the rest of this roadmap"), a
+metric is diagnostic, not an objective. The acceptance is by eye: does a rare moment *feel* rare
+after five minutes in front of the tank?
+
+### 12.3 Obstacles: swimmers stop passing through cosmetics
+
+This is a prerequisite, not an extra. Today, swimmers pass through every cosmetic except shelter
+hulls (§1.1). For hiding, that was tolerable: the log is solid and the rest is background. For
+gates it's fatal: a fish swimming through an arch looks no different from one swimming through its
+pillar unless the pillar is solid. And the more a tank is built up to *invite* interaction, the
+more clipping it shows.
+
+**Don't do this through `DistanceField`.** Giving the distance field sub-block resolution is the
+redesign that [`fish-sim-locomotion.md`](fish-sim-locomotion.md) §4.1 deferred. The field is
+shared per group and keyed by the membership epoch, and its build cost is the group-scaling work's
+main constraint ([`fish-tank-group-scaling.md`](fish-tank-group-scaling.md) §3.4). Cosmetics
+change far more often than membership.
+
+**Instead, generalise the shelter hull.** The engine already avoids oriented boxes softly (§4.1),
+and that passed its look. Obstacles become more of the same:
+
+- **Derivation, at load.** Each structure's parts are rasterised from their block shapes at ¼ of a
+  build cell, so a fence post is a post, not a cube. The result is greedy-merged into at most ~12
+  boxes. It's deterministic and cached per structure. Like the shelter, the stored boxes are
+  unrotated and turn with the structure at placement.
+- **Solid and soft.** Foliage, kelp, seagrass and coral fans are **soft**: fish may brush through
+  them, as real fish do through plants, and it looks right. Stone, wood, metal and glass are
+  **solid**. The class comes from a block tag (`fishtastic:soft_cosmetic`), so authors don't set it
+  per part.
+- **Rebuilt on the cosmetic fingerprint**, in the same pass as `rebuildFloor` and the shelters
+  (§2), never on the membership epoch. The distance field is untouched.
+- **Binned.** Boxes are listed per block cell of the domain. A fish queries only its own cell and
+  its neighbours, so the cost per fish stays flat however decorated a 512-tank group gets.
+- **A shelter's hull becomes one of its structure's obstacle boxes.** The corridor exception (§4.1)
+  still applies: a fish using a shelter ignores that structure's boxes and is confined to the
+  corridor instead.
+
+**No pathfinding, still.** Soft avoidance by steering has one known failure: a fish can wedge
+itself in a concave pocket, like behind a tree trunk or in a ruin's corner. Two cheap guards:
+
+1. A wander target inside an obstacle box, or with a box squarely across the straight line to it,
+   is resampled.
+2. A fish whose progress toward its target stalls for ~2 s gets a new target, as an `APPROACH`
+   timeout does today (§5.4).
+
+**The size gate keeps ignoring obstacles at first.** The domain's run lengths still read the
+water's bounds alone. A tank so full of rock that a fish can't turn is a decorating choice. Revisit
+if the look says otherwise.
+
+**Invariant, as with hulls (§4.2):** *a swimmer not using a shelter is never inside a solid
+obstacle box*, with `backstopEngagements() == 0` unchanged. Measure it over a headless matrix that
+places **every shipped cosmetic**, not just synthetic boxes, because the shipped set is where the
+thin posts, overhangs and spans are.
+
+**Lone tanks are the real decision here** (open question 6). The binary model is bitwise-locked and
+can't learn obstacles. §7 promotes a lone tank to the planar engine only when it holds a shelter
+and a fish that uses one. Obstacles would promote nearly every decorated lone tank.
+
+### 12.4 Pass-through and gates
+
+- **Mouth choice on exit.** For a pass-through, `EXIT` takes the mouth whose normal is most opposed
+  to the entry mouth's, so a fish goes *through* the pipe, not back out of it. A one-mouth shelter
+  is unchanged.
+- **Gates are taken in the direction of travel.** A roaming fish is a candidate for a gate only if
+  its heading already points through it within ~45°. Choosing it never needs a turn, so a fish
+  never U-turns to go through an arch. It reads as "the fish chose the doorway", not "the fish was
+  summoned".
+- **No dwell, and no hidden budget.** A fish in a gate is visible the whole way, so it doesn't count
+  against §5.4's hidden budget.
+- **Retrofit, not rebuild.** The fence arches, Torii Gate and Castle Ruin gain `shelter.interior`
+  cells for their openings, the way the Hollow Log was retrofitted. The derivation does the rest.
+
+### 12.5 Triggers: a structure that reacts
+
+Two new pieces. Both are client-only and purely visual, so the §1.1 non-goals hold:
+
+1. **Engine events.** The engine appends to a small per-tick event list: *fish i reached anchor k
+   of structure s*. It's derived from engine state, so it's deterministic under the headless
+   harness and testable there. The renderer drains the list each frame.
+2. **Moving parts.** A structure's parts can be grouped under a **hinge** (a pivot, an axis and an
+   angle) or a **slide** (an offset), driven by a 0→1 value the renderer eases. The group rests
+   closed. On an event, it opens, holds, then closes. Particles go through the existing
+   `TankBubbleEmitter`. Nothing about the reaction is stored or synced: two players may see
+   different clams open, as they already see different fish in the log.
+
+The anchor is marked during capture like the interior (§3.2), with a different invisible block,
+`minecraft:barrier`. The fish uses the usual state machine: `APPROACH` to a staging point facing
+the anchor, a short nose-in (the `ENTER` motion, stopped at the anchor), a brief hold while the
+reaction starts, then `EXIT`.
+
+**The pilot is the Giant Clam**, which already ships. Its top shell is the hinged group, and it lets
+out a burst of bubbles at full open. It's the smallest complete case: one hinge, one anchor, one
+particle burst. A chest, bubbler or lantern is the same three pieces with different content. A
+chest would be built from block parts with a hinged lid, not from the vanilla chest block entity,
+because cosmetic parts are static block models.
+
+**Considered and rejected: reactions with gameplay effects**, such as a chest that yields an item
+or a trigger that feeds fish. They would need the server, and the engine is client-only and not
+authoritative. They would also turn decoration into a mechanic, against §1.1's "never a need".
+
+### 12.6 Perch, graze, territory (later)
+
+These are noted to keep the base general, not designed yet:
+
+- **Perch:** a staging point on a structure's top face, with a dwell and no interior. Gobies
+  sitting on a boulder.
+- **Graze:** a short run of nose-in touches along a surface, using the `nibble` pose. It needs
+  surface samples from the obstacle boxes of §12.3, which is one more reason obstacles come first.
+- **Territory:** a lurker (§5.5) whose home has an intruder within a body length chases it a short
+  way, then returns. This is the first fish-on-fish reaction, so it overlaps Tier 3 of
+  [`fish-swarm-realism.md`](fish-swarm-realism.md) and belongs in that design.
+
+### 12.7 Order
+
+1. **Clay Pipe + pass-through.** The smallest engine change, and it proves multi-mouth shelters.
+2. **Obstacles (§12.3)**, with the every-cosmetic invariant matrix, promoting decorated lone tanks
+   (open question 6).
+3. **Gates**, retrofitted onto the arches, Torii Gate and Castle Ruin. Only worth doing after 2.
+4. **Rarity tiers and the rare budget (§12.2)**, then the **Giant Clam trigger** as the pilot for
+   events and moving parts.
+5. **Phase 5 shelter cosmetics** (Rock Cave, Moray Rock, Coconut Half), alongside any of the above.
+6. **Dens** (§6), then perch and graze.
+
+### 12.8 Open questions
+
+Numbered on from §11.
+
+6. ~~**Lone tanks and obstacles.**~~ **Decided (2026-10-02): promote.** A lone tank holding a
+   solid cosmetic and a swimmer runs the planar engine, as §7 does for shelters, so fish stop
+   clipping everywhere. The cost is that most decorated lone tanks change their look. Rejected:
+   keeping lone tanks ghosting through cosmetics, which leaves the clipping where most players keep
+   fish. Obstacles shrink the free water, and the crowded 1×1×1 planar case already mills as a
+   torus (§7), so a crowded, heavily decorated lone tank gets an in-game look before this ships.
+7. **The soft-cosmetic list.** Which shipped blocks count as soft? First pass: leaves, kelp,
+   seagrass, coral fans, vines, petals.
+8. **Rates.** The tier means in §12.2 are guesses until the first look.
