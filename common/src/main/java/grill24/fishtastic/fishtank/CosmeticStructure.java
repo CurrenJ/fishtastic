@@ -7,7 +7,11 @@ import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -50,10 +54,33 @@ import java.util.Optional;
  * {@link ShelterGeometry}, and a hollow with no way out fails validation. Rotation follows the
  * parts: the stored shelter is unrotated and turns with the structure at placement. Its
  * {@code kind} says what a visit looks like ({@link ShelterKind}); a hollow by default.
+ * <p>
+ * A structure may hold several shelters ({@code shelters}, docs/fish-shelters.md §12.9): the
+ * Drowned Cathedral's chapels, apse and nave are three. One is written as {@code shelter}, as
+ * every structure before them was. They may not share a cell, and none may reach into another's
+ * hull, which is solid to every fish not using that shelter.
+ * <p>
+ * <b>Occupied cells.</b> {@code footprint_cells} is the structure's extent: every cell its parts
+ * reach into, which must all land on the grid, so nothing pokes through the glass. Optional
+ * {@code occupied_cells} is the subset that actually blocks other cosmetics and crawling fish —
+ * the cells with solid mass near the sand (docs/fish-shelters.md §12.10). Missing, every
+ * footprint cell is occupied. A span lists its occupied cells across the whole box, {@code dx}
+ * and {@code dz} counting floor cells from the box's north-west corner as authored (facing
+ * south); missing, they are derived from its lowest parts ({@link SpanStructures#footprint}).
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                                  CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
-                                 Optional<Span> span, Optional<ShelterSpec> shelter) {
+                                 Optional<Span> span, List<ShelterSpec> shelters, List<GridOffset> occupiedCells) {
+
+    public CosmeticStructure {
+        shelters = List.copyOf(shelters);
+        occupiedCells = List.copyOf(occupiedCells);
+    }
+
+    /** The floor cells that block other cosmetics, relative to the anchor: {@code occupied_cells}, or the whole footprint. Floor structures only. */
+    public List<GridOffset> occupied() {
+        return occupiedCells.isEmpty() ? footprintCells : occupiedCells;
+    }
 
     /** The box of tanks a spanning structure fills: {@code x} long, {@code z} deep, {@code y} storeys, as authored (facing south). */
     public record Span(int x, int y, int z) {
@@ -86,9 +113,11 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
 
     /**
      * The authored half of a shelter: the hollow's cells, optionally how many fish it holds at
-     * once (default {@link ShelterGeometry#defaultCapacity}), and its {@link ShelterKind}.
+     * once (default {@link ShelterGeometry#defaultCapacity}), its {@link ShelterKind}, and
+     * optionally the shortest fish that may use it, in blocks of rendered length (§12.9).
      */
-    public record ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity, ShelterKind kind) {
+    public record ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity, ShelterKind kind,
+                              Optional<Float> minLength) {
         private static final Codec<ShelterGeometry.Cell> CELL_CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("x").forGetter(ShelterGeometry.Cell::x),
                 Codec.INT.fieldOf("y").forGetter(ShelterGeometry.Cell::y),
@@ -98,12 +127,18 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         public static final Codec<ShelterSpec> CODEC = RecordCodecBuilder.create(i -> i.group(
                 CELL_CODEC.listOf().fieldOf("interior").forGetter(ShelterSpec::interior),
                 Codec.intRange(1, 64).optionalFieldOf("capacity").forGetter(ShelterSpec::capacity),
-                ShelterKind.CODEC.optionalFieldOf("kind", ShelterKind.HOLLOW).forGetter(ShelterSpec::kind)
+                ShelterKind.CODEC.optionalFieldOf("kind", ShelterKind.HOLLOW).forGetter(ShelterSpec::kind),
+                Codec.floatRange(0f, 4f).optionalFieldOf("min_length").forGetter(ShelterSpec::minLength)
         ).apply(i, ShelterSpec::new));
 
         /** A hollow — what the capture command writes. */
         public ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity) {
             this(interior, capacity, ShelterKind.HOLLOW);
+        }
+
+        /** A shelter open to fish of any size. */
+        public ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity, ShelterKind kind) {
+            this(interior, capacity, kind, Optional.empty());
         }
 
         public int capacityOrDefault() {
@@ -116,18 +151,21 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             new CosmeticTransforms.Transform(0f, 0f, 0f, 0f, 0f, 0f, 1f);
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale) {
-        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false, Optional.empty(), Optional.empty());
+        this(footprintCells, parts, scale, ITEM_ICON_DEFAULT, false, Optional.empty(), List.of(), List.of());
     }
 
     public CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                              CosmeticTransforms.Transform itemIcon) {
-        this(footprintCells, parts, scale, itemIcon, false, Optional.empty(), Optional.empty());
+        this(footprintCells, parts, scale, itemIcon, false, Optional.empty(), List.of(), List.of());
     }
 
-    /** This structure with its hollow marked as a shelter. */
-    public CosmeticStructure withShelter(Optional<ShelterSpec> shelter) {
-        return new CosmeticStructure(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelter);
+    /** This structure with these shelters marked in it. */
+    public CosmeticStructure withShelters(List<ShelterSpec> shelters) {
+        return new CosmeticStructure(footprintCells, parts, scale, itemIcon, bypassAnchorCellRequirement, span, shelters, occupiedCells);
     }
+
+    /** A shelter paired with the shape derived for it. */
+    public record DerivedShelter(ShelterSpec spec, ShelterGeometry.Shape shape) {}
 
     /**
      * Each part's cell in the build grid — the inverse of how capture laid the parts out. A span's
@@ -152,17 +190,42 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
      * cells count as opening, not wall. Whether such a part is soft is a tag, which isn't bound when
      * a structure loads, so {@code ShelterKindTest} holds every shipped gate to it instead.
      */
-    public List<ShelterGeometry.Cell> shelterPartCells() {
+    public List<ShelterGeometry.Cell> shelterPartCells(ShelterSpec spec) {
         List<ShelterGeometry.Cell> cells = partCells();
-        if (shelter.isPresent() && shelter.get().kind() == ShelterKind.GATE) cells.removeAll(shelter.get().interior());
+        if (spec.kind() == ShelterKind.GATE) cells.removeAll(new HashSet<>(spec.interior()));
         return cells;
     }
 
-    /** The derived shape of this structure's shelter, or empty when it has none (or it fails validation). */
-    public Optional<ShelterGeometry.Shape> shelterShape() {
-        return shelter.map(spec -> ShelterGeometry.derive(spec.interior(), shelterPartCells()))
-                .filter(ShelterGeometry.Result::ok)
-                .map(ShelterGeometry.Result::shape);
+    /** Derives one of this structure's shelters against its parts. */
+    public ShelterGeometry.Result derive(ShelterSpec spec) {
+        return ShelterGeometry.derive(spec.interior(), shelterPartCells(spec));
+    }
+
+    /**
+     * Derived shelters per structure instance: deriving floods the structure's bounding box, and a
+     * tank asks on every rebuild. A record's own hash walks every part, so keyed by identity, as
+     * {@code CosmeticObstacles} keys its boxes; a datapack reload makes new instances.
+     */
+    private static final Map<CosmeticStructure, List<DerivedShelter>> DERIVED =
+            Collections.synchronizedMap(new IdentityHashMap<>());
+
+    /** Every shelter in this structure with its derived shape, in authored order, skipping any that fail validation. */
+    public List<DerivedShelter> shelterShapes() {
+        if (shelters.isEmpty()) return List.of();
+        if (DERIVED.size() > 256) DERIVED.clear();
+        return DERIVED.computeIfAbsent(this, s -> {
+            List<DerivedShelter> out = new ArrayList<>(s.shelters.size());
+            for (ShelterSpec spec : s.shelters) {
+                ShelterGeometry.Result result = s.derive(spec);
+                if (result.ok()) out.add(new DerivedShelter(spec, result.shape()));
+            }
+            return List.copyOf(out);
+        });
+    }
+
+    /** Whether this structure holds a shelter that derives. */
+    public boolean hasShelter() {
+        return !shelterShapes().isEmpty();
     }
 
     public record GridOffset(int dx, int dz) {
@@ -199,8 +262,18 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             CosmeticTransforms.Transform.MAP_CODEC.codec().optionalFieldOf("item_icon", ITEM_ICON_DEFAULT).forGetter(CosmeticStructure::itemIcon),
             Codec.BOOL.optionalFieldOf("bypass_anchor_cell_requirement", false).forGetter(CosmeticStructure::bypassAnchorCellRequirement),
             Span.CODEC.optionalFieldOf("span").forGetter(CosmeticStructure::span),
-            ShelterSpec.CODEC.optionalFieldOf("shelter").forGetter(CosmeticStructure::shelter)
-    ).apply(i, CosmeticStructure::new));
+            // One shelter is written as "shelter", as before there could be several; more as "shelters".
+            ShelterSpec.CODEC.optionalFieldOf("shelter")
+                    .forGetter(s -> s.shelters.size() == 1 ? Optional.of(s.shelters.get(0)) : Optional.empty()),
+            ShelterSpec.CODEC.listOf().optionalFieldOf("shelters", List.of())
+                    .forGetter(s -> s.shelters.size() == 1 ? List.of() : s.shelters),
+            GridOffset.CODEC.listOf().optionalFieldOf("occupied_cells", List.of()).forGetter(CosmeticStructure::occupiedCells)
+    ).apply(i, (footprint, parts, scale, icon, bypass, span, one, many, occupied) -> {
+        List<ShelterSpec> shelters = new ArrayList<>();
+        one.ifPresent(shelters::add);
+        shelters.addAll(many);
+        return new CosmeticStructure(footprint, parts, scale, icon, bypass, span, shelters, occupied);
+    }));
 
     public static final Codec<CosmeticStructure> CODEC = RAW_CODEC.flatXmap(
             CosmeticStructure::validate,
@@ -220,18 +293,65 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         return false;
     }
 
-    private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
-        if (structure.shelter.isPresent()) {
-            ShelterGeometry.Result shelter = ShelterGeometry.derive(structure.shelter.get().interior(), structure.shelterPartCells());
-            if (!shelter.ok()) return DataResult.error(shelter::error);
-            if (structure.shelter.get().kind() == ShelterKind.GATE && !opensBothWays(shelter.shape())) {
-                return DataResult.error(() -> "a gate's opening needs a horizontal mouth on each side");
+    /**
+     * Why two of a structure's shelters can't stand together, or null when they can: they share a
+     * cell, or one's interior reaches into another's hull. A hollow's or an open shelter's hull is
+     * solid to every fish not using it, so a fish on its way through the other would be shut out.
+     * A gate has no hull, so nothing can reach into it.
+     */
+    static String overlap(List<ShelterSpec> specs, List<ShelterGeometry.Shape> shapes) {
+        for (int a = 0; a < specs.size(); a++) {
+            for (int b = 0; b < specs.size(); b++) {
+                if (a == b) continue;
+                if (a < b) {
+                    for (ShelterGeometry.Cell cell : specs.get(a).interior()) {
+                        if (specs.get(b).interior().contains(cell)) {
+                            return "shelters " + a + " and " + b + " share the cell " + cell;
+                        }
+                    }
+                }
+                if (specs.get(b).kind() == ShelterKind.GATE) continue;
+                ShelterGeometry.Shape hull = shapes.get(b);
+                for (ShelterGeometry.Cell c : specs.get(a).interior()) {
+                    if (c.x() >= hull.hullMin().x() && c.x() <= hull.hullMax().x()
+                            && c.y() >= hull.hullMin().y() && c.y() <= hull.hullMax().y()
+                            && c.z() >= hull.hullMin().z() && c.z() <= hull.hullMax().z()) {
+                        return "shelter " + a + "'s cell " + c + " lies in shelter " + b + "'s hull";
+                    }
+                }
             }
         }
+        return null;
+    }
+
+    private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
+        List<ShelterGeometry.Shape> shapes = new ArrayList<>();
+        for (int n = 0; n < structure.shelters.size(); n++) {
+            ShelterSpec spec = structure.shelters.get(n);
+            ShelterGeometry.Result shelter = structure.derive(spec);
+            String which = structure.shelters.size() == 1 ? "" : "shelter " + n + ": ";
+            if (!shelter.ok()) return DataResult.error(() -> which + shelter.error());
+            if (spec.kind() == ShelterKind.GATE && !opensBothWays(shelter.shape())) {
+                return DataResult.error(() -> which + "a gate's opening needs a horizontal mouth on each side");
+            }
+            shapes.add(shelter.shape());
+        }
+        String overlap = overlap(structure.shelters, shapes);
+        if (overlap != null) return DataResult.error(() -> overlap);
         if (structure.span.isPresent()) return SpanStructures.validate(structure);
         if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {
             return DataResult.error(() -> "footprint_cells must include the anchor cell (0,0)"
                     + " (set \"bypass_anchor_cell_requirement\": true to override)");
+        }
+        if (!structure.occupiedCells.isEmpty()) {
+            if (!structure.bypassAnchorCellRequirement && !structure.occupiedCells.contains(new GridOffset(0, 0))) {
+                return DataResult.error(() -> "occupied_cells must include the anchor cell (0,0)");
+            }
+            for (GridOffset cell : structure.occupiedCells) {
+                if (!structure.footprintCells.contains(cell)) {
+                    return DataResult.error(() -> "occupied cell " + cell + " is not in footprint_cells");
+                }
+            }
         }
         for (net.minecraft.world.level.block.Rotation rotation : net.minecraft.world.level.block.Rotation.values()) {
             int minX = 0, maxX = 0, minZ = 0, maxZ = 0;

@@ -99,7 +99,7 @@ public final class TankShelters {
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
             Optional<CosmeticStructure> structure = registry.getOptional(entry.getValue().structureId());
             if (structure.isEmpty()) continue;
-            if (structure.get().shelterShape().isEmpty()) continue;
+            if (!structure.get().hasShelter()) continue;
             Rotation rotation = entry.getValue().rotation();
             float anchorX, anchorZ;
             if (structure.get().span().isPresent()) {
@@ -111,22 +111,30 @@ public final class TankShelters {
                 anchorX = (float) anchor.localX();
                 anchorZ = (float) anchor.localZ();
             }
-            inBlockFrame(structure.get(), anchorX, anchorZ, rotation).ifPresent(out::add);
+            out.addAll(inBlockFrame(structure.get(), anchorX, anchorZ, rotation));
         }
         return out;
     }
 
     /**
-     * A structure's shelter, of its authored kind, placed in a tank's block frame (see
+     * A structure's shelters, each of its authored kind, placed in a tank's block frame (see
      * {@link #inBlockFrame(ShelterGeometry.Shape, int, Shelter.Kind, float, float, float, Rotation)}),
-     * or empty when it has none.
+     * in authored order; empty when it has none.
      */
-    static Optional<Shelter> inBlockFrame(CosmeticStructure structure, float anchorX, float anchorZ, Rotation rotation) {
-        Optional<ShelterGeometry.Shape> shape = structure.shelterShape();
-        if (shape.isEmpty()) return Optional.empty();
-        CosmeticStructure.ShelterSpec spec = structure.shelter().get();
-        return Optional.of(inBlockFrame(shape.get(), spec.capacityOrDefault(), engineKind(spec.kind()),
-                structure.scale(), anchorX, anchorZ, rotation));
+    static List<Shelter> inBlockFrame(CosmeticStructure structure, float anchorX, float anchorZ, Rotation rotation) {
+        List<Shelter> out = new ArrayList<>();
+        for (CosmeticStructure.DerivedShelter derived : structure.shelterShapes()) {
+            CosmeticStructure.ShelterSpec spec = derived.spec();
+            Shelter shelter = inBlockFrame(derived.shape(), spec.capacityOrDefault(), engineKind(spec.kind()),
+                    structure.scale(), anchorX, anchorZ, rotation);
+            out.add(spec.minLength().isEmpty() ? shelter : withMinLength(shelter, spec.minLength().get()));
+        }
+        return out;
+    }
+
+    /** The shelter kept for fish at least {@code minLength} blocks long. */
+    static Shelter withMinLength(Shelter s, float minLength) {
+        return new Shelter(s.hull(), s.interior(), s.mouths(), s.capacity(), s.interiorRun(), s.kind(), minLength);
     }
 
     /**
@@ -217,7 +225,7 @@ public final class TankShelters {
                     m.halfTangent(), m.halfBitangent()));
         }
         return new Shelter(toEngine(s.hull(), ox, oy, oz, cosR, sinR), toEngine(s.interior(), ox, oy, oz, cosR, sinR),
-                mouths, s.capacity(), s.interiorRun(), s.kind());
+                mouths, s.capacity(), s.interiorRun(), s.kind(), s.minLength());
     }
 
     static Shelter.OrientedBox toEngine(Shelter.OrientedBox b, float ox, float oy, float oz,

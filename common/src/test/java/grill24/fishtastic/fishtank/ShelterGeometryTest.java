@@ -226,7 +226,10 @@ class ShelterGeometryTest {
         }
     }
 
-    /** Derives a shipped structure's shelter from its JSON, as {@code CosmeticStructure.partCells} would. */
+    /**
+     * Derives a shipped structure's (first) shelter from its JSON, as {@code CosmeticStructure.partCells}
+     * would. One shelter is written as {@code shelter}, several as {@code shelters}.
+     */
     private static ShelterGeometry.Result deriveShipped(String name) throws IOException {
         Path file = Path.of("src/main/resources/data/fishtastic/fishtastic/cosmetic_structure/" + name + ".json");
         JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
@@ -238,7 +241,9 @@ class ShelterGeometryTest {
                     Math.round(get(p, "offsetZ") / xzRatio)));
         }
         List<ShelterGeometry.Cell> interior = new ArrayList<>();
-        for (JsonElement e : json.getAsJsonObject("shelter").getAsJsonArray("interior")) {
+        JsonObject shelter = json.has("shelter") ? json.getAsJsonObject("shelter")
+                : json.getAsJsonArray("shelters").get(0).getAsJsonObject();
+        for (JsonElement e : shelter.getAsJsonArray("interior")) {
             JsonObject cell = e.getAsJsonObject();
             interior.add(c(cell.get("x").getAsInt(), cell.get("y").getAsInt(), cell.get("z").getAsInt()));
         }

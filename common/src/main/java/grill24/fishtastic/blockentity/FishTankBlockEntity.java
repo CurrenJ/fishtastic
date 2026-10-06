@@ -820,10 +820,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
     }
 
-    /** Rotates a structure's footprint cells and translates them to the given anchor. */
+    /** Rotates a structure's occupied cells and translates them to the given anchor. */
     private static List<CosmeticGridCell> rotatedFootprintCells(CosmeticStructure structure, Rotation rotation, CosmeticGridCell anchor) {
-        List<CosmeticGridCell> cells = new java.util.ArrayList<>(structure.footprintCells().size());
-        for (CosmeticStructure.GridOffset offset : structure.footprintCells()) {
+        List<CosmeticGridCell> cells = new java.util.ArrayList<>(structure.occupied().size());
+        for (CosmeticStructure.GridOffset offset : structure.occupied()) {
             CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
             cells.add(new CosmeticGridCell(anchor.gridX() + rotated.dx(), anchor.gridZ() + rotated.dz()));
         }

@@ -220,7 +220,7 @@ public class CosmeticCommand {
 
         CosmeticStructure structure = new CosmeticStructure(List.copyOf(footprint), parts, scale);
         if (!interior.isEmpty()) {
-            structure = structure.withShelter(Optional.of(new CosmeticStructure.ShelterSpec(interior, Optional.empty())));
+            structure = structure.withShelters(List.of(new CosmeticStructure.ShelterSpec(interior, Optional.empty())));
             ShelterGeometry.Result shelter = ShelterGeometry.derive(interior, structure.partCells());
             if (!shelter.ok()) {
                 source.sendFailure(Component.literal("Shelter markers rejected: " + shelter.error()
@@ -229,7 +229,7 @@ public class CosmeticCommand {
             }
             int mouths = shelter.shape().mouths().size();
             source.sendSystemMessage(Component.literal("Shelter: " + interior.size() + " interior cell(s), "
-                    + mouths + " mouth(s), capacity " + structure.shelter().get().capacityOrDefault() + ".")
+                    + mouths + " mouth(s), capacity " + structure.shelters().get(0).capacityOrDefault() + ".")
                     .withStyle(ChatFormatting.GREEN));
         }
 

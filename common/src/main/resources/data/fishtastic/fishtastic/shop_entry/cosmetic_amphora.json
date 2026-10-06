@@ -1,0 +1,12 @@
+{
+  "display_name": "Amphora",
+  "description": "A wine jar the sea drank dry, lying on its side with a neck just wide enough for small and medium fish to slip inside, for your fish tank.",
+  "cost": 30,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_amphora",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

@@ -10,5 +10,6 @@
     { "time": "night", "multiplier": 2.0 },
     { "time": "dawn", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:aggressive"
+  "temperament": "fishtastic:aggressive",
+  "swarm": { "shelter": "lurker" }
 }

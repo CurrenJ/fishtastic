@@ -9,6 +9,12 @@
       "dz": 0
     }
   ],
+  "occupied_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    }
+  ],
   "parts": [
     {
       "state": {

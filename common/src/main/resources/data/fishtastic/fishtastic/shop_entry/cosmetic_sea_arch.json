@@ -1,0 +1,12 @@
+{
+  "display_name": "Sea Arch",
+  "description": "A limestone headland with a great window worn through it, filling a deep two-storey tank, wide enough for the biggest fish to swim through, for your fish tank.",
+  "cost": 80,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_sea_arch",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}
