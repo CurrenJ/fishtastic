@@ -687,6 +687,43 @@ public final class FlockEngine {
     /** Size gates (§5.2): sprite height to length, and slack on the interior's run. */
     static final float MOUTH_HEIGHT_RATIO = 0.4f, INTERIOR_LENGTH_SLACK = 1.1f;
 
+    // ── Startle to cover (docs/fish-shelters.md §5.3 trigger 2: SKITTISH only) ──
+    // The garden eels' rule, reused rather than reinvented: the watcher *arriving* within
+    // STARTLE_RADIUS of the fish, armed only by positive evidence that the watcher went away
+    // (present and beyond STARTLE_REARM_RADIUS), and starting unarmed. A startle is a reason to
+    // hide, never a new scatter: with no shelter that fits and has room, nothing happens.
+
+    /** How near the watcher has to come to startle a skittish fish, blocks (the eels' radius). */
+    static final float STARTLE_RADIUS = 3.0f;
+    /** How far it must be seen to go before the fish can be startled again. */
+    static final float STARTLE_REARM_RADIUS = STARTLE_RADIUS * 1.5f;
+    /** A startled fish swims for cover at this multiple of its patrol speed. */
+    static final float STARTLE_SPEED = 1.8f;
+    /** A startled approach gives up after this long (§5.4) — cover is close or it is nothing. */
+    public static final float STARTLE_APPROACH_TIMEOUT_SECONDS = 2f;
+    /** A startled fish's flocking fades out this much faster than a visitor's. */
+    static final float STARTLE_FADE_RATE = 4f;
+    static final float STARTLE_DWELL_MIN_SECONDS = 5f, STARTLE_DWELL_MAX_SECONDS = 10f;
+    /**
+     * However long the watcher keeps coming, a startled fish stays in no longer than this, so the
+     * hidden time stays bounded; seconds past its dwell.
+     */
+    static final float STARTLE_HOLD_MAX_SECONDS = 10f;
+    /** "Approaching" means at least this much closer than a second ago, blocks. */
+    static final float WATCHER_APPROACH_EPSILON = 0.05f;
+    /** Ticks of watcher history kept, so "a second ago" can be asked. */
+    static final int WATCHER_HISTORY = 20;
+
+    /** Per fish: whether it may be startled — see the section comment for the rule. */
+    private boolean[] startleArmed = new boolean[0];
+    /** Per fish: whether its current visit is a startle, which changes its timeout, dwell and exit. */
+    private boolean[] startled = new boolean[0];
+    /** Where the watcher was over the last second, oldest first from {@code watcherHistHead}. */
+    private final float[] watcherHistL = new float[WATCHER_HISTORY], watcherHistY = new float[WATCHER_HISTORY],
+            watcherHistD = new float[WATCHER_HISTORY];
+    private final boolean[] watcherHistPresent = new boolean[WATCHER_HISTORY];
+    private int watcherHistHead;
+
     private ShelterUse[] shelterUse = new ShelterUse[0];
     private int[] shelterState = new int[0];
     /** The shelter each fish has chosen (from APPROACH on), as an index into the shelter list, or −1. */
@@ -1087,6 +1124,8 @@ public final class FlockEngine {
     private int[] cShelterState = new int[0], cShelterIndex = new int[0], cShelterMouth = new int[0];
     private float[] cShelterTimer = new float[0];
     private long[] cShelterRng = new long[0];
+    private boolean[] cStartleArmed = new boolean[0], cStartled = new boolean[0];
+    private float[] cShelterBlend = new float[0], cVisitUrge = new float[0];
 
     private void captureCarry(int[] carryFrom, int n) {
         carrying = carryFrom != null;
@@ -1119,6 +1158,8 @@ public final class FlockEngine {
             cShelterState[i] = shelterState[from]; cShelterIndex[i] = shelterIndex[from];
             cShelterMouth[i] = shelterMouth[from]; cShelterTimer[i] = shelterTimer[from];
             cShelterRng[i] = shelterRng[from];
+            cStartleArmed[i] = startleArmed[from]; cStartled[i] = startled[from];
+            cShelterBlend[i] = shelterBlend[from]; cVisitUrge[i] = visitUrge[from];
         }
     }
 
@@ -1156,6 +1197,8 @@ public final class FlockEngine {
             shelterState[i] = cShelterState[i]; shelterIndex[i] = cShelterIndex[i];
             shelterMouth[i] = cShelterMouth[i]; shelterTimer[i] = cShelterTimer[i];
             shelterRng[i] = cShelterRng[i];
+            startleArmed[i] = cStartleArmed[i]; startled[i] = cStartled[i];
+            shelterBlend[i] = cShelterBlend[i]; visitUrge[i] = cVisitUrge[i];
 
             // A crawler's world can change under it: a cosmetic dropped into the cell it was
             // standing in, or a group re-shaped around it. Carrying it there would leave it
@@ -1195,6 +1238,8 @@ public final class FlockEngine {
         cNoiseState = new long[n]; cBurstPhase = new float[n]; cBurstDrive = new float[n];
         cShelterState = new int[n]; cShelterIndex = new int[n]; cShelterMouth = new int[n];
         cShelterTimer = new float[n]; cShelterRng = new long[n];
+        cStartleArmed = new boolean[n]; cStartled = new boolean[n];
+        cShelterBlend = new float[n]; cVisitUrge = new float[n];
     }
 
     private void initFish(int i, FishSpec spec, float lateral, float y, float depth,
@@ -1210,6 +1255,8 @@ public final class FlockEngine {
         shelterRng[i] = seed ^ 0x51E17E25L;
         visitUrge[i] = 0f;
         shelterBlend[i] = 0f;
+        startleArmed[i] = false; // a fish that has never seen the watcher leave has nothing to react to
+        startled[i] = false;
         species[i] = spec.species();
         hoverMirrored[i] = spec.mirrored();
         locomotion[i] = gate(spec.locomotion(), spec.length());
@@ -1397,7 +1444,15 @@ public final class FlockEngine {
         visitUrge = new float[n];
         shelterBlend = new float[n];
         exitVelL = new float[n]; exitVelY = new float[n]; exitVelD = new float[n];
+        startleArmed = new boolean[n];
+        startled = new boolean[n];
     }
+
+    /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md §5.3). */
+    public boolean startled(int i) { return startled[i]; }
+
+    /** Whether fish #{@code i} may be startled right now. */
+    public boolean startleArmed(int i) { return startleArmed[i]; }
 
     /**
      * The shelter fish #{@code i} is inside or passing through the mouth of (ENTER, INSIDE, EXIT),
@@ -1569,12 +1624,23 @@ public final class FlockEngine {
      */
     private void updateShelterState(int i, Tunables p) {
         float dt = p.dt();
-        float fade = dt / APPROACH_FADE_SECONDS;
+        float fade = dt / APPROACH_FADE_SECONDS * (startled[i] && shelterState[i] != SHELTER_ROAMING ? STARTLE_FADE_RATE : 1f);
+        // Arming is positive evidence only: the watcher present, and far away.
+        if (shelterUse[i] == ShelterUse.SKITTISH && watcherPresent && !watcherWithin(i, STARTLE_REARM_RADIUS)) {
+            startleArmed[i] = true;
+        }
         shelterBlend[i] = shelterState[i] == SHELTER_ROAMING
                 ? Math.max(0f, shelterBlend[i] - fade)
                 : Math.min(1f, shelterBlend[i] + fade);
         switch (shelterState[i]) {
             case SHELTER_ROAMING -> {
+                // The startle is an event — the watcher arriving — and fires through the cooldown:
+                // a frightened fish does not wait to have been seen in the open long enough.
+                if (shelterUse[i] == ShelterUse.SKITTISH && startleArmed[i] && watcherWithin(i, STARTLE_RADIUS)) {
+                    startleArmed[i] = false; // one reaction per approach, whether or not it finds cover
+                    tryStartApproach(i, p, true);
+                    if (shelterState[i] == SHELTER_APPROACH) return;
+                }
                 if (shelterTimer[i] > 0f) {
                     shelterTimer[i] = Math.max(0f, shelterTimer[i] - dt);
                     return;
@@ -1585,10 +1651,10 @@ public final class FlockEngine {
                 // for one to come into reach, then lapses.
                 if (visitUrge[i] > 0f) {
                     visitUrge[i] = Math.max(0f, visitUrge[i] - dt);
-                    tryStartApproach(i, p);
+                    tryStartApproach(i, p, false);
                 } else if (nextShelterUnit(i) < dt / visitMeanSeconds(i)) {
                     visitUrge[i] = VISIT_URGE_SECONDS;
-                    tryStartApproach(i, p);
+                    tryStartApproach(i, p, false);
                 }
             }
             case SHELTER_APPROACH -> {
@@ -1596,7 +1662,7 @@ public final class FlockEngine {
                 if (inEntryCone(i)) {
                     shelterState[i] = SHELTER_ENTER;
                     shelterTimer[i] = 0f;
-                } else if (shelterTimer[i] >= APPROACH_TIMEOUT_SECONDS) {
+                } else if (shelterTimer[i] >= (startled[i] ? STARTLE_APPROACH_TIMEOUT_SECONDS : APPROACH_TIMEOUT_SECONDS)) {
                     exitVelL[i] = velL[i];
                     exitVelY[i] = velY[i];
                     exitVelD[i] = velD[i];
@@ -1609,7 +1675,9 @@ public final class FlockEngine {
                 shelterBlend[i] = 1f;
                 if (shelter.interior().contains(posL[i], posY[i], posD[i])) {
                     shelterState[i] = SHELTER_INSIDE;
-                    shelterTimer[i] = DWELL_MIN_SECONDS + nextShelterUnit(i) * (DWELL_MAX_SECONDS - DWELL_MIN_SECONDS);
+                    float min = startled[i] ? STARTLE_DWELL_MIN_SECONDS : DWELL_MIN_SECONDS;
+                    float max = startled[i] ? STARTLE_DWELL_MAX_SECONDS : DWELL_MAX_SECONDS;
+                    shelterTimer[i] = min + nextShelterUnit(i) * (max - min);
                 } else if (shelterTimer[i] >= enterTimeoutSeconds(i, p)) {
                     shelterState[i] = SHELTER_EXIT;
                     shelterTimer[i] = 0f;
@@ -1617,7 +1685,12 @@ public final class FlockEngine {
             }
             case SHELTER_INSIDE -> {
                 shelterTimer[i] -= dt;
-                if (shelterTimer[i] <= 0f) {
+                // A startled fish comes out only once the watcher has stopped coming closer — a
+                // player standing still is furniture — or, if the watcher keeps on coming (or the
+                // signal has gone and nobody knows), once it has waited the hold out.
+                boolean mayLeave = shelterTimer[i] <= 0f
+                        && (!startled[i] || shelterTimer[i] <= -STARTLE_HOLD_MAX_SECONDS || watcherSettled(i));
+                if (mayLeave) {
                     shelterState[i] = SHELTER_EXIT;
                     shelterTimer[i] = 0f;
                 }
@@ -1674,7 +1747,25 @@ public final class FlockEngine {
         return avoidHullsSource.get(shelterIndex[i]).mouths().get(shelterMouth[i]);
     }
 
+    /**
+     * Whether the watcher has stopped approaching fish #{@code i}: present now and a second ago,
+     * and no closer now than it was then. A missing signal at either end is "unknown", which is
+     * not "stopped".
+     */
+    private boolean watcherSettled(int i) {
+        int oldest = (watcherHistHead + 1) % WATCHER_HISTORY;
+        if (!watcherPresent || !watcherHistPresent[oldest] || !watcherHistPresent[watcherHistHead]) return false;
+        float dl = posL[i] - watcherHistL[oldest], dy = posY[i] - watcherHistY[oldest], dd = posD[i] - watcherHistD[oldest];
+        float then = (float) Math.sqrt(dl * dl + dy * dy + dd * dd);
+        dl = posL[i] - watcherL;
+        dy = posY[i] - watcherY;
+        dd = posD[i] - watcherD;
+        float now = (float) Math.sqrt(dl * dl + dy * dy + dd * dd);
+        return now >= then - WATCHER_APPROACH_EPSILON;
+    }
+
     private void leaveToRoaming(int i) {
+        startled[i] = false;
         shelterState[i] = SHELTER_ROAMING;
         shelterIndex[i] = -1;
         shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
@@ -1685,12 +1776,14 @@ public final class FlockEngine {
      * and commits to it (§5.3: chosen once, never re-scored). Nothing happens if none qualifies or
      * the hidden budget is spent.
      */
-    private void tryStartApproach(int i, Tunables p) {
+    private void tryStartApproach(int i, Tunables p, boolean startle) {
         if (pendingHidden >= hiddenBudget) return;
         float len = lengths[i];
         float stage = len + STAGING_CLEARANCE;
         int bestS = -1, bestM = -1;
-        float reach = p.patrolSpeed() * patrolScale[i] * APPROACH_REACH_SECONDS;
+        float reach = startle
+                ? p.patrolSpeed() * patrolScale[i] * STARTLE_SPEED * STARTLE_APPROACH_TIMEOUT_SECONDS
+                : p.patrolSpeed() * patrolScale[i] * APPROACH_REACH_SECONDS;
         float bestD2 = reach * reach;
         List<Shelter> shelters = avoidHullsSource;
         for (int s = 0; s < shelters.size(); s++) {
@@ -1718,6 +1811,7 @@ public final class FlockEngine {
         }
         if (bestS < 0) return;
         visitUrge[i] = 0f;
+        startled[i] = startle;
         shelterState[i] = SHELTER_APPROACH;
         shelterIndex[i] = bestS;
         shelterMouth[i] = bestM;
@@ -1749,15 +1843,16 @@ public final class FlockEngine {
                 float tl = -nL * stage - rL, ty = -nY * stage - rY, td = -nD * stage - rD;
                 float dist = (float) Math.sqrt(tl * tl + ty * ty + td * td);
                 float near = SimMath.clamp(1f - dist / APPROACH_ALIGN_RANGE, 0f, 1f);
-                float seek = dist > 1e-5f ? patrol / dist : 0f;
-                float axisSpeed = patrol * ENTER_SPEED;
+                float dash = startled[i] ? patrol * STARTLE_SPEED : patrol;
+                float seek = dist > 1e-5f ? dash / dist : 0f;
+                float axisSpeed = startled[i] ? dash : patrol * ENTER_SPEED;
                 out[0] = tl * seek * (1f - near) + (nL * axisSpeed - pL * CORRIDOR_GAIN) * near;
                 out[1] = ty * seek * (1f - near) + (nY * axisSpeed - pY * CORRIDOR_GAIN) * near;
                 out[2] = td * seek * (1f - near) + (nD * axisSpeed - pD * CORRIDOR_GAIN) * near;
                 return shelterBlend[i];
             }
             case SHELTER_ENTER -> {
-                float speed = patrol * ENTER_SPEED;
+                float speed = patrol * (startled[i] ? STARTLE_SPEED : ENTER_SPEED);
                 out[0] = nL * speed - pL * CORRIDOR_GAIN;
                 out[1] = nY * speed - pY * CORRIDOR_GAIN;
                 out[2] = nD * speed - pD * CORRIDOR_GAIN;
@@ -1928,6 +2023,11 @@ public final class FlockEngine {
         }
         shelterSim = planar && !shelters.isEmpty();
         if (shelterSim) {
+            watcherHistHead = (watcherHistHead + 1) % WATCHER_HISTORY;
+            watcherHistPresent[watcherHistHead] = watcherPresent;
+            watcherHistL[watcherHistHead] = watcherL;
+            watcherHistY[watcherHistHead] = watcherY;
+            watcherHistD[watcherHistHead] = watcherD;
             countShelterOccupancy();
         } else {
             anyInShelter = false;

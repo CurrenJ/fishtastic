@@ -43,6 +43,7 @@ public final class HeadlessRunner {
         Path outDir = Path.of("build", "sim-export");
         boolean heatmap = true;
         String cast = "mixed";
+        boolean pacingWatcher = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -54,6 +55,8 @@ public final class HeadlessRunner {
                 case "--out" -> outDir = Path.of(args[++i]);
                 case "--no-heatmap" -> heatmap = false;
                 case "--cast" -> cast = args[++i];
+                // A player walking up to the glass at +lateral and away again every 30 s.
+                case "--watcher" -> pacingWatcher = args[++i].equals("pace");
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
         }
@@ -84,12 +87,16 @@ public final class HeadlessRunner {
         // The first fish to make a whole shelter visit, filmed from the start of its approach to
         // the end of its exit (docs/fish-shelters.md §10) — a sheet to read, where the GIF is to
         // watch. Empty when the domain has no shelters or nobody visits.
-        VisitFilm visit = new VisitFilm(engine.count());
+        VisitFilm visit = new VisitFilm(engine.count(), pacingWatcher);
 
         File gifFile = outDir.resolve(tag + ".gif").toFile();
         try (FileImageOutputStream gifOut = new FileImageOutputStream(gifFile)) {
             GifSequenceWriter gif = null;
             for (int t = 0; t < ticks; t++) {
+                if (pacingWatcher) {
+                    boolean close = (t / 600) % 2 == 1;
+                    engine.setWatcher(true, domain(engine) + (close ? 1.1f : 7.5f), 0f, 0f);
+                }
                 engine.step();
                 metrics.sample();
                 visit.observe(engine, renderer, tunables, t);
@@ -183,9 +190,12 @@ public final class HeadlessRunner {
         final java.util.List<String> labels = new java.util.ArrayList<>();
         int fish = -1;
         boolean reachedInside, finished;
+        /** Film only a startle — with a pacing watcher, that is the visit worth reading. */
+        final boolean startledOnly;
 
-        VisitFilm(int n) {
+        VisitFilm(int n, boolean startledOnly) {
             prev = new int[n];
+            this.startledOnly = startledOnly;
         }
 
         boolean done() {
@@ -196,7 +206,10 @@ public final class HeadlessRunner {
             if (finished) return;
             for (int i = 0; i < engine.count(); i++) {
                 int st = engine.shelterState(i);
-                if (fish < 0 && st == FlockEngine.SHELTER_APPROACH && prev[i] == FlockEngine.SHELTER_ROAMING) fish = i;
+                if (fish < 0 && st == FlockEngine.SHELTER_APPROACH && prev[i] == FlockEngine.SHELTER_ROAMING
+                        && (!startledOnly || engine.startled(i))) {
+                    fish = i;
+                }
                 prev[i] = st;
             }
             if (fish < 0) return;
@@ -214,7 +227,8 @@ public final class HeadlessRunner {
             }
             if (tick % EVERY == 0 && frames.size() < MAX_FRAMES) {
                 frames.add(renderer.render(engine, tunables, FrameRenderer.View.SIDE));
-                labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit"}[st]);
+                labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit"}[st]
+                        + (engine.startled(fish) ? " (startled)" : ""));
             }
         }
 
@@ -235,6 +249,11 @@ public final class HeadlessRunner {
             }
             return out;
         }
+    }
+
+    /** The domain's high-lateral edge, which the pacing watcher walks up to. */
+    private static float domain(FlockEngine engine) {
+        return engine.domain().maxLateral();
     }
 
     private static void writePng(BufferedImage image, Path path) throws IOException {
