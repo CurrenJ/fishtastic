@@ -151,6 +151,7 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_SUNKEN_STRONGBOX;
     public static Holder<Item> COSMETIC_WAYSIDE_SHRINE;
     public static Holder<Item> COSMETIC_SUNKEN_GATEHOUSE;
+    public static Holder<Item> COSMETIC_REEF_CROWNED_SKULL;
     public static Holder<Item> COSMETIC_AMETHYST_GEODE;
     public static Holder<Item> COSMETIC_HOLLOW_LOG;
     public static Holder<Item> COSMETIC_CLAY_PIPE;
@@ -556,6 +557,10 @@ public class FishtasticItems {
         COSMETIC_SUNKEN_GATEHOUSE = RegistrationApiSided.getInstance().registerItem("cosmetic_sunken_gatehouse",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("sunken_gatehouse")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_REEF_CROWNED_SKULL = RegistrationApiSided.getInstance().registerItem("cosmetic_reef_crowned_skull",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("reef_crowned_skull")),
                         props(loc).stacksTo(1)));
         COSMETIC_AMETHYST_GEODE = RegistrationApiSided.getInstance().registerItem("cosmetic_amethyst_geode",
                 loc -> new FishTankStructureCosmeticItem(

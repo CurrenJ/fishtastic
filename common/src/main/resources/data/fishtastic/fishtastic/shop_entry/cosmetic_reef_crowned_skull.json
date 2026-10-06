@@ -1,0 +1,7 @@
+{
+  "display_name": "Reef-Crowned Skull",
+  "description": "A great skull sunk in the sand, coral bursting from a crack in its crown. Fish swim through its temples and peer out of its empty eye, and now and then one noses the fallen jaw and the skull breathes out.",
+  "cost": 55,
+  "reward": [{ "id": "fishtastic:cosmetic_reef_crowned_skull", "count": 1 }],
+  "daily_max_purchases": 1
+}

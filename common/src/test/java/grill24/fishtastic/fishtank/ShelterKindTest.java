@@ -42,9 +42,9 @@ class ShelterKindTest {
             assertTrue(gates.contains(gate), gate + " is a gate: " + gates);
         }
         assertEquals(Set.of("spruce_gazebo", "mangrove_knees", "leviathans_seat", "sunken_ziggurat", "whale_fall", "sea_arch",
-                "drowned_cathedral"), open);
+                "drowned_cathedral", "reef_crowned_skull"), open);
         assertEquals(Set.of("clay_pipe", "hollow_log", "whale_fall", "amphora", "drowned_bell", "basalt_grotto",
-                "sunken_ziggurat", "capsized_galleon", "drowned_cathedral", "sea_arch"), hollows, "a shelter without a kind is a hollow");
+                "sunken_ziggurat", "capsized_galleon", "drowned_cathedral", "sea_arch", "reef_crowned_skull"), hollows, "a shelter without a kind is a hollow");
     }
 
     /** Every shipped gate opens on both sides, horizontally — the way through it. */

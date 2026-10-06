@@ -1,0 +1,7403 @@
+{
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.2342857,
+   "offsetY": 0,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -0.96,
+   "offsetY": 0,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 0,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 0,
+   "offsetZ": 1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 0,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 0,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:gold_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 0,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 0,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.96,
+   "offsetY": 0,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.96,
+   "offsetY": 0,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.96,
+   "offsetY": 0,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.8228571,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 0.96,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 1.0971429,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 0,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 0,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 0,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 0,
+   "offsetZ": 0.8228571,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 0,
+   "offsetZ": 0.96,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 0,
+   "offsetZ": 1.0971429,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 1,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 1,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 1,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 1,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 1,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:gold_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 1,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 1,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 1,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 1,
+   "offsetZ": 0.2742857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 1,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 1,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 1,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 1,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 0.8228571,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 0.96,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 1.0971429,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 1,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 1,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 1,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 1,
+   "offsetZ": 0.8228571,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 1,
+   "offsetZ": 0.96,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 1,
+   "offsetZ": 1.0971429,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 2,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 2,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 2,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_tube_coral_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 2,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 2,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 2,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 2,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 2,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 2,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 0.96,
+   "offsetY": 2,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 2,
+   "offsetZ": 0.5485714,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 2,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_quartz"
+   },
+   "offsetX": 1.0971429,
+   "offsetY": 2,
+   "offsetZ": 1.0971429,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 2,
+   "offsetZ": 0.6857143,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 2,
+   "offsetZ": 0.8228571,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 1.2342857,
+   "offsetY": 2,
+   "offsetZ": 0.96,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:dead_brain_coral_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 3,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 3,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 4,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 4,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 4,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 4,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 4,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 4,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 4,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 4,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 4,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 4,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 4,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 4,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": 1.2342857,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": 1.3714286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.96,
+   "offsetY": 4,
+   "offsetZ": 0.4114286,
+   "group": "jaw"
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 5,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 5,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 5,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 5,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_wall_fan",
+    "Properties": {
+     "facing": "south",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 5,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 5,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral_wall_fan",
+    "Properties": {
+     "facing": "south",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 5,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 5,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:packed_mud"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 5,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 5,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 6,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_wall_fan",
+    "Properties": {
+     "facing": "south",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 6,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 6,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral_wall_fan",
+    "Properties": {
+     "facing": "south",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 6,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 6,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 6,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 7,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 7,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 7,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 7,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 7,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 7,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 7,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 7,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 7,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 8,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 8,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 8,
+   "offsetZ": -1.3714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 8,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 8,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_blackstone"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:black_concrete"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 8,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.8228571,
+   "offsetY": 8,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 9,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 9,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 9,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 9,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 9,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mud"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 9,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 9,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 9,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 9,
+   "offsetZ": 0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 9,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 9,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 9,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 9,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 9,
+   "offsetZ": 0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 9,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 10,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 10,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 10,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 10,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 10,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 10,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 10,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 10,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 10,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 10,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 10,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 10,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 10,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 10,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mud"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 10,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 10,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 10,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 11,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 11,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 11,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 11,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 11,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 11,
+   "offsetZ": -1.0971429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 11,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 11,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 11,
+   "offsetZ": -0.96
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 11,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 11,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 11,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 11,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 11,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 11,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 11,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp",
+    "Properties": {
+     "age": "20"
+    }
+   },
+   "offsetX": -0.8228571,
+   "offsetY": 12,
+   "offsetZ": -1.2342857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brown_mushroom_block",
+    "Properties": {
+     "up": "false",
+     "down": "false",
+     "north": "false",
+     "south": "false",
+     "east": "false",
+     "west": "false"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1371429,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:mushroom_stem"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:quartz_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.8228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 12,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": 0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 12,
+   "offsetZ": 0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 12,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 12,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 12,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 12,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 12,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 13,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 13,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 13,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 13,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1371429,
+   "offsetY": 13,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 13,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 13,
+   "offsetZ": -0.4114286
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 13,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_block"
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 13,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 13,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 13,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 13,
+   "offsetZ": -0.2742857
+  },
+  {
+   "state": {
+    "Name": "minecraft:horn_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4114286,
+   "offsetY": 13,
+   "offsetZ": -0.1371429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bubble_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 13,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:fire_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.5485714,
+   "offsetY": 13,
+   "offsetZ": -0.5485714
+  },
+  {
+   "state": {
+    "Name": "minecraft:brain_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.2742857,
+   "offsetY": 14,
+   "offsetZ": -0.1371429
+  }
+ ],
+ "scale": 0.04,
+ "shelters": [
+  {
+   "interior": [
+    {
+     "x": -5,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": -4,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": -3,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": -2,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": -1,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 1,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 2,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 3,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 4,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": 5,
+     "y": 4,
+     "z": -1
+    },
+    {
+     "x": -5,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": -4,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": -3,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": -2,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": -1,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 1,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 2,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 3,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 4,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": 5,
+     "y": 4,
+     "z": 0
+    },
+    {
+     "x": -5,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": -4,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": -3,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": -2,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": -1,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 1,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 2,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 3,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 4,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": 5,
+     "y": 4,
+     "z": 1
+    },
+    {
+     "x": -5,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": -4,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": -3,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": -2,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": -1,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 1,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 2,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 3,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 4,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": 5,
+     "y": 4,
+     "z": 2
+    },
+    {
+     "x": -5,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": -4,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": -3,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": -2,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": -1,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 0,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 1,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 3,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 4,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": 5,
+     "y": 5,
+     "z": -1
+    },
+    {
+     "x": -5,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": -4,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": -3,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": -2,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": -1,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 0,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 1,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 3,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 4,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": 5,
+     "y": 5,
+     "z": 0
+    },
+    {
+     "x": -5,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": -4,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": -3,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": -2,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": -1,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 0,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 1,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 3,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 4,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": 5,
+     "y": 5,
+     "z": 1
+    },
+    {
+     "x": -5,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": -4,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": -3,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": -2,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": -1,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 0,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 1,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 3,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 4,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": 5,
+     "y": 5,
+     "z": 2
+    },
+    {
+     "x": -5,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": -4,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": -3,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": -2,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": -1,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 0,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 1,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 2,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 3,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 4,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": 5,
+     "y": 6,
+     "z": -1
+    },
+    {
+     "x": -5,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": -4,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": -3,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": -2,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": -1,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 0,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 1,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 2,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 3,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 4,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": 5,
+     "y": 6,
+     "z": 0
+    },
+    {
+     "x": -5,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": -4,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": -3,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": -2,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": -1,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 0,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 1,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 2,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 3,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 4,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": 5,
+     "y": 6,
+     "z": 1
+    },
+    {
+     "x": -5,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": -4,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": -3,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": -2,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": -1,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 0,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 1,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 2,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 3,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 4,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": 5,
+     "y": 6,
+     "z": 2
+    },
+    {
+     "x": -5,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": -4,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": -3,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": -2,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": -1,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 0,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 1,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 2,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 3,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 4,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": 5,
+     "y": 7,
+     "z": -1
+    },
+    {
+     "x": -5,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": -4,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": -3,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": -2,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": -1,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 0,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 1,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 2,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 3,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 4,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": 5,
+     "y": 7,
+     "z": 0
+    },
+    {
+     "x": -5,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": -4,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": -3,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": -2,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": -1,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 0,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 1,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 2,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 3,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 4,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": 5,
+     "y": 7,
+     "z": 1
+    },
+    {
+     "x": -5,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": -4,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": -3,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": -2,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": -1,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 0,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 1,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 2,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 3,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 4,
+     "y": 7,
+     "z": 2
+    },
+    {
+     "x": 5,
+     "y": 7,
+     "z": 2
+    }
+   ],
+   "capacity": 3
+  },
+  {
+   "kind": "open",
+   "interior": [
+    {
+     "x": 5,
+     "y": 0,
+     "z": 5
+    },
+    {
+     "x": 6,
+     "y": 0,
+     "z": 5
+    },
+    {
+     "x": 7,
+     "y": 0,
+     "z": 5
+    },
+    {
+     "x": 5,
+     "y": 0,
+     "z": 6
+    },
+    {
+     "x": 6,
+     "y": 0,
+     "z": 6
+    },
+    {
+     "x": 7,
+     "y": 0,
+     "z": 6
+    },
+    {
+     "x": 5,
+     "y": 0,
+     "z": 7
+    },
+    {
+     "x": 6,
+     "y": 0,
+     "z": 7
+    },
+    {
+     "x": 7,
+     "y": 0,
+     "z": 7
+    },
+    {
+     "x": 5,
+     "y": 0,
+     "z": 8
+    },
+    {
+     "x": 6,
+     "y": 0,
+     "z": 8
+    },
+    {
+     "x": 7,
+     "y": 0,
+     "z": 8
+    },
+    {
+     "x": 5,
+     "y": 1,
+     "z": 5
+    },
+    {
+     "x": 6,
+     "y": 1,
+     "z": 5
+    },
+    {
+     "x": 7,
+     "y": 1,
+     "z": 5
+    },
+    {
+     "x": 5,
+     "y": 1,
+     "z": 6
+    },
+    {
+     "x": 6,
+     "y": 1,
+     "z": 6
+    },
+    {
+     "x": 7,
+     "y": 1,
+     "z": 6
+    },
+    {
+     "x": 5,
+     "y": 1,
+     "z": 7
+    },
+    {
+     "x": 6,
+     "y": 1,
+     "z": 7
+    },
+    {
+     "x": 7,
+     "y": 1,
+     "z": 7
+    },
+    {
+     "x": 5,
+     "y": 1,
+     "z": 8
+    },
+    {
+     "x": 6,
+     "y": 1,
+     "z": 8
+    },
+    {
+     "x": 7,
+     "y": 1,
+     "z": 8
+    },
+    {
+     "x": 5,
+     "y": 2,
+     "z": 5
+    },
+    {
+     "x": 6,
+     "y": 2,
+     "z": 5
+    },
+    {
+     "x": 7,
+     "y": 2,
+     "z": 5
+    },
+    {
+     "x": 5,
+     "y": 2,
+     "z": 6
+    },
+    {
+     "x": 6,
+     "y": 2,
+     "z": 6
+    },
+    {
+     "x": 7,
+     "y": 2,
+     "z": 6
+    },
+    {
+     "x": 5,
+     "y": 2,
+     "z": 7
+    },
+    {
+     "x": 6,
+     "y": 2,
+     "z": 7
+    },
+    {
+     "x": 7,
+     "y": 2,
+     "z": 7
+    },
+    {
+     "x": 5,
+     "y": 2,
+     "z": 8
+    },
+    {
+     "x": 6,
+     "y": 2,
+     "z": 8
+    },
+    {
+     "x": 7,
+     "y": 2,
+     "z": 8
+    }
+   ],
+   "capacity": 1
+  }
+ ],
+ "reactions": [
+  {
+   "nose": {
+    "min": {
+     "x": 9,
+     "y": 0,
+     "z": 7
+    },
+    "max": {
+     "x": 9,
+     "y": 1,
+     "z": 7
+    },
+    "facing": "east"
+   },
+   "hold_seconds": 1.8,
+   "open_ticks": 6,
+   "hold_ticks": 48,
+   "close_ticks": 20,
+   "motions": [
+    {
+     "group": "jaw",
+     "pivot": [
+      6.6,
+      0,
+      6.2
+     ],
+     "axis": "z",
+     "degrees": -8,
+     "sway_ticks": 14
+    }
+   ],
+   "bursts": [
+    {
+     "at": [
+      -2.93,
+      5.66,
+      2.8
+     ],
+     "count": 10
+    },
+    {
+     "at": [
+      0.47,
+      2.76,
+      3.3
+     ],
+     "count": 4
+    }
+   ],
+   "open_sound": {
+    "id": "minecraft:block.bone_block.place",
+    "volume": 0.22,
+    "pitch": 0.55
+   },
+   "close_sound": {
+    "id": "minecraft:block.bubble_column.bubble_pop",
+    "volume": 0.25,
+    "pitch": 0.8
+   }
+  }
+ ]
+}
