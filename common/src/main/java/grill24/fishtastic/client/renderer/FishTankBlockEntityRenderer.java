@@ -364,13 +364,15 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             boolean mirrored = eng.swimmers[i] ? eng.heading[i] > 0f : eng.hoverMirrored[i];
             if (eng.swimmers[i] && planar) {
                 FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
-                        eng.renderPhase[i], eng.renderYaw[i] + frameYaw + 180f, false, eng.speedFactor(i), eng.bank[i]);
+                        eng.renderPhase[i], eng.renderYaw[i] + frameYaw + 180f, false, eng.speedFactor(i), eng.bank[i],
+                        eng.renderBobRoom[i], scale);
             } else if (eng.swimmers[i]) {
                 // Simulated swimmers animate on the engine's speed-integrated clock, not game
                 // time — that's what couples tail-beat frequency to swim speed without the
                 // phase-teleport jitter of scaling the sine frequency per frame.
                 FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
-                        eng.renderPhase[i], eng.baseRotations[i], mirrored, eng.speedFactor(i), eng.bank[i]);
+                        eng.renderPhase[i], eng.baseRotations[i], mirrored, eng.speedFactor(i), eng.bank[i],
+                        eng.renderBobRoom[i], scale);
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 // A crawler faces where it is walking. The +180° is the same mapping the group
                 // swimmers use: the sprite's nose points along −lateral at rotation 0.
@@ -460,7 +462,8 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             // −lateral at rotation 0 (same offset the single-tank mirror mapping encodes).
             if (eng.swimmers[i]) {
                 FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
-                        eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i]);
+                        eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i],
+                        eng.renderBobRoom[i], scale);
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
                         eng.baseRotations[i], scale, false, eng.renderShape[i]);

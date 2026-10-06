@@ -564,6 +564,14 @@ public final class FlockEngine {
     public float[] renderX = new float[0], renderY = new float[0], renderZ = new float[0];
     /** Interpolated animation clock for this frame — pass as the swim animator's time input. */
     public float[] renderPhase = new float[0];
+    /**
+     * How far this frame's sprite may bob up or down before it leaves a shelter's hollow, in
+     * blocks (docs/fish-shelters.md §5.7). The renderer's bob is drawn on top of {@link #renderY}
+     * and never seen by the simulation, so the engine can keep a fish's centre inside a hollow but
+     * only the renderer can keep the bob there. Infinite for everything but a swimmer with a
+     * shelter in its domain.
+     */
+    public float[] renderBobRoom = new float[0];
     public int[] order = new int[0]; // depth-sorted index order (ascending world Z)
 
     // Placement scratch for rejection sampling (rebuild only, no allocation).
@@ -719,6 +727,15 @@ public final class FlockEngine {
     static final float INTERIOR_MARGIN = 0.04f;
     /** Size gates (§5.2): sprite height to length, and slack on the interior's run. */
     static final float MOUTH_HEIGHT_RATIO = 0.4f, INTERIOR_LENGTH_SLACK = 1.1f;
+    /**
+     * How fast the room a sprite may bob in opens up with distance from a shelter's hollow,
+     * blocks of room per block of distance (see {@link #renderBobRoom}). It sets how fast the bob
+     * shrinks as a fish swims in. Measured headless: at most 0.0027 blocks/tick while entering,
+     * under the default bob's own peak of 0.0031, and 0.0055 on the faster approach. Any steeper
+     * and the shrinking bob reads as the fish ducking; any shallower and fish merely swimming past
+     * the log lose their bob further out.
+     */
+    static final float BOB_ROOM_SLOPE = 0.5f;
 
     // ── Startle to cover (docs/fish-shelters.md §5.3 trigger 2: SKITTISH only) ──
     // The garden eels' rule, reused rather than reinvented: the watcher *arriving* within
@@ -1468,6 +1485,8 @@ public final class FlockEngine {
         anchorArmed = new boolean[n];
         renderX = new float[n]; renderY = new float[n]; renderZ = new float[n];
         renderPhase = new float[n];
+        renderBobRoom = new float[n];
+        Arrays.fill(renderBobRoom, Float.POSITIVE_INFINITY);
         tailPhase = new float[n]; prevTailPhase = new float[n];
         yawDeg = new float[n]; prevYawDeg = new float[n]; renderYaw = new float[n];
         order = new int[n];
@@ -2179,9 +2198,11 @@ public final class FlockEngine {
     private void interiorConfinement(Shelter.OrientedBox box, int i, float[] out, float nL, float nY, float nD) {
         float[] q = shelterSteerScratch;
         box.toBox(posL[i], posY[i], posD[i], q);
-        float cu = boxAxisConfinement(q[0], box.halfL());
-        float cv = boxAxisConfinement(q[1], box.halfY());
-        float cw = boxAxisConfinement(q[2], box.halfD());
+        float cu = boxAxisConfinement(q[0], box.halfL(), 0f);
+        // The sprite has height, so its centre is kept in a box shorter by its half-height:
+        // confining the centre alone left a loach's back in the Hollow Log's roof.
+        float cv = boxAxisConfinement(q[1], box.halfY(), spriteHalfHeight(i));
+        float cw = boxAxisConfinement(q[2], box.halfD(), 0f);
         out[0] = cu * box.cos() - cw * box.sin();
         out[1] = cv;
         out[2] = cu * box.sin() + cw * box.cos();
@@ -2193,12 +2214,51 @@ public final class FlockEngine {
 
     private final float[] shelterSteerScratch = new float[3];
 
-    private static float boxAxisConfinement(float q, float half) {
+    /** Half the height of fish #{@code i}'s sprite: the mouth gate's height ratio (§5.2) applied to its length. */
+    private float spriteHalfHeight(int i) {
+        return 0.5f * MOUTH_HEIGHT_RATIO * lengths[i];
+    }
+
+    private final float[] bobRoomScratch = new float[3];
+
+    /**
+     * How far fish #{@code i}'s sprite, centred at {@code (l, y, d)}, may bob up or down without
+     * leaving a shelter's hollow: the headroom above and below it in the hollow, opening up by
+     * {@link #BOB_ROOM_SLOPE} per block of distance once it is more than half a body length
+     * outside. Purely a function of position, never of visit state, so it has no jumps to smooth:
+     * it moves only as fast as the fish does. Infinite with no shelters around.
+     */
+    private float bobRoom(int i, float l, float y, float d) {
+        float half = spriteHalfHeight(i);
+        float lead = 0.5f * lengths[i];
+        float room = Float.POSITIVE_INFINITY;
+        for (Shelter shelter : avoidHullsSource) {
+            Shelter.OrientedBox box = shelter.interior();
+            float outside = Math.max(0f, box.signedDistance(l, y, d, bobRoomScratch) - lead);
+            float headroom = Math.max(0f, box.halfY() - half - Math.abs(y - box.centerY()));
+            room = Math.min(room, headroom + BOB_ROOM_SLOPE * outside);
+        }
+        return room;
+    }
+
+    /**
+     * The confinement along one box axis, keeping a point {@code inset} clear of both faces. The
+     * inset moves where the ramp starts but never steepens it: the margin is still taken from the
+     * whole box. Shrinking the box instead squeezed the Hollow Log's ramp from 0.04 to 0.017 for a
+     * loach, and a startled fish diving in broke the jerk bound (13.3 against 12).
+     *
+     * <p>Nor does it push harder than the face itself did: the strength is capped at 1 (the old
+     * strength at the face), or the old strength where the point is already past it. Uncapped, a
+     * big fish whose inset left no room got twice the push at the face and broke the acceleration
+     * bound. With no inset this is exactly the old ramp.
+     */
+    private static float boxAxisConfinement(float q, float half, float inset) {
         float margin = Math.min(INTERIOR_MARGIN, half * 0.45f);
-        float lo = -half + margin, hi = half - margin;
-        if (q > hi) return -(q - hi) / margin;
-        if (q < lo) return (lo - q) / margin;
-        return 0f;
+        float hi = Math.max(half - inset - margin, 0f);
+        float over = Math.abs(q) - hi;
+        if (over <= 0f) return 0f;
+        float push = Math.min(over / margin, Math.max(1f, (Math.abs(q) - (half - margin)) / margin));
+        return q > 0f ? -push : push;
     }
 
 
@@ -3497,6 +3557,8 @@ public final class FlockEngine {
             renderZ[i] = -l * sinR + d * cosR;
             renderY[i] = y;
             renderPhase[i] = SimMath.lerp(partialTick, prevTailPhase[i], tailPhase[i]);
+            renderBobRoom[i] = shelterSim && locomotion[i] == Locomotion.FREE_SWIM
+                    ? bobRoom(i, l, y, d) : Float.POSITIVE_INFINITY;
             renderBank[i] = SimMath.lerp(partialTick, prevBankSmooth[i], bankSmooth[i]);
             renderShape[i] = SimMath.lerp(partialTick, prevShapeDrive[i], shapeDrive[i]);
             if (planar || continuousYaw()) {
