@@ -73,6 +73,101 @@
     }
 
     input[type=range] { width: 100%; accent-color: #7eb8f7; cursor: pointer; }
+    input[type=range]:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* badge controls */
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12.5px;
+      margin-bottom: 8px;
+    }
+    .field-row select, .field-row input[type=number] {
+      width: 96px;
+      background: #191919;
+      color: #ddd;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      padding: 3px 6px;
+      font-size: 12px;
+    }
+    .field-row input[type=checkbox] { accent-color: #7eb8f7; cursor: pointer; }
+    .field-row input:disabled { opacity: 0.35; }
+    .hint { font-size: 11px; color: #666; line-height: 1.45; }
+
+    /* badge backgrounds */
+    input[type=color] {
+      width: 96px;
+      height: 22px;
+      padding: 0 2px;
+      background: #191919;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .search-input {
+      width: 100%;
+      margin: 6px 0;
+      background: #191919;
+      color: #ddd;
+      border: 1px solid #3a3a3a;
+      border-radius: 3px;
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+    .block-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+      gap: 3px;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #191919;
+      padding: 4px;
+      margin-bottom: 6px;
+    }
+    .block-grid .empty-msg { grid-column: 1 / -1; padding: 10px; }
+    .block-tile {
+      aspect-ratio: 1;
+      background-size: 100% auto;      /* animation strips: show the first frame */
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      border: 2px solid transparent;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .block-tile.selected { border-color: #7eb8f7; }
+    .bg-target {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 12px;
+      color: #7eb8f7;
+      margin-bottom: 8px;
+    }
+    [data-show].hidden { display: none !important; }
+
+    #bg-controls, .fish-swatch { display: none; }
+    body.badge-on #bg-controls { display: block; }
+    body.badge-on #bg-off-hint { display: none; }
+    body.badge-on .fish-swatch { display: block; }
+
+    .fish-item .fish-name { flex: 1; min-width: 0; }
+    .fish-item.editing { background: #1f2a36; }
+    .fish-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid #444;
+      flex-shrink: 0;
+      image-rendering: pixelated;
+      cursor: pointer;
+    }
+    .fish-swatch.overridden { border: 2px solid #7eb8f7; }
 
     /* fish list */
     .fish-list-header { display: flex; gap: 6px; margin-bottom: 6px; }
@@ -86,7 +181,8 @@
       border-radius: 3px;
       cursor: pointer;
     }
-    .btn-sm:hover { background: #383838; }
+    .btn-sm:hover:not(:disabled) { background: #383838; }
+    .btn-sm:disabled { color: #555; cursor: not-allowed; }
 
     .fish-checklist {
       border: 1px solid #333;
@@ -220,6 +316,138 @@
     </div>
 
     <div>
+      <div class="section-title">Badge Maker</div>
+      <div class="field-row">
+        <span>Badge Size</span>
+        <select id="badge-size">
+          <option value="off">Off (free grid)</option>
+          <option value="32">32 mm</option>
+          <option value="58">58 mm</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <span>Cut Diameter (mm)</span>
+        <input type="number" id="badge-cut" min="10" max="150" step="0.5" disabled>
+      </div>
+      <div class="field-row">
+        <span>Face Diameter (mm)</span>
+        <input type="number" id="badge-face" min="10" max="150" step="0.5" disabled>
+      </div>
+      <div class="field-row">
+        <span>Circle Guides</span>
+        <input type="checkbox" id="badge-guides" checked disabled>
+      </div>
+      <div class="field-row">
+        <span>Light Cut Guide (dotted)</span>
+        <input type="checkbox" id="badge-light-cut" disabled>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span>Gap (mm)</span><span class="val" id="val-gap">2</span></div>
+        <input type="range" id="sl-gap" min="0" max="15" step="0.5" value="2" disabled>
+      </div>
+      <div class="hint">Cut = the paper disc you punch out (it wraps round the shell). Face = the visible front.
+        The grid fits as many circles as A4 holds. Guides also print in the export.</div>
+    </div>
+
+    <div id="bg-section">
+      <div class="section-title">Badge Background</div>
+      <div class="hint" id="bg-off-hint">Backgrounds work in badge mode only. Pick a badge size above.</div>
+      <div id="bg-controls">
+        <div class="bg-target">
+          <span id="bg-target-label">Editing: all badges (default)</span>
+          <button class="btn-sm" id="btn-bg-default">Edit default</button>
+          <button class="btn-sm" id="btn-bg-clear">Clear override</button>
+        </div>
+        <div class="field-row">
+          <span>Type</span>
+          <select id="bg-type">
+            <option value="none">None (white)</option>
+            <option value="solid">Solid</option>
+            <option value="gradient">Gradient</option>
+            <option value="block">Block</option>
+          </select>
+        </div>
+        <div class="field-row" data-show="coloured">
+          <span>Colour</span>
+          <select id="bg-source">
+            <option value="auto">Auto (complementary)</option>
+            <option value="manual">Manual</option>
+          </select>
+        </div>
+        <div class="field-row" data-show="manual-colour">
+          <span id="bg-color-label">Colour 1</span>
+          <input type="color" id="bg-color">
+        </div>
+        <div class="field-row" data-show="manual-gradient">
+          <span>Colour 2</span>
+          <input type="color" id="bg-color2">
+        </div>
+        <div class="field-row" data-show="gradient">
+          <span>Shape</span>
+          <select id="bg-shape">
+            <option value="radial">Radial</option>
+            <option value="linear">Linear</option>
+          </select>
+        </div>
+        <div class="slider-row" data-show="linear">
+          <div class="slider-label"><span>Angle (&deg;)</span><span class="val" id="val-bg-angle">90</span></div>
+          <input type="range" id="bg-angle" min="0" max="345" step="15" value="90">
+        </div>
+        <div data-show="block">
+          <label class="btn-load-label">
+            Load Block Folder
+            <input type="file" id="blockFolderInput" webkitdirectory multiple style="display:none">
+          </label>
+          <input type="search" class="search-input" id="bg-block-search" placeholder="Search blocks&hellip;">
+          <div class="block-grid" id="block-grid"></div>
+          <div class="hint" id="bg-block-name" style="margin-bottom:8px">No block chosen</div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Tile Size (mm)</span><span class="val" id="val-bg-tile">14</span></div>
+            <input type="range" id="bg-tile" min="4" max="40" step="0.5" value="14">
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Fade</span><span class="val" id="val-bg-fade">0.35</span></div>
+            <input type="range" id="bg-fade" min="0" max="0.9" step="0.05" value="0.35">
+          </div>
+          <div class="field-row">
+            <span>Tint (water, grass, leaves)</span>
+            <input type="checkbox" id="bg-tint">
+          </div>
+          <div class="field-row" data-show="tinted">
+            <span>Tint Colour</span>
+            <input type="color" id="bg-tint-color">
+          </div>
+        </div>
+        <div class="field-row">
+          <span>Bubbles</span>
+          <input type="checkbox" id="bg-bubbles">
+        </div>
+        <div data-show="bubbles">
+          <div class="field-row">
+            <span>Layout</span>
+            <select id="bg-bubble-layout">
+              <option value="scatter">Scatter</option>
+              <option value="column">Rising column</option>
+            </select>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Bubble Count</span><span class="val" id="val-bg-bubble-count">12</span></div>
+            <input type="range" id="bg-bubble-count" min="2" max="40" step="1" value="12">
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Bubble Pixel Size (&times; fish pixel)</span><span class="val" id="val-bg-bubble-scale">1</span></div>
+            <input type="range" id="bg-bubble-scale" min="1" max="3" step="1" value="1">
+          </div>
+          <div class="fish-list-header">
+            <button class="btn-sm" id="btn-bubble-shuffle">Reshuffle</button>
+          </div>
+        </div>
+        <div class="hint">Click the circle next to a fish in the list to give that badge its own background.
+          Backgrounds print 1 mm past the cut line.</div>
+      </div>
+    </div>
+
+    <div>
       <div class="section-title">Layout</div>
       <div class="slider-row">
         <div class="slider-label"><span>Fish per Row</span><span class="val" id="val-cols">4</span></div>
@@ -245,6 +473,12 @@
         <div class="slider-label"><span>Pixel Scale (NN)</span><span class="val" id="val-pxscale">10</span></div>
         <input type="range" id="sl-pxscale" min="1" max="32" step="1" value="10">
       </div>
+      <div class="field-row">
+        <span>Normalize Fish Size</span>
+        <input type="checkbox" id="normalize" checked>
+      </div>
+      <div class="hint">Crops each fish to its visible pixels and scales it so its longest side matches
+        a full frame, so small fish come out as big as large ones.</div>
     </div>
 
     <div>
@@ -259,7 +493,30 @@
     </div>
 
     <div>
-      <button class="btn-export" id="btn-export" disabled>Export PNG (300 DPI)</button>
+      <div class="section-title">Settings Profile</div>
+      <div class="fish-list-header">
+        <button class="btn-sm" id="btn-profile-save">Save Profile</button>
+        <label class="btn-sm">
+          Load Profile
+          <input type="file" id="profileInput" accept=".json,application/json" style="display:none">
+        </label>
+      </div>
+      <div class="hint" id="profile-status">Saves layout, badge, size and background settings (including the block
+        textures used), which fish are ticked, and the fish folder to reopen.</div>
+      <button class="btn-sm" id="btn-reopen-folder" style="display:none; margin-top:6px"></button>
+    </div>
+
+    <div>
+      <div class="section-title">Pages</div>
+      <div class="field-row">
+        <button class="btn-sm" id="btn-page-prev">&#9664;</button>
+        <span id="page-label">Page 1 of 1</span>
+        <button class="btn-sm" id="btn-page-next">&#9654;</button>
+      </div>
+      <button class="btn-export" id="btn-export" disabled>Export PNG</button>
+      <div class="fish-list-header" style="margin-top:6px; justify-content:center">
+        <button class="btn-sm" id="btn-export-page" disabled>Export this page only</button>
+      </div>
       <div id="export-status"></div>
     </div>
 
@@ -278,11 +535,21 @@
 
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
-const EXPORT_W   = 2480;
-const EXPORT_H   = 3508;
+const DPI        = 300;
+const MM_PER_IN  = 25.4;
 const A4_W_MM    = 210;
 const A4_H_MM    = 297;
-const MM_TO_PX   = EXPORT_W / A4_W_MM; // px per mm in export space
+const MM_TO_PX   = DPI / MM_PER_IN; // px per mm in export space
+const EXPORT_W   = Math.round(A4_W_MM * MM_TO_PX); // 2480 @ 300 DPI
+const EXPORT_H   = Math.round(A4_H_MM * MM_TO_PX); // 3508 @ 300 DPI
+
+// Badge presets: face = visible button front, cut = paper disc including the
+// wrap around the shell edge. Cut sizes are the usual ones for these presses;
+// adjust them in the UI if your die differs.
+const BADGE_PRESETS = {
+  32: { face: 32, cut: 45 },
+  58: { face: 58, cut: 70 },
+};
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let fishImages   = []; // { name, img, checked }
@@ -298,6 +565,24 @@ const statusBar     = document.getElementById('status-bar');
 const fishChecklist = document.getElementById('fish-checklist');
 const exportBtn     = document.getElementById('btn-export');
 const exportStatus  = document.getElementById('export-status');
+const badgeSize     = document.getElementById('badge-size');
+const badgeCut      = document.getElementById('badge-cut');
+const badgeFace     = document.getElementById('badge-face');
+const badgeGuides   = document.getElementById('badge-guides');
+const badgeLightCut = document.getElementById('badge-light-cut');
+const normalizeBox  = document.getElementById('normalize');
+
+normalizeBox.addEventListener('input', scheduleRedraw);
+
+const exportPageBtn = document.getElementById('btn-export-page');
+const pageLabel     = document.getElementById('page-label');
+const pagePrevBtn   = document.getElementById('btn-page-prev');
+const pageNextBtn   = document.getElementById('btn-page-next');
+
+let currentPage = 0; // index into the pages produced by paginate()
+
+pagePrevBtn.addEventListener('click', () => { currentPage--; scheduleRedraw(); });
+pageNextBtn.addEventListener('click', () => { currentPage++; scheduleRedraw(); });
 
 const sliders = {
   cols:    document.getElementById('sl-cols'),
@@ -305,6 +590,7 @@ const sliders = {
   margin:  document.getElementById('sl-margin'),
   scalar:  document.getElementById('sl-scalar'),
   pxscale: document.getElementById('sl-pxscale'),
+  gap:     document.getElementById('sl-gap'),
 };
 const valLabels = {
   cols:    document.getElementById('val-cols'),
@@ -312,6 +598,7 @@ const valLabels = {
   margin:  document.getElementById('val-margin'),
   scalar:  document.getElementById('val-scalar'),
   pxscale: document.getElementById('val-pxscale'),
+  gap:     document.getElementById('val-gap'),
 };
 
 // ── Slider bindings ───────────────────────────────────────────────────────────
@@ -322,8 +609,668 @@ function getParams() {
     margin:  parseFloat(sliders.margin.value),
     scalar:  parseFloat(sliders.scalar.value),
     pxscale: parseInt(sliders.pxscale.value),
+    normalize: normalizeBox.checked,
+    badge:   getBadge(),
   };
 }
+
+// null when badge mode is off
+function getBadge() {
+  if (badgeSize.value === 'off') return null;
+  const preset = BADGE_PRESETS[badgeSize.value];
+  return {
+    cut:    parseFloat(badgeCut.value)  || preset.cut,
+    face:   parseFloat(badgeFace.value) || preset.face,
+    gap:    parseFloat(sliders.gap.value),
+    guides: badgeGuides.checked,
+    lightCut: badgeLightCut.checked,
+  };
+}
+
+// ── Badge controls ────────────────────────────────────────────────────────────
+function syncBadgeControls() {
+  const on = badgeSize.value !== 'off';
+  document.body.classList.toggle('badge-on', on); // backgrounds are badge-only
+  [badgeCut, badgeFace, badgeGuides, badgeLightCut, sliders.gap].forEach(el => el.disabled = !on);
+  // In badge mode the circle size decides the grid
+  sliders.cols.disabled = on;
+  sliders.rows.disabled = on;
+}
+
+badgeSize.addEventListener('change', () => {
+  if (badgeSize.value !== 'off') {
+    const preset = BADGE_PRESETS[badgeSize.value];
+    badgeCut.value  = preset.cut;
+    badgeFace.value = preset.face;
+  }
+  syncBadgeControls();
+  scheduleRedraw();
+});
+[badgeCut, badgeFace, badgeGuides, badgeLightCut].forEach(el => el.addEventListener('input', scheduleRedraw));
+
+// ── Badge backgrounds ─────────────────────────────────────────────────────────
+// A background spec describes how one badge is filled. The sheet has a default
+// spec, and any fish can carry its own override (a full copy, edited separately).
+const BLEED_MM = 1; // printed past the cut line so a slightly-off punch leaves no white edge
+const BG_BASE = {
+  type:      'none',    // none | solid | gradient | block
+  source:    'auto',    // auto | manual (solid and gradient)
+  color:     '#bfe3f5',
+  color2:    '#3f7fbf',
+  shape:     'radial',  // radial | linear
+  angle:     90,        // linear only; 90 = colour 1 at the top
+  block:     null,      // block texture name
+  tileMm:    14,
+  fade:      0.35,
+  tint:      false,
+  tintColor: '#3f76e4',
+  bubbles:      false,     // embellishment, works with any type
+  bubbleLayout: 'scatter', // scatter | column
+  bubbleCount:  12,
+  bubbleScale:  1,         // bubble pixel = this many fish pixels
+  bubbleSeed:   0,         // bumped by Reshuffle
+};
+// Listed first in the block picker when present
+const PINNED_BLOCKS = [
+  'prismarine', 'prismarine_bricks', 'dark_prismarine', 'sea_lantern',
+  'sand', 'sandstone_top', 'red_sand', 'gravel', 'clay', 'mud',
+  'tube_coral_block', 'brain_coral_block', 'bubble_coral_block', 'fire_coral_block', 'horn_coral_block',
+  'dead_tube_coral_block', 'dead_brain_coral_block', 'dead_bubble_coral_block', 'dead_fire_coral_block', 'dead_horn_coral_block',
+  'ice', 'packed_ice', 'blue_ice', 'water_still', 'dried_kelp_top', 'sponge', 'wet_sponge',
+  'light_blue_concrete', 'cyan_concrete', 'blue_concrete', 'light_blue_wool', 'cyan_wool', 'blue_wool',
+];
+
+let bgDefault   = { ...BG_BASE };
+let bgOverrides = {};   // fish name → spec
+let bgTarget    = null; // fish name being edited, or null for the sheet default
+const blockTextures = new Map(); // name → { img, src, dataUrl? }
+const tileCache     = new Map(); // `${name}|${px}` → pre-scaled tile canvas
+
+const bgSection       = document.getElementById('bg-section');
+const bgTargetLabel   = document.getElementById('bg-target-label');
+const bgDefaultBtn    = document.getElementById('btn-bg-default');
+const bgClearBtn      = document.getElementById('btn-bg-clear');
+const blockGrid       = document.getElementById('block-grid');
+const blockSearch     = document.getElementById('bg-block-search');
+const blockNameLabel  = document.getElementById('bg-block-name');
+const blockFolderInput = document.getElementById('blockFolderInput');
+const bgEls = {
+  type:      document.getElementById('bg-type'),
+  source:    document.getElementById('bg-source'),
+  color:     document.getElementById('bg-color'),
+  color2:    document.getElementById('bg-color2'),
+  shape:     document.getElementById('bg-shape'),
+  angle:     document.getElementById('bg-angle'),
+  tileMm:    document.getElementById('bg-tile'),
+  fade:      document.getElementById('bg-fade'),
+  tint:      document.getElementById('bg-tint'),
+  tintColor: document.getElementById('bg-tint-color'),
+  bubbles:      document.getElementById('bg-bubbles'),
+  bubbleLayout: document.getElementById('bg-bubble-layout'),
+  bubbleCount:  document.getElementById('bg-bubble-count'),
+  bubbleScale:  document.getElementById('bg-bubble-scale'),
+};
+document.getElementById('btn-bubble-shuffle').addEventListener('click', () => mutateBg(spec => spec.bubbleSeed++));
+
+function bgSpecFor(name) { return bgOverrides[name] || bgDefault; }
+function editedSpec()    { return (bgTarget !== null && bgOverrides[bgTarget]) || bgDefault; }
+
+// Applies a change to the spec being edited. Editing a fish with no override starts one.
+function mutateBg(change) {
+  if (bgTarget !== null && !bgOverrides[bgTarget]) bgOverrides[bgTarget] = { ...bgDefault };
+  change(editedSpec());
+  syncBgEditor();
+  scheduleRedraw();
+}
+
+Object.entries(bgEls).forEach(([key, el]) => el.addEventListener('input', () => mutateBg(spec => {
+  if (el.type === 'checkbox')   spec[key] = el.checked;
+  else if (el.type === 'range') spec[key] = parseFloat(el.value);
+  else                          spec[key] = el.value;
+})));
+
+bgDefaultBtn.addEventListener('click', () => { bgTarget = null; syncBgEditor(); });
+bgClearBtn.addEventListener('click', () => {
+  delete bgOverrides[bgTarget];
+  syncBgEditor();
+  scheduleRedraw();
+});
+
+// Pushes the edited spec into the controls and refreshes everything that shows it.
+function syncBgEditor() {
+  const spec = editedSpec();
+  Object.entries(bgEls).forEach(([key, el]) => {
+    if (el.type === 'checkbox') el.checked = spec[key];
+    else el.value = spec[key];
+  });
+  document.getElementById('val-bg-angle').textContent = spec.angle;
+  document.getElementById('val-bg-tile').textContent  = spec.tileMm;
+  document.getElementById('val-bg-fade').textContent  = spec.fade;
+  document.getElementById('val-bg-bubble-count').textContent = spec.bubbleCount;
+  document.getElementById('val-bg-bubble-scale').textContent = spec.bubbleScale;
+  document.getElementById('bg-color-label').textContent = spec.type === 'gradient' ? 'Colour 1' : 'Colour';
+
+  // Rows tagged data-show="a b" are visible when any of their tokens is active
+  const coloured = spec.type === 'solid' || spec.type === 'gradient';
+  const manual   = coloured && spec.source === 'manual';
+  const tokens   = new Set([spec.type]);
+  if (coloured) tokens.add('coloured');
+  if (manual) tokens.add('manual-colour');
+  if (manual && spec.type === 'gradient') tokens.add('manual-gradient');
+  if (spec.type === 'gradient' && spec.shape === 'linear') tokens.add('linear');
+  if (spec.type === 'block' && spec.tint) tokens.add('tinted');
+  if (spec.bubbles) tokens.add('bubbles');
+  bgSection.querySelectorAll('[data-show]').forEach(el =>
+    el.classList.toggle('hidden', !el.dataset.show.split(' ').some(t => tokens.has(t))));
+
+  const overridden = bgTarget !== null && !!bgOverrides[bgTarget];
+  bgTargetLabel.textContent =
+    bgTarget === null ? 'Editing: all badges (default)'
+    : overridden      ? `Editing: ${bgTarget} (own background)`
+    :                   `Editing: ${bgTarget} (uses default; any change gives it its own)`;
+  bgDefaultBtn.style.display = bgTarget === null ? 'none' : '';
+  bgClearBtn.style.display   = overridden ? '' : 'none';
+
+  blockNameLabel.textContent = !spec.block ? 'No block chosen'
+    : blockTextures.has(spec.block) ? spec.block
+    : `${spec.block} (not loaded; load the block folder)`;
+  blockGrid.querySelectorAll('.block-tile').forEach(t => t.classList.toggle('selected', t.dataset.name === spec.block));
+
+  refreshSwatches();
+}
+
+// ── Block textures ──
+blockFolderInput.addEventListener('change', async e => {
+  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.png'));
+  e.target.value = '';
+  if (!files.length) return;
+  await Promise.all(files.map(f => addBlockTexture(f.name.replace(/\.png$/i, ''), URL.createObjectURL(f))));
+  renderBlockGrid();
+  scheduleRedraw();
+});
+blockSearch.addEventListener('input', renderBlockGrid);
+
+// src is a blob URL (folder) or a data URL (embedded in a profile)
+function addBlockTexture(name, src) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const old = blockTextures.get(name);
+      if (old && old.src.startsWith('blob:')) URL.revokeObjectURL(old.src);
+      blockTextures.set(name, { img, src, dataUrl: src.startsWith('data:') ? src : null });
+      tileCache.clear();
+      resolve();
+    };
+    img.onerror = () => { if (src.startsWith('blob:')) URL.revokeObjectURL(src); resolve(); };
+    img.src = src;
+  });
+}
+
+function renderBlockGrid() {
+  const q      = blockSearch.value.trim().toLowerCase();
+  const names  = [...blockTextures.keys()].filter(n => n.includes(q));
+  const pinned = PINNED_BLOCKS.filter(n => names.includes(n));
+  const rest   = names.filter(n => !PINNED_BLOCKS.includes(n)).sort();
+
+  blockGrid.innerHTML = '';
+  if (!names.length) {
+    blockGrid.innerHTML = `<div class="empty-msg">${blockTextures.size ? 'No matches.' : 'Load a block textures folder.'}</div>`;
+  }
+  [...pinned, ...rest].forEach(name => {
+    const tile = document.createElement('div');
+    tile.className    = 'block-tile';
+    tile.dataset.name = name;
+    tile.title        = name;
+    tile.style.backgroundImage = `url("${blockTextures.get(name).src}")`;
+    tile.addEventListener('click', () => mutateBg(spec => spec.block = name));
+    blockGrid.appendChild(tile);
+  });
+  syncBgEditor();
+}
+
+// One block (first animation frame) drawn nearest-neighbour at px × px, for use as a pattern
+function blockTile(name, px) {
+  const key = `${name}|${px}`;
+  let tile = tileCache.get(key);
+  if (!tile) {
+    const tex = blockTextures.get(name);
+    const fs  = firstFrameSize(tex.img);
+    tile = document.createElement('canvas');
+    tile.width = tile.height = px;
+    const tc = tile.getContext('2d');
+    tc.imageSmoothingEnabled = false;
+    tc.drawImage(tex.img, 0, 0, fs, fs, 0, 0, px, px);
+    tileCache.set(key, tile);
+  }
+  return tile;
+}
+
+// Data URLs for every block a spec uses, so a profile works without the folder
+function embedBlocks() {
+  const used = new Set([bgDefault, ...Object.values(bgOverrides)]
+    .filter(s => s.type === 'block' && s.block).map(s => s.block));
+  const out = {};
+  used.forEach(name => {
+    const tex = blockTextures.get(name);
+    if (!tex) return;
+    if (!tex.dataUrl) {
+      const c = document.createElement('canvas');
+      c.width  = tex.img.naturalWidth;
+      c.height = tex.img.naturalHeight;
+      c.getContext('2d').drawImage(tex.img, 0, 0);
+      tex.dataUrl = c.toDataURL('image/png');
+    }
+    out[name] = tex.dataUrl;
+  });
+  return out;
+}
+
+// ── Colour helpers ──
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0)
+          : max === g ? (b - r) / d + 2
+          :             (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return [f(0), f(8), f(4)].map(v => Math.round(v * 255));
+}
+
+const rgbToHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+
+function relLuminance(rgb) {
+  const [r, g, b] = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const la = relLuminance(a), lb = relLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+// ── Auto colour ──
+// The fish's main hue, weighted by chroma so dark outlines and pale highlights
+// don't drag it towards grey. hue is null for an essentially grey fish.
+function analyzeFish(img) {
+  const fs = firstFrameSize(img);
+  const c  = document.createElement('canvas');
+  c.width = c.height = fs;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, 0, 0, fs, fs, 0, 0, fs, fs);
+  const data = cx.getImageData(0, 0, fs, fs).data;
+
+  const weight = new Float64Array(36), hx = new Float64Array(36), hy = new Float64Array(36);
+  const sum = [0, 0, 0];
+  let n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    sum[0] += r; sum[1] += g; sum[2] += b; n++;
+    const [h, s, l] = rgbToHsl(r, g, b);
+    const w   = s * (1 - Math.abs(2 * l - 1)); // HSL chroma
+    const bin = Math.floor(h / 10) % 36;
+    weight[bin] += w;
+    hx[bin] += w * Math.cos(h * Math.PI / 180);
+    hy[bin] += w * Math.sin(h * Math.PI / 180);
+  }
+  const mean = n ? sum.map(v => v / n) : [128, 128, 128];
+
+  // Strongest 30° window
+  let best = -1, bestW = 0;
+  for (let b = 0; b < 36; b++) {
+    const w = weight[(b + 35) % 36] + weight[b] + weight[(b + 1) % 36];
+    if (w > bestW) { bestW = w; best = b; }
+  }
+  if (!n || bestW / n < 0.08) return { hue: null, mean };
+
+  let x = 0, y = 0;
+  for (const d of [-1, 0, 1]) { const k = (best + d + 36) % 36; x += hx[k]; y += hy[k]; }
+  return { hue: (Math.atan2(y, x) * 180 / Math.PI + 360) % 360, mean };
+}
+
+// Complementary hue kept soft so it never fights the fish; grey fish get sea blue.
+// Lightness steps down until the fish's average colour stands out against it.
+function autoColours(palette) {
+  const hue = palette.hue === null ? 200 : (palette.hue + 180) % 360;
+  const sat = palette.hue === null ? 0.35 : 0.5;
+  const L   = [0.84, 0.76, 0.68, 0.36, 0.28]
+    .find(l => contrastRatio(hslToRgb(hue, sat, l), palette.mean) >= 1.8) ?? 0.84;
+  const dark = L < 0.5;
+  return {
+    solid: rgbToHex(hslToRgb(hue, sat, L)),
+    c1:    rgbToHex(hslToRgb(hue, sat * 0.9, dark ? L + 0.12 : Math.min(L + 0.08, 0.94))),
+    c2:    rgbToHex(hslToRgb(hue, Math.min(sat + 0.1, 1), dark ? L - 0.1 : L - 0.2)),
+  };
+}
+
+function resolveColours(spec, fish) {
+  if (spec.source === 'manual') return { solid: spec.color, c1: spec.color, c2: spec.color2 };
+  return fish.autoBg;
+}
+
+// ── Drawing ──
+function drawBadgeBackground(ctx, spec, fish, cx, cy, mm, badge) {
+  // Bleed is capped at half the gap so it never spills into a neighbour's circle
+  const r = mm(badge.cut / 2 + Math.min(BLEED_MM, badge.gap / 2));
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  const colours = resolveColours(spec, fish);
+  if (spec.type === 'solid') {
+    ctx.fillStyle = colours.solid;
+  } else if (spec.type === 'gradient') {
+    let grad;
+    if (spec.shape === 'radial') {
+      grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, mm(badge.cut / 2));
+    } else {
+      const a = spec.angle * Math.PI / 180;
+      const dx = Math.cos(a) * r, dy = Math.sin(a) * r;
+      grad = ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
+    }
+    grad.addColorStop(0, colours.c1);
+    grad.addColorStop(1, colours.c2);
+    ctx.fillStyle = grad;
+  } else if (spec.type === 'block' && blockTextures.has(spec.block)) {
+    const px      = Math.max(1, Math.round(mm(spec.tileMm)));
+    const pattern = ctx.createPattern(blockTile(spec.block, px), 'repeat');
+    pattern.setTransform(new DOMMatrix([1, 0, 0, 1, cx - px / 2, cy - px / 2])); // a tile centred on the badge
+    ctx.fillStyle = pattern;
+  } else {
+    ctx.restore();
+    return;
+  }
+  ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+
+  if (spec.type === 'block') {
+    if (spec.tint) {
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = spec.tintColor;
+      ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (spec.fade > 0) {
+      ctx.globalAlpha = spec.fade;
+      ctx.fillStyle   = '#ffffff';
+      ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+    }
+  }
+  ctx.restore();
+}
+
+// ── Bubbles ──
+// Pixel copies of the mod's tank bubble particles (assets/fishtastic/textures/particle/):
+// tiny_bubble_white / tiny_bubble_blue (1px), small_bubble (2px), medium_bubble (its 6px
+// ring, cropped from the 8x8 canvas). Re-copy here if those textures change. The tank's
+// rarest, largest size is vanilla's bubble.png; that's stood in for by medium at double size.
+const BUBBLE_PALETTE = { a: '#21b5ff', b: '#77d9ff', w: '#f2ffff', s: '#cbdbfc', t: '#ffffff', u: '#b8d0fc', v: '#f6f9ff' };
+const BUBBLE_SPRITES = {
+  tinyWhite: ['v'],
+  tinyBlue:  ['s'],
+  small:     ['st', 'us'],
+  medium:    ['..aa..', '.a..a.', 'a.w..b', 'a....b', '.a..b.', '..bb..'],
+};
+// Size mix, smallest most common, after TankBubbleEmitter's EXERTION_WEIGHTS (55:28:12:5).
+// The tiny particle picks white twice as often as blue, as in tiny_bubble.json.
+// Mediums get a random scale in [min, max], like the tank's wide MEDIUM size spread, so
+// a group reads as a loose range of sizes rather than one stamp repeated.
+const BUBBLE_MIX = [
+  { sprite: 'tinyWhite', min: 1,    max: 1,   weight: 37 },
+  { sprite: 'tinyBlue',  min: 1,    max: 1,   weight: 18 },
+  { sprite: 'small',     min: 1,    max: 1,   weight: 28 },
+  { sprite: 'medium',    min: 0.5,  max: 1.4, weight: 12 },
+  { sprite: 'medium',    min: 1.6,  max: 2.2, weight: 5 },  // stands in for vanilla's full bubble
+];
+
+// Deterministic per fish and seed, so the preview and the export place bubbles identically
+function seededRandom(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return () => {
+    h = (h + 0x6D2B79F5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Lays bubbles out in whole fish-pixel units relative to the fish's draw origin,
+ * so they sit on the same pixel grid as the fish. Bubbles stay inside the face
+ * circle and clear of the fish and each other. Returns [{ sprite, x, y, px }],
+ * px = fish pixels per bubble pixel.
+ */
+function layoutBubbles(spec, fish, geo) {
+  const rand  = seededRandom(`${fish.name}:${spec.bubbleSeed}`);
+  const k     = spec.bubbleScale;
+  const total = BUBBLE_MIX.reduce((s, m) => s + m.weight, 0);
+  const pick  = () => {
+    let r = rand() * total;
+    return BUBBLE_MIX.find(m => (r -= m.weight) < 0) || BUBBLE_MIX[0];
+  };
+
+  const { cx, cy, radius, fishBox, mask, maskOffset } = geo; // all in fish pixels
+  const keep     = [];
+  const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const inCircle = (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2;
+  // True if the box, grown by one clear pixel, touches an opaque fish pixel.
+  // Testing the real pixels (not the bounding box) lets bubbles sit in gaps
+  // like between fins or under the tail.
+  const hitsFish = (x, y, w, h) => {
+    for (let yy = y - 1; yy < y + h + 1; yy++) {
+      const fy = yy + maskOffset.y;
+      if (fy < 0 || fy >= mask.size) continue;
+      for (let xx = x - 1; xx < x + w + 1; xx++) {
+        const fx = xx + maskOffset.x;
+        if (fx >= 0 && fx < mask.size && mask.data[fy * mask.size + fx]) return true;
+      }
+    }
+    return false;
+  };
+
+  // Rising column: a loose stream from mid-body upwards on one side, weaving
+  // through any gaps in the fish's outline
+  const side    = rand() < 0.5 ? -1 : 1;
+  const columnX = fishBox.x + fishBox.w / 2 + side * fishBox.w * 0.3;
+  const columnY = fishBox.y + fishBox.h / 2;
+
+  // Roll the whole set first, then place biggest-first: medium bubbles need the
+  // most room, and placed last they'd lose every gap to the tiny ones.
+  const picks = Array.from({ length: spec.bubbleCount }, pick)
+    .map(m => ({ ...m, px: k * (m.min + rand() * (m.max - m.min)), rows: BUBBLE_SPRITES[m.sprite] }))
+    .sort((a, b) => b.rows.length * b.px - a.rows.length * a.px);
+
+  const placed = [];
+  for (const m of picks) {
+    // Footprint in whole fish pixels; a scaled medium can cover a fraction of one
+    const w = Math.ceil(m.rows[0].length * m.px), h = Math.ceil(m.rows.length * m.px);
+    for (let attempt = 0; attempt < 80; attempt++) {
+      let x, y;
+      if (spec.bubbleLayout === 'column') {
+        x = columnX + (rand() - 0.5) * Math.max(6, fishBox.w * 0.25) - w / 2;
+        y = columnY - h - rand() * (columnY - (cy - radius));
+      } else {
+        x = cx - radius + rand() * 2 * radius - w / 2;
+        y = cy - radius + rand() * 2 * radius - h / 2;
+      }
+      x = Math.round(x); y = Math.round(y);
+      if (![[x, y], [x + w, y], [x, y + h], [x + w, y + h]].every(([px2, py2]) => inCircle(px2, py2))) continue;
+      if (keep.some(b => overlaps({ x: x - 1, y: y - 1, w: w + 2, h: h + 2 }, b))) continue;
+      if (hitsFish(x, y, w, h)) continue;
+      keep.push({ x, y, w, h });
+      placed.push({ sprite: m.sprite, x, y, px: m.px });
+      break;
+    }
+  }
+  return placed;
+}
+
+function drawBubbles(ctx, bubbles, originX, originY, texel) {
+  bubbles.forEach(({ sprite, x, y, px }) => {
+    const size = px * texel;
+    BUBBLE_SPRITES[sprite].forEach((row, ry) => {
+      for (let rx = 0; rx < row.length; rx++) {
+        const c = BUBBLE_PALETTE[row[rx]];
+        if (!c) continue;
+        // Rounded edges so neighbouring pixels meet without hairline seams
+        const x0 = Math.round(originX + x * texel + rx * size), x1 = Math.round(originX + x * texel + (rx + 1) * size);
+        const y0 = Math.round(originY + y * texel + ry * size), y1 = Math.round(originY + y * texel + (ry + 1) * size);
+        ctx.fillStyle = c;
+        ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+      }
+    });
+  });
+}
+
+// CSS version of a badge background for the fish-list swatches
+function swatchCss(spec, fish) {
+  const c = resolveColours(spec, fish);
+  switch (spec.type) {
+    case 'solid':    return c.solid;
+    case 'gradient': return spec.shape === 'radial'
+      ? `radial-gradient(circle, ${c.c1}, ${c.c2})`
+      : `linear-gradient(${spec.angle + 90}deg, ${c.c1}, ${c.c2})`; // CSS 0deg points up
+    case 'block': {
+      const tex = blockTextures.get(spec.block);
+      return tex ? `url("${tex.src}") 0 0 / 100% auto` : '#888';
+    }
+    default: return '#fff';
+  }
+}
+
+function refreshSwatches() {
+  fishImages.forEach(f => {
+    if (!f.swatchEl) return;
+    f.swatchEl.style.background = swatchCss(bgSpecFor(f.name), f);
+    f.swatchEl.classList.toggle('overridden', !!bgOverrides[f.name]);
+    f.rowEl.classList.toggle('editing', bgTarget === f.name);
+  });
+}
+
+// ── Settings profiles ─────────────────────────────────────────────────────────
+const PROFILE_VERSION = 2; // 2: badge backgrounds
+const profileInput  = document.getElementById('profileInput');
+const profileStatus = document.getElementById('profile-status');
+const reopenFolderBtn = document.getElementById('btn-reopen-folder');
+
+// Ticked fish names from a loaded profile, applied when a folder is loaded
+// (or straight away if fish are already loaded). null = tick everything.
+let pendingFishSelection = null;
+
+function captureProfile() {
+  const values = {};
+  Object.keys(sliders).forEach(key => values[key] = parseFloat(sliders[key].value));
+  return {
+    type:    'fishtastic-sticker-sheet-profile',
+    version: PROFILE_VERSION,
+    sliders: values,
+    normalize: normalizeBox.checked,
+    badge: {
+      size:   badgeSize.value,
+      cut:    parseFloat(badgeCut.value)  || null,
+      face:   parseFloat(badgeFace.value) || null,
+      guides: badgeGuides.checked,
+      lightCut: badgeLightCut.checked,
+    },
+    background: {
+      default:   bgDefault,
+      overrides: bgOverrides,
+      blocks:    embedBlocks(),
+    },
+    // Only recorded once fish are loaded; otherwise keep whatever a loaded profile asked for
+    fish: fishImages.length ? fishImages.filter(f => f.checked).map(f => f.name) : pendingFishSelection,
+    fishFolder: fishFolder ?? pendingFishFolder, // id points into this browser's IndexedDB
+  };
+}
+
+function applyProfile(profile) {
+  if (!profile || profile.type !== 'fishtastic-sticker-sheet-profile') {
+    throw new Error('not a sticker sheet profile');
+  }
+
+  Object.entries(profile.sliders || {}).forEach(([key, value]) => {
+    if (!sliders[key] || typeof value !== 'number') return;
+    sliders[key].value = value; // range inputs clamp out-of-range values themselves
+    valLabels[key].textContent = sliders[key].value;
+  });
+
+  if (typeof profile.normalize === 'boolean') normalizeBox.checked = profile.normalize;
+
+  const badge = profile.badge || {};
+  if (badge.size in BADGE_PRESETS || badge.size === 'off') badgeSize.value = badge.size;
+  const preset = BADGE_PRESETS[badgeSize.value];
+  badgeCut.value  = badge.cut  ?? preset?.cut  ?? '';
+  badgeFace.value = badge.face ?? preset?.face ?? '';
+  if (typeof badge.guides === 'boolean') badgeGuides.checked = badge.guides;
+  badgeLightCut.checked = badge.lightCut === true;
+  syncBadgeControls();
+
+  const bg = profile.background;
+  if (bg) {
+    bgDefault   = { ...BG_BASE, ...bg.default };
+    bgOverrides = {};
+    Object.entries(bg.overrides || {}).forEach(([name, spec]) => bgOverrides[name] = { ...BG_BASE, ...spec });
+    bgTarget = null;
+    // Embedded textures fill in for a block folder that isn't loaded
+    const missing = Object.entries(bg.blocks || {}).filter(([name]) => !blockTextures.has(name));
+    Promise.all(missing.map(([name, url]) => addBlockTexture(name, url))).then(() => {
+      renderBlockGrid();
+      scheduleRedraw();
+    });
+    syncBgEditor();
+  }
+
+  pendingFishSelection = Array.isArray(profile.fish) ? profile.fish : null;
+  if (fishImages.length) applyFishSelection();
+  reopenFishFolder(profile.fishFolder); // async; applies the selection once loaded
+
+  scheduleRedraw();
+}
+
+function applyFishSelection() {
+  if (!pendingFishSelection) return;
+  const wanted = new Set(pendingFishSelection);
+  fishImages.forEach(f => f.checked = wanted.has(f.name));
+  updateChecklist();
+  const missing = pendingFishSelection.filter(n => !fishImages.some(f => f.name === n));
+  if (missing.length) profileStatus.textContent = `Profile fish not in this folder: ${missing.join(', ')}`;
+}
+
+document.getElementById('btn-profile-save').addEventListener('click', () => {
+  const json = JSON.stringify(captureProfile(), null, 2);
+  const url  = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = badgeSize.value === 'off'
+    ? 'sticker_profile.json'
+    : `sticker_profile_${badgeSize.value}mm.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  profileStatus.textContent = '✓ Profile saved';
+});
+
+profileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = ''; // so the same file can be loaded again
+  if (!file) return;
+  try {
+    profileStatus.textContent = `✓ Loaded ${file.name}`;
+    applyProfile(JSON.parse(await file.text()));
+  } catch (err) {
+    profileStatus.textContent = '✗ Could not load profile: ' + err.message;
+    console.error(err);
+  }
+});
 
 Object.keys(sliders).forEach(key => {
   sliders[key].addEventListener('input', () => {
@@ -345,9 +1292,127 @@ document.getElementById('btn-none').addEventListener('click', () => {
 });
 
 // ── Folder loading ────────────────────────────────────────────────────────────
+// Where supported (Chrome/Edge), the fish folder is opened through the File System
+// Access API so its handle can be kept in IndexedDB and a profile can reopen it.
+// Elsewhere the plain folder input is used and profiles only remember the name.
+const CAN_REMEMBER_FOLDERS = 'showDirectoryPicker' in window;
+let fishFolder        = null; // { id, name } of the loaded fish folder; id null if it can't be reopened
+let pendingFishFolder = null; // from a loaded profile, kept so re-saving doesn't drop it
+
+folderInput.closest('label').addEventListener('click', async e => {
+  if (!CAN_REMEMBER_FOLDERS) return; // let the <input webkitdirectory> handle it
+  e.preventDefault();
+  let handle;
+  try {
+    handle = await window.showDirectoryPicker({ id: 'fishtastic-fish', mode: 'read' });
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error(err);
+    return;
+  }
+  await loadFishFromHandle(handle);
+});
+
 folderInput.addEventListener('change', async e => {
-  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.png'));
-  if (!files.length) return;
+  const files = Array.from(e.target.files);
+  const top   = files[0]?.webkitRelativePath.split('/')[0] || null;
+  e.target.value = '';
+  if (await loadFishFiles(files)) fishFolder = { id: null, name: top };
+});
+
+async function loadFishFromHandle(handle) {
+  if (!(await loadFishFiles(await collectPngs(handle)))) return false;
+  fishFolder = { id: await rememberFolder(handle), name: handle.name };
+  return true;
+}
+
+// Every .png under dir, recursively, matching what the folder input picks up
+async function collectPngs(dir) {
+  const out = [];
+  for await (const entry of dir.values()) {
+    if (entry.kind === 'directory') out.push(...await collectPngs(entry));
+    else if (entry.name.toLowerCase().endsWith('.png')) out.push(await entry.getFile());
+  }
+  return out;
+}
+
+// ── Remembered folders (IndexedDB) ──
+function folderStore(mode) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('fishtastic-sticker-sheet', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('folders');
+    req.onsuccess = () => resolve(req.result.transaction('folders', mode).objectStore('folders'));
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+const idbResult = req => new Promise((resolve, reject) => {
+  req.onsuccess = () => resolve(req.result);
+  req.onerror   = () => reject(req.error);
+});
+
+// Stores the handle, reusing the id of the same folder if it's already stored. null on failure.
+async function rememberFolder(handle) {
+  try {
+    const store = await folderStore('readonly');
+    const [ids, handles] = await Promise.all([idbResult(store.getAllKeys()), idbResult(store.getAll())]);
+    for (let i = 0; i < ids.length; i++) {
+      if (await handles[i].isSameEntry(handle)) return ids[i];
+    }
+    const id = crypto.randomUUID();
+    await idbResult((await folderStore('readwrite')).put(handle, id));
+    return id;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+async function recallFolder(id) {
+  try {
+    return (await idbResult((await folderStore('readonly')).get(id))) || null;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+// Reopens the fish folder a profile was saved with: silently if the browser still
+// has read permission, otherwise by asking. Asking needs a fresh click, so if the
+// prompt can't be shown right away a "Reopen" button does it.
+async function reopenFishFolder(saved) {
+  reopenFolderBtn.style.display = 'none';
+  pendingFishFolder = saved || null;
+  if (!saved) return;
+  if (saved.id && fishFolder?.id === saved.id) return; // already open
+
+  const handle = saved.id && CAN_REMEMBER_FOLDERS ? await recallFolder(saved.id) : null;
+  if (!handle) {
+    if (!fishImages.length) profileStatus.textContent += ` — load the "${saved.name ?? 'fish'}" folder to apply the fish selection`;
+    return;
+  }
+
+  const open = async () => {
+    reopenFolderBtn.style.display = 'none';
+    if (await loadFishFromHandle(handle)) profileStatus.textContent += ` — reopened "${handle.name}"`;
+  };
+
+  let permission = await handle.queryPermission({ mode: 'read' });
+  if (permission !== 'granted') {
+    try { permission = await handle.requestPermission({ mode: 'read' }); } catch { /* no user activation left */ }
+  }
+  if (permission === 'granted') return open();
+
+  reopenFolderBtn.textContent = `Reopen "${handle.name}" folder`;
+  reopenFolderBtn.style.display = '';
+  reopenFolderBtn.onclick = async () => {
+    if (await handle.requestPermission({ mode: 'read' }) === 'granted') await open();
+  };
+}
+
+// Loads fish textures from a list of files; false (and nothing changes) if none are PNGs
+async function loadFishFiles(allFiles) {
+  const files = allFiles.filter(f => f.name.toLowerCase().endsWith('.png'));
+  if (!files.length) return false;
 
   // Release old object URLs
   fishImages.forEach(f => URL.revokeObjectURL(f.url));
@@ -356,7 +1421,12 @@ folderInput.addEventListener('change', async e => {
   const loaded = await Promise.all(files.map(file => new Promise(resolve => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload  = () => resolve({ name: file.name.replace(/\.png$/i, ''), img, checked: true, url });
+    img.onload  = () => resolve({
+      name: file.name.replace(/\.png$/i, ''), img, checked: true, url,
+      bounds: opaqueBounds(img),
+      mask:   opaqueMask(img),
+      autoBg: autoColours(analyzeFish(img)),
+    });
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
   })));
@@ -364,9 +1434,11 @@ folderInput.addEventListener('change', async e => {
   fishImages = loaded.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
 
   updateChecklist();
-  exportBtn.disabled = fishImages.length === 0;
+  applyFishSelection();
+  exportBtn.disabled = exportPageBtn.disabled = fishImages.length === 0;
   scheduleRedraw();
-});
+  return true;
+}
 
 // ── Spritesheet detection ─────────────────────────────────────────────────────
 // Minecraft vertical animation strips: height > width, height divisible by width.
@@ -376,6 +1448,49 @@ function firstFrameSize(img) {
     return img.naturalWidth;
   }
   return Math.min(img.naturalWidth, img.naturalHeight);
+}
+
+// Bounding box of the non-transparent pixels in the first frame, in source px.
+// Falls back to the whole frame for a fully transparent texture.
+function opaqueBounds(img) {
+  const fs = firstFrameSize(img);
+  const c  = document.createElement('canvas');
+  c.width  = fs;
+  c.height = fs;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, 0, 0, fs, fs, 0, 0, fs, fs);
+  const data = cx.getImageData(0, 0, fs, fs).data;
+
+  let minX = fs, minY = fs, maxX = -1, maxY = -1;
+  for (let y = 0; y < fs; y++) {
+    for (let x = 0; x < fs; x++) {
+      if (data[(y * fs + x) * 4 + 3] === 0) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return { x: 0, y: 0, w: fs, h: fs };
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+// 1 for each opaque pixel of the first frame, row-major, for bubble collision
+function opaqueMask(img) {
+  const fs = firstFrameSize(img);
+  const c  = document.createElement('canvas');
+  c.width = c.height = fs;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, 0, 0, fs, fs, 0, 0, fs, fs);
+  const rgba = cx.getImageData(0, 0, fs, fs).data;
+  const data = new Uint8Array(fs * fs);
+  for (let i = 0; i < data.length; i++) data[i] = rgba[i * 4 + 3] > 0 ? 1 : 0;
+  return { size: fs, data };
+}
+
+// Largest frame among loaded fish; normalized fish all scale to this size.
+function referenceFrameSize() {
+  return fishImages.reduce((m, f) => Math.max(m, firstFrameSize(f.img)), 0) || 32;
 }
 
 // ── Checklist rendering ───────────────────────────────────────────────────────
@@ -410,18 +1525,60 @@ function updateChecklist() {
     lbl.className = 'fish-name';
     lbl.textContent = fish.name;
 
+    // Background swatch: click to edit this badge's background (badge mode only)
+    const swatch = document.createElement('div');
+    swatch.className = 'fish-swatch';
+    swatch.title = 'Edit this badge’s background';
+    swatch.addEventListener('click', e => {
+      e.stopPropagation();
+      bgTarget = fish.name;
+      syncBgEditor();
+      bgSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    fish.swatchEl = swatch;
+    fish.rowEl    = row;
+
     row.appendChild(cb);
     row.appendChild(thumb);
     row.appendChild(lbl);
+    row.appendChild(swatch);
     row.addEventListener('click', e => { if (e.target !== cb) { cb.checked = !cb.checked; fishImages[i].checked = cb.checked; scheduleRedraw(); } });
     fishChecklist.appendChild(row);
   });
+  refreshSwatches();
 }
 
 // ── Debounced redraw ──────────────────────────────────────────────────────────
 function scheduleRedraw() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(drawPreview, 60);
+}
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+/**
+ * Grid geometry in mm. Free mode splits the printable area into cols × rows.
+ * Badge mode fits as many cut-diameter cells as possible inside the margin and
+ * centres the block on the page.
+ */
+function computeLayout(params) {
+  const { margin, badge } = params;
+  if (!badge) {
+    const cellW = (A4_W_MM - 2 * margin) / params.cols;
+    const cellH = (A4_H_MM - 2 * margin) / params.rows;
+    return { cols: params.cols, rows: params.rows, cellW, cellH, pitchX: cellW, pitchY: cellH, originX: margin, originY: margin };
+  }
+  const pitch  = badge.cut + badge.gap;
+  const cols   = Math.max(0, Math.floor((A4_W_MM - 2 * margin + badge.gap) / pitch));
+  const rows   = Math.max(0, Math.floor((A4_H_MM - 2 * margin + badge.gap) / pitch));
+  const blockW = cols * pitch - badge.gap;
+  const blockH = rows * pitch - badge.gap;
+  return {
+    cols, rows,
+    cellW: badge.cut, cellH: badge.cut,
+    pitchX: pitch, pitchY: pitch,
+    originX: (A4_W_MM - blockW) / 2,
+    originY: (A4_H_MM - blockH) / 2,
+  };
 }
 
 // ── Core render ───────────────────────────────────────────────────────────────
@@ -434,16 +1591,16 @@ function scheduleRedraw() {
  * @param {Array}  fish      filtered (checked) fish entries
  */
 function renderSheet(ctx, canvasW, canvasH, params, fish) {
-  const { cols, rows, margin, scalar, pxscale } = params;
+  const { scalar, pxscale, badge } = params;
+  const layout = computeLayout(params);
+  const { cols, rows } = layout;
 
-  // Scale factor from export space (2480×3508) to this canvas
+  // Scale factor from export space to this canvas
   const scale = canvasW / EXPORT_W;
+  const mm    = v => v * MM_TO_PX * scale; // mm → canvas px
 
-  const marginPx = margin * MM_TO_PX * scale;
-  const gridW    = canvasW - 2 * marginPx;
-  const gridH    = canvasH - 2 * marginPx;
-  const cellW    = gridW / cols;
-  const cellH    = gridH / rows;
+  const cellW = mm(layout.cellW);
+  const cellH = mm(layout.cellH);
 
   // White background
   ctx.fillStyle = '#ffffff';
@@ -451,31 +1608,125 @@ function renderSheet(ctx, canvasW, canvasH, params, fish) {
 
   ctx.imageSmoothingEnabled = false;
 
-  const capacity = cols * rows;
-  fish.slice(0, capacity).forEach((entry, idx) => {
+  const refFs    = referenceFrameSize();
+  fish.slice(0, cols * rows).forEach((entry, idx) => {
     const col = idx % cols;
     const row = Math.floor(idx / cols);
 
-    const cellX = marginPx + col * cellW;
-    const cellY = marginPx + row * cellH;
+    const cellX = mm(layout.originX + col * layout.pitchX);
+    const cellY = mm(layout.originY + row * layout.pitchY);
+
+    if (badge) {
+      const bg = bgSpecFor(entry.name);
+      if (bg.type !== 'none') drawBadgeBackground(ctx, bg, entry, cellX + cellW / 2, cellY + cellH / 2, mm, badge);
+    }
 
     const fs = firstFrameSize(entry.img);
 
-    // final size in canvas px: source × pixelScale × sizeScalar × preview_scale
-    const finalSize = fs * pxscale * scalar * scale;
+    // Source rect: the whole frame, or just the visible pixels when normalizing.
+    // Canvas px per source px: pixelScale × sizeScalar × preview_scale, and when
+    // normalizing, stretched so the longest visible side spans a full reference frame.
+    let src  = { x: 0, y: 0, w: fs, h: fs };
+    let texel = pxscale * scalar * scale;
+    if (params.normalize) {
+      src   = entry.bounds;
+      texel = refFs * pxscale * scalar * scale / Math.max(src.w, src.h);
+    }
+    const drawW = src.w * texel;
+    const drawH = src.h * texel;
 
     // Center within cell
-    const drawX = cellX + (cellW - finalSize) / 2;
-    const drawY = cellY + (cellH - finalSize) / 2;
+    const drawX = cellX + (cellW - drawW) / 2;
+    const drawY = cellY + (cellH - drawH) / 2;
 
-    ctx.drawImage(entry.img, 0, 0, fs, fs, drawX, drawY, finalSize, finalSize);
+    // Bubbles go behind the fish, laid out in fish pixels from the draw origin
+    const bg = badge && bgSpecFor(entry.name);
+    if (bg && bg.bubbles) {
+      // Visible pixels of the fish relative to its draw origin
+      const b = entry.bounds;
+      const fishBox = params.normalize ? { x: 0, y: 0, w: src.w, h: src.h } : { x: b.x, y: b.y, w: b.w, h: b.h };
+      const bubbles = layoutBubbles(bg, entry, {
+        cx: (cellX + cellW / 2 - drawX) / texel,
+        cy: (cellY + cellH / 2 - drawY) / texel,
+        radius: mm(badge.face / 2) / texel - 1,
+        fishBox,
+        mask: entry.mask,
+        maskOffset: { x: src.x, y: src.y }, // draw origin → first-frame pixel coords
+      });
+      drawBubbles(ctx, bubbles, drawX, drawY, texel);
+    }
+
+    ctx.drawImage(entry.img, src.x, src.y, src.w, src.h, drawX, drawY, drawW, drawH);
   });
+
+  if (badge && badge.guides) drawBadgeGuides(ctx, layout, badge, mm);
+}
+
+// Guides go on every cell, not just filled ones, so spare circles can still be used.
+function drawBadgeGuides(ctx, layout, badge, mm) {
+  ctx.save();
+  for (let row = 0; row < layout.rows; row++) {
+    for (let col = 0; col < layout.cols; col++) {
+      const cx = mm(layout.originX + col * layout.pitchX + badge.cut / 2);
+      const cy = mm(layout.originY + row * layout.pitchY + badge.cut / 2);
+
+      // Cut line: solid dark ~0.25 mm, or light dots (round caps on near-zero dashes)
+      if (badge.lightCut) {
+        ctx.setLineDash([mm(0.01), mm(1)]);
+        ctx.lineCap     = 'round';
+        ctx.strokeStyle = '#bbb';
+        ctx.lineWidth   = Math.max(mm(0.35), 1);
+      } else {
+        ctx.setLineDash([]);
+        ctx.lineCap     = 'butt';
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth   = Math.max(mm(0.25), 0.75);
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, mm(badge.cut / 2), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+
+      // Face edge: light dashed line showing what will be visible on the front.
+      // Omitted with the light cut guide, which is meant to leave only the dots.
+      if (badge.lightCut) continue;
+      ctx.setLineDash([mm(1.5), mm(1.2)]);
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth   = Math.max(mm(0.2), 0.5);
+      ctx.beginPath();
+      ctx.arc(cx, cy, mm(badge.face / 2), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+// Splits the ticked fish into page-sized chunks. Always at least one (maybe empty) page.
+function paginate(params) {
+  const activeFish = fishImages.filter(f => f.checked);
+  const layout     = computeLayout(params);
+  const capacity   = layout.cols * layout.rows;
+  const pages      = [];
+  if (capacity > 0) {
+    for (let i = 0; i < activeFish.length; i += capacity) pages.push(activeFish.slice(i, i + capacity));
+  }
+  if (!pages.length) pages.push([]);
+  return { pages, activeFish, layout, capacity };
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 function drawPreview() {
-  const params     = getParams();
-  const activeFish = fishImages.filter(f => f.checked);
+  const params = getParams();
+  const { pages, activeFish, layout, capacity } = paginate(params);
+
+  currentPage = Math.min(Math.max(currentPage, 0), pages.length - 1);
+  pageLabel.textContent = `Page ${currentPage + 1} of ${pages.length}`;
+  pagePrevBtn.disabled  = currentPage === 0;
+  pageNextBtn.disabled  = currentPage === pages.length - 1;
+  exportBtn.textContent = pages.length > 1
+    ? `Export All ${pages.length} Pages (${DPI} DPI)`
+    : `Export PNG (${DPI} DPI)`;
 
   // Fit A4 into the preview area
   const area    = previewArea.getBoundingClientRect();
@@ -496,54 +1747,74 @@ function drawPreview() {
   paperWrapper.style.width  = pw + 'px';
   paperWrapper.style.height = ph + 'px';
 
-  renderSheet(previewCtx, pw, ph, params, activeFish);
+  renderSheet(previewCtx, pw, ph, params, pages[currentPage]);
 
   // Status bar
-  const shown   = Math.min(activeFish.length, params.cols * params.rows);
-  const cellWmm = (A4_W_MM - 2 * params.margin) / params.cols;
-  const cellHmm = (A4_H_MM - 2 * params.margin) / params.rows;
+  const refFs   = referenceFrameSize();
+  const fishMm  = refFs * params.pxscale * params.scalar / MM_TO_PX;
+  const fishTxt = params.normalize
+    ? `fish longest side ≈ ${fishMm.toFixed(1)} mm`
+    : `${refFs}px frame ≈ ${fishMm.toFixed(1)} mm`;
+  const cellTxt = params.badge
+    ? `${params.badge.face} mm badge (${params.badge.cut} mm cut)`
+    : `~${layout.cellW.toFixed(1)} \u00d7 ${layout.cellH.toFixed(1)} mm / cell`;
   statusBar.textContent =
-    `${shown} / ${activeFish.length} fish shown  |  ${params.cols} \u00d7 ${params.rows} grid  |  ~${cellWmm.toFixed(1)} \u00d7 ${cellHmm.toFixed(1)} mm / cell`;
+    `${activeFish.length} fish on ${pages.length} page${pages.length === 1 ? '' : 's'} (${capacity} per page)  |  ${layout.cols} \u00d7 ${layout.rows} grid  |  ${cellTxt}  |  ${fishTxt} @ ${DPI} DPI`;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
-exportBtn.addEventListener('click', async () => {
-  const params     = getParams();
-  const activeFish = fishImages.filter(f => f.checked);
+exportBtn.addEventListener('click', () => exportPages(false));
+exportPageBtn.addEventListener('click', () => exportPages(true));
 
-  exportBtn.disabled = true;
-  exportStatus.textContent = 'Rendering\u2026';
-  await tick();
+// Renders and downloads each page as its own 300 DPI PNG. Browsers may ask once
+// to allow multiple downloads from this page.
+async function exportPages(currentOnly) {
+  const params    = getParams();
+  const { pages } = paginate(params);
+  const indices   = currentOnly ? [Math.min(currentPage, pages.length - 1)] : pages.map((_, i) => i);
+
+  exportBtn.disabled = exportPageBtn.disabled = true;
 
   try {
-    const off   = document.createElement('canvas');
-    off.width   = EXPORT_W;
-    off.height  = EXPORT_H;
-    const ctx   = off.getContext('2d');
-    renderSheet(ctx, EXPORT_W, EXPORT_H, params, activeFish);
+    const off  = document.createElement('canvas');
+    off.width  = EXPORT_W;
+    off.height = EXPORT_H;
+    const ctx  = off.getContext('2d');
 
-    exportStatus.textContent = 'Encoding PNG\u2026';
-    await tick();
+    for (const [n, i] of indices.entries()) {
+      exportStatus.textContent = `Rendering page ${i + 1} (${n + 1}/${indices.length})\u2026`;
+      await tick();
+      renderSheet(ctx, EXPORT_W, EXPORT_H, params, pages[i]);
 
-    const blob        = await new Promise(res => off.toBlob(res, 'image/png'));
-    const buf         = await blob.arrayBuffer();
-    const withDpi     = injectPNGDpi(new Uint8Array(buf), 300);
-    const downloadUrl = URL.createObjectURL(new Blob([withDpi], { type: 'image/png' }));
+      const blob    = await new Promise(res => off.toBlob(res, 'image/png'));
+      const withDpi = injectPNGDpi(new Uint8Array(await blob.arrayBuffer()), DPI);
+      const name    = pages.length > 1
+        ? `fishtastic_stickers_p${String(i + 1).padStart(2, '0')}.png`
+        : 'fishtastic_stickers.png';
+      download(new Blob([withDpi], { type: 'image/png' }), name);
 
-    const a    = document.createElement('a');
-    a.href     = downloadUrl;
-    a.download = 'fishtastic_stickers.png';
-    a.click();
-    URL.revokeObjectURL(downloadUrl);
+      // Back-to-back clicks get dropped by some browsers
+      if (n < indices.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
 
-    exportStatus.textContent = '\u2713 Saved 2480 \u00d7 3508 px @ 300 DPI';
+    exportStatus.textContent =
+      `\u2713 Saved ${indices.length} page${indices.length === 1 ? '' : 's'}, ${EXPORT_W} \u00d7 ${EXPORT_H} px @ ${DPI} DPI`;
   } catch (err) {
     exportStatus.textContent = '\u2717 Export failed: ' + err.message;
     console.error(err);
   } finally {
-    exportBtn.disabled = false;
+    exportBtn.disabled = exportPageBtn.disabled = false;
   }
-});
+}
+
+function download(blob, name) {
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
 
 function tick() { return new Promise(r => setTimeout(r, 0)); }
 
@@ -608,6 +1879,7 @@ function injectPNGDpi(pngBytes, dpi) {
 new ResizeObserver(() => scheduleRedraw()).observe(previewArea);
 
 // Initial draw
+renderBlockGrid(); // also syncs the background editor
 drawPreview();
 </script>
 </body>
