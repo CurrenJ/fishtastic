@@ -1,0 +1,21 @@
+{
+  "values": [
+    "#minecraft:leaves",
+    "#minecraft:corals",
+    "#minecraft:wall_corals",
+    "minecraft:kelp",
+    "minecraft:kelp_plant",
+    "minecraft:seagrass",
+    "minecraft:tall_seagrass",
+    "minecraft:vine",
+    "minecraft:pink_petals",
+    "minecraft:moss_carpet",
+    "minecraft:crimson_roots",
+    "minecraft:warped_roots",
+    "minecraft:grass",
+    "minecraft:fern",
+    "minecraft:sea_pickle",
+    "minecraft:red_mushroom",
+    "minecraft:brown_mushroom"
+  ]
+}

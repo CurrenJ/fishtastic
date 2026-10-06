@@ -55,6 +55,16 @@ public interface FlockDomain {
         return List.of();
     }
 
+    /**
+     * The solid parts of the cosmetics in this domain, in its own frame, as boxes a swimmer steers
+     * round (docs/fish-shelters.md §12.3). A shelter's hull is not among them — it is the shelter's
+     * own, so that a fish using the shelter can ignore it. Empty unless the host supplied some, and
+     * never for a lone tank's {@link Box}, for the same reason as {@link #shelters()}.
+     */
+    default List<Shelter.OrientedBox> obstacles() {
+        return List.of();
+    }
+
     /** Whether the point lies inside the swimmable interior. */
     boolean contains(float l, float y, float d);
 

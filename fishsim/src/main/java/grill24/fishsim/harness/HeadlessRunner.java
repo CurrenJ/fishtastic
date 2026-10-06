@@ -24,6 +24,12 @@ import java.nio.file.Path;
  * <pre>
  *   ./gradlew :fishsim:runHeadless
  *   ./gradlew :fishsim:runHeadless -PsimArgs="--domain L --fish 12 --seed 42 --ticks 6000"
+ *
+ * <p>{@code --obstacles FILE} adds the solid parts of real cosmetics to the domain: one box per
+ * line, {@code minL minY minD maxL maxY maxD} in the named domain's engine frame. This module cannot
+ * read a structure, so the file comes from the mod's own derivation — see
+ * {@code ObstacleExport} in the common tests ({@code ./gradlew :common:test --tests '*ObstacleExport*'
+ * -PexportObstacles=DIR}).
  * </pre>
  *
  * Domains: {@code box} (the legacy single-tank path), {@code 1x1x1}, {@code 3x1x1}, {@code L},
@@ -45,6 +51,7 @@ public final class HeadlessRunner {
         String cast = "mixed";
         String watcher = "none";
         FrameRenderer.View filmView = FrameRenderer.View.SIDE;
+        Path obstacles = null;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -62,6 +69,7 @@ public final class HeadlessRunner {
                 // The contact sheets' view: top for a shelter passed through along the depth axis,
                 // like the Whale Fall's skull from eye to eye.
                 case "--film-view" -> filmView = FrameRenderer.View.valueOf(args[++i].toUpperCase());
+                case "--obstacles" -> obstacles = Path.of(args[++i]);
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
         }
@@ -74,13 +82,16 @@ public final class HeadlessRunner {
         if (domainName.equals("box")) {
             engine.rebuild(specs, seed, 0f, 3, 0.35f, 0.3f, 20f);
         } else {
-            engine.rebuild(specs, seed, 0f, 20f, Scenarios.domain(domainName));
+            grill24.fishsim.domain.VoxelDomain domain = Scenarios.domain(domainName);
+            if (obstacles != null) domain.rebuildObstacles(Scenarios.obstacles(obstacles));
+            engine.rebuild(specs, seed, 0f, 20f, domain);
         }
 
         FrameRenderer renderer = new FrameRenderer(120, heatmap, true);
         Metrics metrics = new Metrics(engine, tunables, 200);
 
-        String tag = domainName + (cast.equals("mixed") ? "" : "-" + cast) + "-n" + fish + "-s" + seed;
+        String tag = domainName + (obstacles == null ? "" : "+" + obstacles.getFileName().toString().replace(".txt", ""))
+                + (cast.equals("mixed") ? "" : "-" + cast) + "-n" + fish + "-s" + seed;
 
         // Trajectory capture (positions every tick) + strip frames + tail-end GIF frames.
         float[][] trailL = new float[engine.count()][ticks];

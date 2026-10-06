@@ -210,6 +210,22 @@ public final class Scenarios {
         return new Shelter(hull, interior, List.of(high, low), 2, 6f * u);
     }
 
+    /**
+     * Obstacle boxes from a file: one per line, {@code minL minY minD maxL maxY maxD}, blank lines
+     * and {@code #} comments skipped (the format {@code ObstacleExport} writes).
+     */
+    public static List<Shelter.OrientedBox> obstacles(java.nio.file.Path file) throws java.io.IOException {
+        List<Shelter.OrientedBox> out = new ArrayList<>();
+        for (String line : java.nio.file.Files.readAllLines(file)) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) continue;
+            String[] f = line.split("\\s+");
+            out.add(Shelter.OrientedBox.ofBounds(Float.parseFloat(f[0]), Float.parseFloat(f[1]), Float.parseFloat(f[2]),
+                    Float.parseFloat(f[3]), Float.parseFloat(f[4]), Float.parseFloat(f[5])));
+        }
+        return out;
+    }
+
     public static Shelter hollowLog(float centerL, float floorY, float centerD) {
         float u = 0.09f;
         float hullMinL = centerL - 3f * u;

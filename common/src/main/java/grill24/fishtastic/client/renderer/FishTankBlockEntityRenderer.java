@@ -323,7 +323,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         int n = flock.count();
         int[] order = eng.order;
         // A lone tank promoted to the planar model (it holds a shelter and a fish that uses it,
-        // docs/fish-shelters.md §7) is posed as a group's fish are — continuous yaw, no mirror —
+        // docs/fish-shelters.md §7, or a solid cosmetic and a swimmer, §12.3) is posed as a group's fish are — continuous yaw, no mirror —
         // but in the tank's own turned frame, so the frame's turn is added to every yaw. Its
         // vertical is the engine's own, measured from the item baseline like the shelters it
         // swims into, with no sand-layer nudge.

@@ -69,6 +69,7 @@ public final class FrameRenderer {
             g.fillRect(0, 0, w, h);
 
             drawDomain(g, domain, view, w, h);
+            drawObstacles(g, domain, view);
             drawShelters(g, domain, view);
             drawFish(g, engine, tunables, domain, view);
             if (!domain.shelters().isEmpty()) drawShelterCount(g, engine);
@@ -185,6 +186,22 @@ public final class FrameRenderer {
                 g.draw(new Line2D.Float(x0, y0, x1, y1));
                 g.setStroke(new BasicStroke(2.5f));
             }
+        }
+    }
+
+    /**
+     * The solid parts of the cosmetics (docs/fish-shelters.md §12.3): grey boxes under the fish
+     * and the shelters, translucent so that where several overlap in this view reads darker.
+     */
+    private void drawObstacles(Graphics2D g, FlockDomain domain, View view) {
+        float[] p = new float[3];
+        for (Shelter.OrientedBox box : domain.obstacles()) {
+            Path2D outline = boxOutline(domain, view, box, p);
+            g.setColor(new Color(150, 150, 160, 60));
+            g.fill(outline);
+            g.setStroke(new BasicStroke(1f));
+            g.setColor(new Color(170, 170, 185, 140));
+            g.draw(outline);
         }
     }
 

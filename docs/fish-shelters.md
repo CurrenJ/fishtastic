@@ -516,6 +516,8 @@ after five minutes in front of the tank?
 
 ### 12.3 Obstacles: swimmers stop passing through cosmetics
 
+*Cold-start context for building this: [`fish-shelters-obstacles-handoff.md`](fish-shelters-obstacles-handoff.md).*
+
 This is a prerequisite, not an extra. Today, swimmers pass through every cosmetic except shelter
 hulls (§1.1). For hiding, that was tolerable: the log is solid and the rest is background. For
 gates it's fatal: a fish swimming through an arch looks no different from one swimming through its
@@ -567,6 +569,78 @@ thin posts, overhangs and spans are.
 **Lone tanks are the real decision here** (open question 6). The binary model is bitwise-locked and
 can't learn obstacles. §7 promotes a lone tank to the planar engine only when it holds a shelter
 and a fish that uses one. Obstacles would promote nearly every decorated lone tank.
+
+#### 12.3.1 Built (2026-10-02), and where it departs from the above
+
+Uncommitted, awaiting the owner's look. Measured baseline before it, over every shipped cosmetic
+(12 visitors, 2 seeds × 6000 ticks, lone tank and the middle of a 3×1×1): **5.4%** of swimming
+fish-ticks inside a solid part, worst the Drowned Pagoda at 28% and the Castle Ruin in a lone tank
+at 23%. After: **0** inside a derived box, and inside the exact block shapes too.
+
+- **Derivation** (`ObstacleGeometry`, pure; `CosmeticObstacles`, the Minecraft half). Outline
+  shapes at ¼ build unit, the `fishtastic:soft_cosmetic` tag (leaves, corals and coral fans, kelp,
+  seagrass, vines, petals, leaf litter, moss carpet, roots, short grass, fern, sea pickle,
+  mushrooms), greedy-merged, cached per structure, cleared on a tag reload.
+  - **No ~12-box cap.** Exact merges run 1–31 boxes for most structures, but 152 for the Whale
+    Fall and 320 for the Drowned Pagoda. Getting those to 12 means coarsening, and coarsening
+    fills openings: the arch, the doorway, the gap a pass-through swims. Binning already makes the
+    count free per fish, so the merge stays exact and uncapped.
+  - **Positions are not rounded.** `partCells()` rounds, and the Dynamic Duo's blocks stand half a
+    cell off the grid. Rounded, its boxes sat half a block from what is drawn, and fish swam
+    through it.
+  - **Pockets no fish can reach are filled** (`fillPockets`). Sealed cavities exist in the shipped
+    set (the Amethyst Geode's is 4.6% of its free water, plus the Giant Clam and the reef), and
+    the scatter could drop a fish into one for good. A reef nook reachable only through a
+    one-block opening held one fish for an entire run. Water not within 0.06 blocks of somewhere
+    a fish's centre fits, connected to the outside, is filled. Openings fish use are wider.
+  - A shelter's hull is carved out, and the shelter carries it as before. Every other part of the
+    structure is solid to every fish, its users included.
+- **Engine.** `FlockDomain.obstacles()`, `VoxelDomain.rebuildObstacles`, rebuilt on the cosmetic
+  fingerprint. Boxes are binned per block, and `ObstacleBinningEquivalenceTest` holds the bins to
+  bit-for-bit identity with no binning. The hull ramp and `closeGaps` are reused. All of it is
+  gated on a non-empty obstacle list, so every golden is untouched.
+  - **Shelter accessibility.** A mouth whose corridor (mouth to staging point) crosses an obstacle
+    is not offered for entry or for passing through. A cosmetic dropped across a doorway closes
+    that doorway rather than trapping fish in it (`ObstacleCorridorTest`).
+    `ObstacleShelterAccessTest` holds every shipped shelter to the same entries per approach,
+    mouths and pass-throughs with its parts solid as without. Measured: pipe 203/273 both ways;
+    log 119/265 → 126/266; whale 27/157 → 18/116, the same rate per attempt, with fewer attempts
+    because its solid bulk keeps fish further from the skull.
+  - **`closeGaps` probes a box's sides in the water.** A box whose centre is above the waterline
+    (a fence arch's top beam) had every side probe "out", grew to fill the tank front to back, and
+    pinned a fish against the glass (76 backstop engagements). Hulls, centred in the water, probe
+    where they always did.
+  - **The approach climb stays hulls only.** Climbing obstacles too sent fish for the top of a
+    sprig on a log's back, against the lid (jerk 14.4). Flinches do check obstacles.
+  - **The whole-tick force clamp now runs with obstacles as well as shelters.** A fish turned hard
+    by the pagoda's eaves at top speed measured an acceleration of 0.56 against 0.53.
+  - **No wedge guards.** Guard 1 has nothing to act on: the planar model has no wander target, only
+    heading noise. Guard 2 (retarget a fish stalled ~2 s) was built and measured, then removed. It
+    did not free the Spruce Gazebo's doorway fish (stalls 1632 → 1620 of 3600 windows), because
+    that doorway's only exit lies inside the glass's 0.20 wall margin in a lone tank, and walls must
+    win. It added two jerk violations (13.1, 14.4). The one fish truly stuck, the reef nook, was a
+    pocket, which the fill fixed.
+- **Lone tanks are promoted** (`TankFlockAdapter.wantsObstacles`) when they hold a solid part and a
+    swimmer. Per decision 6 this ships only after the in-game look at a crowded, decorated lone
+    tank, and the measurements say what to look for. A large structure in a lone tank leaves a
+    ring or a room of water, a lot of it inside the wall margin, so:
+  - 12 fish there is over-stocked. The Spruce Gazebo measured jerk 13.8 on 1 seed in 10 (separation
+    chattering in the crowd under its roof; 8.2–11.5 on the rest, 6.0–9.3 without obstacles).
+    The Wax Skull Candle measured a 3-tick backstop. The invariant matrix holds lone tanks at 6
+    fish, where everything passes.
+  - Fish linger in doorways and under roofs: 2-second windows with under 0.1 blocks of progress
+    rise from 1.7% to 14–45% in a lone tank (the gazebo 45%), and far less in groups. It may read
+    as hiding under an overhang, or as stuck. That is the look's call.
+  - Pre-existing, not obstacles: the Hollow Log and Clay Pipe in a lone tank at 12 visitors already
+    take a rare backstop with no obstacles at all.
+- **Verification.** `ObstacleInvariantTest` covers every shipped cosmetic: 248 runs over 3×1×1 at 6
+  and 12 fish, lone tanks at 6, spans in their own box, alternating rotations. Each run holds the
+  bounds: never inside, no backstop, no wall penetration, speed/accel/jerk ≤ 12, no fish stuck.
+  The rest: `CosmeticObstaclesTest` (every drawn solid shape covered, soft structures empty, no
+  pocket left, shelter hollows and the arch opening open), `TankObstaclesTest` (placement against
+  the renderer at every rotation, the lone-tank frame round trip), `ObstacleGeometryTest`, and the
+  two fishsim tests above. Harness: `--obstacles FILE`, written by `ObstacleExport`
+  (`-PexportObstacles=DIR`).
 
 ### 12.4 Pass-through and gates
 
