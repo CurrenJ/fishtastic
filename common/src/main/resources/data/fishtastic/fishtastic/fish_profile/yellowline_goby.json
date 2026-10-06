@@ -8,5 +8,6 @@
   "temperament": "fishtastic:skittish",
   "time_weights": [
     { "time": "day", "multiplier": 0.5 }
-  ]
+  ],
+  "swarm": { "shelter": "visitor" }
 }

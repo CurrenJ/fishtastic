@@ -12,5 +12,6 @@
     { "time": "night", "multiplier": 1.4 },
     { "time": "day", "multiplier": 0.3 }
   ],
-  "temperament": "fishtastic:ghost"
+  "temperament": "fishtastic:ghost",
+  "swarm": { "shelter": "visitor" }
 }

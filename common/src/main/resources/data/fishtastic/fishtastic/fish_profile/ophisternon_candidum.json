@@ -17,5 +17,6 @@
   },
   "time_weights": [
     { "time": "dusk", "multiplier": 1.5 }
-  ]
+  ],
+  "swarm": { "shelter": "lurker" }
 }
