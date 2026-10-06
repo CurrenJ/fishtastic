@@ -59,6 +59,42 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
             return Math.abs(u) <= halfL && Math.abs(y - centerY) <= halfY && Math.abs(w) <= halfD;
         }
 
+        /**
+         * Signed distance from the point to the box surface — positive outside, negative inside —
+         * with the outward direction of that distance written to {@code grad[0..2]} in the engine
+         * frame. Outside, the direction points from the nearest surface point to the point (corner
+         * and edge regions included, so a fish skirting a corner is pushed round it, not into
+         * it). Inside, it is the normal of the nearest face, the shortest way out.
+         */
+        public float signedDistance(float l, float y, float d, float[] grad) {
+            float dl = l - centerL, dd = d - centerD;
+            float u = dl * cos + dd * sin;
+            float v = y - centerY;
+            float w = -dl * sin + dd * cos;
+            float eu = Math.abs(u) - halfL, ev = Math.abs(v) - halfY, ew = Math.abs(w) - halfD;
+            float gu, gv, gw, dist;
+            if (eu > 0f || ev > 0f || ew > 0f) {
+                float ou = Math.max(eu, 0f), ov = Math.max(ev, 0f), ow = Math.max(ew, 0f);
+                dist = (float) Math.sqrt(ou * ou + ov * ov + ow * ow);
+                gu = Math.copySign(ou, u) / dist;
+                gv = Math.copySign(ov, v) / dist;
+                gw = Math.copySign(ow, w) / dist;
+            } else if (eu >= ev && eu >= ew) {
+                dist = eu;
+                gu = u < 0f ? -1f : 1f; gv = 0f; gw = 0f;
+            } else if (ev >= ew) {
+                dist = ev;
+                gu = 0f; gv = v < 0f ? -1f : 1f; gw = 0f;
+            } else {
+                dist = ew;
+                gu = 0f; gv = 0f; gw = w < 0f ? -1f : 1f;
+            }
+            grad[0] = gu * cos - gw * sin;
+            grad[1] = gv;
+            grad[2] = gu * sin + gw * cos;
+            return dist;
+        }
+
         /** The engine-frame corner {@code (±halfL, ±halfY, ±halfD)} picked by the sign bits of {@code corner}. */
         public void corner(int corner, float[] out) {
             float u = (corner & 1) != 0 ? halfL : -halfL;

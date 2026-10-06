@@ -4,11 +4,13 @@ import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
+import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.util.ClientTankGroups;
 import grill24.fishtastic.client.util.TankFloors;
+import grill24.fishtastic.client.util.TankShelters;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
@@ -300,9 +302,49 @@ public final class TankFlockAdapter {
         System.arraycopy(newAnims, 0, anims, 0, n);
         slots = newSlots;
 
+        if (wantsShelters(be, newStacks, level)) {
+            rebuildPromoted(be, specs, carryFrom, blockPosHash, swarm, level);
+            return;
+        }
+        if (engine.tunables() != Tunables.DEFAULT) engine.setTunables(Tunables.DEFAULT);
         engine.rebuildPreserving(specs, carryFrom, blockPosHash, be.getFirstItemRotation(),
                 swarm.depthLayers(), swarm.xzSpread(), swarm.yRange(), swarm.rotationJitter(),
                 TankFloors.single(be));
+    }
+
+    /**
+     * Whether this lone tank runs the planar engine instead of the binary one
+     * (docs/fish-shelters.md §7): it holds a shelter <i>and</i> a fish whose species uses
+     * shelters. Every other lone tank keeps the bitwise-locked binary model — the shelter is only
+     * worth the switch when something in the tank will swim into it.
+     */
+    private static boolean wantsShelters(FishTankBlockEntity be, ItemStack[] fish, Level level) {
+        boolean anyUser = false;
+        for (ItemStack stack : fish) {
+            if (SwarmConfig.resolve(stack, level).shelter().isPresent()) {
+                anyUser = true;
+                break;
+            }
+        }
+        return anyUser && TankShelters.hasShelter(be, level);
+    }
+
+    /**
+     * The promoted lone tank: the same engine switched onto the planar model over a one-block
+     * voxel domain with the group tunables — what a group of one would be — in the very frame the
+     * binary model was using (the tank's first-item rotation, origin at the block's centre on the
+     * item baseline). Keeping the frame is what lets {@code rebuildPreserving} carry every fish
+     * across the switch where it is, instead of re-scattering the tank; the domain, floor and
+     * shelters are all expressed in that same frame.
+     */
+    private void rebuildPromoted(FishTankBlockEntity be, FishSpec[] specs, int[] carryFrom, int blockPosHash,
+                                 SwarmConfig swarm, Level level) {
+        if (engine.tunables() != Tunables.GROUP) engine.setTunables(Tunables.GROUP);
+        float yaw = be.getFirstItemRotation();
+        VoxelDomain domain = new VoxelDomain(new boolean[][][]{{{true}}}, VoxelDomain.DEFAULT_INSET,
+                TankFloors.GROUP_SURFACE_OFFSET, TankFloors.blockedCells(be));
+        domain.rebuildShelters(TankShelters.single(be, level, yaw));
+        engine.rebuildPreserving(specs, carryFrom, blockPosHash, yaw, swarm.rotationJitter(), domain);
     }
 
     /**
