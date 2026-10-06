@@ -66,7 +66,8 @@ public final class TankGroups {
      *
      * <p>Fish beyond the budget keep their items and their place in the tank — they simply hover
      * in their own tank instead of joining the group shoal, exactly like a fish that fails the
-     * size gate.
+     * size gate. What counts as "beyond" is decided by {@link #perTankFishCap}: the group's own
+     * total, never a flat per-tank share, so a group that fits the budget freezes nobody.
      *
      * <p>Absolute milliseconds are machine-specific; if this is ever retuned, retune it against a
      * measurement rather than by reasoning about the tank count.
@@ -94,25 +95,58 @@ public final class TankGroups {
     }
 
     /**
-     * How many of one member tank's fish may join the group shoal, so that the whole group stays
-     * inside {@link #RENDER_MAX_GROUP_FISH}.
+     * How many of one member tank's fish of one locomotion class may join the group shoal, so that
+     * the whole group stays inside {@link #RENDER_MAX_GROUP_FISH} — a <b>water-filling</b> cap over
+     * the group's actual contents rather than a flat per-tank quota.
      *
-     * <p>A flat per-tank quota rather than "take fish until the budget runs out": every member has
-     * to reach the same verdict about the same fish <em>independently</em>. The anchor decides who
-     * swims, but each member separately decides who hovers in its own tank, and the two passes run
-     * in different block entities with no shared state between them. A quota is a pure function of
-     * the member count, so they cannot disagree — whereas a running total would depend on where in
-     * the walk a tank sat, and any mismatch would leave a fish rendered twice or not at all (the
-     * failure mode docs/fish-tank-group-scaling.md §1 describes).
+     * <p>The cap is the largest C with {@code Σ min(fish_i, C) ≤ RENDER_MAX_GROUP_FISH} over the
+     * members' class counts, or {@link Integer#MAX_VALUE} when the group's own total already fits.
+     * Two properties fall out, and both matter:
+     * <ul>
+     *   <li><b>A group under the budget freezes nobody.</b> A flat quota
+     *       ({@code RENDER_MAX_GROUP_FISH / members}) trimmed a busy tank even when the group held
+     *       a fraction of the budget — a 154-tank group with 87 fish froze 13 fish in its one
+     *       19-fish tank to enforce a bound it was nowhere near. Only a group whose total exceeds
+     *       the budget gives any fish up, and then only the tanks above the cap lose fish: thin
+     *       tanks keep everything.</li>
+     *   <li><b>It stays a pure function of what the group holds</b>, so the two passes that must
+     *       agree about every fish still cannot disagree: the anchor decides who swims and each
+     *       member separately decides who hovers, in different block entities with no shared state.
+     *       Both compute this from the same member list and the same inventories, so both get the
+     *       same cap — whereas a running total would depend on where in the walk a tank sat, and any
+     *       mismatch would leave a fish rendered twice or not at all (the failure mode
+     *       docs/fish-tank-group-scaling.md §1 describes).</li>
+     * </ul>
      *
-     * <p>It also spreads the shoal over the whole structure instead of filling the first tanks in
-     * sort order and starving the far corner.
+     * <p>The cap is never below 1: a budget that renders an aquarium empty reads as a bug, not as a
+     * budget, and one fish per tank is at most {@code RENDER_MAX_GROUP_SIZE} fish over.
      *
-     * <p>With the shipped constants this binds only past ~38 tanks
-     * ({@code RENDER_MAX_GROUP_FISH / CONTAINER_SIZE}); every smaller group is unaffected.
+     * @param fishPerTank each member's count of this locomotion class, in member order
      */
-    public static int perTankFishQuota(int memberCount) {
-        return memberCount <= 0 ? RENDER_MAX_GROUP_FISH : Math.max(1, RENDER_MAX_GROUP_FISH / memberCount);
+    public static int perTankFishCap(int[] fishPerTank) {
+        long total = 0;
+        int most = 0;
+        for (int count : fishPerTank) {
+            total += count;
+            most = Math.max(most, count);
+        }
+        if (total <= RENDER_MAX_GROUP_FISH) return Integer.MAX_VALUE;
+        int low = 1, high = most;
+        while (low < high) {
+            int mid = (low + high + 1) >>> 1;
+            if (sumOfCapped(fishPerTank, mid) <= RENDER_MAX_GROUP_FISH) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return low;
+    }
+
+    private static long sumOfCapped(int[] fishPerTank, int cap) {
+        long sum = 0;
+        for (int count : fishPerTank) sum += Math.min(count, cap);
+        return sum;
     }
 
     /**

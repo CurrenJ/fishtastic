@@ -22,7 +22,7 @@ class GroupSplitTest {
     private static final float GATE_FACTOR = 2.5f;
 
     private static GroupSplit split(int quota) {
-        return new GroupSplit(GATE_RUN, GATE_FACTOR, quota);
+        return new GroupSplit(GATE_RUN, GATE_FACTOR, TankFishBudget.uniformCap(quota));
     }
 
     @Test

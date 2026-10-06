@@ -419,11 +419,12 @@ public final class TankFlockAdapter {
         List<FishAnimationConfig> hoverAnims = new ArrayList<>();
         List<FishSpec> hoverSpecs = new ArrayList<>();
         List<Integer> hoverSlots = new ArrayList<>();
-        // Fish past this tank's share of the group budget stay here instead of joining. The
-        // group runtime's collection pass applies the identical rule to the identical slots, so
-        // every fish is rendered exactly once — see TankGroups.perTankFishQuota.
-        int quota = TankGroups.perTankFishQuota(group.members().size());
-        TankGroupFlock.GroupSplit split = new TankGroupFlock.GroupSplit(gateRun, gateFactor, quota);
+        // Fish past the group's fish budget stay here instead of joining. The group runtime's
+        // collection pass applies the identical rule to the identical slots — and this pass reads
+        // the very budget that pass computed — so every fish is rendered exactly once. See
+        // TankGroups.perTankFishCap and TankFishBudget.
+        TankFishBudget budget = entry.flock() != null ? entry.flock().budget() : TankFishBudget.unlimited();
+        TankGroupFlock.GroupSplit split = new TankGroupFlock.GroupSplit(gateRun, gateFactor, budget);
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
