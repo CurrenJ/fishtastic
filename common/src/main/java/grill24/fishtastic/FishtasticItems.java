@@ -150,6 +150,7 @@ public class FishtasticItems {
     public static Holder<Item> COSMETIC_GIANT_CLAM;
     public static Holder<Item> COSMETIC_AMETHYST_GEODE;
     public static Holder<Item> COSMETIC_HOLLOW_LOG;
+    public static Holder<Item> COSMETIC_CLAY_PIPE;
 
     /** Wood types the fence-arch cosmetic is generated for — see fabric datagen's {@code CosmeticStructureProvider}. */
     public static final List<String> FENCE_ARCH_WOOD_TYPES = List.of(
@@ -537,6 +538,10 @@ public class FishtasticItems {
         COSMETIC_HOLLOW_LOG = RegistrationApiSided.getInstance().registerItem("cosmetic_hollow_log",
                 loc -> new FishTankStructureCosmeticItem(
                         ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("hollow_log")),
+                        props(loc).stacksTo(1)));
+        COSMETIC_CLAY_PIPE = RegistrationApiSided.getInstance().registerItem("cosmetic_clay_pipe",
+                loc -> new FishTankStructureCosmeticItem(
+                        ResourceKey.create(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY, grill24.fishtastic.util.Utility.ft("clay_pipe")),
                         props(loc).stacksTo(1)));
         for (String wood : FENCE_ARCH_WOOD_TYPES) {
             String id = "cosmetic_fence_arch_" + wood;

@@ -169,6 +169,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_GIANT_CLAM.value());
                     output.accept(FishtasticItems.COSMETIC_AMETHYST_GEODE.value());
                     output.accept(FishtasticItems.COSMETIC_HOLLOW_LOG.value());
+                    output.accept(FishtasticItems.COSMETIC_CLAY_PIPE.value());
 
                     // Lamp variants
                     for (Holder<Item> lamp : FishtasticItems.COSMETIC_LAMP.values()) {

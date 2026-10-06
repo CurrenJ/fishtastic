@@ -30,6 +30,9 @@ public final class ShelterGeometry {
         }
     }
 
+    /** The build grid's lowest layer stands on the sand: nothing below it is water. */
+    static final int SAND_Y = 0;
+
     /** The six face directions, in a fixed order: −x, +x, −y, +y, −z, +z. */
     static final int[][] DIRECTIONS = {
             {-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}};
@@ -102,19 +105,21 @@ public final class ShelterGeometry {
         minX--; minY--; minZ--;
         maxX++; maxY++; maxZ++;
 
-        // Flood the open water from a corner of the padded box: every cell that is neither part
+        // Flood the open water from a top corner of the padded box: every cell that is neither part
         // nor interior and connects to the box's outside. The padding shell is all open, so one
-        // seed reaches all of it.
+        // seed reaches all of it. Except below the build grid's floor: a structure stands on the
+        // sand, so water can't get under it. A hollow that only opens through gaps in its floor
+        // (the Whale Fall's snout, under the skull's shelter) is a pocket, not a way out.
         Set<Cell> outside = new HashSet<>();
         ArrayDeque<Cell> queue = new ArrayDeque<>();
-        Cell seed = new Cell(minX, minY, minZ);
+        Cell seed = new Cell(minX, maxY, minZ);
         outside.add(seed);
         queue.add(seed);
         while (!queue.isEmpty()) {
             Cell c = queue.poll();
             for (int[] dir : DIRECTIONS) {
                 Cell n = c.plus(dir);
-                if (n.x < minX || n.x > maxX || n.y < minY || n.y > maxY || n.z < minZ || n.z > maxZ) continue;
+                if (n.x < minX || n.x > maxX || n.y < Math.max(minY, SAND_Y) || n.y > maxY || n.z < minZ || n.z > maxZ) continue;
                 if (parts.contains(n) || interior.contains(n) || !outside.add(n)) continue;
                 queue.add(n);
             }

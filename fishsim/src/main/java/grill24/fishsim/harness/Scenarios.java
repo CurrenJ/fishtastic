@@ -103,7 +103,9 @@ public final class Scenarios {
      * A voxel domain by name: {@link #occupancy} names, optionally followed by {@code +log} to put
      * a {@link #hollowLog} on the sand, centred in the bottom-storey block nearest the grid's
      * centre (the centre itself may be outside an L), or {@code +logpair} for two of them one
-     * block either side of it, a block of sand between (the owner's 5x2x1 test tank).
+     * block either side of it, a block of sand between (the owner's 5x2x1 test tank), or
+     * {@code +pipe} for a {@link #clayPipe} there, or {@code +skull} for the {@link #whaleSkull}
+     * (in a 4x2x2, the Whale Fall's own box).
      */
     public static VoxelDomain domain(String name) {
         String[] parts = name.split("\\+");
@@ -111,8 +113,12 @@ public final class Scenarios {
         VoxelDomain domain = new VoxelDomain(occupancy);
         List<Shelter> shelters = new ArrayList<>();
         for (int i = 1; i < parts.length; i++) {
-            boolean pair = parts[i].equals("logpair");
-            if (!pair && !parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
+            if (parts[i].equals("skull")) {
+                shelters.add(whaleSkull(occupancy.length, occupancy[0].length, occupancy[0][0].length));
+                continue;
+            }
+            boolean pair = parts[i].equals("logpair"), pipe = parts[i].equals("pipe");
+            if (!pair && !pipe && !parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
             int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
             float bestL = 0f, bestD = 0f, best = Float.MAX_VALUE;
             for (int ix = 0; ix < sx; ix++) {
@@ -126,7 +132,9 @@ public final class Scenarios {
                     }
                 }
             }
-            if (pair) {
+            if (pipe) {
+                shelters.add(clayPipe(bestL, -sy / 2f + SAND_SURFACE, bestD));
+            } else if (pair) {
                 shelters.add(hollowLog(bestL - 1f, -sy / 2f + SAND_SURFACE, bestD));
                 shelters.add(hollowLog(bestL + 1f, -sy / 2f + SAND_SURFACE, bestD));
             } else {
@@ -147,6 +155,61 @@ public final class Scenarios {
      * @param centerL,centerD where the hull's centre stands
      * @param floorY          the sand the log lies on
      */
+    /**
+     * The Whale Fall's skull shelter (cosmetic_structure/whale_fall.json, from
+     * tools/span-structure-gen/gen.py) as the mod maps it, unturned, in a group whose bounding box
+     * is {@code sx × sy × sz} with the whale's box at its min corner. Build cell {@code (bx, by, bz)}
+     * is a block of 0.125 centred {@code (bx + 0.5) × 0.125} in from the box's interior west and
+     * north walls (1/16 thick), standing on the sand. The hollow is cells 5..7 x 1..2 x 4..10, the
+     * hull 4..8 x 0..3 x 3..11, and the eye sockets open at x = 6 on either side, each one cell wide
+     * and two tall. Hand-placed, like {@link #hollowLog}; {@code TankSheltersTest} checks the real
+     * mapping.
+     */
+    public static Shelter whaleSkull(int sx, int sy, int sz) {
+        float u = 0.125f, wall = 1f / 16f;
+        float ox = wall - sx / 2f, oy = SAND_SURFACE - sy / 2f, oz = wall - sz / 2f;
+        Shelter.OrientedBox hull = Shelter.OrientedBox.ofBounds(
+                ox + 4 * u, oy, oz + 3 * u, ox + 9 * u, oy + 4 * u, oz + 12 * u);
+        Shelter.OrientedBox interior = Shelter.OrientedBox.ofBounds(
+                ox + 5 * u, oy + u, oz + 4 * u, ox + 8 * u, oy + 3 * u, oz + 11 * u);
+        Shelter.Mouth north = new Shelter.Mouth(
+                ox + 6.5f * u, oy + 2 * u, oz + 4 * u,
+                0f, 0f, 1f,
+                1f, 0f, 0f,
+                0.5f * u, u);
+        Shelter.Mouth south = new Shelter.Mouth(
+                ox + 6.5f * u, oy + 2 * u, oz + 11 * u,
+                0f, 0f, -1f,
+                1f, 0f, 0f,
+                0.5f * u, u);
+        return new Shelter(hull, interior, List.of(north, south), 3, 7 * u);
+    }
+
+    /**
+     * A Clay Pipe: the {@link #hollowLog}'s body with both ends open, so its hollow runs the full six
+     * cells and has a mouth at each end (cosmetic_structure/clay_pipe.json).
+     */
+    public static Shelter clayPipe(float centerL, float floorY, float centerD) {
+        float u = 0.09f;
+        float hullMinL = centerL - 3f * u;
+        float hullMinD = centerD - 2f * u;
+        Shelter.OrientedBox hull = Shelter.OrientedBox.ofBounds(
+                hullMinL, floorY, hullMinD, hullMinL + 6f * u, floorY + 4f * u, hullMinD + 4f * u);
+        Shelter.OrientedBox interior = Shelter.OrientedBox.ofBounds(
+                hullMinL, floorY + u, hullMinD + u, hullMinL + 6f * u, floorY + 3f * u, hullMinD + 3f * u);
+        Shelter.Mouth high = new Shelter.Mouth(
+                hullMinL + 6f * u, floorY + 2f * u, centerD,
+                -1f, 0f, 0f,
+                0f, 1f, 0f,
+                u, u);
+        Shelter.Mouth low = new Shelter.Mouth(
+                hullMinL, floorY + 2f * u, centerD,
+                1f, 0f, 0f,
+                0f, 1f, 0f,
+                u, u);
+        return new Shelter(hull, interior, List.of(high, low), 2, 6f * u);
+    }
+
     public static Shelter hollowLog(float centerL, float floorY, float centerD) {
         float u = 0.09f;
         float hullMinL = centerL - 3f * u;

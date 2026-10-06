@@ -8,6 +8,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.ShelterGeometry;
+import grill24.fishtastic.fishtank.SpanStructures;
 import grill24.fishtastic.fishtank.TankGroups;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
@@ -37,8 +38,10 @@ import java.util.Optional;
  *       the group's bounding-box centre, unturned.</li>
  * </ol>
  *
- * <p>Spanning structures are not mapped yet: their shelters arrive with the whale fall
- * (docs/fish-shelters.md §8), and are skipped here until then.
+ * <p>A spanning structure's shelter (the Whale Fall's skull) comes from its anchor tank alone, the
+ * one that stores it, in the anchor's block frame: it reaches into the box's other tanks, which
+ * {@link #group} carries over like any member's. The tanks holding a link to it add nothing, so
+ * it is counted once.
  */
 public final class TankShelters {
 
@@ -95,13 +98,22 @@ public final class TankShelters {
         List<Shelter> out = new ArrayList<>();
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
             Optional<CosmeticStructure> structure = registry.getOptional(entry.getValue().structureId());
-            if (structure.isEmpty() || structure.get().span().isPresent()) continue;
+            if (structure.isEmpty()) continue;
             Optional<ShelterGeometry.Shape> shape = structure.get().shelterShape();
             if (shape.isEmpty()) continue;
-            CosmeticGridCell anchor = entry.getKey();
+            Rotation rotation = entry.getValue().rotation();
+            float anchorX, anchorZ;
+            if (structure.get().span().isPresent()) {
+                float[] origin = SpanStructures.buildOrigin(structure.get(), rotation);
+                anchorX = origin[0];
+                anchorZ = origin[1];
+            } else {
+                CosmeticGridCell anchor = entry.getKey();
+                anchorX = (float) anchor.localX();
+                anchorZ = (float) anchor.localZ();
+            }
             out.add(inBlockFrame(shape.get(), structure.get().shelter().get().capacityOrDefault(),
-                    structure.get().scale(), (float) anchor.localX(), (float) anchor.localZ(),
-                    entry.getValue().rotation()));
+                    structure.get().scale(), anchorX, anchorZ, rotation));
         }
         return out;
     }

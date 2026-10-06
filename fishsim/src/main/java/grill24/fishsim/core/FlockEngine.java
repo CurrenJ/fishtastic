@@ -1848,6 +1848,36 @@ public final class FlockEngine {
     }
 
     /**
+     * The mouth fish #{@code i} leaves its shelter by when it passes through (docs/fish-shelters.md
+     * §12.4): the usable mouth facing most nearly opposite the one it came in by, so a fish swims
+     * through a pipe, or across a whale's skull from eye to eye, instead of turning round and
+     * backing out. −1 when there is none within {@link #THROUGH_MAX_COS} of opposite, as in a
+     * one-mouthed log. Never for a lurker at home: it rests facing out of its own mouth.
+     */
+    private int throughMouth(int i) {
+        int s = shelterIndex[i];
+        if (shelterClaim[i] >= 0 && s == shelterClaim[i]) return -1;
+        List<Shelter.Mouth> mouths = avoidHullsSource.get(s).mouths();
+        Shelter.Mouth in = mouths.get(shelterMouth[i]);
+        int best = -1;
+        float bestCos = THROUGH_MAX_COS;
+        for (int m = 0; m < mouths.size(); m++) {
+            if (m == shelterMouth[i] || !mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
+            Shelter.Mouth out = mouths.get(m);
+            if (MOUTH_HEIGHT_RATIO * lengths[i] > 2f * out.halfSize()) continue;
+            float cos = in.normalL() * out.normalL() + in.normalY() * out.normalY() + in.normalD() * out.normalD();
+            if (cos < bestCos) {
+                bestCos = cos;
+                best = m;
+            }
+        }
+        return best;
+    }
+
+    /** How nearly opposite a far mouth must face to be passed through to: within ~60° of it. */
+    static final float THROUGH_MAX_COS = -0.5f;
+
+    /**
      * Whether mouth {@code m} of shelter {@code s} is the doorway of the lurker that claimed it —
      * closed to every other fish ({@code i}), home or not. Sharing it had visitors swim in through
      * a resting bichir: measured, it shoved the rest pose 0.05 off its point.
@@ -2036,6 +2066,9 @@ public final class FlockEngine {
                 if (mayLeave) {
                     shelterState[i] = SHELTER_EXIT;
                     shelterTimer[i] = 0f;
+                    // Through, not back: a shelter with a far mouth is left by it (§12.4).
+                    int through = throughMouth(i);
+                    if (through >= 0) shelterMouth[i] = through;
                 }
             }
             case SHELTER_RESTING -> {
