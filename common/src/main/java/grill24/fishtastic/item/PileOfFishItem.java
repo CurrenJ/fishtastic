@@ -50,7 +50,8 @@ public class PileOfFishItem extends BundleItem {
      * Shift-click pulls the topmost fish out of a targeted fish tank into this pile, or extracts
      * one fish from a targeted Fish Pile block; a plain click starts a new pile on a valid surface.
      * Vanilla suppresses {@code FishTankBlock#useItemOn}/{@code FishPileBlock#useItemOn} while
-     * sneaking with a non-empty hand, so both have to be handled here instead — see
+     * sneaking with a non-empty hand and calls {@code ItemStack#useOn} instead; a pile's useOn is
+     * the default PASS, so the click falls through to here — see
      * {@link FishTankBlock#tryShiftExtractFromTargetedTank} and
      * {@link FishPileBlock#tryHandleTargetedInteraction}.
      */

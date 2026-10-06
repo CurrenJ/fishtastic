@@ -303,10 +303,13 @@ public class FishTankBlock extends Block implements EntityBlock {
         // fish into the tank instead of inserting the whole pile as a single display item.
         //
         // The shift-click "pull topmost fish into hand" interaction is NOT handled here — vanilla
-        // suppresses Block#useWithoutItem entirely whenever the player sneaks with a non-empty
-        // hand (item.doesSneakBypassUse defaults to false), so this method never even runs for
-        // that case. It's implemented instead as an Item#use() override on PileOfFishItem/
+        // suppresses Block#use entirely whenever the player sneaks with a non-empty hand (see
+        // ServerPlayerGameMode#useItemOn's sneak check), so this method never even runs for that
+        // case. It's implemented instead as an Item#use() override on PileOfFishItem/
         // FishtasticFishItem, which does its own raycast — see FishTankBlock's shift-extract path.
+        // The other shift-click interaction, the forced cosmetic placement, hooks ItemStack#useOn
+        // (ItemStackUseOnMixin) instead, because it needs the real hit result and must cover
+        // vanilla cosmetic items too.
         if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND
                 && itemStack.getItem() instanceof PileOfFishItem && !player.isShiftKeyDown()) {
             BlockEntity be = level.getBlockEntity(blockPos);
@@ -416,10 +419,16 @@ public class FishTankBlock extends Block implements EntityBlock {
      * Entry point for the shift-click "pull topmost fish into hand" interaction, called from
      * {@link PileOfFishItem#use} / {@link FishtasticFishItem#use}. It can't live in
      * {@link #use} because vanilla never calls that method for this case: sneaking with a
-     * non-empty hand makes {@code ServerPlayerGameMode#useItemOn} skip {@code Block#useItemOn}
-     * entirely and fall through to {@code Item#use} instead (see
-     * {@code ItemStack#doesSneakBypassUse}, which defaults to false for ordinary items). So this
-     * does its own raycast, mirroring what the suppressed block interaction would have targeted.
+     * non-empty hand makes {@code ServerPlayerGameMode#useItemOn} skip {@code Block#use}
+     * entirely (its sneak check) and call {@code ItemStack#useOn} with the
+     * click's hit result instead. A pile's {@code useOn} is the default PASS, so the client falls
+     * through to {@code Item#use} from {@code Minecraft#startUseItem} and the server does the same
+     * when the follow-up UseItem packet arrives — which is where this hook lives. So this does its
+     * own raycast, mirroring what the suppressed block interaction would have targeted.
+     *
+     * <p>(Shift-clicking a tank <i>cosmetic</i> is the other use of this same suppressed path, but
+     * it needs the real hit result, so it hooks {@code ItemStack#useOn} directly via
+     * {@code ItemStackUseOnMixin} → {@link grill24.fishtastic.fishtank.CosmeticPlacement#tryForcePlace}.)
      *
      * @return {@code null} if the player isn't sneaking or isn't targeting a fish tank with an
      * eligible item, so the caller can fall back to its normal {@code use()} behavior.

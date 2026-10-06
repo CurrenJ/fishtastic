@@ -23,6 +23,7 @@
   },
   "mixins": [
     "FishingHookMixin",
+    "ItemStackUseOnMixin",
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
     "ServerLevelTickTimeMixin",
