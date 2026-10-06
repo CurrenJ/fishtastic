@@ -14,11 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Skittish fish bolt for cover when the watcher walks up (docs/fish-shelters.md §5.3, trigger 2).
- * The trigger is the garden eels' own, so this mirrors {@code AnchoredTest}'s transients: the
- * watcher who arrives, the watcher who stays, the watcher signal that drops out, the watcher who
- * stands on the radius, and the watcher who was already there — every one of which, written as a
- * state instead of an event, once made the eels misbehave in game.
+ * Skittish fish dash for cover when the watcher lunges at them (docs/fish-shelters.md §5.3,
+ * trigger 2). This mirrors {@code AnchoredTest}'s transients: the watcher who arrives, the watcher
+ * who stays, the watcher signal that drops out, the watcher who sways, and the watcher who was
+ * already there. Every one of them, written as a state instead of an event, once made the eels
+ * misbehave in game. On top: the watcher who stays by the tank and keeps stepping up to it, which
+ * the eels' rule never re-armed for, and the dash itself in the owner's two-storey test tank.
  */
 class ShelterStartleTest {
 
@@ -44,7 +45,7 @@ class ShelterStartleTest {
         engine.yawDeg[i] = (float) Math.toDegrees(Math.atan2(-mouth.normalD(), mouth.normalL()));
     }
 
-    /** Watcher far off down the lateral axis — present, so it arms the fish. */
+    /** Watcher far off down the lateral axis — present, so a step from here to {@link #near} is a lunge. */
     private static void far(FlockEngine engine) {
         engine.setWatcher(true, 8f, 0f, 0f);
     }
@@ -58,7 +59,9 @@ class ShelterStartleTest {
         int total = 0;
         for (int i = 0; i < engine.count(); i++) {
             int st = engine.shelterState(i);
-            if (st == FlockEngine.SHELTER_APPROACH && prev[i] != FlockEngine.SHELTER_APPROACH && engine.startled(i)) {
+            // Out of ROAMING on a startle. Not "into APPROACH": a fish already lined up at a mouth
+            // goes on to ENTER within the same tick.
+            if (st != FlockEngine.SHELTER_ROAMING && prev[i] == FlockEngine.SHELTER_ROAMING && engine.startled(i)) {
                 startles[i]++;
             }
             prev[i] = st;
@@ -73,19 +76,19 @@ class ShelterStartleTest {
         FlockEngine engine = skittishTank(domain, 4, 3L);
         far(engine);
         for (int t = 0; t < 60; t++) engine.step();
-        assertTrue(engine.startleArmed(0), "the watcher was seen far away, so fish 0 should be armed");
+        assertEquals(0f, engine.startleRefractory(0), "nothing has startled fish 0 yet");
 
         lineUp(engine, domain.shelters().get(0), 0);
         near(engine);
         boolean bolted = false, inside = false;
         for (int t = 0; t < 400 && !inside; t++) {
             engine.step();
-            if (engine.shelterState(0) == FlockEngine.SHELTER_APPROACH && engine.startled(0)) bolted = true;
+            if (engine.shelterState(0) != FlockEngine.SHELTER_ROAMING && engine.startled(0)) bolted = true;
             inside = engine.shelterState(0) == FlockEngine.SHELTER_INSIDE;
         }
         assertTrue(bolted, "fish 0 did not bolt when the watcher arrived");
         assertTrue(inside, "fish 0 bolted but never reached cover");
-        assertFalse(engine.startleArmed(0), "the reaction must disarm the fish");
+        assertTrue(engine.startleRefractory(0) > 0f, "the reaction must start the fish's refractory");
         assertEquals(0, engine.backstopEngagements());
     }
 
@@ -185,22 +188,218 @@ class ShelterStartleTest {
     }
 
     @Test
-    void aWatcherOnTheRadiusDoesNotStrobe() {
+    void aSwayingWatcherStartlesNobody() {
         VoxelDomain domain = Scenarios.domain(DOMAIN);
         FlockEngine engine = skittishTank(domain, 6, 8L);
-        far(engine);
+        engine.setWatcher(true, 1.8f, 0f, 0f);
         for (int t = 0; t < 60; t++) engine.step();
         int[] prev = new int[engine.count()], startles = new int[engine.count()];
         for (int t = 0; t < 2_400; t++) {
-            // Swaying back and forth across the startle radius of every fish in the tank.
-            float sway = (float) Math.sin(t * 0.3) * 0.4f;
-            engine.setWatcher(true, 3.0f + sway, 0f, 0f);
+            // A player at the glass rocking from foot to foot: 0.2 blocks either way, every 2 s.
+            float sway = (float) Math.sin(t * Math.PI / 20.0) * 0.2f;
+            engine.setWatcher(true, 1.8f + sway, 0f, 0f);
             engine.step();
             countStartles(engine, prev, startles);
         }
         for (int i = 0; i < engine.count(); i++) {
-            assertTrue(startles[i] <= 1, "fish " + i + " strobed: " + startles[i] + " startles on the radius");
+            assertEquals(0, startles[i], "fish " + i + " was startled by a watcher who never stepped toward it");
         }
+    }
+
+    @Test
+    void aLungingWatcherStartlesNoMoreOftenThanTheRefractoryAllows() {
+        VoxelDomain domain = Scenarios.domain(DOMAIN);
+        FlockEngine engine = skittishTank(domain, 6, 8L);
+        engine.setWatcher(true, 3.5f, 0f, 0f);
+        for (int t = 0; t < 60; t++) engine.step();
+        int[] prev = new int[engine.count()], startles = new int[engine.count()];
+        int ticks = 2_400;
+        for (int t = 0; t < ticks; t++) {
+            // A step in to the glass and back out every 2 s: a lunge every time.
+            engine.setWatcher(true, (t / 20) % 2 == 0 ? 3.0f : 1.5f, 0f, 0f);
+            engine.step();
+            countStartles(engine, prev, startles);
+        }
+        int allowed = 1 + (int) (ticks * 0.05f / 15f);
+        for (int i = 0; i < engine.count(); i++) {
+            assertTrue(startles[i] <= allowed, "fish " + i + " startled " + startles[i] + " times, refractory allows " + allowed);
+        }
+    }
+
+    /**
+     * The bug the lunge fixed: a player who stays by the tank, stepping up to the glass and back,
+     * never went 4.5 blocks away, so the eels' rule never re-armed and nothing was ever startled.
+     */
+    @Test
+    void aWatcherWhoStaysByTheTankKeepsStartlingFish() {
+        VoxelDomain domain = Scenarios.domain(DOMAIN);
+        FlockEngine engine = skittishTank(domain, 8, 11L);
+        int n = engine.count();
+        // Startles fired, not dashes: with 8 fish only 2 may hide at once, so most startles find
+        // the hidden budget spent. That is the budget working, not the trigger failing.
+        int[] startles = new int[n];
+        float[] refractory = new float[n];
+        float at = 3.5f;
+        for (int t = 0; t < 2_400; t++) {
+            at = walk(at, (t / 200) % 2 == 1 ? 1.1f : 3.5f);
+            engine.setWatcher(true, domain.maxLateral() + at, 0f, 0f);
+            for (int i = 0; i < n; i++) refractory[i] = engine.startleRefractory(i);
+            engine.step();
+            for (int i = 0; i < n; i++) if (engine.startleRefractory(i) > refractory[i]) startles[i]++;
+        }
+        int total = 0, repeated = 0;
+        for (int s : startles) {
+            total += s;
+            if (s >= 2) repeated++;
+        }
+        assertTrue(repeated >= engine.count() / 2,
+                "only " + repeated + " of " + engine.count() + " fish were startled more than once (" + total + " startles)");
+    }
+
+    /**
+     * The owner's test tank: a 5x2x1 with two Hollow Logs a block apart and 11 fish, the watcher
+     * stepping up to the glass and back. Before the dash, 0.5-10% of startles found cover in
+     * reach. Every bound holds through the dashes, with the dash's own speed cap.
+     */
+    @Test
+    void dashesReachCoverInATwoStoreyTank() {
+        Tunables t = Tunables.GROUP;
+        for (long seed : new long[]{12345L, -987654321L}) {
+            VoxelDomain domain = Scenarios.domain("5x2x1+logpair");
+            FlockEngine engine = skittishTank(domain, 11, seed);
+            Metrics m = new Metrics(engine, t, 200);
+            int n = engine.count();
+            int[] prev = new int[n];
+            boolean[] dashing = new boolean[n];
+            int fired = 0, dashes = 0, covered = 0;
+            float[] refractory = new float[n];
+            float at = 3.5f;
+            for (int tick = 0; tick < 12_000; tick++) {
+                at = walk(at, (tick / 200) % 2 == 1 ? 1.1f : 3.5f);
+                engine.setWatcher(true, domain.maxLateral() + at, 0f, 0f);
+                for (int i = 0; i < n; i++) refractory[i] = engine.startleRefractory(i);
+                engine.step();
+                m.sample();
+                for (int i = 0; i < n; i++) {
+                    int st = engine.shelterState(i);
+                    if (engine.startleRefractory(i) > refractory[i]) fired++;
+                    if (st != FlockEngine.SHELTER_ROAMING && prev[i] == FlockEngine.SHELTER_ROAMING && engine.startled(i)) {
+                        dashes++;
+                        dashing[i] = true;
+                    }
+                    if (dashing[i] && st == FlockEngine.SHELTER_INSIDE) {
+                        covered++;
+                        dashing[i] = false;
+                    } else if (dashing[i] && st == FlockEngine.SHELTER_ROAMING) {
+                        dashing[i] = false;
+                    }
+                    prev[i] = st;
+                }
+            }
+            String what = "seed " + seed + ": " + fired + " startles, " + dashes + " dashes, " + covered + " reached cover";
+            System.out.println("dashesReachCoverInATwoStoreyTank " + what);
+            assertTrue(dashes > 0 && covered >= 0.6f * dashes, what);
+            assertEquals(0, m.hardClampContacts(), "hard backstop engagements, " + what);
+            float dashCeiling = FlockEngine.STARTLE_DASH_SPEED * (1f + t.traitJitter());
+            assertTrue(m.maxObservedSpeed() <= dashCeiling * 1.001f, "speed " + m.maxObservedSpeed());
+            assertTrue(m.maxObservedAccel() <= t.maxForce() * 1.10f, "accel " + m.maxObservedAccel());
+            assertTrue(m.maxObservedJerk() <= 12f, "jerk " + m.maxObservedJerk());
+        }
+    }
+
+    /**
+     * Places in cover go nearest first (§5.3): on a lunge, every fish that dashes is at least as
+     * near its cover as every startled fish that doesn't. Index order used to decide it, so a fish
+     * across the tank could take the place of one at the mouth.
+     */
+    @Test
+    void placesInCoverGoNearestFirst() {
+        for (long seed : new long[]{21L, 22L, 23L, 24L}) {
+            VoxelDomain domain = Scenarios.domain(DOMAIN);
+            FlockEngine engine = skittishTank(domain, 10, seed);
+            far(engine);
+            for (int t = 0; t < 200; t++) engine.step();
+            Shelter.Mouth mouth = domain.shelters().get(0).mouths().get(0);
+            int n = engine.count();
+            float[] toCover = new float[n];
+            for (int i = 0; i < n; i++) {
+                float stage = engine.lengths[i] + 0.02f;
+                float dl = engine.posL()[i] - (mouth.centerL() - mouth.normalL() * stage);
+                float dy = engine.posY()[i] - (mouth.centerY() - mouth.normalY() * stage);
+                float dd = engine.posD()[i] - (mouth.centerD() - mouth.normalD() * stage);
+                toCover[i] = (float) Math.sqrt(dl * dl + dy * dy + dd * dd);
+            }
+            near(engine);
+            engine.step();
+            float farthestDash = -1f, nearestMiss = Float.MAX_VALUE;
+            for (int i = 0; i < n; i++) {
+                if (engine.startleRefractory(i) <= 0f) continue; // not lunged at this tick
+                if (engine.startled(i) && engine.shelterState(i) != FlockEngine.SHELTER_ROAMING) {
+                    farthestDash = Math.max(farthestDash, toCover[i]);
+                } else {
+                    nearestMiss = Math.min(nearestMiss, toCover[i]);
+                }
+            }
+            assertTrue(farthestDash >= 0f, "seed " + seed + ": nobody dashed");
+            assertTrue(farthestDash <= nearestMiss + 1e-4f,
+                    "seed " + seed + ": a fish " + farthestDash + " from cover dashed, one " + nearestMiss + " from it didn't");
+        }
+    }
+
+    /**
+     * A fish lunged at that gets no place in cover flinches (§5.3.2): it darts away from the
+     * watcher, then settles back to cruising speed. None of them simply ignores the lunge.
+     */
+    @Test
+    void theRestFlinchAwayAndSettle() {
+        Tunables t = Tunables.GROUP;
+        VoxelDomain domain = Scenarios.domain(DOMAIN);
+        FlockEngine engine = skittishTank(domain, 10, 31L);
+        far(engine);
+        for (int tick = 0; tick < 200; tick++) engine.step();
+        engine.setWatcher(true, domain.maxLateral() + 1.0f, 0f, 0f);
+        engine.step();
+        int n = engine.count();
+        boolean[] flinched = new boolean[n];
+        int lunged = 0, flinchers = 0;
+        for (int i = 0; i < n; i++) {
+            if (engine.startleRefractory(i) <= 0f) continue;
+            lunged++;
+            boolean hid = engine.startled(i) && engine.shelterState(i) != FlockEngine.SHELTER_ROAMING;
+            assertTrue(hid || engine.flinching(i), "fish " + i + " was lunged at and neither hid nor flinched");
+            if (engine.flinching(i)) {
+                flinched[i] = true;
+                flinchers++;
+            }
+        }
+        assertTrue(lunged >= 5 && flinchers >= 3, lunged + " lunged at, " + flinchers + " flinched");
+        // By the end of the flinch, most flinchers are farther from the watcher than they were.
+        // Not all: one beside the log's mouth, with the log between it and straight away, darts
+        // along the glass instead, and may have been swimming toward the watcher when it started.
+        float wl = domain.maxLateral() + 1.0f;
+        float[] before = new float[n];
+        for (int i = 0; i < n; i++) before[i] = Math.abs(wl - engine.posL()[i]);
+        for (int tick = 0; tick < 32; tick++) engine.step();
+        int away = 0;
+        for (int i = 0; i < n; i++) if (flinched[i] && Math.abs(wl - engine.posL()[i]) > before[i]) away++;
+        assertTrue(away >= 0.75f * flinchers, "only " + away + " of " + flinchers + " flinchers ended farther from the watcher");
+        // Five seconds on, nobody is still flinching or faster than an ordinary cruiser.
+        for (int tick = 0; tick < 78; tick++) engine.step();
+        float ceiling = t.maxSpeed() * (1f + t.traitJitter()) * 1.001f;
+        for (int i = 0; i < n; i++) {
+            if (!flinched[i]) continue;
+            assertFalse(engine.flinching(i), "fish " + i + " still flinching");
+            float v = (float) Math.sqrt(engine.velL()[i] * engine.velL()[i] + engine.velY()[i] * engine.velY()[i]
+                    + engine.velD()[i] * engine.velD()[i]);
+            assertTrue(v <= ceiling, "fish " + i + " still at " + v + " after its flinch");
+        }
+        assertEquals(0, engine.backstopEngagements());
+    }
+
+    /** One tick of a player walking (4.3 blocks/s) from {@code at} toward {@code target}. */
+    private static float walk(float at, float target) {
+        float step = 4.3f * 0.05f;
+        return at + Math.max(-step, Math.min(step, target - at));
     }
 
     @Test

@@ -202,12 +202,73 @@ three rounds on the garden eels:
 1. **Spontaneous visit** (`visitor`, `skittish`). A per-fish Poisson clock at a low mean rate
    (start with one visit every ~40 s, jittered ±35% off the seed like every other per-fish
    constant), which fires only while `ROAMING` and outside the cooldown.
-2. **Startle** (`skittish` only). The watcher *arriving* within 3 blocks of the fish, using the
-   eels' exact arming rule: armed only by positive evidence that the watcher left (present and
-   beyond 1.5× the radius), and starting unarmed. A startled fish uses `APPROACH` with burst speed
-   and a short timeout. If no shelter fits or has room, it does nothing new: the startle is a
-   reason to hide, not a new scatter behaviour.
+2. **Startle** (`skittish` only). The watcher *lunging*: within 3 blocks of the fish and at least
+   0.5 blocks closer to it than a second ago. Afterwards the fish can't be startled again for 15 s.
+   A startled fish **dashes** for any fitting shelter whose staging point is within 1.5 blocks
+   (§5.3.1). One that gets no place **flinches** instead (§5.3.2).
+
+   All of a tick's startles are resolved together, before anyone steps, and places in cover go
+   **nearest first**: every fish that dashes is at least as near its cover as every startled fish
+   that doesn't. The first version went in index order, so a fish across the tank could take the
+   place of one at the mouth.
+
+   *Revised 2026-10-02, after the in-game look* ("I can only very rarely get the neon tetras to
+   dart into the spot"). The first version used the eels' arming rule (armed only by seeing the
+   watcher beyond 4.5 blocks) and a reach of 2 s at 1.8× patrol, about 0.25 blocks. Measured in
+   the owner's 5×2×1 with two logs: a watcher who stays by the tank, stepping up to the glass and
+   back, never re-armed anything, and of the startles that did fire, only 0.5–10% had cover in
+   reach, since in a two-storey tank most fish are a block or more from a floor log. A watcher
+   standing still, or already there when the tank loads, is still not moving, so it still startles
+   nobody.
 3. **Home** (`lurker` only). See §5.5.
+
+#### 5.3.1 The dash
+
+A startled fish is the one fast mover in the tank. It dashes at 0.40 blocks/s (twice the ordinary
+speed cap, scaled by its own patrol jitter) with its own speed cap while dashing, and its tail
+beats faster to match. It plans its arrival, slowing at 0.3 blocks/s² so it reaches the staging
+point at its entry speed (1.8× patrol) rather than at full dash. A block-scale dive peaks at about
+0.30, because it has to start slowing before it reaches full speed. The approach climbs over a hull in its way in
+proportion to the height still to climb. All-or-nothing climbing chattered at ±maxForce at dash
+speed.
+
+In shelter domains, the whole tick's change of velocity is held to maxForce, not just the
+steering's. Vertical damping and the speed cap act after the force clamp. On a dash they added
+up to 0.65 against 0.5, and a dash ending would halve the cap in one tick. Held, the end of a dash
+is a slow-down over a second or so. Shelter-less domains run none of this, so the goldens hold.
+
+Measured in the 5×2×1 with two logs, 11 fish and a watcher stepping up to the glass and back
+for ten minutes: every dash reached cover (47 of 47, 50 of 50 over two seeds). Of the startles
+that didn't dash, 101 of 113 found the hidden budget (2 of 11) spent. The budget is now the limit,
+not reach.
+
+Two smoothness fixes came with it. The climb over a hull in the way fades in and out over a
+quarter second, remembering the height to clear. Switched on and off, it wiped out a dash's
+0.3 blocks/s descent in one tick when the line to the staging point began grazing the hull's
+corner, and gave it back when the fish cleared the far edge (jerk 14.3 against 12). And for 2 s
+after a dash or flinch ends, a fish over its ordinary speed cap is only kept from speeding up,
+while steering slows it. Clamping it straight down measured 12.9.
+
+#### 5.3.2 The flinch
+
+*Added 2026-10-02 at the owner's request; this closes open question 3.* A skittish fish that is
+lunged at but gets no place in cover (the hidden budget is spent, or no shelter it fits has room)
+darts away from the watcher and settles. Without it, a lunge at a shoal of eleven sent two into
+the log and left nine acting as if nothing had happened.
+
+- **Direction:** horizontal, straight away from the watcher, turned by up to ±35° per fish so the
+  shoal fans out rather than moving as one. If a hull lies in the next 0.5 blocks, the direction
+  turns further, in steps of 30°, up to a quarter turn off straight away. With nothing clear, the fish
+  doesn't flinch. At flinch speed the hull's soft avoidance, tuned for cruising, let a fish dart
+  straight into the log.
+- **Shape:** 1.6 s, up to 0.35 blocks/s (under the dash's 0.40), reaching full strength in the
+  first 10% and fading over the last half. Height stays the shoal's, and walls still apply.
+- **While flinching**, a fish's visit clock and cooldown wait. It has its own speed cap, and the
+  settle above brings it back down.
+
+`ShelterStartleTest` holds it: every fish lunged at either hides or flinches, at least 75% end
+the flinch farther from the watcher (one beside a log's mouth may have to dart along the glass),
+and five seconds on none is flinching or faster than a cruiser.
 
 The chosen shelter is the **nearest one that fits and has room**, measured to its staging point.
 The choice is made once on entering `APPROACH` and never re-scored, because a fish that keeps
@@ -224,7 +285,8 @@ changing its mind reads as indecisive, not alive.
   `INSIDE` at once, counting lurkers resting in a mouth as visible. A trigger that would exceed it
   simply doesn't fire. This is the tank-wide guarantee that a well-stocked tank never empties into
   its caves, whatever the stocking.
-- **Approach timeout:** `APPROACH` gives up after 6 s (2 s for a startle) and goes to cooldown.
+- **Approach timeout:** `APPROACH` gives up after 6 s (also 6 s for a startle's dash of up to
+  1.5 blocks) and goes to cooldown.
   This is what makes "no pathfinding" safe. A fish behind the L-bend of a group, a mouth facing the
   glass, or a mouth blocked by another cosmetic all end the same way: a short purposeful swim
   toward the shelter, then back to normal. A mouth whose staging point is outside the domain or
@@ -365,10 +427,9 @@ walk up, the bichir in its cave, and the edge-on entry (§5.6).
    implementation plan doc, not here.
 2. **The starting cast** in §3.3 is a first pass from the hobby's reputation for each fish. It's an
    authoring call, not an engine one.
-3. **Should a startled fish that finds no room do something visible anyway**, such as a short dart
-   away from the watcher? The spec says no, keeping the startle strictly a reason to hide. A
-   general startle is Tier 3 in [`fish-swarm-realism.md`](fish-swarm-realism.md) and deserves its own
-   design.
+3. ~~**Should a startled fish that finds no room do something visible anyway?**~~ **Decided
+   (2026-10-02): yes, it flinches** (§5.3.2). A general startle, for every species and not only
+   skittish ones near a shelter, is still Tier 3 in [`fish-swarm-realism.md`](fish-swarm-realism.md).
 4. **Day/night.** The black ghost knifefish hides by day and roams at night. The engine has no
    light signal, and adding one is out of scope here. Worth noting for after.
 5. **Quests.** A `tank_snapshot` objective such as "a fish living in a den" would reward building
