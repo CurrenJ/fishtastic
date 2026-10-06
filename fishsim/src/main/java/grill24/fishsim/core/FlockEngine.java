@@ -888,6 +888,12 @@ public final class FlockEngine {
     private boolean shelterSim;
     /** Some fish is in a shelter — only then do neighbour scans filter by shelter. */
     private boolean anyInShelter;
+    /**
+     * The domain holds a shelter a fish visits on show (an {@link Shelter.Kind#OPEN} or a
+     * {@link Shelter.Kind#GATE}), which every swimmer may use — so only then does a fish that never
+     * hides run the visit clock. Without one, such a fish takes exactly the code it always did.
+     */
+    private boolean anyVisibleShelter;
     private final float[] shelterSteer = new float[3];
 
     // A gap between a hull and the edge of the swimmable water narrower than the wall margin is
@@ -906,6 +912,7 @@ public final class FlockEngine {
      */
     private record AvoidHull(Shelter.OrientedBox box, int closedFaces) {}
 
+    /** Per shelter; null for a {@link Shelter.Kind#GATE}, which has no hull (its posts are obstacles). */
     private AvoidHull[] avoidHulls = new AvoidHull[0];
     /** The shelter list {@link #avoidHulls} was built from; a domain swaps the list when shelters change. */
     private List<Shelter> avoidHullsSource;
@@ -1694,7 +1701,7 @@ public final class FlockEngine {
     private void addHullAvoidance(int i, List<Shelter> shelters, float[] out) {
         refreshAvoidHulls(shelters);
         for (int s = 0; s < avoidHulls.length; s++) {
-            if (s == shelterUsing(i)) continue;
+            if (s == shelterUsing(i) || avoidHulls[s] == null) continue;
             float dist = hullDistance(avoidHulls[s], posL[i], posY[i], posD[i], hullGrad);
             if (dist >= HULL_MARGIN) continue;
             float w = Math.min((HULL_MARGIN - dist) / HULL_MARGIN, HULL_MAX_WEIGHT);
@@ -1712,7 +1719,12 @@ public final class FlockEngine {
         avoidHullsDomain = domain;
         avoidHullsGap = t.wallMargin();
         avoidHulls = new AvoidHull[shelters.size()];
-        for (int s = 0; s < avoidHulls.length; s++) avoidHulls[s] = closeGaps(shelters.get(s).hull(), avoidHullsGap);
+        anyVisibleShelter = false;
+        for (int s = 0; s < avoidHulls.length; s++) {
+            Shelter shelter = shelters.get(s);
+            avoidHulls[s] = shelter.kind() == Shelter.Kind.GATE ? null : closeGaps(shelter.hull(), avoidHullsGap);
+            anyVisibleShelter |= !shelter.kind().hides();
+        }
 
         shelterUsable = new boolean[shelters.size()];
         mouthUsable = new boolean[shelters.size()][];
@@ -1720,10 +1732,16 @@ public final class FlockEngine {
         float[] corner = new float[3];
         for (int s = 0; s < shelters.size(); s++) {
             Shelter shelter = shelters.get(s);
-            boolean usable = true;
+            // Judged on the part of the interior in the water: a gate's opening starts at the sand,
+            // a little below the swim volume's floor, and a fish's centre is never down there anyway.
+            Shelter.OrientedBox interior = shelter.interior();
+            // (Just inside the floor and lid: a voxel domain's surface itself is not in it.)
+            float bottom = Math.max(interior.centerY() - interior.halfY(), domain.minVertical() + 1e-3f);
+            float top = Math.min(interior.centerY() + interior.halfY(), domain.maxVertical() - 1e-3f);
+            boolean usable = top > bottom;
             for (int c = 0; c < 8 && usable; c++) {
-                shelter.interior().corner(c, corner);
-                usable = domain.contains(corner[0], corner[1], corner[2]);
+                interior.corner(c, corner);
+                usable = domain.contains(corner[0], SimMath.clamp(corner[1], bottom, top), corner[2]);
             }
             shelterUsable[s] = usable;
             mouthUsable[s] = new boolean[shelter.mouths().size()];
@@ -1772,7 +1790,8 @@ public final class FlockEngine {
             if (locomotion[i] != Locomotion.FREE_SWIM || shelterUsing(i) >= 0) continue;
             for (int s = 0; s < shelters.size(); s++) {
                 Shelter shelter = shelters.get(s);
-                if (!shelter.hull().contains(posL[i], posY[i], posD[i])) continue;
+                // A gate's opening is open water: a fish there was never inside anything.
+                if (shelter.kind() == Shelter.Kind.GATE || !shelter.hull().contains(posL[i], posY[i], posD[i])) continue;
                 if (!shelterUsable[s]) break; // nowhere to leave by: the hull's push takes it out
                 shelterState[i] = SHELTER_INSIDE;
                 shelterIndex[i] = s;
@@ -1810,7 +1829,8 @@ public final class FlockEngine {
             int st = shelterState[i];
             boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
             if (st == SHELTER_APPROACH || st == SHELTER_ENTER || st == SHELTER_INSIDE) {
-                pendingHidden++;
+                // A fish on show in an open shelter or a gate is not hidden.
+                if (hides(shelterIndex[i])) pendingHidden++;
                 // A lurker's own home costs everyone else one place for good (claimedBy, below),
                 // so its comings and goings never take a second one.
                 if (shelterIndex[i] >= 0 && !home) shelterReserved[shelterIndex[i]]++;
@@ -1859,6 +1879,8 @@ public final class FlockEngine {
     private boolean lurkerFits(int i, int s) {
         Shelter shelter = avoidHullsSource.get(s);
         float len = lengths[i];
+        // A home is somewhere to hide: never a gate, nor the open floor of a gazebo.
+        if (shelter.kind() != Shelter.Kind.HOLLOW) return false;
         if (!shelterUsable[s] || LURKER_LENGTH_SHARE * len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) return false;
         return homeMouth(i, s) >= 0;
     }
@@ -1876,7 +1898,7 @@ public final class FlockEngine {
             float sl = mouth.centerL() - mouth.normalL() * stage;
             float sy = mouth.centerY() - mouth.normalY() * stage;
             float sd = mouth.centerD() - mouth.normalD() * stage;
-            if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
+            if (!stagingReachable(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
             float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
             float d2 = dl * dl + dy * dy + dd * dd;
             if (d2 < bestD2) {
@@ -1897,15 +1919,31 @@ public final class FlockEngine {
     private int throughMouth(int i) {
         int s = shelterIndex[i];
         if (shelterClaim[i] >= 0 && s == shelterClaim[i]) return -1;
+        return throughMouth(i, s, shelterMouth[i]);
+    }
+
+    /**
+     * {@link #throughMouth(int)} for fish #{@code i} coming into shelter {@code s} by mouth
+     * {@code entry}. The far mouth must be one the fish could leave by to open water, by the same
+     * tests an entry is held to: a staging point in the water and outside every hull, and a clear
+     * corridor to it. Without the first two, a pipe whose far end faced the glass closely sent its
+     * visitors out against the glass, where EXIT could never finish: measured in a 3x2x2, fish
+     * pinned there in EXIT for up to 150 s, 114 of 240 thirty-second windows stalled.
+     */
+    private int throughMouth(int i, int s, int entry) {
         List<Shelter.Mouth> mouths = avoidHullsSource.get(s).mouths();
-        Shelter.Mouth in = mouths.get(shelterMouth[i]);
+        Shelter.Mouth in = mouths.get(entry);
+        float stage = lengths[i] + STAGING_CLEARANCE;
         int best = -1;
         float bestCos = THROUGH_MAX_COS;
         for (int m = 0; m < mouths.size(); m++) {
-            if (m == shelterMouth[i] || !mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
+            if (m == entry || !mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
             Shelter.Mouth out = mouths.get(m);
             if (MOUTH_HEIGHT_RATIO * lengths[i] > 2f * out.halfSize()) continue;
-            if (corridorBlocked(out, lengths[i] + STAGING_CLEARANCE)) continue;
+            float sl = out.centerL() - out.normalL() * stage;
+            float sy = out.centerY() - out.normalY() * stage;
+            float sd = out.centerD() - out.normalD() * stage;
+            if (!stagingReachable(sl, sy, sd) || corridorBlocked(out, stage)) continue;
             float cos = in.normalL() * out.normalL() + in.normalY() * out.normalY() + in.normalD() * out.normalD();
             if (cos < bestCos) {
                 bestCos = cos;
@@ -1913,6 +1951,17 @@ public final class FlockEngine {
             }
         }
         return best;
+    }
+
+    /**
+     * Whether a fish can get to a staging point at all: in the water, outside every hull, and no
+     * nearer the glass than {@link #VISIT_WALL_MARGIN} — inside it, the wall's push holds a fish
+     * off the point however it steers. Measured: a fish leaving a fence arch in a lone tank, its
+     * staging point 0.004 inside the water, was held 0.09 short of it in EXIT for the rest of the
+     * run.
+     */
+    private boolean stagingReachable(float l, float y, float d) {
+        return domain.contains(l, y, d) && domain.wallDistance(l, y, d) >= VISIT_WALL_MARGIN && !insideAnyHull(l, y, d);
     }
 
     /** How nearly opposite a far mouth must face to be passed through to: within ~60° of it. */
@@ -1965,6 +2014,7 @@ public final class FlockEngine {
     private float hullTopInTheWay(float aL, float aY, float aD, float bL, float bY, float bD) {
         float clear = Float.NEGATIVE_INFINITY;
         for (AvoidHull hull : avoidHulls) {
+            if (hull == null) continue;
             Shelter.OrientedBox box = hull.box();
             if (segmentEntry(box, HULL_MARGIN * 0.5f, aL, aY, aD, bL, bY, bD) > 0f) {
                 clear = Math.max(clear, box.centerY() + box.halfY() + HULL_MARGIN);
@@ -2070,7 +2120,8 @@ public final class FlockEngine {
                     shelterTimer[i] = Math.max(0f, shelterTimer[i] - dt);
                     return;
                 }
-                if (shelterUse[i] == ShelterUse.NONE) return;
+                // A fish that never hides still visits what is on show: a gazebo's floor, a gate.
+                if (shelterUse[i] == ShelterUse.NONE && !anyVisibleShelter) return;
                 // A Poisson clock: an event, not a state — it fires at a moment, and never because
                 // a fish happens to be somewhere. An urge with no shelter in reach waits a while
                 // for one to come into reach, then lapses.
@@ -2100,7 +2151,15 @@ public final class FlockEngine {
                 shelterTimer[i] += dt;
                 Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
                 shelterBlend[i] = 1f;
-                if (shelter.interior().contains(posL[i], posY[i], posD[i])
+                int through;
+                if (shelter.kind() == Shelter.Kind.GATE && shelter.interior().contains(posL[i], posY[i], posD[i])
+                        && (through = throughMouth(i)) >= 0) {
+                    // A gate is swum through without stopping (§12.4): in at one side, straight on
+                    // out of the other.
+                    shelterState[i] = SHELTER_EXIT;
+                    shelterTimer[i] = 0f;
+                    shelterMouth[i] = through;
+                } else if (shelter.interior().contains(posL[i], posY[i], posD[i])
                         && shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) {
                     shelterState[i] = SHELTER_INSIDE;
                     shelterTimer[i] = 0f; // ≥ 0: still going in to turn round
@@ -2157,7 +2216,11 @@ public final class FlockEngine {
                 float out = -((posL[i] - mouth.centerL()) * mouth.normalL()
                         + (posY[i] - mouth.centerY()) * mouth.normalY()
                         + (posD[i] - mouth.centerD()) * mouth.normalD());
-                if (out >= lengths[i] + STAGING_CLEARANCE) {
+                // Out to the staging point; or, if that is taking far longer than the swim should, out
+                // of the mouth by half a body at least, which is clear of the shelter — so nothing
+                // that holds a fish short of the point (a neighbour, the glass) can hold it here.
+                boolean overdue = shelterTimer[i] >= exitTimeoutSeconds(i, p) && out >= 0.5f * lengths[i];
+                if (out >= lengths[i] + STAGING_CLEARANCE || overdue) {
                     float speed = p.patrolSpeed() * patrolScale[i] * EXIT_SPEED;
                     exitVelL[i] = -mouth.normalL() * speed;
                     exitVelY[i] = -mouth.normalY() * speed;
@@ -2192,6 +2255,16 @@ public final class FlockEngine {
         if (nh < 1e-4f) return false;
         float yr = (float) Math.toRadians(yawDeg[i]);
         return ((float) Math.cos(yr) * nL - (float) Math.sin(yr) * nD) / nh >= ENTER_ALIGN_COS;
+    }
+
+    /**
+     * How long an exit may take before it is let off reaching the staging point: from the far side
+     * of the interior out to it, with the same slack as an entry.
+     */
+    private float exitTimeoutSeconds(int i, Tunables p) {
+        float distance = 2f * avoidHullsSource.get(shelterIndex[i]).interiorRun() + lengths[i] + STAGING_CLEARANCE;
+        return distance / (p.patrolSpeed() * patrolScale[i] * EXIT_SPEED) * ENTER_TIMEOUT_FACTOR
+                + ENTER_TIMEOUT_SLACK_SECONDS;
     }
 
     /** How long an entry may take before it turns back: from the staging point in, with slack. */
@@ -2252,8 +2325,8 @@ public final class FlockEngine {
      * the hidden budget is spent.
      */
     private void tryStartApproach(int i, Tunables p, boolean startle) {
-        if (pendingHidden >= hiddenBudget) return;
-        if (!findCover(i, p, startle)) return;
+        // A full hidden budget closes the hollows only: a gate or an open shelter hides nobody.
+        if (!findCover(i, p, startle, pendingHidden < hiddenBudget)) return;
         climbBlend[i] = 0f;
         visitUrge[i] = 0f;
         startled[i] = startle;
@@ -2262,8 +2335,45 @@ public final class FlockEngine {
         shelterMouth[i] = coverM;
         shelterTimer[i] = 0f;
         shelterReserved[coverS]++;
-        pendingHidden++;
+        if (hides(coverS)) pendingHidden++;
     }
+
+    /** Whether shelter {@code s} is one a fish in it is hidden in — false for −1. */
+    private boolean hides(int s) {
+        return s >= 0 && avoidHullsSource.get(s).kind().hides();
+    }
+
+    /**
+     * The shelter whose walls stand between fish #{@code i} and the rest of the tank — the hollow
+     * it is in — or −1. A fish in a gate or on a gazebo's open floor is in plain water and still
+     * keeps apart from the fish round it.
+     */
+    private int behindWalls(int i) {
+        int s = shelterUsing(i);
+        return hides(s) ? s : -1;
+    }
+
+    /**
+     * Whether fish #{@code i} is already heading through {@code mouth} (§12.4: gates are taken in
+     * the direction of travel): outside it, its heading within {@link #GATE_HEADING_COS} of the
+     * way in, and the mouth itself within as much of its heading. So taking a gate never needs a
+     * turn, and a fish never U-turns to go through an arch.
+     */
+    private boolean headingThrough(int i, Shelter.Mouth mouth) {
+        float nL = mouth.normalL(), nD = mouth.normalD();
+        float nh = (float) Math.sqrt(nL * nL + nD * nD);
+        if (nh < 1e-4f) return false;
+        float yr = (float) Math.toRadians(yawDeg[i]);
+        float hL = (float) Math.cos(yr), hD = -(float) Math.sin(yr);
+        if ((hL * nL + hD * nD) / nh < GATE_HEADING_COS) return false;
+        float tL = mouth.centerL() - posL[i], tD = mouth.centerD() - posD[i];
+        float dist = (float) Math.sqrt(tL * tL + tD * tD);
+        if (tL * nL + tD * nD <= 0f) return false; // already level with the mouth, or past it
+        return (hL * tL + hD * tD) / dist >= GATE_HEADING_COS;
+    }
+
+    /** A gate is taken only with the heading within 45° of straight through (§12.4). */
+    static final float GATE_HEADING_COS = 0.70710677f;
 
     /** {@link #findCover}'s answer: the shelter and mouth, and the squared distance to its staging point. */
     private int coverS, coverM;
@@ -2271,9 +2381,13 @@ public final class FlockEngine {
 
     /**
      * The nearest shelter mouth fish #{@code i} fits, with room, within its reach, into
-     * {@link #coverS}, {@link #coverM} and {@link #coverD2}. False if there is none.
+     * {@link #coverS}, {@link #coverM} and {@link #coverD2}. False if there is none. A startle
+     * looks for cover, so hollows only; a fish that never hides looks only at what is on show; a
+     * gate is offered only to a fish already heading through it ({@link #headingThrough}).
+     *
+     * @param hollows whether a hollow may be chosen — false once the hidden budget is spent
      */
-    private boolean findCover(int i, Tunables p, boolean startle) {
+    private boolean findCover(int i, Tunables p, boolean startle, boolean hollows) {
         float len = lengths[i];
         float stage = len + STAGING_CLEARANCE;
         int bestS = -1, bestM = -1;
@@ -2282,19 +2396,24 @@ public final class FlockEngine {
         List<Shelter> shelters = avoidHullsSource;
         for (int s = 0; s < shelters.size(); s++) {
             Shelter shelter = shelters.get(s);
+            Shelter.Kind kind = shelter.kind();
+            if (kind.hides() ? !hollows || shelterUse[i] == ShelterUse.NONE : startle) continue;
             int room = shelter.capacity() - (claimedBy[s] >= 0 && claimedBy[s] != i ? 1 : 0);
             if (!shelterUsable[s] || shelterReserved[s] >= room) continue;
-            if (len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
+            // A gate is passed through, never stayed in, so its depth asks nothing of a fish's length.
+            if (kind != Shelter.Kind.GATE && len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
             for (int m = 0; m < shelter.mouths().size(); m++) {
                 if (!mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
                 Shelter.Mouth mouth = shelter.mouths().get(m);
                 if (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize()) continue;
+                // A gate is offered only with a way out the far side: never a doorway to back out of.
+                if (kind == Shelter.Kind.GATE && (!headingThrough(i, mouth) || throughMouth(i, s, m) < 0)) continue;
                 float sl = mouth.centerL() - mouth.normalL() * stage;
                 float sy = mouth.centerY() - mouth.normalY() * stage;
                 float sd = mouth.centerD() - mouth.normalD() * stage;
                 // A staging point outside the water or inside a hull is a mouth this fish cannot
                 // line up on — a log nosed against the glass, or two shelters mouth to mouth.
-                if (!domain.contains(sl, sy, sd) || insideAnyHull(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
+                if (!stagingReachable(sl, sy, sd) || corridorBlocked(mouth, stage)) continue;
                 float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
                 float d2 = dl * dl + dy * dy + dd * dd;
                 if (d2 < bestD2) {
@@ -2324,7 +2443,7 @@ public final class FlockEngine {
             flinchTimer[i] = Math.max(0f, flinchTimer[i] - dt);
             if (shelterUse[i] != ShelterUse.SKITTISH || locomotion[i] != Locomotion.FREE_SWIM) continue;
             if (shelterState[i] != SHELTER_ROAMING || startleRefractory[i] > 0f || !watcherLunged(i)) continue;
-            startleCoverD2[i] = findCover(i, t, true) ? coverD2 : Float.POSITIVE_INFINITY;
+            startleCoverD2[i] = findCover(i, t, true, true) ? coverD2 : Float.POSITIVE_INFINITY;
             // Insertion by distance, then index: a few fish a tick, and deterministic.
             int k = n++;
             while (k > 0 && (startleCoverD2[startleOrder[k - 1]] > startleCoverD2[i]
@@ -2360,6 +2479,8 @@ public final class FlockEngine {
             if (v == i || shelterState[v] != SHELTER_APPROACH || startled[v]) continue;
             int s = shelterIndex[v];
             if (shelterClaim[v] >= 0 && s == shelterClaim[v]) continue;
+            // One on its way through a gate or onto a gazebo's floor holds no place in cover.
+            if (!hides(s)) continue;
             Shelter.Mouth mouth = chosenMouth(v);
             float stage = lengths[v] + STAGING_CLEARANCE;
             float dl = posL[v] - (mouth.centerL() - mouth.normalL() * stage);
@@ -2460,10 +2581,12 @@ public final class FlockEngine {
                 // A startled fish dashes, planning its arrival so it reaches the staging point at
                 // its entry speed: the fastest speed from which STARTLE_BRAKE stops it in time.
                 boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
+                // A gate is on the fish's way already: it carries on at its own pace, no hurry.
+                boolean onItsWay = home || shelter.kind() == Shelter.Kind.GATE;
                 float dash = startled[i]
                         ? Math.min(STARTLE_DASH_SPEED * patrolScale[i],
                                 axisSpeed + (float) Math.sqrt(2f * STARTLE_BRAKE * dist))
-                        : home ? patrol
+                        : onItsWay ? patrol
                         : Math.min(patrol * VISIT_APPROACH_SPEED,
                                 axisSpeed + (float) Math.sqrt(2f * VISIT_BRAKE * dist));
                 float seek = dist > 1e-5f ? dash / dist : 0f;
@@ -2718,7 +2841,7 @@ public final class FlockEngine {
         if (!shelters.isEmpty()) {
             refreshAvoidHulls(shelters);
             for (AvoidHull hull : avoidHulls) {
-                if (hull.box().contains(l, y, d)) return true;
+                if (hull != null && hull.box().contains(l, y, d)) return true;
             }
         }
         List<Shelter.OrientedBox> obstacles = domain.obstacles();
@@ -3051,7 +3174,7 @@ public final class FlockEngine {
             if (j == i) continue;
             // A fish in a shelter and one outside it do not see each other — there is a wall
             // between them; fish sharing a shelter still keep apart in it.
-            if (anyInShelter && shelterUsing(j) != shelterUsing(i)) continue;
+            if (anyInShelter && behindWalls(j) != behindWalls(i)) continue;
             float radius = species[i] == species[j] ? p.separationRadius() : p.separationRadiusOther();
             float radius2 = species[i] == species[j] ? p.separationRadius2() : p.separationRadiusOther2();
             float dx = posL[i] - posL[j], dy = posY[i] - posY[j], dz = posD[i] - posD[j];
@@ -3577,7 +3700,7 @@ public final class FlockEngine {
         for (int c = 0; c < scanned; c++) {
             int j = cand != null ? cand[c] : c;
             if (j == i || !swimmers[j]) continue;
-            if (anyInShelter && shelterUsing(j) != shelterUsing(i)) continue; // see the separation scan
+            if (anyInShelter && behindWalls(j) != behindWalls(i)) continue; // see the separation scan
             // Planar model: only shoal-mates align/cohere — each species schools with its own.
             // Never filters in the binary single-tank model (bitwise parity).
             if (planar && species[j] != species[i]) continue;

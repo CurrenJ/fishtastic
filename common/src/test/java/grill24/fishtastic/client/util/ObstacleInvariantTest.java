@@ -31,8 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code ShelterVisitTest}) hold here too. Real structures through the real derivation and frame
  * mapping, not synthetic boxes: the shipped set is where the thin posts, overhangs and spans are.
  *
- * <p>Each floor structure stands in the middle tank of a 3×1×1 group at 6 and 12 fish, and in a
- * promoted lone tank at 6; a spanning one fills its own box. Rotations alternate with the seed.
+ * <p>Each floor structure stands in the middle tank of a 3×1×1 group at 6 and 12 fish, of a 3×2×2
+ * at 6, and in a promoted lone tank at 6; a spanning one fills its own box. Rotations alternate with the seed.
  */
 class ObstacleInvariantTest {
 
@@ -70,8 +70,8 @@ class ObstacleInvariantTest {
                 CosmeticObstacles.derive(structure, ShippedStructures.softTag()), structure.scale(), anchorX, anchorZ, rotation),
                 ox, oy, oz, 0f);
         List<Shelter> shelters = new ArrayList<>();
-        structure.shelterShape().ifPresent(shape -> shelters.add(TankShelters.toEngine(TankShelters.inBlockFrame(shape,
-                structure.shelter().get().capacityOrDefault(), structure.scale(), anchorX, anchorZ, rotation), ox, oy, oz, 0f)));
+        TankShelters.inBlockFrame(structure, anchorX, anchorZ, rotation)
+                .ifPresent(shelter -> shelters.add(TankShelters.toEngine(shelter, ox, oy, oz, 0f)));
         VoxelDomain domain = new VoxelDomain(occupancy);
         domain.rebuildShelters(shelters);
         domain.rebuildObstacles(obstacles);
@@ -98,6 +98,9 @@ class ObstacleInvariantTest {
                 configs.add(new String[]{"3x1x1", "6"});
                 configs.add(new String[]{"3x1x1", "12"});
                 configs.add(new String[]{"1x1x1", "6"});
+                // Two deep and two high, where a pass-through's far mouth faced the glass closely
+                // and pinned its visitors there in EXIT (FlockEngine.throughMouth).
+                configs.add(new String[]{"3x2x2", "6"});
             }
             for (String[] config : configs) {
                 for (int s = 0; s < SEEDS.length; s++) {

@@ -104,8 +104,8 @@ public final class Scenarios {
      * a {@link #hollowLog} on the sand, centred in the bottom-storey block nearest the grid's
      * centre (the centre itself may be outside an L), or {@code +logpair} for two of them one
      * block either side of it, a block of sand between (the owner's 5x2x1 test tank), or
-     * {@code +pipe} for a {@link #clayPipe} there, or {@code +skull} for the {@link #whaleSkull}
-     * (in a 4x2x2, the Whale Fall's own box).
+     * {@code +pipe} for a {@link #clayPipe} there, or {@code +arch} for a {@link #fenceArch}, or
+     * {@code +skull} for the {@link #whaleSkull} (in a 4x2x2, the Whale Fall's own box).
      */
     public static VoxelDomain domain(String name) {
         String[] parts = name.split("\\+");
@@ -117,8 +117,8 @@ public final class Scenarios {
                 shelters.add(whaleSkull(occupancy.length, occupancy[0].length, occupancy[0][0].length));
                 continue;
             }
-            boolean pair = parts[i].equals("logpair"), pipe = parts[i].equals("pipe");
-            if (!pair && !pipe && !parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
+            boolean pair = parts[i].equals("logpair"), pipe = parts[i].equals("pipe"), arch = parts[i].equals("arch");
+            if (!pair && !pipe && !arch && !parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
             int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
             float bestL = 0f, bestD = 0f, best = Float.MAX_VALUE;
             for (int ix = 0; ix < sx; ix++) {
@@ -132,7 +132,9 @@ public final class Scenarios {
                     }
                 }
             }
-            if (pipe) {
+            if (arch) {
+                shelters.add(fenceArch(bestL, -sy / 2f + SAND_SURFACE, bestD));
+            } else if (pipe) {
                 shelters.add(clayPipe(bestL, -sy / 2f + SAND_SURFACE, bestD));
             } else if (pair) {
                 shelters.add(hollowLog(bestL - 1f, -sy / 2f + SAND_SURFACE, bestD));
@@ -208,6 +210,31 @@ public final class Scenarios {
                 0f, 1f, 0f,
                 u, u);
         return new Shelter(hull, interior, List.of(high, low), 2, 6f * u);
+    }
+
+    /**
+     * A fence arch's opening as a {@link Shelter.Kind#GATE} (cosmetic_fence_arch_*.json): build
+     * cells of a grid cell's width (0.875 / 3), posts at x = ±1 and the opening the cell between,
+     * on the sand, open front and back, so its two mouths face along depth. Hand-placed, like
+     * {@link #clayPipe}; the posts themselves are obstacles in the game and not modelled here.
+     */
+    public static Shelter fenceArch(float centerL, float floorY, float centerD) {
+        float u = 0.875f / 3f, h = u * 0.5f;
+        Shelter.OrientedBox hull = Shelter.OrientedBox.ofBounds(
+                centerL - 3f * h, floorY, centerD - h, centerL + 3f * h, floorY + 3f * u, centerD + h);
+        Shelter.OrientedBox interior = Shelter.OrientedBox.ofBounds(
+                centerL - h, floorY, centerD - h, centerL + h, floorY + u, centerD + h);
+        Shelter.Mouth front = new Shelter.Mouth(
+                centerL, floorY + h, centerD - h,
+                0f, 0f, 1f,
+                1f, 0f, 0f,
+                h, h);
+        Shelter.Mouth back = new Shelter.Mouth(
+                centerL, floorY + h, centerD + h,
+                0f, 0f, -1f,
+                1f, 0f, 0f,
+                h, h);
+        return new Shelter(hull, interior, List.of(front, back), 1, u, Shelter.Kind.GATE);
     }
 
     /**

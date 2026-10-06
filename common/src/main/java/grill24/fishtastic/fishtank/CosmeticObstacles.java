@@ -21,7 +21,8 @@ import java.util.function.Predicate;
  *
  * <p>Pockets no fish could get into are filled, so a fish is never scattered into a sealed
  * hollow or caught in a nook it cannot find its way out of. A shelter's hull is then carved out. The shelter carries that box itself, and a fish using the
- * shelter ignores it; every part outside the hull stays solid to every fish.
+ * shelter ignores it; every part outside the hull stays solid to every fish. A gate's hull is
+ * not carved: a gate has none, so its posts stay solid and its opening stays open water.
  */
 public final class CosmeticObstacles {
 
@@ -83,7 +84,8 @@ public final class CosmeticObstacles {
         }
         ObstacleGeometry.Voxels voxels = ObstacleGeometry.fillPockets(ObstacleGeometry.rasterise(parts), clearanceVoxels(structure));
         Optional<ShelterGeometry.Shape> shelter = structure.shelterShape();
-        shelter.ifPresent(shape -> ObstacleGeometry.carve(voxels, shape.hullMin(), shape.hullMax()));
+        boolean gate = structure.shelter().map(s -> s.kind() == CosmeticStructure.ShelterKind.GATE).orElse(false);
+        if (!gate) shelter.ifPresent(shape -> ObstacleGeometry.carve(voxels, shape.hullMin(), shape.hullMax()));
         return List.copyOf(ObstacleGeometry.merge(voxels));
     }
 }

@@ -99,8 +99,7 @@ public final class TankShelters {
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
             Optional<CosmeticStructure> structure = registry.getOptional(entry.getValue().structureId());
             if (structure.isEmpty()) continue;
-            Optional<ShelterGeometry.Shape> shape = structure.get().shelterShape();
-            if (shape.isEmpty()) continue;
+            if (structure.get().shelterShape().isEmpty()) continue;
             Rotation rotation = entry.getValue().rotation();
             float anchorX, anchorZ;
             if (structure.get().span().isPresent()) {
@@ -112,10 +111,22 @@ public final class TankShelters {
                 anchorX = (float) anchor.localX();
                 anchorZ = (float) anchor.localZ();
             }
-            out.add(inBlockFrame(shape.get(), structure.get().shelter().get().capacityOrDefault(),
-                    structure.get().scale(), anchorX, anchorZ, rotation));
+            inBlockFrame(structure.get(), anchorX, anchorZ, rotation).ifPresent(out::add);
         }
         return out;
+    }
+
+    /**
+     * A structure's shelter, of its authored kind, placed in a tank's block frame (see
+     * {@link #inBlockFrame(ShelterGeometry.Shape, int, Shelter.Kind, float, float, float, Rotation)}),
+     * or empty when it has none.
+     */
+    static Optional<Shelter> inBlockFrame(CosmeticStructure structure, float anchorX, float anchorZ, Rotation rotation) {
+        Optional<ShelterGeometry.Shape> shape = structure.shelterShape();
+        if (shape.isEmpty()) return Optional.empty();
+        CosmeticStructure.ShelterSpec spec = structure.shelter().get();
+        return Optional.of(inBlockFrame(shape.get(), spec.capacityOrDefault(), engineKind(spec.kind()),
+                structure.scale(), anchorX, anchorZ, rotation));
     }
 
     /**
@@ -126,6 +137,12 @@ public final class TankShelters {
      * @param anchorX,anchorZ block-local centre of the structure's anchor cell
      */
     static Shelter inBlockFrame(ShelterGeometry.Shape shape, int capacity, float scale,
+                                float anchorX, float anchorZ, Rotation rotation) {
+        return inBlockFrame(shape, capacity, Shelter.Kind.HOLLOW, scale, anchorX, anchorZ, rotation);
+    }
+
+    /** {@link #inBlockFrame(ShelterGeometry.Shape, int, float, float, float, Rotation)}, of the given kind. */
+    static Shelter inBlockFrame(ShelterGeometry.Shape shape, int capacity, Shelter.Kind kind, float scale,
                                 float anchorX, float anchorZ, Rotation rotation) {
         Shelter.OrientedBox hull = box(shape.hullMin(), shape.hullMax(), scale, anchorX, anchorZ, rotation);
         Shelter.OrientedBox interior = box(shape.interiorMin(), shape.interiorMax(), scale, anchorX, anchorZ, rotation);
@@ -150,7 +167,16 @@ public final class TankShelters {
                     t[0], tangentY, t[1],
                     mouth.span(axisA) * 0.5f * scale, mouth.span(axisB) * 0.5f * scale));
         }
-        return new Shelter(hull, interior, mouths, capacity, shape.interiorRun() * scale);
+        return new Shelter(hull, interior, mouths, capacity, shape.interiorRun() * scale, kind);
+    }
+
+    /** The engine's name for an authored shelter kind. */
+    static Shelter.Kind engineKind(CosmeticStructure.ShelterKind kind) {
+        return switch (kind) {
+            case HOLLOW -> Shelter.Kind.HOLLOW;
+            case OPEN -> Shelter.Kind.OPEN;
+            case GATE -> Shelter.Kind.GATE;
+        };
     }
 
     /** The block-frame box covering build cells {@code min..max}, turned with the structure. */
@@ -191,7 +217,7 @@ public final class TankShelters {
                     m.halfTangent(), m.halfBitangent()));
         }
         return new Shelter(toEngine(s.hull(), ox, oy, oz, cosR, sinR), toEngine(s.interior(), ox, oy, oz, cosR, sinR),
-                mouths, s.capacity(), s.interiorRun());
+                mouths, s.capacity(), s.interiorRun(), s.kind());
     }
 
     static Shelter.OrientedBox toEngine(Shelter.OrientedBox b, float ox, float oy, float oz,
