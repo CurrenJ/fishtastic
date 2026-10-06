@@ -1,0 +1,12 @@
+{
+  "display_name": "Coral Warren",
+  "description": "A tower of living coral in a long two-storey tank, bored through by three passages that whole shoals stream through at once, for your fish tank.",
+  "cost": 80,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_coral_warren",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

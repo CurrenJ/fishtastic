@@ -70,8 +70,9 @@ class ObstacleInvariantTest {
                 CosmeticObstacles.derive(structure, ShippedStructures.softTag()), structure.scale(), anchorX, anchorZ, rotation),
                 ox, oy, oz, 0f);
         List<Shelter> shelters = new ArrayList<>();
-        TankShelters.inBlockFrame(structure, anchorX, anchorZ, rotation)
-                .ifPresent(shelter -> shelters.add(TankShelters.toEngine(shelter, ox, oy, oz, 0f)));
+        for (Shelter shelter : TankShelters.inBlockFrame(structure, anchorX, anchorZ, rotation)) {
+            shelters.add(TankShelters.toEngine(shelter, ox, oy, oz, 0f));
+        }
         VoxelDomain domain = new VoxelDomain(occupancy);
         domain.rebuildShelters(shelters);
         domain.rebuildObstacles(obstacles);

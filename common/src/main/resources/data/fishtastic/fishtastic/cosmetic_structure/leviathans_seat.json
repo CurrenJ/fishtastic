@@ -1,0 +1,4053 @@
+{
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "1",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "3",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 0,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 0,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 0,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 0,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 0,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 0,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 0,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "2",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 0,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 0,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 1,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 1,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 1,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 1,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 1,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 1,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 1,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 1,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 1,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 1,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 1,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 1,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 1,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 1,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 1,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 1,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.8571429
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 2,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 2,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 2,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 2,
+   "offsetZ": 0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": -0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": -0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.1714286
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.3428571
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8571429,
+   "offsetY": 3,
+   "offsetZ": 0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 4,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 5,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 6,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6857143,
+   "offsetY": 7,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.5142857,
+   "offsetY": 8,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 9,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 9,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:bone_block",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.3428571,
+   "offsetY": 9,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.1714286,
+   "offsetY": 10,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.6857143
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_block"
+   },
+   "offsetX": 0.0,
+   "offsetY": 10,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral_fan",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.1714286,
+   "offsetY": 10,
+   "offsetZ": -0.5142857
+  },
+  {
+   "state": {
+    "Name": "minecraft:tube_coral",
+    "Properties": {
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 11,
+   "offsetZ": -0.5142857
+  }
+ ],
+ "scale": 0.05,
+ "shelter": {
+  "kind": "open",
+  "interior": [
+   {
+    "x": -4,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "z": 2
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "z": 2
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": 4,
+    "y": 5,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": 4,
+    "y": 5,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": 4,
+    "y": 5,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": 4,
+    "y": 5,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": 4,
+    "y": 5,
+    "z": 2
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": 4,
+    "y": 6,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": 4,
+    "y": 6,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": 4,
+    "y": 6,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": 4,
+    "y": 6,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": 4,
+    "y": 6,
+    "z": 2
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": 4,
+    "y": 7,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": 4,
+    "y": 7,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": 4,
+    "y": 7,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": 4,
+    "y": 7,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": -3,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": 0,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": 1,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": 2,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": 3,
+    "y": 7,
+    "z": 2
+   },
+   {
+    "x": 4,
+    "y": 7,
+    "z": 2
+   }
+  ],
+  "capacity": 1,
+  "min_length": 0.4
+ }
+}

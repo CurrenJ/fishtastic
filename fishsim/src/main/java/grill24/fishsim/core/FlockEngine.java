@@ -1880,7 +1880,7 @@ public final class FlockEngine {
         Shelter shelter = avoidHullsSource.get(s);
         float len = lengths[i];
         // A home is somewhere to hide: never a gate, nor the open floor of a gazebo.
-        if (shelter.kind() != Shelter.Kind.HOLLOW) return false;
+        if (shelter.kind() != Shelter.Kind.HOLLOW || len < shelter.minLength()) return false;
         if (!shelterUsable[s] || LURKER_LENGTH_SHARE * len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) return false;
         return homeMouth(i, s) >= 0;
     }
@@ -2402,6 +2402,8 @@ public final class FlockEngine {
             if (!shelterUsable[s] || shelterReserved[s] >= room) continue;
             // A gate is passed through, never stayed in, so its depth asks nothing of a fish's length.
             if (kind != Shelter.Kind.GATE && len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
+            // A place kept for the big fish: the small fry pass it by.
+            if (len < shelter.minLength()) continue;
             for (int m = 0; m < shelter.mouths().size(); m++) {
                 if (!mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
                 Shelter.Mouth mouth = shelter.mouths().get(m);

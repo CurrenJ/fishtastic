@@ -1,0 +1,12 @@
+{
+  "display_name": "Drowned Cathedral",
+  "description": "A roofless gothic ruin in a very long, deep, two-storey tank where big fish sail the nave, medium fish rest in the belfry and small ones hide in the chapels, for your fish tank.",
+  "cost": 120,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_drowned_cathedral",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

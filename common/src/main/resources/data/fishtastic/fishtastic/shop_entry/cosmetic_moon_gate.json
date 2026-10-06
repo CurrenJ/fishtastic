@@ -1,0 +1,12 @@
+{
+  "display_name": "Moon Gate",
+  "description": "A round doorway in a white garden wall, blossom round its rim, wide enough for the biggest fish to sail through, for your fish tank.",
+  "cost": 40,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_moon_gate",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

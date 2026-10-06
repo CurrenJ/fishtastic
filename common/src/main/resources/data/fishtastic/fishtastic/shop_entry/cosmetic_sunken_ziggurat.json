@@ -1,0 +1,12 @@
+{
+  "display_name": "Sunken Ziggurat",
+  "description": "A stepped temple in the middle of a very long two-storey tank, a tunnel between two serpent heads through its base and a little sanctum on top, for your fish tank.",
+  "cost": 100,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_sunken_ziggurat",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

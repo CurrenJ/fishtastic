@@ -8,5 +8,6 @@
   "temperament": "fishtastic:wily",
   "moon_weights": [
     { "phase": "full_moon", "multiplier": 1.5 }
-  ]
+  ],
+  "swarm": { "shelter": "visitor" }
 }

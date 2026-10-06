@@ -118,6 +118,11 @@ per-species simulation tuning, so no new codec):
 
 **Shipped cast (Phase 5).** This differs from the first pass in four places. The discus is out: it is a tall disc, so the 0.4 height ratio in the mouth gate (§5.2) is wrong for it and it would clip through a 0.18 mouth. The lizardfish is out: at a mean of 0.47 blocks it fails the Hollow Log's mouth gate, and it's a sand-percher, not a cave fish. The glass catfish is out: it's a mid-water schooler, and ducking into a log works against how it looks. The blind cave tetra moved to `visitor`, because a blind fish shouldn't bolt from a watcher it can't see. Rainfordia (a reef goby that keeps to the rockwork) and the fire dartfish (which dives into its burrow when startled) were added. Every opted-in species uses the `horizontal_swim` pose, since shelters only take `FREE_SWIM` fish. The bridle shiner joined on 2026-10-02 for the Whale Fall's skull: at 0.14 blocks on average (0.23 at three sigma) it clears the eye sockets' 0.31 limit, and the log's too.
 
+**Big fish joined (2026-10-03, §12.9).** With dens and lairs sized for them, the ambush hunters
+became lurkers: northern pike, longnose gar, electric eel, angler fish and the lizardfish, whose
+first exclusion was the Hollow Log's mouth (the Basalt Grotto and the Capsized Galleon take it
+now). The oscar and the parrotfish became visitors. The discus stays out, for the reason above.
+
 **Considered and rejected: deriving this from `temperament`.** Temperament has suggestive names
 (`skittish`, `ambusher`, `ghost`), but it tunes the fishing minigame. Coupling the two would mean a
 minigame difficulty change silently re-tunes tank behaviour. The mapping is also wrong in places:
@@ -398,6 +403,8 @@ The behaviour is worth only as much as the shelters on offer. Each is built thro
 | **Whale Fall** (span; skull shipped 2026-10-02) | the two eye sockets | fish up to ~0.31 blocks | the first spanning shelter. `gen.py` emits the skull's widest part (cells 5..7 x 1..2 x 4..10, capacity 3); the eyes face each other, so fish swim in one and out the other. Only that part, because the engine confines a fish to the interior's bounding box and the whole hollow narrows toward the snout. Between the ribs is still to come |
 
 Shop descriptions should name who fits ("a hide for small, shy fish").
+
+The second wave (2026-10-03), sized for medium and large fish, is in §12.9.
 
 ---
 
@@ -790,3 +797,153 @@ Numbered on from §11.
 7. **The soft-cosmetic list.** Which shipped blocks count as soft? First pass: leaves, kelp,
    seagrass, coral fans, vines, petals.
 8. **Rates.** The tier means in §12.2 are guesses until the first look.
+
+### 12.9 Bigger fish, and several shelters in one structure (built 2026-10-03)
+
+The shelters before this were sized for small fish. The second wave is sized by band, using the
+§5.2 rules, so the size of a shelter decides who uses it:
+
+| Band | Rendered length | A hollow or open shelter needs | Examples |
+|---|---|---|---|
+| small | up to 0.20 | mouth 0.08, run 0.18 | goby, tetra, glass catfish |
+| medium | 0.21 to 0.37 | mouth 0.15, run 0.34 | loach, oscar, knifefish, bichir |
+| large | 0.38 to 0.55 | mouth 0.22, run 0.50 | trout, pike, gar, idol, eel |
+| giant | 0.59 to 0.76 | gates only | sunfish, manta, paddlefish, sawfish |
+
+A fish needs open water about a body length outside a mouth to line up on it (the staging point,
+§5.1), so a large fish uses shelters only in a group, and only where a mouth faces along the
+group's long axis. Floor shelters for large fish are built with their mouths facing sideways
+(along x) for that reason. Gates set no length limit, so a big enough gate takes every fish.
+
+**Staging room is the real size limit for spans.** A mouth must stand at least `L + 0.02 + 0.20`
+(the body length, the staging clearance and the wall margin) in from the glass it faces. The first
+cut of the spanning shelters put their doors at the ends of the box: the cathedral's portal was
+0.19 from the glass, the ziggurat's maws 0.25. Small fish still got in, but no big fish ever did.
+`ShelterBandVisitTest` caught it. It runs a shoal of the size each shelter was built for in the
+group that shelter needs. The fix is water in front of every door: the cathedral and ziggurat
+became 4-long spans with the building in the middle, the warren a 3-long, and the galleon's stern
+moved 0.8 in. The Sea Arch's gate became the window's middle slice: a deeper passage leaves too
+little water on either side in a two-deep tank.
+
+**Lone tanks bound the floor pieces.** A floor shelter also has to leave a lone tank a wall
+margin of water around and above it, as the gazebo found. Otherwise `ObstacleInvariantTest`'s hard
+backstop engages. That sized the Bell (scale 0.05), the Grotto's hill, and the Seat, which is why
+the Seat tops out at 0.50: a seat for longer fish is wider than a lone tank can spare.
+
+**Several shelters per structure.** `shelters` is a list. A single shelter is still written as
+`shelter`, so no older file changed. Each shelter derives on its own, treating the other shelters'
+cells as open water. Validation rejects two shelters that share a cell, and rejects a shelter
+whose interior lies in another hollow or open shelter's hull, because that hull is solid to every
+fish not using that shelter. A gate has no hull, so a gate's opening can sit next to anything.
+Everything that read one shelter now reads them all: obstacle carving, `TankShelters`, and the
+capture command (which still writes one).
+
+**Pockets are filled with the hulls solid.** `CosmeticObstacles` used to fill pockets and then
+carve the hull. A large box-shaped hull, such as the ribcage's or the mangrove nursery's, can wall
+off water against the other parts. Fish not using that shelter can never reach that water, but it
+wasn't filled. Now the pockets are filled with every non-gate hull counted as solid, and then the
+hulls are carved. Structures with small hulls come out the same.
+
+**`min_length`.** This is an optional field on a shelter: the shortest fish, in blocks of rendered
+length, that may use it. The engine's `Shelter.minLength` is checked by `findCover` (visits and
+startles) and by `lurkerFits` (homes). Small fish skip the shelter and look for the next one, so it
+needs no other behaviour. The Leviathan's Seat uses it: 0.40, capacity 1.
+
+**The cosmetics.** They are generated by `tools/shelter-structure-gen/gen.py`, not captured,
+because their interiors have to be exact to the cell. The Whale Fall's second shelter is added in
+`tools/span-structure-gen/gen.py`. `ShelterSizeBandsTest` checks that each shelter fits the band it
+was built for.
+
+| Cosmetic | Where | Shelter(s) | Fits |
+|---|---|---|---|
+| Amphora | floor, 0.06 | hollow through the neck, 3x3, 11 long | up to 0.45 (a lurker's home) |
+| Drowned Bell | floor, 0.05 | hollow throat, 5x5, 7 deep | up to 0.38 |
+| Mangrove Knees | floor, 0.065 | open, under the root mat | up to 0.5 |
+| Basalt Grotto | floor, 0.065 | hollow cave, 4x4, 8 deep | up to 0.57 (the eel) |
+| Moon Gate | floor, 0.045 | gate, 7 wide and 9 tall; soft blossom rounds the rim without adding mouths | every fish |
+| Leviathan's Seat | floor, 0.05 | open, capacity 1, `min_length` 0.40 | 0.40 to 0.50 only |
+| Sea Arch | span 2x2x2 | gate through the middle of a 0.6 x 0.9 window | up to 0.6 (staging room, not the gate) |
+| Sunken Ziggurat | span 4x2x1 | hollow tunnel between the serpent heads, 2.4 long; open sanctum on top | tunnel up to 0.62; sanctum small only |
+| Capsized Galleon | span 3x2x1 | hollow lair, mouth at the broken stern | up to about 0.55 (staging room); for big lurkers |
+| Whale Fall | span 4x2x2 | adds an open shelter under the ribcage | every fish |
+| Drowned Cathedral | span 4x2x2 | the nave is a gate; the belfry is open; three chapels are hollows | large, medium, small |
+| Coral Warren | span 3x2x1 | three gates at three heights, two behind soft curtains of coral fan | small, medium, small, all at once |
+
+Open questions:
+
+1. **Do gates hide?** The Coral Warren's passages run through the rock, so a fish in one is out of
+   sight, but gates don't count against the hidden budget. A shoal streaming through all three at
+   once can briefly hide more fish than the budget allows. If that looks wrong, give gates a
+   "covered" flag that counts.
+2. **Part counts.** The spans have 1,000 to 1,660 parts, compared with 1,080 for the pagoda.
+   Their render cost has not been measured.
+3. **The cathedral's chapels are seldom visited** (a few entries in 15 minutes of a small-fish
+   shoal, against dozens in the belfry). They face the front glass, and the nave and belfry are
+   nearer most fish's paths. That may be the right rarity for a hidden corner.
+
+### 12.10 Occupied cells: claim only what stands on the sand (2026-10-03)
+
+The second wave claimed far more of the floor grid than it filled. A floor piece claimed every
+cell any of its voxels reached, at any height, so a seagrass tuft, a roof overhang or the flare of
+a base took a whole cell. The Moon Gate took six cells and stands on three. A span claimed every
+cell under its lowest layer of parts, soft ones included. Claimed cells refuse other cosmetics
+and are walls to crawling fish (`TankFloors.blockedCells`), so players couldn't set plants against
+a building or put two structures close together.
+
+`footprint_cells` had been doing two jobs. It is the **extent**: every cell must land on the grid,
+so a structure's parts never poke through the glass. It was also the **claim**. The new optional
+field **`occupied_cells`** splits these. It is the subset that blocks. Without it, the whole
+footprint blocks, so older files behave as before. For a span, `occupied_cells` counts floor cells
+across the whole box (tank × 3 + cell, facing south as authored) and turns with the box. Without
+it, the span's footprint is still derived from its lowest parts.
+
+**The rule** (`tools/shelter-structure-gen/footprint_audit.py`): a cell is occupied when solid
+(not soft) parts lower than 0.3 blocks above the sand cover at least 12% of the cell's central
+half. That is where a plant in the cell would clip. The anchor cell stays occupied, unless the
+structure has `bypass_anchor_cell_requirement`. The rule only ever frees cells: it never adds one
+the old footprint lacked. 12% keeps the Torii's posts (15%), the Giant Clam (17%) and the
+Caterpillar (21%). It frees the Amphora's base flare (10%) and everything only seagrass or an
+overhang reached. The slight overlaps this allows are intended.
+
+Both generators run the rule on every export (`footprint_audit.with_occupied`).
+Hand-captured structures were given the field with
+`python tools/shelter-structure-gen/footprint_audit.py --apply <name...>`, which splices it in
+as text and leaves the rest of the file as it was. `python tools/shelter-structure-gen/footprint_sheet.py`
+draws every footprint before and after, top down, into `preview/footprints.png`.
+
+| Structure | Cells before → after |
+|---|---|
+| Amphora | 9 → 3 |
+| Drowned Bell | 9 → 2 |
+| Mangrove Knees | 9 → 7 |
+| Basalt Grotto | 9 → 6 |
+| Moon Gate | 6 → 3 |
+| Leviathan's Seat | 9 → 4 |
+| Amethyst Geode, Fallen Column | 9 → 5, 8 → 5 |
+| Clay Pipe, Hollow Log | 8 → 2, 8 → 3 |
+| Spruce Gazebo | 9 → 1 (the roof overhangs; the floor is one cell) |
+| Torii Gate, Sunken Anchor, Lighthouse, Castle Ruin | 5 → 3, 6 → 4, 2 → 1, 6 → 5 |
+| Sea Arch | 23 → 12 |
+| Sunken Ziggurat, Capsized Galleon | 18 → 16, 18 → 11 |
+| Drowned Cathedral, Coral Warren | 21 → 15, 12 → 8 |
+| Whale Fall | 63 → 55 |
+| Drowned Pagoda | 32 (its plinth fills the box) |
+
+**Anchors.** Structures are stored by anchor cell. A span stores itself at (0,0) of its anchor
+tank, whether or not it occupies that cell, and the Castle Ruin doesn't occupy its own anchor.
+A floor structure anchored there would have replaced the existing one. That was possible before:
+the Galleon's (0,0) was never claimed. Freeing cells makes it more likely, so placement now treats
+an anchor key already taken as occupied, and a forced placement clears it.
+
+Notes:
+
+- `OccupiedCellsTest` checks that authored span cells turn with the box exactly as derived ones
+  do, at every rotation. It also checks the codec rules: floor occupied cells lie in the footprint
+  and keep the anchor, and span cells lie on the box's floor.
+- Each span link stores its tank's cells. A span placed before this keeps its old, larger claim in
+  its non-anchor tanks until it is picked up and placed again. That is harmless: it is the old
+  behaviour.
+- Nothing stops another structure's parts standing in front of a shelter mouth now. The single-cell
+  cosmetics freed cells take aren't swim obstacles, so plants don't matter, but two structures
+  placed close together can block each other's approach corridors. That is the player's arrangement,
+  not a lone-tank invariant.

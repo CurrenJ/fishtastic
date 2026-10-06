@@ -1,0 +1,12 @@
+{
+  "display_name": "Basalt Grotto",
+  "description": "A hill of basalt columns with a sea cave in its face and magma glowing at the back, a den roomy enough for an eel, for your fish tank.",
+  "cost": 40,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_basalt_grotto",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

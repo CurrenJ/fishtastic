@@ -170,6 +170,17 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.COSMETIC_AMETHYST_GEODE.value());
                     output.accept(FishtasticItems.COSMETIC_HOLLOW_LOG.value());
                     output.accept(FishtasticItems.COSMETIC_CLAY_PIPE.value());
+                    output.accept(FishtasticItems.COSMETIC_AMPHORA.value());
+                    output.accept(FishtasticItems.COSMETIC_DROWNED_BELL.value());
+                    output.accept(FishtasticItems.COSMETIC_MANGROVE_KNEES.value());
+                    output.accept(FishtasticItems.COSMETIC_BASALT_GROTTO.value());
+                    output.accept(FishtasticItems.COSMETIC_MOON_GATE.value());
+                    output.accept(FishtasticItems.COSMETIC_LEVIATHANS_SEAT.value());
+                    output.accept(FishtasticItems.COSMETIC_SEA_ARCH.value());
+                    output.accept(FishtasticItems.COSMETIC_SUNKEN_ZIGGURAT.value());
+                    output.accept(FishtasticItems.COSMETIC_CAPSIZED_GALLEON.value());
+                    output.accept(FishtasticItems.COSMETIC_DROWNED_CATHEDRAL.value());
+                    output.accept(FishtasticItems.COSMETIC_CORAL_WARREN.value());
 
                     // Lamp variants
                     for (Holder<Item> lamp : FishtasticItems.COSMETIC_LAMP.values()) {

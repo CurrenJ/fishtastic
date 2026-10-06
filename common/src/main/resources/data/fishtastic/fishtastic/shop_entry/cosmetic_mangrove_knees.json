@@ -1,0 +1,12 @@
+{
+  "display_name": "Mangrove Knees",
+  "description": "A mangrove standing on arching prop roots, with a shady nursery beneath where fish up to medium size linger, for your fish tank.",
+  "cost": 35,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_mangrove_knees",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}

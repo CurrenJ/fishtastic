@@ -16,6 +16,9 @@ import os
 import random
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shelter-structure-gen"))
+import footprint_audit  # noqa: E402  (occupied_cells, docs/fish-shelters.md §12.10)
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT_DIR = os.path.join(ROOT, "common/src/main/resources/data/fishtastic/fishtastic/cosmetic_structure")
 
@@ -35,6 +38,9 @@ class Build:
         # many fish it holds. The mouths are derived in game from these and the parts.
         self.shelter_cells = None
         self.shelter_capacity = None
+        # Any further shelters in the same structure (docs/fish-shelters.md §12.9), each a dict
+        # with "interior" cells and optionally "kind" and "capacity".
+        self.more_shelters = []
 
     def inside(self, x, y, z):
         return 0 <= x < self.nx and 0 <= y < self.ny and 0 <= z < self.nz
@@ -95,7 +101,20 @@ class Build:
             shelter = {"interior": [{"x": x, "y": y, "z": z} for x, y, z in sorted(self.shelter_cells)]}
             if self.shelter_capacity:
                 shelter["capacity"] = self.shelter_capacity
-            data["shelter"] = shelter
+            if self.more_shelters:
+                more = []
+                for extra in self.more_shelters:
+                    s = {}
+                    if extra.get("kind", "hollow") != "hollow":
+                        s["kind"] = extra["kind"]
+                    s["interior"] = [{"x": x, "y": y, "z": z} for x, y, z in sorted(extra["interior"])]
+                    if extra.get("capacity"):
+                        s["capacity"] = extra["capacity"]
+                    more.append(s)
+                data["shelters"] = [shelter] + more
+            else:
+                data["shelter"] = shelter
+        data = footprint_audit.with_occupied(data)
         path = os.path.join(OUT_DIR, name + ".json")
         with open(path, "w", encoding="utf-8", newline=chr(10)) as f:
             json.dump(data, f, indent=1)
@@ -287,6 +306,13 @@ def whale_fall():
         return z0 < z < z1 and 1 <= y <= 2 and y < top
     b.shelter_cells = b.hollow((6, 1, spine_z), in_skull)
     b.shelter_capacity = 3
+    # Under the ribcage, a second shelter: the open space beneath the spine, where the near flank
+    # has fallen away. On show from every side, and roomy enough for the biggest fish in the tank
+    # to linger under the arch of bone (docs/fish-shelters.md §12.9). The largest box clear of
+    # bone there.
+    under_ribs = [(x, y, z) for x in range(12, 19) for y in range(1, 6) for z in range(3, 10)]
+    assert not any(c in b.v for c in under_ribs), "bone under the ribcage"
+    b.more_shelters.append({"interior": under_ribs, "kind": "open", "capacity": 4})
     return b, "whale_fall", span, scale, culled, {"rotY": -30, "rotX": 20, "scale": 1.1}
 
 
@@ -462,6 +488,7 @@ if __name__ == "__main__":
         b, name, span, scale, culled, icon = design()
         path, n = b.export(name, span, scale, icon)
         hollow = f", shelter of {len(b.shelter_cells)} cells" if b.shelter_cells else ""
+        hollow += "".join(f", {s.get('kind', 'hollow')} of {len(s['interior'])}" for s in b.more_shelters)
         print(f"{name}: {n} parts ({culled} hidden culled){hollow}, grid {b.nx}x{b.ny}x{b.nz}, span {span}, scale {scale} -> {path}")
         if "--preview" in sys.argv:
             print("  preview:", preview(b, name))

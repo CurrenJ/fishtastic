@@ -1,0 +1,4368 @@
+{
+ "footprint_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": 1
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 1
+  }
+ ],
+ "occupied_cells": [
+  {
+   "dx": 0,
+   "dz": 0
+  },
+  {
+   "dx": -1,
+   "dz": -1
+  },
+  {
+   "dx": 0,
+   "dz": -1
+  },
+  {
+   "dx": 1,
+   "dz": -1
+  },
+  {
+   "dx": -1,
+   "dz": 0
+  },
+  {
+   "dx": 1,
+   "dz": 0
+  }
+ ],
+ "parts": [
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:seagrass"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 0,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 1,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 1,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 1,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 1,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 1.1142857,
+   "offsetY": 1,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.3371429,
+   "offsetY": 2,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:magma_block"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:magma_block"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "x"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 2,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 2,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 2,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:moss_carpet"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 2,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:magma_block"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:magma_block"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 3,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:moss_carpet"
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 3,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 3,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 3,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:moss_carpet"
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 4,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 4,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 5,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 5,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "1",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 5,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp_plant"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 6,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 6,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 6,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 6,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 6,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 6,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 6,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 6,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 6,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 6,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.4457143,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.6685714,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "z"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 6,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 7,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:kelp"
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 7,
+   "offsetZ": 0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "3",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 7,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.8914286,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 7,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 7,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 7,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 7,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 7,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "2",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 7,
+   "offsetZ": 0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.2228571,
+   "offsetY": 7,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 7,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:polished_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.8914286,
+   "offsetY": 7,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:sea_pickle",
+    "Properties": {
+     "pickles": "2",
+     "waterlogged": "true"
+    }
+   },
+   "offsetX": -1.1142857,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": -0.8914286
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": -0.6685714
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.6685714,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 8,
+   "offsetZ": -0.4457143
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:smooth_basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.4457143,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": -0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": 0.0
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": -0.2228571,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  },
+  {
+   "state": {
+    "Name": "minecraft:basalt",
+    "Properties": {
+     "axis": "y"
+    }
+   },
+   "offsetX": 0.0,
+   "offsetY": 8,
+   "offsetZ": 0.2228571
+  }
+ ],
+ "scale": 0.065,
+ "shelter": {
+  "interior": [
+   {
+    "x": -4,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "z": 1
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": -2
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": -1
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 0
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 0,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 1,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 2,
+    "y": 4,
+    "z": 1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "z": 1
+   }
+  ],
+  "capacity": 2
+ }
+}

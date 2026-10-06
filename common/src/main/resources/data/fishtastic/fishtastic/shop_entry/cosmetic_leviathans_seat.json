@@ -1,0 +1,12 @@
+{
+  "display_name": "Leviathan's Seat",
+  "description": "A throne carved from a great whale's vertebra and crowned with tube coral, where only big fish may sit, for your fish tank.",
+  "cost": 45,
+  "reward": [
+    {
+      "id": "fishtastic:cosmetic_leviathans_seat",
+      "count": 1
+    }
+  ],
+  "daily_max_purchases": 1
+}
