@@ -5,6 +5,7 @@ import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.FlockDomain;
 import grill24.fishsim.domain.FloorField;
+import grill24.fishsim.domain.Shelter;
 import grill24.fishsim.domain.VoxelDomain;
 
 import java.awt.BasicStroke;
@@ -68,6 +69,7 @@ public final class FrameRenderer {
             g.fillRect(0, 0, w, h);
 
             drawDomain(g, domain, view, w, h);
+            drawShelters(g, domain, view);
             drawFish(g, engine, tunables, domain, view);
         } finally {
             g.dispose();
@@ -134,6 +136,87 @@ public final class FrameRenderer {
                 g.fill(new java.awt.geom.Rectangle2D.Float(x, y, cell * scale, cell * scale));
             }
         }
+    }
+
+    /**
+     * Each shelter's hull (solid to fish not using it), its interior (dashed) and its mouths, with
+     * a tick pointing out of each mouth into open water — so a GIF shows which way a shelter faces
+     * (docs/fish-shelters.md §3). Drawn under the fish, so a fish inside shows over its hull.
+     */
+    private void drawShelters(Graphics2D g, FlockDomain domain, View view) {
+        float[] p = new float[3];
+        float[] q = new float[3];
+        for (Shelter shelter : domain.shelters()) {
+            Path2D hull = boxOutline(domain, view, shelter.hull(), p);
+            g.setColor(new Color(150, 105, 60, 70));
+            g.fill(hull);
+            g.setStroke(new BasicStroke(1.5f));
+            g.setColor(new Color(190, 140, 80));
+            g.draw(hull);
+
+            g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{4f, 3f}, 0f));
+            g.setColor(new Color(220, 200, 150));
+            g.draw(boxOutline(domain, view, shelter.interior(), p));
+
+            g.setStroke(new BasicStroke(2.5f));
+            for (Shelter.Mouth mouth : shelter.mouths()) {
+                mouth.bitangent(q);
+                Path2D opening = new Path2D.Float();
+                for (int k = 0; k < 4; k++) {
+                    float st = (k == 1 || k == 2) ? mouth.halfTangent() : -mouth.halfTangent();
+                    float sb = (k >= 2) ? mouth.halfBitangent() : -mouth.halfBitangent();
+                    float l = mouth.centerL() + mouth.tangentL() * st + q[0] * sb;
+                    float y = mouth.centerY() + mouth.tangentY() * st + q[1] * sb;
+                    float d = mouth.centerD() + mouth.tangentD() * st + q[2] * sb;
+                    float x = mapX(domain, l), sy = mapY(domain, view, y, d);
+                    if (k == 0) opening.moveTo(x, sy); else opening.lineTo(x, sy);
+                }
+                opening.closePath();
+                g.setColor(new Color(110, 230, 170));
+                g.draw(opening);
+                float tick = 0.12f;
+                float x0 = mapX(domain, mouth.centerL());
+                float y0 = mapY(domain, view, mouth.centerY(), mouth.centerD());
+                float x1 = mapX(domain, mouth.centerL() - mouth.normalL() * tick);
+                float y1 = mapY(domain, view, mouth.centerY() - mouth.normalY() * tick,
+                        mouth.centerD() - mouth.normalD() * tick);
+                g.setStroke(new BasicStroke(1.5f));
+                g.draw(new Line2D.Float(x0, y0, x1, y1));
+                g.setStroke(new BasicStroke(2.5f));
+            }
+        }
+    }
+
+    /**
+     * An oriented box projected into the view: the top view shows its true turned footprint;
+     * the side view, looking along depth, its lateral × vertical silhouette.
+     */
+    private Path2D boxOutline(FlockDomain domain, View view, Shelter.OrientedBox box, float[] p) {
+        Path2D path = new Path2D.Float();
+        if (view == View.TOP) {
+            int[] order = {0, 1, 5, 4}; // (−,−), (+,−), (+,+), (−,+) in (lateral, depth); y bit clear
+            for (int k = 0; k < order.length; k++) {
+                box.corner(order[k], p);
+                float x = mapX(domain, p[0]), y = mapY(domain, View.TOP, p[1], p[2]);
+                if (k == 0) path.moveTo(x, y); else path.lineTo(x, y);
+            }
+        } else {
+            float minL = Float.MAX_VALUE, maxL = -Float.MAX_VALUE;
+            for (int c = 0; c < 8; c++) {
+                box.corner(c, p);
+                minL = Math.min(minL, p[0]);
+                maxL = Math.max(maxL, p[0]);
+            }
+            float x0 = mapX(domain, minL), x1 = mapX(domain, maxL);
+            float yTop = mapY(domain, View.SIDE, box.centerY() + box.halfY(), 0f);
+            float yBottom = mapY(domain, View.SIDE, box.centerY() - box.halfY(), 0f);
+            path.moveTo(x0, yTop);
+            path.lineTo(x1, yTop);
+            path.lineTo(x1, yBottom);
+            path.lineTo(x0, yBottom);
+        }
+        path.closePath();
+        return path;
     }
 
     /** Interior boundary of the voxel union in the view plane (per-cell edges without occupied neighbours). */

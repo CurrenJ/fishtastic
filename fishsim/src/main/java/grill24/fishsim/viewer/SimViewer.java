@@ -2,7 +2,6 @@ package grill24.fishsim.viewer;
 
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
-import grill24.fishsim.domain.VoxelDomain;
 import grill24.fishsim.harness.Scenarios;
 import grill24.fishsim.render.FrameRenderer;
 
@@ -146,7 +145,7 @@ public final class SimViewer {
             engine.rebuild(Scenarios.specs(fishCount, seed), seed, 0f, 3, 0.35f, 0.3f, 20f);
         } else {
             engine.rebuild(Scenarios.specs(fishCount, seed), seed, 0f, 20f,
-                    new VoxelDomain(Scenarios.occupancy(domainName)));
+                    Scenarios.domain(domainName));
         }
     }
 
@@ -190,7 +189,7 @@ public final class SimViewer {
         // ── Scenario ──
         JPanel scenario = new JPanel(new FlowLayout(FlowLayout.LEFT));
         scenario.add(new JLabel("domain"));
-        JComboBox<String> domainBox = new JComboBox<>(new String[]{"box", "1x1x1", "3x1x1", "L", "2x2slab", "4x1x2"});
+        JComboBox<String> domainBox = new JComboBox<>(new String[]{"box", "1x1x1", "3x1x1", "L", "2x2slab", "4x1x2", "1x1x1+log", "3x1x1+log"});
         domainBox.setSelectedItem(domainName);
         domainBox.addActionListener(e -> {
             domainName = (String) domainBox.getSelectedItem();

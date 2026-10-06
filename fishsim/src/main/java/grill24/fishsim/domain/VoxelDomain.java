@@ -1,5 +1,7 @@
 package grill24.fishsim.domain;
 
+import java.util.List;
+
 /**
  * A locked multi-tank aquarium: a rectilinear union of blocks as a voxel occupancy grid, with a
  * precomputed {@link DistanceField} for wall avoidance and {@link RunLengths} for the size gate
@@ -31,6 +33,7 @@ public final class VoxelDomain implements FlockDomain {
     private final float sizeGateRun;
     private final DistanceField field;
     private FloorField floor;
+    private List<Shelter> shelters = List.of();
 
     public VoxelDomain(boolean[][][] occupancy) {
         this(occupancy, DEFAULT_INSET, 0f, null);
@@ -114,6 +117,17 @@ public final class VoxelDomain implements FlockDomain {
     public void rebuildFloor(float floorSurfaceOffset, boolean[] blockedFloorCells) {
         this.floor = FloorField.fromOccupancy(occupancy, gridMinL, gridMinY, gridMinD,
                 floorSurfaceOffset, blockedFloorCells);
+    }
+
+    @Override public List<Shelter> shelters() { return shelters; }
+
+    /**
+     * Replaces the shelters. Like the floor, they change whenever a cosmetic moves and membership
+     * does not, so they are swapped in place on the same cosmetic fingerprint rather than costing
+     * a new domain (docs/fish-shelters.md §2).
+     */
+    public void rebuildShelters(List<Shelter> shelters) {
+        this.shelters = List.copyOf(shelters);
     }
 
     @Override public float minLateral() { return minL; }
