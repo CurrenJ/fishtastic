@@ -71,6 +71,7 @@ public final class FrameRenderer {
             drawDomain(g, domain, view, w, h);
             drawShelters(g, domain, view);
             drawFish(g, engine, tunables, domain, view);
+            if (!domain.shelters().isEmpty()) drawShelterCount(g, engine);
         } finally {
             g.dispose();
         }
@@ -185,6 +186,18 @@ public final class FrameRenderer {
                 g.setStroke(new BasicStroke(2.5f));
             }
         }
+    }
+
+    /** How many fish are inside a shelter, against the domain's hidden budget, top left. */
+    private void drawShelterCount(Graphics2D g, FlockEngine engine) {
+        int inside = 0, visiting = 0;
+        for (int i = 0; i < engine.count(); i++) {
+            int visit = engine.shelterState(i);
+            if (visit == FlockEngine.SHELTER_INSIDE) inside++;
+            if (visit != FlockEngine.SHELTER_ROAMING) visiting++;
+        }
+        g.setColor(new Color(220, 220, 200));
+        g.drawString("inside " + inside + " · visiting " + visiting + " · budget " + engine.hiddenBudget(), 6, 14);
     }
 
     /**
@@ -335,6 +348,15 @@ public final class FrameRenderer {
                     ? Color.getHSBColor((engine.species[i] % 6) / 6f * 0.85f + 0.05f, 0.62f, 0.95f)
                     : new Color(110, 116, 124);
             Color fin = swims ? body.brighter() : new Color(140, 146, 152);
+            // A fish on a shelter visit (docs/fish-shelters.md §5.1): ghosted while inside — in
+            // game the shelter's own blocks hide it — and half-ghosted in the mouth.
+            int visit = engine.shelterState(i);
+            if (visit == FlockEngine.SHELTER_INSIDE || visit == FlockEngine.SHELTER_ENTER
+                    || visit == FlockEngine.SHELTER_EXIT) {
+                int alpha = visit == FlockEngine.SHELTER_INSIDE ? 80 : 150;
+                body = new Color(body.getRed(), body.getGreen(), body.getBlue(), alpha);
+                fin = new Color(fin.getRed(), fin.getGreen(), fin.getBlue(), alpha);
+            }
             g.setColor(body);
             g.fill(new RoundRectangle2D.Float(-bodyLen / 2f, -bodyH / 2f, bodyLen, bodyH, bodyH, bodyH));
             // Nose wedge marks the heading.

@@ -2,6 +2,7 @@ package grill24.fishtastic.client.renderer;
 
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
+import grill24.fishsim.core.ShelterUse;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
@@ -287,7 +288,8 @@ public final class TankFlockAdapter {
                     renderedLength(stack, render.renderCalibration()),
                     locomotionOf(newAnims[idx]),
                     be.isItemMirrored(slot),
-                    speciesId(stack));
+                    speciesId(stack),
+                    shelterUseOf(stack, level));
             idx++;
         }
 
@@ -302,7 +304,7 @@ public final class TankFlockAdapter {
         System.arraycopy(newAnims, 0, anims, 0, n);
         slots = newSlots;
 
-        if (wantsShelters(be, newStacks, level)) {
+        if (wantsShelters(be, specs, level)) {
             rebuildPromoted(be, specs, carryFrom, blockPosHash, swarm, level);
             return;
         }
@@ -318,15 +320,27 @@ public final class TankFlockAdapter {
      * shelters. Every other lone tank keeps the bitwise-locked binary model — the shelter is only
      * worth the switch when something in the tank will swim into it.
      */
-    private static boolean wantsShelters(FishTankBlockEntity be, ItemStack[] fish, Level level) {
+    private static boolean wantsShelters(FishTankBlockEntity be, FishSpec[] fish, Level level) {
         boolean anyUser = false;
-        for (ItemStack stack : fish) {
-            if (SwarmConfig.resolve(stack, level).shelter().isPresent()) {
+        for (FishSpec spec : fish) {
+            if (spec.shelterUse() != ShelterUse.NONE) {
                 anyUser = true;
                 break;
             }
         }
         return anyUser && TankShelters.hasShelter(be, level);
+    }
+
+    /**
+     * How this fish's species uses shelters (its profile's {@code swarm.shelter}), mapped down to
+     * the engine's enum — {@link ShelterUse#NONE} unless the species opts in.
+     */
+    static ShelterUse shelterUseOf(ItemStack stack, Level level) {
+        return SwarmConfig.resolve(stack, level).shelter().map(behaviour -> switch (behaviour) {
+            case VISITOR -> ShelterUse.VISITOR;
+            case SKITTISH -> ShelterUse.SKITTISH;
+            case LURKER -> ShelterUse.LURKER;
+        }).orElse(ShelterUse.NONE);
     }
 
     /**
