@@ -1230,10 +1230,9 @@ public final class RenderSelfTest {
             }));
             // PORT-ONLY: 26.1.2 takes two cool-cam alpha orbits here; cool-cam isn't ported (owner
             // decision D4), so this branch keeps only the checks and the item shots.
-            queue(40, mc -> {
-                camera(mc, frame[0], frame[1] + frame[4], frame[2] + frame[3], 180f, 10f);
-                screenshot(mc, "cosmeticpreview", name + "_tank" + suffix);
-            });
+            // The camera is a server-side teleport, so the shot waits a few ticks for it to land.
+            queue(40, mc -> camera(mc, frame[0], frame[1] + frame[4], frame[2] + frame[3], 180f, 10f));
+            queue(10, mc -> screenshot(mc, "cosmeticpreview", name + "_tank" + suffix));
             queueCosmeticItemChecks(name);
         }
         queue(10, mc -> {
@@ -1310,7 +1309,9 @@ public final class RenderSelfTest {
                 }
                 BlockPos pos = at[0];
                 run(s, "gamemode creative @a");
-                run(s, "item replace entity @a weapon.mainhand with " + itemId);
+                // hotbar.0, not weapon.mainhand: the client selects slot 0 next, and an earlier scene can leave
+                // another slot selected, which would put the item there and leave slot 0 holding something else.
+                run(s, "item replace entity @a hotbar.0 with " + itemId);
                 run(s, String.format(Locale.ROOT, "tp @a %.2f %.2f %.2f 180 90", pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5));
             });
         });
