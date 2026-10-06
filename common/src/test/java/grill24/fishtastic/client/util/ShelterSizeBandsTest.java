@@ -101,6 +101,30 @@ class ShelterSizeBandsTest {
         }
     }
 
+    /**
+     * The Sea Arch is riddled with places to go: the window for the biggest fish, a sea cave for a
+     * lurker, a keyhole through the headland and an eye through the stack, a fallen slab to rest
+     * under on show, and pigeonholes in the cliffs for the small fry.
+     */
+    @Test
+    void theSeaArchHasANookForEverySize() {
+        List<Shelter> s = shelters("sea_arch");
+        assertEquals(8, s.size());
+        List<Shelter.Kind> kinds = new ArrayList<>();
+        for (Shelter shelter : s) kinds.add(shelter.kind());
+        assertEquals(List.of(Shelter.Kind.GATE, Shelter.Kind.HOLLOW, Shelter.Kind.HOLLOW, Shelter.Kind.HOLLOW,
+                Shelter.Kind.OPEN, Shelter.Kind.HOLLOW, Shelter.Kind.HOLLOW, Shelter.Kind.HOLLOW), kinds);
+        admits("sea_arch", 1, 0.36f, 0.48f, 0.55f);
+        admits("sea_arch", 2, 0.10f, 0.26f, 0.48f);
+        admits("sea_arch", 3, 0.10f, 0.26f);
+        admits("sea_arch", 4, 0.19f, 0.26f, 0.36f);
+        refuses("sea_arch", 4, 0.55f);
+        for (int hole = 5; hole <= 7; hole++) {
+            admits("sea_arch", hole, 0.10f, 0.19f);
+            refuses("sea_arch", hole, 0.48f);
+        }
+    }
+
     /** Three passages through the warren, all gates, so a shoal can stream through every one at once. */
     @Test
     void theWarrenRunsThreeWays() {

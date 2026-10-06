@@ -29,6 +29,7 @@ import random
 import sys
 
 import footprint_audit
+from sculpt import HORIZONTAL, LIMESTONE, MUSHROOM_INSIDE, N6, Openings, Ramp, stair_state, add, bevel, despeckle, exposure, fbm, grounded, occlusion
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT_DIR = os.path.join(ROOT, "common/src/main/resources/data/fishtastic/fishtastic/cosmetic_structure")
@@ -47,6 +48,11 @@ FULL_CUBES = {
     "fire_coral_block", "horn_coral_block", "cherry_log", "smooth_stone", "packed_mud",
     "bricks", "polished_deepslate", "deepslate_tiles",
     "dead_brain_coral_block", "dead_tube_coral_block", "dead_horn_coral_block", "dead_fire_coral_block",
+    "tuff", "wet_sponge", "mud_bricks", "brown_terracotta", "dripstone_block", "packed_mud", "mud",
+    "mushroom_stem", "brown_mushroom_block", "raw_iron_block", "coarse_dirt", "quartz_block",
+    "spruce_planks", "stripped_spruce_log", "waxed_exposed_cut_copper", "waxed_weathered_cut_copper", "sand", "raw_gold_block", "oak_log",
+    "polished_andesite", "tuff_bricks", "polished_tuff", "cobbled_deepslate", "prismarine_bricks", "dark_prismarine",
+    "polished_granite", "pink_terracotta", "red_terracotta", "mossy_cobblestone", "light_gray_terracotta", "polished_diorite",
 }
 
 
@@ -563,263 +569,868 @@ def moon_gate():
 
 
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
-# 6. Leviathan's Seat — a throne carved from a single great whale vertebra: the centrum its seat,
-#    the spine rising behind as its back, the wings of bone its arms, a crown of tube coral on top.
+# 6. Leviathan's Seat — a throne made of one great whale vertebra, read as the bone it is: the
+#    centrum a barrel-sided drum whose growth rings show on its face, the seat; the neural arch
+#    rising behind on two pedicles round the open spinal canal, a lamina across them with the
+#    articular knobs standing up at its corners like the finials of a chair; the neural spine
+#    raked back and tapering; the transverse processes swept out and forward as blade-thin arms
+#    that curl up at their tips. Polished pale where it is worn, yellowing in the grain, stained
+#    with silt toward the sand. A rib lies fallen beside it and a small vertebra at its foot.
 #    Kept for the biggest fish in the tank, who holds court on it while the small fry pass by.
 #    Open, capacity 1, min_length 0.40: the seat is 9 long (run 0.45) under 0.25 of headroom, so it
 #    takes fish 0.40 to 0.50 long: pike, gar, idol, parrotfish, the trouts. Any bigger and a lone
-#    tank has no water left round it.
+#    tank has no water left round it. Fish line up on it from the sides, along x, so the arms keep
+#    low beside the seat and rise only as they reach forward.
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 def leviathans_seat():
     scale = 0.05
     b = Build()
-    # The centrum: a thick drum of bone, the seat.
-    for x in range(-6, 7):
-        for z in range(-5, 5):
-            if (x / 5.6) ** 2 + ((z + 0.5) / 4.6) ** 2 <= 1.0:
-                for y in range(0, 3):
-                    b.set(x, y, z, "bone_block", axis="y")
-    # The spine rising behind: the throne's back, narrowing upward, the canal through it.
-    widths = {3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 3, 9: 2}
-    for y, w in widths.items():
+    rng = random.Random(1851)
+    noise = value_noise(1851)
+    bone = {}                                       # cell -> (axis, tone bias)
+
+    def put(x, y, z, axis="y", bias=0.0):
+        bone[(int(x), int(y), int(z))] = (axis, bias)
+
+    # The centrum: a drum with a barrel's bulge, its seat face a shallow dish under a worn lip.
+    for y in range(0, 3):
+        bulge = 0.35 if y == 1 else 0.0
+        for x in range(-7, 8):
+            for z in range(-6, 6):
+                e = (x / (5.7 + bulge)) ** 2 + ((z + 0.5) / (4.7 + bulge)) ** 2
+                if e <= 1.0:
+                    put(x, y, z, "y", 0.15 if e > 0.8 else 0.0)
+    for x in range(-7, 8):                           # the lip: the face's rim, lowest at the front middle
+        for z in range(-6, 6):
+            e = (x / 5.7) ** 2 + ((z + 0.5) / 4.7) ** 2
+            if 0.72 <= e <= 1.0 and not (-4 <= x <= 4 and -2 <= z <= 2) and not (z >= 3 and abs(x) <= 2):
+                put(x, 3, z, "y", -0.1)
+    # The neural arch: two pedicles round the open canal, the lamina across them.
+    for y in range(3, 7):
+        for x in (-4, -3, -2, 2, 3, 4):
+            for z in (-4, -3):
+                put(x, y, z, "y", 0.05)
+    for (y, w) in ((7, 4), (8, 3), (9, 2)):
         for x in range(-w, w + 1):
             for z in (-4, -3):
-                b.set(x, y, z, "bone_block", axis="y")
-    b.clear(0, 8, -3)
-    b.clear(0, 8, -4)
-    # The wings of bone: the arms, sweeping forward.
-    for side in (-1, 1):
-        for z in range(-3, 3):
-            b.set(side * 5, 3, z, "bone_block", axis="z")
-        b.set(side * 5, 3, 3, "bone_block", axis="z")
-        b.set(side * 5, 2, 4, "bone_block", axis="z")
-    # A crown of tube coral, and sea pickles glowing at its feet.
-    # (Kept low: a lone tank needs a wall margin of water over it.)
-    b.set(0, 10, -3, "tube_coral_block")
-    b.set(-1, 10, -3, "tube_coral_fan", waterlogged=True)
-    b.set(1, 10, -3, "tube_coral_fan", waterlogged=True)
-    b.set(0, 11, -3, "tube_coral", waterlogged=True)
-    b.set(0, 10, -4, "tube_coral", waterlogged=True)
-    for (x, z, n) in ((-4, 4, 3), (4, 4, 2), (-5, -3, 1), (5, -2, 2)):
-        b.setdefault(x, 3 if (x, 2, z) in b.v else 0, z, "sea_pickle", pickles=n, waterlogged=True)
+                put(x, y, z, "x" if y == 7 else "y")
+    for s in (-1, 1):                               # the articular knobs: finials at the lamina's corners
+        put(s * 4, 8, -3, "y", -0.15)
+        put(s * 4, 8, -2, "z", -0.2)
+    # The neural spine: raked back and tapering to a blade.
+    for y in range(10, 12):
+        zc = -3.5 - 0.7 * (y - 9)
+        w = 1 if y == 10 else 0
+        for x in range(-w, w + 1):
+            for z in range(int(math.floor(zc - 0.5)), int(math.floor(zc + 0.5)) + 1):
+                put(x, y, z, "y", -0.2)
+    # The transverse processes: blades from the drum's flanks, swept out and forward, low beside
+    # the seat where the fish come in, curling up only at their tips.
+    for s in (-1, 1):
+        for z in range(-2, 2):
+            put(s * 5, 3, z, "z", -0.1)              # the armrest along the seat's edge
+        steps = 14
+        for i in range(steps + 1):
+            t = i / steps
+            x = s * (5.6 + 2.4 * math.sin(t * math.pi * 0.5))
+            z = -1.5 + 6.0 * t
+            y = 2.0 + 0.4 * t + 2.2 * max(0.0, t - 0.72) / 0.28
+            put(round(x), round(y), round(z), "z", -0.05)
+            if t < 0.55:
+                put(round(x), round(y) - 1, round(z), "z", 0.1)       # thick at the root
+                put(round(x) - s, round(y), round(z), "z", 0.05)
+        put(s * 8, 5, 5, "y", -0.25)                # the curl of the tip
+    # A rib fallen beside it, and a small vertebra at its foot, half in the sand.
+    for i in range(12):
+        t = i / 11
+        x, z = -7.6 + 1.2 * math.sin(t * math.pi), -6.5 + 12.0 * t
+        put(round(x), 0, round(z), "z", 0.0)
+    put(-7, 1, -6, "y", 0.1)
+    for x in range(4, 8):
+        for z in range(5, 8):
+            if ((x - 6) / 1.7) ** 2 + ((z - 6.3) / 1.4) ** 2 <= 1.0:
+                put(x, 0, z, "y", -0.05)
+    put(6, 1, 6, "y", 0.0)
+
+    # Tone: worn pale on the seat and the tops, darker in the grain, silt-stained at the sand.
+    BONE = Ramp("quartz_block", "bone_block", "mushroom_stem", MUSHROOM_INSIDE, "packed_mud")
+    for p, (axis, bias) in bone.items():
+        x, y, z = p
+        up = (x, y + 1, z) not in bone
+        tone = 0.40 + 1.4 * bias + 0.22 * noise(x / 2.2, y / 2.2, z / 2.2)
+        if y == 0:
+            tone += 0.14                             # silt creeping up from the sand
+        if up:
+            tone -= 0.16
+        if y == 2 and abs(x) <= 4 and -2 <= z <= 2:
+            tone -= 0.2                              # the seat, polished by its sitters
+        name, props = BONE.pick(tone, rng)
+        if name == "bone_block":
+            props = {"axis": axis}
+        b.set(x, y, z, name, **props)
+    bevel(b, set(bone), {"quartz_block": "quartz_stairs", "bone_block": "quartz_stairs", "mushroom_stem": "quartz_stairs"},
+          {"quartz_block": "quartz_slab", "bone_block": "quartz_slab"},
+          keep={(x, y, z) for x in range(-5, 6) for y in range(2, 8) for z in range(-3, 4)}, rng=rng, chance=0.7)
+
+    # A crown of tube coral on the spine, barnacle-pale pickles on the arms, seagrass at the foot.
+    tip = max((p for p in bone if p[0] == 0), key=lambda p: (p[1], -p[2]))
+    b.set(tip[0], tip[1] + 1, tip[2], "tube_coral", waterlogged=True)
+    for (dx, dz) in ((-1, 0), (1, 0)):
+        b.setdefault(tip[0] + dx, tip[1], tip[2] + dz, "tube_coral_fan", waterlogged=True)
+    b.set(0, 10, -2, "tube_coral_wall_fan", facing="south", waterlogged=True)
+    for s in (-1, 1):
+        b.setdefault(s * 8, 6, 5, "sea_pickle", pickles=2, waterlogged=True)
+        b.setdefault(s * 6, 4, -1, "brain_coral_fan", waterlogged=True)
+    for (x, z) in ((-3, 5), (3, 5), (-6, 3), (7, -2), (-1, -6), (4, -6), (2, 6), (-5, -5)):
+        if (x, 0, z) not in b.v:
+            b.set(x, 0, z, "seagrass" if (x + z) % 3 else "sea_pickle", **({} if (x + z) % 3 else {"pickles": 3, "waterlogged": True}))
     b.shelter(-4, 3, -2, 4, 7, 2, kind="open", capacity=1, min_length=0.40)
     return b, "leviathans_seat", scale
 
 
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 # 7. Sea Arch — a limestone headland with a great window worn through it, like the Azure Window:
-#    a cliff on one side, a pillar on the other, a bridge of rock across the top, coral on its feet.
-#    Big enough for the biggest fish in the tank to swim through.
-#    Gate (span 2x2x2): a 6 wide, 9 tall window; the gate is its middle slice, so a fish up to 0.6
-#    long has room to line up on it from either side of a two-deep tank (a fish lines up about a
-#    body length out from a mouth, clear of the glass).
+#    a cliff on one side, a sea stack on the other, a thick bridge of rock across the top. Not cut
+#    from a slab: the mass is sculpted from noise and its bedding planes tilt, the hard beds standing
+#    out as ledges over the soft ones worn back, and a wave-cut notch undercuts it all at the sand.
+#    The crown is bleached pale, the shade under ledges and in the openings warm and dark, the tide
+#    line grey with dead coral and sponge. Life keeps to where it would: coral gardens on sunlit
+#    ledges, fans on the walls, kelp on the shaded back, pickles glowing in the hollows.
+#    The rock is riddled with places to go, one for every size of fish:
+#    - the window (gate, span 2x2x2): 6 wide, 9 tall, its middle slice the gate, so a fish up to
+#      0.6 long has room to line up on it from either side of a two-deep tank. Its faces flare out
+#      into a rounded arch, as a tunnel the sea is still widening would;
+#    - the sea cave (hollow, one mouth): 4 wide, 3 tall, 5 deep at the back of a bay under the
+#      headland's overhang, a lair for an eel or a pike. Its mouth is deep in the rock, so the bay
+#      in front is the room a big fish lines up in;
+#    - the keyhole (hollow, two mouths): a 3x3 tunnel straight through the headland, high up;
+#    - the stack's eye (hollow, two mouths): a 3x3 hole worn through the sea stack;
+#    - the fallen slab (open): a block of the bridge come down and propped against the stack's
+#      foot, shade under it for medium fish on show;
+#    - three pigeonholes (hollow, one mouth): 3x2 niches in the cliff faces for the small fry.
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 def sea_arch():
     span, scale = (2, 2, 2), 0.1
     nx, ny, nz = grid_dims(span, scale)          # 18 x 18 x 18
     b = Build((nx, ny, nz))
     rng = random.Random(1906)
-    zc = 8.5
-    wx0, wx1, wy1, wz0, wz1 = 6, 11, 8, 8, 8     # the window: x 6..11, sand to y 8; the gate at z 8
-    def top(x):
-        if x <= 5:
-            return 15 - 0.25 * x
-        if x <= 11:
-            return 12.6 - 0.15 * (x - 6)
-        return 12.5 - 0.7 * max(0, x - 13)
-    def half_width(x, y):
-        if wx0 <= x <= wx1:
-            return 2.6
-        base = 5.5 if x <= 5 else 3.6
-        return base - 0.12 * y
-    for x in range(0, 17):
-        t = top(x) + rng.uniform(-0.6, 0.6)
-        for y in range(0, int(t) + 1):
-            if wx0 <= x <= wx1 and y <= wy1:
-                continue
-            w = half_width(x, y) + rng.uniform(-0.4, 0.4)
+    n1, n2, n3 = value_noise(1906), value_noise(1907), value_noise(1908)
+    inside = lambda p: 0 <= p[0] < nx and 0 <= p[1] < ny and 0 <= p[2] < nz
+
+    def strata(x, y, z):
+        """Height in the tilted bedding: beds dip gently east and toward the back."""
+        return y + 0.16 * (x - 9) + 0.10 * (z - 8.5) + 0.7 * n3(x / 5.0, 0.0, z / 5.0)
+
+    def soft_bed(x, y, z):
+        return (strata(x, y, z) % 3.2) < 0.8
+
+    def density(x, y, z):
+        cx, cy, cz = x + 0.5, y + 0.5, z + 0.5
+        # The headland: a cliff mass to the west, leaning a little as it rises.
+        zc = 8.6 + 0.8 * math.sin(cy * 0.33 + 0.4)
+        w = 6.3 - 0.12 * cy
+        head = min(w - abs(cz - zc), 16.6 - 0.22 * cx - cy, 6.6 - cx + 0.4 * n2(cy / 3, 0, cz / 3))
+        # The bridge: a thick slab over the window, wider at its top, as the Azure Window's table was.
+        bw = 3.7 + 0.12 * max(0.0, cy - 9)
+        bridge = min(bw - abs(cz - 8.7), 15.3 - 0.06 * abs(cx - 9) - cy, cy - 8.6, cx - 3.5, 14.0 - cx)
+        # The sea stack: narrower, leaning, its crown sloping off seaward.
+        sc = 9.1 - 0.6 * math.sin(cy * 0.28)
+        sw = 4.0 - 0.06 * cy
+        stack = min(sw - abs(cz - sc), 13.4 - 0.45 * max(0.0, cx - 14) - cy, cx - 11.6, 17.8 - cx)
+        d = max(head, bridge, stack)
+        d += 0.9 * fbm(n1, cx / 3.6, cy / 3.6, cz / 3.6, octaves=2)
+        if soft_bed(x, y, z):
+            d -= 0.55                               # the soft beds weather back
+        if cy < 3.0:
+            d -= 1.1 * (3.0 - cy) / 3.0             # the wave-cut notch round the foot
+        return d
+
+    solid = {(x, y, z) for x in range(nx) for y in range(ny) for z in range(nz) if density(x, y, z) > 0}
+
+    # The window: the gate's rectangle bored straight through, flaring to a rounded arch at each face.
+    gx0, gx1, gtop, gz = 6, 11, 8, 8
+    for z in range(nz):
+        d = abs(z - gz)
+        for x in range(nx):
+            for y in range(ny):
+                if gx0 <= x <= gx1 and y <= gtop:
+                    solid.discard((x, y, z))
+                elif d >= 2:
+                    hw = 3.0 + 0.38 * (d - 1) ** 1.25 + 0.35 * n2(z / 2.0, y / 2.0, 0.0)
+                    top = gtop + 0.5 + 0.45 * (d - 1)
+                    u = (x + 0.5 - 9.0) / hw
+                    v = max(0.0, y + 0.5 - (top - 2.6)) / 2.6
+                    if u * u + v * v <= 1.0:
+                        solid.discard((x, y, z))
+    # The cove before the sea cave: a tall cleft in the headland's front, the cave low at its back
+    # on a sill of rock, so a big fish has headroom to come down to the door.
+    for z in range(9, nz):
+        f = 0.3 * (z - 9)
+        for x in range(nx):
+            for y in range(0, 9):
+                lo, hi = 0.6 - f, 4.4 + f
+                roof = 5.6 + 0.45 * (z - 9) - 0.9 * max(0.0, abs(x + 0.5 - 2.5) - 1.2) + 0.6 * n2(x / 2.0, 3.0, z / 2.0)
+                if lo <= x + 0.5 <= hi and y + 0.5 <= roof:
+                    solid.discard((x, y, z))
+
+    solid = despeckle(solid, (nx, ny, nz), passes=2)
+
+    # The shelters, placed where the rock now is.
+    def through(xs, ys, axis_x, axis_y):
+        """The rock's extent along z on a line: a tunnel bored there runs from face to face."""
+        zs = [z for z in range(nz) if (axis_x, axis_y, z) in solid]
+        return min(zs), max(zs)
+
+    def face(xs, ys, from_front):
+        """Where a niche goes into a face: the first rock met coming in along z on the line."""
+        zs = [z for z in range(nz) if all((x, y, z) in solid for x in xs for y in ys)]
+        return max(zs) if from_front else min(zs)
+
+    op = Openings()
+    op.add((gx0, 0, gz, gx1, gtop, gz), "gate", [(0, 0, 1), (0, 0, -1)], capacity=4, reach=6)
+    op.add((2, 1, 4, 4, 3, 8), "hollow", [(0, 0, 1)], capacity=1, reach=5)                  # the sea cave
+    kz0, kz1 = through(range(1, 4), range(10, 13), 2, 11)
+    op.add((1, 10, kz0, 3, 12, kz1), "hollow", [(0, 0, 1), (0, 0, -1)], capacity=2, reach=3)  # the keyhole
+    ez0, ez1 = through(range(13, 16), range(5, 8), 14, 6)
+    op.add((13, 5, ez0, 15, 7, ez1), "hollow", [(0, 0, 1), (0, 0, -1)], capacity=2, reach=3)  # the stack's eye
+    op.add((12, 0, 13, 15, 2, 14), "open", [(-1, 0, 0), (1, 0, 0), (0, 0, 1)], capacity=2, reach=3)  # the fallen slab
+    for (xs, ys, front) in ((range(2, 5), range(5, 7), False),       # headland, the back face
+                            (range(7, 10), range(11, 13), True),     # the bridge, over the window
+                            (range(14, 17), range(1, 3), False)):    # the stack's foot, the back face
+        zf = face(xs, ys, front)
+        z0, z1 = (zf - 2, zf) if front else (zf, zf + 2)
+        op.add((xs[0], ys[0], z0, xs[-1], ys[-1], z1), "hollow", [(0, 0, 1) if front else (0, 0, -1)], reach=3)
+
+    solid = op.carve(solid)
+    # The fallen slab: a tilted block of the bridge on two boulders, against the stack's foot.
+    for x in range(12, 18):
+        for z in range(12, 16):
+            solid.add((x, 3, z))
             if x >= 15:
-                w = 1.4
-            for z in range(0, nz):
-                if abs(z + 0.5 - zc) <= w:
-                    upper = y >= int(t) - 0
-                    b.set(x, y, z, "smooth_sandstone" if upper else "sandstone")
-    # Weathered strata: a band of cut sandstone round the cliff.
-    for (x, y, z), (name, _) in list(b.v.items()):
-        if name == "sandstone" and y in (4, 10) and rng.random() < 0.7:
-            b.set(x, y, z, "cut_sandstone")
-    # Boulders off the pillar's foot.
-    for (x, z) in ((16, 4), (17, 5), (16, 13), (13, 15)):
-        b.set(x, 0, z, "sandstone")
-    # Life on the rock: coral at its feet, fans on its ledges, kelp up the cliff, sea pickles.
-    for (x, z, blk) in ((2, 2, "brain_coral_block"), (14, 3, "tube_coral_block"), (4, 15, "fire_coral_block"),
-                        (13, 13, "bubble_coral_block")):
-        b.set(x, 0, z, blk)
-        b.setdefault(x, 1, z, rng.choice(FANS), waterlogged=True)
-    for (x, y, z), (name, _) in list(b.v.items()):
-        if name == "smooth_sandstone" and rng.random() < 0.08:
-            b.setdefault(x, y + 1, z, rng.choice(FANS), waterlogged=True)
-    for (x, z, h) in ((1, 12, 9), (0, 5, 7)):
+                solid.add((x, 4, z))
+    for (x, z) in ((13, 15), (16, 15), (17, 13)):
+        for y in range(0, 3):
+            solid.add((x, y, z))
+    solid = grounded(solid - op.interiors())
+    solid = op.wall(solid, inside)
+    keep = op.keep()
+
+    # Materials follow light and weather, not dice: every voxel gets a tone, and one ramp of warm
+    # limestone, dithered between its steps, turns the tone into a block. Bleached at the crown,
+    # darker toward the wet foot, the soft beds a step down, undersides and the mouths of the
+    # hollows deepest. Neighbouring tones blend, so nothing meets at a hard line.
+    top = ny
+    hollows = set().union(*(Openings.cells(it["box"]) for it in op.items if it["kind"] == "hollow"))
+    tide = lambda x, z: 1.2 + 0.9 * n2(x / 2.5, 7.0, z / 2.5)
+    for p in solid:
+        x, y, z = p
+        up = (x, y + 1, z) not in solid
+        below_open = y > 0 and (x, y - 1, z) not in solid
+        ex = exposure(solid, p, top)
+        oc = occlusion(solid, p)
+        lining = sum(1 for d in N6 if add(p, d) in hollows)
+        tone = 0.30 * (1 - y / (ny - 1)) - 0.04 + 0.10 * n3(x / 3.0, y / 3.0, z / 3.0)
+        if soft_bed(x, y, z):
+            tone += 0.17
+        if up and ex >= 3:
+            tone -= 0.18
+        if below_open:
+            tone += 0.22
+        if lining:
+            tone += 0.30 + 0.12 * (lining - 1)
+        tone += 0.25 * max(0.0, oc - 0.45)
+        if y <= tide(x, z):
+            tone += 0.16
+            r = rng.random()
+            if r < 0.10:
+                b.set(x, y, z, rng.choice(("dead_brain_coral_block", "dead_horn_coral_block")))
+                continue
+            if r < 0.13:
+                b.set(x, y, z, "wet_sponge")
+                continue
+        name, props = LIMESTONE.pick(tone, rng)
+        b.set(x, y, z, name, **props)
+    bevel(b, solid, {"sandstone": "sandstone_stairs", "smooth_sandstone": "smooth_sandstone_stairs",
+                     "packed_mud": "mud_brick_stairs"},
+          {"sandstone": "sandstone_slab", "smooth_sandstone": "smooth_sandstone_slab", "packed_mud": "mud_brick_slab"},
+          keep=keep, rng=rng, chance=0.9)
+
+    # Life, where it would grow. Each patch is one colour, so it reads as a colony, not confetti.
+    def free(p):
+        return inside(p) and p not in solid and p not in keep and p not in b.v
+    tops = [p for p in solid if (p[0], p[1] + 1, p[2]) not in solid and p[1] >= 2]
+    gardens = [("tube", (4, 15, 12)), ("brain", (9, 15, 11)), ("fire", (14, 12, 9)), ("horn", (2, 9, 13)),
+               ("bubble", (16, 6, 6)), ("tube", (7, 11, 5)), ("brain", (1, 14, 5))]
+    for kind, (gx, gy, gz_) in gardens:
+        for p in tops:
+            dist = math.dist(p, (gx, gy, gz_))
+            if dist < 2.6 and rng.random() < 0.85 - 0.22 * dist:
+                if p not in keep and rng.random() < 0.45:
+                    b.set(*p, f"{kind}_coral_block")
+                above = (p[0], p[1] + 1, p[2])
+                if free(above):
+                    b.set(*above, rng.choice((f"{kind}_coral", f"{kind}_coral_fan")), waterlogged=True)
+    # Fans on the walls round each garden, and dead fans in the shade of the openings.
+    for p in list(solid):
+        for d, facing in HORIZONTAL.items():
+            q = add(p, d)
+            if not free(q):
+                continue
+            near = [k for k, c in gardens if math.dist(q, c) < 3.4]
+            if near and rng.random() < 0.28:
+                b.set(*q, f"{near[0]}_coral_wall_fan", facing=facing, waterlogged=True)
+            elif 3 <= q[1] <= 9 and exposure(solid, p, top) == 0 and rng.random() < 0.05:
+                b.set(*q, f"dead_{rng.choice(('tube', 'brain', 'horn'))}_coral_wall_fan", facing=facing, waterlogged=True)
+    # Moss on a few bleached tops; kelp on the shaded back and out of the cove; seagrass at the foot.
+    for p in tops:
+        above = (p[0], p[1] + 1, p[2])
+        if p[1] >= 9 and b.v.get(p, ("",))[0] in ("calcite", "smooth_sandstone") and rng.random() < 0.10 and free(above):
+            b.set(*above, "moss_carpet")
+    for (x, z, h) in ((0, 1, 15), (3, 2, 12), (10, 2, 16), (16, 3, 11), (0, 16, 9), (5, 16, 7), (11, 16, 6)):
         for y in range(0, h):
-            if (x, y, z) not in b.v:
-                b.set(x, y, z, "kelp_plant" if y < h - 1 else "kelp")
-    for (x, z) in ((5, 14), (12, 2), (9, 14), (8, 3)):
-        b.setdefault(x, 0, z, "sea_pickle", pickles=rng.randint(1, 4), waterlogged=True)
+            if not free((x, y, z)):
+                break
+            b.set(x, y, z, "kelp_plant" if y < h - 1 else "kelp")
+    for x in range(nx):
+        for z in range(nz):
+            if free((x, 0, z)) and any((x + dx, 0, z + dz) in solid for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                r = rng.random()
+                if r < 0.16:
+                    b.set(x, 0, z, "seagrass")
+                elif r < 0.24 and free((x, 1, z)):
+                    b.set(x, 0, z, "tall_seagrass", half="lower")
+                    b.set(x, 1, z, "tall_seagrass", half="upper")
+                elif r < 0.30:
+                    b.set(x, 0, z, "sea_pickle", pickles=rng.randint(1, 4), waterlogged=True)
+    # Pickles glowing at the cave's lip, under the slab, on the stack's crown.
+    for p in ((0, 0, 10), (5, 0, 11), (12, 0, 14), (17, 0, 14)):
+        if free(p):
+            b.set(*p, "sea_pickle", pickles=rng.randint(2, 4), waterlogged=True)
+    crown = max((p for p in tops if p[0] >= 12), key=lambda p: p[1])
+    if free((crown[0], crown[1] + 1, crown[2])):
+        b.set(crown[0], crown[1] + 1, crown[2], "sea_pickle", pickles=4, waterlogged=True)
+    # Scree: boulders shed from the cliffs, rounded off.
+    for (x, z, s) in ((17, 4, 1), (16, 1, 0), (6, 2, 0), (12, 16, 0), (8, 15, 1), (0, 13, 0)):
+        for dx in range(s + 1):
+            for dz in range(s + 1):
+                q = (x - dx, 0, z - dz)
+                if free(q):
+                    b.set(*q, "sandstone" if (dx + dz) % 2 else "dripstone_block")
+        if s and free((x, 1, z)):
+            b.set(x, 1, z, "sandstone_slab", type="bottom", waterlogged=True)
+
     culled = b.cull()
-    b.shelter(wx0, 0, wz0, wx1, wy1, wz1, kind="gate", capacity=4)
+    op.register(b)
     return b, "sea_arch", scale, span, culled
 
 
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
-# 8. Sunken Ziggurat — a stepped temple of mossy stone, a stair climbing its face to a little
-#    sanctum on the top. Through its base runs a tunnel between two feathered-serpent heads, gold
-#    eyes glinting: a big fish slides into one maw and out of the other. Small fish rest in the
-#    sanctum's shade up top.
+# 8. Sunken Ziggurat — a stepped temple sunk in the reef, built the way Teotihuacan built: each
+#    tier a sloped talud under a vertical tablero, the tablero a panel framed in a projecting
+#    border, its recess still red with stucco where the sea hasn't scoured it, the border inlaid
+#    with jade. Moss and vines grow down from every ledge. A stair climbs the front between two
+#    feathered-serpent balustrades to a little sanctum, crowned by a pierced roof comb. The front
+#    right corner has slumped into a scree of fallen blocks. Through its base runs a tunnel between
+#    two serpent heads, fanged and crested, gold eyes glinting: a big fish slides into one maw and
+#    out of the other. Small fish rest in the sanctum's shade up top.
 #    Hollow (span 4x2x1): the tunnel, 4x4, 38 long. Mouth 0.25 (fish to 0.62), run 2.4. The temple
 #    stands in the middle of the long tank so a big fish has room to line up on either maw.
 #    Open: the sanctum, 6 long, 2 deep, 3 tall, under the roof. Mouths 0.125 (fish to 0.31).
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 def sunken_ziggurat():
     span, scale = (4, 2, 1), 0.0625
-    nx, ny, nz = grid_dims(span, scale)          # 62 x 29 x 14; built at x 1..41, then moved in by 8
+    nx, ny, nz = grid_dims(span, scale)          # 62 x 29 x 14; built at x 0..42, then moved in by 8
     b = Build((nx, ny, nz))
     rng = random.Random(1194)
+    n1, n2 = value_noise(1194), value_noise(1195)
+    inside = lambda p: 0 <= p[0] <= 42 and 0 <= p[1] < ny and 0 <= p[2] < nz
+
+    # Tiers: (y0, y1, x0, x1, z0, z1). Each: a talud row of stairs, a framed tablero, a cornice.
     tiers = [(0, 5, 7, 36, 1, 12), (6, 9, 10, 33, 2, 11), (10, 13, 13, 30, 3, 10), (14, 17, 16, 27, 4, 9)]
+    solid, role = set(), {}                       # role: what a cell is, for its material
     for (y0, y1, x0, x1, z0, z1) in tiers:
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
                 for z in range(z0, z1 + 1):
-                    b.set(x, y, z, weathered(rng))
-        for x in range(x0, x1 + 1):                    # a chiselled course round each tier's top
-            for z in (z0, z1):
-                b.set(x, y1, z, "chiseled_stone_bricks" if x % 4 == 0 else weathered(rng))
-    # The stair up the front, to the sanctum.
+                    solid.add((x, y, z))
+                    role[(x, y, z)] = "mass"
+    # The tablero panels: framed every 6, the panel recessed a voxel; its back wall the stucco.
+    stucco, frames, cornice = set(), set(), set()
+    for (y0, y1, x0, x1, z0, z1) in tiers:
+        rows = range(y0 + 1, y1)
+        for x in range(x0, x1 + 1):
+            for z, inward in ((z1, -1), (z0, 1)):
+                for y in range(y0, y1 + 1):
+                    p = (x, y, z)
+                    if y == y1:
+                        cornice.add(p)
+                    elif y in rows and (x - x0) % 6 not in (0,) and x not in (x0, x1) and len(rows) >= 2:
+                        solid.discard(p)
+                        stucco.add((x, y, z + inward))
+                    else:
+                        frames.add(p)
+        for z in range(z0 + 1, z1):
+            for x, inward in ((x0, 1), (x1, -1)):
+                for y in range(y0, y1 + 1):
+                    p = (x, y, z)
+                    if y == y1:
+                        cornice.add(p)
+                    elif y in rows and (z - z0) % 4 not in (0,) and len(rows) >= 2:
+                        solid.discard(p)
+                        stucco.add((x + inward, y, z))
+                    else:
+                        frames.add(p)
+    # The stair up the front, cut into the pyramid's face (the tank is too shallow for it to stand
+    # proud), a feathered serpent down each side of it.
+    stair = {}
+    zst = lambda y: 13 - (y * 5) // 18
     for y in range(0, 18):
-        z = 13 - y // 2
-        for x in range(20, 24):
+        z = zst(y)
+        for x in range(19, 25):
             for yy in range(0, y):
-                b.setdefault(x, yy, z, weathered(rng))
-            b.set(x, y, z, "stone_brick_stairs", facing="north", half="bottom", shape="straight")
-    # The sanctum: colonnades front and back under a stepped roof, open at its ends.
+                if (x, yy, z) not in solid:
+                    solid.add((x, yy, z))
+                    role[(x, yy, z)] = "mass"
+            blk = "polished_diorite_stairs" if 20 <= x <= 23 else "tuff_brick_stairs"
+            if y < 17 and zst(y + 1) == z:
+                stair[(x, y, z)] = ("polished_diorite" if 20 <= x <= 23 else "tuff_bricks", {})
+            else:
+                stair[(x, y, z)] = (blk, stair_state("north"))
+    for x in range(19, 25):
+        for z in range(9, 14):
+            top = max(y for y in range(18) if zst(y) == z)
+            for y in range(top, 18):
+                solid.discard((x, y, z))
+            for zz in range(z + 1, 14):
+                for y in range(top + 1, 18):
+                    solid.discard((x, y, zz))
+    # The slumped corner: the front right gone in a ragged bite above the tunnel, its blocks a
+    # scree on the sand below.
+    fallen = 0
+    for p in list(solid):
+        x, y, z = p
+        if x >= 28 and z >= 7 and y >= 6 or (x >= 31 and z >= 10 and y >= 3):
+            bite = (x - 27) / 9.0 + (z - 6) / 7.0 + (y - 5) / 14.0 + 0.35 * n1(x / 2.5, y / 2.5, z / 2.5)
+            if bite > 1.15:
+                solid.discard(p)
+                fallen += 1
+    # The tunnel through the base, and a serpent's head at each end.
+    op = Openings()
+    tx0, tx1, ty0, ty1, tz0, tz1 = 3, 40, 1, 4, 5, 8
+    heads = set()
+    for (hx0, hx1) in ((3, 6), (37, 40)):
+        for x in range(hx0, hx1 + 1):
+            for y in range(0, 8):
+                for z in range(tz0 - 2, tz1 + 3):
+                    # A rounded skull: the corners cut away, the crest rising behind the brow.
+                    if (y >= 6 and z in (tz0 - 2, tz1 + 2)) or (y == 7 and x in (hx0, hx1) and z in (tz0 - 1, tz1 + 1)):
+                        continue
+                    solid.add((x, y, z))
+                    heads.add((x, y, z))
+    for x in range(tx0, tx1 + 1):
+        for z in range(tz0 - 1, tz1 + 2):
+            solid.add((x, 0, z))
+            role[(x, 0, z)] = "floor"
+    op.add((tx0, ty0, tz0, tx1, ty1, tz1), "hollow", [(-1, 0, 0), (1, 0, 0)], capacity=4, reach=5)
+    # The sanctum: colonnades front and back under a stepped roof, open at its ends; a roof comb.
     sx0, sx1, sy0, sy1, sz0, sz1 = 19, 24, 18, 20, 6, 7
     for x in (19, 21, 22, 24):
         for z in (5, 8):
             for y in range(sy0, sy1 + 1):
-                b.set(x, y, z, "chiseled_stone_bricks" if y == sy0 else "stone_bricks")
-    for x in (20, 23):
-        for z in (5, 8):
-            for y in range(sy0, sy1 + 1):
-                b.set(x, y, z, "kelp" if y == sy1 else "kelp_plant")
-    b.box(18, 21, 4, 25, 21, 9, "stone_bricks")
-    b.box(19, 22, 5, 24, 22, 8, "mossy_stone_bricks")
-    b.box(20, 23, 6, 23, 23, 7, "gold_block")
-    # The tunnel through the base, and a serpent's head at each end.
-    tx0, tx1, ty0, ty1, tz0, tz1 = 3, 40, 1, 4, 5, 8
-    b.box(tx0, 0, tz0 - 1, tx1, 0, tz1 + 1, "stone_bricks")
-    for (hx0, hx1, face) in ((3, 6, 2), (37, 40, 41)):
-        for x in range(hx0, hx1 + 1):
-            for y in range(0, 7):
-                for z in range(tz0 - 2, tz1 + 3):
-                    b.set(x, y, z, "chiseled_stone_bricks" if y == 6 else weathered(rng, "mossy_stone_bricks"))
-        # The upper jaw juts over the mouth and the lower lip under it, clear of the opening itself.
-        for z in range(tz0 - 1, tz1 + 2):
-            b.set(face, ty1 + 1, z, "stone_brick_stairs", facing="west" if face < 20 else "east", half="top", shape="straight")
-            b.set(face, 0, z, "stone_brick_slab", type="bottom")
-        for z in (tz0 - 1, tz1 + 1):                    # gold eyes
-            b.set(face, ty1 + 2, z, "gold_block")
-    # Vines and moss on the ledges, kelp at the corners, sea pickles on the stair.
-    for (y0, y1, x0, x1, z0, z1) in tiers[1:]:
+                solid.add((x, y, z))
+                role[(x, y, z)] = "column"
+    sanctum_kelp = [(x, y, z) for x in (20, 23) for z in (5, 8) for y in range(sy0, sy1 + 1)]
+    for (y, x0, x1, z0, z1) in ((21, 18, 25, 4, 9), (22, 19, 24, 5, 8)):
         for x in range(x0, x1 + 1):
-            if rng.random() < 0.35:
-                b.setdefault(x, y0, z1 + 1, "moss_carpet")
-    for (x, z, h) in ((6, 1, 14), (37, 12, 11), (8, 12, 8)):
+            for z in range(z0, z1 + 1):
+                solid.add((x, y, z))
+                role[(x, y, z)] = "roof"
+    comb = set()
+    for x in range(19, 25):
+        for y in range(23, 28):
+            for z in (6, 7):
+                if x in (19, 24) or y in (23, 27) or (x + y) % 2 == 0:
+                    if y < 27 or x % 2 == 1:
+                        comb.add((x, y, z))
+    solid |= comb
+    op.add((sx0, sy0, sz0, sx1, sy1, sz1), "open", [(-1, 0, 0), (1, 0, 0)], capacity=2, reach=3)
+    solid = op.carve(solid)
+    solid = op.wall(solid, inside)
+    keep = op.keep()
+    lining = {add(c, d) for c in Openings.cells(op.items[0]["box"]) for d in N6}
+
+    # Materials: one ramp of stone by light, moss by the ledges, stucco fading in the recesses.
+    STONE = Ramp("smooth_stone", "polished_andesite", "stone_bricks", "mossy_stone_bricks", "tuff_bricks",
+                 "polished_tuff", "cobbled_deepslate")
+    STUCCO = Ramp("light_gray_terracotta", "polished_granite", "pink_terracotta")
+
+    def ledge_dist(p):
+        """Voxels down from the nearest open top above this face: how far moss has crept."""
+        x, y, z = p
+        for k in range(0, 4):
+            if (x, y + k + 1, z) not in solid:
+                return k
+        return 4
+    for p in solid:
+        x, y, z = p
+        if p in lining:
+            name = "cobbled_deepslate" if (x + z) % 3 else "polished_tuff"
+            b.set(x, y, z, name)
+            continue
+        if p in stucco:
+            survive = 0.6 + 0.6 * n2(x / 3.0, y / 2.0, z / 3.0) - 0.04 * y
+            if survive > 0.62:
+                name, props = STUCCO.pick(survive - 0.55, rng)
+                b.set(x, y, z, name, **props)
+                continue
+        tone = 0.22 + 0.14 * n1(x / 3.0, y / 3.0, z / 3.0) + 0.42 * (1 - y / 27)
+        if (x, y + 1, z) not in solid:
+            tone -= 0.32                              # sunlit tops
+        if y > 0 and (x, y - 1, z) not in solid:
+            tone += 0.2                               # under the cornices
+        moss = ledge_dist(p) <= 1 and n2(x / 2.0, y / 2.0, z / 2.0) > -0.25
+        name, props = STONE.pick(tone, rng)
+        if p in cornice:
+            name = "chiseled_stone_bricks" if (x + z) % 5 == 0 else ("smooth_stone" if tone < 0.3 else "stone_bricks")
+        elif p in heads:
+            name = "dark_prismarine" if y == 5 else ("mossy_stone_bricks" if moss else "stone_bricks")   # a jade brow
+        elif role.get(p) == "column":
+            name = "chiseled_stone_bricks" if y == sy0 else "polished_andesite"
+        elif moss and name in ("stone_bricks", "polished_andesite", "smooth_stone"):
+            name = "mossy_stone_bricks"
+        b.set(x, y, z, name, **props)
+    for p, blk in stair.items():
+        if p not in keep:
+            b.set(*p, blk[0], **blk[1])
+    # The cornices project: an upturned stair lip over each tablero.
+    for (y0, y1, x0, x1, z0, z1) in tiers:
+        for x in range(x0, x1 + 1):
+            for z, facing in ((z1 + 1, "north"), (z0 - 1, "south")):
+                q = (x, y1, z)
+                if 19 <= x <= 24 and facing == "north":
+                    continue                                   # the stairway runs clear
+                if inside(q) and q not in solid and q not in keep and q not in b.v and (x, y1, z - (1 if facing == "north" else -1)) in solid:
+                    b.set(*q, "stone_brick_stairs", **stair_state(facing, "top"))
+        for z in range(z0, z1 + 1):
+            for x, facing in ((x0 - 1, "east"), (x1 + 1, "west")):
+                q = (x, y1, z)
+                if inside(q) and q not in solid and q not in keep and q not in b.v and (x + (1 if facing == "east" else -1), y1, z) in solid:
+                    b.set(*q, "stone_brick_stairs", **stair_state(facing, "top"))
+    # The serpents' heads at the stair foot, the feathered balustrades, and the tunnel maws.
+    for x in (19, 24):
+        b.set(x, 0, 13, "chiseled_stone_bricks")
+        b.set(x, 1, 13, "mossy_stone_brick_stairs", **stair_state("north", "top"))
+        b.set(x, 1, 12, "gold_block")
+    for (face, facing, back) in ((2, "west", 3), (41, "east", 40)):
+        for z in range(tz0 - 1, tz1 + 2):
+            b.set(face, ty1 + 1, z, "stone_brick_stairs", **stair_state("east" if facing == "west" else "west", "top"))
+            b.set(face, 0, z, "stone_brick_slab", type="bottom", waterlogged=True)
+        for z in (tz0 - 1, tz1 + 1):
+            b.set(back, ty1 + 2, z, "gold_block")                     # gold eyes
+            b.set(face, ty1, z, "pointed_dripstone", vertical_direction="down", thickness="tip", waterlogged=True)  # fangs
+        for z in range(tz0, tz1 + 1):                                  # the feathered crest
+            b.set(back + (1 if facing == "west" else -1), 7, z, "prismarine_brick_stairs",
+                  **stair_state("east" if facing == "west" else "west"))
+    # The roof comb: pierced stone with red still in its holes' reveals, jade at its crest.
+    for p in comb:
+        if p in solid:
+            x, y, z = p
+            b.set(*p, "polished_andesite" if y < 27 else "stone_bricks")
+    b.set(21, 23, 6, "gold_block")
+    b.set(22, 23, 7, "gold_block")
+    for (x, y, z) in sanctum_kelp:                     # kelp between the columns: open only at the ends
+        b.set(x, y, z, "kelp" if y == sy1 else "kelp_plant")
+
+    def free(p):
+        return inside(p) and p not in b.v and p not in keep and p not in solid
+    # The scree from the slumped corner, piled against the base and spilling to the glass.
+    for x in range(27, 43):
+        for z in range(8, 14):
+            pile = 2.6 - 0.32 * abs(x - 33) - 0.25 * abs(z - 12) + 0.8 * n1(x / 1.7, 9.0, z / 1.7)
+            for y in range(0, 4):
+                q = (x, y, z)
+                if y + 0.5 < pile and free(q) and (y == 0 or (x, y - 1, z) in b.v):
+                    r = rng.random()
+                    if y + 1.5 >= pile:
+                        b.set(*q, "mossy_stone_brick_slab" if r < 0.5 else "stone_brick_slab", type="bottom", waterlogged=True)
+                    else:
+                        b.set(*q, "mossy_cobblestone" if r < 0.35 else "cracked_stone_bricks" if r < 0.7 else "stone_bricks")
+    # Vines hanging from the cornices, moss on the ledges, kelp at the corners, pickles on the stair.
+    for (y0, y1, x0, x1, z0, z1) in tiers:
+        for x in range(x0, x1 + 1):
+            for z, side in ((z1 + 1, "north"), (z0 - 1, "south")):
+                if rng.random() < 0.18:
+                    for k in range(1, rng.randint(2, 4)):
+                        q = (x, y1 - k, z)
+                        if not free(q) or q[1] < 0:
+                            break
+                        b.set(*q, "vine", **{side: True})
+    for p in list(solid):
+        above = (p[0], p[1] + 1, p[2])
+        if free(above) and p[1] >= 5 and rng.random() < 0.22 and p not in comb:
+            b.set(*above, "moss_carpet")
+    for (x, z, h) in ((6, 1, 18), (37, 12, 14), (9, 12, 10), (35, 0, 20), (14, 0, 13)):
         for y in range(0, h):
-            if (x, y, z) not in b.v:
-                b.set(x, y, z, "kelp_plant" if y < h - 1 else "kelp")
-    for (x, z) in ((12, 13), (31, 13), (1, 3), (42, 10)):
-        b.setdefault(x, 0, z, "sea_pickle", pickles=rng.randint(2, 4), waterlogged=True)
+            if not free((x, y, z)):
+                break
+            b.set(x, y, z, "kelp_plant" if y < h - 1 else "kelp")
+    for (x, y, z) in list(stair):
+        if rng.random() < 0.07 and free((x, y + 1, z)) and x in (20, 23):
+            b.set(x, y + 1, z, "sea_pickle", pickles=rng.randint(1, 3), waterlogged=True)
+    for (x, z) in ((12, 13), (31, 13), (1, 3), (42, 10), (16, 13), (27, 0)):
+        if free((x, 0, z)):
+            b.set(x, 0, z, "sea_pickle", pickles=rng.randint(2, 4), waterlogged=True)
     culled = b.cull()
-    b.shelter(tx0, ty0, tz0, tx1, ty1, tz1, capacity=4)
-    b.shelter(sx0, sy0, sz0, sx1, sy1, sz1, kind="open", capacity=2)
+    op.register(b)
     b.shift(8)
     return b, "sunken_ziggurat", scale, span, culled
 
 
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
-# 9. Capsized Galleon — a warship turned turtle on the sand, keel to the sky, copper sheathing
-#    green along it, the stern broken away to show the ribs, and its fallen mast beside it. In the
-#    long dark of its hull something big waits, only its snout showing at the broken stern; far
-#    in, a glint of gold.
+# 9. Capsized Galleon — a warship turned turtle on the sand, keel to the sky. Not an extrusion: the
+#    hull has a real section (narrow at the buried deck where the sides tumble home, fullest at the
+#    old waterline, rounding into the keel), it lists away from the glass, and its back is broken,
+#    hogged highest amidships and sagging to bow and stern. Copper sheathing covers what was its
+#    bottom, oxidised teal at the keel weathering to sage and bare brown toward the old waterline,
+#    plates gone here and there and a few peeled up. Below it the planking runs in strakes, each a
+#    shade of its own with butt joints along it, a pale wale and a dark one standing proud, gun
+#    ports dark near the sand, planks sprung away to show the frames. The stem curves down to the
+#    sand at the bow; at the stern the hull is broken open on its ribs, a glint of gilt trim and a
+#    lantern in the sand. Sand drifts against its flank, the fallen mast lies beside it with its
+#    yards and a torn sail, kelp streams up off the keel. In the long dark of its hull something big
+#    waits, only its snout showing at the broken stern; far in, a glint of gold.
 #    Hollow (span 3x2x1): 22 long, 6 wide, 5 tall. Mouth 0.31 (fish to 0.78), run 1.375. The
 #    broken stern stands 0.8 in from the end of the tank, room for a big fish to line up on it. Two
-#    storeys, so the wreck lies on the bottom with open water over it: in one storey the hull
-#    filled the box and the fish were squeezed into the ends.
+#    storeys, so the wreck lies on the bottom with open water over it.
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 def capsized_galleon():
     span, scale = (3, 2, 1), 0.0625
-    nx, ny, nz = grid_dims(span, scale)          # 46 x 29 x 14
+    nx, ny, nz = grid_dims(span, scale)          # 46 x 29 x 14; built at x 0..39, then moved in by 6
     b = Build((nx, ny, nz))
     rng = random.Random(1628)
-    zc = 6.5
+    n1, n2 = value_noise(1628), value_noise(1629)
+    inside = lambda p: 0 <= p[0] <= 39 and 0 <= p[1] < ny and 0 <= p[2] < nz
+    zc0, lean = 6.7, 0.17                         # the list: the keel leans away from the front glass
+
+    def depth(x):                                  # keel height: hogged, highest amidships
+        d = 8.0 + 1.8 * max(0.0, 1 - ((x - 19) / 17) ** 2)
+        return d - 0.25 * max(0, x - 31)
+
     def beam(x):
-        if x >= 30:
-            return 6.0 * math.sqrt(max(0.0, 1 - ((x - 30) / 9.5) ** 2))
-        return 6.0
-    for x in range(6, 40):
-        B = beam(x)
-        if B < 0.8:
-            continue
-        for z in range(0, nz):
-            u = (z + 0.5 - zc) / B
-            if abs(u) > 1:
-                continue
-            top = 9 - 3 * u * u - (1 if x >= 37 else 0)
-            for y in range(0, int(round(top)) + 1):
-                b.set(x, y, z, "dark_oak_planks")
-            if abs(z + 0.5 - zc) <= 1 and x <= 37:       # the keel, sheathed in copper
-                b.set(x, int(round(top)) + 1, z, "waxed_oxidized_cut_copper")
-    # Wales: dark strakes along the side, and gun ports, upside down now, near the sand.
-    for x in range(6, 37):
-        for z in (0, 12):
-            if (x, 5, z) in b.v:
-                b.set(x, 5, z, "stripped_dark_oak_log", axis="x")
-    for x in range(9, 27, 4):
-        for z in (0, 12):
-            if (x, 2, z) in b.v:
-                b.set(x, 2, z, "black_terracotta")
-    # The broken stern: ribs standing out past the planking, ragged.
-    for x in (4, 5):
-        for z in range(0, nz):
-            u = (z + 0.5 - zc) / 6.0
-            if abs(u) > 1:
-                continue
-            top = int(round(9 - 3 * u * u))
-            shell = [(y, z) for y in range(0, top + 1) if y >= top - 1 or abs(u) > 0.62]
-            for (y, zz) in shell:
-                if 1 <= y <= 5 and 4 <= zz <= 9:
+        return 5.5 if x < 30 else 5.5 * math.sqrt(max(0.0, 1 - ((x - 30) / 8.3) ** 2))
+
+    def half_width(x, v):
+        D, B = depth(x), beam(x)
+        vw = 0.38 * D                              # the old waterline: the fullest part
+        if v < vw:
+            return B * (0.84 + 0.16 * v / vw)      # tumblehome down to the buried deck
+        t = (v - vw) / max(0.1, D - vw)
+        return B * math.sqrt(max(0.0, 1 - t ** 2.2))
+
+    def centre(y):
+        return zc0 - lean * y
+
+    solid = set()
+    for x in range(6, 38):
+        for y in range(0, 12):
+            for z in range(nz):
+                v = y + 0.5
+                if v <= depth(x) + 0.5 and abs(z + 0.5 - centre(y)) <= half_width(x, v):
+                    solid.add((x, y, z))
+    # The stem, curving down from the keel to the sand at the bow.
+    for (x, y0, y1) in ((37, 5, 8), (38, 2, 6), (39, 0, 3)):
+        for y in range(y0, y1 + 1):
+            solid.add((x, y, round(centre(y) - 0.5)))
+    # The broken stern: the shell of the hull standing on its ribs, ragged where it tore.
+    ribs = set()
+    for x in (3, 4, 5):
+        for y in range(0, 11):
+            for z in range(nz):
+                v = y + 0.5
+                hw = half_width(6, v)
+                u = abs(z + 0.5 - centre(y))
+                if v > depth(6) + 0.5 or u > hw:
                     continue
-                if x == 5 or (x == 4 and zz in (0, 1, 2, 11, 12, 13)):
-                    b.set(x, y, zz, "stripped_dark_oak_log", axis="y")
-    # Gold, deep inside at the bow end.
+                if u > hw - 1.4 or v > depth(6) - 0.9:
+                    if x == 3 and (z + y) % 3:
+                        continue
+                    if n1(x * 0.9, y / 2.2, z / 2.2) > 0.5 - 0.3 * (5 - x):
+                        solid.add((x, y, z))
+                        if x <= 4:
+                            ribs.add((x, y, z))
+
+    # A hole torn in the upturned bottom amidships: the planking gone, the frames arching over the
+    # dark of the orlop, which still roofs the lair below.
+    torn_ribs = set()
+    for x in range(16, 24):
+        for (xx, y, z) in [c for c in solid if c[0] == x and c[1] >= 7]:
+            edge = abs(x - 19.5) / 4.0 + 0.3 * n2(x / 1.5, y / 1.5, z / 1.5)
+            if edge < 0.95:
+                solid.discard((xx, y, z))
+                if x % 2 == 0 and abs(z + 0.5 - centre(y)) > half_width(x, y + 0.5) - 1.3:
+                    solid.add((xx, y, z))
+                    torn_ribs.add((xx, y, z))
+    op = Openings()
+    op.add((6, 1, 4, 27, 5, 9), "hollow", [(-1, 0, 0)], capacity=3, reach=5)
+    solid = op.carve(solid)
+    solid = op.wall(solid, inside)
+    keep = op.keep()
+    walls = {add(c, d) for c in op.interiors() for d in N6} - op.interiors()
+
+    # The old waterline wanders a little along the hull; above it was the ship's bottom.
+    def waterline(x, z):
+        return 0.40 * depth(max(6, min(37, x))) + 0.8 * n2(x / 5.0, 0.0, z / 3.0)
+
+    def exposed_side(p):
+        return [d for d in HORIZONTAL if add(p, d) not in solid]
+
+    # Planks sprung from the flanks below the waterline, showing the frames behind.
+    sprung = set()
+    for p in list(solid):
+        x, y, z = p
+        if p in walls or p in keep or x < 7 or x > 34 or y < 1 or y >= waterline(x, z) or not exposed_side(p):
+            continue
+        if n1(x / 3.4, y / 2.2, z * 0.7 + 9.0) > 0.5:
+            inner = add(p, tuple(-c for c in exposed_side(p)[0]))
+            if inner in solid:
+                sprung.add(p)
+    solid -= sprung
+    frames = {add(p, tuple(-c for c in d)) for p in sprung for d in HORIZONTAL if add(p, d) not in solid} & solid
+
+    # Gun ports along the old gun deck, near the sand now, recessed dark.
+    ports = set()
+    for x in range(9, 30, 4):
+        for side in (-1, 1):
+            zs = [z for z in range(nz) if (x, 2, z) in solid]
+            if not zs:
+                continue
+            zo = min(zs) if side < 0 else max(zs)
+            if (x, 2, zo) not in walls and (x, 2, zo - side) in solid:
+                solid.discard((x, 2, zo))
+                ports.add((x, 2, zo - side))
+
+    HULL = Ramp(("stripped_spruce_log", {"axis": "x"}), "spruce_planks", ("oak_log", {"axis": "x"}),
+                ("stripped_dark_oak_log", {"axis": "x"}), "dark_oak_planks")
+    COPPER = Ramp("waxed_oxidized_cut_copper", "waxed_oxidized_copper", "waxed_weathered_cut_copper",
+                  "waxed_exposed_cut_copper")
+    lining = {add(c, d) for c in op.interiors() for d in N6}
+    strake_shade = {}
+    for p in solid:
+        x, y, z = p
+        wl = waterline(x, z)
+        if p in lining:
+            name, props = ("black_terracotta", {}) if (x + y + z) % 3 else ("dark_oak_planks", {})
+        elif p in ports:
+            name, props = "black_terracotta", {}
+        elif p in frames:
+            name, props = (("stripped_dark_oak_log", {"axis": "y"}) if x % 3 == 0 else ("dark_oak_planks", {}))
+        elif p in ribs or p in torn_ribs:
+            name, props = "stripped_dark_oak_log", {"axis": "y"}
+        elif (x, y + 1, z) not in solid and 16 <= x <= 23 and y >= 5:
+            name, props = ("dark_oak_planks", {}) if (x + z) % 2 else ("stripped_dark_oak_log", {"axis": "z"})
+        elif y + 0.5 >= wl and x >= 6 and n2(x / 2.6, y / 2.0, z / 2.6) < 0.48:
+            frac = (y + 0.5 - wl) / max(1.0, depth(min(37, x)) - wl)
+            name, props = COPPER.pick(1.0 - frac + 0.15 * n1(x / 3.0, y, z / 3.0), rng)
+        else:
+            # Each strake a shade of its own, broken by butt joints every few planks.
+            seg = (y, (x + 7 * y) // 5)
+            if seg not in strake_shade:
+                strake_shade[seg] = rng.uniform(-0.18, 0.18)
+            tone = 0.22 + strake_shade[seg] + 0.22 * max(0.0, 1 - y / 3.0)
+            if (x, y - 1, z) not in solid and y > 0:
+                tone += 0.2                        # undersides in shadow
+            name, props = HULL.pick(tone, rng)
+        b.set(x, y, z, name, **props)
+    # The wales: a pale rubbing strake at the old waterline and a dark one by the deck, standing proud.
+    for x in range(7, 33):
+        for side in (-1, 1):
+            for (yy, blk) in ((round(0.40 * depth(x)) + 1, "stripped_spruce_log"), (1, "stripped_dark_oak_log")):
+                zs = [z for z in range(nz) if (x, yy, z) in solid]
+                if zs:
+                    q = (x, yy, (min(zs) - 1) if side < 0 else (max(zs) + 1))
+                    if inside(q) and q not in keep and q not in b.v:
+                        b.set(*q, blk, axis="x")
+    # The keel along the top, standing proud, its copper long gone.
+    for x in range(6, 37):
+        ys = [y for (xx, y, zz) in solid if xx == x]
+        if ys:
+            top = max(ys)
+            zk = round(centre(top) - 0.5)
+            if (x, top, zk) in solid:
+                b.set(x, top + 1, zk, "stripped_dark_oak_log", axis="x")
+    # Copper plates peeled up off the bottom.
+    for p in list(solid):
+        if b.v.get(p, ("",))[0].startswith("waxed_") and rng.random() < 0.035:
+            for d, facing in HORIZONTAL.items():
+                q = add(p, d)
+                if inside(q) and q not in b.v and q not in keep:
+                    b.set(*q, "waxed_oxidized_copper_trapdoor", facing=facing, half="top", open=True, waterlogged=True)
+                    break
+    # A glint of gold far in, gilt trim at the broken stern, a lantern fallen in the sand.
     b.set(28, 1, 6, "gold_block")
     b.set(28, 1, 7, "gold_block")
-    b.set(28, 2, 7, "gold_block")
-    # The fallen mast and its yard on the sand behind, kelp and life on the hull.
-    for x in range(12, 31):
-        b.set(x, 0, 13, "spruce_log", axis="x")
-    for z in range(10, 14):
-        b.set(17, 1, z, "spruce_log", axis="z")
-    for (x, z, h) in ((10, 13, 10), (27, 13, 8), (36, 2, 11), (2, 1, 9)):
-        for y in range(0, h):
-            if (x, y, z) not in b.v:
-                b.set(x, y, z, "kelp_plant" if y < h - 1 else "kelp")
-    for (x, y, z), (name, _) in list(b.v.items()):
-        if name == "waxed_oxidized_cut_copper" and rng.random() < 0.12:
-            b.setdefault(x, y + 1, z, rng.choice(("tube_coral_fan", "brain_coral_fan")), waterlogged=True)
-    for (x, z) in ((20, 13), (33, 12), (1, 9)):
-        b.setdefault(x, 0, z, "sea_pickle", pickles=rng.randint(2, 4), waterlogged=True)
+    b.set(28, 2, 7, "raw_gold_block")
+    for p in sorted(ribs):
+        if p[1] <= 1 and rng.random() < 0.5:
+            b.set(*p, "raw_gold_block")
+    b.setdefault(1, 0, 11, "lantern", hanging=False, waterlogged=True)
+
+    def free(p):
+        return inside(p) and p not in b.v and p not in keep and p not in solid
+
+    # Sand drifted against the front flank, half burying the dark wale.
+    for x in range(8, 30):
+        zs = [z for z in range(nz) if (x, 0, z) in solid]
+        if not zs:
+            continue
+        h = 1.15 + 0.9 * n1(x / 4.0, 5.0, 0.0)
+        for k in range(1, 2):
+            for y in range(0, 3):
+                q = (x, y, max(zs) + k)
+                buried_wale = b.v.get(q, ("",))[0] == "stripped_dark_oak_log" and q not in solid
+                if y + 0.5 < h - 0.9 * (k - 1) and (free(q) or buried_wale):
+                    b.set(*q, "sand")
+    # The fallen mast and its yards on the sand behind, a chain trailing from the bow.
+    for x in range(9, 32):
+        if free((x, 0, 0)):
+            b.set(x, 0, 0, "spruce_log", axis="x")
+    for xy in (16, 25):
+        for z in range(0, 4):
+            for y in range(0, 4):
+                if free((xy, y, z)) and (xy, y - 1, z) in b.v | {(xy, -1, z): 0}:
+                    b.set(xy, y, z, "spruce_log", axis="z")
+                    break
+    for x in range(33, 40):
+        if free((x, 0, 12)):
+            b.set(x, 0, 12, "iron_chain", axis="x", waterlogged=True)
+    # Kelp streaming up off the keel and from the sand, coral on the copper, pickles and seagrass.
+    for (x, z, h) in ((10, 1, 18), (27, 0, 15), (36, 2, 12), (2, 1, 11), (21, 13, 9)):
+        ys = [y for (xx, y, zz) in b.v if xx == x and zz == z]
+        y0 = max(ys) + 1 if ys else 0
+        for y in range(y0, min(ny, y0 + h)):
+            if not free((x, y, z)):
+                break
+            b.set(x, y, z, "kelp_plant" if y < y0 + h - 1 else "kelp")
+    for kind, (cx, cz) in (("tube", (14, 5)), ("brain", (24, 6)), ("fire", (31, 5))):
+        for (x, y, z), (name, _) in list(b.v.items()):
+            if name.startswith("waxed_") and math.dist((x, z), (cx, cz)) < 3.2 and rng.random() < 0.4:
+                if free((x, y + 1, z)):
+                    b.set(x, y + 1, z, rng.choice((f"{kind}_coral_fan", f"{kind}_coral")), waterlogged=True)
+    for x in range(0, 40):
+        for z in (0, 12, 13):
+            if free((x, 0, z)) and rng.random() < 0.22:
+                if rng.random() < 0.3:
+                    b.set(x, 0, z, "sea_pickle", pickles=rng.randint(1, 4), waterlogged=True)
+                else:
+                    b.set(x, 0, z, "seagrass")
+    bevel(b, solid - ribs - torn_ribs - frames - ports, {"spruce_planks": "spruce_stairs", "dark_oak_planks": "dark_oak_stairs",
+                                             "waxed_oxidized_cut_copper": "waxed_oxidized_cut_copper_stairs",
+                                             "waxed_weathered_cut_copper": "waxed_weathered_cut_copper_stairs",
+                                             "waxed_exposed_cut_copper": "waxed_exposed_cut_copper_stairs"},
+          {"spruce_planks": "spruce_slab", "dark_oak_planks": "dark_oak_slab", "waxed_oxidized_cut_copper": "waxed_oxidized_cut_copper_slab"},
+          keep=keep | walls, rng=rng, chance=0.8)
     culled = b.cull()
-    b.shelter(6, 1, 4, 27, 5, 9, capacity=3)
+    op.register(b)
     b.shift(6)
     return b, "capsized_galleon", scale, span, culled
 
