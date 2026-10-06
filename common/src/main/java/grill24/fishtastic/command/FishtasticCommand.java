@@ -54,6 +54,9 @@ public class FishtasticCommand {
             command.then(PoseDebugCommand.build());
             // Switches the fishing minigame's bar/bobber art — same dev-only, client-state-driven pattern.
             command.then(FishingBarCommand.build());
+            // Prints the client-side swim/hover verdict for the tank being looked at — same pattern,
+            // and the only way to tell a budget-capped fish from a size-gated one on screen.
+            command.then(TankSimDebugCommand.build());
         }
 
         dispatcher.register(command);

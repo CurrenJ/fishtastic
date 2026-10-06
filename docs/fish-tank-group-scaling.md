@@ -596,3 +596,29 @@ and the view facing it, stocked and emptied, and differences the frames. It asse
 view is the configuration it claims (the anchor's extract tick), then the partition audit live, then
 the pixels. Verified 2026-09-28, including against a deliberate revert of the fix, which fails the
 scene's `fishWithAnchorOutOfView` check.
+
+### 9.9 The fish budget's cap, revised (2026-10-02)
+
+§9.2's flat per-tank quota (`RENDER_MAX_GROUP_FISH / members`) bounded the right quantity but trimmed
+the wrong fish: it handed every tank the same share of the budget whether or not the group was using
+it. On the owner's showcase world (one 154-tank group holding 87 fish — 8% of the budget) it capped
+every class at 6 fish per tank, so the group's one 19-fish tank rendered 13 of them frozen:
+`Locomotion.STATIC`, no translation, just the item bob — indistinguishable from a bug in any frame,
+and reported as one.
+
+The cap is now **water-filling over the group's own counts**: the largest `C` with
+`Σ min(fish_i, C) ≤ RENDER_MAX_GROUP_FISH` (unbounded when the total already fits), in
+`TankGroups.perTankFishCap`. `TankFishBudget` computes it once per rebuild from the members'
+inventories and both passes apply it through the same `GroupSplit`, so §9.2's hard requirement — the
+two passes reaching the same verdict about every slot without shared state — is untouched: the cap is
+still a pure function of what the group holds. A group under the budget now freezes nobody; an
+over-budget one trims only the tanks above the cap, and never below one fish per tank. Thin tanks
+keep everything, which is also the fairness §9.2 was after, applied to the fish rather than the tanks.
+
+On the showcase world after this change: no tank caps at all (87 ≤ 1024, so every class is
+unbounded). `TankGroupsBudgetTest` holds the three properties — the budget bound, the ≥1 floor, and
+"a group under the budget freezes nobody" — and `GroupSplitTest` still holds the split itself.
+
+`/fishtastic tanksim` (dev-only, single-player) prints the live verdict for the tank being looked at:
+group size and run gate, the per-class caps, and per slot whether the fish swims with the group or
+stays home as `STATIC` — added because this class of report cannot be diagnosed from a screenshot.
