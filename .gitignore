@@ -127,3 +127,6 @@ CLAUDE.md
 
 # per-worktree JDK for the pre-commit hook (machine-specific)
 /scripts/git-hooks/local-java-home
+
+## Vanilla block textures for tools/sticker_sheet.html (Mojang assets, never commit)
+/tools/block_textures/
