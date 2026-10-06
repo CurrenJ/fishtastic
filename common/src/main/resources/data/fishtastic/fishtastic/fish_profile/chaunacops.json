@@ -12,5 +12,6 @@
   "moon_weights": [
     { "phase": "new_moon", "multiplier": 1.3, "tier": "secondary" }
   ],
-  "temperament": "fishtastic:ghost"
+  "temperament": "fishtastic:ghost",
+  "swarm": { "shelter": "lurker" }
 }

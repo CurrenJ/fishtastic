@@ -14,6 +14,7 @@
   ],
   "temperament": "fishtastic:aggressive",
   "swarm": {
+    "shelter": "visitor",
     "count": 5,
     "depth_layers": 3,
     "xz_spread": 0.24,

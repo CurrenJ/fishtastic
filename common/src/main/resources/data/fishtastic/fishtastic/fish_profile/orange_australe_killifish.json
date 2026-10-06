@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:nether_wastes"], "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:docile"
+  "temperament": "fishtastic:docile",
+  "swarm": { "shelter": "skittish" }
 }

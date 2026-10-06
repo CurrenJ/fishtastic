@@ -11,5 +11,6 @@
   "weather_weights": [
     { "weather": "rain", "multiplier": 1.2 }
   ],
-  "temperament": "fishtastic:aggressive"
+  "temperament": "fishtastic:aggressive",
+  "swarm": { "shelter": "lurker" }
 }

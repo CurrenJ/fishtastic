@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 1.4 }
   ],
-  "temperament": "fishtastic:aggressive"
+  "temperament": "fishtastic:aggressive",
+  "swarm": { "shelter": "lurker" }
 }

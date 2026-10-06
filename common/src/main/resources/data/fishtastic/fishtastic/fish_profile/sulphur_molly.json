@@ -10,6 +10,7 @@
   ],
   "temperament": "fishtastic:sprinter",
   "swarm": {
+    "shelter": "visitor",
     "count": 6,
     "depth_layers": 3,
     "xz_spread": 0.22,
