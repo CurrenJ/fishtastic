@@ -2,6 +2,7 @@ package grill24.fishtastic.fabric;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlockEntityTypes;
+import grill24.fishtastic.fishtank.CosmeticObstacles;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.CosmeticPlacementPreview;
@@ -237,7 +238,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             ClientTankFlocks.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
-            if (isClient) ItemEffectManager.clearCache();
+            if (isClient) {
+                ItemEffectManager.clearCache();
+                CosmeticObstacles.clearCache();
+            }
         });
 
         // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).

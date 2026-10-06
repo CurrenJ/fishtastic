@@ -34,6 +34,7 @@ public final class VoxelDomain implements FlockDomain {
     private final DistanceField field;
     private FloorField floor;
     private List<Shelter> shelters = List.of();
+    private List<Shelter.OrientedBox> obstacles = List.of();
 
     public VoxelDomain(boolean[][][] occupancy) {
         this(occupancy, DEFAULT_INSET, 0f, null);
@@ -128,6 +129,13 @@ public final class VoxelDomain implements FlockDomain {
      */
     public void rebuildShelters(List<Shelter> shelters) {
         this.shelters = List.copyOf(shelters);
+    }
+
+    @Override public List<Shelter.OrientedBox> obstacles() { return obstacles; }
+
+    /** Replaces the obstacles, on the same cosmetic fingerprint as the shelters and the floor. */
+    public void rebuildObstacles(List<Shelter.OrientedBox> obstacles) {
+        this.obstacles = List.copyOf(obstacles);
     }
 
     @Override public float minLateral() { return minL; }
