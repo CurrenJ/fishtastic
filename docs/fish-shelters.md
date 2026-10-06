@@ -202,8 +202,16 @@ Three ways into `APPROACH`, each written as a change rather than a condition. Th
 three rounds on the garden eels:
 
 1. **Spontaneous visit** (`visitor`, `skittish`). A per-fish Poisson clock at a low mean rate
-   (start with one visit every ~40 s, jittered ±35% off the seed like every other per-fish
-   constant), which fires only while `ROAMING` and outside the cooldown.
+   (one visit every ~60 s, jittered ±35% off the seed like every other per-fish constant), which
+   fires only while `ROAMING` and outside the cooldown. It raises an urge that lasts 20 s and
+   becomes an approach once a fitting shelter's staging point is within **1 block**. The visitor
+   swims there at 2× patrol (0.14 blocks/s), planning its arrival like the dash.
+
+   *Revised 2026-10-02, after the owner rarely saw visits.* The reach was 4 s of patrol, about
+   0.28 blocks, with a 40 s clock. Measured in a 5x2x1 with one pipe, a roaming fish was in reach
+   2% of the time, and 11 loaches visited 0.7 times a minute between them. Now 5.4, with 1.2 of
+   the 11 hidden on average. The clock went to 60 s because nearly every urge now finds a
+   shelter, and at 40 the hidden budget would be full most of the time.
 2. **Startle** (`skittish` only). The watcher *lunging*: within 3 blocks of the fish and at least
    0.5 blocks closer to it than a second ago. Afterwards the fish can't be startled again for 15 s.
    A startled fish **dashes** for any fitting shelter whose staging point is within 1.5 blocks
@@ -268,6 +276,15 @@ the log and left nine acting as if nothing had happened.
 - **While flinching**, a fish's visit clock and cooldown wait. It has its own speed cap, and the
   settle above brings it back down.
 
+**A frightened fish beats a casual one to the door** *(2026-10-02, the owner's choice)*. With
+visits common (§5.3 trigger 1), the hidden budget was so often full that dashes in the 5x2x1
+with two logs fell from 40-58 to 10-23 in ten minutes. Now a startled fish that finds no room may
+take the place of a visitor still swimming to a shelter, and that visitor turns away, carrying
+on as it was going. Only a visitor farther from its staging point than the startled fish is from
+cover: one already at the door keeps its place. Fish entering or inside, and a lurker on its way
+home, are never bumped, so the budget is never exceeded. Dashes recovered to 23-32. The rest of
+the shortfall is fish already inside, which is the budget working.
+
 `ShelterStartleTest` holds it: every fish lunged at either hides or flinches, at least 75% end
 the flinch farther from the watcher (one beside a log's mouth may have to dart along the glass),
 and five seconds on none is flinching or faster than a cruiser.
@@ -287,8 +304,9 @@ changing its mind reads as indecisive, not alive.
   `INSIDE` at once, counting lurkers resting in a mouth as visible. A trigger that would exceed it
   simply doesn't fire. This is the tank-wide guarantee that a well-stocked tank never empties into
   its caves, whatever the stocking.
-- **Approach timeout:** `APPROACH` gives up after 6 s (also 6 s for a startle's dash of up to
-  1.5 blocks) and goes to cooldown.
+- **Approach timeout:** `APPROACH` gives up after the time to swim its 1-block reach at its
+  approach speed plus 4 s (about 11 s; at least 6) for a visit, 12 s for a lurker going home, and
+  6 s for a startle's dash of up to 1.5 blocks. Then it goes to cooldown.
   This is what makes "no pathfinding" safe. A fish behind the L-bend of a group, a mouth facing the
   glass, or a mouth blocked by another cosmetic all end the same way: a short purposeful swim
   toward the shelter, then back to normal. A mouth whose staging point is outside the domain or

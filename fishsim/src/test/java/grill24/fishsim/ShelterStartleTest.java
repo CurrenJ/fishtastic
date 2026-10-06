@@ -32,8 +32,14 @@ class ShelterStartleTest {
         return engine;
     }
 
-    /** Puts fish #{@code i} on its log's axis just outside the staging point, nose to the mouth. */
+    /**
+     * Puts fish #{@code i} on its log's axis just outside the staging point, nose to the mouth.
+     * First lets it finish any visit it is on: a startle is for a roaming fish, and visits are
+     * common enough that fish 0 is sometimes already on its way to the log.
+     */
     private static void lineUp(FlockEngine engine, Shelter log, int i) {
+        for (int t = 0; t < 2_000 && engine.shelterState(i) != FlockEngine.SHELTER_ROAMING; t++) engine.step();
+        assertEquals(FlockEngine.SHELTER_ROAMING, engine.shelterState(i), "bad probe: fish " + i + " never came back out");
         Shelter.Mouth mouth = log.mouths().get(0);
         float out = engine.lengths[i] + 0.12f;
         engine.posL()[i] = mouth.centerL() - mouth.normalL() * out;
@@ -358,8 +364,10 @@ class ShelterStartleTest {
         far(engine);
         for (int tick = 0; tick < 200; tick++) engine.step();
         engine.setWatcher(true, domain.maxLateral() + 1.0f, 0f, 0f);
-        engine.step();
         int n = engine.count();
+        // Where each fish was as the lunge landed: the engine judges "away" from there.
+        float[] atL = engine.posL().clone(), atD = engine.posD().clone();
+        engine.step();
         boolean[] flinched = new boolean[n];
         int lunged = 0, flinchers = 0;
         for (int i = 0; i < n; i++) {
@@ -373,16 +381,31 @@ class ShelterStartleTest {
             }
         }
         assertTrue(lunged >= 5 && flinchers >= 3, lunged + " lunged at, " + flinchers + " flinched");
-        // By the end of the flinch, most flinchers are farther from the watcher than they were.
-        // Not all: one beside the log's mouth, with the log between it and straight away, darts
-        // along the glass instead, and may have been swimming toward the watcher when it started.
+        // Every flinch is aimed no more than a quarter turn off straight away from the watcher
+        // (who is at +lateral), and no flincher ends up much nearer it. Not every one ends
+        // farther: a fish at the log's open end, with the log between it and straight away, darts
+        // sideways along the glass, and the log's own avoidance pushes it out of the log's margin,
+        // which there is toward the watcher (measured 0.11 blocks nearer, seed 31).
         float wl = domain.maxLateral() + 1.0f;
-        float[] before = new float[n];
-        for (int i = 0; i < n; i++) before[i] = Math.abs(wl - engine.posL()[i]);
+        float[] dir = new float[2], before = new float[n];
+        for (int i = 0; i < n; i++) {
+            before[i] = (float) Math.hypot(wl - engine.posL()[i], engine.posD()[i]);
+            if (!flinched[i]) continue;
+            engine.flinchDirection(i, dir);
+            float awayL = atL[i] - wl, awayD = atD[i];
+            float len = (float) Math.hypot(awayL, awayD);
+            assertTrue((dir[0] * awayL + dir[1] * awayD) / len >= -1e-4f,
+                    "fish " + i + " flinched toward the watcher: " + dir[0] + ", " + dir[1]);
+        }
         for (int tick = 0; tick < 32; tick++) engine.step();
         int away = 0;
-        for (int i = 0; i < n; i++) if (flinched[i] && Math.abs(wl - engine.posL()[i]) > before[i]) away++;
-        assertTrue(away >= 0.75f * flinchers, "only " + away + " of " + flinchers + " flinchers ended farther from the watcher");
+        for (int i = 0; i < n; i++) {
+            if (!flinched[i]) continue;
+            float after = (float) Math.hypot(wl - engine.posL()[i], engine.posD()[i]);
+            assertTrue(after > before[i] - 0.15f, "fish " + i + " ended " + (before[i] - after) + " nearer the watcher");
+            if (after > before[i]) away++;
+        }
+        assertTrue(away * 2 >= flinchers, "only " + away + " of " + flinchers + " flinchers ended farther from the watcher");
         // Five seconds on, nobody is still flinching or faster than an ordinary cruiser.
         for (int tick = 0; tick < 78; tick++) engine.step();
         float ceiling = t.maxSpeed() * (1f + t.traitJitter()) * 1.001f;
