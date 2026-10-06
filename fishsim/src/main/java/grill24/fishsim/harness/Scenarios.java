@@ -2,8 +2,12 @@ package grill24.fishsim.harness;
 
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
+import grill24.fishsim.domain.Shelter;
+import grill24.fishsim.domain.VoxelDomain;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 /** Shared scenario factories for the headless runner and the viewer. */
@@ -36,5 +40,55 @@ public final class Scenarios {
         boolean[][][] g = new boolean[Integer.parseInt(parts[0])][Integer.parseInt(parts[1])][Integer.parseInt(parts[2])];
         for (boolean[][] a : g) for (boolean[] b : a) Arrays.fill(b, true);
         return g;
+    }
+
+    /**
+     * Height of the sand above a block's own bottom face — the mod's {@code CosmeticGridCell.FLOOR_Y}
+     * (2/16), restated here because this module cannot see it.
+     */
+    public static final float SAND_SURFACE = 2f / 16f;
+
+    /**
+     * A voxel domain by name: {@link #occupancy} names, optionally followed by {@code +log} to put
+     * a {@link #hollowLog} on the sand in the middle of the lowest storey.
+     */
+    public static VoxelDomain domain(String name) {
+        String[] parts = name.split("\\+");
+        boolean[][][] occupancy = occupancy(parts[0]);
+        VoxelDomain domain = new VoxelDomain(occupancy);
+        List<Shelter> shelters = new ArrayList<>();
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
+            float floorY = -occupancy[0].length / 2f + SAND_SURFACE;
+            shelters.add(hollowLog(0f, floorY, 0f));
+        }
+        domain.rebuildShelters(shelters);
+        return domain;
+    }
+
+    /**
+     * The shipped Hollow Log (cosmetic_structure/hollow_log.json) as the mod maps it, unturned:
+     * built at scale 0.09 on a grid of 6 × 4 × 4 cells lying along lateral, with a 5 × 2 × 2 hollow
+     * closed at the low-lateral end and open at the high one. Hand-placed rather than derived,
+     * because the derivation lives on the Minecraft side; {@code TankSheltersTest} checks the real
+     * mapping.
+     *
+     * @param centerL,centerD where the hull's centre stands
+     * @param floorY          the sand the log lies on
+     */
+    public static Shelter hollowLog(float centerL, float floorY, float centerD) {
+        float u = 0.09f;
+        float hullMinL = centerL - 3f * u;
+        float hullMinD = centerD - 2f * u;
+        Shelter.OrientedBox hull = Shelter.OrientedBox.ofBounds(
+                hullMinL, floorY, hullMinD, hullMinL + 6f * u, floorY + 4f * u, hullMinD + 4f * u);
+        Shelter.OrientedBox interior = Shelter.OrientedBox.ofBounds(
+                hullMinL + u, floorY + u, hullMinD + u, hullMinL + 6f * u, floorY + 3f * u, hullMinD + 3f * u);
+        Shelter.Mouth mouth = new Shelter.Mouth(
+                hullMinL + 6f * u, floorY + 2f * u, centerD,
+                -1f, 0f, 0f,
+                0f, 1f, 0f,
+                u, u);
+        return new Shelter(hull, interior, List.of(mouth), 5, 5f * u);
     }
 }

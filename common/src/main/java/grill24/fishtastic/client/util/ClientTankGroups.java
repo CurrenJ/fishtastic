@@ -103,6 +103,8 @@ public final class ClientTankGroups {
                         TankFloors.GROUP_SURFACE_OFFSET, TankFloors.groupBlockedCells(group, level),
                         group.blockedX(), group.blockedY(), group.blockedZ())
                 : null;
+        // Shelters ride the floor's refresh path for the same reason (docs/fish-shelters.md §2).
+        if (domain != null) domain.rebuildShelters(TankShelters.group(group, level));
         // A lone tank keeps the legacy path with no group runtime at all. A group inherits the
         // runtime of any group it shares a member with; claiming is destructive so a split gives the
         // engine to exactly one of the halves, and the other starts a fresh shoal.

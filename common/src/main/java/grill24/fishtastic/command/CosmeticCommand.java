@@ -15,6 +15,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
+import grill24.fishtastic.fishtank.ShelterGeometry;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -27,6 +28,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -156,6 +158,11 @@ public class CosmeticCommand {
      * {@link FishTankBlockEntityRenderer#renderStructureCosmetics} for why X/Z (fixed {@code CELL_WIDTH}
      * pitch) need this compensation but {@code offsetY} (already multiplied by {@code scale} at render
      * time) doesn't and is captured as a plain, unscaled world-block delta.
+     * <p>
+     * {@code minecraft:structure_void} marks a shelter's hollow (docs/fish-shelters.md §3.2): those
+     * cells are left out of {@code parts} and written as {@code shelter.interior} in the build grid,
+     * and the mouth derivation runs right here, so a sealed hollow fails the capture instead of the
+     * next datapack load.
      */
     private static int capture(CommandContext<CommandSourceStack> ctx, BlockPos from, BlockPos to, BlockPos anchor, String name, float scale) {
         CommandSourceStack source = ctx.getSource();
@@ -173,6 +180,7 @@ public class CosmeticCommand {
         float xzRatio = scale / (float) CosmeticGridCell.CELL_WIDTH;
 
         List<CosmeticStructure.StructurePart> parts = new ArrayList<>();
+        List<ShelterGeometry.Cell> interior = new ArrayList<>();
         Set<CosmeticStructure.GridOffset> footprint = new LinkedHashSet<>();
         footprint.add(new CosmeticStructure.GridOffset(0, 0));
 
@@ -181,6 +189,10 @@ public class CosmeticCommand {
                 for (int z = min.getZ(); z <= max.getZ(); z++) {
                     BlockState state = level.getBlockState(new BlockPos(x, y, z));
                     if (state.isAir()) continue;
+                    if (state.is(Blocks.STRUCTURE_VOID)) {
+                        interior.add(new ShelterGeometry.Cell(x - anchor.getX(), y - anchor.getY(), z - anchor.getZ()));
+                        continue;
+                    }
 
                     int dy = y - anchor.getY();
                     float offsetX = (x - anchor.getX()) * xzRatio;
@@ -208,6 +220,19 @@ public class CosmeticCommand {
         }
 
         CosmeticStructure structure = new CosmeticStructure(List.copyOf(footprint), parts, scale);
+        if (!interior.isEmpty()) {
+            structure = structure.withShelter(Optional.of(new CosmeticStructure.ShelterSpec(interior, Optional.empty())));
+            ShelterGeometry.Result shelter = ShelterGeometry.derive(interior, structure.partCells());
+            if (!shelter.ok()) {
+                source.sendFailure(Component.literal("Shelter markers rejected: " + shelter.error()
+                        + ". Open the hollow to the outside, or remove the structure_void markers."));
+                return 0;
+            }
+            int mouths = shelter.shape().mouths().size();
+            source.sendSystemMessage(Component.literal("Shelter: " + interior.size() + " interior cell(s), "
+                    + mouths + " mouth(s), capacity " + structure.shelter().get().capacityOrDefault() + ".")
+                    .withStyle(ChatFormatting.GREEN));
+        }
 
         JsonElement json = CosmeticStructure.CODEC.encodeStart(JsonOps.INSTANCE, structure)
                 .resultOrPartial(err -> source.sendFailure(Component.literal("Failed to encode structure: " + err)))

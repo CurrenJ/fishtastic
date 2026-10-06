@@ -100,11 +100,18 @@ public final class TankFloors {
      * player action, but nothing else tells the renderer that they did — unlike membership, which
      * has an epoch — so the floor is rebuilt off a fingerprint comparison instead. A tank holds at
      * most nine of them, so this is a nine-element scan, not a scan of the world.
+     *
+     * <p>Which structure stands where, and which way it faces, count too: the floor would not
+     * notice a log turned in place, but its shelter's mouth would (see {@link TankShelters}).
      */
     public static int fingerprint(FishTankBlockEntity be) {
         int hash = 1;
         for (CosmeticGridCell cell : be.getCosmetics().keySet()) hash += 31 * (cell.packed() + 1);
         for (CosmeticGridCell cell : be.getStructureCellIndex().keySet()) hash += 131 * (cell.packed() + 1);
+        for (var entry : be.getStructureCosmetics().entrySet()) {
+            hash += 1009 * (entry.getKey().packed() + 1) * (entry.getValue().structureId().hashCode()
+                    + 7 * entry.getValue().rotation().ordinal() | 1);
+        }
         return hash;
     }
 
