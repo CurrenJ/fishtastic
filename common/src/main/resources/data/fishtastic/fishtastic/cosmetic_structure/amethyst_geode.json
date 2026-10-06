@@ -1,0 +1,782 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": -1
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 1
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 0,
+      "dz": 1
+    },
+    {
+      "dx": 1,
+      "dz": -1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 1.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 1.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 2.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.8742858,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 2.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 2.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 3.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 3.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.5828572,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": -0.2914286,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.2914286,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 1.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "up"
+        },
+        "Name": "minecraft:amethyst_cluster"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 1.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "south"
+        },
+        "Name": "minecraft:large_amethyst_bud"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 3.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 3.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 4.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": -0.2914286,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "up"
+        },
+        "Name": "minecraft:large_amethyst_bud"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "south"
+        },
+        "Name": "minecraft:amethyst_cluster"
+      },
+      "offsetY": 2.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "south"
+        },
+        "Name": "minecraft:amethyst_cluster"
+      },
+      "offsetY": 3.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetY": 5.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.2914286,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 1.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "up"
+        },
+        "Name": "minecraft:amethyst_cluster"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 1.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "facing": "south"
+        },
+        "Name": "minecraft:medium_amethyst_bud"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 2.0,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:amethyst_block"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 3.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 3.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 4.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.2914286,
+      "offsetY": 4.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetZ": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 1.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 2.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 2.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:calcite"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 2.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 3.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 3.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.5828572,
+      "offsetY": 3.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetZ": 0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetZ": 0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 1.0,
+      "offsetZ": -0.5828572
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 1.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 2.0,
+      "offsetZ": -0.2914286
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_basalt"
+      },
+      "offsetX": 0.8742858,
+      "offsetY": 2.0
+    }
+  ],
+  "scale": 0.085
+}

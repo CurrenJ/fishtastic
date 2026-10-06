@@ -53,6 +53,14 @@ public final class CreativeTabGameTests {
         expected.add(FishtasticItems.COSMETIC_DROWNED_PAGODA.value());
         expected.add(FishtasticItems.COSMETIC_WHALE_FALL.value());
         expected.add(FishtasticItems.COSMETIC_WAX_SKULL_CANDLE.value());
+        expected.add(FishtasticItems.COSMETIC_LIGHTHOUSE.value());
+        expected.add(FishtasticItems.COSMETIC_TORII_GATE.value());
+        expected.add(FishtasticItems.COSMETIC_STONE_LANTERN.value());
+        expected.add(FishtasticItems.COSMETIC_FALLEN_COLUMN.value());
+        expected.add(FishtasticItems.COSMETIC_SUNKEN_ANCHOR.value());
+        expected.add(FishtasticItems.COSMETIC_GIANT_CLAM.value());
+        expected.add(FishtasticItems.COSMETIC_AMETHYST_GEODE.value());
+        expected.add(FishtasticItems.COSMETIC_HOLLOW_LOG.value());
         FishtasticItems.COSMETIC_LAMP.values().forEach(holder -> expected.add(holder.value()));
         FishtasticItems.COSMETIC_FENCE_ARCH.values().forEach(holder -> expected.add(holder.value()));
 

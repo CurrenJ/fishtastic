@@ -1,0 +1,7 @@
+{
+  "display_name": "Fallen Column",
+  "description": "A broken marble column beside the toppled drums of its twin, for your fish tank.",
+  "cost": 40,
+  "reward": [{ "id": "fishtastic:cosmetic_fallen_column", "count": 1 }],
+  "daily_max_purchases": 1
+}

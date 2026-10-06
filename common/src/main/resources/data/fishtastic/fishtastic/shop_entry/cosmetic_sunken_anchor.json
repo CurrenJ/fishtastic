@@ -1,0 +1,7 @@
+{
+  "display_name": "Sunken Anchor",
+  "description": "A rust-flecked anchor with a timber stock and a trailing chain, for your fish tank.",
+  "cost": 30,
+  "reward": [{ "id": "fishtastic:cosmetic_sunken_anchor", "count": 1 }],
+  "daily_max_purchases": 1
+}
