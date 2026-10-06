@@ -11,7 +11,8 @@
     "depth_layers": 2,
     "xz_spread": 0.24,
     "y_range": 0,
-    "rotation_jitter": 0
+    "rotation_jitter": 0,
+    "shelter": "visitor"
   },
   "time_weights": [
     { "time": "day", "multiplier": 1.5 }

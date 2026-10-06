@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:basalt_deltas"], "multiplier": 1.7 }
   ],
-  "temperament": "fishtastic:sprinter"
+  "temperament": "fishtastic:sprinter",
+  "swarm": { "shelter": "skittish" }
 }
