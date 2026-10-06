@@ -6,7 +6,6 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.SpanStructures;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Rotation;
@@ -25,9 +24,9 @@ import java.util.Map;
  * self-test scene (docs/cosmetic-render-cost.md): the pieces and quads it bakes to, by chunk
  * layer, and the time to bake them with the cache cold.
  *
- * <p>PORT-ONLY: 1.21.1 has no {@code ChunkSectionLayer} and its quads carry no layer, so a quad is
- * counted under its piece's chunk {@link RenderType} ({@link ItemBlockRenderTypes#getChunkRenderType}),
- * the layer the chunk mesh would put it in; the layers are {@link RenderType#chunkBufferLayers()}.
+ * <p>PORT-ONLY: 1.20.1 has no {@code ChunkSectionLayer}; each baked {@link TankCosmeticMesh.Quad}
+ * carries the chunk {@link RenderType} it is meshed into ({@code layer()}, untinted quads have no
+ * tint state), and the layers are {@link RenderType#chunkBufferLayers()}.
  */
 public final class CosmeticCostBench {
 
@@ -77,8 +76,8 @@ public final class CosmeticCostBench {
         for (TankCosmeticMesh.Snapshot snap : snapshots) {
             pieces += snap.pieces().size();
             TankCosmeticMesh.Baked baked = TankCosmeticMesh.bake(snap);
-            for (TankCosmeticMesh.Quad q : baked.untinted()) layers.merge(ItemBlockRenderTypes.getChunkRenderType(q.tintState()), 1, Integer::sum);
-            for (TankCosmeticMesh.Quad q : baked.tinted()) layers.merge(ItemBlockRenderTypes.getChunkRenderType(q.tintState()), 1, Integer::sum);
+            for (TankCosmeticMesh.Quad q : baked.untinted()) layers.merge(q.layer(), 1, Integer::sum);
+            for (TankCosmeticMesh.Quad q : baked.tinted()) layers.merge(q.layer(), 1, Integer::sum);
             tinted += baked.tinted().size();
             total += baked.untinted().size() + baked.tinted().size();
         }
