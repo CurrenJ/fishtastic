@@ -227,7 +227,7 @@ public final class HeadlessRunner {
             }
             if (tick % EVERY == 0 && frames.size() < MAX_FRAMES) {
                 frames.add(renderer.render(engine, tunables, FrameRenderer.View.SIDE));
-                labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit"}[st]
+                labels.add("t=" + tick + " " + new String[]{"roam", "approach", "enter", "inside", "exit", "rest"}[st]
                         + (engine.startled(fish) ? " (startled)" : ""));
             }
         }
