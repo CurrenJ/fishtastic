@@ -80,6 +80,12 @@ public final class TankShelters {
         return out;
     }
 
+    /** Whether any structure placed in this tank is a shelter. */
+    public static boolean hasShelter(FishTankBlockEntity be, Level level) {
+        if (be.getStructureCosmetics().isEmpty()) return false;
+        return !blockFrame(be, level).isEmpty();
+    }
+
     /** Every shelter structure in one tank, in that tank's block frame (block-local, unturned). */
     static List<Shelter> blockFrame(FishTankBlockEntity be, Level level) {
         Map<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> placed = be.getStructureCosmetics();

@@ -50,7 +50,8 @@ public final class Scenarios {
 
     /**
      * A voxel domain by name: {@link #occupancy} names, optionally followed by {@code +log} to put
-     * a {@link #hollowLog} on the sand in the middle of the lowest storey.
+     * a {@link #hollowLog} on the sand, centred in the bottom-storey block nearest the grid's
+     * centre (the centre itself may be outside an L).
      */
     public static VoxelDomain domain(String name) {
         String[] parts = name.split("\\+");
@@ -59,8 +60,20 @@ public final class Scenarios {
         List<Shelter> shelters = new ArrayList<>();
         for (int i = 1; i < parts.length; i++) {
             if (!parts[i].equals("log")) throw new IllegalArgumentException("Unknown shelter: " + parts[i]);
-            float floorY = -occupancy[0].length / 2f + SAND_SURFACE;
-            shelters.add(hollowLog(0f, floorY, 0f));
+            int sx = occupancy.length, sy = occupancy[0].length, sz = occupancy[0][0].length;
+            float bestL = 0f, bestD = 0f, best = Float.MAX_VALUE;
+            for (int ix = 0; ix < sx; ix++) {
+                for (int iz = 0; iz < sz; iz++) {
+                    if (!occupancy[ix][0][iz]) continue;
+                    float l = -sx / 2f + ix + 0.5f, d = -sz / 2f + iz + 0.5f;
+                    if (l * l + d * d < best) {
+                        best = l * l + d * d;
+                        bestL = l;
+                        bestD = d;
+                    }
+                }
+            }
+            shelters.add(hollowLog(bestL, -sy / 2f + SAND_SURFACE, bestD));
         }
         domain.rebuildShelters(shelters);
         return domain;

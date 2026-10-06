@@ -2,8 +2,11 @@ package grill24.fishsim.core;
 
 import grill24.fishsim.domain.FlockDomain;
 import grill24.fishsim.domain.FloorField;
+import grill24.fishsim.domain.Shelter;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -582,6 +585,58 @@ public final class FlockEngine {
     // Domain-callback scratch (reused every step, no allocation).
     private final float[] floorScratch = new float[2];
     private final float[] avoidScratch = new float[3];
+
+    // ── Shelters (docs/fish-shelters.md §4) ─────────────────────────────────
+    // A shelter's hull is solid to every swimmer except the ones using it. Only the planar model
+    // reads shelters, and only a domain that has some; a domain without any takes none of the
+    // code below, which is what keeps every existing trajectory bitwise unchanged.
+
+    /**
+     * Width of the zone around a hull in which a swimmer is pushed away from it, blocks. Narrower
+     * than the GROUP wall margin (0.20) on purpose: a shelter is small (the Hollow Log's hull is
+     * 0.54 × 0.36 × 0.36) and a wall-sized zone round it would turn a log into an obstacle twice
+     * its size that fish visibly give a wide berth.
+     */
+    static final float HULL_MARGIN = 0.10f;
+
+    /**
+     * Ceiling on the push from one hull, in the same units as the wall ramp (1 = at the surface).
+     * Inside a hull the ramp keeps growing with depth, so a fish caught inside — say, by a log
+     * placed on top of it — is pushed out firmly rather than at the strength of a near miss, but
+     * never so hard that it out-shoves the walls it may be pressed against.
+     */
+    static final float HULL_MAX_WEIGHT = 2f;
+
+    /**
+     * Which shelter each fish is using, as an index into {@code domain.shelters()}, or −1. A fish
+     * ignores the hull of the shelter it is using (it is swimming into it). Always −1 until the
+     * visit state machine (docs/fish-shelters.md §5) drives it.
+     */
+    private int[] shelterUsing = new int[0];
+    private final float[] hullGrad = new float[3];
+
+    // A gap between a hull and the edge of the swimmable water narrower than the wall margin is
+    // treated as part of the hull (see closeGaps). The wall's push covers all of such a gap, so
+    // it is not water a fish can hold, and one that wandered in was squeezed against the glass:
+    // with the Hollow Log in a one-block tank (ends 0.08 from the swim boundary, flanks 0.17),
+    // leaving gaps open cost 13–1600 hard-backstop engagements per 10k ticks at 12–25 fish.
+    // Closing gaps under 0.12 cleared 12 fish but not 25; closing under the 0.20 margin cleared
+    // every stocking tried.
+
+    /**
+     * A hull as fish steer around it: the shelter's own box grown across any gap closed above,
+     * and which of its six faces ({@code bit 2·axis + (side > 0 ? 1 : 0)}, axes in the box's own
+     * lateral, vertical, depth order) were grown into the glass. A fish caught inside never
+     * leaves through one of those: that way out is the wall.
+     */
+    private record AvoidHull(Shelter.OrientedBox box, int closedFaces) {}
+
+    private AvoidHull[] avoidHulls = new AvoidHull[0];
+    /** The shelter list {@link #avoidHulls} was built from; a domain swaps the list when shelters change. */
+    private List<Shelter> avoidHullsSource;
+    /** ...and the domain whose water they were closed against, and the margin that set the gap. */
+    private FlockDomain avoidHullsDomain;
+    private float avoidHullsGap;
     private final float[] posScratch = new float[3];
 
     // How often the hard backstop actually moved a fish. Soft containment must keep this at zero —
@@ -593,6 +648,7 @@ public final class FlockEngine {
 
     private int count;
     private float cosR = 1f, sinR = 0f; // local → world rotation from the tank's facing
+    private float frameYawDeg;
     private long simTick = 0;
 
     public FlockEngine(Tunables tunables) {
@@ -621,6 +677,13 @@ public final class FlockEngine {
 
     /** Times the hard backstop clamp actually moved a fish (must stay 0 — soft containment does the work). */
     public long backstopEngagements() { return backstopEngagements; }
+
+    /**
+     * The turn {@link #interpolate} applies from the engine's frame to the render frame, degrees —
+     * the base rotation of the last rebuild. A continuous-yaw sprite drawn in that frame needs it
+     * added to {@code renderYaw}, which is measured in the engine's own frame.
+     */
+    public float frameYawDeg() { return frameYawDeg; }
 
     /** Whether this engine runs the continuous-yaw planar model (voxel domains) instead of the binary 2.5D one. */
     public boolean planar() { return planar; }
@@ -736,6 +799,7 @@ public final class FlockEngine {
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) Math.cos(rotRad);
         sinR = (float) Math.sin(rotRad);
+        frameYawDeg = baseRotationDeg;
 
         float[] layerZ = t.layerZ();
         depthLayers = Math.max(1, Math.min(depthLayers, layerZ.length));
@@ -838,6 +902,7 @@ public final class FlockEngine {
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) Math.cos(rotRad);
         sinR = (float) Math.sin(rotRad);
+        frameYawDeg = baseRotationDeg;
 
         this.domain = newDomain;
         this.planar = true;
@@ -1133,7 +1198,7 @@ public final class FlockEngine {
             float x = lo + rng.nextFloat() * spanL;
             float y = loY + rng.nextFloat() * spanY;
             float d = loD + rng.nextFloat() * spanD;
-            if (domain.contains(x, y, d) && isFarEnough(x, y, d, placed)) {
+            if (domain.contains(x, y, d) && isFarEnough(x, y, d, placed) && !insideAnyHull(x, y, d)) {
                 out[0] = x;
                 out[1] = y;
                 out[2] = d;
@@ -1144,7 +1209,7 @@ public final class FlockEngine {
             float x = lo + rng.nextFloat() * spanL;
             float y = loY + rng.nextFloat() * spanY;
             float d = loD + rng.nextFloat() * spanD;
-            if (domain.contains(x, y, d)) {
+            if (domain.contains(x, y, d) && !insideAnyHull(x, y, d)) {
                 out[0] = x;
                 out[1] = y;
                 out[2] = d;
@@ -1188,6 +1253,121 @@ public final class FlockEngine {
         yawDeg = new float[n]; prevYawDeg = new float[n]; renderYaw = new float[n];
         order = new int[n];
         placedL = new float[n]; placedY = new float[n]; placedD = new float[n];
+        shelterUsing = new int[n];
+        Arrays.fill(shelterUsing, -1);
+    }
+
+    /** The shelter fish #{@code i} is using, or −1 (docs/fish-shelters.md §5.1). */
+    public int shelterUsing(int i) {
+        return shelterUsing[i];
+    }
+
+    /**
+     * Adds every shelter hull's soft repulsion to {@code out} — the wall ramp's shape, measured
+     * against the hull box (gaps closed) instead of the domain, skipping the shelter the fish is
+     * using. Summed, like the walls' own per-axis terms: where a hull and a wall face each other
+     * the sum is the difference of the two ramps, so the nearer one wins, and where they meet at
+     * a corner both still push. (A weighted blend was tried and was worse: it dilutes the floor's
+     * push wherever a hull pushes sideways, and fish beside a log sank through the sand.)
+     */
+    private void addHullAvoidance(int i, List<Shelter> shelters, float[] out) {
+        refreshAvoidHulls(shelters);
+        for (int s = 0; s < avoidHulls.length; s++) {
+            if (s == shelterUsing[i]) continue;
+            float dist = hullDistance(avoidHulls[s], posL[i], posY[i], posD[i], hullGrad);
+            if (dist >= HULL_MARGIN) continue;
+            float w = Math.min((HULL_MARGIN - dist) / HULL_MARGIN, HULL_MAX_WEIGHT);
+            out[0] += hullGrad[0] * w;
+            out[1] += hullGrad[1] * w;
+            out[2] += hullGrad[2] * w;
+        }
+    }
+
+    /** Rebuilds {@link #avoidHulls} when the domain has swapped its shelter list. */
+    private void refreshAvoidHulls(List<Shelter> shelters) {
+        if (shelters == avoidHullsSource && domain == avoidHullsDomain && t.wallMargin() == avoidHullsGap) return;
+        avoidHullsSource = shelters;
+        avoidHullsDomain = domain;
+        avoidHullsGap = t.wallMargin();
+        avoidHulls = new AvoidHull[shelters.size()];
+        for (int s = 0; s < avoidHulls.length; s++) avoidHulls[s] = closeGaps(shelters.get(s).hull());
+    }
+
+    /**
+     * The hull grown across every gap to the edge of the swimmable water thinner than the wall
+     * margin. Each face is probed at its centre, a gap's width out, and moved out
+     * to there if the probe has left the water. The centre and not the corners: a hull's base
+     * sits on the sand, below the swim volume's floor, so every bottom corner is "out", and
+     * probing corners closed every side of a log lying on the sand.
+     */
+    private AvoidHull closeGaps(Shelter.OrientedBox box) {
+        float[] lo = {-box.halfL(), -box.halfY(), -box.halfD()};
+        float[] hi = {box.halfL(), box.halfY(), box.halfD()};
+        float[] probe = new float[3];
+        int closed = 0;
+        for (int axis = 0; axis < 3; axis++) {
+            for (int side = -1; side <= 1; side += 2) {
+                probe[0] = probe[1] = probe[2] = 0f;
+                probe[axis] = (side < 0 ? lo[axis] : hi[axis]) + side * avoidHullsGap;
+                float l = box.centerL() + probe[0] * box.cos() - probe[2] * box.sin();
+                float d = box.centerD() + probe[0] * box.sin() + probe[2] * box.cos();
+                if (domain.contains(l, box.centerY() + probe[1], d)) continue;
+                if (side < 0) lo[axis] -= avoidHullsGap; else hi[axis] += avoidHullsGap;
+                closed |= 1 << (2 * axis + (side > 0 ? 1 : 0));
+            }
+        }
+        float cu = (lo[0] + hi[0]) * 0.5f, cv = (lo[1] + hi[1]) * 0.5f, cw = (lo[2] + hi[2]) * 0.5f;
+        return new AvoidHull(new Shelter.OrientedBox(
+                box.centerL() + cu * box.cos() - cw * box.sin(), box.centerY() + cv,
+                box.centerD() + cu * box.sin() + cw * box.cos(),
+                (hi[0] - lo[0]) * 0.5f, (hi[1] - lo[1]) * 0.5f, (hi[2] - lo[2]) * 0.5f,
+                box.cos(), box.sin()), closed);
+    }
+
+    /**
+     * {@link Shelter.OrientedBox#signedDistance}, except that inside the box the way out is the
+     * nearest face that was <i>not</i> grown into the glass.
+     */
+    private static float hullDistance(AvoidHull hull, float l, float y, float d, float[] grad) {
+        Shelter.OrientedBox box = hull.box();
+        float dist = box.signedDistance(l, y, d, grad);
+        if (dist > 0f || hull.closedFaces() == 0) return dist;
+        float dl = l - box.centerL(), dd = d - box.centerD();
+        float qu = dl * box.cos() + dd * box.sin(), qv = y - box.centerY(), qw = -dl * box.sin() + dd * box.cos();
+        float best = Float.MAX_VALUE;
+        int bestAxis = 0, bestSide = 1;
+        for (int axis = 0; axis < 3; axis++) {
+            float q = axis == 0 ? qu : axis == 1 ? qv : qw;
+            float half = axis == 0 ? box.halfL() : axis == 1 ? box.halfY() : box.halfD();
+            for (int side = -1; side <= 1; side += 2) {
+                if ((hull.closedFaces() & (1 << (2 * axis + (side > 0 ? 1 : 0)))) != 0) continue;
+                float depth = half - side * q;
+                if (depth < best) {
+                    best = depth;
+                    bestAxis = axis;
+                    bestSide = side;
+                }
+            }
+        }
+        float gu = bestAxis == 0 ? bestSide : 0f, gv = bestAxis == 1 ? bestSide : 0f, gw = bestAxis == 2 ? bestSide : 0f;
+        grad[0] = gu * box.cos() - gw * box.sin();
+        grad[1] = gv;
+        grad[2] = gu * box.sin() + gw * box.cos();
+        return -best;
+    }
+
+    /**
+     * Whether the point lies inside any hull fish steer around (gaps closed) — scatter never
+     * places a fish there.
+     */
+    private boolean insideAnyHull(float l, float y, float d) {
+        List<Shelter> shelters = domain.shelters();
+        if (shelters.isEmpty()) return false;
+        refreshAvoidHulls(shelters);
+        for (AvoidHull hull : avoidHulls) {
+            if (hull.box().contains(l, y, d)) return true;
+        }
+        return false;
     }
 
     /** Advances the simulation by one fixed 20 Hz step. Runs on the client tick, never at render. */
@@ -1307,6 +1487,10 @@ public final class FlockEngine {
         // Wall avoidance is sampled up front (it depends only on position, which does not change
         // until integration below) because the burst needs to know how close the glass is.
         domain.avoidance(posL[i], posY[i], posD[i], p.wallMargin(), p.wallMarginVertical(), avoidScratch);
+        // Shelter hulls are walls too (docs/fish-shelters.md §4.1), so they also calm the burst
+        // and loosen formation as a fish nears one — summed in before avoidMag is taken.
+        List<Shelter> shelters = domain.shelters();
+        if (!shelters.isEmpty()) addHullAvoidance(i, shelters, avoidScratch);
         float avoidMag = (float) Math.sqrt(avoidScratch[0] * avoidScratch[0]
                 + avoidScratch[1] * avoidScratch[1] + avoidScratch[2] * avoidScratch[2]);
         if (avoidMag > 1f) avoidMag = 1f;
