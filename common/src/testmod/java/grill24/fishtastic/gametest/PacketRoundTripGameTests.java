@@ -15,6 +15,7 @@ import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.server.PlayerQuestState;
+import grill24.fishtastic.util.FishingBarContext;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
 import io.netty.buffer.Unpooled;
@@ -102,8 +103,11 @@ public final class PacketRoundTripGameTests {
             BuiltInRegistries.ITEM.getKey(FishtasticItems.ACUTE_IASPIS.value()),
             BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value())
         );
+        // Non-default bar context on purpose — a DEFAULT-only value would pass even if the enum
+        // encoding were dropped from the codec entirely.
         StartFishingMinigamePacket original =
-            new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered, true);
+            new StartFishingMinigamePacket(42, List.of(target), true, topWeightedFish, zones, undiscovered, true,
+                FishingBarContext.LAVA);
 
         ByteBuf buf = newBuf(helper);
         StartFishingMinigamePacket.STREAM_CODEC.encode(buf, original);
@@ -120,6 +124,8 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.undiscoveredSpecies().equals(original.undiscoveredSpecies()),
             "undiscoveredSpecies must round-trip, got " + decoded.undiscoveredSpecies());
         helper.assertTrue(decoded.baitWillBeSaved() == original.baitWillBeSaved(), "baitWillBeSaved must round-trip");
+        helper.assertTrue(decoded.barContext() == FishingBarContext.LAVA,
+            "barContext must round-trip, got " + decoded.barContext());
 
         StartFishingMinigamePacket.TargetData decodedTarget = decoded.targets().get(0);
         helper.assertTrue(decodedTarget.category() == target.category(), "TargetData.category must round-trip");
