@@ -889,9 +889,10 @@ public final class FlockEngine {
     /** Some fish is in a shelter — only then do neighbour scans filter by shelter. */
     private boolean anyInShelter;
     /**
-     * The domain holds a shelter a fish visits on show (an {@link Shelter.Kind#OPEN} or a
-     * {@link Shelter.Kind#GATE}), which every swimmer may use — so only then does a fish that never
-     * hides run the visit clock. Without one, such a fish takes exactly the code it always did.
+     * The domain holds a shelter every swimmer may use: one visited on show (an
+     * {@link Shelter.Kind#OPEN} or a {@link Shelter.Kind#GATE}) or a tunnel, which a fish that
+     * never hides swims through as it would a gate — so only then does such a fish run the visit
+     * clock. Without one, it takes exactly the code it always did.
      */
     private boolean anyVisibleShelter;
     private final float[] shelterSteer = new float[3];
@@ -1723,7 +1724,7 @@ public final class FlockEngine {
         for (int s = 0; s < avoidHulls.length; s++) {
             Shelter shelter = shelters.get(s);
             avoidHulls[s] = shelter.kind() == Shelter.Kind.GATE ? null : closeGaps(shelter.hull(), avoidHullsGap);
-            anyVisibleShelter |= !shelter.kind().hides();
+            anyVisibleShelter |= !shelter.kind().hides() || (shelter.kind() == Shelter.Kind.HOLLOW && isTunnel(s));
         }
 
         shelterUsable = new boolean[shelters.size()];
@@ -1829,8 +1830,8 @@ public final class FlockEngine {
             int st = shelterState[i];
             boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
             if (st == SHELTER_APPROACH || st == SHELTER_ENTER || st == SHELTER_INSIDE) {
-                // A fish on show in an open shelter or a gate is not hidden.
-                if (hides(shelterIndex[i])) pendingHidden++;
+                // A fish on show in an open shelter or a gate, or passing through a tunnel, is not hidden.
+                if (hides(shelterIndex[i]) && !passesThrough(i, shelterIndex[i])) pendingHidden++;
                 // A lurker's own home costs everyone else one place for good (claimedBy, below),
                 // so its comings and goings never take a second one.
                 if (shelterIndex[i] >= 0 && !home) shelterReserved[shelterIndex[i]]++;
@@ -1857,16 +1858,21 @@ public final class FlockEngine {
     private void claimHomes() {
         for (int i = 0; i < count; i++) {
             if (shelterUse[i] != ShelterUse.LURKER || shelterClaim[i] >= 0 || locomotion[i] != Locomotion.FREE_SWIM) continue;
+            // A den first: a lurker resting in a tunnel's mouth shuts the way through for everyone
+            // else (lurkersMouth), so it takes a tunnel only when no one-mouth den in reach fits it.
             int best = -1;
+            boolean bestTunnel = true;
             float bestD2 = Float.MAX_VALUE;
             for (int s = 0; s < avoidHullsSource.size(); s++) {
                 if (claimedBy[s] >= 0 || !lurkerFits(i, s)) continue;
+                boolean tunnel = isTunnel(s);
                 Shelter.OrientedBox hull = avoidHullsSource.get(s).hull();
                 float dl = hull.centerL() - posL[i], dy = hull.centerY() - posY[i], dd = hull.centerD() - posD[i];
                 float d2 = dl * dl + dy * dy + dd * dd;
-                if (d2 < bestD2) {
+                if (best < 0 || (bestTunnel && !tunnel) || (tunnel == bestTunnel && d2 < bestD2)) {
                     bestD2 = d2;
                     best = s;
+                    bestTunnel = tunnel;
                 }
             }
             if (best < 0) continue;
@@ -2152,10 +2158,10 @@ public final class FlockEngine {
                 Shelter shelter = avoidHullsSource.get(shelterIndex[i]);
                 shelterBlend[i] = 1f;
                 int through;
-                if (shelter.kind() == Shelter.Kind.GATE && shelter.interior().contains(posL[i], posY[i], posD[i])
+                if (passesThrough(i, shelterIndex[i]) && shelter.interior().contains(posL[i], posY[i], posD[i])
                         && (through = throughMouth(i)) >= 0) {
-                    // A gate is swum through without stopping (§12.4): in at one side, straight on
-                    // out of the other.
+                    // A gate, or a tunnel taken by a fish that never hides, is swum through without
+                    // stopping (§12.4): in at one side, straight on out of the other.
                     shelterState[i] = SHELTER_EXIT;
                     shelterTimer[i] = 0f;
                     shelterMouth[i] = through;
@@ -2335,12 +2341,41 @@ public final class FlockEngine {
         shelterMouth[i] = coverM;
         shelterTimer[i] = 0f;
         shelterReserved[coverS]++;
-        if (hides(coverS)) pendingHidden++;
+        if (hides(coverS) && !passesThrough(i, coverS)) pendingHidden++;
     }
 
     /** Whether shelter {@code s} is one a fish in it is hidden in — false for −1. */
     private boolean hides(int s) {
         return s >= 0 && avoidHullsSource.get(s).kind().hides();
+    }
+
+    /**
+     * Whether fish #{@code i} swims straight through shelter {@code s} rather than visiting it: a
+     * gate, for every fish; a tunnel (a hollow with mouths facing opposite ways), for a fish that
+     * never hides. Such a fish takes a tunnel exactly as it takes a gate: only already heading
+     * through, with a way out the far side, at its own pace, whatever the tunnel's length, and
+     * hidden nowhere along the way. False for −1.
+     */
+    private boolean passesThrough(int i, int s) {
+        if (s < 0) return false;
+        Shelter.Kind kind = avoidHullsSource.get(s).kind();
+        return kind == Shelter.Kind.GATE || (kind == Shelter.Kind.HOLLOW && shelterUse[i] == ShelterUse.NONE && isTunnel(s));
+    }
+
+    /** Whether hollow {@code s} has two horizontal mouths facing within ~60° of opposite ways: a way through. */
+    private boolean isTunnel(int s) {
+        List<Shelter.Mouth> mouths = avoidHullsSource.get(s).mouths();
+        for (int a = 0; a < mouths.size(); a++) {
+            Shelter.Mouth ma = mouths.get(a);
+            if (Math.abs(ma.normalY()) >= 0.5f) continue;
+            for (int b = a + 1; b < mouths.size(); b++) {
+                Shelter.Mouth mb = mouths.get(b);
+                if (Math.abs(mb.normalY()) >= 0.5f) continue;
+                float cos = ma.normalL() * mb.normalL() + ma.normalY() * mb.normalY() + ma.normalD() * mb.normalD();
+                if (cos <= THROUGH_MAX_COS) return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2397,19 +2432,25 @@ public final class FlockEngine {
         for (int s = 0; s < shelters.size(); s++) {
             Shelter shelter = shelters.get(s);
             Shelter.Kind kind = shelter.kind();
-            if (kind.hides() ? !hollows || shelterUse[i] == ShelterUse.NONE : startle) continue;
+            boolean through = passesThrough(i, s);
+            if (through && kind != Shelter.Kind.GATE) {
+                if (startle) continue;                  // a tunnel transit is never cover
+            } else if (kind.hides() ? !hollows || shelterUse[i] == ShelterUse.NONE : startle) {
+                continue;
+            }
             int room = shelter.capacity() - (claimedBy[s] >= 0 && claimedBy[s] != i ? 1 : 0);
             if (!shelterUsable[s] || shelterReserved[s] >= room) continue;
-            // A gate is passed through, never stayed in, so its depth asks nothing of a fish's length.
-            if (kind != Shelter.Kind.GATE && len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
+            // Passed through, never stayed in, so its depth asks nothing of a fish's length.
+            if (!through && len > INTERIOR_LENGTH_SLACK * shelter.interiorRun()) continue;
             // A place kept for the big fish: the small fry pass it by.
             if (len < shelter.minLength()) continue;
             for (int m = 0; m < shelter.mouths().size(); m++) {
                 if (!mouthUsable[s][m] || lurkersMouth(s, m, i)) continue;
                 Shelter.Mouth mouth = shelter.mouths().get(m);
                 if (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize()) continue;
-                // A gate is offered only with a way out the far side: never a doorway to back out of.
-                if (kind == Shelter.Kind.GATE && (!headingThrough(i, mouth) || throughMouth(i, s, m) < 0)) continue;
+                // A gate (or a tunnel taken as one) is offered only with a way out the far side: never
+                // a doorway to back out of. A lurker's doorway is no way out, so its tunnel isn't one.
+                if (through && (!headingThrough(i, mouth) || throughMouth(i, s, m) < 0)) continue;
                 float sl = mouth.centerL() - mouth.normalL() * stage;
                 float sy = mouth.centerY() - mouth.normalY() * stage;
                 float sd = mouth.centerD() - mouth.normalD() * stage;
@@ -2584,7 +2625,7 @@ public final class FlockEngine {
                 // its entry speed: the fastest speed from which STARTLE_BRAKE stops it in time.
                 boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
                 // A gate is on the fish's way already: it carries on at its own pace, no hurry.
-                boolean onItsWay = home || shelter.kind() == Shelter.Kind.GATE;
+                boolean onItsWay = home || passesThrough(i, shelterIndex[i]);
                 float dash = startled[i]
                         ? Math.min(STARTLE_DASH_SPEED * patrolScale[i],
                                 axisSpeed + (float) Math.sqrt(2f * STARTLE_BRAKE * dist))

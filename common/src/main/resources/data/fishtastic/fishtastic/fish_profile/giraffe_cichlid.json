@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:crimson_forest"], "multiplier": 1.8 }
   ],
-  "temperament": "fishtastic:ambusher"
+  "temperament": "fishtastic:ambusher",
+  "swarm": { "shelter": "lurker" }
 }

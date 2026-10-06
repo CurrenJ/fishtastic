@@ -978,3 +978,37 @@ corner is rounded, and an interior corner outside it makes the shelter unusable 
 error (`FlockEngine` `shelterUsable`). The Sea Arch's cave sits on a rock sill for this. The
 Ziggurat keeps kelp between the sanctum's columns: without it the one-voxel gaps became mouths
 only the smallest fish fit, and `ObstacleShelterAccessTest` flagged them as unreliable.
+
+
+### 12.12 Tunnels are gates to fish that never hide (2026-10-03)
+
+A **tunnel** is a hollow with two horizontal mouths facing within ~60° of opposite ways (the Clay
+Pipe, the Sunken Ziggurat's tunnel, the Sea Arch's keyhole and eye). A fish with no shelter tag
+now takes one exactly as it takes a gate (`FlockEngine.passesThrough`): only when it is already
+heading through (within 45°) with a way out the far side, at its own pace, with no length limit,
+straight out without stopping, and hidden nowhere, so it doesn't count against the hidden budget.
+Its height must still fit the mouth (0.4 × length ≤ the mouth's narrower side). Tagged fish
+(visitor, skittish, lurker) keep visiting tunnels as hollows: in, linger, usually out the far
+end. A hollow whose second opening isn't a way through, like the Hollow Log's top hole, stays a
+hide for everyone.
+
+Before this, a fish that never hides only ran its visit clock when the tank held a gate or an
+open shelter, so a lone Clay Pipe was never even considered. Tunnels now switch the clock on too.
+
+**Lurkers prefer dens.** A lurker resting in a tunnel's mouth shuts the way through for everyone
+else, since its doorway is closed to other fish whether or not it is home. So `claimHomes` gives
+a lurker the nearest one-mouth den that fits it, and a tunnel only when no den fits. Claims
+already made are kept.
+
+`ShelterBandVisitTest` covers untagged transit (Clay Pipe 45 entries, Ziggurat tunnel 9, Sea Arch
+tunnels 1; the arch's run front to back through a shallow box, so a fish seldom happens to be
+heading straight through) and `aLurkerPrefersADenToATunnel` (the Sea Arch's lurker takes the
+cave over the keyhole and the eye).
+
+**Cast widened to half the species (2026-10-03).** 15 more free swimmers tagged, so 33 of 64
+use shelters: lurkers bull trout, giraffe cichlid, chaunacops, golden mahseer (12 in all); visitors
+betta, bluegill, sulphur molly, waterfall climbing cave fish, blind cavefish, red-bellied piranha,
+greenstripe barb (15); skittish indian glassy fish, orange australe killifish, golden trout, yellowstripe grunt (6).
+Left out on body shape or habit: discus, lionfish, ocean sunfish and the moorish idols (tall), the
+seahorse and leafy sea dragon (upright), glass catfish (an open-water schooler).
+Only `horizontal_swim` fish move freely, so only they can use shelters at all.
