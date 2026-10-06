@@ -3,10 +3,12 @@ package grill24.fishtastic.fishtank;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -46,7 +48,8 @@ import java.util.Optional;
  * integer grid the parts were captured on, before {@code scale}, facing south — for a span, the
  * box's own build grid). Mouths, hull and run are derived from those cells and the parts by
  * {@link ShelterGeometry}, and a hollow with no way out fails validation. Rotation follows the
- * parts: the stored shelter is unrotated and turns with the structure at placement.
+ * parts: the stored shelter is unrotated and turns with the structure at placement. Its
+ * {@code kind} says what a visit looks like ({@link ShelterKind}); a hollow by default.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
                                  CosmeticTransforms.Transform itemIcon, boolean bypassAnchorCellRequirement,
@@ -61,11 +64,31 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         ).apply(i, Span::new));
     }
 
+    /** What a visit to a shelter looks like (docs/fish-shelters.md §12.1, §12.4). */
+    public enum ShelterKind implements StringRepresentable {
+        /** A hollow fish hide in: the Hollow Log, the Clay Pipe, the whale's skull. */
+        HOLLOW,
+        /** A space fish visit on show, open to view on its sides: the Spruce Gazebo's floor. */
+        OPEN,
+        /**
+         * An opening swum straight through: a fence arch, the Torii Gate. Its parts stay solid
+         * round the opening, and it needs a horizontal mouth on each side.
+         */
+        GATE;
+
+        public static final Codec<ShelterKind> CODEC = StringRepresentable.fromEnum(ShelterKind::values);
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
     /**
-     * The authored half of a shelter: the hollow's cells and, optionally, how many fish it holds
-     * at once (default {@link ShelterGeometry#defaultCapacity}).
+     * The authored half of a shelter: the hollow's cells, optionally how many fish it holds at
+     * once (default {@link ShelterGeometry#defaultCapacity}), and its {@link ShelterKind}.
      */
-    public record ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity) {
+    public record ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity, ShelterKind kind) {
         private static final Codec<ShelterGeometry.Cell> CELL_CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.INT.fieldOf("x").forGetter(ShelterGeometry.Cell::x),
                 Codec.INT.fieldOf("y").forGetter(ShelterGeometry.Cell::y),
@@ -74,8 +97,14 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
 
         public static final Codec<ShelterSpec> CODEC = RecordCodecBuilder.create(i -> i.group(
                 CELL_CODEC.listOf().fieldOf("interior").forGetter(ShelterSpec::interior),
-                Codec.intRange(1, 64).optionalFieldOf("capacity").forGetter(ShelterSpec::capacity)
+                Codec.intRange(1, 64).optionalFieldOf("capacity").forGetter(ShelterSpec::capacity),
+                ShelterKind.CODEC.optionalFieldOf("kind", ShelterKind.HOLLOW).forGetter(ShelterSpec::kind)
         ).apply(i, ShelterSpec::new));
+
+        /** A hollow — what the capture command writes. */
+        public ShelterSpec(List<ShelterGeometry.Cell> interior, Optional<Integer> capacity) {
+            this(interior, capacity, ShelterKind.HOLLOW);
+        }
 
         public int capacityOrDefault() {
             return capacity.orElseGet(() -> ShelterGeometry.defaultCapacity(interior.size()));
@@ -116,9 +145,22 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         return cells;
     }
 
+    /**
+     * The parts a shelter's shape is derived against. A gate's opening may take in a part's cell:
+     * the fence arches' lantern hangs in the middle of the doorway, and it is soft (fish swim
+     * through it, {@link grill24.fishtastic.FishtasticBlockTags#SOFT_COSMETIC}), so the doorway runs up past it. Those
+     * cells count as opening, not wall. Whether such a part is soft is a tag, which isn't bound when
+     * a structure loads, so {@code ShelterKindTest} holds every shipped gate to it instead.
+     */
+    public List<ShelterGeometry.Cell> shelterPartCells() {
+        List<ShelterGeometry.Cell> cells = partCells();
+        if (shelter.isPresent() && shelter.get().kind() == ShelterKind.GATE) cells.removeAll(shelter.get().interior());
+        return cells;
+    }
+
     /** The derived shape of this structure's shelter, or empty when it has none (or it fails validation). */
     public Optional<ShelterGeometry.Shape> shelterShape() {
-        return shelter.map(spec -> ShelterGeometry.derive(spec.interior(), partCells()))
+        return shelter.map(spec -> ShelterGeometry.derive(spec.interior(), shelterPartCells()))
                 .filter(ShelterGeometry.Result::ok)
                 .map(ShelterGeometry.Result::shape);
     }
@@ -165,10 +207,26 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             structure -> DataResult.success(structure)
     );
 
+    /** Whether some pair of the shape's horizontal mouths face opposite ways — a way through. */
+    static boolean opensBothWays(ShelterGeometry.Shape shape) {
+        for (ShelterGeometry.Mouth a : shape.mouths()) {
+            for (ShelterGeometry.Mouth b : shape.mouths()) {
+                if (a.outward()[1] == 0 && a.outward()[0] == -b.outward()[0] && a.outward()[2] == -b.outward()[2]
+                        && b.outward()[1] == 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static DataResult<CosmeticStructure> validate(CosmeticStructure structure) {
         if (structure.shelter.isPresent()) {
-            ShelterGeometry.Result shelter = ShelterGeometry.derive(structure.shelter.get().interior(), structure.partCells());
+            ShelterGeometry.Result shelter = ShelterGeometry.derive(structure.shelter.get().interior(), structure.shelterPartCells());
             if (!shelter.ok()) return DataResult.error(shelter::error);
+            if (structure.shelter.get().kind() == ShelterKind.GATE && !opensBothWays(shelter.shape())) {
+                return DataResult.error(() -> "a gate's opening needs a horizontal mouth on each side");
+            }
         }
         if (structure.span.isPresent()) return SpanStructures.validate(structure);
         if (!structure.bypassAnchorCellRequirement && !structure.footprintCells.contains(new GridOffset(0, 0))) {

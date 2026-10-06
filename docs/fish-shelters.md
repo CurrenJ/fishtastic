@@ -392,6 +392,9 @@ The behaviour is worth only as much as the shelters on offer. Each is built thro
 | **Rock Cave** | one wide arch | medium fish | sized for the bichir; the default lurker home |
 | **Moray Rock** | two small holes | lurkers | stacked stone with holes at different heights |
 | **Coconut Half** | one notch | tiny fish | a one-cell accent for gobies |
+| **Fence arches** (gates, 2026-10-02) | front and back of the opening | fish up to ~0.73 blocks | `"kind": "gate"`, the column between the posts up to the beam, lantern included (§12.4.1) |
+| **Torii Gate** (gate, 2026-10-02) | front and back | any fish | rebuilt taller at scale 0.075 (posts 6 cells apart under an 11-wide kasagi, 9.5 cells high) with a 5×5-cell opening; the old 0.09 build's 0.18-tall opening was narrower than the wall margin above the sand, so `closeGaps` sealed it for every fish. Its path stones became moss (soft) and the one in the gateway went |
+| **Spruce Gazebo** (open, 2026-10-02) | all four sides, under the roof | fish up to ~0.32 blocks | `"kind": "open"`: fish visit the floor under the roof on show. Shrunk 0.15 → 0.13: at 0.15 a lone tank left 0.21 beside it and 0.20 above the roof, both closed as gaps, so the floor under the roof was the only water a fish could hold — the old stuck spot |
 | **Whale Fall** (span; skull shipped 2026-10-02) | the two eye sockets | fish up to ~0.31 blocks | the first spanning shelter. `gen.py` emits the skull's widest part (cells 5..7 x 1..2 x 4..10, capacity 3); the eyes face each other, so fish swim in one and out the other. Only that part, because the engine confines a fish to the interior's bounding box and the whole hollow narrows toward the snout. Between the ribs is still to come |
 
 Shop descriptions should name who fits ("a hide for small, shy fish").
@@ -661,6 +664,68 @@ at 23%. After: **0** inside a derived box, and inside the exact block shapes too
 - **Retrofit, not rebuild.** The fence arches, Torii Gate and Castle Ruin gain `shelter.interior`
   cells for their openings, the way the Hollow Log was retrofitted. The derivation does the rest.
 
+#### 12.4.1 Built (2026-10-02): shelter kinds
+
+The arches and the Torii Gate are gates; the Castle Ruin's windows are not done. Where it departs
+from the above:
+
+- **A kind field after all.** `shelter.kind` is `hollow` (the default, so every existing file is
+  unchanged), `open` or `gate` (`CosmeticStructure.ShelterKind`, `Shelter.Kind` in the engine).
+  "A run shorter than the fish is a gate" could not be derived, because a gate has to differ in
+  its hull: a hollow's hull is solid to every fish not using it, and an arch's hull is the whole
+  arch, opening included. So a **gate has no hull**: its parts are not carved out of the obstacles,
+  the posts stay solid, and the opening is open water to every fish. Validation: a gate needs two
+  opposite horizontal mouths.
+- **Who uses what.** Hiding is a temperament, so hollows stay opt-in (§3.3). A gate or an `open`
+  shelter hides nobody, so every free swimmer that fits may use one. A fish that never hides runs
+  the visit clock only in a domain that holds one, so every other domain is bitwise unchanged.
+- **Hidden budget, cover, homes.** Only a hollow counts against the budget, is a startle's cover,
+  or is a lurker's home. A full budget closes the hollows only. Separation is filtered only by a
+  hollow's walls: a fish in a gate or on the gazebo's floor still keeps apart from those round it.
+- **Gates.** Offered only with the heading within 45° of straight through and the mouth ahead
+  (`headingThrough`), and only when the far mouth is one the fish can leave by. Approached at
+  patrol speed, not a visitor's hurry. On reaching the interior, `ENTER` goes straight to `EXIT`
+  by the far mouth: no `INSIDE`, no dwell. No length gate.
+- **Interiors that start on the sand.** An opening's interior begins at the sand, 0.025 below the
+  swim volume's floor, so "every corner in the water" disabled every gate. Usability is now judged
+  on the part of the interior in the water.
+- **The gazebo** is `open`, its interior the plus of cells under the roof at y = 1 (the corner
+  posts and the lantern stay out). Its hull makes the gazebo solid to fish not visiting it, so none
+  wanders under the roof by accident any more. Measured, 4 seeds × 5 min × 6 visitors: a lone
+  tank at 0.15 without the shelter had 59% of fish-time under the roof; at 0.13 with it, none
+  stuck, no fish in an obstacle; 3x1x1 40-43 visits, 3x2x2 50.
+
+- **The arches' lantern is soft (2026-10-03, the owner's call).** Owner observation: a shoal split
+  across an arch oscillated against it, trying to rejoin and never crossing. An arch spans its
+  whole tank (3 cells wide, beam to the lid, the gaps beside its posts closed as narrower than the
+  wall margin), so its doorway is the only way through, and the lantern hanging in the middle of it
+  plus the posts' avoidance margins left only a strip by the sand. `soft_cosmetic` now takes
+  `#minecraft:lanterns`, which also lets fish brush through the Drowned Pagoda's 24 lanterns and
+  the Wax Skull Candle's. A gate's opening may now take in a part's cell
+  (`CosmeticStructure.shelterPartCells`), so the arches' opening runs up through the lantern to the
+  beam; the loader can't see tags, so `ShelterKindTest` holds every such part soft. Measured, 8
+  fish of one species, 6 seeds × 5 min: in a 1x1x2, the shoal split across the arch 84% → 34% of
+  the time, crossings 6 → 585; in a lone tank, crossings 82 → 458. **None of those crossings were
+  gate visits**: the gate's clock (§5.3, 60 s) and heading rule make it too rare to matter to a
+  split shoal. If the oscillation persists in game, the next step is a rejoin trigger: a fish whose
+  shoal is mostly beyond a gate takes it, with no clock and no heading rule.
+
+**Two exit bugs found on the way, both older than the kinds:**
+
+- **Pass-through to a far mouth facing the glass** (from §12.4's mouth choice). `throughMouth`
+  checked the far mouth's corridor but not its staging point, which `findCover` and `homeMouth`
+  both check. A pipe in a 3x2x2 sent visitors out against the glass, where `EXIT` could never
+  finish: 114 of 240 thirty-second windows stalled, fish pinned for up to 150 s. Now held to the
+  same tests as an entry. `ObstacleInvariantTest` gained a 3x2x2 case, which fails without it.
+- **Staging points in the wall margin.** A staging point 0.004 inside the water passed "in the
+  water", but the wall's push held a fish 0.09 short of it (a fence arch in a lone tank, in
+  `EXIT` for the rest of the run). A staging point must now be `VISIT_WALL_MARGIN` from the walls
+  (`stagingReachable`, every mouth choice). And `EXIT` has a timeout like `ENTER`'s: past it, a
+  fish half a body clear of its mouth is let go, so nothing can hold one in `EXIT` for good.
+- `ShelterGateTest` (straight through, by fish that never hide, never turning more than 45° to
+  take one; never cover), `ShelterKindTest` (shipped kinds, gates open both ways, the gazebo on
+  all four sides, a one-mouthed gate fails to load).
+
 ### 12.5 Triggers: a structure that reacts
 
 Two new pieces. Both are client-only and purely visual, so the §1.1 non-goals hold:
@@ -706,7 +771,7 @@ These are noted to keep the base general, not designed yet:
 1. **Clay Pipe + pass-through.** The smallest engine change, and it proves multi-mouth shelters.
 2. **Obstacles (§12.3)**, with the every-cosmetic invariant matrix, promoting decorated lone tanks
    (open question 6).
-3. **Gates**, retrofitted onto the arches, Torii Gate and Castle Ruin. Only worth doing after 2.
+3. **Gates**, retrofitted onto the arches, Torii Gate and Castle Ruin. Only worth doing after 2. *Arches and Torii Gate built 2026-10-02 (§12.4.1); the Castle Ruin's windows remain.*
 4. **Rarity tiers and the rare budget (§12.2)**, then the **Giant Clam trigger** as the pilot for
    events and moving parts.
 5. **Phase 5 shelter cosmetics** (Rock Cave, Moray Rock, Coconut Half), alongside any of the above.
