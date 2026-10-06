@@ -15,6 +15,7 @@ import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.CosmeticReaction;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
 import grill24.fishtastic.fishtank.FishTankShape;
@@ -30,6 +31,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.Sheets;
@@ -101,7 +103,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     private static final Vector3f ITEM_POSITION_OFFSET = new Vector3f(0.5f, ITEM_BASELINE_Y, 0.5f);
     public static final float COSMETIC_FLOOR_Y = CosmeticGridCell.FLOOR_Y;
     // Underside of the tank's glass ceiling, in local block-space Y — where rising bubbles pop.
-    static final float TANK_CEILING_Y = 15f / 16f;
+    public static final float TANK_CEILING_Y = 15f / 16f;
 
     // ── Water fill behind the glass ──────────────────────────────────────────────
     // Flat quads on every closed side wall, textured with vanilla's animated still-water sprite,
@@ -280,6 +282,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         state.gameTimeTicks = level.getGameTime() + partialTick;
         state.cosmetics = new HashMap<>(blockEntity.getCosmetics());
         state.structureCosmetics = resolveStructureCosmetics(blockEntity, level);
+        state.reactionOpenness = reactionOpenness(blockEntity.getBlockPos(), state.structureCosmetics, state.gameTimeTicks);
         collectSpanParts(blockEntity, level, state);
         remeshOnTransformEdit();
         state.benchPieces = benchPiecesFor(blockEntity);
@@ -861,6 +864,96 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         }
     }
 
+    /** How open each placed structure's reactions are now, for the structures with one under way. */
+    private static Map<CosmeticGridCell, float[]> reactionOpenness(BlockPos tank,
+            Map<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> structures, float time) {
+        Map<CosmeticGridCell, float[]> out = null;
+        for (Map.Entry<CosmeticGridCell, FishTankRenderState.ResolvedStructureCosmetic> entry : structures.entrySet()) {
+            if (entry.getValue().structure().reactions().isEmpty()) continue;
+            float[] open = grill24.fishtastic.client.util.ClientCosmeticReactions.openness(tank, entry.getKey(), entry.getValue().structure(), time);
+            if (open == null) continue;
+            if (out == null) out = new HashMap<>();
+            out.put(entry.getKey(), open);
+        }
+        return out == null ? java.util.Collections.emptyMap() : out;
+    }
+
+    /**
+     * Draws a structure's parts that a reaction moves or lights (docs/fish-shelters.md §12.13),
+     * which are left out of the chunk mesh for it. Each is placed as the mesh would place it, then
+     * moved by its group's motion at the reaction's openness: a hinge turns it about its pivot, a
+     * slide carries it by its offset, both turned with the structure. A glowing group is drawn
+     * lit (a candle with its wick alight) and brightens to full as it opens.
+     */
+    private void renderReactionParts(FishTankRenderState state, CosmeticGridCell anchor, CosmeticStructure structure,
+                                     Rotation rotation, PoseStack poseStack, MultiBufferSource buffers) {
+        int[] animated = structure.liveParts().animatedParts();
+        if (animated.length == 0) return;
+        float[] open = state.reactionOpenness.get(anchor);
+        float scale = structure.scale();
+        float ax0 = (float) anchor.localX(), az0 = (float) anchor.localZ();
+        List<CosmeticReaction> reactions = structure.reactions();
+        for (int index : animated) {
+            CosmeticStructure.StructurePart part = structure.parts().get(index);
+            String group = part.group().orElse("");
+            CosmeticReaction.Motion motion = null;
+            float moved = 0f, glow = 0f;
+            for (int r = 0; r < reactions.size(); r++) {
+                float o = open == null ? 0f : open[r];
+                for (CosmeticReaction.Motion m : reactions.get(r).motions()) {
+                    if (motion == null && m.group().equals(group)) {
+                        motion = m;
+                        moved = o;
+                    }
+                }
+                if (reactions.get(r).glows().contains(group)) glow = Math.max(glow, o);
+            }
+            float[] c = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
+            poseStack.pushPose();
+            if (motion != null && moved > 0f) {
+                if (motion.hinge()) {
+                    List<Float> p = motion.pivot().get();
+                    float[] pv = CosmeticStructures.rotateOffset(rotation, p.get(0), p.get(2));
+                    float px = ax0 + pv[0] * scale, py = COSMETIC_FLOOR_Y + p.get(1) * scale, pz = az0 + pv[1] * scale;
+                    float[] axis = switch (motion.axis()) {
+                        case X -> CosmeticStructures.rotateOffset(rotation, 1f, 0f);
+                        case Z -> CosmeticStructures.rotateOffset(rotation, 0f, 1f);
+                        case Y -> null;
+                    };
+                    poseStack.translate(px, py, pz);
+                    float swing = motion.swayTicks() > 0
+                            ? (float) Math.sin(2.0 * Math.PI * state.gameTimeTicks / motion.swayTicks()) : 1f;
+                    float angle = (float) Math.toRadians(motion.degrees() * moved * swing);
+                    if (axis == null) {
+                        poseStack.mulPose(Axis.YP.rotation(angle));
+                    } else {
+                        poseStack.mulPose(new org.joml.Quaternionf().rotateAxis(angle, axis[0], 0f, axis[1]));
+                    }
+                    poseStack.translate(-px, -py, -pz);
+                } else if (motion.offset().isPresent()) {
+                    List<Float> d = motion.offset().get();
+                    float[] dv = CosmeticStructures.rotateOffset(rotation, d.get(0), d.get(2));
+                    poseStack.translate(dv[0] * scale * moved, d.get(1) * scale * moved, dv[1] * scale * moved);
+                }
+            }
+            poseStack.translate(ax0 + c[0] * CosmeticGridCell.CELL_WIDTH, COSMETIC_FLOOR_Y + part.offsetY() * scale,
+                    az0 + c[1] * CosmeticGridCell.CELL_WIDTH);
+            poseStack.scale(scale, scale, scale);
+            poseStack.translate(-0.5f, 0f, -0.5f);
+            BlockState partState = part.state().rotate(rotation);
+            int light = state.lightCoords;
+            if (glow > 0f) {
+                if (glow > 0.05f && partState.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT)) {
+                    partState = partState.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT, true);
+                }
+                int level = Math.round(15f * glow);
+                light = LightTexture.pack(Math.max(LightTexture.block(light), level), Math.max(LightTexture.sky(light), level));
+            }
+            blockRenderer.renderSingleBlock(partState, poseStack, buffers, light, OverlayTexture.NO_OVERLAY);
+            poseStack.popPose();
+        }
+    }
+
     /**
      * Draws the chests in placed single-tank structures (the rest of each structure is in the chunk
      * mesh — see {@link TankCosmeticMesh}). Each part's offset is rotated with the structure and
@@ -873,6 +966,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             CosmeticStructure structure = entry.getValue().structure();
             Rotation rotation = entry.getValue().rotation();
             float scale = structure.scale();
+            renderReactionParts(state, anchor, structure, rotation, poseStack, buffers);
             for (int index : structure.liveParts().chests()) {
                 CosmeticStructure.StructurePart part = structure.parts().get(index);
                 BlockState partState = part.state().rotate(rotation);
@@ -1082,7 +1176,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     }
 
     /** Walks upward through tanks connected via an open UP face, so bubbles rise to the true top of a vertical stack. */
-    static BlockPos topOfConnectedTankStack(Level level, BlockPos pos) {
+    public static BlockPos topOfConnectedTankStack(Level level, BlockPos pos) {
         BlockPos current = pos;
         // Bounded to avoid any chance of looping on malformed/cyclic open-face state.
         for (int i = 0; i < 64; i++) {

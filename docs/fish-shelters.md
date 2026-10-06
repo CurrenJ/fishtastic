@@ -1012,3 +1012,46 @@ greenstripe barb (15); skittish indian glassy fish, orange australe killifish, g
 Left out on body shape or habit: discus, lionfish, ocean sunfish and the moorish idols (tall), the
 seahorse and leafy sea dragon (upright), glass catfish (an open-water schooler).
 Only `horizontal_swim` fish move freely, so only they can use shelters at all.
+
+### 12.13 Reactions: structures that answer a fish (built 2026-10-03)
+
+The first interactibles: §12.5's triggers, generalized. A floor structure may list `reactions`
+(`CosmeticReaction`). Each is set off by exactly one of:
+
+- a **nose** anchor: build cells `min..max` on the structure's surface and the `facing` a fish comes
+  from. It becomes an extra engine shelter of kind `TRIGGER` (one mouth, no hull). The structure's
+  clock sends the nearest free swimmer within 2.5 blocks. The fish swims up, touches the surface with
+  its nose (centre 0.45 of its length out), holds for `hold_seconds`, and backs off. The reaction
+  starts at the touch.
+- a **gate**: the index of one of its gate shelters, which is then **locked**. While shut, its
+  interior is a hull to every fish. When its clock fires, it sends one fish through, ignoring the
+  45° heading rule. The reaction starts as the fish sets off, so the door is open before it
+  arrives, and ends when the fish is out.
+
+Clocks are per structure (`mean_seconds`, default 240). Only one reaction runs at a time per
+domain, with a 30 s rest after each (§12.2). Nobody goes to a trigger of its own accord. Engine
+events (`FlockEngine.TriggerEvent`, keyed by `CosmeticReaction.Key(tank, anchor cell, index)`)
+are drained after every step into `ClientCosmeticReactions`. That class keeps each timeline
+(`open_ticks`, `hold_ticks`, `close_ticks`) and plays the quiet sound cues and bubble bursts.
+
+What moves: parts carry an optional `group`. A `motion` is a hinge (`pivot` in build units,
+`axis`, `degrees`, optional `sway_ticks` to swing to and fro) or a slide (`offset`). A `glow`
+group is drawn lit (`lit=true` where the block has it, plus candle flames) and brightened to full.
+Grouped parts are left out of the chunk mesh and drawn per frame. A locked gate's moving parts
+(the door) are not obstacles and may stand in its gateway.
+
+Shipped: Giant Clam (re-authored closed, its lid hinging up on a lit mantle and pearl), Sunken
+Strongbox (lid, glowing hoard), Wayside Shrine (gate beneath, nose the bell rope: the bell sways
+and the lights kindle), Sunken Gatehouse (locked gate, the portcullis rises). The generator is
+`tools/shelter-structure-gen/reactive.py`. Preview open poses with the `cosmeticpreview` marker
+line `reactionOpen=1`. To watch reactions fire in game without waiting, `/fishtastic cosmetic
+reactionboost <multiplier>` (gamemaster) runs every reaction clock that many times faster on your client,
+for the session; `1` restores the normal rate. The 30 s rest between reactions is not boosted.
+
+Two constraints learned building them:
+- **Openings clear 0.4 above the sand.** A lintel 0.25 to 0.31 up was closed down to the sand by
+  `closeGaps` (it probes 0.20 below the box), which sealed the doorway: 0 entries.
+- **Tall pieces stay about 3 voxels deep through the roaming band** (about 0.1 to 0.63 above the
+  sand). In a one-deep row, a deeper one leaves no lane in front or behind. Fish crossing from
+  the side stall at its corners (no pathfinding), and entries fell to 0. Depth goes on the sand
+  (plinths) or up high (crowns, eaves).

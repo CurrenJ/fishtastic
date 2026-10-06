@@ -73,6 +73,22 @@ public class CosmeticCommand {
             .then(Commands.literal("scale")
                 .then(Commands.argument("value", FloatArgumentType.floatArg(0.01f))
                     .executes(ctx -> scale(ctx, FloatArgumentType.getFloat(ctx, "value")))))
+            // Dev: run every cosmetic reaction clock this many times faster on the invoker's client
+            // (docs/fish-shelters.md §12.13); 1 is normal. The 30 s rest between reactions is not boosted.
+            .then(Commands.literal("reactionboost")
+                .then(Commands.argument("multiplier", com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0f, 1000f))
+                    .executes(ctx -> {
+                        float boost = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(ctx, "multiplier");
+                        if (!(ctx.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer player)) {
+                            ctx.getSource().sendFailure(Component.literal("This command must be run by a player!"));
+                            return 0;
+                        }
+                        grill24.fishtastic.network.ReactionBoostSyncPacket.sendToPlayer(player, boost);
+                        ctx.getSource().sendSuccess(() -> Component.literal(boost == 1f
+                                ? "Cosmetic reactions back to their normal rate."
+                                : "Cosmetic reaction clocks running " + boost + "x faster (the 30 s rest between them still applies)."), false);
+                        return 1;
+                    })))
             .then(Commands.literal("dump")
                 .executes(CosmeticCommand::dump))
             .then(Commands.literal("capture")

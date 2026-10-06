@@ -218,9 +218,12 @@ public final class TankCosmeticMesh {
             CosmeticGridCell anchor = entry.getKey();
             Rotation rotation = entry.getValue().rotation();
             float scale = structure.scale();
-            for (CosmeticStructure.StructurePart part : structure.parts()) {
+            CosmeticStructure.LiveParts live = structure.liveParts();
+            for (int index = 0; index < structure.parts().size(); index++) {
+                CosmeticStructure.StructurePart part = structure.parts().get(index);
                 BlockState partState = part.state().rotate(rotation);
-                if (rendersDynamically(partState)) continue;
+                // A part a reaction moves or lights is drawn every frame by the tank's renderer.
+                if (rendersDynamically(partState) || live.animated(index)) continue;
                 float[] r = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
                 Matrix4f pose = new Matrix4f()
                         .translate((float) (anchor.localX() + r[0] * CosmeticGridCell.CELL_WIDTH),

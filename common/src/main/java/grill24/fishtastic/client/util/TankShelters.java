@@ -5,6 +5,7 @@ import grill24.fishsim.domain.Shelter;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.client.renderer.FishTankBlockEntityRenderer;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
+import grill24.fishtastic.fishtank.CosmeticReaction;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.ShelterGeometry;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.IntFunction;
 
 /**
  * Turns the shelter structures placed in tanks into the {@link Shelter}s the simulation steers
@@ -83,7 +85,7 @@ public final class TankShelters {
         return out;
     }
 
-    /** Whether any structure placed in this tank is a shelter. */
+    /** Whether any structure placed in this tank is a shelter, or has a trigger. */
     public static boolean hasShelter(FishTankBlockEntity be, Level level) {
         if (be.getStructureCosmetics().isEmpty()) return false;
         return !blockFrame(be, level).isEmpty();
@@ -99,7 +101,7 @@ public final class TankShelters {
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : placed.entrySet()) {
             Optional<CosmeticStructure> structure = registry.getOptional(entry.getValue().structureId());
             if (structure.isEmpty()) continue;
-            if (!structure.get().hasShelter()) continue;
+            if (!structure.get().hasShelter() && structure.get().reactions().isEmpty()) continue;
             Rotation rotation = entry.getValue().rotation();
             float anchorX, anchorZ;
             if (structure.get().span().isPresent()) {
@@ -111,7 +113,10 @@ public final class TankShelters {
                 anchorX = (float) anchor.localX();
                 anchorZ = (float) anchor.localZ();
             }
-            out.addAll(inBlockFrame(structure.get(), anchorX, anchorZ, rotation));
+            BlockPos tank = be.getBlockPos().immutable();
+            CosmeticGridCell anchor = entry.getKey();
+            out.addAll(inBlockFrame(structure.get(), anchorX, anchorZ, rotation,
+                    r -> new CosmeticReaction.Key(tank, anchor, r)));
         }
         return out;
     }
@@ -122,19 +127,48 @@ public final class TankShelters {
      * in authored order; empty when it has none.
      */
     static List<Shelter> inBlockFrame(CosmeticStructure structure, float anchorX, float anchorZ, Rotation rotation) {
+        return inBlockFrame(structure, anchorX, anchorZ, rotation, null);
+    }
+
+    /**
+     * {@link #inBlockFrame(CosmeticStructure, float, float, Rotation)} with the structure's
+     * reactions (docs/fish-shelters.md §12.13) as triggers, each keyed by {@code keys} from its
+     * index: a gate a reaction locks carries its trigger, and every nose anchor is one more
+     * {@link Shelter.Kind#TRIGGER} after the authored shelters. Null {@code keys}: no triggers.
+     * A shelter that fails to derive is skipped, so a gate reaction finds its shelter by spec.
+     */
+    static List<Shelter> inBlockFrame(CosmeticStructure structure, float anchorX, float anchorZ, Rotation rotation,
+                                      IntFunction<Object> keys) {
         List<Shelter> out = new ArrayList<>();
+        List<CosmeticReaction> reactions = keys == null ? List.of() : structure.reactions();
         for (CosmeticStructure.DerivedShelter derived : structure.shelterShapes()) {
             CosmeticStructure.ShelterSpec spec = derived.spec();
             Shelter shelter = inBlockFrame(derived.shape(), spec.capacityOrDefault(), engineKind(spec.kind()),
                     structure.scale(), anchorX, anchorZ, rotation);
-            out.add(spec.minLength().isEmpty() ? shelter : withMinLength(shelter, spec.minLength().get()));
+            if (spec.minLength().isPresent()) shelter = withMinLength(shelter, spec.minLength().get());
+            int specIndex = structure.shelters().indexOf(spec);
+            for (int r = 0; r < reactions.size(); r++) {
+                CosmeticReaction reaction = reactions.get(r);
+                if (reaction.gate().isPresent() && reaction.gate().get() == specIndex) {
+                    shelter = shelter.withTrigger(new Shelter.Trigger(reaction.meanSeconds(), reaction.holdSeconds(), keys.apply(r)));
+                }
+            }
+            out.add(shelter);
+        }
+        for (int r = 0; r < reactions.size(); r++) {
+            CosmeticReaction reaction = reactions.get(r);
+            if (reaction.nose().isEmpty()) continue;
+            Shelter anchor = inBlockFrame(reaction.nose().get().shape(), 1, Shelter.Kind.HOLLOW,
+                    structure.scale(), anchorX, anchorZ, rotation);
+            out.add(new Shelter(anchor.hull(), anchor.interior(), anchor.mouths(), 1, anchor.interiorRun(),
+                    Shelter.Kind.TRIGGER, 0f, new Shelter.Trigger(reaction.meanSeconds(), reaction.holdSeconds(), keys.apply(r))));
         }
         return out;
     }
 
     /** The shelter kept for fish at least {@code minLength} blocks long. */
     static Shelter withMinLength(Shelter s, float minLength) {
-        return new Shelter(s.hull(), s.interior(), s.mouths(), s.capacity(), s.interiorRun(), s.kind(), minLength);
+        return new Shelter(s.hull(), s.interior(), s.mouths(), s.capacity(), s.interiorRun(), s.kind(), minLength, s.trigger());
     }
 
     /**
@@ -225,7 +259,7 @@ public final class TankShelters {
                     m.halfTangent(), m.halfBitangent()));
         }
         return new Shelter(toEngine(s.hull(), ox, oy, oz, cosR, sinR), toEngine(s.interior(), ox, oy, oz, cosR, sinR),
-                mouths, s.capacity(), s.interiorRun(), s.kind(), s.minLength());
+                mouths, s.capacity(), s.interiorRun(), s.kind(), s.minLength(), s.trigger());
     }
 
     static Shelter.OrientedBox toEngine(Shelter.OrientedBox b, float ox, float oy, float oz,

@@ -83,6 +83,7 @@ public final class ClientTankFlocks {
     public static void tickAll() {
         tickCounter++;
         FLOCKS.entrySet().removeIf(e -> tickCounter - e.getValue().lastExtractTick() > EVICT_AFTER_TICKS);
+        ClientCosmeticReactions.tick();
 
         // The one thing outside a tank that its inhabitants know about: whoever is standing in
         // front of it. Read once per tick rather than per tank — it is the same player — and

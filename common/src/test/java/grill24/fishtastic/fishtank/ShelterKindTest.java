@@ -78,6 +78,8 @@ class ShelterKindTest {
                 List<ShelterGeometry.Cell> cells = s.partCells();
                 for (int k = 0; k < cells.size(); k++) {
                     if (!opening.contains(cells.get(k))) continue;
+                    // A locked gate's door stands in its gateway at rest, and is out of it when a fish goes through.
+                    if (s.isGateDoor(k)) continue;
                     assertTrue(ShippedStructures.softTag().test(s.parts().get(k).state()),
                             e.getKey() + ": solid " + s.parts().get(k).state() + " in the gateway at " + cells.get(k));
                     checked++;

@@ -61,6 +61,9 @@ class Build:
         self.v = {}
         self.bounds = bounds          # (nx, ny, nz) for a span; None for a floor build
         self.shelters = []
+        self.groups = {}              # (x, y, z) -> group name: parts a reaction moves or lights
+        self.doors = set()            # groups that stand in a gate's opening at rest (a portcullis)
+        self.reactions = []           # CosmeticReaction JSON objects (docs/fish-shelters.md §12.13)
 
     def inside(self, x, y, z):
         if y < 0:
@@ -70,10 +73,14 @@ class Build:
         nx, ny, nz = self.bounds
         return 0 <= x < nx and y < ny and 0 <= z < nz
 
-    def set(self, x, y, z, name, **props):
+    def set(self, x, y, z, name, group=None, **props):
         x, y, z = int(x), int(y), int(z)
         if self.inside(x, y, z):
             self.v[(x, y, z)] = (name, {k: str(v).lower() for k, v in props.items()})
+            if group:
+                self.groups[(x, y, z)] = group
+            else:
+                self.groups.pop((x, y, z), None)
 
     def setdefault(self, x, y, z, name, **props):
         if (int(x), int(y), int(z)) not in self.v:
@@ -81,6 +88,7 @@ class Build:
 
     def clear(self, x, y, z):
         self.v.pop((int(x), int(y), int(z)), None)
+        self.groups.pop((int(x), int(y), int(z)), None)
 
     def get(self, x, y, z):
         return self.v.get((x, y, z))
@@ -108,6 +116,7 @@ class Build:
     def shift(self, dx):
         """Moves everything built, shelters too, dx voxels along x: to centre a design in a longer box."""
         self.v = {(x + dx, y, z): blk for (x, y, z), blk in self.v.items()}
+        self.groups = {(x + dx, y, z): g for (x, y, z), g in self.groups.items()}
         for sh in self.shelters:
             sh["cells"] = [(x + dx, y, z) for (x, y, z) in sh["cells"]]
 
@@ -115,11 +124,12 @@ class Build:
         if y < 0:
             return True  # the sand
         b = self.v.get((x, y, z))
-        return b is not None and b[0] in FULL_CUBES
+        # A part a reaction moves hides nothing: it moves away and shows what was behind it.
+        return b is not None and b[0] in FULL_CUBES and (x, y, z) not in self.groups
 
     def cull(self):
         """Drops full cubes no face of which can be seen: each is a separate block-model draw."""
-        hidden = [p for p in self.v if self.v[p][0] in FULL_CUBES and all(
+        hidden = [p for p in self.v if self.v[p][0] in FULL_CUBES and p not in self.groups and all(
             self.full(p[0] + dx, p[1] + dy, p[2] + dz)
             for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)))]
         for p in hidden:
@@ -130,7 +140,7 @@ class Build:
         out = []
         for s in self.shelters:
             for c in s["cells"]:
-                assert c not in self.v, f"part left in a shelter interior at {c}"
+                assert c not in self.v or self.groups.get(c) in self.doors, f"part left in a shelter interior at {c}"
             j = {}
             if s["kind"] != "hollow":
                 j["kind"] = s["kind"]
@@ -148,7 +158,10 @@ class Build:
             state = {"Name": "minecraft:" + block}
             if props:
                 state["Properties"] = props
-            parts.append({"state": state, "offsetX": round(x * xz, 7), "offsetY": y, "offsetZ": round(z * xz, 7)})
+            part = {"state": state, "offsetX": round(x * xz, 7), "offsetY": y, "offsetZ": round(z * xz, 7)}
+            if (x, y, z) in self.groups:
+                part["group"] = self.groups[(x, y, z)]
+            parts.append(part)
         return parts
 
     def export_floor(self, name, scale, item_icon=None):
@@ -180,6 +193,8 @@ class Build:
             data["shelter"] = shelters[0]
         elif shelters:
             data["shelters"] = shelters
+        if self.reactions:
+            data["reactions"] = self.reactions
         data = footprint_audit.with_occupied(data)
         path = os.path.join(OUT_DIR, name + ".json")
         with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -1845,6 +1860,8 @@ def preview(b, name):
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if not a.startswith("--")]
+    import reactive  # the reactive cosmetics (docs/fish-shelters.md §12.13), built with this file's Build
+    FLOOR = FLOOR + reactive.FLOOR
     for design in FLOOR + SPANS:
         if names and design.__name__ not in names:
             continue
