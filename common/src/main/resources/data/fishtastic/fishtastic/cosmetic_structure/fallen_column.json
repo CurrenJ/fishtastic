@@ -1,0 +1,717 @@
+{
+  "footprint_cells": [
+    {
+      "dx": 0,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": -1
+    },
+    {
+      "dx": -1,
+      "dz": 0
+    },
+    {
+      "dx": -1,
+      "dz": 1
+    },
+    {
+      "dx": 0,
+      "dz": -1
+    },
+    {
+      "dx": 0,
+      "dz": 1
+    },
+    {
+      "dx": 1,
+      "dz": 1
+    },
+    {
+      "dx": 1,
+      "dz": 0
+    }
+  ],
+  "parts": [
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": -0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:chiseled_quartz_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:chiseled_quartz_block"
+      },
+      "offsetX": -0.6171429,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:quartz_slab"
+      },
+      "offsetX": -0.6171429,
+      "offsetY": 1.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.30857146,
+      "offsetZ": -0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_quartz"
+      },
+      "offsetX": -0.30857146,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_quartz"
+      },
+      "offsetX": -0.30857146,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 1.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 1.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 1.0
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 2.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 2.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 3.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 3.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 4.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 4.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 5.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 5.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 6.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:quartz_slab"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 6.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:quartz_slab"
+      },
+      "offsetX": -0.30857146,
+      "offsetY": 7.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetZ": -0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_quartz"
+      },
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:smooth_quartz"
+      },
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      }
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 1.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 1.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 2.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 3.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 4.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "y"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetY": 5.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:quartz_slab"
+      },
+      "offsetY": 6.0,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetY": 6.0,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": 0.30857146,
+      "offsetZ": -0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": 0.30857146,
+      "offsetZ": -0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": 0.30857146,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "waterlogged": "false",
+          "type": "bottom"
+        },
+        "Name": "minecraft:smooth_quartz_slab"
+      },
+      "offsetX": 0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.30857146,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.30857146,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.30857146,
+      "offsetY": 1.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.30857146,
+      "offsetY": 1.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.30857146,
+      "offsetY": 2.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.30857146,
+      "offsetY": 2.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.6171429,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.6171429,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 1.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 1.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.6171429,
+      "offsetY": 2.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144,
+      "offsetZ": -0.30857146
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "z"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144,
+      "offsetY": 1.0,
+      "offsetZ": 0.6171429
+    },
+    {
+      "state": {
+        "Properties": {
+          "axis": "x"
+        },
+        "Name": "minecraft:quartz_pillar"
+      },
+      "offsetX": 0.9257144,
+      "offsetY": 1.0,
+      "offsetZ": 0.9257144
+    },
+    {
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      },
+      "offsetX": 0.9257144,
+      "offsetY": 2.0,
+      "offsetZ": 0.6171429
+    }
+  ],
+  "scale": 0.09
+}

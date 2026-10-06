@@ -1,0 +1,7 @@
+{
+  "display_name": "Giant Clam",
+  "description": "A giant clam yawning open on a single glowing pearl, for your fish tank.",
+  "cost": 35,
+  "reward": [{ "id": "fishtastic:cosmetic_giant_clam", "count": 1 }],
+  "daily_max_purchases": 1
+}

@@ -1,0 +1,7 @@
+{
+  "display_name": "Stone Lantern",
+  "description": "A mossy stone garden lantern with a warm light in its window, for your fish tank.",
+  "cost": 20,
+  "reward": [{ "id": "fishtastic:cosmetic_stone_lantern", "count": 1 }],
+  "daily_max_purchases": 1
+}
