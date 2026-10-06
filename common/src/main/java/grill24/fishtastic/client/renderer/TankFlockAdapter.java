@@ -132,7 +132,7 @@ public final class TankFlockAdapter {
                                        int i, float gameTimeTicks) {
         Random random = new Random(eng.seeds[i]);
         return eng.swimmers[i]
-                ? FishAnimator.yBob(anim, random, eng.renderPhase[i], eng.speedFactor(i))
+                ? FishAnimator.yBob(anim, random, eng.renderPhase[i], eng.speedFactor(i), eng.renderBobRoom[i], eng.lengths[i])
                 : FishAnimator.yBob(anim, random, gameTimeTicks, 1f);
     }
 

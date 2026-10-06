@@ -248,6 +248,28 @@ axis, and the extruded item mesh keeps it a dark sliver rather than nothing. The
 broadside invariant to break. Watch for it in the in-game look. If it reads badly, the fix is to
 prefer mouths whose normal is closer to lateral when a shelter has more than one.
 
+### 5.7 The bob in a hollow
+
+Found in the first in-game look: a loach in the Hollow Log clipped through its floor and roof. The
+renderer draws a vertical bob on top of the engine's position. It's ±0.125 blocks by default,
+against a bore 0.18 tall, and the engine never sees it. Two fixes:
+
+- **The engine confines the sprite, not just its centre.** The interior confinement's vertical
+  ramp is inset by the sprite's half-height (`0.4 × length ÷ 2`, the mouth gate's ratio). The inset
+  moves where the ramp starts but not its slope or its peak: squeezing the ramp broke the jerk
+  bound for a startled fish.
+- **The renderer caps the bob at the room left.** `FlockEngine.renderBobRoom` is the headroom
+  above and below the sprite in the hollow, opening up at 0.5 blocks per block once the fish is
+  more than half a body length outside. It's a function of position only, never of visit state,
+  so it has no jumps. `FishAnimator` caps the bob's amplitude at it, after taking off the share
+  the bob's tilt adds at the nose. Fish swimming close past a log lose some of their bob too,
+  which is right: they'd clip its outside the same way.
+
+`ShelterBobRoomTest` holds both: no sprite past the bore at the top or bottom of its capped bob, and the
+room changing no faster than the bob itself moves while a fish enters.
+
+---
+
 ---
 
 ## 6. Benthic dens (later)

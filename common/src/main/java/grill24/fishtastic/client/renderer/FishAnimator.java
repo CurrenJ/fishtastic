@@ -26,7 +26,7 @@ public final class FishAnimator {
      *                 the model's face winding/normals instead.
      */
     public static void apply(PoseStack poseStack, FishAnimationConfig config, Random random, float t, float baseRotation, float scale, boolean mirrored) {
-        if (config instanceof FishAnimationConfig.HorizontalSwim cfg) applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f);
+        if (config instanceof FishAnimationConfig.HorizontalSwim cfg) applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f, Float.POSITIVE_INFINITY);
         else if (config instanceof FishAnimationConfig.UprightFloat cfg) applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
         else if (config instanceof FishAnimationConfig.FloorSit cfg) applyFloorSit(poseStack, cfg, random, t, mirrored);
         else if (config instanceof FishAnimationConfig.Planted cfg) applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
@@ -160,16 +160,32 @@ public final class FishAnimator {
      * scales the tail-beat frequency (and amplitude), and {@code bankDeg} banks the fish about its
      * swim axis in response to turning. Both are 0/1 on the hover path, which keeps the random
      * consumption order identical to the pre-simulation animation.
+     *
+     * @param bobRoom the engine's {@code renderBobRoom}: how far the sprite may bob before it
+     *                leaves a shelter's hollow; infinite away from shelters
+     * @param length  the fish's rendered length (its render scale), for the tilt's share of that room
      */
     public static void applySwimming(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
                                      Random random, float t, float baseRotation, boolean mirrored,
-                                     float speedFactor, float bankDeg) {
-        applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, speedFactor, bankDeg);
+                                     float speedFactor, float bankDeg, float bobRoom, float length) {
+        applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, speedFactor, bankDeg,
+                maxBob(cfg, bobRoom, length));
+    }
+
+    /**
+     * The largest bob amplitude that keeps a swimmer inside {@code bobRoom} (docs/fish-shelters.md
+     * §5.7). The bob's tilt rides on the same sine and lifts the nose too: about
+     * {@code π · length · surfFactor} per unit of amplitude at the small amplitudes a hollow
+     * leaves room for, so that comes out of the room as well.
+     */
+    static float maxBob(FishAnimationConfig.HorizontalSwim cfg, float bobRoom, float length) {
+        if (bobRoom == Float.POSITIVE_INFINITY) return Float.POSITIVE_INFINITY;
+        return bobRoom / (1f + (float) Math.PI * length * cfg.surfFactor());
     }
 
     private static void applyHorizontalSwim(PoseStack poseStack, FishAnimationConfig.HorizontalSwim cfg,
                                              Random random, float t, float baseRotation, boolean mirrored,
-                                             float speedFactor, float bankDeg) {
+                                             float speedFactor, float bankDeg, float maxBob) {
         // Speed couples into the FREQUENCY only through the caller's clock: simulated swimmers
         // pass the engine's speed-integrated tail phase as t (see FlockEngine.renderPhase), never
         // by scaling hertz here — hertz multiplies t inside the sine, so per-frame hertz changes
@@ -184,12 +200,16 @@ public final class FishAnimator {
         // time with every burst — reported in game as fish "hopping" up and forward every few
         // seconds. Frequency coupling already conveys effort; amplitude coupling on top of it
         // double-counts speed and is what turns a burst into a hop.
+        //
+        // Inside a shelter's hollow the bob would carry the sprite through the floor and roof, so
+        // it is capped at the room the engine reports there. Only the amplitude changes: phase
+        // and random draws are untouched, so the cap can't make a fish jump.
         float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
-        float yBob = getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
+        float yBob = getBobbingHeight(random, t, Math.min(cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), maxBob), hertz);
         poseStack.translate(0f, yBob, 0f);
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         if (bankDeg != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(bankDeg));
-        float surfAngle = getSurfingAngle(random, t, cfg.bobAmplitude(), hertz) * cfg.surfFactor();
+        float surfAngle = getSurfingAngle(random, t, Math.min(cfg.bobAmplitude(), maxBob), hertz) * cfg.surfFactor();
         float yWiggle = getOrganicWiggle(random, t) * cfg.wiggleScale();
         poseStack.mulPose(Axis.YP.rotationDegrees(yWiggle));
         poseStack.mulPose(Axis.ZP.rotationDegrees(surfAngle + (cfg.diagonalTexture() ? 45f : 0f)));
@@ -378,9 +398,16 @@ public final class FishAnimator {
      *                    own game-time fallback, which never applies).
      */
     public static float yBob(FishAnimationConfig config, Random random, float t, float speedFactor) {
+        return yBob(config, random, t, speedFactor, Float.POSITIVE_INFINITY, 0f);
+    }
+
+    /** {@link #yBob(FishAnimationConfig, Random, float, float)} for a swimmer, with {@link #applySwimming}'s shelter cap. */
+    public static float yBob(FishAnimationConfig config, Random random, float t, float speedFactor,
+                             float bobRoom, float length) {
         if (config instanceof FishAnimationConfig.HorizontalSwim cfg) {
             float hertz = cfg.bobHertz() + (random.nextFloat() * 0.04f);
-            return getBobbingHeight(random, t, cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), hertz);
+            return getBobbingHeight(random, t,
+                    Math.min(cfg.bobAmplitude() * (0.9f + 0.1f * speedFactor), maxBob(cfg, bobRoom, length)), hertz);
         }
         if (config instanceof FishAnimationConfig.BellyDown cfg) {
             float hertz = cfg.bobHertz() + (random.nextFloat() * 0.02f);
