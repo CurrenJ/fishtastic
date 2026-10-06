@@ -223,6 +223,39 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         });
     }
 
+    /**
+     * The parts the tank renderer handles itself every frame, by index into {@link #parts()}:
+     * chests, drawn with their animated lid, and lit furnaces, which smoke. Found once per
+     * structure instance rather than by walking every part every frame: that walk, which also
+     * rotated each part's state first, cost up to 16 µs per tank per frame (docs/cosmetic-render-cost.md).
+     * Turning a structure changes neither a part's block nor whether a furnace is lit, so the
+     * parts as authored decide. Arrays are shared: don't write to them.
+     */
+    public record LiveParts(int[] chests, int[] litFurnaces) {}
+
+    private static final LiveParts NO_LIVE_PARTS = new LiveParts(new int[0], new int[0]);
+
+    /** Live parts per structure instance, keyed by identity as {@link #DERIVED} is; a datapack reload makes new instances. */
+    private static final Map<CosmeticStructure, LiveParts> LIVE =
+            Collections.synchronizedMap(new IdentityHashMap<>());
+
+    /** This structure's chests and lit furnaces, by part index. */
+    public LiveParts liveParts() {
+        if (LIVE.size() > 256) LIVE.clear();
+        return LIVE.computeIfAbsent(this, s -> {
+            List<Integer> chests = new ArrayList<>(), furnaces = new ArrayList<>();
+            for (int i = 0; i < s.parts.size(); i++) {
+                BlockState state = s.parts.get(i).state();
+                if (state.getBlock() == net.minecraft.world.level.block.Blocks.CHEST) chests.add(i);
+                if (state.getBlock() instanceof net.minecraft.world.level.block.AbstractFurnaceBlock
+                        && state.getValue(net.minecraft.world.level.block.AbstractFurnaceBlock.LIT)) furnaces.add(i);
+            }
+            if (chests.isEmpty() && furnaces.isEmpty()) return NO_LIVE_PARTS;
+            return new LiveParts(chests.stream().mapToInt(Integer::intValue).toArray(),
+                    furnaces.stream().mapToInt(Integer::intValue).toArray());
+        });
+    }
+
     /** Whether this structure holds a shelter that derives. */
     public boolean hasShelter() {
         return !shelterShapes().isEmpty();

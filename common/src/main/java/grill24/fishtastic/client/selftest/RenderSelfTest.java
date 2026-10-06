@@ -111,7 +111,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     // PORT-ONLY: 26.1.2's cool-cam and MCP-bridge scenes (matte, matteclip, fourwaters, cathedral,
     // mcpsession, cosmeticpreview) are not ported - neither mod side exists on this branch (D4).
-    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting");
+    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -279,6 +279,8 @@ public final class RenderSelfTest {
             case "columns" -> queueColumnsScene();
             case "spanpreview" -> queueSpanPreviewScene();
             case "perfbench" -> queuePerfBenchScene();
+            case "bakebench" -> queueBakeBenchScene();
+            case "scalebench" -> queueScaleBenchScene();
             case "lighting" -> queueLightingScene();
             default -> throw new IllegalArgumentException(scene);
         }
@@ -863,6 +865,193 @@ public final class RenderSelfTest {
             mc.options.hideGui = false;
             mc.levelRenderer.allChanged();
             Fishtastic.LOGGER.info("[bench] DONE");
+        });
+    }
+
+    // ── bakebench / scalebench: what a cosmetic structure costs (client/perf/CosmeticCostBench) ──
+
+    /**
+     * Geometry and cold-cache bake time of every shipped structure ({@code [bakebench] STRUCT} lines),
+     * with the vertex size of each chunk layer. Marker param: {@code reps=} timed bakes per structure.
+     */
+    private static void queueBakeBenchScene() {
+        int reps = Integer.parseInt(param("reps", "21"));
+        queue(40, mc -> {
+            var registry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+            List<String> names = registry.keySet().stream().map(id -> id.getPath()).sorted().toList();
+            grill24.fishtastic.client.perf.CosmeticCostBench.run(names, n -> registry.getOptional(structure(n)).orElse(null), reps);
+            Fishtastic.LOGGER.info("[bakebench] DONE");
+        });
+    }
+
+    /**
+     * Steady-state frame cost of cosmetic structures as their amount grows. For each {@code structure=}
+     * (repeatable) and each copy count ({@code spanCounts=} boxes for spans, laid out in a square;
+     * {@code floorCounts=} tanks for floor structures), the same tanks are measured with cosmetics
+     * off (NONE) and baked into the mesh (MESH), in pairs whose order alternates by round. The
+     * pseudo-structure {@code empty} is the A/A control: tanks with nothing in them, where MESH and
+     * NONE draw the same thing. RESULT lines carry the scene's total cosmetic quads; raw frames go
+     * to {@code <run>/fishtastic_bench/scale_<loader>_<label>_<structure>_<count>_<mode>_r<N>.csv}.
+     */
+    private static void queueScaleBenchScene() {
+        int frames = Integer.parseInt(param("frames", "3000"));
+        int rounds = Integer.parseInt(param("rounds", "5"));
+        String label = param("label", "default");
+        int[] spanCounts = java.util.Arrays.stream(param("spanCounts", "1,4,9").split(",")).mapToInt(Integer::parseInt).toArray();
+        int[] floorCounts = java.util.Arrays.stream(param("floorCounts", "9,36").split(",")).mapToInt(Integer::parseInt).toArray();
+        List<String> names = params("structure").isEmpty() ? List.of("empty", "sunken_ziggurat") : params("structure");
+        // ab=mesh (default): NONE against MESH. ab=scan: both halves MESH, the per-frame floor-structure
+        // part scans on against skipped (CosmeticBenchmark.skipStructureScans).
+        boolean scanAb = param("ab", "mesh").equals("scan");
+        int x0 = origin.getX() - 9, y = origin.getY(), z0 = origin.getZ() - 4;
+        var tankState = grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState();
+        int[] savedLimit = new int[1];
+        boolean[] savedVsync = new boolean[1];
+        queue(1, mc -> {
+            savedLimit[0] = mc.options.framerateLimit().get();
+            savedVsync[0] = mc.options.enableVsync().get();
+            mc.options.framerateLimit().set(260);
+            mc.options.enableVsync().set(false);
+            mc.options.hideGui = true;
+            // fullscreen=true: frame times depend on the framebuffer size, and a launch can come up windowed
+            // at the 854x480 default even with fullscreen set in options. The START line records the size.
+            if (param("fullscreen", "false").equals("true") && !mc.getWindow().isFullscreen()) mc.getWindow().toggleFullScreen();
+        });
+        queue(40, mc -> Fishtastic.LOGGER.info("[scale] START loader={} label={} frames={} rounds={} window={}x{}", loader, label, frames, rounds,
+                mc.getWindow().getWidth(), mc.getWindow().getHeight()));
+        for (String name : names) {
+            boolean[] isSpan = new boolean[1];
+            int[] box = {1, 1, 1};
+            queue(1, mc -> {
+                var registry = mc.level.registryAccess().registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+                var st = name.equals("empty") ? null : registry.getOptional(structure(name)).orElse(null);
+                isSpan[0] = st != null && st.span().isPresent();
+                if (isSpan[0]) { box[0] = st.span().get().x(); box[1] = st.span().get().y(); box[2] = st.span().get().z(); }
+            });
+            // Whether a structure is a span is only known once the registry is up, so both count
+            // lists are queued and the one that doesn't apply is skipped when the scene runs.
+            // The empty control runs the floor counts.
+            java.util.List<int[]> plan = new java.util.ArrayList<>();
+            for (int c : spanCounts) plan.add(new int[]{1, c});
+            for (int c : floorCounts) plan.add(new int[]{0, c});
+            for (int[] entry : plan) {
+                boolean spanCount = entry[0] == 1;
+                int count = entry[1];
+                List<BlockPos> tanks = new java.util.ArrayList<>();
+                boolean[] skip = new boolean[1];
+                int[] sceneQuads = new int[1];
+                double[] cam = new double[4];
+                queue(1, mc -> {
+                    skip[0] = name.equals("empty") ? spanCount : spanCount != isSpan[0];
+                    if (skip[0]) return;
+                    server(mc, s -> {
+                        run(s, "fill " + (x0 - 3) + " " + (y - 1) + " " + (z0 - 3) + " " + (x0 + 24) + " " + (y + 5) + " " + (z0 + 16) + " minecraft:air");
+                        tanks.clear();
+                        var level = s.overworld();
+                        int k = (int) Math.ceil(Math.sqrt(count));
+                        if (isSpan[0]) {
+                            var registry = level.registryAccess().registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+                            for (int i = 0; i < count; i++) {
+                                BlockPos min = new BlockPos(x0 + (i % k) * (box[0] + 1), y, z0 + (i / k) * (box[2] + 1));
+                                for (BlockPos p : BlockPos.betweenClosed(min, min.offset(box[0] - 1, box[1] - 1, box[2] - 1))) {
+                                    level.setBlockAndUpdate(p, tankState);
+                                    tanks.add(p.immutable());
+                                }
+                                benchPlaceSpan(level, registry, min, name);
+                            }
+                            cam[0] = x0 + (k * (box[0] + 1) - 1) / 2.0;
+                            cam[1] = k * (box[0] + 1);
+                            cam[2] = k * (box[2] + 1);
+                            cam[3] = box[1];
+                        } else {
+                            for (int i = 0; i < count; i++) {
+                                BlockPos p = new BlockPos(x0 + (i % k) * 2, y, z0 + (i / k) * 2);
+                                level.setBlockAndUpdate(p, tankState);
+                                FishTankBlockEntity t = tank(level, p);
+                                if (t != null && !name.equals("empty")) placeStructure(t, name, 1, 1);
+                                tanks.add(p);
+                            }
+                            cam[0] = x0 + (k * 2 - 1) / 2.0;
+                            cam[1] = k * 2;
+                            cam[2] = k * 2;
+                            cam[3] = 1;
+                        }
+                    });
+                });
+                queue(20, mc -> {
+                    if (skip[0]) return;
+                    double dist = Math.max(4.0, 0.62 * cam[1] + 1.5);
+                    camera(mc, cam[0], y + cam[3] + 0.45 * dist, z0 - dist, 0f, 28f);
+                });
+                queue(30, mc -> {
+                    if (skip[0]) return;
+                    screenshot(mc, "scalebench", label + "_" + name + "_" + count);
+                    int q = 0;
+                    for (BlockPos pos : tanks) {
+                        if (mc.level.getBlockEntity(pos) instanceof FishTankBlockEntity t) {
+                            var snap = grill24.fishtastic.client.compositemodel.TankCosmeticMesh.compute(t);
+                            var baked = grill24.fishtastic.client.compositemodel.TankCosmeticMesh.bake(snap);
+                            q += baked.untinted().size() + baked.tinted().size();
+                        }
+                    }
+                    sceneQuads[0] = q;
+                });
+                for (int round = 0; round < rounds; round++) {
+                    for (int half = 0; half < 2; half++) {
+                        boolean first = (half + round) % 2 == 0;
+                        var mode = (first && !scanAb) ? grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.NONE
+                                : grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.MESH;
+                        boolean skipScans = scanAb && !first;
+                        String arm = scanAb ? (skipScans ? "noscan" : "scan") : mode.name().toLowerCase(Locale.ROOT);
+                        String tag = "scale_" + loader + "_" + label + "_" + name + "_" + count + "_" + arm + "_r" + (round + 1);
+                        queue(1, mc -> {
+                            if (skip[0]) return;
+                            grill24.fishtastic.client.perf.CosmeticBenchmark.mode = mode;
+                            grill24.fishtastic.client.perf.CosmeticBenchmark.skipStructureScans = skipScans;
+                            grill24.fishtastic.client.compositemodel.TankCosmeticMesh.clearCache();
+                            grill24.fishtastic.client.perf.CosmeticBenchmark.resetBakeStats();
+                            for (BlockPos pos : tanks) {
+                                if (mc.level.getBlockEntity(pos) instanceof FishTankBlockEntity t) {
+                                    grill24.fishtastic.architectury.RegistrationApiSided.getInstance().requestModelDataUpdate(t);
+                                }
+                            }
+                            mc.levelRenderer.allChanged();
+                        });
+                        long[] rebuildStart = new long[1];
+                        queue(1, mc -> rebuildStart[0] = System.nanoTime());
+                        waitFor(1, 600, mc -> skip[0] || mc.levelRenderer.hasRenderedAllChunks(), mc -> {
+                            if (skip[0]) return;
+                            Fishtastic.LOGGER.info(String.format(Locale.ROOT,
+                                    "[scale] BAKE %s rebuild_wait_ms=%.0f snapshots=%d snapshot_ms_total=%.2f bakes=%d bake_ms_total=%.2f quads=%d",
+                                    tag, (System.nanoTime() - rebuildStart[0]) / 1e6,
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.snapshotCount.get(),
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.snapshotNanos.get() / 1e6,
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.bakeCount.get(),
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.bakeNanos.get() / 1e6,
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.bakedQuads.get()));
+                        });
+                        queue(40, mc -> { if (!skip[0]) grill24.fishtastic.client.perf.CosmeticBenchmark.start(frames); });
+                        waitFor(1, 4000, mc -> {
+                            if (skip[0]) return true;
+                            grill24.fishtastic.client.perf.CosmeticBenchmark.drain();
+                            return grill24.fishtastic.client.perf.CosmeticBenchmark.isDone();
+                        }, mc -> {
+                            if (skip[0]) return;
+                            Fishtastic.LOGGER.info("[scale] RESULT {} tanks={} scene_quads={} {}", tag, tanks.size(), sceneQuads[0],
+                                    grill24.fishtastic.client.perf.CosmeticBenchmark.finish(tag));
+                        });
+                    }
+                }
+            }
+        }
+        queue(1, mc -> {
+            grill24.fishtastic.client.perf.CosmeticBenchmark.mode = grill24.fishtastic.client.perf.CosmeticBenchmark.Mode.MESH;
+            grill24.fishtastic.client.perf.CosmeticBenchmark.skipStructureScans = false;
+            mc.options.framerateLimit().set(savedLimit[0]);
+            mc.options.enableVsync().set(savedVsync[0]);
+            mc.options.hideGui = false;
+            mc.levelRenderer.allChanged();
+            Fishtastic.LOGGER.info("[scale] DONE");
         });
     }
 
