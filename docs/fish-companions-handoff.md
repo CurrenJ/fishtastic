@@ -1,8 +1,8 @@
 # Fish Companions — Implementation Handoff
 
 > **Read this first to resume.** Current as of 2026-10-10 (evening): **v1 complete** (phases 0–6),
-> first-playtest polish shipped, and **playtest round 2 in flight** (the fixes land as §20 and a new
-> commit; this doc will be reconciled when they do). Branch: `26.1.2`. Nothing is pushed.
+> first-playtest polish shipped, and playtest round 2 fixed and committed (§20); playtest round 3 in flight
+> (follow-acceleration ramp, figure-eight crossing). Branch: `26.1.2`. Nothing is pushed.
 
 **To resume in a new session, say:**
 > Read `docs/fish-companions-handoff.md` and continue the fish companions work from the next item,
@@ -23,7 +23,7 @@
 | 5. Fishing reactions (line, dock, bar-state, catch/escape, others' view) | ✅ Done, both loaders | `ce429e94` |
 | 6. Pet-to-pet v1: G1, G2 — **completes v1** (R8.1) | ✅ Done, both loaders | `c9756261` |
 | Post-playtest polish: calm idle, view-decoupling, face-velocity, solo commands | ✅ Done, both loaders | `37406056` |
-| **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20); parent records the hash | — |
+| **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20) | `7628b579` |
 | Later: personality (§4), world (§6) and player (§7) reactions; scenes G3–G6; signature companions | Not started | — |
 | Tank interactions (E3, E4) | Deferred by owner — do not build | — |
 
@@ -37,7 +37,7 @@ game and filing rounds of feedback — see §6 for how rounds are worked.
 
 | File | What it is |
 |---|---|
-| [`fish-companions.md`](fish-companions.md) | **The spec + as-built log.** §1–§12 design; §13 Phase 0 findings/pitfalls; §14–§18 phases 2–6 as built; §19 post-v1 polish; §20 round 2 (pending). |
+| [`fish-companions.md`](fish-companions.md) | **The spec + as-built log.** §1–§12 design; §13 Phase 0 findings/pitfalls; §14–§18 phases 2–6 as built; §19 post-v1 polish; §20 round 2; §21 round 3 (pending). |
 | [`fish-companion-ideas.md`](fish-companion-ideas.md) | Owner's yes/no answers to the original idea list (A1–I4). Rejected items stay rejected. |
 | [`fish-companion-review.md`](fish-companion-review.md) | Owner's yes/no answers to the two-reviewer pass (R1.1–R8.3). |
 | [`encyclopedia-tier-review.md`](encyclopedia-tier-review.md) | Phase 1 tier table per species. |
