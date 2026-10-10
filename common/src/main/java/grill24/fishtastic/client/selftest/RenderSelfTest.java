@@ -144,7 +144,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companion", "companionparade", "companionpeek", "companionhand");
+            "companion", "companionparade", "companionpeek", "companionhand", "companionbond");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -333,6 +333,7 @@ public final class RenderSelfTest {
             case "companionparade" -> queueCompanionParadeScene();
             case "companionpeek" -> queueCompanionPeekScene();
             case "companionhand" -> queueCompanionHandScene();
+            case "companionbond" -> queueCompanionBondScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2976,6 +2977,169 @@ public final class RenderSelfTest {
             });
         });
         queue(10, mc -> companionLog("peek scene end"));
+    }
+
+    /**
+     * Phase 4 bonding UI (docs/fish-companions.md §8.2, §8.4): the Companions tab, the carried-fish
+     * picker, the live bond gate, rename and unequip — driven through the real screen's own
+     * handlers (the same ones its buttons call; headless input is too brittle to rely on), with the
+     * status strings checked beside the screenshots so the pictures and the numbers agree.
+     */
+    private static void queueCompanionBondScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+
+        // The self-test world is recreated for every run, so counts and stored bonds start empty —
+        // no resets needed. Every player-taking command below uses @p: the argument is
+        // EntityArgument.player, which refuses a multi-entity selector like @a outright.
+        int lore = bluegillLoreThreshold();
+
+        // Carried fish for the picker: two identical bluegills loose, one different size, and a
+        // pile holding two more identical ones — so one row must read ×4 and one ×1.
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                player.getInventory().clearContent();
+                player.getInventory().setItem(0, fish("bluegill", 25f).copyWithCount(2));
+                player.getInventory().setItem(1, fish("bluegill", 31f));
+                ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+                FishtasticItemData.setBundleContents(pile, new BundleContents(List.of(
+                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 25f)),
+                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 25f)))));
+                player.getInventory().setItem(2, pile);
+            }
+        }));
+
+        // Bluegill parked one catch short of complete: the tab must show "Bond: <lore-1>/<lore>".
+        queue(1, mc -> server(mc, s -> run(s,
+                "fishtastic companion catchcount @p fishtastic:bluegill " + (lore - 1))));
+
+        // Open the encyclopedia through the real entry point (sync + menu).
+        queue(10, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                new grill24.fishtastic.network.RequestFishEncyclopediaPacket(true))));
+        queue(20, mc -> {
+            check("bond.screenOpen", mc.screen instanceof grill24.fishtastic.client.FishEncyclopediaScreen,
+                    "screen=" + (mc.screen == null ? "null" : mc.screen.getClass().getSimpleName()));
+            screenshot(mc, "companionbond", "fish_tab");
+        });
+
+        // --- Locked state -----------------------------------------------------
+        queue(5, mc -> bondScreen(mc).devShowCompanions());
+        queue(10, mc -> {
+            check("bond.companionsView", bondScreen(mc).devOnCompanionsView(), "");
+            check("bond.rowCount", bondScreen(mc).devCompanionRowCount() >= 1,
+                    "rows=" + bondScreen(mc).devCompanionRowCount());
+            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "bluegill"));
+            String expected = "Bond: " + (lore - 1) + "/" + lore + " catches";
+            check("bond.lockedStatus", expected.equals(status), "status=" + status + " expected=" + expected
+                    + " cached=" + grill24.fishtastic.client.FishEncyclopediaClientCache.getCatchCount(Ids.of("fishtastic", "bluegill")));
+            screenshot(mc, "companionbond", "locked_status");
+        });
+
+        // --- Unlock: raise the count, reopen, expect the FTUE + banner ---------
+        queue(1, mc -> server(mc, s -> run(s,
+                "fishtastic companion catchcount @p fishtastic:bluegill " + lore)));
+        queue(1, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                new grill24.fishtastic.network.RequestFishEncyclopediaPacket(false))));
+        queue(15, mc -> {
+            check("bond.ftueStarted", grill24.fishtastic.client.CompanionTutorialClientHandler.currentStep()
+                            == grill24.fishtastic.tutorial.CompanionTutorialStep.INTRO,
+                    "step=" + grill24.fishtastic.client.CompanionTutorialClientHandler.currentStep());
+            screenshot(mc, "companionbond", "unlock_banner");
+        });
+        queue(10, mc -> {
+            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "bluegill"));
+            check("bond.unlockedStatus", "Bond available".equals(status), "status=" + status);
+            screenshot(mc, "companionbond", "bond_available_with_ftue");
+        });
+        // The tab is already open from the locked stage, so the FTUE's advance (which fires on
+        // opening the tab) needs a real close-and-reopen: disc, then tab again.
+        queue(1, mc -> bondScreen(mc).devShowFish());
+        queue(5, mc -> bondScreen(mc).devShowCompanions());
+        queue(10, mc -> {
+            check("bond.ftueCompleted", grill24.fishtastic.client.CompanionTutorialClientHandler.currentStep()
+                            == grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE,
+                    "step=" + grill24.fishtastic.client.CompanionTutorialClientHandler.currentStep());
+        });
+
+        // --- Picker -----------------------------------------------------------
+        queue(1, mc -> bondScreen(mc).devOpenPicker(Ids.of("fishtastic", "bluegill")));
+        queue(10, mc -> {
+            var groups = bondScreen(mc).devPickerGroups();
+            check("bond.pickerRows", groups.size() == 2, "rows=" + groups.size());
+            boolean fourAndOne = groups.stream().anyMatch(g -> g.count() == 4) && groups.stream().anyMatch(g -> g.count() == 1);
+            check("bond.pickerGroups", fourAndOne,
+                    "counts=" + groups.stream().map(g -> Integer.toString(g.count())).toList());
+            screenshot(mc, "companionbond", "picker");
+        });
+
+        // --- Bond, rename, unequip -------------------------------------------
+        queue(1, mc -> bondScreen(mc).devSelectPickerRow(0));
+        queue(5, mc -> {
+            screenshot(mc, "companionbond", "picker_selected");
+            bondScreen(mc).devConfirmPicker();
+        });
+        queue(15, mc -> {
+            ItemStack companion = grill24.fishtastic.companion.CompanionStorage.get(mc.player);
+            check("bond.bondedThroughScreen", !companion.isEmpty(), "companion=" + companion);
+            check("bond.equippedStatus", "Your companion".equals(
+                            bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "bluegill"))),
+                    "status=" + bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "bluegill")));
+            screenshot(mc, "companionbond", "equipped");
+        });
+        queue(1, mc -> bondScreen(mc).devRename("Bubbles"));
+        queue(15, mc -> {
+            ItemStack companion = grill24.fishtastic.companion.CompanionStorage.get(mc.player);
+            check("bond.renamed", companion.getHoverName().getString().equals("Bubbles"),
+                    "name=" + companion.getHoverName().getString());
+            screenshot(mc, "companionbond", "renamed");
+        });
+
+        // --- Unlisted species line -------------------------------------------
+        // One catch first: the tab only lists discovered species (and so does the disc). Caught but
+        // not quest-unlocked, the row must say so — then the dev unlock flips it and fires its banner.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:molten_moorish_idol 1")));
+        queue(15, mc -> {
+            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "molten_moorish_idol"));
+            check("bond.unlistedLockedStatus",
+                    "Bond unlocks via a hidden quest".equals(status), "status=" + status);
+            screenshot(mc, "companionbond", "unlisted_row");
+        });
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion unlock @p fishtastic:molten_moorish_idol")));
+        queue(15, mc -> {
+            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "molten_moorish_idol"));
+            check("bond.unlistedStatus", "Bond available".equals(status), "status=" + status);
+            screenshot(mc, "companionbond", "unlisted_unlocked");
+        });
+
+        // --- Unequip ----------------------------------------------------------
+        queue(1, mc -> bondScreen(mc).devUnequip());
+        queue(15, mc -> {
+            check("bond.unequipped", grill24.fishtastic.companion.CompanionStorage.get(mc.player).isEmpty(),
+                    "companion=" + grill24.fishtastic.companion.CompanionStorage.get(mc.player));
+            screenshot(mc, "companionbond", "unequipped");
+        });
+
+        // Cleanup: close the screen again and leave no companion or stored bonds behind.
+        queue(1, mc -> mc.setScreen(null));
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.unequip(player);
+                player.getInventory().clearContent();
+            }
+        }));
+        queue(10, mc -> companionLog("bond scene end"));
+    }
+
+    /** The open encyclopedia screen, for the bond scene's dev accessors. */
+    private static grill24.fishtastic.client.FishEncyclopediaScreen bondScreen(Minecraft mc) {
+        return (grill24.fishtastic.client.FishEncyclopediaScreen) mc.screen;
+    }
+
+    /** Bluegill's derived lore threshold — the catch count that completes its entry (phase 4 gate). */
+    private static int bluegillLoreThreshold() {
+        Minecraft mc = Minecraft.getInstance();
+        var key = net.minecraft.resources.ResourceKey.create(grill24.FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY,
+                Ids.of("fishtastic", "bluegill"));
+        return grill24.fishtastic.data.EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), key).loreCatches();
     }
 
     private static void queueHudScene() {

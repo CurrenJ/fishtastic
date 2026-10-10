@@ -32,7 +32,7 @@ public final class PlayerQuestStateGameTests {
             Optional.empty(), Optional.empty(), Optional.empty(), false, Optional.of(targetCount),
             Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1, false);
         return new Quest(QuestCategory.DAILY, QuestDifficulty.BRONZE, objective, new QuestReward(50, List.of()),
-            Optional.empty(), false, "Test Quest", "A test quest");
+            Optional.empty(), false, "Test Quest", "A test quest", Optional.empty());
     }
 
     private static ResourceKey<Quest> questId(String path) {

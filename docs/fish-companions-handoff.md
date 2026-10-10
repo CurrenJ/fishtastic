@@ -19,7 +19,7 @@
 | — NeoForge create-world deadlock fix (blocked NeoForge testing) | ✅ Done | `9b203ace` |
 | 2. Data and sync (per-player slot, bond/unequip, multi-player rendering) | ✅ Done, verified on both loaders | `787a4097` |
 | **3. Display modes** | ✅ Done, verified on both loaders (see fish-companions.md §15) | `92626048` |
-| 4. Bonding UI | Not started | — |
+| 4. Bonding UI | ✅ Done (uncommitted; see fish-companions.md §16) | — |
 | 5. Fishing reactions | Not started | — |
 | 6. Pet-to-pet (v1: G1, G2) | Not started | — |
 | Later: personality, world and player reactions; scenes G3–G6; signature companions | Not started | — |
@@ -27,7 +27,8 @@
 
 The active session goal was "complete all phases using forks and verify using self render tests".
 The owner paused it after Phase 2 to get this handoff; Phase 3 then landed as `92626048`
-(2026-10-10), one fork, verified on both loaders. Next fork: Phase 4.
+(2026-10-10), one fork, verified on both loaders. Phase 4 (bonding UI) followed as a fork the same
+day — verified on both loaders, awaiting the parent's commit. Next fork: Phase 5.
 
 ---
 

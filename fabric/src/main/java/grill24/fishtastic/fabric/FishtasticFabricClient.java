@@ -10,6 +10,7 @@ import grill24.fishtastic.env.DevEnvironmentCheck;
 import grill24.fishtastic.fabric.compat.coolcam.CoolCamFollowBridge;
 import grill24.fishtastic.fabric.compat.coolcam.FishtasticCoolCamCommands;
 import grill24.fishtastic.mcp.client.McpOrbitPreviewOverlay;
+import grill24.fishtastic.client.CompanionTutorialClientHandler;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.QuestClientCache;
@@ -144,13 +145,18 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount()));
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
         // Register encyclopedia tutorial sync packet client handler
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+
+        // Register companion tutorial sync and bond/rename feedback handlers
+        grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -225,6 +231,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             QuestClientCache.reset();
             TutorialClientHandler.reset();
             EncyclopediaTutorialClientHandler.reset();
+            CompanionTutorialClientHandler.reset();
+            grill24.fishtastic.client.CompanionClientState.reset();
             FishEncyclopediaClientCache.reset();
             CosmeticCaptureClientState.reset();
             ClientTankFlocks.clear();
@@ -308,6 +316,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
                 TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
                 EncyclopediaTutorialClientHandler.render(graphics, tickProgress);
+                CompanionTutorialClientHandler.render(graphics, tickProgress);
             });
         });
 

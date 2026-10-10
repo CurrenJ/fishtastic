@@ -15,6 +15,7 @@ import net.minecraft.resources.ResourceKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,15 @@ public class PlayerQuestState {
     // Composite keys from EncyclopediaRewardSection#key — one entry per fish/section reward
     // slot the player has claimed, ever. See claimEncyclopediaReward.
     private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
+    // Species whose companion bond this player has unlocked, ever. Once unlocked a bond never
+    // re-locks, even if the derived thresholds later move (docs/fish-companions.md §8.4, R6.4).
+    // Normal species unlock by completing their encyclopedia entry; unlisted ones unlock via a
+    // quest carrying `unlocks_companion`. See CompanionBondUnlocks.
+    private final Set<Identifier> unlockedCompanionSpecies = new LinkedHashSet<>();
+    // Bonds unlocked since the last quest sync, waiting to be announced as banners. Deliberately
+    // not persisted: a banner is a live moment, not history — a save that reopens with pending
+    // entries simply announces them on the next sync, and one from an old session never does.
+    private final Set<Identifier> pendingCompanionBanners = new LinkedHashSet<>();
     // Ever-incrementing count of fish inserted into any tank, across the player's whole lifetime —
     // never decremented, even if the fish is later removed. Backs
     // QuestObjective.TankSnapshotCondition#lifetime objectives the same way FishCatchSavedData's
@@ -101,8 +111,10 @@ public class PlayerQuestState {
             Codec.STRING.listOf().optionalFieldOf("claimed_encyclopedia_rewards", List.of())
                     .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards)),
             Codec.INT.optionalFieldOf("shop_refresh_count", 0).forGetter(state -> state.shopRefreshCount),
-            Codec.INT.optionalFieldOf("lifetime_tank_placements", 0).forGetter(state -> state.lifetimeTankPlacements)
-    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount, lifetimeTankPlacements) -> {
+            Codec.INT.optionalFieldOf("lifetime_tank_placements", 0).forGetter(state -> state.lifetimeTankPlacements),
+            Identifier.CODEC.listOf().optionalFieldOf("unlocked_companion_species", List.of())
+                    .forGetter(state -> new ArrayList<>(state.unlockedCompanionSpecies))
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount, lifetimeTankPlacements, unlockedCompanions) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
@@ -113,6 +125,7 @@ public class PlayerQuestState {
         s.claimedEncyclopediaRewards.addAll(claimedRewards);
         s.shopRefreshCount = shopRefreshCount;
         s.lifetimeTankPlacements = lifetimeTankPlacements;
+        s.unlockedCompanionSpecies.addAll(unlockedCompanions);
         return s;
     }));
 
@@ -266,6 +279,49 @@ public class PlayerQuestState {
 
     public Set<String> getClaimedEncyclopediaRewardsSnapshot() {
         return new HashSet<>(claimedEncyclopediaRewards);
+    }
+
+    // -------------------------------------------------------------------------
+    // Companion bond unlock API
+    // -------------------------------------------------------------------------
+
+    /** Whether this player's bond for {@code species} is unlocked and stored (never re-locks). */
+    public boolean isCompanionBondUnlocked(Identifier species) {
+        return unlockedCompanionSpecies.contains(species);
+    }
+
+    /**
+     * Stores a bond unlock. {@code true} if it was newly added — i.e. this call is the
+     * transition to announce; a repeat call is a no-op and returns {@code false}. New unlocks
+     * also queue a banner, drained by the next {@code QuestSyncPacket}.
+     */
+    public boolean unlockCompanionBond(Identifier species) {
+        if (!unlockedCompanionSpecies.add(species)) return false;
+        pendingCompanionBanners.add(species);
+        return true;
+    }
+
+    /** Every unlocked species, for the sync and the Companions tab. */
+    public Set<Identifier> getUnlockedCompanionSnapshot() {
+        return new LinkedHashSet<>(unlockedCompanionSpecies);
+    }
+
+    /** Dev-only: forgets every stored unlock, so a self-test scene can start from locked. */
+    public void clearCompanionBonds() {
+        unlockedCompanionSpecies.clear();
+        pendingCompanionBanners.clear();
+    }
+
+    /** Whether any unlock is waiting to be announced by the next quest sync. */
+    public boolean hasPendingCompanionBanners() {
+        return !pendingCompanionBanners.isEmpty();
+    }
+
+    /** Takes the queued banner species; the caller's sync packet announces them. */
+    public List<Identifier> drainPendingCompanionBanners() {
+        List<Identifier> drained = new ArrayList<>(pendingCompanionBanners);
+        pendingCompanionBanners.clear();
+        return drained;
     }
 
     // -------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.network.RecentCatch;
+import grill24.fishtastic.tutorial.CompanionTutorialStep;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -186,6 +187,7 @@ public class FishCatchSavedData extends SavedData {
     private final Map<UUID, PlayerQuestState> questStates = new HashMap<>();
     private final Map<UUID, TutorialStep> tutorialSteps = new HashMap<>();
     private final Map<UUID, EncyclopediaTutorialStep> encyclopediaTutorialSteps = new HashMap<>();
+    private final Map<UUID, CompanionTutorialStep> companionTutorialSteps = new HashMap<>();
     private CleanupGoalState cleanupGoal = new CleanupGoalState();
 
     // -------------------------------------------------------------------------
@@ -201,14 +203,17 @@ public class FishCatchSavedData extends SavedData {
                     .optionalFieldOf("tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.tutorialSteps)),
             CleanupGoalState.CODEC.optionalFieldOf("cleanup_goal", new CleanupGoalState()).forGetter(d -> d.cleanupGoal),
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, EncyclopediaTutorialStep.CODEC)
-                    .optionalFieldOf("encyclopedia_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.encyclopediaTutorialSteps))
-        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal, encyclopediaTutorialMap) -> {
+                    .optionalFieldOf("encyclopedia_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.encyclopediaTutorialSteps)),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, CompanionTutorialStep.CODEC)
+                    .optionalFieldOf("companion_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.companionTutorialSteps))
+        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal, encyclopediaTutorialMap, companionTutorialMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
             data.questStates.putAll(questMap);
             data.tutorialSteps.putAll(tutorialMap);
             data.cleanupGoal = cleanupGoal;
             data.encyclopediaTutorialSteps.putAll(encyclopediaTutorialMap);
+            data.companionTutorialSteps.putAll(companionTutorialMap);
             return data;
         })
     );
@@ -436,6 +441,21 @@ public class FishCatchSavedData extends SavedData {
         setDirty();
     }
 
+    // -------------------------------------------------------------------------
+    // Companion tutorial state API — the one-step bond FTUE, see CompanionTutorialManager.
+    // -------------------------------------------------------------------------
+
+    public CompanionTutorialStep getCompanionTutorialStep(net.minecraft.server.level.ServerPlayer player) {
+        UUID key = resolvePlayerKey(player);
+        return companionTutorialSteps.getOrDefault(key, CompanionTutorialStep.NOT_STARTED);
+    }
+
+    public void setCompanionTutorialStep(net.minecraft.server.level.ServerPlayer player, CompanionTutorialStep step) {
+        UUID key = resolvePlayerKey(player);
+        companionTutorialSteps.put(key, step);
+        setDirty();
+    }
+
     public UUID resolvePlayerKey(net.minecraft.server.level.ServerPlayer player) {
         MinecraftServer server = ((net.minecraft.server.level.ServerLevel) player.level()).getServer();
         if (server != null && server.isSingleplayerOwner(player.nameAndId())) {
@@ -611,6 +631,7 @@ public class FishCatchSavedData extends SavedData {
     public boolean hasPlayer(UUID key) {
         return playerData.containsKey(key) || questStates.containsKey(key)
                 || tutorialSteps.containsKey(key) || encyclopediaTutorialSteps.containsKey(key)
+                || companionTutorialSteps.containsKey(key)
                 || cleanupGoal.contributions.containsKey(key);
     }
 
@@ -628,6 +649,8 @@ public class FishCatchSavedData extends SavedData {
         tutorialSteps.putAll(source.tutorialSteps);
         encyclopediaTutorialSteps.clear();
         encyclopediaTutorialSteps.putAll(source.encyclopediaTutorialSteps);
+        companionTutorialSteps.clear();
+        companionTutorialSteps.putAll(source.companionTutorialSteps);
         cleanupGoal = copyOf(source.cleanupGoal);
         setDirty();
     }
@@ -651,6 +674,9 @@ public class FishCatchSavedData extends SavedData {
 
         EncyclopediaTutorialStep ets = source.encyclopediaTutorialSteps.get(key);
         if (ets != null) encyclopediaTutorialSteps.put(key, ets); else encyclopediaTutorialSteps.remove(key);
+
+        CompanionTutorialStep cts = source.companionTutorialSteps.get(key);
+        if (cts != null) companionTutorialSteps.put(key, cts); else companionTutorialSteps.remove(key);
 
         Integer share = source.cleanupGoal.contributions.get(key);
         if (share != null) cleanupGoal.contributions.put(key, share); else cleanupGoal.contributions.remove(key);

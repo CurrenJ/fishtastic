@@ -3,12 +3,16 @@ package grill24.fishtastic.client;
 import grill24.fishtastic.client.util.ClientTickHandler;
 import grill24.fishtastic.network.CleanupGoalProgress;
 import grill24.fishtastic.server.PlayerQuestState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class QuestClientCache {
     /** Must match the day length {@code ServerTickHandler}/{@code QuestTracker} use to compute {@code currentDay}. */
@@ -19,11 +23,13 @@ public class QuestClientCache {
     private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
     private static int shopRefreshCount = 0;
     private static CleanupGoalProgress cleanupGoal = CleanupGoalProgress.EMPTY;
+    private static Set<Identifier> unlockedCompanions = new HashSet<>();
     private static boolean isInitialSync = true;
     private static QuestProgressListener listener;
     private static CleanupGoalMilestoneListener milestoneListener;
     private static BaitDepletedListener baitDepletedListener;
     private static FirstCatchListener firstCatchListener;
+    private static BondUnlockListener bondUnlockListener;
 
     // Countdown extrapolation: the server's overworld game time as of the last sync, paired
     // with the client's own tick counter at that moment. Since both client and server tick at
@@ -53,6 +59,12 @@ public class QuestClientCache {
         void onFirstCatch(ItemStack fishItem);
     }
 
+    /** Fired once per companion bond the server announces as newly unlocked (R7.7 banner). */
+    @FunctionalInterface
+    public interface BondUnlockListener {
+        void onBondUnlocked(ItemStack fishItem);
+    }
+
     /** Register a listener for quest progress changes. Called once during client init. */
     public static void setListener(QuestProgressListener l) {
         listener = l;
@@ -73,6 +85,11 @@ public class QuestClientCache {
         firstCatchListener = l;
     }
 
+    /** Register a listener fired once per bond the server announces as newly unlocked. */
+    public static void setBondUnlockListener(BondUnlockListener l) {
+        bondUnlockListener = l;
+    }
+
     /**
      * Update the cache with new progress data.
      * @param triggeringItems map of quest ID → ItemStack for quests that should trigger
@@ -84,7 +101,7 @@ public class QuestClientCache {
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
         update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0);
+                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
@@ -94,7 +111,9 @@ public class QuestClientCache {
                               long serverGameTime,
                               ItemStack baitDepletedItem,
                               List<ItemStack> firstCatchItems,
-                              int newShopRefreshCount) {
+                              int newShopRefreshCount,
+                              List<Identifier> newUnlockedCompanions,
+                              List<Identifier> newlyUnlockedCompanions) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
         if (!isInitialSync && listener != null) {
             Map<Identifier, PlayerQuestState.QuestProgress> oldMap = new HashMap<>(questProgress);
@@ -124,6 +143,14 @@ public class QuestClientCache {
                 firstCatchListener.onFirstCatch(fishItem);
             }
         }
+        // Banners only for transitions announced by this sync; the initial sync just seeds the set.
+        if (!isInitialSync && bondUnlockListener != null) {
+            for (Identifier species : newlyUnlockedCompanions) {
+                ItemStack fishItem = BuiltInRegistries.ITEM.getOptional(species)
+                        .map(item -> new ItemStack(item, 1)).orElse(ItemStack.EMPTY);
+                bondUnlockListener.onBondUnlocked(fishItem);
+            }
+        }
         isInitialSync = false;
 
         questProgress = new HashMap<>(progress);
@@ -131,6 +158,7 @@ public class QuestClientCache {
         purchaseCounts = new HashMap<>(newPurchaseCounts);
         shopRefreshCount = newShopRefreshCount;
         cleanupGoal = newCleanupGoal;
+        unlockedCompanions = new LinkedHashSet<>(newUnlockedCompanions);
         if (serverGameTime >= 0) {
             syncedServerGameTime = serverGameTime;
             syncedClientTick = ClientTickHandler.totalTicks();
@@ -140,13 +168,23 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
         update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0);
+                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
         update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0);
+                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
+    }
+
+    /** Whether the server has this player's bond for {@code species} unlocked. */
+    public static boolean isBondUnlocked(Identifier species) {
+        return unlockedCompanions.contains(species);
+    }
+
+    /** Every unlocked companion species, as of the last sync. */
+    public static Set<Identifier> getUnlockedCompanions() {
+        return new LinkedHashSet<>(unlockedCompanions);
     }
 
     public static int getCleanupGoalTotal() {
@@ -202,6 +240,7 @@ public class QuestClientCache {
         purchaseCounts = new HashMap<>();
         shopRefreshCount = 0;
         cleanupGoal = CleanupGoalProgress.EMPTY;
+        unlockedCompanions = new HashSet<>();
         isInitialSync = true;
         syncedServerGameTime = -1;
         syncedClientTick = 0f;

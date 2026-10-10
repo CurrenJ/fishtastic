@@ -552,3 +552,73 @@ the rod reaction and the look-down hop.
   the point is now a fixed GUI position unprojected at 0.9 blocks, the dock's own technique.
 - Flat poses (a starfish) on the head slot were a sliver from every angle but above; they are
   re-slotted to a shoulder, stood up so the sprite reads from the front.
+
+---
+
+## 16. Phase 4 — as built (2026-10-10)
+
+The bonding UI (§8.2–§8.4): a **Companions tab** in the encyclopedia, a carried-fish picker, the
+real server-side gate, unlock persistence, rename, the first-unlock FTUE and the unlock banner.
+
+**Gate and persistence.** `CompanionBondUnlocks.refresh(player)` derives and stores newly earned
+bonds: a normal species unlocks when its entry meets **every** derived threshold (R6.5 — claiming
+rewards is not required), and an unlisted species unlocks only via a quest whose data carries the
+new `unlocks_companion` field, once that quest is completed or claimed. Unlocks are stored per
+player in `PlayerQuestState` (`unlocked_companion_species`, `optionalFieldOf`, so old saves load)
+and **never re-lock** (R6.4). `CompanionBondGate` runs `refresh` then reads the stored set, so the
+gate stays server-authoritative and a save predating the phase is grandfathered on first check.
+
+**Where unlocks are detected.** `QuestSyncPacket.sendToPlayer` calls `refresh` on every sync — one
+choke point already covered by join, catches, quest claims and the shop flows — and the packet
+carries the full unlocked set plus a `newlyUnlockedCompanions` delta that drives the banner. The
+catch path forces its lightweight sync when a bond unlocked but no quest moved, so the banner can
+never wait for the next unrelated sync. The banner rides the existing notification pipeline under a
+per-species synthetic id (`companion_bond/<species>`) at the new-species tier.
+
+**FTUE (R7.7).** The first unlock ever starts `CompanionTutorialStep.INTRO` (stored beside the
+other tutorial state, with backup-restore coverage); the encyclopedia shows a side panel
+introducing the tab, and opening the tab advances the step to COMPLETE. Later unlocks get the
+banner only.
+
+**The tab (§8.2, §8.4).** A Fish/Companions switch on the encyclopedia lists every **discovered**
+species with its status line: "Bond: N/M catches" (M is the lore threshold — always the furthest,
+R7.6), "Bond unlocks via quest: <name>" with an Open-quest button (selects the quest's category tab
+in the log and pulses its row), "Bond available" + Bond, or "Your companion" + Unequip + the name
+field. The picker lists only fish carried right now — loose stacks plus Pile of Fish contents —
+collapsed per full-component identity with ×N, mirroring the server's own find exactly so the
+picker can never offer a row the server then refuses; Confirm sends the description (never a slot),
+and a small feedback packet answers with the outcome so the tab can explain a LOCKED or
+NOT_CARRIED result. The panel and picker anchor their width so `scaleToWidth` never upscales a
+short list to billboard size, and the tab watches the synced unlock set, so a bond that unlocks
+while the screen is open appears without reopening it.
+
+**Test seams.** `CarriedFish` (client) mirrors `Companions.takeOneMatching`; dev-only
+`/fishtastic companion catchcount|unlock|resetbonds` keeps the self-test deterministic without real
+catches; the screen's dev accessors drive the same handlers its buttons call.
+
+**Verification.** Fabric gametests, unit tests and `./gradlew build` green, including 11 new game
+tests: the gate refuses an incomplete species, unlocks (and stores) a complete one, survives the
+counts being rolled back (never re-locks), keeps unlisted species quest-only, queues exactly one
+banner per unlock, refuses a faked description, sets/clears/clamps a rename, groups picker fish by
+full identity, and the quest-hook scan (done/claimed/undone/already-unlocked). The self-test scene
+`companionbond` runs green on **both loaders** (16 CHECKs): the screen opens through the real
+packet, the locked row reads "Bond: 29/30 catches" (30 = bluegill's derived lore threshold), the
+unlock flips it to "Bond available" and starts the FTUE (advanced by re-opening the tab), the
+picker shows the four identical bluegills as one ×4 row beside a ×1 row, Confirm bonds through the
+screen, rename lands ("Bubbles"), an unlisted species reads "Bond unlocks via a hidden quest" until
+the dev unlock flips it, and unequip empties the slot. Screenshots reviewed on both loaders for
+every state. **Not exercised end-to-end:** the quest link itself drives only when a quest authors
+`unlocks_companion` — none does yet (the six signature quests stay in the later signature phase),
+so its rule is covered by the game tests, and the "Open quest" button/row pulse is unexercised.
+
+**Pitfalls found and fixed during the phase** (all cost a run each):
+- `EntityArgument.player` rejects a multi-entity selector: every `@a` in the scene's dev commands
+  failed with "Only one player is allowed", silently leaving the world locked. Use `@p`.
+- `VBox#scaleToWidth` scales children **up** as well as down, so a one-row list rendered as a
+  billboard; a page-width 1-px spacer anchors the natural width so the scale caps at 1.
+- The unlock set rides the quest sync, which the encyclopedia screen does not handle, so the tab
+  kept showing a stale "Bond: 30/30" after an unlock that had already landed; the screen now
+  watches `QuestClientCache`'s set and rebuilds once on change.
+- `Quest`'s codec initializes registry-backed codecs, so constructing one in a bare unit test
+  poisons `BuiltInRegistries` for the whole test JVM (order-dependent failures); quest-hook tests
+  live in the testmod instead.

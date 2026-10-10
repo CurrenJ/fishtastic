@@ -448,8 +448,11 @@ public class FishingMinigameManager {
 
         // Extra lightweight sync just for the one-shot banners above — QuestTracker's own
         // sync (if it fired) predates bait consumption/first-catch detection, so it can't
-        // carry these fields.
-        if (!baitDepletedItem.isEmpty() || !result.firstCatchItems().isEmpty()) {
+        // carry these fields. A bond that just unlocked rides the same sync: if QuestTracker
+        // already sent one it will have announced it, but when no quest moved, this is the
+        // only sync of the catch — the unlock banner must not be left waiting for the next one.
+        boolean bondBannerPending = catchDb.getOrCreateQuestState(player).hasPendingCompanionBanners();
+        if (!baitDepletedItem.isEmpty() || !result.firstCatchItems().isEmpty() || bondBannerPending) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, result.firstCatchItems());
         }
 
@@ -595,7 +598,7 @@ public class FishingMinigameManager {
             }
         }
 
-        if (!allFirstCatches.isEmpty()) {
+        if (!allFirstCatches.isEmpty() || catchDb.getOrCreateQuestState(player).hasPendingCompanionBanners()) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, ItemStack.EMPTY, allFirstCatches);
         }
 

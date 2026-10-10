@@ -31,7 +31,9 @@ public record BondCompanionPacket(ItemStack fish) implements CustomPacketPayload
     public static void handleClientToServer(BondCompanionPacket packet, FishtasticPackets.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.getPlayer() instanceof ServerPlayer player) {
-                Companions.bond(player, packet.fish());
+                Companions.BondResult result = Companions.bond(player, packet.fish());
+                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(
+                        new CompanionFeedbackPacket(CompanionFeedbackPacket.of(result))));
             }
         });
     }

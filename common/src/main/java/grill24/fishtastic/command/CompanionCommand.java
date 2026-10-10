@@ -35,6 +35,9 @@ import java.util.Optional;
  *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size] — equip a conjured fish directly
  *   /fishtastic companion minigame                        — opens a demo minigame bar so the fish docks
  *   /fishtastic companion stopgame                        — closes it
+ *   /fishtastic companion catchcount &lt;player&gt; &lt;species&gt; &lt;count&gt; — set one species' catch count
+ *   /fishtastic companion unlock &lt;player&gt; &lt;species&gt;       — force-unlock a bond (fires the banner)
+ *   /fishtastic companion resetbonds &lt;player&gt;             — forget every stored bond unlock
  * </pre>
  *
  * {@code minigame}/{@code stopgame} drive client state directly, the same way
@@ -66,7 +69,76 @@ public class CompanionCommand {
                 .then(Commands.literal("stopgame").executes(ctx -> client(ctx, () -> {
                     ((IGameRendererExtension) Minecraft.getInstance().gameRenderer).fishtastic$cancelCurrentAnimation();
                     return "Demo minigame closed";
-                })));
+                })))
+                .then(Commands.literal("catchcount")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("species", IdentifierArgument.id())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                BuiltInRegistries.ITEM.stream()
+                                                        .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                                                        .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
+                                                builder))
+                                        .then(Commands.argument("count", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0))
+                                                .executes(CompanionCommand::catchCount)))))
+                .then(Commands.literal("unlock")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("species", IdentifierArgument.id())
+                                        .executes(CompanionCommand::unlock))))
+                .then(Commands.literal("resetbonds")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(CompanionCommand::resetBonds)));
+    }
+
+    /** Dev: sets one species' catch count, so a scene can park a species just below or at its gate. */
+    private static int catchCount(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        Identifier id = IdentifierArgument.getId(ctx, "species");
+        int count = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "count");
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_catchcount");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        data.setCatchCount(data.resolvePlayerKey(player), player.getName().getString(), id, count);
+        grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, data);
+        int finalCount = count;
+        ctx.getSource().sendSuccess(() -> Component.literal("Set " + id.getPath() + " catch count to " + finalCount)
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    /**
+     * Dev: force-unlocks a bond the way the natural transition would — stored, banner queued, FTUE
+     * started — so a scene can exercise the unlock path without meeting the real gate.
+     */
+    private static int unlock(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        Identifier id = IdentifierArgument.getId(ctx, "species");
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_unlock");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        if (!data.getOrCreateQuestState(player).unlockCompanionBond(id)) {
+            ctx.getSource().sendFailure(Component.literal(id.getPath() + " is already unlocked"));
+            return 0;
+        }
+        data.setDirty();
+        grill24.fishtastic.tutorial.CompanionTutorialManager.onBondUnlocked(player);
+        grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
+        ctx.getSource().sendSuccess(() -> Component.literal("Unlocked the bond for " + id.getPath())
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    /** Dev: forgets every stored bond, so a self-test scene can start from a locked world. */
+    private static int resetBonds(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_resetbonds");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        data.getOrCreateQuestState(player).clearCompanionBonds();
+        data.setDirty();
+        grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
+        ctx.getSource().sendSuccess(() -> Component.literal("Cleared every stored companion bond")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
     }
 
     private static int on(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

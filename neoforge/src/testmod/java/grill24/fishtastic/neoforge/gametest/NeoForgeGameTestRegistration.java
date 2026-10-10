@@ -23,6 +23,9 @@ import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
+import grill24.fishtastic.gametest.CarriedFishGameTests;
+import grill24.fishtastic.gametest.CompanionBondGameTests;
+import grill24.fishtastic.gametest.CompanionQuestUnlockGameTests;
 import grill24.fishtastic.gametest.CompanionGameTests;
 import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
@@ -602,6 +605,30 @@ public class NeoForgeGameTestRegistration {
         register(event, env, "companion_is_kept_on_death", 200,
             helper -> CompanionGameTests.companionIsKeptOnDeath(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper),
                 (before, after) -> after.restoreFrom(before, false)));
+
+        // ----- Companion bond gate (Phase 4) -----
+        register(event, env, "companion_locked_species_refuses_bond", 200,
+            helper -> CompanionBondGameTests.lockedSpeciesRefusesBond(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_complete_entry_unlocks_and_never_re_locks", 200,
+            helper -> CompanionBondGameTests.completeEntryUnlocksAndNeverReLocks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_unlisted_never_unlocks_by_counts", 200,
+            helper -> CompanionBondGameTests.unlistedSpeciesNeverUnlocksByCounts(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_unlock_queues_one_banner", 200,
+            helper -> CompanionBondGameTests.unlockQueuesOneBanner(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_fake_description_cannot_bond", 200,
+            helper -> CompanionBondGameTests.fakeDescriptionCannotBondAnUncarriedFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_rename_sets_and_clears_the_name", 200,
+            helper -> CompanionBondGameTests.renameSetsAndClearsTheName(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_picker_groups_identical_fish", 200,
+            CarriedFishGameTests::identicalFishCollapseWithTheirTotalCount);
+        register(event, env, "companion_picker_splits_any_component_difference", 200,
+            CarriedFishGameTests::anyComponentDifferenceSplitsTheRow);
+        register(event, env, "companion_picker_ignores_empty_stacks", 200,
+            CarriedFishGameTests::emptyStacksAreIgnored);
+        register(event, env, "companion_quest_unlocks_only_once_done", 200,
+            CompanionQuestUnlockGameTests::questUnlocksOnlyOnceDone);
+        register(event, env, "companion_quest_scan_reports_each_species_once", 200,
+            CompanionQuestUnlockGameTests::questScanReportsEachSpeciesOnce);
 
         // ----- RemoveTankEntryPacket.giveOrDrop -----
         register(event, env, "give_or_drop_drops_fish_when_inventory_is_full", 200,

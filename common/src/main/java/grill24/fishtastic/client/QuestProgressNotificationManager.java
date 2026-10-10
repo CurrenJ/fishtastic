@@ -90,9 +90,21 @@ public class QuestProgressNotificationManager {
      */
     public static final String FIRST_CATCH_ID_PREFIX = "first_catch/";
 
+    /**
+     * Prefix for synthetic "quest" ids driving companion bond-unlock banners, one per species
+     * (docs/fish-companions.md §8.4, R7.7). Same per-species-id reasoning as first-catch: several
+     * unlocks in one sync each get their own banner instead of replacing one another.
+     */
+    public static final String COMPANION_BOND_ID_PREFIX = "companion_bond/";
+
     /** The synthetic quest id used for a species' first-catch banner. */
     public static Identifier firstCatchQuestId(Identifier fishId) {
         return Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath());
+    }
+
+    /** The synthetic quest id used for a species' companion bond-unlock banner. */
+    public static Identifier companionBondQuestId(Identifier fishId) {
+        return Fishtastic.id(COMPANION_BOND_ID_PREFIX + fishId.getPath());
     }
 
     /**
@@ -155,6 +167,11 @@ public class QuestProgressNotificationManager {
         QuestClientCache.setFirstCatchListener(fishItem -> {
             Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
             enqueue(new QuestProgressEvent(firstCatchQuestId(fishId), 0, 1, 1, true, fishItem));
+        });
+        QuestClientCache.setBondUnlockListener(fishItem -> {
+            if (fishItem.isEmpty()) return;
+            Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
+            enqueue(new QuestProgressEvent(companionBondQuestId(fishId), 0, 1, 1, true, fishItem));
         });
     }
 

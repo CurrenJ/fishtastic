@@ -51,6 +51,29 @@ public final class Companions {
     }
 
     /**
+     * Renames the equipped companion (docs/fish-companions.md §7): the name is the stored fish's
+     * custom name, so this rewrites that one component and syncs; blank clears it back to the
+     * species name. Returns false when there is no companion to rename.
+     */
+    public static boolean rename(ServerPlayer player, String name) {
+        ItemStack current = CompanionStorage.get(player);
+        if (current.isEmpty()) return false;
+        ItemStack renamed = current.copy();
+        String trimmed = name == null ? "" : name.trim();
+        if (trimmed.isEmpty()) {
+            renamed.remove(net.minecraft.core.component.DataComponents.CUSTOM_NAME);
+        } else {
+            if (trimmed.length() > grill24.fishtastic.network.RenameCompanionPacket.MAX_NAME_LENGTH) {
+                trimmed = trimmed.substring(0, grill24.fishtastic.network.RenameCompanionPacket.MAX_NAME_LENGTH);
+            }
+            renamed.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                    net.minecraft.network.chat.Component.literal(trimmed));
+        }
+        CompanionStorage.set(player, renamed);
+        return true;
+    }
+
+    /**
      * Puts {@code fish} in the companion slot, returning whatever was there. The caller owns
      * {@code fish} — {@link #bond} has already taken it from the inventory; the debug
      * {@code /fishtastic companion give} conjures it.

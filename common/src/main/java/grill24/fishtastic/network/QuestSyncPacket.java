@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.companion.CompanionBondUnlocks;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -25,7 +26,9 @@ public record QuestSyncPacket(
         long serverGameTime,
         ItemStack baitDepletedItem,
         List<ItemStack> firstCatchItems,
-        int shopRefreshCount
+        int shopRefreshCount,
+        List<Identifier> unlockedCompanions,
+        List<Identifier> newlyUnlockedCompanions
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<QuestSyncPacket> TYPE =
@@ -51,6 +54,10 @@ public record QuestSyncPacket(
                     QuestSyncPacket::firstCatchItems,
                     ByteBufCodecs.VAR_INT,
                     QuestSyncPacket::shopRefreshCount,
+                    Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    QuestSyncPacket::unlockedCompanions,
+                    Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    QuestSyncPacket::newlyUnlockedCompanions,
                     QuestSyncPacket::new
             );
 
@@ -83,10 +90,15 @@ public record QuestSyncPacket(
      * Send a sync packet, optionally announcing a depleted bait stack and/or fish species
      * caught for the first time (both drive one-shot HUD banners on the client — see
      * QuestClientCache#update and QuestProgressNotificationManager#install).
+     *
+     * <p>Every sync also re-derives the player's companion bond unlocks ({@link CompanionBondUnlocks})
+     * — idempotent, and it means no unlock site has to remember to sync — and announces any
+     * transition queued since the last one. This is the single choke point for bond banners.
      */
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data,
                                     Map<Identifier, ItemStack> triggeringItems, int milestoneReached,
                                     ItemStack baitDepletedItem, List<ItemStack> firstCatchItems) {
+        CompanionBondUnlocks.refresh(player);
         PlayerQuestState state = data.getOrCreateQuestState(player);
         List<CleanupGoalProgress.Contributor> topContributors = data
                 .getCleanupGoalContributors(FishCatchSavedData.GLOBAL_CATCH_COUNT_DESC).stream()
@@ -99,7 +111,8 @@ public record QuestSyncPacket(
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
-                baitDepletedItem, firstCatchItems, state.getShopRefreshCount());
+                baitDepletedItem, firstCatchItems, state.getShopRefreshCount(),
+                List.copyOf(state.getUnlockedCompanionSnapshot()), state.drainPendingCompanionBanners());
         player.connection.send(new ClientboundCustomPayloadPacket(packet));
     }
 

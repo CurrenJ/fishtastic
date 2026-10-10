@@ -34,6 +34,9 @@ public class FishtasticPackets {
     public static final Identifier REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
     public static final Identifier BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final Identifier UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
+    public static final Identifier RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
+    public static final Identifier COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
+    public static final Identifier COMPANION_TUTORIAL_ADVANCE_ID = Fishtastic.id("companion_tutorial_advance");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -127,6 +130,16 @@ public class FishtasticPackets {
                 UnequipCompanionPacket.STREAM_CODEC,
                 UnequipCompanionPacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                RenameCompanionPacket.TYPE,
+                RenameCompanionPacket.STREAM_CODEC,
+                RenameCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                CompanionTutorialAdvancePacket.TYPE,
+                CompanionTutorialAdvancePacket.STREAM_CODEC,
+                CompanionTutorialAdvancePacket::handleClientToServer
+        );
     }
 
     /**
@@ -193,6 +206,16 @@ public class FishtasticPackets {
                 ReducedEffectsSyncPacket.STREAM_CODEC,
                 ReducedEffectsSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                CompanionFeedbackPacket.TYPE,
+                CompanionFeedbackPacket.STREAM_CODEC,
+                CompanionFeedbackPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                CompanionTutorialSyncPacket.TYPE,
+                CompanionTutorialSyncPacket.STREAM_CODEC,
+                CompanionTutorialSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -216,6 +239,8 @@ public class FishtasticPackets {
         registrar.accept(TankInteriorLightSyncPacket.TYPE, TankInteriorLightSyncPacket.STREAM_CODEC);
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
+        registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
+        registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
     }
 
     /**

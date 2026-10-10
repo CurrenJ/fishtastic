@@ -149,7 +149,8 @@ public final class DailyQuestFamily {
         List<QuestReward.RewardItem> items = tier.bonusItem.map(List::of).orElse(List.of());
         QuestReward reward = new QuestReward(tier.tokens, items);
         String description = descriptionFn.apply(tier.targetCount, tier.minQuality);
-        return new Quest(QuestCategory.DAILY, difficulty, objective, reward, Optional.empty(), false, displayName, description);
+        return new Quest(QuestCategory.DAILY, difficulty, objective, reward, Optional.empty(), false, displayName, description,
+                Optional.empty());
     }
 
     /** Catch conditions shared by all three tiers of a family. */

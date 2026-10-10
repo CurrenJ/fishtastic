@@ -38,11 +38,16 @@ public record RequestFishEncyclopediaPacket(boolean openMenu) implements CustomP
             if (player instanceof ServerPlayer serverPlayer) {
                 var server = ((ServerLevel) serverPlayer.level()).getServer();
                 if (server != null) {
-                    FishEncyclopediaSyncPacket.sendToPlayer(serverPlayer, FishCatchSavedData.getOrCreate(server));
+                    FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
+                    FishEncyclopediaSyncPacket.sendToPlayer(serverPlayer, data);
+                    // The Companions tab reads the bond-unlock set from the quest cache, so refresh
+                    // it here too — the open is the one moment that view is guaranteed to be seen.
+                    QuestSyncPacket.sendToPlayer(serverPlayer, data);
                 }
                 if (packet.openMenu()) {
                     GelatinOpenMenuCompat.openFishEncyclopediaMenu(serverPlayer);
                     EncyclopediaTutorialManager.onEncyclopediaOpened(serverPlayer);
+                    grill24.fishtastic.tutorial.CompanionTutorialManager.onEncyclopediaOpened(serverPlayer);
                 }
             }
         });

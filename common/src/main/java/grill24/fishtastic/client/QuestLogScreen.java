@@ -71,6 +71,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private FishEncyclopediaSyncPacket.ClientHandler savedEncyclopediaHandler;
     private int activeTabIndex = 0;
 
+    // Set by the encyclopedia's Companions tab just before it requests the log reopen, consumed
+    // once by the next buildUI: switches to the quest's category tab and pulses its row, so the
+    // "unlocks via quest" link lands on the quest itself, not just the quest log in general.
+    private static ResourceKey<Quest> pendingFocusQuest;
+
+    /** See {@link #pendingFocusQuest}. */
+    public static void selectOnNextOpen(ResourceKey<Quest> quest) {
+        pendingFocusQuest = quest;
+    }
+
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
     private Label tokenBalanceLabel;
     private HBox tokenIconRow;
@@ -271,7 +281,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 int previousShopRefreshCount = QuestClientCache.getShopRefreshCount();
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount());
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     // A shop refresh changes which entries are active, not just their visuals -
@@ -418,6 +429,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                     .thenComparing(e -> e.getValue().displayName()));
         }
 
+        ResourceKey<Quest> focusQuest = pendingFocusQuest;
+        pendingFocusQuest = null;
+        if (focusQuest != null) {
+            Quest focused = questRegistry.getOptional(focusQuest).orElse(null);
+            if (focused == null) {
+                focusQuest = null;
+            } else {
+                activeTabIndex = QUEST_CATEGORY_TAB_INDEX.getOrDefault(focused.category(), activeTabIndex);
+            }
+        }
+
         // Only today's rotated-in dailies are worth showing — the rest of the daily pool
         // stays hidden rather than listed as "inactive", so players discover it as it rotates in.
         byCategory.get(QuestCategory.DAILY).removeIf(entry -> !activeDailies.contains(entry.getKey()));
@@ -513,6 +535,23 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         uiScreen.setRoot(content);
         uiScreen.setScrollEnabled(true);
+
+        if (focusQuest != null) {
+            ResourceKey<Quest> focused = focusQuest;
+            uiScreen.runDeferred(() -> pulseQuestRow(focused));
+        }
+    }
+
+    /** Scrolls {@code questKey}'s row roughly into view and gives it a one-off "here it is" pulse. */
+    private void pulseQuestRow(ResourceKey<Quest> questKey) {
+        QuestRowRefs refs = questRowRefs.get(questKey.identifier());
+        if (refs == null) return;
+        uiScreen.setScrollY(Math.max(0f, refs.row().getGlobalPosition().y - 120f));
+        refs.row().playAnimation(new FloatKeyframeAnimation(
+                "companionBondQuestFocus",
+                List.of(new Keyframe(0f, 1f), new Keyframe(0.35f, 1.12f), new Keyframe(1.1f, 1f)),
+                v -> refs.row().setTargetScale(v, false),
+                () -> refs.row().setTargetScale(1f, false)));
     }
 
     // Each tab body is scaled individually (rather than scaling the shared header+tabs block as a

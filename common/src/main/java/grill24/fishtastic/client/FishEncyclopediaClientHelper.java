@@ -53,4 +53,25 @@ public final class FishEncyclopediaClientHelper {
         }
         return false;
     }
+
+    /**
+     * The quest whose completion unlocks this species' companion bond, if one is authored
+     * ({@code unlocks_companion}, docs/fish-companions.md §8.3). Client-side lookup off the quest
+     * registry so the encyclopedia can name — and link to — the quest without extra sync.
+     */
+    public static ResourceKey<grill24.fishtastic.data.Quest> findCompanionUnlockQuest(
+            RegistryAccess registryAccess, Identifier speciesId) {
+        Registry<grill24.fishtastic.data.Quest> registry;
+        try {
+            registry = registryAccess.lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
+        } catch (Exception e) {
+            return null;
+        }
+        for (Map.Entry<ResourceKey<grill24.fishtastic.data.Quest>, grill24.fishtastic.data.Quest> entry : registry.entrySet()) {
+            if (entry.getValue().unlocksCompanion().filter(speciesId::equals).isPresent()) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
 }

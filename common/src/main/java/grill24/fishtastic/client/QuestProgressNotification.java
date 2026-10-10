@@ -147,6 +147,15 @@ public class QuestProgressNotification {
                     ? "New Encyclopedia Entry!"
                     : event.triggeringItem().getHoverName().getString() + " Discovered!";
             showProgress = false;
+        } else if (event.questId().getPath().startsWith(QuestProgressNotificationManager.COMPANION_BOND_ID_PREFIX)) {
+            // "Bond available: <Fish>" — the species name is the headline, so the player knows
+            // which entry just completed; "A companionship awaits" would say less. The item's
+            // hover name here is the plain species name (the banner stack doesn't carry a
+            // renamed companion — that only exists after bonding).
+            name = event.triggeringItem().isEmpty()
+                    ? "Companion Bond Unlocked!"
+                    : event.triggeringItem().getHoverName().getString() + ": Bond Unlocked!";
+            showProgress = false;
         } else {
             name = event.questId().getPath(); // fallback
             isSyntheticBanner = false;

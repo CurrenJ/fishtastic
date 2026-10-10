@@ -1284,6 +1284,61 @@ public class FishtasticFabricGameTests {
         });
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionLockedSpeciesRefusesBond(GameTestHelper helper) {
+        CompanionBondGameTests.lockedSpeciesRefusesBond(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionCompleteEntryUnlocksAndNeverReLocks(GameTestHelper helper) {
+        CompanionBondGameTests.completeEntryUnlocksAndNeverReLocks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionUnlistedNeverUnlocksByCounts(GameTestHelper helper) {
+        CompanionBondGameTests.unlistedSpeciesNeverUnlocksByCounts(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionUnlockQueuesOneBanner(GameTestHelper helper) {
+        CompanionBondGameTests.unlockQueuesOneBanner(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionFakeDescriptionCannotBond(GameTestHelper helper) {
+        CompanionBondGameTests.fakeDescriptionCannotBondAnUncarriedFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionRenameSetsAndClearsTheName(GameTestHelper helper) {
+        CompanionBondGameTests.renameSetsAndClearsTheName(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionPickerGroupsIdenticalFish(GameTestHelper helper) {
+        CarriedFishGameTests.identicalFishCollapseWithTheirTotalCount(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionPickerSplitsAnyComponentDifference(GameTestHelper helper) {
+        CarriedFishGameTests.anyComponentDifferenceSplitsTheRow(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionPickerIgnoresEmptyStacks(GameTestHelper helper) {
+        CarriedFishGameTests.emptyStacksAreIgnored(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionQuestUnlocksOnlyOnceDone(GameTestHelper helper) {
+        CompanionQuestUnlockGameTests.questUnlocksOnlyOnceDone(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionQuestScanReportsEachSpeciesOnce(GameTestHelper helper) {
+        CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
+    }
+
     // -------------------------------------------------------------------------
     // RemoveTankEntryPacket.giveOrDrop — fish tank browser GUI removal delivery
     // -------------------------------------------------------------------------

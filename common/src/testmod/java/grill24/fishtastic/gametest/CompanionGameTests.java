@@ -38,6 +38,14 @@ public final class CompanionGameTests {
         player.getAbilities().instabuild = false;
         player.getInventory().clearContent();
         CompanionStorage.set(player, ItemStack.EMPTY);
+        // These tests exercise moving the fish, not the gate — unlock the species directly so the
+        // Phase 4 gate can never mask a storage failure. Gate behaviour has its own tests
+        // (CompanionBondGameTests).
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(player.level().getServer());
+        var state = data.getOrCreateQuestState(player);
+        state.unlockCompanionBond(net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .getKey(FishtasticItems.BLUEGILL.value()));
+        state.drainPendingCompanionBanners();
         return player;
     }
 

@@ -31,6 +31,10 @@ public enum NotificationPriority {
         if (questId.getPath().startsWith(QuestProgressNotificationManager.FIRST_CATCH_ID_PREFIX)) {
             return NEW_SPECIES;
         }
+        // A bond unlock is discovery-scale news too, and rides the same fanfare tier.
+        if (questId.getPath().startsWith(QuestProgressNotificationManager.COMPANION_BOND_ID_PREFIX)) {
+            return NEW_SPECIES;
+        }
         if (questId.equals(QuestProgressNotificationManager.OUT_OF_BAIT_ID)
                 || questId.equals(QuestProgressNotificationManager.CLEANUP_GOAL_MILESTONE_ID)) {
             return OTHER;
