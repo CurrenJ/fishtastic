@@ -69,6 +69,10 @@ import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import grill24.fishtastic.client.companion.CompanionPipRenderer;
+import grill24.fishtastic.client.companion.CompanionSpike;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
@@ -250,6 +254,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 ClientTankFlocks.tickAll();
+                CompanionSpike.tick();
                 TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
@@ -275,7 +280,15 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (animation != null && animation.isActive()) {
                 animation.render(mc, graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }
+            CompanionSpike.renderHud(graphics, CompanionSpike.activeMinigame(), deltaTracker.getGameTimeDeltaPartialTick(false));
         });
+
+        // Fish companion Phase 0 spike: free-flying fish from the level submit hook, docked fish
+        // through a perspective picture-in-picture renderer (docs/fish-companions.md §5.1).
+        LevelRenderEvents.COLLECT_SUBMITS.register(context -> CompanionSpike.submitWorld(
+                context.poseStack(), context.submitNodeCollector(),
+                Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
+        PictureInPictureRendererRegistry.register(ctx -> new CompanionPipRenderer(ctx.bufferSource()));
 
         // Register HUD render hook for quest progress notifications (renders after fishing minigame)
         HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {

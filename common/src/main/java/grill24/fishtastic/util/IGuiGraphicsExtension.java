@@ -20,4 +20,7 @@ public interface IGuiGraphicsExtension {
     void fishtastic$renderItem(LivingEntity livingEntity, ItemStack itemStack, int i, int j, int k);
 
     void fishtastic$renderItem(@Nullable LivingEntity livingEntity, @Nullable Level level, ItemStack itemStack, int i, int j, int k);
+
+    /** Queues a picture-in-picture draw in the GUI's normal order (vanilla keeps its render state private). */
+    void fishtastic$addPictureInPicture(net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState state);
 }

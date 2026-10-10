@@ -383,3 +383,35 @@ Rules:
 | **6. Pet-to-pet (v1: G1, G2)** | §10 server scheduler | Two clients see the same scene; one scene per companion; greeting on approach |
 | *Later* | Personality/world/player (§4, §6, §7), scenes G3–G6, signature companions (§8.3) | |
 | *Planned improvements* | Tank interactions (E3, E4) | |
+
+---
+
+## 13. Phase 0 spike results (2026-10-10)
+
+Dev-only spike, uncommitted: `client/companion/` (`CompanionSpike`, `CompanionPipRenderer`,
+`CompanionPipRenderState`), `client/renderer/CompanionFlock`, `/fishtastic companion on|off|minigame|stopgame`,
+self-test scene `companion` (opt-in). Verified headlessly on **Fabric and NeoForge**.
+
+| Question | Result |
+|---|---|
+| Free-flying fish from a world-render hook, visible to its owner in first person | **Yes.** Fabric `LevelRenderEvents.COLLECT_SUBMITS` / NeoForge `SubmitCustomGeometryEvent`. Drawn in first and third person; whether it is *in view* is the visibility note below. |
+| Docked fish as real 3D perspective **on top of** the HUD | **Yes.** A picture-in-picture renderer whose projection is the camera's own perspective cropped to the rect (off-axis frustum). Must be registered on both loaders. |
+| Invisible world → HUD handoff | **Yes.** Same pose, position and shading on both sides of the switch; a side-by-side frame drawing both passes at once matches. |
+| Stays locked to the dock through camera turns and in third person | **Yes**, after one fix below. |
+| Fish sim reused in the open world | **Yes, unchanged.** Following: the group path's planar engine in an invisible 3×2×3 voxel box that follows the player. Docked: the single-tank binary engine (fish swim only left/right, so always side-on). |
+
+**Pitfalls found, and their fixes (all in the spike code):**
+- **GUI ignores the model-view stack.** Feature submits in a PiP don't apply `RenderSystem.getModelViewStack()`. Fold the view rotation into the PiP projection and keep the pose world-oriented, so normals match level lighting.
+- **Domain swaps strand the fish.** On a carry-over rebuild into a smaller domain, the engine's wall constraint pins a fish that starts outside it. Clamp the fish in, and fade the moved distance out at render time.
+- **Planar engine looks wrong when docked.** In a thin box it still turns toward the camera, so the docked fish reads nose-on. The single-tank model fixes it. Its swim gate needs a nominal short sim length; the drawn size is set separately.
+- **True-to-scale small fish are specks.** Decided (owner, 2026-10-10): companions keep a **minimum drawn length of 0.25 blocks** while following; larger fish stay true to scale. Docked fish are drawn at a fixed screen size.
+
+**NeoForge:** verified after the create-world deadlock fix (9b203ace). The same scene passes on both
+loaders, with identical results.
+
+**First-person visibility while following is not solved by placement alone.** A free-wandering fish
+in the follow box was out of a level first-person view in most shots on both loaders. It's visible
+when looking up, or when it happens to cross in front. This confirms that the peeks (§3.1, R2.1) are
+a requirement for phase 3, not polish.
+
+**Not covered:** bob-matched projection at the handoff (no visible pop in tests; untested with view bob while walking); non-swimmer classes (benthic/glide/drift/anchored), which use the tank idle pose for now.

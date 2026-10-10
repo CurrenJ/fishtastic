@@ -143,7 +143,7 @@ public final class RenderSelfTest {
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
-            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench");
+            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "companion");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -328,6 +328,7 @@ public final class RenderSelfTest {
             case "lighting" -> queueLightingScene();
             case "mcpsession" -> queueMcpSessionScene();
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
+            case "companion" -> queueCompanionScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2402,6 +2403,106 @@ public final class RenderSelfTest {
      * <em>server</em> thread (fine in single-player only), which races its {@code tick} and loses
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
+    /**
+     * Fish companion Phase 0 spike (docs/fish-companions.md §12): the companion following in first
+     * and third person, then the demo minigame — shots part-way through the swim to the dock, either
+     * side of the world-to-HUD handoff, and docked.
+     */
+    private static void queueCompanionScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            server(mc, s -> {
+                run(s, "gamemode creative @a");
+                run(s, "time set 6000");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 0.5, 180f, 0f));
+            });
+        });
+        queue(10, mc -> grill24.fishtastic.client.companion.CompanionSpike.enable(fish("bluegill", 25f)));
+        for (int i = 0; i < 4; i++) {
+            int shot = i;
+            queue(15, mc -> {
+                companionLog("follow " + shot);
+                screenshot(mc, "companion", "fp_follow_" + shot);
+            });
+        }
+        queue(1, mc -> mc.player.setXRot(-25f));
+        queue(15, mc -> screenshot(mc, "companion", "fp_follow_lookup"));
+        queue(1, mc -> {
+            mc.player.setXRot(0f);
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        });
+        queue(20, mc -> screenshot(mc, "companion", "tp_follow"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // Block 1: the swim to the dock and the handoff.
+        queue(20, RenderSelfTest::openDemoMinigame);
+        queue(8, mc -> {
+            companionLog("approach");
+            screenshot(mc, "companion", "dock_approach");
+        });
+        queue(10, mc -> screenshot(mc, "companion", "dock_before_handoff"));
+        queue(4, mc -> screenshot(mc, "companion", "dock_after_handoff"));
+        queue(10, mc -> {
+            check("companion.docked", grill24.fishtastic.client.companion.CompanionSpike.isDocked(), "");
+            screenshot(mc, "companion", "docked");
+        });
+
+        // Block 2: the same fish drawn by both passes in one frame (HUD copy shifted left).
+        queue(1, mc -> {
+            ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+            grill24.fishtastic.client.companion.CompanionSpike.pipCompare = true;
+        });
+        queue(25, RenderSelfTest::openDemoMinigame);
+        for (int i = 0; i < 3; i++) {
+            int shot = i;
+            queue(i == 0 ? 25 : 6, mc -> screenshot(mc, "companion", "compare_" + shot));
+        }
+        queue(1, mc -> grill24.fishtastic.client.companion.CompanionSpike.pipCompare = false);
+
+        // Block 3: docked fish stays locked to the screen through a camera turn, and in third person.
+        queue(1, mc -> ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation());
+        queue(25, RenderSelfTest::openDemoMinigame);
+        queue(25, mc -> {
+            companionLog("before turn");
+            screenshot(mc, "companion", "docked_before_turn");
+        });
+        queue(1, mc -> {
+            mc.player.setYRot(mc.player.getYRot() + 40f);
+            mc.player.yRotO = mc.player.getYRot();
+        });
+        queue(3, mc -> {
+            companionLog("after turn");
+            screenshot(mc, "companion", "docked_after_turn");
+        });
+        queue(10, mc -> {
+            companionLog("after turn +10");
+            screenshot(mc, "companion", "docked_after_turn_10");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(5, mc -> {
+            companionLog("third person");
+            screenshot(mc, "companion", "docked_third_person");
+        });
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+        });
+        queue(10, mc -> screenshot(mc, "companion", "undock_return"));
+        queue(1, mc -> grill24.fishtastic.client.companion.CompanionSpike.disable());
+    }
+
+    private static void openDemoMinigame(Minecraft mc) {
+        ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer)
+                .fishtastic$displayItemActivation(new grill24.fishtastic.util.FishingMinigameAnimation());
+    }
+
+    private static void companionLog(String label) {
+        Fishtastic.LOGGER.info("[selftest] companion {}: {}", label,
+                grill24.fishtastic.client.companion.CompanionSpike.debugState());
+    }
+
     private static void queueHudScene() {
         queue(1, mc -> {
             mc.options.hideGui = false;

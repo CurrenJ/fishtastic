@@ -71,6 +71,11 @@ import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
+import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import grill24.fishtastic.client.companion.CompanionPipRenderState;
+import grill24.fishtastic.client.companion.CompanionPipRenderer;
+import grill24.fishtastic.client.companion.CompanionSpike;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -134,6 +139,7 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
         modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
+        modEventBus.addListener(FishtasticNeoForgeClient::registerPictureInPictureRenderers);
 
         // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
@@ -151,6 +157,7 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onScreenRenderPost);
         // Register HUD render hook for the fishing minigame overlay
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onRenderGui);
+        NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onSubmitCustomGeometry);
     }
 
     public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
@@ -276,6 +283,7 @@ public final class FishtasticNeoForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
+            CompanionSpike.tick();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
@@ -288,6 +296,15 @@ public final class FishtasticNeoForgeClient {
         }
     }
 
+
+    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
+        CompanionSpike.submitWorld(event.getPoseStack(), event.getSubmitNodeCollector(),
+                Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+    }
+
+    public static void registerPictureInPictureRenderers(RegisterPictureInPictureRenderersEvent event) {
+        event.register(CompanionPipRenderState.class, CompanionPipRenderer::new);
+    }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
         TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
@@ -305,6 +322,8 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
+        CompanionSpike.renderHud(event.getGuiGraphics(), CompanionSpike.activeMinigame(),
+                event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Render quest progress notifications (after fishing minigame)
         QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Production builds exclude

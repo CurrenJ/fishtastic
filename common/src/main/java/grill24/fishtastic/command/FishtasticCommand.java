@@ -62,6 +62,8 @@ public class FishtasticCommand {
             // Prints the client-side swim/hover verdict for the tank being looked at — same pattern,
             // and the only way to tell a budget-capped fish from a size-gated one on screen.
             command.then(TankSimDebugCommand.build());
+            // Fish companion Phase 0 spike (docs/fish-companions.md §12) — same dev-only, client-driven pattern.
+            command.then(CompanionSpikeCommand.build());
         }
 
         dispatcher.register(command);

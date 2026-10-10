@@ -1141,6 +1141,25 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         guiGraphics.pose().popMatrix();
     }
 
+    /**
+     * Where a companion fish docks while this minigame is up (Phase 0 spike, docs/fish-companions.md
+     * §5.1), in GUI-scaled pixels: the lane left of the gear column, below its icons, so it never
+     * covers the bar, its targets or the gear. {@code halfSize} is the lane's half-width — the
+     * room the docked fish is allowed to swim in.
+     *
+     * @return {x, y, halfSize}, or null once the bar has started hiding (the fish should leave)
+     */
+    @Nullable
+    public float[] companionDockAnchor(int screenWidth, int screenHeight) {
+        if (isHiding) return null;
+        Vector2f barTopLeft = barContentTopLeft(layout, screenWidth / 2, screenHeight / 2, screenHeight);
+        float halfSize = screenHeight * 0.09f;
+        float gearColumnOuterX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE;
+        float x = gearColumnOuterX - GEAR_PANEL_GAP - halfSize;
+        float y = screenHeight / 2f + screenHeight * 0.12f;
+        return new float[]{x, y, halfSize};
+    }
+
     /** Mirror of {@link #barContentTopLeft} — top-right corner of the bar's visible content. */
     private static Vector2f barContentTopRight(FishingBarLayout layout, int x, int y, int screenHeight) {
         float scale = 2 * screenHeight / 3f;
