@@ -451,3 +451,104 @@ a requirement for phase 3, not polish.
 - **Second player:** headless runs can't have one, so the scene adds a dev phantom companion
   (`ClientCompanions.addPhantom`) to prove the manager tracks and draws two. Real remote-player sync
   is covered only by the attachment's own sync contract, not by a live two-client test.
+
+---
+
+## 15. Phase 3 — as built (2026-10-10)
+
+Display modes, peeks, held-item reactions, trios, water and the three client settings (§2, §3,
+§3.1, §11). Self-test scenes `companionparade` (every class, tricks, the trio, reactions, the hand
+hop, water), `companionpeek` (the visibility acceptance and the settings) and `companionhand` (a
+one-minute hand-hop iteration scene). Existing scenes (`companion`) unchanged and still green.
+
+**Display modes.** The class is `TankFlockAdapter.locomotionOf(animation)`, as planned. Each class
+gets its own anchor path, driven per tick in `ClientCompanion.anchorTarget`:
+
+| Class | Path |
+|---|---|
+| `FREE_SWIM` | Orbits the eye at 1.2 blocks, one lap ≈ 26 s (seeded start angle so companions don't sync). Trick: a quick lap (3× orbit speed). |
+| `GLIDE` | Wide arcs at 2.2 blocks, 1.55 blocks overhead, ≈ 44 s a lap. Trick: a low swoop toward the floor that spawns cloud-puff dust (respects the particle setting). |
+| `DRIFT` | Behind one shoulder (0.5 back, 0.5 to the side, 0.3 down) on a **velocity spring** rather than an ease, so it lags and settles. Trick: rises and settles. Glows at night (full-bright submit when `getSkyDarken() >= 4`). |
+| `BENTHIC` | Perches on the body via a player render layer — head or a shoulder, chosen per species (`seed % 3`). Trick: a full spin on the perch. |
+| `ANCHORED` | Pokes out of the upper back through the same layer; ducks in (the planted pose's retract envelope) while a hostile is within 3 blocks. |
+
+`animation.mode` still refines each class through `FishAnimator` (upright poses stay upright, belly
+-down stays flat, planted stays put) — the companion feeds the same animator entry points the tank
+group renderer uses, with the engine's own heading/bank/bell/retract when it simulates.
+
+**The follow box is sized for the fish** (`2.5 · length + 1` cells, 3–8, +2 for gliders, +1 in
+water) so the engine's size gate passes anything whose swimming is meant to show. A fish too big
+even for that (the giant mantas at true scale) is demoted by the engine to `STATIC` and rides the
+moving box instead — for an animal that size it is indistinguishable.
+
+**Trios.** A `FREE_SWIM` bonded fish under 20 cm is rebuilt as three same-species specs and the
+engine's own swarm offsets spread them (§2). The trio swims as one flock on the leader's path; in
+the dock it is drawn as the leader alone.
+
+**Water.** When the owner's eyes are in water every class drops its air anchor: the invisible box
+moves beside the owner and the planar engine swims. `BENTHIC` and `ANCHORED` — the two classes with
+no swim of their own (a starfish can only crawl) — are swapped to `FREE_SWIM` locomotion for the
+swim, which is the one place the sim is not run "as itself".
+
+**Perches (player render layer).** `CompanionPerchLayer` is added to every `AvatarRenderer` by a
+common mixin (`AvatarRendererMixin` + a `LivingEntityRendererInvoker` for the protected
+`addLayer`; Fabric has no layer-registration API in this version). It looks the rendered entity up
+by `AvatarRenderState.id`, so mannequin renderers get the layer but never a fish. The layer frame —
+after `scale(-1,-1,1)` and `translate(0,-1.501,0)` — puts y=0 at ~1.41 blocks, i.e. the shoulder
+line (vanilla's parrot layer passes -1.5 there only because its own model pose hoists it back
+down); x is mirrored, z is not, and the model faces -z. Flat poses (a starfish's floor sit) are
+stood up on a shoulder so the sprite reads from the front; on the crown of the head it stays flat.
+
+**Peeks (§3.1, R2.1).** A phase machine per companion: `OUT (0.4 s) → HOLD (3.5 s) → BACK (0.5 s)`,
+then a seeded cooldown of 15–45 s (the first waits 7.5–37.5 s). A local companion also peeks when
+its owner has not had it on screen for 10 s, with a 10 s minimum gap — the schedule *is* the
+visibility acceptance, so the self-test's frame count measures the mechanism directly. Peeks pause
+while the owner is in the minigame (the bar owns the middle of the screen). Swimmers
+swim to the point (their box is aimed so the **fish**, not the empty box centre, lands in view —
+full compensation vertically, 70% horizontally so some swim survives); perchers hop off and back
+along an arc from the perch.
+
+**Held-item reactions (§3.1).** A table of `(item test, view-space point, pose tilt)`: rod (vanilla
+or mod, via `fishtastic:fishing_rods`), bait, a fish of the companion's own species, a
+`#fishtastic:predator_fish` (new tag), name tag (tilt only), food (fallback). Reactions take over
+the anchor, suppress peeks while active, and pull perchers off the body like a peek. Main hand only.
+
+**Look-down hand hop (deviation from the phase-0 plan).** The companion hops to a point just above
+the hotbar when the owner looks down (pitch > 52°), but it is drawn by the **world pass**, not the
+first-person hand pass. Reason, established empirically: the hand pass renders companion item
+geometry as a shadow-only silhouette under the dev client's Iris shaderpack
+(ComplementaryReimagined — the fish itself is not drawn, only its cast shadow appears, blurred);
+without shaders the same draw is pixel-correct. The world pass draws correctly under both, and at
+0.9 blocks the point cannot be occluded by terrain the owner is standing on. Screen-anchored (an
+unprojected GUI point at 0.9 blocks, the dock's own technique) rather than a view-space offset,
+because looking down rotates "forward" almost straight down.
+
+**Settings (§11).** `FishtasticClientConfig` grows `hideOtherCompanions`,
+`hideOwnCompanionFirstPerson` (ignored while docked) and `companionWaitsAtBobber` (skips docking;
+until Phase 5 it simply keeps following), all default off, cached like the other settings. A
+dev-only override map lets the self-tests flip them without rewriting the owner's properties file.
+
+**Verification.** Fabric, four scenes (`companion`, `companionparade`, `companionpeek`,
+`companionhand`), all checks green (the three edits made after that run — a minigame peek-pause in
+common code, a water screenshot added to the parade scene, and docs — were re-run on NeoForge
+only); NeoForge, the same four scenes, all checks green in one run on the final code. The acceptance window measured the companion on screen for **37.7–52.2% of
+first-person ticks** on Fabric and **42.0%** on NeoForge, each over 1500 ticks looking straight
+ahead with 3–4 peeks — the spread is the seeded schedule and camera timing, and all are far above
+the 5% floor the check enforces. Screenshots reviewed by eye on both loaders for every class, the
+perch (benthic on a shoulder, anchored at the back), the hop-off peek, the trio, the water swim,
+the rod reaction and the look-down hop.
+
+**Pitfalls found and fixed during the phase** (all cost a run each):
+- A freshly bonded companion peeked into the owner's face immediately — `lastSeenTick` starts at
+  zero, so the unseen-for-10-s rule fired at once. A new companion starts "just seen", and the
+  first peek waits 7.5–37.5 s like every other.
+- Peeks aimed the *box* at the view, so a fish wandering its 3-block box landed off-screen: the
+  anchor now subtracts the fish's own offset (full vertical — a crawler rides its box floor).
+- The visibility check projected the fish's local offset without the box's yaw, so
+  "on screen" disagreed with the debug readout by a full turn.
+- `viewPoint`'s right vector was inverted (`look × up` already points right), which put the rod
+  reaction on the wrong side of the player.
+- The look-down hop's view-space offset collapsed when looking straight down (forward IS down):
+  the point is now a fixed GUI position unprojected at 0.9 blocks, the dock's own technique.
+- Flat poses (a starfish) on the head slot were a sliver from every angle but above; they are
+  re-slotted to a shoulder, stood up so the sprite reads from the front.

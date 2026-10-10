@@ -122,6 +122,28 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.ACUTE_IASPIS.value())
                 .add(FishtasticItems.ELECTRIC_EEL.value());
 
+        // Predator fish: clear piscivores/hunters, by real-world diet (docs/fish-companions.md
+        // §3.1 "hides behind your head" reaction; G4's predator side later). Curated membership
+        // (not derivable from fish_profile), same rationale as EXOTIC_FISH above.
+        valueLookupBuilder(FishtasticItemTags.PREDATOR_FISH)
+                .add(FishtasticItems.ANGLER_FISH.value())
+                .add(FishtasticItems.BULL_TROUT.value())
+                .add(FishtasticItems.COMMON_OCTOPUS.value())
+                .add(FishtasticItems.ELECTRIC_EEL.value())
+                .add(FishtasticItems.GIANT_MANTA_RAY.value())
+                .add(FishtasticItems.GIRAFFE_CICHLID.value())
+                .add(FishtasticItems.GLASS_SQUID.value())
+                .add(FishtasticItems.GOLDEN_MAHSEER.value())
+                .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
+                .add(FishtasticItems.LIONFISH.value())
+                .add(FishtasticItems.LIZARDFISH.value())
+                .add(FishtasticItems.LONGNOSE_GAR.value())
+                .add(FishtasticItems.NORTHERN_PIKE.value())
+                .add(FishtasticItems.ORNATE_BICHIR.value())
+                .add(FishtasticItems.OSCAR.value())
+                .add(FishtasticItems.RAINBOW_TROUT.value())
+                .add(FishtasticItems.RED_BELLIED_PIRAHNA.value());
+
         // Small fish: bait-affinity/encyclopedia cluster for small or delicate species.
         // Curated membership (not derivable from fish_profile), so listed here rather than
         // hand-edited JSON - same rationale as EXOTIC_FISH/UNLISTED_FISH above.

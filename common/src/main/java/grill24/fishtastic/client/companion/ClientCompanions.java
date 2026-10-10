@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -30,6 +31,11 @@ import java.util.UUID;
  * {@link ClientCompanion} per non-empty one — created when a player with a companion comes into
  * view, rebuilt when their companion changes, dropped when they leave or unequip. Only the local
  * player's companion docks on the minigame HUD.
+ *
+ * <p>Phase 3 respects the three client settings here and at the submit sites: other players'
+ * companions can be hidden entirely, your own can be hidden in first person (but never while it is
+ * docked — a docked companion is part of the minigame HUD), and docking itself can be skipped with
+ * "waits at the bobber" (which until the fishing-reactions phase simply leaves the fish following).
  */
 public final class ClientCompanions {
     private ClientCompanions() {}
@@ -52,6 +58,15 @@ public final class ClientCompanions {
     public static int pipSubmits, pipRenders;
     /** Dev hook: packed light the docked fish uses, or -1 for the world's light. */
     public static int pipLightOverride = -1;
+    /** Dev diagnostics: companion draws submitted through the world pass, cumulative. */
+    public static int worldSubmits;
+    /** Dev diagnostics: draws submitted by the most recent world pass (one frame's worth). */
+    public static int worldSubmitsThisFrame;
+    /**
+     * Dev diagnostics for the §3.1 visibility acceptance: first-person ticks counted, and how many
+     * of them the local player's companion was on screen. The self-test samples the deltas.
+     */
+    public static int visibleTicks, countedTicks;
 
     // ---------------------------------------------------------------- tracking
 
@@ -83,12 +98,26 @@ public final class ClientCompanions {
             companion.tick(companion.owner() == mc.player ? anchor : null);
         }
         for (ClientCompanion phantom : PHANTOMS.values()) phantom.tick(null);
+
+        // The acceptance counter: only first person counts, because third person sees your own
+        // player model (and the perch layer) the same way another player would.
+        ClientCompanion local = local();
+        if (local != null && mc.options.getCameraType().isFirstPerson()) {
+            countedTicks++;
+            if (local.visibleToOwner()) visibleTicks++;
+        }
     }
 
     @Nullable
     public static ClientCompanion local() {
         Player player = Minecraft.getInstance().player;
         return player == null ? null : COMPANIONS.get(player.getUUID());
+    }
+
+    /** The tracked companion of any player — the perch layer's lookup by rendered entity id. */
+    @Nullable
+    public static ClientCompanion get(Player player) {
+        return COMPANIONS.get(player.getUUID());
     }
 
     /** How many companions the client is currently tracking, phantoms included. */
@@ -106,15 +135,58 @@ public final class ClientCompanions {
     /** Called from the platform's level submit hook; the stack is camera-relative. */
     public static void submitWorld(PoseStack poseStack, SubmitNodeCollector nodes, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
+        worldSubmitsThisFrame = 0;
         if (mc.level == null || count() == 0) return;
         Camera camera = mc.gameRenderer.getMainCamera();
+        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
         for (ClientCompanion companion : COMPANIONS.values()) {
-            float[] dockAnchor = companion.owner() == mc.player ? anchor : null;
-            companion.submitWorld(poseStack, nodes, camera, partialTick, dockAnchor, screenW, screenH, pipCompare);
+            if (!shouldDraw(companion, firstPerson) || !shouldDrawWorldPass(companion)) continue;
+            boolean local = companion.owner() == mc.player;
+            if (companion.submitWorld(poseStack, nodes, camera, partialTick,
+                    local ? anchor : null, screenW, screenH, pipCompare)) {
+                worldSubmits++;
+                worldSubmitsThisFrame++;
+            }
         }
         for (ClientCompanion phantom : PHANTOMS.values()) {
-            phantom.submitWorld(poseStack, nodes, camera, partialTick, null, screenW, screenH, false);
+            if (FishtasticClientConfig.hideOtherCompanions()) continue;
+            if (phantom.submitWorld(poseStack, nodes, camera, partialTick, null, screenW, screenH, false)) {
+                worldSubmits++;
+                worldSubmitsThisFrame++;
+            }
         }
+    }
+
+    /**
+     * Whether the world pass should draw this companion at all — false for another player's when
+     * companions are hidden or that player is invisible, and for your own in first person when the
+     * setting hides it (never while docked: the docked fish is part of the minigame HUD and is
+     * drawn by the GUI pass).
+     */
+    private static boolean shouldDraw(ClientCompanion companion, boolean firstPerson) {
+        Player owner = companion.owner();
+        if (owner == null) return true; // dev phantom
+        boolean local = owner == Minecraft.getInstance().player;
+        if (!local) return !FishtasticClientConfig.hideOtherCompanions() && !owner.isInvisible();
+        return !(firstPerson && !companion.isDocked() && FishtasticClientConfig.hideOwnCompanionFirstPerson());
+    }
+
+    /**
+     * The world pass skips a percher that is on the perch — the player render layer draws it.
+     * Everything else, including the look-down hand hop, is the world pass's to draw.
+     */
+    private static boolean shouldDrawWorldPass(ClientCompanion companion) {
+        return !companion.drawsOnPerch();
+    }
+
+    /** True when the player layer should draw this companion perched on its owner's body. */
+    public static boolean shouldDrawOnPerch(ClientCompanion companion) {
+        Player owner = companion.owner();
+        if (owner == null) return false;
+        boolean local = owner == Minecraft.getInstance().player;
+        if (!local && FishtasticClientConfig.hideOtherCompanions()) return false;
+        if (owner.isInvisible()) return false;
+        return companion.drawsOnPerch();
     }
 
     // ---------------------------------------------------------------- HUD pass
@@ -124,7 +196,10 @@ public final class ClientCompanions {
         ClientCompanion local = local();
         screenW = graphics.guiWidth();
         screenH = graphics.guiHeight();
-        anchor = local != null && minigame != null ? minigame.companionDockAnchor(screenW, screenH) : null;
+        // "Companion waits at the bobber" (§11): skip docking entirely. Until the reactions phase
+        // it simply keeps following; Phase 5 will park it at the bobber.
+        boolean dock = minigame != null && !FishtasticClientConfig.companionWaitsAtBobber();
+        anchor = local != null && dock ? minigame.companionDockAnchor(screenW, screenH) : null;
         if (local == null || !local.isDocked() || anchor == null) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -183,11 +258,17 @@ public final class ClientCompanions {
         PHANTOMS.clear();
     }
 
+    /** Dev-only: makes the local companion start a peek right now, for the self-test scenes. */
+    public static void devStartPeek() {
+        ClientCompanion local = local();
+        if (local != null) local.devStartPeek();
+    }
+
     /** Dev diagnostics for the local player's companion. */
     public static String debugState() {
         ClientCompanion local = local();
-        String head = String.format(java.util.Locale.ROOT, "tracked=%d pipSubmits=%d pipRenders=%d | ",
-                count(), pipSubmits, pipRenders);
+        String head = String.format(java.util.Locale.ROOT, "tracked=%d pipSubmits=%d pipRenders=%d world=%d vis=%d/%d | ",
+                count(), pipSubmits, pipRenders, worldSubmits, visibleTicks, countedTicks);
         return head + (local == null ? "no local companion" : local.debugState(anchor, screenW, screenH));
     }
 }

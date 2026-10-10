@@ -17,7 +17,7 @@
 | 1. Encyclopedia thresholds derived from rarity | ✅ Done | `703a09b1` |
 | — NeoForge create-world deadlock fix (blocked NeoForge testing) | ✅ Done | `9b203ace` |
 | 2. Data and sync (per-player slot, bond/unequip, multi-player rendering) | ✅ Done, verified on both loaders | `787a4097` |
-| **3. Display modes** | ⏭ **Next** | — |
+| **3. Display modes** | ✅ Done (uncommitted; see fish-companions.md §15) | — |
 | 4. Bonding UI | Not started | — |
 | 5. Fishing reactions | Not started | — |
 | 6. Pet-to-pet (v1: G1, G2) | Not started | — |

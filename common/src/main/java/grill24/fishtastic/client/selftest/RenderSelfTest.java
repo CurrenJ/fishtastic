@@ -143,7 +143,8 @@ public final class RenderSelfTest {
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
-            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "companion");
+            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
+            "companion", "companionparade", "companionpeek", "companionhand");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -329,6 +330,9 @@ public final class RenderSelfTest {
             case "mcpsession" -> queueMcpSessionScene();
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companion" -> queueCompanionScene();
+            case "companionparade" -> queueCompanionParadeScene();
+            case "companionpeek" -> queueCompanionPeekScene();
+            case "companionhand" -> queueCompanionHandScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2547,6 +2551,431 @@ public final class RenderSelfTest {
     private static void companionLog(String label) {
         Fishtastic.LOGGER.info("[selftest] companion {}: {}", label,
                 grill24.fishtastic.client.companion.ClientCompanions.debugState());
+    }
+
+    // ── Phase 3: display modes, peeks and the companion settings ───────────────
+
+    /** The self-test scenes' shorthand for the local player's companion. */
+    private static grill24.fishtastic.client.companion.ClientCompanion companion() {
+        return grill24.fishtastic.client.companion.ClientCompanions.local();
+    }
+
+    private static void paradeSetup(Minecraft mc) {
+        mc.options.hideGui = false;
+        mc.options.setCameraType(CameraType.FIRST_PERSON);
+        server(mc, s -> {
+            run(s, "gamemode creative @a");
+            run(s, "time set 6000");
+            run(s, "kill @e[type=!player]");
+            run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                    origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 0.5, 180f, 0f));
+        });
+    }
+
+    /**
+     * Equips a companion of the given species through the real bond path: the fish goes into the
+     * inventory, the client sends the description packet, the server finds and takes it.
+     */
+    private static void bondFish(String species, float sizeCm) {
+        ItemStack fish = fish(species, sizeCm);
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.unequip(player);
+                player.getInventory().clearContent();
+                player.getInventory().setItem(3, fish.copy());
+            }
+        }));
+        queue(8, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                new grill24.fishtastic.network.BondCompanionPacket(fish.copy()))));
+    }
+
+    /** Puts an item in the main hand, or clears it with {@code air}. */
+    private static void holdItem(String itemId) {
+        queue(1, mc -> server(mc, s -> run(s, "item replace entity @a hotbar.0 with " + itemId)));
+    }
+
+    /**
+     * A minimal iteration scene for the first-person hand pass (§3.1 "hop onto your hand"): bond,
+     * look down, photograph the hand copy, look back up. Kept separate from the parade so a hand-pass
+     * change can be checked in under a minute, and because the hand pass draws under whatever
+     * shaderpack the dev client has loaded, which is worth an isolated screen.
+     */
+    private static void queueCompanionHandScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        bondFish("bluegill", 25f);
+        queue(40, mc -> {
+            mc.player.setXRot(80f);
+            companionLog("hand scene looking down");
+        });
+        queue(25, mc -> {
+            companionLog("hand scene settled");
+            screenshot(mc, "companionhand", "looking_down");
+        });
+        queue(20, mc -> screenshot(mc, "companionhand", "looking_down_2"));
+        queue(1, mc -> mc.player.setXRot(0f));
+        queue(25, mc -> {
+            companionLog("hand scene looking up");
+            screenshot(mc, "companionhand", "looking_up");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionhand", "third_person"));
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            server(mc, s -> {
+                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.unequip(player);
+                    player.getInventory().clearContent();
+                }
+            });
+        });
+        queue(10, mc -> companionLog("hand scene end"));
+    }
+
+    /**
+     * Phase 3: the companion parade (docs/fish-companions.md §3, §3.1). Every display class is
+     * bonded in turn and checked for its own anchor behaviour — orbiting, high arcs, the shoulder
+     * spring, the perch, the poke-out-of-the-back — then the trio, the held-item reactions, the
+     * look-down hand hop, and water.
+     */
+    private static void queueCompanionParadeScene() {        queue(1, RenderSelfTest::paradeSetup);
+
+        // ── FREE_SWIM: orbits the shoulders. ──
+        bondFish("bluegill", 25f);
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.freeSwim.class", c != null && c.displayClassName().equals("free_swim"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            double d = c == null ? -1 : c.horizontalDistanceToOwner();
+            check("parade.freeSwim.orbit", d > 0.4 && d < 3.0, "horizontal=" + d);
+            companionLog("free swim");
+            screenshot(mc, "companionparade", "free_swim_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionparade", "free_swim_tp"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // ── GLIDE: wide slow arcs overhead. ──
+        bondFish("giant_manta_ray", 60f);
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.glide.class", c != null && c.displayClassName().equals("glide"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            Double h = c == null ? null : c.heightAboveOwnerEye();
+            check("parade.glide.overhead", h != null && h > 0.6, "aboveEye=" + h);
+            companionLog("glide");
+            screenshot(mc, "companionparade", "glide_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> {
+            screenshot(mc, "companionparade", "glide_tp");
+            companionLog("glide tp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // ── DRIFT: behind one shoulder on a loose spring. ──
+        bondFish("portuguese_man_o_war", 30f);
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.drift.class", c != null && c.displayClassName().equals("drift"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            double b = c == null ? -99 : c.behindness();
+            check("parade.drift.behind", b > 0.0, "behind=" + b);
+            companionLog("drift");
+            screenshot(mc, "companionparade", "drift_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionparade", "drift_tp"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+        // The drifter glows at night (§3): a night-time peek puts it in frame to check by eye.
+        queue(1, mc -> server(mc, s -> run(s, "time set 18000")));
+        queue(20, mc -> {
+            companionLog("drift at night");
+            grill24.fishtastic.client.companion.ClientCompanions.devStartPeek();
+        });
+        queue(25, mc -> {
+            companionLog("drift at night, peeked");
+            screenshot(mc, "companionparade", "drift_night");
+        });
+        queue(1, mc -> server(mc, s -> run(s, "time set 6000")));
+
+        // ── BENTHIC: perched on the body; hops off to show itself. ──
+        bondFish("starfish", 30f);
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.benthic.class", c != null && c.displayClassName().equals("benthic"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            check("parade.benthic.perched", c != null && c.isPerchedNow(), "perched=" + (c != null && c.isPerchedNow()));
+            companionLog("benthic perched");
+            screenshot(mc, "companionparade", "benthic_perched_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionparade", "benthic_perched_tp"));
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.devStartPeek();
+        });
+        queue(20, mc -> {
+            var c = companion();
+            check("parade.benthic.peekHop", c != null && c.isPeeking() && !c.isPerchedNow(),
+                    "peeking=" + (c != null && c.isPeeking()) + " perched=" + (c != null && c.isPerchedNow()));
+            companionLog("benthic hop");
+            screenshot(mc, "companionparade", "benthic_hop_fp");
+        });
+        queue(120, mc -> {
+            var c = companion();
+            check("parade.benthic.backOnPerch", c != null && c.isPerchedNow() && !c.isPeeking(),
+                    "perched=" + (c != null && c.isPerchedNow()));
+        });
+
+        // ── ANCHORED: pokes out of the back; ducks in near hostiles. ──
+        bondFish("garden_eel", 30f);
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.anchored.class", c != null && c.displayClassName().equals("anchored"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            check("parade.anchored.perched", c != null && c.isPerchedNow(), "perched=" + (c != null && c.isPerchedNow()));
+            companionLog("anchored");
+            screenshot(mc, "companionparade", "anchored_perched_tp");
+        });
+        queue(1, mc -> server(mc, s -> {
+            // The flat test world is Peaceful, which refuses to summon monsters.
+            run(s, "difficulty easy");
+            run(s, "summon minecraft:zombie " + (origin.getX() + 2) + " " + origin.getY() + " " + origin.getZ());
+        }));
+        queue(25, mc -> {
+            var c = companion();
+            float duck = c == null ? -1 : c.duckAmount();
+            check("parade.anchored.ducks", duck > 0.5f, "duck=" + duck);
+            companionLog("anchored ducking");
+            screenshot(mc, "companionparade", "anchored_duck");
+        });
+        queue(1, mc -> server(mc, s -> {
+            run(s, "kill @e[type=minecraft:zombie]");
+            run(s, "difficulty peaceful");
+        }));
+        queue(25, mc -> {
+            var c = companion();
+            float duck = c == null ? -1 : c.duckAmount();
+            check("parade.anchored.emerges", duck < 0.5f, "duck=" + duck);
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // ── Trio: a small free swimmer comes as three. ──
+        bondFish("bluegill", 15f);
+        queue(45, mc -> {
+            var c = companion();
+            check("parade.trio.class", c != null && c.displayClassName().equals("trio"),
+                    "class=" + (c == null ? "none" : c.displayClassName()));
+            check("parade.trio.count", c != null && c.fishCount() == 3, "fish=" + (c == null ? -1 : c.fishCount()));
+            companionLog("trio");
+            screenshot(mc, "companionparade", "trio_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionparade", "trio_tp"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // ── Held-item reactions (§3.1 table). ──
+        bondFish("bluegill", 25f);
+        queue(40, mc -> check("parade.reaction.none", companion() != null && companion().reactionName().isEmpty(),
+                "reaction=" + (companion() == null ? "none" : companion().reactionName())));
+        holdItem("minecraft:fishing_rod");
+        queue(30, mc -> {
+            check("parade.reaction.rod", companion() != null && companion().reactionName().equals("rod"),
+                    "reaction=" + (companion() == null ? "none" : companion().reactionName()));
+            companionLog("rod reaction");
+            screenshot(mc, "companionparade", "reaction_rod");
+        });
+        holdItem("fishtastic:freshwater_bait");
+        queue(30, mc -> {
+            check("parade.reaction.bait", companion() != null && companion().reactionName().equals("bait"),
+                    "reaction=" + (companion() == null ? "none" : companion().reactionName()));
+            screenshot(mc, "companionparade", "reaction_bait");
+        });
+        holdItem("fishtastic:bluegill");
+        queue(30, mc -> check("parade.reaction.sameSpecies",
+                companion() != null && companion().reactionName().equals("same_species"),
+                "reaction=" + (companion() == null ? "none" : companion().reactionName())));
+        holdItem("fishtastic:northern_pike");
+        queue(30, mc -> {
+            check("parade.reaction.predator",
+                    companion() != null && companion().reactionName().equals("predator"),
+                    "reaction=" + (companion() == null ? "none" : companion().reactionName()));
+            screenshot(mc, "companionparade", "reaction_predator");
+        });
+        holdItem("minecraft:bread");
+        queue(30, mc -> check("parade.reaction.food",
+                companion() != null && companion().reactionName().equals("food"),
+                "reaction=" + (companion() == null ? "none" : companion().reactionName())));
+        holdItem("minecraft:air");
+        queue(30, mc -> check("parade.reaction.clears",
+                companion() != null && companion().reactionName().isEmpty(),
+                "reaction=" + (companion() == null ? "none" : companion().reactionName())));
+
+        // ── Look down: the companion hops into the first-person hand pass. ──
+        int handBefore = -1;
+        queue(1, mc -> mc.player.setXRot(80f));
+        queue(25, mc -> {
+            check("parade.handHop.active", companion() != null && companion().handHopActive(),
+                    "handHop=" + (companion() != null && companion().handHopActive()));
+            check("parade.handHop.drew", grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame >= 1,
+                    "drawn=" + grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame);
+            check("parade.handHop.visible", companion() != null && companion().visibleToOwner(),
+                    "visible=" + (companion() != null && companion().visibleToOwner()));
+            companionLog("looking down");
+            screenshot(mc, "companionparade", "hand_hop");
+        });
+        queue(1, mc -> mc.player.setXRot(0f));
+        queue(25, mc -> check("parade.handHop.released",
+                companion() != null && !companion().handHopActive(),
+                "handHop=" + (companion() != null && companion().handHopActive())));
+
+        // ── Water: every class drops its air anchor and swims beside the player. ──
+        queue(1, mc -> {
+            mc.player.setXRot(0f);
+            server(mc, s -> {
+                int x = origin.getX(), y = origin.getY(), z = origin.getZ();
+                run(s, "fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x + 3) + " " + (y + 5) + " " + (z + 3) + " minecraft:glass");
+                run(s, "fill " + (x - 2) + " " + y + " " + (z - 2) + " " + (x + 2) + " " + (y + 4) + " " + (z + 2) + " minecraft:water");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                        x + 0.5, (double) y, z + 0.5, 180f, 0f));
+            });
+        });
+        queue(20, mc -> {
+            var c = companion();
+            check("parade.water.swims", c != null && c.inWaterMode(),
+                    "waterMode=" + (c != null && c.inWaterMode()));
+            companionLog("in water");
+            screenshot(mc, "companionparade", "water_swim");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> {
+            companionLog("in water, third person");
+            screenshot(mc, "companionparade", "water_swim_tp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+        bondFish("starfish", 30f);
+        queue(40, mc -> {
+            var c = companion();
+            check("parade.water.benthicSwims", c != null && c.inWaterMode() && !c.isPerchedNow(),
+                    "waterMode=" + (c != null && c.inWaterMode()) + " perched=" + (c != null && c.isPerchedNow()));
+            companionLog("benthic in water");
+            screenshot(mc, "companionparade", "water_benthic");
+        });
+
+        // Cleanup: drain the pool, drop the companion, hands empty.
+        queue(1, mc -> server(mc, s -> {
+            int x = origin.getX(), y = origin.getY(), z = origin.getZ();
+            run(s, "fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x + 3) + " " + (y + 5) + " " + (z + 3) + " minecraft:air");
+            run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
+                    x + 0.5, (double) y, z + 0.5, 180f, 0f));
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.unequip(player);
+                player.getInventory().clearContent();
+            }
+        }));
+        queue(10, mc -> companionLog("parade end"));
+    }
+
+    /**
+     * Phase 3 acceptance (§3.1, R2.2): in first person the companion is visible to its owner at
+     * regular intervals, and the three companion settings gate the renderer. The visibility window
+     * runs with the camera looking straight ahead for 75 s and counts first-person ticks where the
+     * companion was on screen.
+     */
+    private static void queueCompanionPeekScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        bondFish("bluegill", 25f);
+        queue(40, mc -> {
+            mc.player.setXRot(0f);
+            grill24.fishtastic.client.companion.ClientCompanions.visibleTicks = 0;
+            grill24.fishtastic.client.companion.ClientCompanions.countedTicks = 0;
+            companionLog("peek window start");
+        });
+        queue(1500, mc -> {
+            int seen = grill24.fishtastic.client.companion.ClientCompanions.visibleTicks;
+            int total = grill24.fishtastic.client.companion.ClientCompanions.countedTicks;
+            float fraction = total == 0 ? 0f : seen / (float) total;
+            int peeks = companion() == null ? 0 : companion().peekStarts();
+            Fishtastic.LOGGER.info("[selftest] companion.visibility seen={}/{} ({}%), peeks={}",
+                    seen, total, String.format(Locale.ROOT, "%.1f", fraction * 100f), peeks);
+            check("peek.windowCounted", total > 1400, "counted=" + total);
+            check("peek.visibleFraction", fraction >= 0.05f, "fraction=" + fraction);
+            companionLog("peek window end");
+            screenshot(mc, "companionpeek", "window_end");
+        });
+
+        // hideOtherCompanions: a phantom stands in for a second player's companion.
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.addPhantom(
+                fish("giant_manta_ray", 300f), mc.player.getEyePosition().add(mc.player.getLookAngle().scale(3.5))));
+        queue(20, mc -> {
+            int drawn = grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame;
+            check("peek.bothDrawn", drawn >= 2, "drawn=" + drawn);
+            screenshot(mc, "companionpeek", "two_visible");
+        });
+        queue(1, mc -> FishtasticClientConfig.setTestOverride(
+                FishtasticClientConfig.HIDE_OTHER_COMPANIONS_KEY, true));
+        queue(20, mc -> {
+            int drawn = grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame;
+            check("peek.othersHidden", drawn == 1, "drawn=" + drawn);
+            screenshot(mc, "companionpeek", "others_hidden");
+        });
+        queue(1, mc -> {
+            FishtasticClientConfig.setTestOverride(FishtasticClientConfig.HIDE_OTHER_COMPANIONS_KEY, false);
+            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+        });
+
+        // hideOwnCompanionFirstPerson: hidden in first person, drawn in third, never while docked.
+        queue(1, mc -> FishtasticClientConfig.setTestOverride(
+                FishtasticClientConfig.HIDE_OWN_COMPANION_FIRST_PERSON_KEY, true));
+        queue(20, mc -> {
+            int drawn = grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame;
+            check("peek.ownHiddenFp", drawn == 0, "drawn=" + drawn);
+            screenshot(mc, "companionpeek", "own_hidden_fp");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> {
+            int drawn = grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame;
+            check("peek.ownShownTp", drawn >= 1, "drawn=" + drawn);
+            screenshot(mc, "companionpeek", "own_shown_tp");
+        });
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            FishtasticClientConfig.setTestOverride(FishtasticClientConfig.HIDE_OWN_COMPANION_FIRST_PERSON_KEY, false);
+        });
+
+        // companionWaitsAtBobber: on, the fish never docks; off (the default), it does.
+        queue(1, mc -> FishtasticClientConfig.setTestOverride(
+                FishtasticClientConfig.COMPANION_WAITS_AT_BOBBER_KEY, true));
+        queue(20, RenderSelfTest::openDemoMinigame);
+        queue(40, mc -> {
+            check("peek.waitsNoDock", !grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked(),
+                    "docked=" + grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked());
+            screenshot(mc, "companionpeek", "waits_following");
+            ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+        });
+        queue(1, mc -> FishtasticClientConfig.setTestOverride(
+                FishtasticClientConfig.COMPANION_WAITS_AT_BOBBER_KEY, false));
+        queue(20, RenderSelfTest::openDemoMinigame);
+        queue(40, mc -> {
+            check("peek.defaultDocks", grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked(),
+                    "docked=" + grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked());
+            screenshot(mc, "companionpeek", "docked");
+            ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+        });
+
+        // Cleanup: never leave test overrides or a companion behind for the next scene.
+        queue(1, mc -> {
+            FishtasticClientConfig.clearTestOverrides();
+            server(mc, s -> {
+                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.unequip(player);
+                    player.getInventory().clearContent();
+                }
+                run(s, "gamemode creative @a");
+            });
+        });
+        queue(10, mc -> companionLog("peek scene end"));
     }
 
     private static void queueHudScene() {

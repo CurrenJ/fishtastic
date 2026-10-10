@@ -23,6 +23,12 @@ public class FishtasticItemTags {
     public static final TagKey<Item> FISHING_CHARMS = create("fishing_charms");
     public static final TagKey<Item> EXOTIC_FISH = create("exotic_fish");
     public static final TagKey<Item> UNLISTED_FISH = create("unlisted_fish");
+    /**
+     * Piscivores and other clear hunters — species a fish companion should hide from when the
+     * owner is holding one (docs/fish-companions.md §3.1), and the predator side of the
+     * predator/prey pet-to-pet scene (§10, G4).
+     */
+    public static final TagKey<Item> PREDATOR_FISH = create("predator_fish");
     public static final TagKey<Item> SMALL_FISH = create("small_fish");
     public static final TagKey<Item> BIG_FISH = create("big_fish");
     public static final TagKey<Item> CALM_FISH = create("calm_fish");

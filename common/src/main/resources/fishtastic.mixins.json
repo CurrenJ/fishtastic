@@ -5,6 +5,7 @@
   "minVersion": "0.8",
   "client": [
     "AbstractContainerScreenMixin",
+    "AvatarRendererMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",
@@ -23,7 +24,8 @@
     "MinecraftFrameBenchMixin",
     "RenderBuffersMixin",
     "RenderTypeMixin",
-    "accessor.BufferSourceAccessor"
+    "accessor.BufferSourceAccessor",
+    "accessor.LivingEntityRendererInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

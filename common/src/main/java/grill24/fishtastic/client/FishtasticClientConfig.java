@@ -23,6 +23,16 @@ public final class FishtasticClientConfig {
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
+    /** Don't draw other players' fish companions (docs/fish-companions.md §11 settings). */
+    public static final String HIDE_OTHER_COMPANIONS_KEY = "hideOtherCompanions";
+    /** Don't draw your own companion in first person; ignored while it's docked on the minigame. */
+    public static final String HIDE_OWN_COMPANION_FIRST_PERSON_KEY = "hideOwnCompanionFirstPerson";
+    /**
+     * Skip docking during the minigame so the companion stays in the world. Default false (it
+     * docks). The full "waits at the bobber" behaviour is Phase 5; for now this only skips the
+     * dock, and the companion keeps following.
+     */
+    public static final String COMPANION_WAITS_AT_BOBBER_KEY = "companionWaitsAtBobber";
     private static final int DEFAULT_NOTIFICATION_VOLUME = 50;
     private static final String DEFAULT_FILE_CONTENTS = """
             # Fishtastic client-side visual toggles.
@@ -51,6 +61,20 @@ public final class FishtasticClientConfig {
             # silhouette reveal, a still glow and the name banner remain. Set via
             # "/fishtastic reducedeffects <true|false>" in-game, which also rewrites this file.
             reducedCelebrationEffects=false
+
+            # Fish companions (docs/fish-companions.md §11). All three default to off.
+
+            # Don't draw other players' fish companions. Your own is unaffected.
+            hideOtherCompanions=false
+
+            # Don't draw your own fish companion in first person. Ignored while it is docked on the
+            # fishing minigame (the docked fish is part of the minigame HUD).
+            hideOwnCompanionFirstPerson=false
+
+            # Skip docking during the fishing minigame so the companion stays out in the world.
+            # Default false, i.e. it docks. (The "waits at the bobber" behaviour arrives with the
+            # fishing-reactions phase; until then it simply keeps following.)
+            companionWaitsAtBobber=false
             """;
 
     private static Boolean tankWaterFillEnabled;
@@ -58,6 +82,25 @@ public final class FishtasticClientConfig {
     private static Integer notificationVolume;
     private static Boolean shapeGalleryOpen;
     private static Boolean reducedCelebrationEffects;
+    private static Boolean hideOtherCompanions;
+    private static Boolean hideOwnCompanionFirstPerson;
+    private static Boolean companionWaitsAtBobber;
+
+    /**
+     * Dev-only (self-tests): values that override the on-disk settings without touching the file.
+     * The self-test scenes flip companion settings to prove they gate the renderer; going through
+     * the real setters would rewrite the owner's config file (dropping its comments), so a test run
+     * must never do it. Cleared by {@link #clearTestOverrides()} at the end of a scene.
+     */
+    private static final java.util.Map<String, Boolean> TEST_OVERRIDES = new java.util.HashMap<>();
+
+    public static void setTestOverride(String key, boolean value) {
+        TEST_OVERRIDES.put(key, value);
+    }
+
+    public static void clearTestOverrides() {
+        TEST_OVERRIDES.clear();
+    }
 
     private FishtasticClientConfig() {}
 
@@ -163,6 +206,39 @@ public final class FishtasticClientConfig {
         persist();
     }
 
+    /** Whether other players' fish companions are hidden. */
+    public static boolean hideOtherCompanions() {
+        Boolean override = TEST_OVERRIDES.get(HIDE_OTHER_COMPANIONS_KEY);
+        if (override != null) return override;
+        if (hideOtherCompanions == null) {
+            hideOtherCompanions = Boolean.parseBoolean(load().getProperty(HIDE_OTHER_COMPANIONS_KEY, "false"));
+        }
+        return hideOtherCompanions;
+    }
+
+    /**
+     * Whether your own companion is hidden in first person. Always read together with the dock
+     * state — a docked companion is part of the minigame HUD and stays visible regardless.
+     */
+    public static boolean hideOwnCompanionFirstPerson() {
+        Boolean override = TEST_OVERRIDES.get(HIDE_OWN_COMPANION_FIRST_PERSON_KEY);
+        if (override != null) return override;
+        if (hideOwnCompanionFirstPerson == null) {
+            hideOwnCompanionFirstPerson = Boolean.parseBoolean(load().getProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, "false"));
+        }
+        return hideOwnCompanionFirstPerson;
+    }
+
+    /** Whether the companion skips docking during the minigame (Phase 5 will make it wait at the bobber). */
+    public static boolean companionWaitsAtBobber() {
+        Boolean override = TEST_OVERRIDES.get(COMPANION_WAITS_AT_BOBBER_KEY);
+        if (override != null) return override;
+        if (companionWaitsAtBobber == null) {
+            companionWaitsAtBobber = Boolean.parseBoolean(load().getProperty(COMPANION_WAITS_AT_BOBBER_KEY, "false"));
+        }
+        return companionWaitsAtBobber;
+    }
+
     /**
      * Writes every setting back to the properties file. Each value is read through its own getter
      * so an untouched setting round-trips its on-disk value rather than being reset to a default.
@@ -175,6 +251,9 @@ public final class FishtasticClientConfig {
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
+        props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(hideOtherCompanions()));
+        props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(hideOwnCompanionFirstPerson()));
+        props.setProperty(COMPANION_WAITS_AT_BOBBER_KEY, String.valueOf(companionWaitsAtBobber()));
         try (var out = Files.newOutputStream(file)) {
             props.store(out, "Fishtastic client-side visual toggles.");
         } catch (IOException ignored) {
