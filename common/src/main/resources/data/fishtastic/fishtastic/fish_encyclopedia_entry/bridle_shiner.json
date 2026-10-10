@@ -1,11 +1,3 @@
 {
-  "lore": "The bridle shiner is a small freshwater minnow that resides within vegetation in calm streams",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 2,
-    "types_catches": 5,
-    "spawn_conditions_catches": 2,
-    "lore_catches": 15
-  }
+  "lore": "The bridle shiner is a small freshwater minnow that resides within vegetation in calm streams"
 }
-

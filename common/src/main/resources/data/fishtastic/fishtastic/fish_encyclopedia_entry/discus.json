@@ -1,11 +1,3 @@
 {
-  "lore": "The discus is a genus of cichlids native to the Amazon river basin. It has bright colors and oft intricate patterns, and is popular for its calm demeanor.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 2,
-    "types_catches": 5,
-    "spawn_conditions_catches": 2,
-    "lore_catches": 15
-  }
+  "lore": "The discus is a genus of cichlids native to the Amazon river basin. It has bright colors and oft intricate patterns, and is popular for its calm demeanor."
 }
-

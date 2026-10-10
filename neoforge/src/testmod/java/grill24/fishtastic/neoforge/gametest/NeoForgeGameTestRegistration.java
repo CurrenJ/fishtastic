@@ -502,8 +502,10 @@ public class NeoForgeGameTestRegistration {
         // ----- FishEncyclopediaEntry tests -----
         register(event, env, "empty_object_decodes_to_all_defaults", 200,
             FishEncyclopediaEntryGameTests::emptyObjectDecodesToAllDefaults);
-        register(event, env, "partial_thresholds_fill_remaining_defaults", 200,
-            FishEncyclopediaEntryGameTests::partialThresholdsFillRemainingDefaults);
+        register(event, env, "legacy_thresholds_block_is_ignored", 200,
+            FishEncyclopediaEntryGameTests::legacyThresholdsBlockIsIgnored);
+        register(event, env, "every_fish_gets_derived_thresholds_within_cap", 200,
+            FishEncyclopediaEntryGameTests::everyFishGetsDerivedThresholdsWithinCap);
         register(event, env, "full_entry_round_trips_through_json", 200,
             FishEncyclopediaEntryGameTests::fullEntryRoundTripsThroughJson);
 

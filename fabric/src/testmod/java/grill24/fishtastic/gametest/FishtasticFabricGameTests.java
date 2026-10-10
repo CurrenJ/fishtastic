@@ -1041,8 +1041,13 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void partialThresholdsFillRemainingDefaults(GameTestHelper helper) {
-        FishEncyclopediaEntryGameTests.partialThresholdsFillRemainingDefaults(helper);
+    public void legacyThresholdsBlockIsIgnored(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.legacyThresholdsBlockIsIgnored(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void everyFishGetsDerivedThresholdsWithinCap(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.everyFishGetsDerivedThresholdsWithinCap(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
