@@ -1,7 +1,8 @@
 # Fish Companions — Implementation Handoff
 
-> **Read this first to resume.** Written 2026-10-10 at the end of Phase 2. Everything needed to start
-> the next phase is here or linked from here. Branch: `26.1.2`. Nothing is pushed.
+> **Read this first to resume.** Written 2026-10-10 at the end of Phase 2; updated after Phase 3.
+> Everything needed to start the next phase is here or linked from here. Branch: `26.1.2`. Nothing
+> is pushed.
 
 **To resume in a new session, say:**
 > Read `docs/fish-companions-handoff.md` and continue the fish companions implementation from the
@@ -17,7 +18,7 @@
 | 1. Encyclopedia thresholds derived from rarity | ✅ Done | `703a09b1` |
 | — NeoForge create-world deadlock fix (blocked NeoForge testing) | ✅ Done | `9b203ace` |
 | 2. Data and sync (per-player slot, bond/unequip, multi-player rendering) | ✅ Done, verified on both loaders | `787a4097` |
-| **3. Display modes** | ✅ Done (uncommitted; see fish-companions.md §15) | — |
+| **3. Display modes** | ✅ Done, verified on both loaders (see fish-companions.md §15) | `92626048` |
 | 4. Bonding UI | Not started | — |
 | 5. Fishing reactions | Not started | — |
 | 6. Pet-to-pet (v1: G1, G2) | Not started | — |
@@ -25,7 +26,8 @@
 | Planned improvements: tank interactions (E3, E4) | **Deferred by owner — do not build** | — |
 
 The active session goal was "complete all phases using forks and verify using self render tests".
-The owner paused it after Phase 2 to get this handoff.
+The owner paused it after Phase 2 to get this handoff; Phase 3 then landed as `92626048`
+(2026-10-10), one fork, verified on both loaders. Next fork: Phase 4.
 
 ---
 
@@ -33,7 +35,7 @@ The owner paused it after Phase 2 to get this handoff.
 
 | File | What it is |
 |---|---|
-| [`fish-companions.md`](fish-companions.md) | **The spec.** §1–§12 design, §13 Phase 0 findings and pitfalls, §14 Phase 2 as built. Follow it. |
+| [`fish-companions.md`](fish-companions.md) | **The spec.** §1–§12 design, §13 Phase 0 findings and pitfalls, §14 Phase 2 as built, §15 Phase 3 as built. Follow it. |
 | [`fish-companion-ideas.md`](fish-companion-ideas.md) | Owner's yes/no answers to the original idea list (IDs A1–I4). Rejected items stay rejected. |
 | [`fish-companion-review.md`](fish-companion-review.md) | Owner's yes/no answers to the two-reviewer pass (IDs R1.1–R8.3), with dev notes. |
 | [`encyclopedia-tier-review.md`](encyclopedia-tier-review.md) | Phase 1 tier table per species. |
