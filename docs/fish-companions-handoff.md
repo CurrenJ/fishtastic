@@ -20,16 +20,15 @@
 | 2. Data and sync (per-player slot, bond/unequip, multi-player rendering) | ✅ Done, verified on both loaders | `787a4097` |
 | **3. Display modes** | ✅ Done, verified on both loaders (see fish-companions.md §15) | `92626048` |
 | **4. Bonding UI** | ✅ Done, verified on both loaders (see fish-companions.md §16) | `802470b9` |
-| **5. Fishing reactions** | ✅ Done (uncommitted; see fish-companions.md §17) | — |
+| **5. Fishing reactions** | ✅ Done, verified on both loaders (see fish-companions.md §17) | `ce429e94` |
 | 6. Pet-to-pet (v1: G1, G2) | ⏭ **Next** | — |
 | Later: personality, world and player reactions; scenes G3–G6; signature companions | Not started | — |
 | Planned improvements: tank interactions (E3, E4) | **Deferred by owner — do not build** | — |
 
 The active session goal was "complete all phases using forks and verify using self render tests".
-The owner paused it after Phase 2 to get this handoff; Phase 3 landed as `92626048` and Phase 4 as
-`802470b9` (2026-10-10), one fork each, verified on both loaders. Phase 5 (fishing reactions)
-followed as a fork the same day — verified on both loaders, awaiting the parent's commit. Next
-fork: Phase 6.
+The owner paused it after Phase 2 to get this handoff; phases 3–5 landed the same day (2026-10-10)
+as `92626048`, `802470b9` and `ce429e94`, one fork each, verified on both loaders. Next fork:
+Phase 6.
 
 ---
 
