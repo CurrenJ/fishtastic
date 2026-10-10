@@ -437,6 +437,12 @@ public final class ClientCompanions {
         return local != null && local.devIsCameraLockedFrame();
     }
 
+    /** Dev-only (§20 scene): draw the frame yaw un-interpolated — the pre-fix behaviour. */
+    public static void devLegacyFrameYaw(boolean legacy) {
+        ClientCompanion local = local();
+        if (local != null) local.devLegacyFrameYaw(legacy);
+    }
+
     /** Dev-only: the ids of every dev phantom currently parked, for the dev commands and scenes. */
     public static Set<UUID> devPhantomIds() {
         return new HashSet<>(PHANTOMS.keySet());

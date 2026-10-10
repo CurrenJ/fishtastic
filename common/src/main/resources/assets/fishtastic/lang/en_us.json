@@ -452,6 +452,7 @@
   "screen.fishtastic.encyclopedia.companions.feedback.not_carried": "You aren't carrying that fish anymore.",
   "screen.fishtastic.encyclopedia.companions.feedback.renamed": "Name set.",
   "screen.fishtastic.encyclopedia.companions.feedback.nothing_to_rename": "No companion equipped.",
+  "screen.fishtastic.encyclopedia.companions.empty": "Carry a fish whose encyclopedia entry is complete to bond with it.",
   "tutorial.fishtastic.companion_intro.title": "Companions",
-  "tutorial.fishtastic.companion_intro.body": "You've completed a species' entry — its fish can now be bonded as a companion. Open the Companions tab to choose one."
+  "tutorial.fishtastic.companion_intro.body": "You've completed a species' entry — its fish can now be bonded as a companion. Carry one and open the Companions tab to choose it."
 }

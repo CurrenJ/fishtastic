@@ -150,10 +150,15 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private ItemStack pickerFor;
     private ItemStack pickerSelection;
     private VBox pickerPanel;
+    /** The picker's modal dim, and the viewport-space spot the panel is pinned to (docs §20). */
+    private IUIElement pickerDim;
+    private float pickerPanelX, pickerPanelY;
     /** Client-side view of the equipped companion, to notice sync-driven changes in containerTick. */
     private ItemStack lastSeenCompanion = ItemStack.EMPTY;
     /** Last-seen bond unlock set, same purpose: unlocks arrive on the quest sync, not this screen's. */
     private java.util.Set<Identifier> lastSeenUnlocks = java.util.Set.of();
+    /** Last-seen carried-inventory fingerprint, so the §20 listing follows the inventory live. */
+    private int lastCarriedFingerprint = Integer.MIN_VALUE;
     /** The status line rendered per species — the self-test checks the string the player sees. */
     private final Map<Identifier, String> companionStatusByFish = new LinkedHashMap<>();
     /** Row count and last-built picker groups, for the self-test's grouping checks. */
@@ -309,7 +314,19 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         for (Runnable updater : zonePipUpdaters) {
             updater.run();
         }
+        pinBondPicker();
         tickCompanionsView();
+    }
+
+    /**
+     * While the bond picker is up it is modal — the wheel must not scroll the list beneath it out
+     * from under the dialog (docs §20). {@link #pinBondPicker} keeps it in place regardless; this
+     * stops the page itself moving, which the dim would otherwise make look broken.
+     */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (pickerFor != null) return true;
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     // -------------------------------------------------------------------------
@@ -1160,15 +1177,28 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
         ItemStack equipped = CompanionStorage.get(mc.player);
 
+        // Only what the player can act on right now (owner playtest, 2026-10-10): the equipped
+        // companion (so Unequip and the name field stay reachable), or a species whose bond is
+        // unlocked AND whose fish is currently carried — loose or inside a Pile of Fish. A bondable
+        // species you are not carrying is nothing to bond with; its catch progress lives on the
+        // Fish tab. The lock/progress status paths below stay for the defensive cases.
         for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
             ResourceKey<FishProfile> fishKey = entry.getKey();
             Identifier fishId = fishKey.identifier();
-            int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
-            if (catchCount <= 0) continue;
             Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
+            boolean isEquipped = !equipped.isEmpty() && equipped.is(item);
+            if (!isEquipped && !(QuestClientCache.isBondUnlocked(fishId)
+                    && !CarriedFish.groupsOf(mc.player, item).isEmpty())) {
+                continue;
+            }
+            int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
             page.addChild(buildCompanionRow(mc, fishKey, fishId, item, catchCount, equipped));
             companionRowCount++;
         }
+        if (companionRowCount == 0) {
+            page.addChild(label(translated("screen.fishtastic.encyclopedia.companions.empty"), 0xFFCCCCCC));
+        }
+        lastCarriedFingerprint = carriedFingerprint(mc.player);
 
         // A width anchor: scaleToWidth would otherwise scale the (narrow) rows UP to fill the
         // page, blowing small lists up to billboard size. With a page-width spacer as the widest
@@ -1293,19 +1323,39 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || pickerFor == null) return;
 
-        root.addChild(UI.rectangle(this.width, this.height, 0x88000000));
+        // A modal overlay, pinned to the VIEWPORT (docs §20): root is the scrolling content, and
+        // the screen moves it up by scrollY — so overlay children carry a +scrollY local offset
+        // (re-applied every tick by pinBondPicker) to stay put when the tab below is scrolled.
+        float scroll = uiScreen.getScrollY();
+        pickerDim = UI.rectangle(this.width, this.height, 0x88000000);
+        pickerDim.setPosition(new Vector2f(0f, scroll));
+        root.addChild(pickerDim);
 
         float pageWidth = 220f;
+        pickerPanelX = (this.width - pageWidth) / 2f;
+        pickerPanelY = (this.height - 140f) / 2f;
         VBox panel = UI.vbox().spacing(5).padding(8).alignment(VBox.Alignment.CENTER).backgroundColor(0xEE181818);
         panel.addChild(new Label(translated("screen.fishtastic.encyclopedia.companions.picker.title",
                 pickerFor.getHoverName().getString()), 0xFFFFD700).init(tempContext));
         populatePickerRows(mc, panel);
         panel.addChild(UI.rectangle(pageWidth, 1f, 0x00000000)); // see buildCompanionsPanel's anchor note
         panel.scaleToWidth(pageWidth);
-        panel.setPosition(new Vector2f((this.width - pageWidth) / 2f, (this.height - 140f) / 2f));
+        panel.setPosition(new Vector2f(pickerPanelX, pickerPanelY + scroll));
         root.addChild(panel);
         pickerPanel = panel;
         updateRootContentSize();
+    }
+
+    /**
+     * Keeps the open picker pinned to the viewport (docs §20): called every tick, because the
+     * scroll offset can change under it (mouse wheel elsewhere, edge auto-scroll) even though the
+     * screen also swallows scroll input while the picker is up.
+     */
+    private void pinBondPicker() {
+        if (pickerFor == null || pickerDim == null || pickerPanel == null) return;
+        float scroll = uiScreen.getScrollY();
+        pickerDim.setPosition(new Vector2f(0f, scroll));
+        pickerPanel.setPosition(new Vector2f(pickerPanelX, pickerPanelY + scroll));
     }
 
     /** (Re)fills the picker's fish rows + buttons — rerun on every selection to move the highlight. */
@@ -1426,7 +1476,27 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (!ItemStack.matches(current, lastSeenCompanion)) {
             lastSeenCompanion = current.copy();
             buildUI();
+            return;
         }
+        // The listing depends on what is carried now (docs §20), and the inventory changes under
+        // the open tab: a cheap fingerprint rebuilds the rows when the carried set moves.
+        int carried = carriedFingerprint(mc.player);
+        if (carried != lastCarriedFingerprint) {
+            lastCarriedFingerprint = carried;
+            buildUI();
+        }
+    }
+
+    /** A cheap hash of the player's inventory for the carried-fish row rebuild ({@link #tickCompanionsView}). */
+    private static int carriedFingerprint(net.minecraft.world.entity.player.Player player) {
+        int h = 1;
+        Inventory inv = player.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            ItemStack stack = inv.getItem(i);
+            if (stack.isEmpty()) continue;
+            h = h * 31 + (i + 1) * (ItemStack.hashItemAndComponents(stack) * 31 + stack.getCount());
+        }
+        return h;
     }
 
     private String feedbackText(CompanionFeedbackPacket.Outcome outcome) {
@@ -1491,6 +1561,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (pickerSelection != null) confirmBond(pickerSelection);
     }
 
+    /** Cancels the picker exactly as its Cancel button does. */
+    public void devCancelPicker() {
+        pickerFor = null;
+        pickerSelection = null;
+        buildUI();
+    }
+
     /** Unequips exactly as the row's button does. */
     public void devUnequip() {
         sendUnequip();
@@ -1501,6 +1578,45 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (nameInput == null) return;
         nameInput.text(name);
         sendRename();
+    }
+
+    /** Whether the Companions tab rendered a row for this species (docs §20's filter scene). */
+    public boolean devHasRow(Identifier fishId) {
+        return companionStatusByFish.containsKey(fishId);
+    }
+
+    /** The current scroll offset of the tab content, for the picker-pinning scene. */
+    public float devScrollY() {
+        return uiScreen.getScrollY();
+    }
+
+    /** Scrolls the tab content programmatically (as the wheel would). */
+    public void devSetScroll(float y) {
+        uiScreen.setScrollY(y);
+    }
+
+    /** The open picker panel's global bounds {x, y, w, h}, or null when it is closed. */
+    @org.jetbrains.annotations.Nullable
+    public float[] devPickerBounds() {
+        if (pickerPanel == null) return null;
+        java.awt.geom.Rectangle2D b = pickerPanel.getBounds();
+        return new float[]{(float) b.getX(), (float) b.getY(), (float) b.getWidth(), (float) b.getHeight()};
+    }
+
+    /** The modal dim's global bounds {x, y, w, h}, or null when it is closed. */
+    @org.jetbrains.annotations.Nullable
+    public float[] devPickerDimBounds() {
+        if (pickerDim == null) return null;
+        java.awt.geom.Rectangle2D b = pickerDim.getBounds();
+        return new float[]{(float) b.getX(), (float) b.getY(), (float) b.getWidth(), (float) b.getHeight()};
+    }
+
+    public float devScreenWidth() {
+        return this.width;
+    }
+
+    public float devScreenHeight() {
+        return this.height;
     }
 
     // -------------------------------------------------------------------------

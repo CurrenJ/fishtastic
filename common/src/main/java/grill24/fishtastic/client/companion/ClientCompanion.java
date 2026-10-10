@@ -143,6 +143,8 @@ public final class ClientCompanion {
 
     /** The companion's orientation frame, degrees — eased toward the owner's body yaw, never the camera. */
     private float frameOrientationYaw;
+    /** The frame yaw at the previous tick, for render interpolation (docs §20). */
+    private float prevFrameOrientationYaw;
     /**
      * Dev-only (§19 scene): pause the peek system and the trick scheduler, so a motion
      * measurement only measures baseline motion. A quick-lap trick triples the orbit rate and a
@@ -161,8 +163,9 @@ public final class ClientCompanion {
     private static final float SCENE_BLEND_SPEED = 0.08f;
     /** The G1 loop: how wide it circles the midpoint of the two owners, and how high. */
     private static final double SCENE_LOOP_RADIUS = 1.1, SCENE_HEIGHT = 0.15;
-    /** When the G1 bubble heart pops (ticks into the scene) and how large it is drawn, blocks/unit. */
-    private static final int HEART_TICK = 40;
+    /** When the G1 bubble heart pops — half of one 7 s lap, so the pair is mid-loop when it blooms. */
+    private static final int HEART_TICK = 70;
+    /** How large the bubble heart is drawn, blocks per heart-curve unit. */
     private static final double HEART_SCALE = 0.03;
     /** How far above the pair's midpoint the heart floats — out of the fish's path and eye-line. */
     private static final double HEART_RISE = 0.35;
@@ -264,13 +267,62 @@ public final class ClientCompanion {
 
     // Per-frame geometry, written by the world pass (it runs first) and read by the HUD pass.
     private Vec3 frameCenter = Vec3.ZERO;
-    /** How far the box centre moved this tick — the box's own velocity, in blocks per tick. */
-    private Vec3 boxVel = Vec3.ZERO;
     private float frameScale = 1f;
     private float frameFishSize = 1f;
     private float frameYaw;
     private float frameTilt;
     private boolean frameDocked;
+
+    // ── Frame-rate motion stats (docs §20), sampled in the world pass for the self-test. ───────
+    /** The drawn fish world position the last two sampled frames ago, and their times. */
+    private Vec3 statP1, statP2;
+    private double statT1, statT2;
+    private double statFlickerSum;
+    private double statStepSum;
+    private int statFrameSamples;
+
+    /**
+     * Dev-only (§20 scene): draw the frame yaw un-interpolated AND feed the tick-side compensation
+     * the render scratch — the two pre-round-2 behaviours — so the flicker metric can measure
+     * legacy-vs-fixed in one run, on one state.
+     */
+    private boolean devLegacyFrameYaw;
+
+    public void devLegacyFrameYaw(boolean legacy) {
+        this.devLegacyFrameYaw = legacy;
+    }
+
+    public boolean devIsLegacyFrameYaw() {
+        return devLegacyFrameYaw;
+    }
+
+    /** Reset the flicker window: the self-test samples it over a scene leg. */
+    public void devResetFrameStats() {
+        statP1 = statP2 = null;
+        statT1 = statT2 = 0;
+        statFlickerSum = 0;
+        statStepSum = 0;
+        statFrameSamples = 0;
+    }
+
+    /**
+     * 1 = the fish is oscillating back and forth every other frame; 0 = smooth travel. For a
+     * constant velocity {@code |p(t)-p(t-2)| ≈ 2·|p(t)-p(t-1)|}; a period-2 reverberation makes the
+     * two-frame displacement collapse while the one-frame step stays finite. The owner's report
+     * was exactly this: "very slightly and quickly jumping back and forth" at close range.
+     */
+    public float devFrameFlicker() {
+        return statFrameSamples == 0 ? Float.NaN : (float) (statFlickerSum / statFrameSamples);
+    }
+
+    /** Mean drawn-position step per frame (blocks), the flicker metric's companion. */
+    public float devFrameStep() {
+        return statFrameSamples == 0 ? Float.NaN : (float) (statStepSum / statFrameSamples);
+    }
+
+    public int devFrameSamples() {
+        return statFrameSamples;
+    }
 
     ClientCompanion(@Nullable Player owner, @Nullable Vec3 phantomEye, ItemStack stack, Level level) {
         this.owner = owner;
@@ -330,6 +382,10 @@ public final class ClientCompanion {
         boolean local = isLocal();
         boolean firstPerson = mc.options.getCameraType().isFirstPerson();
         boolean inWater = owner != null && owner.isEyeInFluid(FluidTags.WATER);
+        // Keep the previous frame yaw for render interpolation (docs §20): the frame eases at up to
+        // a few degrees per TICK, and drawing it un-interpolated quantizes the box's rotation (and
+        // with it the fish's offset) to tick steps — visible as a close-range jitter.
+        prevFrameOrientationYaw = frameOrientationYaw;
         if (owner != null) updateFrameOrientation();
 
         prevDock = dock;
@@ -376,7 +432,6 @@ public final class ClientCompanion {
         }
 
         moveCenter(mc, inWater, docking);
-        boxVel = center.subtract(prevCenter);
         flock.setBiasFade(1f - smooth(dock));
         flock.step();
         float phase = flock.renderPhase();
@@ -921,9 +976,18 @@ public final class ClientCompanion {
         return base;
     }
 
-    /** The lead fish's offset from the box centre, rotated into the world by the box's yaw. */
+    /**
+     * The lead fish's offset from the box centre, rotated into the world by the box's yaw. Tick
+     * time reads the engine's tick-exact position ({@link CompanionFlock#fishOffsetTick}), not the
+     * last frame's interpolated scratch: the compensation is itself part of the tick, and feeding
+     * it frame-rate values was a render→tick feedback path (docs §20).
+     */
     private Vec3 worldOffsetOfFish() {
-        return rotateY(fishOffset().scale(frameScale), -boxYaw());
+        if (devLegacyFrameYaw) {
+            // Legacy (§20 scene): the last frame's interpolated scratch — the render→tick feedback.
+            return rotateY(fishOffset().scale(frameScale), -boxYaw());
+        }
+        return rotateY(flock.fishOffsetTick(0).scale(frameScale), -boxYaw());
     }
 
     /**
@@ -1165,10 +1229,38 @@ public final class ClientCompanion {
         poseStack.mulPose(boxPose(cam));
         int light = lightAt(fishOffset());
         if (glowsNow()) light = LightCoordsUtil.FULL_BRIGHT;
+        sampleFrameStats(partialTick);
         flock.submit(poseStack, nodes, light, dockedTime(partialTick), frameFishSize, frameTilt,
-                boxVel, frameYaw, frameScale);
+                frameCenter, frameYaw, frameScale);
         poseStack.popPose();
         return true;
+    }
+
+    /**
+     * Feeds the flicker metric (docs §20): the drawn fish world position this frame, taken from the
+     * same numbers the pose uses — the interpolated centre plus the fish's offset rotated by the
+     * interpolated box yaw.
+     */
+    private void sampleFrameStats(float partialTick) {
+        Vec3 drawn = frameCenter.add(rotateY(fishOffset().scale(frameScale), -frameYaw));
+        double t = gameTime(partialTick);
+        if (statP1 != null && statP2 != null) {
+            double dt1 = t - statT1, dt0 = statT1 - statT2;
+            // Comparable frame times only: a hitch would poison the ratio.
+            if (dt1 > 1e-3 && dt0 > 1e-3 && Math.abs(dt1 - dt0) < 0.35 * Math.max(dt1, dt0)) {
+                double step = statP1.distanceTo(drawn);
+                if (step > 1e-4) {
+                    double twoFrame = statP2.distanceTo(drawn);
+                    statFlickerSum += Mth.clamp(1.0 - twoFrame / (2.0 * step), 0.0, 1.0);
+                    statStepSum += step;
+                    statFrameSamples++;
+                }
+            }
+        }
+        statP2 = statP1;
+        statT2 = statT1;
+        statP1 = drawn;
+        statT1 = t;
     }
 
     /**
@@ -1252,12 +1344,17 @@ public final class ClientCompanion {
         // The companion's own frame while following (§19): a camera flick rotates the view, not the
         // fish's world. Docked, the box must be camera-exact (side-on by design), so the dock blend
         // carries the frame over to the view yaw instead of snapping at the dock's first tick.
+        // Interpolated between ticks (§20) like the centre, so the box's rotation is as smooth as
+        // its translation.
+        float frameYawFollow = devLegacyFrameYaw ? frameOrientationYaw
+                : prevFrameOrientationYaw
+                + Mth.wrapDegrees(frameOrientationYaw - prevFrameOrientationYaw) * partialTick;
         float viewYaw = owner == null ? 0f
                 : owner == Minecraft.getInstance().player ? camera.yRot() : owner.getViewYRot(partialTick);
         frameYaw = devCameraLockedFrame ? viewYaw
                 : d > 0f
-                ? frameOrientationYaw + Mth.wrapDegrees(viewYaw - frameOrientationYaw) * d
-                : frameOrientationYaw;
+                ? frameYawFollow + Mth.wrapDegrees(viewYaw - frameYawFollow) * d
+                : frameYawFollow;
         // The catch wiggle (and only it) rides the rendered position: the sim keeps its calm path
         // while the fish visibly celebrates (§5).
         follow = follow.add(0, catchWiggle(partialTick), 0);
@@ -1421,6 +1518,19 @@ public final class ClientCompanion {
     /** Dev diagnostics: the lead fish's presented-facing dot with its world velocity (§19). */
     public float devFaceDot() { return flock.faceDot(); }
 
+    // Facing stats for the §20 scene: mean/max angular error against the world-velocity
+    // heading while moving, and the fastest presented turn (the snap bound).
+
+    public float devFaceErrMeanDeg() { return flock.faceErrMeanDeg(); }
+
+    public float devFaceErrMaxDeg() { return flock.faceErrMaxDeg(); }
+
+    public float devHeadingRateMaxDegPerSec() { return flock.headingRateMaxDegPerSec(); }
+
+    public int devFacingSamples() { return flock.facingSampleCount(); }
+
+    public void devResetFacingStats() { flock.resetMotionStats(); }
+
     /** Dev diagnostics: the lead fish's world speed (blocks/tick) that the facing dot pairs with. */
     public float devFaceSpeed() { return flock.faceSpeed(); }
 
@@ -1567,7 +1677,10 @@ public final class ClientCompanion {
      */
     public double devFrameDistanceToHook() {
         if (owner == null || owner.fishing == null) return -1;
-        return frameCenter.add(worldOffsetOfFish()).distanceTo(owner.fishing.position());
+        // The fully rendered position: the interpolated centre, the frame-offset scratch, and the
+        // interpolated box yaw — the same numbers the last world submit drew with.
+        return frameCenter.add(rotateY(fishOffset().scale(frameScale), -frameYaw))
+                .distanceTo(owner.fishing.position());
     }
 
     /**

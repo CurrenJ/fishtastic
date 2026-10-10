@@ -145,7 +145,7 @@ public final class RenderSelfTest {
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
             "companion", "companionparade", "companionpeek", "companionhand", "companionbond", "companionfishing",
-            "companionscenes", "companionpolish");
+            "companionscenes", "companionpolish", "companionpolish2");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -338,6 +338,7 @@ public final class RenderSelfTest {
             case "companionfishing" -> queueCompanionFishingScene();
             case "companionscenes" -> queueCompanionScenesScene();
             case "companionpolish" -> queueCompanionPolishScene();
+            case "companionpolish2" -> queueCompanionPolish2Scene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2438,17 +2439,29 @@ public final class RenderSelfTest {
                     grill24.fishtastic.companion.Companions.unequip(player);
                     player.getInventory().clearContent();
                     player.getInventory().setItem(3, bluegill.copy());
+                    // Keep the client's view of the inventory in step with the server's seeding
+                    // (the harness does not resync it from behind custom menus — see
+                    // mirrorInventoryToClient), so this scene owns its slot state no matter which
+                    // scene ran before it.
+                    mirrorInventoryToClient(mc, player);
                 }
             });
         });
         // The real bond path: the client describes the fish, the server finds it in the inventory.
         queue(10, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
                 new grill24.fishtastic.network.BondCompanionPacket(bluegill.copy()))));
-        queue(10, mc -> {
+        // "The fish left the inventory" is asserted on the SERVER, the source of truth — the client
+        // view's container resync is not reliable from behind the harness's custom menus.
+        final boolean[] bondTookTheFish = new boolean[1];
+        queue(5, mc -> server(mc, s -> {
+            for (var player : s.getPlayerList().getPlayers()) {
+                bondTookTheFish[0] = player.getInventory().getItem(3).isEmpty();
+            }
+        }));
+        queue(1, mc -> {
             ItemStack synced = grill24.fishtastic.companion.CompanionStorage.get(mc.player);
             check("companion.bondSyncedToClient", ItemStack.matches(synced, bluegill), "synced=" + synced);
-            check("companion.bondTookTheFish", mc.player.getInventory().getItem(3).isEmpty(),
-                    "slot3=" + mc.player.getInventory().getItem(3));
+            check("companion.bondTookTheFish", bondTookTheFish[0], "server-slot3-empty=" + bondTookTheFish[0]);
             check("companion.tracked", grill24.fishtastic.client.companion.ClientCompanions.count() == 1,
                     "tracked=" + grill24.fishtastic.client.companion.ClientCompanions.count());
         });
@@ -3074,16 +3087,17 @@ public final class RenderSelfTest {
         });
 
         // --- Locked state -----------------------------------------------------
+        // Since the §20 listing rule the tab only shows the equipped companion or an unlocked
+        // species you are carrying — a locked species has nothing to act on and is absent, even
+        // while its fish is carried (its progress lives on the Fish tab).
         queue(5, mc -> bondScreen(mc).devShowCompanions());
         queue(10, mc -> {
             check("bond.companionsView", bondScreen(mc).devOnCompanionsView(), "");
-            check("bond.rowCount", bondScreen(mc).devCompanionRowCount() >= 1,
+            check("bond.lockedAbsent",
+                    !bondScreen(mc).devHasRow(Ids.of("fishtastic", "bluegill"))
+                            && bondScreen(mc).devCompanionRowCount() == 0,
                     "rows=" + bondScreen(mc).devCompanionRowCount());
-            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "bluegill"));
-            String expected = "Bond: " + (lore - 1) + "/" + lore + " catches";
-            check("bond.lockedStatus", expected.equals(status), "status=" + status + " expected=" + expected
-                    + " cached=" + grill24.fishtastic.client.FishEncyclopediaClientCache.getCatchCount(Ids.of("fishtastic", "bluegill")));
-            screenshot(mc, "companionbond", "locked_status");
+            screenshot(mc, "companionbond", "locked_absent");
         });
 
         // --- Unlock: raise the count, reopen, expect the FTUE + banner ---------
@@ -3146,16 +3160,28 @@ public final class RenderSelfTest {
         });
 
         // --- Unlisted species line -------------------------------------------
-        // One catch first: the tab only lists discovered species (and so does the disc). Caught but
-        // not quest-unlocked, the row must say so — then the dev unlock flips it and fires its banner.
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:molten_moorish_idol 1")));
+        // Under the §20 listing rule a locked row never shows, so the "unlocks via quest" line is
+        // unreachable from this tab (the species' page can carry it later if wanted). What the tab
+        // must show for a signature species is the same as any other: unlocked + carried.
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fishtastic companion catchcount @p fishtastic:molten_moorish_idol 1");
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                player.getInventory().add(fish("molten_moorish_idol", 40f));
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
         queue(15, mc -> {
-            String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "molten_moorish_idol"));
-            check("bond.unlistedLockedStatus",
-                    "Bond unlocks via a hidden quest".equals(status), "status=" + status);
-            screenshot(mc, "companionbond", "unlisted_row");
+            check("bond.unlistedLockedAbsent",
+                    !bondScreen(mc).devHasRow(Ids.of("fishtastic", "molten_moorish_idol")),
+                    "rows=" + bondScreen(mc).devCompanionRowCount());
+            screenshot(mc, "companionbond", "unlisted_locked_absent");
         });
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion unlock @p fishtastic:molten_moorish_idol")));
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fishtastic companion unlock @p fishtastic:molten_moorish_idol");
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
         queue(15, mc -> {
             String status = bondScreen(mc).devCompanionStatus(Ids.of("fishtastic", "molten_moorish_idol"));
             check("bond.unlistedStatus", "Bond available".equals(status), "status=" + status);
@@ -3180,6 +3206,7 @@ public final class RenderSelfTest {
             for (ServerPlayer player : s.getPlayerList().getPlayers()) {
                 grill24.fishtastic.companion.Companions.unequip(player);
                 player.getInventory().clearContent();
+                mirrorInventoryToClient(mc, player); // no stale carried fish for the next scene
             }
         }));
         queue(10, mc -> companionLog("bond scene end"));
@@ -3438,17 +3465,17 @@ public final class RenderSelfTest {
                     == grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
                     "phantom scene=" + (partner == null ? "no phantom" : partner.sceneType()));
         });
-        // The bubble heart pops at HEART_TICK (2 s in) — catch it while it lives. Injected at T,
-        // so this lands right after T+40.
-        queue(30, mc -> screenshot(mc, "companionscenes", "g1_heart"));
+        // The bubble heart pops at HEART_TICK (3.5 s in, §20's slowed lap) — catch it while it
+        // lives. Injected at T, so this lands right around T+70.
+        queue(56, mc -> screenshot(mc, "companionscenes", "g1_heart"));
         // The loop swing is wide enough that first person can frame neither fish at a given
         // instant — take the geometry shots from behind the player, which holds the pair in frame.
         queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
         // Sample both companions' offset from the scene midpoint. A fish circling the shared loop
-        // sweeps a full turn in 40 ticks; merely following would keep a near-constant bearing —
-        // so the swept ANGLE (not the distance) is the discriminator, and the pair must stay on
-        // opposite sides while it spins. 12 samples over 60 ticks covers one and a half loops.
-        for (int i = 0; i < 12; i++) {
+        // sweeps a full turn in 140 ticks (§20's slowed lap); merely following would keep a
+        // near-constant bearing — so the swept ANGLE (not the distance) is the discriminator, and
+        // the pair must stay on opposite sides while it spins. 24 samples over 120 ticks.
+        for (int i = 0; i < 24; i++) {
             queue(5, mc -> {
                 grill24.fishtastic.client.companion.ClientCompanion local = companion();
                 grill24.fishtastic.client.companion.ClientCompanion partner =
@@ -3479,9 +3506,9 @@ public final class RenderSelfTest {
                     "opposite=" + opposite + "/" + g1LocalOffsets.size());
             screenshot(mc, "companionscenes", "g1_loop");
         });
-        // G1 lasts 120 ticks and the injection happened at the scene's first queue — long enough
-        // after it that the scene must be over (and the blend home started).
-        queue(20, mc -> {
+        // G1 lasts 240 ticks (§20) and the injection happened at the scene's first queue — this
+        // lands well after the scene must be over (sampling alone runs 120 ticks of it).
+        queue(60, mc -> {
             check("scenes.g1Ended", companion() != null && !companion().isInScene(),
                     "scene=" + (companion() == null ? "none" : companion().sceneType()));
             grill24.fishtastic.client.companion.ClientCompanion partner =
@@ -3509,7 +3536,8 @@ public final class RenderSelfTest {
         });
         queue(30, mc -> screenshot(mc, "companionscenes", "g2_eight_a"));
         queue(60, mc -> screenshot(mc, "companionscenes", "g2_eight_b"));
-        queue(110, mc -> {
+        // G2 lasts 320 ticks (§20) — wait it out (the two shots above land mid-scene by design).
+        queue(240, mc -> {
             check("scenes.g2Ended", companion() != null && !companion().isInScene(),
                     "scene=" + (companion() == null ? "none" : companion().sceneType()));
             screenshot(mc, "companionscenes", "g2_after");
@@ -3713,6 +3741,11 @@ public final class RenderSelfTest {
                 companion() != null && companion().sceneType() == grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
                 "scene=" + (companion() == null ? "none" : companion().sceneType())));
         queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        // Skip the blend-in: the swing from the follow orbit onto the ring is a genuine direction
+        // reversal, and with the facing cap at the sim's own turn rate (docs §20) the nose lags
+        // through it on purpose — exactly as a tank fish does. The check measures the steady ring,
+        // where "no sampled frame faces backwards" must hold outright.
+        queue(10, mc -> {});
         for (int i = 0; i < 20; i++) {
             queue(2, mc -> {
                 var c = companion();
@@ -3755,6 +3788,207 @@ public final class RenderSelfTest {
             });
         });
         queue(10, mc -> companionLog("polish scene end"));
+    }
+
+    /**
+     * Playtest round 2 (docs §20): the baseline-motion metrics — position flicker and the
+     * presented heading's angular error against the true world velocity — over a plain-follow
+     * window, with an in-run pair for the frame-yaw interpolation (legacy snap vs interpolated);
+     * then the Companions tab's carried-and-unlocked listing rule and the bond picker's viewport
+     * pin under scroll. Peeks and tricks are suppressed for the motion window so only baseline
+     * motion moves the fish.
+     */
+    private static void queueCompanionPolish2Scene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        bondFish("bluegill", 25f);
+        queue(40, mc -> {
+            check("polish2.ready", companion() != null, "");
+            mc.player.setXRot(0f);
+            mc.player.setYRot(180f);
+            mc.player.setYBodyRot(180f);
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(true);
+        });
+
+        // ── Jitter, legacy half: the frame yaw steps at tick rate, as before the fix ──
+        queue(60, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devLegacyFrameYaw(true);
+            if (companion() != null) companion().devResetFrameStats();
+        });
+        queue(200, mc -> {
+            var c = companion();
+            Fishtastic.LOGGER.info("[selftest] polish2.wiggle legacy (un-interpolated frame yaw): flicker={} step={} frames={}",
+                    c == null ? "n/a" : String.format(Locale.ROOT, "%.3f", c.devFrameFlicker()),
+                    c == null ? "n/a" : String.format(Locale.ROOT, "%.5f", c.devFrameStep()),
+                    c == null ? 0 : c.devFrameSamples());
+        });
+
+        // ── Jitter + facing, fixed half: interpolated frame yaw, velocity heading ──
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devLegacyFrameYaw(false);
+            var c = companion();
+            if (c != null) {
+                c.devResetFrameStats();
+                c.devResetFacingStats();
+            }
+        });
+        queue(200, mc -> {
+            var c = companion();
+            if (c == null) {
+                check("polish2.window", false, "no companion");
+                return;
+            }
+            float flicker = c.devFrameFlicker();
+            float step = c.devFrameStep();
+            int frames = c.devFrameSamples();
+            float meanErr = c.devFaceErrMeanDeg();
+            float maxErr = c.devFaceErrMaxDeg();
+            float rateMax = c.devHeadingRateMaxDegPerSec();
+            int facing = c.devFacingSamples();
+            Fishtastic.LOGGER.info("[selftest] polish2.window flicker={} step={} frames={} | faceMeanDeg={} faceMaxDeg={} rateMaxDegPerSec={} facing={} dot={}",
+                    String.format(Locale.ROOT, "%.3f", flicker),
+                    String.format(Locale.ROOT, "%.5f", step),
+                    frames,
+                    String.format(Locale.ROOT, "%.1f", meanErr),
+                    String.format(Locale.ROOT, "%.1f", maxErr),
+                    String.format(Locale.ROOT, "%.0f", rateMax),
+                    facing,
+                    String.format(Locale.ROOT, "%.3f", c.devFaceDot()));
+            check("polish2.frames", frames >= 120, "frames=" + frames);
+            // Fixed basis: the drawn position must travel smoothly (period-2 reverberation ≈ 1).
+            check("polish2.flicker", !Float.isNaN(flicker) && flicker <= 0.2f,
+                    "flicker=" + flicker + " step=" + step + " frames=" + frames);
+            // The presented heading is the world-velocity heading (tank-fidelity): tight mean
+            // angular error while moving, and never a snap (the rate cap bounds every step).
+            check("polish2.facingMean", facing >= 60 && meanErr < 10f,
+                    "mean=" + meanErr + " n=" + facing);
+            check("polish2.facingMax", facing >= 60 && maxErr < 35f, "max=" + maxErr);
+            check("polish2.headingRate", rateMax <= 200f, "rate=" + rateMax);
+            screenshot(mc, "companionpolish2", "follow_window");
+        });
+
+        // ── The §20 listing rule: equipped OR (unlocked AND carried) ──────────────
+        // Four distinct states, one species each, so every row is unambiguous: bluegill is the
+        // EQUIPPED one (bondFish) and is not carried; betta is unlocked-and-carried; plaice is
+        // locked-and-carried; clown_loach is unlocked-and-not-carried.
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                player.getInventory().clearContent();
+                player.getInventory().setItem(0, fish("betta", 20f));
+                player.getInventory().setItem(1, fish("plaice", 20f));
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fishtastic companion unlock @p fishtastic:betta");
+            run(s, "fishtastic companion unlock @p fishtastic:clown_loach");
+        }));
+        queue(10, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                new grill24.fishtastic.network.RequestFishEncyclopediaPacket(true))));
+        queue(20, mc -> bondScreen(mc).devShowCompanions());
+        queue(10, mc -> {
+            var screen = bondScreen(mc);
+            check("polish2.carriedShown", screen.devHasRow(Ids.of("fishtastic", "betta")),
+                    "rows=" + screen.devCompanionRowCount());
+            check("polish2.carriedLockedAbsent", !screen.devHasRow(Ids.of("fishtastic", "plaice")),
+                    "rows=" + screen.devCompanionRowCount());
+            check("polish2.unlockedNotCarriedAbsent", !screen.devHasRow(Ids.of("fishtastic", "clown_loach")),
+                    "rows=" + screen.devCompanionRowCount());
+            check("polish2.equippedShown", screen.devHasRow(Ids.of("fishtastic", "bluegill")),
+                    "rows=" + screen.devCompanionRowCount());
+            screenshot(mc, "companionpolish2", "tab_filter");
+        });
+        // Carrying nothing at all: only the equipped row remains (Unequip/rename stay reachable).
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                player.getInventory().clearContent();
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
+        queue(10, mc -> {
+            var screen = bondScreen(mc);
+            check("polish2.equippedOnly", screen.devHasRow(Ids.of("fishtastic", "bluegill"))
+                            && screen.devCompanionRowCount() == 1,
+                    "rows=" + screen.devCompanionRowCount());
+            screenshot(mc, "companionpolish2", "tab_equipped_only");
+        });
+
+        // ── The §20 picker pin under scroll ───────────────────────────────────────
+        // Enough rows to actually scroll: several species unlocked-and-carried, plus the equipped
+        // bluegill. Without real scrollable content the pin assertion below would be vacuous.
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                player.getInventory().setItem(0, fish("bluegill", 25f));
+                player.getInventory().setItem(1, fish("betta", 20f));
+                player.getInventory().setItem(2, fish("clown_loach", 20f));
+                player.getInventory().setItem(3, fish("sulphur_molly", 10f));
+                player.getInventory().setItem(4, fish("neon_goby", 8f));
+                player.getInventory().setItem(5, fish("moorish_idol", 30f));
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fishtastic companion unlock @p fishtastic:clown_loach");
+            run(s, "fishtastic companion unlock @p fishtastic:sulphur_molly");
+            run(s, "fishtastic companion unlock @p fishtastic:neon_goby");
+            run(s, "fishtastic companion unlock @p fishtastic:moorish_idol");
+        }));
+        queue(5, mc -> {
+            bondScreen(mc).devShowFish();
+            bondScreen(mc).devShowCompanions();
+        });
+        queue(1, mc -> bondScreen(mc).devSetScroll(9999f)); // clamp puts us at the bottom
+        queue(3, mc -> {
+            check("polish2.scrolled", bondScreen(mc).devScrollY() > 0.5f,
+                    "scroll=" + bondScreen(mc).devScrollY() + " rows=" + bondScreen(mc).devCompanionRowCount());
+            screenshot(mc, "companionpolish2", "scrolled");
+        });
+        queue(1, mc -> bondScreen(mc).devOpenPicker(Ids.of("fishtastic", "bluegill")));
+        queue(3, mc -> {
+            var screen = bondScreen(mc);
+            float[] b = screen.devPickerBounds();
+            float[] dim = screen.devPickerDimBounds();
+            float w = screen.devScreenWidth(), h = screen.devScreenHeight();
+            Fishtastic.LOGGER.info("[selftest] polish2.picker bounds={} dim={} screen={}x{} scroll={}",
+                    java.util.Arrays.toString(b), java.util.Arrays.toString(dim), w, h, screen.devScrollY());
+            check("polish2.pickerOnScreen",
+                    b != null && b[0] >= -1f && b[1] >= -1f && b[0] + b[2] <= w + 1f && b[1] + b[3] <= h + 1f,
+                    "bounds=" + java.util.Arrays.toString(b) + " screen=" + w + "x" + h);
+            check("polish2.dimCovers", dim != null && dim[1] <= 0.5f && dim[3] >= h - 1f,
+                    "dim=" + java.util.Arrays.toString(dim));
+            // A scroll while open (the dev path bypasses the modal swallow) must not move it: that
+            // exercises the per-tick pin, not the input block.
+            screen.devSetScroll(9999f);
+        });
+        queue(3, mc -> {
+            var screen = bondScreen(mc);
+            float[] b = screen.devPickerBounds();
+            check("polish2.pickerPinned",
+                    b != null && b[1] >= -1f && b[1] + b[3] <= screen.devScreenHeight() + 1f,
+                    "bounds=" + java.util.Arrays.toString(b) + " scroll=" + screen.devScrollY());
+            screenshot(mc, "companionpolish2", "picker_scrolled");
+        });
+        queue(1, mc -> bondScreen(mc).devSelectPickerRow(0));
+        queue(3, mc -> screenshot(mc, "companionpolish2", "picker_selected_scrolled"));
+        queue(1, mc -> bondScreen(mc).devCancelPicker());
+        queue(3, mc -> check("polish2.pickerClosed", bondScreen(mc).devPickerBounds() == null, ""));
+
+        // ── Cleanup ───────────────────────────────────────────────────────────────
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(false);
+            grill24.fishtastic.client.companion.ClientCompanions.devLegacyFrameYaw(false);
+            mc.setScreen(null);
+        });
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.unequip(player);
+                player.getInventory().clearContent();
+                mirrorInventoryToClient(mc, player); // no stale carried fish for the next scene
+            }
+        }));
+        queue(10, mc -> companionLog("polish2 scene end"));
     }
 
     private static void queueHudScene() {

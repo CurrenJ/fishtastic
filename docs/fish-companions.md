@@ -883,3 +883,104 @@ Screenshots reviewed: after the flick the fish is *not* parked in the new view �
 was, which is the fix's point; during a scene the fish reads side-on along the ring. Open for the
 owner, as ever: the exact frame rates and the fade band are named constants to tune in game.
 
+
+---
+
+## 20. Playtest round 2 (2026-10-10/11)
+
+The owner's second in-game session: (1) close-range jitter, (2) fish still frequently facing away
+from their motion, (3) the Companions tab lists too much, (4) the bond picker renders off-screen
+when the tab is scrolled. Scene `companionpolish2` (opt-in) measures the motion fixes with numbers,
+drives every new check, and screenshots the tab and picker states.
+
+**Facing is now tank-faithful (item 2, supersedes §19's blend).** §19 blended between the sim's
+heading and the velocity heading over a speed band, so the drawn nose sat ~44° off its motion on
+average (dot 0.71) and the blend weight could change tick-to-tick — the owner read both as
+"moving in a direction it is not facing". `CompanionFlock` now measures each fish's **world
+velocity per frame** (from consecutive frames' drawn positions: box travel + rotated local swim —
+frame resolution, not tick velocities, whose direction flips discretely) and draws the heading
+that points along it, turned at a cap of **140°/s — the sim's own yaw rate by construction**
+(`PLANAR_TURN_RATE` 7°/tick), with enter/exit hysteresis (`FACE_MOVE_ENTER/EXIT`
+0.004/0.002 blocks/tick) so a near-stationary fish holds its facing instead of flickering. The
+camera-locked dock stays exempt (local IS world there). **Measured** over a calm-follow window:
+mean angular error between the drawn nose and the true world velocity **0.0°** (dot 0.999–1.000,
+n≈300) where §19 measured ~44° mean; the fastest calm turn was 51–115°/s. First attempt capped at
+2160°/s; the owner watching a live run flagged "large, near instantaneous rotation changes"
+during the pet-to-pet scenes — the cap was 15× the sim's own turn rate and the scene paths
+demanded more than a tank fish could ever produce. Both were corrected together (below).
+
+**The pet-to-pet scenes move slowly now.** Same review, second message: "G1 is just much too
+fast in general. So is the figure eight... we can take time and let fish move slower." The G1 ring
+ran a lap in 2 s (180°/s of nose rotation — beyond the sim's own turn rate) and G2's eight in 5 s.
+Slowed to a 7 s lap (G1, ~51°/s, ~1 block/s along the ring) and a 10 s eight (G2, ~72°/s per lobe),
+with the heart moment moved to 3.5 s — mid-first-lap — and both durations extended to match (240 /
+320 ticks). Scene start times and the cooldown are unaffected; the scenes' shared-timing contract
+in `CompanionSceneType` is where the numbers live.
+
+**Close-range jitter (item 1).** Two positional suspects were real and are fixed: the box's frame
+yaw was drawn **un-interpolated** (its rotation stepped at 20 Hz while everything else interpolated
+per frame), and the tick-side `fishCentred` compensation read the engine's **frame-interpolated**
+scratch (a render→tick feedback path). The yaw now interpolates like the centre
+(`prevFrameOrientationYaw`), and tick-side compensation reads the engine's tick-exact position via
+`FlockEngine#toRender` (`CompanionFlock#fishOffsetTick`). An in-run legacy-vs-fixed pair (a dev
+seam restoring both old behaviours) measures the drawn position's period-2 reverberation: legacy
+flicker 0.005–0.026 vs fixed 0.006–0.019 across four runs (short-window ratio; 0 = smooth
+travel), mean per-frame step ~0.01 blocks. The larger perceptual component was the heading: §19's
+blend could wobble the nose tick-to-tick at ~10° amplitude, which on a thin sprite at close range
+reads as rapid jumping — the velocity-tracked heading removes it (mean error 0.0°, above).
+
+**Companions tab lists only what you can act on (item 3).** A species row now appears **iff** it is
+the equipped companion (so Unequip and the name field stay reachable) **or** its bond is unlocked
+**and** the player is carrying one of its fish right now (loose inventory or inside a Pile of Fish,
+via `CarriedFish`). The "Bond: N/M catches" progress lines and the unlisted species' "unlocks via
+quest" line are consequently unreachable from this tab (the Fish tab still carries species
+progress; the quest pointer can move to the species page later if wanted). The tab also follows the
+inventory live: a cheap carried-fingerprint in `tickCompanionsView` rebuilds the rows when the
+carried set moves under the open screen. Scene-checked in all four states (`carriedShown`,
+`carriedLockedAbsent`, `unlockedNotCarriedAbsent`, `equippedOnly`) with screenshots, and the phase-4
+`companionbond` scene was updated to the new semantics.
+
+**Bond picker pinned under scroll (item 4).** The picker used to be added to the scrolling root at
+screen-space positions, so scrolling the tab pushed it off-screen. The dim and the panel are now
+pinned to the viewport (local position = screen position + `uiScreen.getScrollY()`, re-applied
+every tick by `pinBondPicker`, so no scroll path can displace them) and the screen swallows mouse
+scroll while the picker is open (it is modal). Scene-verified at scroll ≈ 50: panel bounds
+(210, 110, 220, 72.6) fully inside the 640×360 screen, dim covering the viewport, selection and
+Confirm still working scrolled, and the pin holding after a further programmatic scroll — with
+screenshots of each.
+
+**Harness findings from this round** (all scene tooling, all fixed):
+- The phase-2 `companion` scene's "the fish left the inventory" check read the CLIENT container,
+  which the harness does not reliably resync from behind custom menus; a fish mirrored by the
+  reworked bond scene's unlisted leg sat in the client's slot 3 and the check failed in the suite
+  though it passes alone. The check now asserts on the server (the source of truth) and the scene
+  mirrors its own slot seeding; the bond and polish2 scenes mirror their cleanups too, so no scene
+  inherits another's carried state.
+- One Fabric suite run lost its failure reason to `| tail` (the rule exists for a reason); the
+  following run then hit a stale Gradle daemon (`:common:jar` → `ClosedFileSystemException`) fixed
+  by `./gradlew --stop`. Both are process notes, not code.
+
+**Verification** — every claim maps to a literal run; the logs are archived in the run dirs
+(`fabric/run/logs/suite-run1..5.log`, `targeted-polish.log`; the NeoForge run’s
+`neoforge/run/logs/latest.log`):
+
+- **Fabric, run 4** — full 9-scene suite on the final FEATURE code (before the sampling-window
+  fix): **119 checks, 1 failure**. The failure was `polish.facesVelocity` (min −0.20): the check
+  still sampled the scene’s blend-in entrance — a real >90° direction reversal that the tank-rate
+  cap now lags through on purpose. Everything else green.
+- **Sampling-window fix** (test-only): the check now starts after the blend. **Targeted
+  `companionpolish` re-run: 15 checks, 0 failures** (min 0.17).
+- **NeoForge** — full 9-scene suite, one guard-script run on the final feature+test code:
+  **119 checks, 0 failures** (`polish.facesVelocity` min 0.51; G1 spin 6.12/6.25 rad, antipodal
+  24/24; calm-follow facing mean 0.0° at 43°/s max).
+- **Fabric, run 5** — full 9-scene suite on the exact final tree (feature + test), the run the
+  commit stands on: **119 checks, 0 failures** (`polish.facesVelocity` min 0.46, mean 0.83; G1
+  spin 5.97/6.20 rad, antipodal 24/24; calm-follow facing mean 0.0°, dot 0.999, 35°/s max; jitter
+  flicker 0.005 at ~0.011 blocks per frame).
+
+Development history behind those numbers, per run: jitter legacy-vs-fixed flicker pairs across
+runs 1–5 = 0.026/0.019, 0.009/0.006, 0.005/0.006, 0.006/0.006, 0.006/0.005. The facing check’s
+earlier failures are what pointed at the scene speed and are superseded: run 2 (1080°/s cap)
+min −0.09; run 3 (2160°/s cap, old 2 s ring) PASS 0.20; run 4 (140°/s cap, stale window)
+min −0.20. Open for the owner: the turn-rate cap, the hysteresis band and both scene timings are
+named constants, tunable in game like the rest.

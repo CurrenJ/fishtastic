@@ -17,10 +17,16 @@ import net.minecraft.network.codec.StreamCodec;
  * views in sync without a single per-tick packet.
  */
 public enum CompanionSceneType {
-    /** G1: same species — a synchronized loop plus a bubble heart. */
-    G1_SAME_SPECIES(120, 40),
-    /** G2: two free swimmers — a figure-eight around both owners. */
-    G2_FREE_SWIM_EIGHT(200, 100);
+    // Path speeds are chosen to stay inside the sim's own yaw rate (PLANAR_TURN_RATE 7 deg/tick =
+    // 140 deg/s, the companion's facing cap — docs §20), and to let the pair move SLOWLY: owner
+    // playtest, 2026-10-11: "no need for the scenes to be so rapid, we can take time and let fish
+    // move slower." G1's ring turns the nose at ~51 deg/s (~1 block/s along the ring); G2's eight
+    // at ~72 deg/s per lobe with brief binding at its two crossings' U-turns.
+
+    /** G1: same species — a synchronized loop plus a bubble heart. Two 7 s laps; the heart at 3.5 s. */
+    G1_SAME_SPECIES(240, 140),
+    /** G2: two free swimmers — a figure-eight around both owners. Each eight takes 10 s. */
+    G2_FREE_SWIM_EIGHT(320, 200);
 
     private final int durationTicks;
     private final int pathTicks;

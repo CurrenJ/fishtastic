@@ -1,37 +1,35 @@
 # Fish Companions — Implementation Handoff
 
-> **Read this first to resume.** Written 2026-10-10 at the end of Phase 2; updated after phases 3–5.
-> Everything needed to start the next phase is here or linked from here. Branch: `26.1.2`. Nothing
-> is pushed.
+> **Read this first to resume.** Current as of 2026-10-10 (evening): **v1 complete** (phases 0–6),
+> first-playtest polish shipped, and **playtest round 2 in flight** (the fixes land as §20 and a new
+> commit; this doc will be reconciled when they do). Branch: `26.1.2`. Nothing is pushed.
 
 **To resume in a new session, say:**
-> Read `docs/fish-companions-handoff.md` and continue the fish companions implementation from the
-> next phase, one fork per phase, verifying each with the headless render self-tests.
+> Read `docs/fish-companions-handoff.md` and continue the fish companions work from the next item,
+> one fork at a time, verifying each with the headless render self-tests.
 
 ---
 
 ## 1. Where things stand
 
-| Phase | Status | Commit |
+| Item | Status | Commit |
 |---|---|---|
-| 0. Spike: rendering, docking, sim reuse | ✅ Done, verified on both loaders | `76629f06` |
+| 0. Spike: rendering, docking, sim reuse | ✅ Done, both loaders | `76629f06` |
 | 1. Encyclopedia thresholds derived from rarity | ✅ Done | `703a09b1` |
-| — NeoForge create-world deadlock fix (blocked NeoForge testing) | ✅ Done | `9b203ace` |
-| 2. Data and sync (per-player slot, bond/unequip, multi-player rendering) | ✅ Done, verified on both loaders | `787a4097` |
-| **3. Display modes** | ✅ Done, verified on both loaders (see fish-companions.md §15) | `92626048` |
-| **4. Bonding UI** | ✅ Done, verified on both loaders (see fish-companions.md §16) | `802470b9` |
-| **5. Fishing reactions** | ✅ Done, verified on both loaders (see fish-companions.md §17) | `ce429e94` |
-| **6. Pet-to-pet (v1: G1, G2)** | ✅ Done, verified on both loaders (see fish-companions.md §18) | `c9756261` |
-| Later: personality, world and player reactions; scenes G3–G6; signature companions | Not started | — |
-| Planned improvements: tank interactions (E3, E4) | **Deferred by owner — do not build** | — |
-| Post-v1 polish (owner playtest 2026-10-10): calm idle, view-decoupling, face-velocity, solo debug commands | ✅ Done, verified on both loaders (see fish-companions.md §17, §19) | `37406056` |
+| — NeoForge create-world deadlock fix | ✅ Done | `9b203ace` |
+| 2. Data and sync (slot, bond/unequip, multi-player rendering) | ✅ Done, both loaders | `787a4097` |
+| 3. Display modes (+ peeks, held-item reactions, trios, water, settings) | ✅ Done, both loaders | `92626048` |
+| 4. Bonding UI (tab, picker, real gate, unlocks, FTUE, banners) | ✅ Done, both loaders | `802470b9` |
+| 5. Fishing reactions (line, dock, bar-state, catch/escape, others' view) | ✅ Done, both loaders | `ce429e94` |
+| 6. Pet-to-pet v1: G1, G2 — **completes v1** (R8.1) | ✅ Done, both loaders | `c9756261` |
+| Post-playtest polish: calm idle, view-decoupling, face-velocity, solo commands | ✅ Done, both loaders | `37406056` |
+| **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20); parent records the hash | — |
+| Later: personality (§4), world (§6) and player (§7) reactions; scenes G3–G6; signature companions | Not started | — |
+| Tank interactions (E3, E4) | Deferred by owner — do not build | — |
 
-The active session goal was "complete all phases using forks and verify using self render tests".
-The owner paused it after Phase 2 to get this handoff; phases 3–6 landed the same day (2026-10-10)
-as `92626048`, `802470b9`, `ce429e94` and `c9756261`, one fork each, verified on both loaders —
-**v1 = phases 0–5 + G1/G2 is complete** (R8.1). Post-v1 polish from the owner's first playtest
-follows: baseline paths decoupled from camera rotation, companions facing their world velocity,
-and in-game debug commands to trigger every companion animation solo.
+**v1 = phases 0–5 plus scenes G1/G2** (R8.1). Everything was built fork-per-phase, verified
+headlessly on Fabric + NeoForge, parent-reviewed and committed. The owner is now playtesting in
+game and filing rounds of feedback — see §6 for how rounds are worked.
 
 ---
 
@@ -39,150 +37,194 @@ and in-game debug commands to trigger every companion animation solo.
 
 | File | What it is |
 |---|---|
-| [`fish-companions.md`](fish-companions.md) | **The spec.** §1–§12 design, §13–§18 phase as-built sections (0, 2, 3, 4, 5, 6). Follow it. |
-| [`fish-companion-ideas.md`](fish-companion-ideas.md) | Owner's yes/no answers to the original idea list (IDs A1–I4). Rejected items stay rejected. |
-| [`fish-companion-review.md`](fish-companion-review.md) | Owner's yes/no answers to the two-reviewer pass (IDs R1.1–R8.3), with dev notes. |
+| [`fish-companions.md`](fish-companions.md) | **The spec + as-built log.** §1–§12 design; §13 Phase 0 findings/pitfalls; §14–§18 phases 2–6 as built; §19 post-v1 polish; §20 round 2 (pending). |
+| [`fish-companion-ideas.md`](fish-companion-ideas.md) | Owner's yes/no answers to the original idea list (A1–I4). Rejected items stay rejected. |
+| [`fish-companion-review.md`](fish-companion-review.md) | Owner's yes/no answers to the two-reviewer pass (R1.1–R8.3). |
 | [`encyclopedia-tier-review.md`](encyclopedia-tier-review.md) | Phase 1 tier table per species. |
 
 **Owner decisions that aren't obvious from the spec text:**
 - Cosmetic only. Fishing reactions are the top priority (A1).
-- Minimum drawn length while following is **0.25 blocks**; larger fish stay true to scale. Docked fish are a fixed screen size.
-- The docked fish is a **real 3D perspective model drawn on top of the HUD** through the picture-in-picture renderer. The owner pushed back on "3D can't be on the HUD", so don't regress to flat GUI items.
-- Docking happens in first **and** third person. The "wait at the bobber" setting defaults to **off**, i.e. the fish docks.
-- Pet-to-pet scenes are **server-scheduled**, with a **per-companion cooldown only**. No per-pair history (R5.4 was rejected).
-- The bond requires a **fully complete** encyclopedia entry. Thresholds are per species, never totalled across species, and capped at 50 catches.
-- Unlisted fish (`#fishtastic:unlisted_fish`) are **quest-only** companions. The encyclopedia must name the unlocking quest.
-- Reuse the fish sim's logic. Don't write new motion code where the sim already does it.
-- **Rejected:** ghost phasing, triggering cosmetic reactions, "met species" stamps, a shop purchase, a curio slot, retiring to a tank.
+- Minimum drawn length while following is **0.25 blocks** (`ClientCompanion.MIN_FOLLOW_LENGTH`);
+  larger fish true to scale. Docked fish are a fixed screen size.
+- The docked fish is a **real 3D perspective model on the HUD** through the picture-in-picture
+  renderer — never regress to flat GUI items.
+- Docking in first **and** third person; "wait at the bobber" defaults **off** (it docks).
+- Pet-to-pet scenes are **server-scheduled**, **per-companion cooldown only**, no per-pair history.
+- The bond needs a **fully complete** encyclopedia entry; per species, never totalled, ≤50 catches.
+- Unlisted fish are quest-only companions; the encyclopedia names the unlocking quest.
+- Reuse the fish sim; only adapt what the open world forces.
+- **Motion taste (playtest-derived):** calm baseline / lively reactions (no frantic idle bob);
+  the fish is a **separate entity** — resting paths must not be locked to camera rotation; the
+  fish must **face its world velocity** like the tank sim does; motion must be **smooth as butter**
+  (round 2: kill the small high-frequency jitter). These are recorded as memory notes too.
+- **Round 2 decision:** the Companions tab lists a species **only when the bond is unlocked and
+  the player carries a fish of that species right now** (plus the equipped companion, so Unequip/
+  rename stay reachable). Catch-progress lines therefore live in the main encyclopedia Fish tab.
+- **Rejected:** ghost phasing, triggering cosmetic reactions, "met species" stamps, a shop
+  purchase, a curio slot, retiring to a tank.
 
 ---
 
-## 3. Code map (as of Phase 2)
+## 3. Code map (current)
 
+**Server**
 | Path | Role |
 |---|---|
-| `common/.../companion/CompanionStorage` | `@ExpectPlatform` get/set of the per-player companion `ItemStack` |
-| `neoforge/.../companion/neoforge/CompanionStorageImpl` | `AttachmentType<ItemStack>`: `copyOnDeath`, synced to the owner and to trackers |
-| `fabric/.../companion/fabric/CompanionStorageImpl` | `AttachmentRegistry`: persistent, `copyOnDeath`, `syncWith(all)`; empty means "not attached" |
-| `common/.../companion/Companions` | Server operations: `bond` (full-component match in inventory, then in Piles of Fish), `unequip`, `equip` |
-| `common/.../companion/CompanionBondGate` | **Phase 4 stub**: `isUnlocked` returns true |
-| `common/.../network/BondCompanionPacket`, `UnequipCompanionPacket` | C2S requests |
-| `common/.../client/companion/ClientCompanions` | One `ClientCompanion` per visible player with a companion; `addPhantom` is a dev hook for tests |
-| `common/.../client/companion/ClientCompanion` | Follow box, dock blend, world submit, HUD submit (per-player version of the old spike) |
-| `common/.../client/companion/CompanionPipRenderer`, `CompanionPipRenderState` | Perspective picture-in-picture renderer for the docked fish |
-| `common/.../client/renderer/CompanionFlock` | Sim wrapper: planar group engine in a 3×2×3 follow box; single-tank binary engine when docked |
-| `FishingMinigameAnimation.companionDockAnchor` | Dock lane anchor in GUI px (left of the gear column, below its icons) |
-| `IGuiGraphicsExtension.fishtastic$addPictureInPicture` (+ `GuiGraphicsMixin`) | Queues the PiP draw (vanilla keeps `guiRenderState` private) |
-| Loader hooks | NeoForge: `SubmitCustomGeometryEvent`, `RegisterPictureInPictureRenderersEvent`, client tick, `RenderGuiEvent.Post`. Fabric: `LevelRenderEvents.COLLECT_SUBMITS`, `PictureInPictureRendererRegistry`, `END_CLIENT_TICK`, HUD element |
-| `command/CompanionCommand` | Dev-only: `/fishtastic companion on\|off\|give <player> <species> [size]\|minigame\|stopgame` |
-| testmod `CompanionGameTests` | 9 gametests registered on both loaders; the death test uses a per-loader respawn hook |
-| `client/selftest/RenderSelfTest` scene `companion` | Opt-in headless render scene: follow, dock, handoff, turn, third person, bond/unequip, phantom second companion |
+| `companion/CompanionStorage` (+ per-loader `*Impl`) | Per-player companion `ItemStack` attachment (NeoForge `AttachmentType`, Fabric `AttachmentRegistry`); `copyOnDeath`, synced. |
+| `companion/Companions` | Operations: `bond` (full-component match in inventory, then Piles of Fish), `unequip`, `equip`, `rename`. Results `BONDED/NOT_A_FISH/LOCKED/NOT_CARRIED`. |
+| `companion/CompanionBondGate` | Real gate: `refresh` then read the stored set. Server-side only. |
+| `companion/CompanionBondUnlocks` | Derives new unlocks (complete entry via `EncyclopediaTiers`; quests carrying `unlocks_companion` completed/claimed) and stores them. |
+| `companion/CompanionFishingOutcome` | Pure `NONE/CAUGHT/ESCAPED` from `(hadFishTarget, caughtFish)`, shared by both derivations. |
+| `companion/CompanionSceneType` | G1/G2 + shared timing (duration/path ticks). |
+| `server/CompanionSceneManager` | Schedules pet-to-pet scenes: range 6, per-companion busy+cooldown 1200t, priority = enum order, blocks on minigame or line-out; one packet to players ≤128 blocks. In-memory only. |
+| `server/FishCatchSavedData`, `server/PlayerQuestState` | Unlock set (`unlocked_companion_species`, `optionalFieldOf`), banner queue, companion FTUE step. |
+| `server/FishingMinigameManager` | Sessions; resolves outcomes and sends `CompanionFishingEventPacket` to nearby players. |
+| `tutorial/CompanionTutorialManager/Step` | One-step FTUE: first unlock → INTRO; tab open → COMPLETE. |
+| `data/Quest.unlocksCompanion`, `data/EncyclopediaTiers` | Gate inputs (quest field; server-side derived thresholds). |
+| `network/` | `BondCompanionPacket`, `UnequipCompanionPacket`, `RenameCompanionPacket`, `CompanionFeedbackPacket`, `CompanionTutorialSync/Advance`, `CompanionScenePacket`, `CompanionFishingEventPacket`, `QuestSyncPacket` (carries the unlocked set + new-unlock delta). |
+| `command/CompanionCommand` | Dev tree, see §7. **Never use `Minecraft.player` here** — forces `LocalPlayer` resolution at class verification and kills Fabric `runGametest`; client actions live in `ClientCompanions`. |
+| `util/FishingMinigameAnimation` | Publishes `CompanionAnchors` (bar rect, gear/zone column edges+heights, bobber sprite, target + progress); `companionDockAnchor`; `devCatchTarget`. |
+| `util/IFishingHookExtension` (+ `mixin/FishingHookMixin`) | `fishtastic$isBiting` (vanilla synced `DATA_BITING`) + dev `fishtastic$forceBite`. |
+
+**Client**
+| Path | Role |
+|---|---|
+| `client/companion/ClientCompanion` | One per visible companion: display-mode anchors on its own slow frame, peeks/tricks/held-item reactions/duck/hand hop, fishing states (line wait, nibble, dock blend, bar-state reactions, outcome, fly-past), pet-to-pet scene playback, visibility + facing metrics, dev seams. |
+| `client/companion/ClientCompanions` | Manager per level; scene/fishing packet landing; dev actions (trick/peek/outcome/catch demo/scene/phantom) and the phantom harness. |
+| `client/renderer/CompanionFlock` | The invisible sim box: FOLLOW (open box, class-sized), WATER, DOCKED (single-tank binary, side-on); trios; presentation clocks (`SWIM_CLOCK_RATE`, `IDLE_CLOCK_RATE`); world-velocity facing (`FACE_FADE_*`); pose dispatch through `FishAnimator`. |
+| `client/renderer/CompanionFishPose` | Pose-only draw for perches (no engine). |
+| `client/companion/CompanionPerchLayer` + `mixin/AvatarRendererMixin` + `mixin/accessor/LivingEntityRendererInvoker` | Player render layer for benthic/anchored perches (both loaders, mannequin-filtered). |
+| `client/companion/CompanionPipRenderer/RenderState` + `util/IGuiGraphicsExtension` + `mixin/GuiGraphicsMixin` | Perspective PiP renderer for the docked fish. |
+| `client/FishEncyclopediaScreen` (+ `client/CarriedFish`, `client/CompanionClientState`, `client/CompanionTutorialClientHandler`) | Companions tab, status lines, carried-fish picker, rename, FTUE side panel. |
+| `client/QuestClientCache` + `QuestProgressNotification(Manager)` | Unlocked-set cache; `companion_bond/<species>` banners (NEW_SPECIES tier). |
+| `client/FishtasticClientConfig` | The three settings (all default off) + dev-only test overrides. |
+| Loader clients (Fabric/NeoForge) | Render submit hooks, PiP registration, client tick, HUD element, packet handler registration, disconnect resets. |
+| `client/selftest/RenderSelfTest` | Opt-in scenes: `companion`, `companionparade`, `companionpeek`, `companionhand`, `companionbond`, `companionfishing`, `companionscenes`, `companionpolish` (+ round-2 checks). |
+
+**Tests**: testmod gametests — `CompanionGameTests` (bond/pile/swap/death), `CompanionBondGameTests`
+(gate, banners, fake description, rename), `CompanionSceneGameTests` (scheduler rules), 
+`CompanionQuestUnlockGameTests`, `CarriedFishGameTests`, `PacketRoundTripGameTests` — **315/315 on
+Fabric**; unit tests incl. `CompanionBondUnlocksTest`, `PlayerQuestStateCompanionBondsTest`,
+`CompanionFishingOutcomeTest`.
 
 ---
 
-## 4. Remaining phases: what to build
+## 4. What's verified — and what isn't
 
-Each phase lists its scope, the spec sections, acceptance criteria, and notes from what's been learned so far.
+**Verified (headless, both loaders):** every phase and the polish — 315/315 gametests, and the full
+opt-in companion scene suite (104 checks, 0 failures on Fabric and NeoForge for the polish run).
+Key measured numbers: FP visibility 38–52% of ticks; wiggle tail 3.14/3.71 Hz raw → 1.72/2.04 Hz
+presented; view-decoupling 90° flick moves the fish 1.5–3.2 blocks (old) → 0.1–0.3 (new);
+face-dot mean 0.36 → 0.69–0.77 (**round 2 reworks this to tank-style strictness**).
 
-### Phase 3: Display modes (spec §2, §3, §3.1, §11 settings)
-- **All five classes:**
-  - `FREE_SWIM` orbits.
-  - `GLIDE` makes overhead arcs and a dust swoop.
-  - `DRIFT` uses a spring lag, pulses, and glows at night.
-  - `BENTHIC` **perches on the head or shoulder via a player render layer**, like vanilla's parrot.
-  - `ANCHORED` pokes out of the back.
-  - `animation.mode` refines each one.
-- **Trios:** `FREE_SWIM` fish under ~20 cm come as three, reusing the sim's swarm offsets.
-- **Water:** in water, drop the air anchor and use the sim's own locomotion.
-- **Peeks are mandatory.** Phase 0 and Phase 2 screenshots on both loaders show the free-wandering fish **out of a level first-person view most of the time**.
-  - Add periodic swim-into-view peeks.
-  - Perchers hop off to show themselves.
-  - Hop onto the hand, or just above the hotbar, when the player looks down. That's the hand pass, not the HUD.
-  - Add held-item reactions (§3.1 table).
-- **Settings:** hide other players' companions (default off); hide your own in first person (default off, ignored while docked); wait at the bobber (default off).
-- **Acceptance:**
-  - A "companion parade" self-test scene shows every class correctly.
-  - In first person, the companion is visible to its owner at regular intervals: count frames in which it's on screen over a timed window.
-- **Notes:**
-  - `CompanionFlock.submit` currently gives non-swimmers the tank idle pose. The non-swimmer locomotions need open-world anchoring. Perches use the player layer, not the world hook (§11).
-  - Respect vanilla's particle setting.
-
-### Phase 4: Bonding UI (spec §8.2, §8.3, §8.4)
-- A Companions tab in the encyclopedia (gelatin-ui). The picker lists only fish **carried**: inventory plus Pile of Fish contents. Rows collapse only when **every** component matches.
-- The **send-a-description** packet already exists, and the server re-finds the fish.
-- Fill in `CompanionBondGate`:
-  - **Normal species:** a fully complete entry, checked with the server-side `EncyclopediaTiers` derivation.
-  - **Unlisted:** a quest unlock.
-  - **Persistence:** store unlocked bonds as a set per player so they **never re-lock** (R6.4). Put it next to `PlayerQuestState.claimedEncyclopediaRewards`, and use `optionalFieldOf` so old saves still load.
-- **Status lines:**
-  - "Bond: N/M catches", where M is the lore threshold.
-  - "Bond unlocks via quest: <name>", with a link.
-  - "Bond available" + Bond button / "Your companion" + Unequip button.
-- **Naming:** use the item's custom name, plus a name field in the tab.
-- **Discovery:** a first-unlock tutorial, then a banner for each new bond unlock.
-
-### Phase 5: Fishing reactions (spec §5, §5.1, §5.2)
-- **Casting:** cast, wait and nibble happen at the bobber in the world. Benthic fish ride the rod tip.
-- **Docking:** already works through the PiP. Dock in the lanes beyond the gear and zone-icon columns: publish their outer edges and heights from `FishingMinigameAnimation`. Never cover the bobber zone or the fish target.
-- **Bar-state reactions per class (§5.2).** Motion while docked is never idle and slows at times. How much it moves is tuned in game (R3.3 is still open).
-- **Catch:** join the existing hero celebration, greet the hero fish on a same-species catch, and fly past toward the camera **only on tiered celebrations** (ended by the skip key). Otherwise give a quiet return.
-- **Escape:** droop and return.
-- **Server events:** others see the companion stay at the bobber in the world, with mood reactions. Catch outcome and escape need server→tracker events.
-
-### Phase 6: Pet-to-pet, v1 = G1 and G2 (spec §10)
-- **Scheduling:** the server schedules scenes, one small packet per scene to trackers. Each companion is in at most one scene at a time, with a per-companion cooldown and nothing saved. A greeting plays when two companions come into range and neither is on cooldown. No scene starts while either owner is in the minigame (the server knows). Use a fixed priority order.
-- **G1 (same species):** synced loop plus a bubble heart.
-- **G2 (two free swimmers):** figure-eight around both players.
-- **Testing:** headless runs have one real player, so extend the phantom/fake-remote harness. It may need a dev-only fake server player, or a scene-level fake whose packets are injected.
-
-### Later
-- **Personality (§4):** dwell, habituation and cooldown on persistent triggers (R7.2).
-- **World (§6):** moods based on the species' own zones and biomes.
-- **Player (§7):** pet and feed, including through the emote key and the Companions tab (R2.3); the emote keybind.
-- **Scenes G3–G6.**
-- **Signature companions:** hidden quests for the six unlisted fish, with extra interactions.
+**Not verified / open:**
+- **No live two-client test anywhere.** Remote-player companion sync, perches on other players,
+  scene playback across two real clients — all rest on the loaders' sync contract, packet
+  round-trip tests and single-client injections. A manual two-player check is the honest next step.
+- Every tuning constant awaits the owner's in-game judgment (§7).
+- NeoForge+Sodium / other shaderpacks untested (the dock and hop use the world pass, which renders
+  correctly under the dev client's Iris pack; the early hand-pass approach did not).
+- Round 2 items are in flight as this doc is written.
 
 ---
 
-## 5. How to work: proven method
+## 5. What's next
 
-**One fork per phase.** Phases share files, so don't run them in parallel in the same tree. The parent reviews the report, then commits.
+1. **Finish playtest round 2** (in flight): jitter, facing rework, tab filter, picker scroll — §20.
+2. **Owner in-game pass** over the round-2 build; tune constants (§7).
+3. **Then the "Later" plan**, one fork each, in roughly this order (all still specced in
+   [`fish-companions.md`](fish-companions.md) §4/§6/§7/§10):
+   - Player-triggered interactions (§7): pet (sneak-right-click / emote key / tab), feed with bait,
+     the emote keybind, sneak-to-show-name. (F1–F4; R2.3; the name field already exists.)
+   - Personality (§4): dwell → habituation → cooldown on persistent triggers (R7.2).
+   - World reactions (§6): biome/zone moods (R7.1), mob reactions, day/night/moon behaviour.
+   - Scenes G3–G6 (§10) in the scheduler's priority order.
+   - Signature companions (§8.3): the six unlisted fish's quests (author `unlocks_companion` in
+     quest JSON — the UI path is built and only needs data) + one extra interaction each.
+4. **Do not build** tank interactions (E3/E4) — deferred by owner.
+
+---
+
+## 6. How to work: proven method
+
+**One fork per unit of work.** Files are shared, so never run two forks in the same tree at once.
+The parent reviews each fork's report, then commits (stage by explicit path, commit in background).
+Playtest rounds are worked the same way: a single fork prompt carrying every item, verified and
+committed together.
 
 **Every fork prompt must carry these rules.** Each one comes from a real incident.
-- **Builds:**
-  - Use `./gradlew :fabric:compileJava :neoforge:compileJava`, `./gradlew build`, `:common:test` and `:fabric:runGametest`.
-  - **NeoForge `runGametest` finishes its tests, but the JVM never exits.** Don't wait on it. `compileTestmodJava` passing is acceptable evidence.
-  - `runClient` builds whatever it loads. Never pipe a build into `tail` when you need its exit status.
-- **Self-tests (`client/selftest/RenderSelfTest`):**
-  - A run is armed by `<run dir>/fishtastic_render_selftest`, which contains scene names, one per line. It's opt-in: add `companion*` scenes to `OPT_IN_SCENES`.
-  - **Delete the marker after every run, on both loaders.** It persists, and it will hijack the owner's playtest.
-  - Screenshots land in `<run dir>/screenshots/selftest-<loader>-<scene>-<shot>.png`, and checks print `[selftest] CHECK name: PASS|FAIL`.
-  - Run on Fabric while iterating, and run NeoForge **once** per phase at the end.
-  - Review your own screenshots: downscale or crop with PIL into a temp dir outside the repo (`python -I`).
-  - Log diagnostic state with `[selftest]` lines. Seeing numbers next to the pictures is what found every Phase 0 bug.
-- **Hangs:** **don't relaunch a hung client repeatedly.**
-  - Take one `jstack` (JDK at `C:/Users/curre/.gradle/jdks/eclipse_adoptium-25-amd64-windows.2/bin`; the client is the `TransformerRuntime` entry in `jps -l`), kill it, then report or fix.
-  - The NeoForge create-world deadlock is fixed by warming codec classes (`WARMED_UP` in `FishAnimationConfig`, `ItemEffectCondition` and `CosmeticStructure`). If a jstack shows a new class in a deadlock, warm it the same way.
-  - Useful script: [`C:/Users/curre/AppData/Local/Temp/spiketools/scene_run.sh`](file:///C:/Users/curre/AppData/Local/Temp/spiketools/scene_run.sh) `<runs> <scene>` runs NeoForge with a 90 s hang guard and automatic jstack. It's a temp file, so recreate it if it's gone.
-- **Git:**
-  - Forks never commit. Never `git add -A/-u`: tracked `common/logs/latest.log` gets swept in.
-  - Stage by explicit path.
-  - The pre-commit hook runs `:common:test` and `:fabric:runGametest` (~2–5 min). Run commits in the background.
-  - Commits are signed via 1Password: **the owner must approve each prompt**. "1Password: failed to fill whole buffer" means it was locked or unapproved, so retry once the owner says.
-- **Style:** match the surrounding code's comment density. Keep common vs platform split. Update `fish-companions.md` with a short "Phase N as built" section.
+- **Builds:** `./gradlew :fabric:compileJava :neoforge:compileJava`, `./gradlew build`,
+  `:common:test`, `:fabric:runGametest`. **NeoForge `runGametest` never exits** — don't wait on it;
+  `compileTestmodJava` is acceptable evidence there. `runClient` builds whatever it loads; never
+  pipe a build into `tail` when you need its exit status.
+- **Self-tests (`client/selftest/RenderSelfTest`):** armed by `<run dir>/fishtastic_render_selftest`
+  (scene names, one per line; add new `companion*` scenes to `OPT_IN_SCENES`). **Delete the marker
+  on both loaders after every run** — it persists and hijacks the owner's playtest. Screenshots →
+  `<run dir>/screenshots/selftest-<loader>-<scene>-<shot>.png`; checks print
+  `[selftest] CHECK name: PASS|FAIL`. Iterate on Fabric; one NeoForge run at the end. Review your
+  own screenshots (PIL crops into a temp dir outside the repo, `python -I`) and pair them with
+  `[selftest]` numbers — that is what found every bug so far.
+- **Hangs:** one relaunch max, then one `jstack` (JDK
+  `C:/Users/curre/.gradle/jdks/eclipse_adoptium-25-amd64-windows.2/bin`; client =
+  `TransformerRuntime` in `jps -l`), kill, report. The NeoForge create-world deadlock is fixed by
+  warming codec classes (`WARMED_UP` pattern); a new class in a deadlock gets warmed the same way.
+  Helper: `C:/Users/curre/AppData/Local/Temp/spiketools/scene_run.sh` (`<runs> <scene>`, 90 s hang
+  guard + jstack; temp file — recreate if gone).
+- **Client-class trap:** never use `Minecraft.player` in `CompanionCommand` (LocalPlayer resolves at
+  class verification; Fabric refuses client classes on a server → `runGametest` dies at command
+  registration). Client actions live in `ClientCompanions`.
+- **Backups:** a dev command that mutates persisted progression calls
+  `FishCatchBackups.beforeDestructiveCommand` first.
+- **Git:** forks never commit; never `git add -A/-u` (tracked `common/logs/latest.log`). The
+  pre-commit hook runs `:common:test` + `:fabric:runGametest` (~1–3 min) — commit in background.
+  Commits are **signed via 1Password; the owner approves each prompt**. Both "failed to fill whole
+  buffer" and "agent returned an error" mean it was locked/unapproved — the commit is NOT made but
+  the index survives; retry once the owner unlocks.
+- **Empirical debugging:** prove root cause live before fixing; treat "this fix needs new plumbing"
+  as a smell. Metrics are proxies: pair every variance/rate metric with a rate-of-change check
+  (a "maximise smoothness" metric once shipped a visible hop).
+- **Style:** match local comment density; keep the common vs platform split; write the as-built
+  section in `fish-companions.md` and update this handoff in the same change.
 
-**Rendering pitfalls already solved (spec §13).** Don't rediscover them.
-- GUI-pass feature submits **ignore the model-view stack**. Fold the view rotation into the PiP projection and keep the pose world-oriented, so lighting matches.
-- A carry-over rebuild into a smaller sim domain **pins a fish that starts outside it**. Clamp it in and fade the offset.
-- The planar engine in a thin box still turns nose-on to the camera. Use the single-tank model for side-on.
-- The tank model's swim gate needs a nominal short sim length. The drawn size is separate.
-- PiP rects are integer GUI px. The off-axis crop of the camera projection keeps sub-pixel placement exact.
+**Rendering pitfalls already solved (spec §13/§15/§16).** Don't rediscover them: GUI-pass submits
+ignore the model-view stack (fold view rotation into the PiP projection); carry-over domain rebuilds
+clamp-and-fade; the planar engine turns nose-on in a thin box (single-tank model fixes it); the swim
+gate needs a nominal short sim length; PiP rects are integer GUI px with an off-axis crop; the
+perch layer frame's y=0 is the shoulder line; `VBox#scaleToWidth` upscales too (width anchor);
+the minigame bar's bare constructor stages treasure targets (clear before a demo).
 
 ---
 
-## 6. Known gaps
+## 7. Dev commands and the tuning constants
 
-- No live two-client test yet. Remote-player sync relies on the loaders' attachment sync contract. Phase 6 needs a real multi-player harness, or a manual check by the owner.
-- View-bob-matched projection at the handoff is untested while walking. There was no visible pop when standing still.
-- How much the docked fish moves (R3.3) is to be tuned in game by the owner.
-- The owner has seen none of this in a real playthrough yet. Every verification so far is headless.
+**Solo-test command kit** (dev-only, single-player; `ON|OFF|GIVE` etc. also work in multiplayer):
+`/fishtastic companion` — `on|off`, `give <player> <species> [size]`, `minigame|stopgame`,
+`catchcount <player> <species> <count>`, `unlock <player> <species>`, `resetbonds <player>`,
+`trick`, `peek`, `outcome caught|escaped`, `catchdemo` + `catch`, `scene g1|g2|stop`,
+`phantom <species> [size]|off`, `hideothers|hideown|waitatobber <bool>`.
+
+**Named constants the owner tunes in game:**
+- Calm idle: `CompanionFlock.SWIM_CLOCK_RATE = 0.55`, `IDLE_CLOCK_RATE = 0.6`.
+- Reaction rates (rad/tick): `ClientCompanion.CHEER_RATE 0.25`, `NERVOUS_RATE 0.9`,
+  `DRIFT_PULSE_RATE 0.35`, `BENTHIC_BOUNCE_RATE 0.3`.
+- Own frame (view-decoupling): `FRAME_TURN_STILL = 0.6`, `FRAME_TURN_MOVING = 4.0` °/tick.
+- Facing: `FACE_FADE_LOW/HIGH = 0.005/0.05` blocks/tick (being reworked in round 2).
+- Dock: lane from `FishingMinigameAnimation.companionDockAnchor`; `DOCK_FISH_LENGTH`, `DOCK_TICKS`;
+  docked motion amounts `DOCK_BOB_LIMIT/DOCK_BOUNCE/DOCK_LEAN_OUT/DRIFT_SHRINK/GLIDE_*` (R3.3).
+- Trio threshold `CompanionFlock.TRIO_MAX_CM = 20`; min drawn length `MIN_FOLLOW_LENGTH = 0.25`.
+- Scenes: `CompanionSceneManager.RANGE = 6`, `COOLDOWN_TICKS = 1200`; per-scene
+  `durationTicks`/`pathTicks` on `CompanionSceneType`; `HEART_TICK/HEART_SCALE/HEART_RISE`.
+- Peek/trick schedules: `PEEK_*`, `TRICK_*` in `ClientCompanion`.
+
+---
+
+## 8. Known gaps
+
+- **No live two-client test** (§4) — the single biggest unverified surface.
+- The owner's in-game pass is ongoing; round 2 is being fixed as this is written, and more rounds
+  can be expected — work them as one fork per round.
+- All tuning constants are first-guess values pending the owner's play (§7).
+- View-bob-matched projection at the dock handoff is still untested while walking (no pop observed
+  standing still).
+- The `companionpolish`/round-2 metrics are dev seams; don't let them leak into production paths
+  beyond the documented dev switches.
