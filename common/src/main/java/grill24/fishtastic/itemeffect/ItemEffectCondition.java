@@ -44,6 +44,12 @@ public interface ItemEffectCondition {
             return winner != null ? winner : computed;
         }
 
+        /** Resolves every condition type once, filling the cache the dispatch codec reads. */
+        static boolean warmUp() {
+            CONDITION_TYPE_SUPPLIERS.keySet().forEach(Codecs::getConditionCodec);
+            return true;
+        }
+
         public static final Codec<ItemEffectCondition> DISPATCH_CODEC = Codec.STRING.dispatch(
                 "type",
                 ItemEffectCondition::getType,
@@ -52,6 +58,12 @@ public interface ItemEffectCondition {
     }
 
     Codec<ItemEffectCondition> DISPATCH_CODEC = Codecs.DISPATCH_CODEC;
+
+    // Force-loads every condition type up front so parallel registry decoding never races to
+    // classload one lazily, which can deadlock the classloader in NeoForge dev (the same fix as
+    // FishAnimationConfig.WARMED_UP). It has to sit here, after DISPATCH_CODEC, rather than in
+    // Codecs' own initializer: AndCondition's codec reads DISPATCH_CODEC, which must already be set.
+    boolean WARMED_UP = Codecs.warmUp();
 
     boolean matches(ItemStack stack);
 

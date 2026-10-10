@@ -363,6 +363,25 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
             structure -> DataResult.success(structure)
     );
 
+    // Force-loads the classes validate() reaches up front, so parallel registry decoding never
+    // races to classload one lazily, which can deadlock the classloader in NeoForge dev (the same
+    // fix as FishAnimationConfig.WARMED_UP; a jstack caught two decode workers deadlocked loading
+    // SpanStructures from validate()).
+    private static final boolean WARMED_UP = warmUp(SpanStructures.class, ShelterGeometry.class,
+            ShelterGeometry.Shape.class, ShelterGeometry.Mouth.class, ShelterGeometry.Result.class,
+            CosmeticGridCell.class, CosmeticStructures.class);
+
+    private static boolean warmUp(Class<?>... classes) {
+        for (Class<?> c : classes) {
+            try {
+                Class.forName(c.getName(), true, c.getClassLoader());
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return true;
+    }
+
     /** Whether some pair of the shape's horizontal mouths face opposite ways — a way through. */
     static boolean opensBothWays(ShelterGeometry.Shape shape) {
         for (ShelterGeometry.Mouth a : shape.mouths()) {
