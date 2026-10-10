@@ -354,27 +354,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 target.updateCatchProgress(overlapQuality);
 
                 if (target.isCaught()) {
-                    float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
-                    caughtTargetIndices.add(targetIndex);
-
-                    CatchCelebration.Tier tier = resolveCelebrationTier(target);
-                    if (tier != CatchCelebration.Tier.NONE) {
-                        startCelebration(target, tier, targetYOffset);
-                    } else {
-                        spawnSparkleBurst(sparkleCountForTarget(target), targetYOffset);
-                        target.startCollectionAnimation(0, 0);
-                        playCatchSound(target);
-                    }
-
-                    if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
-                        baitPopTriggered = true;
-                        if (baitWillBeSaved) {
-                            charmSpinTick = 0;
-                        } else {
-                            baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
-                            equippedBaitStack = null;
-                        }
-                    }
+                    resolveTargetCaught(targetIndex, target);
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
                 } else {
@@ -429,6 +409,50 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
             isHiding = true;
         }
+    }
+
+    /**
+     * Everything that happens the instant a target is caught: record its index, give it its
+     * celebration or its quiet sparkle-and-collect, and pop the bait if this catch spent it.
+     * Extracted so {@link #devCatchTarget} runs the identical path the tick loop does.
+     */
+    private void resolveTargetCaught(int targetIndex, FishingTarget target) {
+        float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
+        caughtTargetIndices.add(targetIndex);
+
+        CatchCelebration.Tier tier = resolveCelebrationTier(target);
+        if (tier != CatchCelebration.Tier.NONE) {
+            startCelebration(target, tier, targetYOffset);
+        } else {
+            spawnSparkleBurst(sparkleCountForTarget(target), targetYOffset);
+            target.startCollectionAnimation(0, 0);
+            playCatchSound(target);
+        }
+
+        if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
+            baitPopTriggered = true;
+            if (baitWillBeSaved) {
+                charmSpinTick = 0;
+            } else {
+                baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
+                equippedBaitStack = null;
+            }
+        }
+    }
+
+    /**
+     * Dev-only (self-tests): resolves a target as caught right now, through the real catch path —
+     * the same method the tick loop calls — so a headless scene can drive catches deterministically
+     * instead of steering the bobber with impulses.
+     */
+    public void devCatchTarget(int index) {
+        List<FishingTarget> targets = minigameState.getTargets();
+        if (index < 0 || index >= targets.size()) return;
+        FishingTarget target = targets.get(index);
+        if (target.getState() != FishingTarget.TargetState.ACTIVE) return;
+        grill24.fishtastic.Fishtastic.LOGGER.info("[selftest] devCatch: tier={} rewards={} undiscovered={} celebrated={}",
+                resolveCelebrationTier(target), target.getAllRewardItems(), undiscoveredSpecies, celebratedSpecies);
+        resolveTargetCaught(index, target);
     }
 
     /**
@@ -1142,22 +1166,118 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
     }
 
     /**
-     * Where a companion fish docks while this minigame is up (Phase 0 spike, docs/fish-companions.md
-     * §5.1), in GUI-scaled pixels: the lane left of the gear column, below its icons, so it never
-     * covers the bar, its targets or the gear. {@code halfSize} is the lane's half-width — the
-     * room the docked fish is allowed to swim in.
+     * Named anchors of this frame's minigame layout, in GUI-scaled pixels (docs/fish-companions.md
+     * §5.1, R3.1): the bar's content rect, the gear column's (left) and zone-icon column's (right)
+     * outer edges and current heights, and the bobber sprite's and best fish target's screen
+     * positions with the target's catch progress. The companion reads these for its dock lane and
+     * its bar-state reactions — this is the "minigame publishes named anchors each frame" contract.
+     *
+     * <p>All in resting (un-slid) positions: the side panels slide during the intro/hide, and a
+     * lane that tracked that would wobble with them.
+     *
+     * <p>{@code targetScreenY}/{@code targetProgress} are {@link Float#NaN} when no fish target is
+     * active (nothing to react to).
+     */
+    public record CompanionAnchors(
+            float barLeft, float barTop, float barRight, float barBottom,
+            float gearOuterX, float gearTop, float gearBottom,
+            float zoneOuterX, float zoneTop, float zoneBottom,
+            float bobberScreenY, float targetScreenY, float targetProgress) {}
+
+    public CompanionAnchors companionAnchors(int screenWidth, int screenHeight) {
+        int x = screenWidth / 2;
+        int y = screenHeight / 2;
+        Vector2f barTopLeft = barContentTopLeft(layout, x, y, screenHeight);
+        Vector2f barTopRight = barContentTopRight(layout, x, y, screenHeight);
+        float scale = 2 * screenHeight / 3f;
+        GuiTextureItem bar = layout.bar();
+        float barHeightPx = (bar.vh() / (float) bar.texHeight()) * scale;
+
+        // The gear column's footprint at rest (renderEquippedGear): icons top-down from the bar's
+        // top-left corner, one slot per equipped piece, gap between. The zone column mirrors it.
+        int gearCount = (equippedBaitStack != null ? 1 : 0) + (equippedHookStack != null ? 1 : 0)
+                + (equippedCharmStack != null ? 1 : 0);
+        float gearOuterX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE;
+        float gearTop = barTopLeft.y();
+        float gearBottom = gearTop + (gearCount == 0 ? 0f
+                : GEAR_ICON_SIZE + (gearCount - 1) * (GEAR_ICON_SIZE + GEAR_ICON_GAP));
+
+        int zoneCount = currentZones == null ? 0 : currentZones.size();
+        float zoneOuterX = barTopRight.x() + GEAR_PANEL_GAP + ZONE_ICON_SIZE;
+        float zoneTop = barTopRight.y();
+        float zoneBottom = zoneTop + (zoneCount == 0 ? 0f
+                : ZONE_ICON_SIZE + (zoneCount - 1) * (ZONE_ICON_SIZE + GEAR_ICON_GAP));
+
+        // The bobber sprite's screen y: renderFishingBar draws it at -yOffset in bar space, under
+        // the bar's own translate(x, y) at the shared scale.
+        float bobberOffset = minigameState.getBobberPosition() * layout.bobberMaxYOffset()
+                - layout.bobberMinDropOffset();
+        float bobberScreenY = y - bobberOffset * scale;
+
+        // The fish target worth watching: the ACTIVE fish closest to being caught (the same one the
+        // anticipation blips follow), so a multi-target cast still gives the companion one thing.
+        float targetScreenY = Float.NaN;
+        float targetProgress = Float.NaN;
+        for (FishingTarget target : minigameState.getTargets()) {
+            if (target.getCategory() != FishingTarget.TargetCategory.FISH
+                    || target.getState() != FishingTarget.TargetState.ACTIVE) continue;
+            if (!Float.isNaN(targetProgress) && target.getCatchProgress() <= targetProgress) continue;
+            targetProgress = target.getCatchProgress();
+            targetScreenY = y - (target.getInterpolatedPosition(0f) - 0.5f) * layout.itemMaxYOffset() * scale;
+        }
+
+        return new CompanionAnchors(barTopLeft.x(), barTopLeft.y(), barTopRight.x(), barTopLeft.y() + barHeightPx,
+                gearOuterX, gearTop, gearBottom, zoneOuterX, zoneTop, zoneBottom,
+                bobberScreenY, targetScreenY, targetProgress);
+    }
+
+    /**
+     * Where a companion fish docks while this minigame is up (docs/fish-companions.md §5.1, R3.1),
+     * in GUI-scaled pixels: the lane beyond the gear column's outer edge and below its lowest icon,
+     * so it never covers the bar, its bobber zone, its fish targets or the gear.
+     * {@code halfSize} is the lane's half-width — the room the docked fish is allowed to swim in.
      *
      * @return {x, y, halfSize}, or null once the bar has started hiding (the fish should leave)
      */
     @Nullable
     public float[] companionDockAnchor(int screenWidth, int screenHeight) {
         if (isHiding) return null;
-        Vector2f barTopLeft = barContentTopLeft(layout, screenWidth / 2, screenHeight / 2, screenHeight);
+        CompanionAnchors anchors = companionAnchors(screenWidth, screenHeight);
         float halfSize = screenHeight * 0.09f;
-        float gearColumnOuterX = barTopLeft.x() - GEAR_PANEL_GAP - GEAR_ICON_SIZE;
-        float x = gearColumnOuterX - GEAR_PANEL_GAP - halfSize;
-        float y = screenHeight / 2f + screenHeight * 0.12f;
+        float x = anchors.gearOuterX() - GEAR_PANEL_GAP - halfSize;
+        float y = anchors.gearBottom() + GEAR_PANEL_GAP + halfSize;
         return new float[]{x, y, halfSize};
+    }
+
+    /** True once the bar has begun sliding away — results are final and the fish should leave. */
+    public boolean isHidingNow() {
+        return isHiding;
+    }
+
+    /** The catch celebration running right now, if any (the companion joins it, §5). */
+    @Nullable
+    public CatchCelebration getCompanionCelebration() {
+        return celebration;
+    }
+
+    /** Whether any target of this cast was a fish — the owner-side half of the outcome mapping. */
+    public boolean hasFishTarget() {
+        for (FishingTarget target : minigameState.getTargets()) {
+            if (target.getCategory() == FishingTarget.TargetCategory.FISH) return true;
+        }
+        return false;
+    }
+
+    /** Whether any fish target of this cast was caught — the owner-side half of the outcome mapping. */
+    public boolean caughtFish() {
+        List<FishingTarget> targets = minigameState.getTargets();
+        for (int index : caughtTargetIndices) {
+            if (index >= 0 && index < targets.size()
+                    && targets.get(index).getCategory() == FishingTarget.TargetCategory.FISH) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Mirror of {@link #barContentTopLeft} — top-right corner of the bar's visible content. */

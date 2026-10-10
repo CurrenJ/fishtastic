@@ -2,6 +2,7 @@ package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.companion.CompanionFishingOutcome;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -99,6 +100,28 @@ public final class ClientCompanions {
         }
         for (ClientCompanion phantom : PHANTOMS.values()) phantom.tick(null);
 
+        // A finished minigame resolves the local companion's outcome (§5): the client knows which
+        // targets it landed, and whether any was a fish. The animation is remembered until its
+        // hide is seen (or it vanishes entirely — the renderer drops it a second after hiding
+        // starts), and the outcome fires exactly once. Other players' companions get this from
+        // the server's fishing-event packet instead (their bar never existed here).
+        FishingMinigameAnimation minigame = activeMinigame();
+        if (minigame != null && minigame != lastMinigame) {
+            lastMinigame = minigame;
+            outcomeResolved = false;
+        }
+        if (lastMinigame != null && !outcomeResolved
+                && (lastMinigame.isHidingNow() || minigame == null)) {
+            outcomeResolved = true;
+            ClientCompanion local = local();
+            if (local != null) {
+                CompanionFishingOutcome outcome = CompanionFishingOutcome.of(
+                        lastMinigame.hasFishTarget(), lastMinigame.caughtFish());
+                if (outcome != CompanionFishingOutcome.NONE) local.setFishingOutcome(outcome);
+            }
+            lastMinigame = minigame;
+        }
+
         // The acceptance counter: only first person counts, because third person sees your own
         // player model (and the perch layer) the same way another player would.
         ClientCompanion local = local();
@@ -106,6 +129,21 @@ public final class ClientCompanions {
             countedTicks++;
             if (local.visibleToOwner()) visibleTicks++;
         }
+    }
+
+    /** The minigame whose session-end outcome has not been consumed yet, if one is in flight. */
+    @Nullable
+    private static FishingMinigameAnimation lastMinigame;
+    /** One outcome per session: the hide animation lasts a second, so this fires exactly once. */
+    private static boolean outcomeResolved;
+
+    /**
+     * The fishing-event packet's landing point: another player's session just resolved, so their
+     * companion plays the catch wiggle or escape droop where it waits — at their bobber (§5, §11).
+     */
+    public static void onFishingEvent(UUID owner, CompanionFishingOutcome outcome) {
+        ClientCompanion companion = COMPANIONS.get(owner);
+        if (companion != null) companion.setFishingOutcome(outcome);
     }
 
     @Nullable
@@ -196,8 +234,8 @@ public final class ClientCompanions {
         ClientCompanion local = local();
         screenW = graphics.guiWidth();
         screenH = graphics.guiHeight();
-        // "Companion waits at the bobber" (§11): skip docking entirely. Until the reactions phase
-        // it simply keeps following; Phase 5 will park it at the bobber.
+        // "Companion waits at the bobber" (§11, §5): the companion keeps its place at the owner's
+        // bobber in the world instead of docking — see ClientCompanion#updateFishing.
         boolean dock = minigame != null && !FishtasticClientConfig.companionWaitsAtBobber();
         anchor = local != null && dock ? minigame.companionDockAnchor(screenW, screenH) : null;
         if (local == null || !local.isDocked() || anchor == null) return;
@@ -222,7 +260,7 @@ public final class ClientCompanions {
         ((IGuiGraphicsExtension) graphics).fishtastic$addPictureInPicture(new CompanionPipRenderState(
                 projection, local.boxPose(cam),
                 pipLightOverride >= 0 ? pipLightOverride : local.lightAt(local.fishOffset()),
-                ClientCompanion.gameTime(partialTick), x0, y0, x1, y1,
+                local.dockedTime(partialTick), x0, y0, x1, y1,
                 pipCompare ? new org.joml.Matrix3x2f().translation(-2f * pad, 0f) : new org.joml.Matrix3x2f()));
     }
 

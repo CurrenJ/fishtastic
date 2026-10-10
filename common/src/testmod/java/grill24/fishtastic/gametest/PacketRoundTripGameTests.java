@@ -8,6 +8,7 @@ import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
+import grill24.fishtastic.network.CompanionFishingEventPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
@@ -289,6 +290,21 @@ public final class PacketRoundTripGameTests {
         RequestFishEncyclopediaPacket decoded = RequestFishEncyclopediaPacket.STREAM_CODEC.decode(buf);
 
         helper.assertTrue(decoded.equals(original), "RequestFishEncyclopediaPacket must round-trip (unit codec)");
+        helper.succeed();
+    }
+
+    /** The companion fishing event (§5): a UUID and an outcome, both ways including the sentinel. */
+    public static void companionFishingEventPacketRoundTrips(GameTestHelper helper) {
+        java.util.UUID owner = java.util.UUID.randomUUID();
+        for (grill24.fishtastic.companion.CompanionFishingOutcome outcome
+                : grill24.fishtastic.companion.CompanionFishingOutcome.values()) {
+            CompanionFishingEventPacket original = new CompanionFishingEventPacket(owner, outcome);
+            RegistryFriendlyByteBuf buf = newBuf(helper);
+            CompanionFishingEventPacket.STREAM_CODEC.encode(buf, original);
+            CompanionFishingEventPacket decoded = CompanionFishingEventPacket.STREAM_CODEC.decode(buf);
+            helper.assertTrue(decoded.equals(original),
+                    "CompanionFishingEventPacket must round-trip for " + outcome);
+        }
         helper.succeed();
     }
 }

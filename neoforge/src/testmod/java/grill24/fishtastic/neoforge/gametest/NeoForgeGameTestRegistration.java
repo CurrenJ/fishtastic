@@ -502,6 +502,8 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::fishEncyclopediaSyncPacketRoundTrips);
         register(event, env, "request_fish_encyclopedia_packet_round_trips", 200,
             PacketRoundTripGameTests::requestFishEncyclopediaPacketRoundTrips);
+        register(event, env, "companion_fishing_event_packet_round_trips", 200,
+            PacketRoundTripGameTests::companionFishingEventPacketRoundTrips);
 
         // ----- FishEncyclopediaEntry tests -----
         register(event, env, "empty_object_decodes_to_all_defaults", 200,

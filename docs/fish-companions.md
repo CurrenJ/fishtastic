@@ -622,3 +622,97 @@ so its rule is covered by the game tests, and the "Open quest" button/row pulse 
 - `Quest`'s codec initializes registry-backed codecs, so constructing one in a bare unit test
   poisons `BuiltInRegistries` for the whole test JVM (order-dependent failures); quest-hook tests
   live in the testmod instead.
+
+---
+
+## 17. Phase 5 — as built (2026-10-10)
+
+The fishing loop (§5, §5.1, §5.2): the companion goes to the line on a cast, twitches on the
+nibble, swims from the bobber to its dock when the minigame opens, reacts to the bar per class,
+joins a tiered catch's celebration (greeting the hero on a same-species catch, flying past toward
+the camera until the skip ends it), droops and sinks home when a fish escapes, and holds the line
+through the minigame with "waits at the bobber" on. Self-test scene `companionfishing` (opt-in).
+
+**The line.** Every client derives it from vanilla state: a player with `player.fishing` set is
+fishing, so their companion leaves its display-mode anchor and hovers at the bobber — swimmers
+class-flavoured beside it, benthic/anchored fish up to the rod tip (§5: "benthic fish ride the rod
+tip"). The nibble is vanilla's synced `DATA_BITING`, exposed through a new
+`IFishingHookExtension#fishtastic$isBiting` — so every client sees the same lean-and-twitch, not
+just the owner. The line anchor freezes while docking, so the swim to the dock starts from the
+bobber even after the hook is gone (the hook survives a session; it dies on the next reel).
+
+**The dock (§5.1, R3.1).** `FishingMinigameAnimation` now publishes `CompanionAnchors` each
+access: the bar's content rect, the gear column's (left) and zone-icon column's (right) outer
+edges and current heights, the bobber sprite's screen y, and the best active fish target's screen
+y and catch progress. The dock lane moved to sit **beyond the gear column's outer edge and below
+its lowest icon** (it used to be mid-left of the bar): never over the bar, its bobber zone or a
+fish target by construction, and the scene asserts the lane's right edge stays left of the bar and
+its top below the gear column.
+
+**Bar-state reactions (§5.2).** The published bobber position, target progress and its trend feed
+per-class reactions, all through existing channels (whole-fish offsets, the dock's box scale, the
+render tilt, and a dock-only animation clock): FREE_SWIM bobs in step with the bobber sprite,
+cheers (a bounce) in the zone and darts nervously while progress drains; GLIDE idles on a lazy
+clock and speeds up as it drains (the dock-only clock, so a rate change never jumps the phase);
+DRIFT pulses with progress and shrinks as it drains; BENTHIC bounces in the zone and grips with a
+tilt while draining; ANCHORED leans out in the zone and sinks back while draining. A negative
+catch-progress delta is peak-held with a decay (~1 s), so a drain burst reads as draining for the
+duration of a nervous dart instead of one tick. Amplitudes are deliberately small (R3.3) and easy
+to tune.
+
+**Catch and escape (§5, D3–D5).** A tiered catch's celebration is joined from the dock: a
+same-species hero earns a ~1.2 s greeting pause nosed toward it, then the fly-past — the dock
+point lerps toward a nearer camera depth, toward the screen's middle and ×2.2 zoom. The flight
+ends when the celebration ends *or is skipped* (R3.5) — the skip accelerates the celebration to
+its settle, which drops the reference, which decays the flight. A catch without a celebration
+gets the quiet wiggle; an escape droops (tilt, sink, slow ease home for ~3 s). The outcome is
+`CompanionFishingOutcome.of(hadFishTarget, caughtFish)` — pure, unit-tested, shared by both
+derivations: the owner's client reads it off its own animation the moment the bar starts hiding;
+everyone else is told by the server.
+
+**Others' view (§11).** `FishingMinigameManager.handleMinigameComplete` resolves CATCH/ESCAPED
+from the session's own targets and sends `CompanionFishingEventPacket` to players within 128
+blocks (the owner derives its own; the packet never goes to them). The receiving companion plays
+the same wiggle or droop at the line.
+
+**"Waits at the bobber."** The setting now does what it says: with it on, the companion holds the
+line anchor through the minigame instead of docking (previously it just kept following).
+
+**Calming the baseline wiggle (owner feedback, 2026-10-10).** Watching a run live, the owner
+called the companion "frantic when it shouldn't" be. The fastest oscillations were the sim's
+speed-integrated tail phase — which also drives the swim bob, shared clock — presented at its
+tank-authored rate (~3.1 Hz tail beat beside the camera), and four reaction oscillators of mine
+(up to ~10 Hz for the nervous jitter). The fix is companion-only presentation clocks, no tank-sim
+change: `CompanionFlock.SWIM_CLOCK_RATE = 0.55` scales the swim phase (tail beat and bob together,
+continuously — a rate change can never jump the phase) and `IDLE_CLOCK_RATE = 0.6` scales the
+idle-pose clocks on the follow, perch, hand and docked paths; the reaction rates are named
+constants now (nervous 2.86 Hz, cheer 0.80 Hz, drift pulse 1.11 Hz, benthic bounce 0.95 Hz —
+down from ~10/2.9/2.2/4.4). Measured in the scene: the raw tail beat reads 3.14 Hz at the line
+and 3.71 Hz docked, presented at 1.72 Hz and 2.04 Hz. Reaction moments (peeks, tricks, fishing
+excitement) keep their livelier timing on purpose; both clock rates and all four reaction rates
+are single constants, deliberately left for the owner to tune in game.
+
+**Verification.** Fabric and NeoForge: the scene's 17 checks all green (18 including the standard
+`shaders.loaded` check) — the cast is a real rod-cast through the item use path; the nibble is
+forced through the new dev-only `fishtastic$forceBite`; the catch and the escape are driven
+through the real resolution path via `devCatchTarget`/`startFailAnimation`. NeoForge ran once
+(run 1 PASS under the hang-guard script). Screenshots reviewed: the docked
+fish legible and side-on in its lane; the discovery celebration with the fish beside the
+silhouetted hero at the greeting blend; the fly-past big and near-camera with the celebration
+banner; the waits-at-bobber lane empty while the bar runs. The at-the-line and escape-droop legs
+are state-verified; at cast distance a true-to-scale companion beside the bobber is a few pixels
+even in third person, so those shots only corroborate rather than show.
+
+**Pitfalls found and fixed during the phase** (all cost a run each):
+- The bare `FishingMinigameAnimation()` constructor stages three example TREASURE targets
+  (stone/diamond/gold); a demo that appends its own target ends up driving index 0, the stone —
+  clear the list first, exactly as the start-packet handler does.
+- `ClientCompanions`' session-end detection initially committed the new (null) animation over the
+  remembered one in the same tick it disappeared, so `isHidingNow()` was never observed and the
+  outcome never fired; the ended animation is now held until the hide is seen or it vanishes.
+- `updateDockReactions` reset `fishProgress` to NaN at the top and then computed the delta against
+  that same just-reset field, pinning `progressDelta` at 0 forever — the drain reaction and its
+  scene check could never fire.
+- The dock-swim metric: `lineDistance` reads the simulated centre, which deliberately holds at
+  the bobber while the render-time blend swims to the dock; measuring "has it left the line"
+  needs the rendered frame position (`devFrameDistanceToHook`).

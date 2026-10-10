@@ -65,13 +65,17 @@ public final class CompanionFishPose {
         poseStack.pushPose();
         if (extraYawDeg != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(extraYawDeg));
         if (tiltDeg != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg));
+        // The companion idle-clock rate, same as CompanionFlock's: the tank's sway and pulse rates
+        // are authored for a fish at arm's length, and read frantic on a companion this close to
+        // the camera (owner feedback 2026-10-10).
+        float t = gameTimeTicks * CompanionFlock.IDLE_CLOCK_RATE;
         if (locomotion == Locomotion.ANCHORED) {
             // Planted: the sway is game time, the withdrawal is the caller's envelope.
-            FishAnimator.applyAnchored(poseStack, anim, random, gameTimeTicks, 0f, scale, false, retract);
+            FishAnimator.applyAnchored(poseStack, anim, random, t, 0f, scale, false, retract);
         } else if (locomotion == Locomotion.DRIFT) {
-            FishAnimator.applyDrifting(poseStack, anim, random, gameTimeTicks, 0f, scale, false, 0f);
+            FishAnimator.applyDrifting(poseStack, anim, random, t, 0f, scale, false, 0f);
         } else {
-            FishAnimator.apply(poseStack, anim, random, gameTimeTicks, 0f, scale, false);
+            FishAnimator.apply(poseStack, anim, random, t, 0f, scale, false);
         }
         poseStack.scale(scale, scale, scale);
         Minecraft.getInstance().getItemModelResolver()

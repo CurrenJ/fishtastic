@@ -144,7 +144,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companion", "companionparade", "companionpeek", "companionhand", "companionbond");
+            "companion", "companionparade", "companionpeek", "companionhand", "companionbond", "companionfishing");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -334,6 +334,7 @@ public final class RenderSelfTest {
             case "companionpeek" -> queueCompanionPeekScene();
             case "companionhand" -> queueCompanionHandScene();
             case "companionbond" -> queueCompanionBondScene();
+            case "companionfishing" -> queueCompanionFishingScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -3140,6 +3141,239 @@ public final class RenderSelfTest {
         var key = net.minecraft.resources.ResourceKey.create(grill24.FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY,
                 Ids.of("fishtastic", "bluegill"));
         return grill24.fishtastic.data.EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), key).loreCatches();
+    }
+
+    /**
+     * Phase 5 (§5): the fishing loop. Casts a real bobber (its position is the at-the-line anchor
+     * every client derives, and the synced bite flag is the nibble), then drives demo minigames
+     * with real fish targets through docking, the bar-state reaction, a celebration fly-past ended
+     * by the skip key, a catch return and an escape droop — plus the waits-at-the-bobber setting.
+     *
+     * <p>The demos inject the animation directly (no server session), so {@code sendMinigameResults}
+     * no-ops on the -1 session id: the scene checks the client-side outcome path, and the server's
+     * own half is covered by the gametests.
+     */
+    private static void queueCompanionFishingScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        // The bond gate is real since phase 4: complete the species' entry first (a count past
+        // every derived threshold), or the bond packet comes back LOCKED and no companion exists.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:bluegill 200")));
+        bondFish("bluegill", 25f);
+        double[] preDock = new double[1];
+
+        // Cast: a real hook, from a real rod, through the real use path.
+        queue(30, mc -> server(mc, s -> run(s, "item replace entity @a hotbar.0 with fishtastic:copper_fishing_rod")));
+        queue(5, mc -> {
+            mc.player.getInventory().setSelectedSlot(0);
+            mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        });
+        queue(30, mc -> {
+            check("fish.cast", mc.player.fishing != null, "hook=" + mc.player.fishing);
+            companionLog("cast");
+        });
+        queue(25, mc -> {
+            var c = companion();
+            double dist = c == null ? -1 : c.lineDistance();
+            preDock[0] = dist;
+            check("fish.atLine", c != null && c.lineWaitAmount() > 0.8f,
+                    "line=" + (c == null ? null : c.lineWaitAmount()));
+            check("fish.atBobber", dist >= 0 && dist < 1.6, "dist=" + dist);
+            Fishtastic.LOGGER.info("[selftest] fish.wiggle atLine: {}",
+                    c == null ? "no companion" : c.devWiggleRates());
+            screenshot(mc, "companionfishing", "at_line");
+        });
+        // Third person, so the companion at the line is legible at all — a 25 cm fish beside a
+        // bobber is a speck from the fisher's own eyes at casting distance.
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionfishing", "at_line_third_person"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // Nibble: the bite flag is synced entity data — forcing it locally is exactly what lands
+        // on every client when the server's bite cycle fires.
+        queue(1, mc -> {
+            if (mc.player.fishing != null) {
+                ((grill24.fishtastic.util.IFishingHookExtension) mc.player.fishing).fishtastic$forceBite();
+            }
+        });
+        queue(12, mc -> {
+            check("fish.nibble", companion() != null && companion().nibbleAmount() > 0.6f,
+                    "nibble=" + (companion() == null ? null : companion().nibbleAmount()));
+            screenshot(mc, "companionfishing", "nibble");
+        });
+
+        // Minigame 1: dock from the bobber, bar-state reaction, then a discovery celebration
+        // (the bluegill is "undiscovered" and is the companion's own species, so it greets it).
+        queue(1, mc -> openFishingDemoMinigame(mc, true));
+        queue(30, mc -> {
+            check("fish.docks", grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked(), "");
+            // The rendered position: the swim to the dock is a render-time blend of the world
+            // anchor, which stays on the line point so the swim has a fixed source.
+            double dist = companion() == null ? -1 : companion().devFrameDistanceToHook();
+            check("fish.leftBobber", preDock[0] >= 0 && dist >= 0 && dist > preDock[0] + 0.5,
+                    "before=" + preDock[0] + " after=" + dist);
+            screenshot(mc, "companionfishing", "docked");
+        });
+        queue(1, mc -> {
+            // The published anchors are the docking contract (R3.1): the lane must stay clear of
+            // the bar's content rect so it can never cover the bobber zone or a fish target.
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            int w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
+            float[] lane = anim == null ? null : anim.companionDockAnchor(w, h);
+            var a = anim == null ? null : anim.companionAnchors(w, h);
+            check("fish.laneClear", lane != null && a != null && lane[0] + lane[2] < a.barLeft()
+                            && lane[1] - lane[2] > a.gearBottom(),
+                    "lane=" + java.util.Arrays.toString(lane) + " barLeft=" + (a == null ? null : a.barLeft())
+                            + " gearBottom=" + (a == null ? null : a.gearBottom()));
+        });
+        queue(1, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            var target = anim == null ? null : anim.getMinigameState().getTargets().get(0);
+            for (int i = 0; i < 20 && target != null; i++) target.updateCatchProgress(1f);
+        });
+        queue(4, mc -> {
+            check("fish.inZone", companion() != null && companion().devFishProgress() > 0.2f
+                            && companion().devProgressDelta() >= -0.005f,
+                    companionLogString("progress"));
+            Fishtastic.LOGGER.info("[selftest] fish.wiggle docked: {}",
+                    companion() == null ? "no companion" : companion().devWiggleRates());
+            screenshot(mc, "companionfishing", "in_zone");
+        });
+        queue(1, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            var target = anim == null ? null : anim.getMinigameState().getTargets().get(0);
+            if (target != null) {
+                target.setNoCatchDrain(false); // let the drain reaction run for real
+                for (int i = 0; i < 12; i++) target.updateCatchProgress(0f);
+            }
+        });
+        queue(4, mc -> {
+            check("fish.drainReaction", companion() != null && companion().devProgressDelta() < -0.02f,
+                    companionLogString("drain"));
+            screenshot(mc, "companionfishing", "drain");
+        });
+        queue(1, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            if (anim == null) {
+                companionLog("catch: no anim");
+                return;
+            }
+            var t = anim.getMinigameState().getTargets().get(0);
+            companionLog("catch pre: state=" + t.getState() + " progress=" + t.getCatchProgress());
+            anim.devCatchTarget(0);
+            companionLog("catch post: caught=" + anim.getCaughtTargetIndices()
+                    + " celebration=" + (anim.getCompanionCelebration() != null));
+        });
+        queue(8, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            check("fish.celebration", anim != null && anim.getCompanionCelebration() != null,
+                    "anim=" + (anim != null) + " celebration=" + (anim != null && anim.getCompanionCelebration() != null));
+            check("fish.greet", companion() != null && companion().flyPastAmount() > 0.15f,
+                    "fly=" + (companion() == null ? null : companion().flyPastAmount()));
+            screenshot(mc, "companionfishing", "celebrate_greet");
+        });
+        queue(35, mc -> {
+            check("fish.flyPast", companion() != null && companion().flyPastAmount() > 0.5f,
+                    "fly=" + (companion() == null ? null : companion().flyPastAmount()));
+            screenshot(mc, "companionfishing", "celebrate_flypast");
+        });
+        queue(1, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            if (anim != null && anim.getCompanionCelebration() != null) anim.getCompanionCelebration().skipToSettle();
+        });
+        queue(60, mc -> {
+            check("fish.skipEndsFlight", companion() != null && companion().flyPastAmount() < 0.25f,
+                    "fly=" + (companion() == null ? null : companion().flyPastAmount()));
+            screenshot(mc, "companionfishing", "after_skip");
+        });
+        queue(60, mc -> {
+            check("fish.catchOutcome", companion() != null
+                            && companion().devLastOutcome() == grill24.fishtastic.companion.CompanionFishingOutcome.CAUGHT,
+                    "outcome=" + (companion() == null ? null : companion().devLastOutcome()));
+            screenshot(mc, "companionfishing", "catch_return");
+        });
+
+        // Minigame 2: a fish that gets away — droop, sink, slow swim back (~3 s, §5).
+        queue(20, mc -> openFishingDemoMinigame(mc, true));
+        queue(30, mc -> {
+            var anim = grill24.fishtastic.client.companion.ClientCompanions.activeMinigame();
+            var target = anim == null ? null : anim.getMinigameState().getTargets().get(0);
+            if (target != null) target.startFailAnimation();
+            companionLog("escaping");
+        });
+        queue(50, mc -> {
+            check("fish.escapeOutcome", companion() != null
+                            && companion().devLastOutcome() == grill24.fishtastic.companion.CompanionFishingOutcome.ESCAPED,
+                    "outcome=" + (companion() == null ? null : companion().devLastOutcome()));
+            screenshot(mc, "companionfishing", "escape_droop");
+        });
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(10, mc -> screenshot(mc, "companionfishing", "escape_third_person"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+
+        // Waits at the bobber (§11): with the setting on the companion holds the line through the
+        // minigame; off, it docks again.
+        queue(30, mc -> {
+            grill24.fishtastic.client.FishtasticClientConfig.setTestOverride(
+                    grill24.fishtastic.client.FishtasticClientConfig.COMPANION_WAITS_AT_BOBBER_KEY, true);
+        });
+        queue(1, mc -> openFishingDemoMinigame(mc, false));
+        queue(30, mc -> {
+            check("fish.waitsAtBobber", !grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked()
+                            && companion() != null && companion().lineWaitAmount() > 0.5f,
+                    "docked=" + grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked()
+                            + " line=" + (companion() == null ? null : companion().lineWaitAmount()));
+            screenshot(mc, "companionfishing", "waits_at_bobber");
+        });
+        queue(1, mc -> {
+            grill24.fishtastic.client.FishtasticClientConfig.setTestOverride(
+                    grill24.fishtastic.client.FishtasticClientConfig.COMPANION_WAITS_AT_BOBBER_KEY, false);
+        });
+        queue(30, mc -> {
+            check("fish.docksAgain", grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked(), "");
+            screenshot(mc, "companionfishing", "docks_again");
+        });
+
+        // Cleanup: no animation, no overrides, no companion, no bobber.
+        queue(1, mc -> {
+            ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+            grill24.fishtastic.client.FishtasticClientConfig.clearTestOverrides();
+        });
+        queue(1, mc -> server(mc, s -> {
+            run(s, "kill @e[type=minecraft:fishing_bobber]");
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.unequip(player);
+                player.getInventory().clearContent();
+            }
+        }));
+        queue(10, mc -> companionLog("fishing scene end"));
+    }
+
+    /** Opens a demo minigame with one bluegill fish target (optionally) in the undiscovered set. */
+    private static void openFishingDemoMinigame(Minecraft mc, boolean withFish) {
+        grill24.fishtastic.util.FishingMinigameAnimation animation = new grill24.fishtastic.util.FishingMinigameAnimation();
+        // The bare constructor stages three example TREASURE targets (stone/diamond/gold); clear
+        // them exactly as the real start-packet handler does, or the scene's target index points
+        // at a placeholder rock.
+        animation.getMinigameState().getTargets().clear();
+        if (withFish) {
+            ItemStack reward = fish("bluegill", 25f);
+            animation.setUndiscoveredSpecies(java.util.Set.of(
+                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(reward.getItem())));
+            grill24.fishtastic.util.FishingTarget target = new grill24.fishtastic.util.FishingTarget(
+                    java.util.List.of(reward), grill24.fishtastic.util.FishingTarget.TargetCategory.FISH,
+                    new java.util.Random(7L), 0.5f, 0.2f, java.util.List.of());
+            // The demo bobber rests away from the target, so the tick loop would drain (and fail)
+            // it before the scene's deterministic catch; the scene re-enables drain for its
+            // drain-reaction leg.
+            target.setNoCatchDrain(true);
+            animation.getMinigameState().addTarget(target);
+        }
+        ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$displayItemActivation(() -> animation);
+    }
+
+    /** The companion's fishing reaction debug line, for scene checks. */
+    private static String companionLogString(String label) {
+        return label + " " + grill24.fishtastic.client.companion.ClientCompanions.debugState();
     }
 
     private static void queueHudScene() {

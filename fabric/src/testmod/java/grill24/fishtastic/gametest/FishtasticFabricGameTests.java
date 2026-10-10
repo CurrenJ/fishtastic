@@ -1031,6 +1031,11 @@ public class FishtasticFabricGameTests {
         PacketRoundTripGameTests.requestFishEncyclopediaPacketRoundTrips(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionFishingEventPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.companionFishingEventPacketRoundTrips(helper);
+    }
+
     // -------------------------------------------------------------------------
     // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
     // -------------------------------------------------------------------------

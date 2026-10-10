@@ -37,6 +37,7 @@ public class FishtasticPackets {
     public static final Identifier RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final Identifier COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
     public static final Identifier COMPANION_TUTORIAL_ADVANCE_ID = Fishtastic.id("companion_tutorial_advance");
+    public static final Identifier COMPANION_FISHING_EVENT_ID = Fishtastic.id("companion_fishing_event");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -216,6 +217,11 @@ public class FishtasticPackets {
                 CompanionTutorialSyncPacket.STREAM_CODEC,
                 CompanionTutorialSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                CompanionFishingEventPacket.TYPE,
+                CompanionFishingEventPacket.STREAM_CODEC,
+                CompanionFishingEventPacket::handleServerToClient
+        );
     }
 
     /**
@@ -241,6 +247,7 @@ public class FishtasticPackets {
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
         registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
+        registrar.accept(CompanionFishingEventPacket.TYPE, CompanionFishingEventPacket.STREAM_CODEC);
     }
 
     /**

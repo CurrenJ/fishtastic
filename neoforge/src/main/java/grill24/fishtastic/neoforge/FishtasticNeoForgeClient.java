@@ -104,6 +104,8 @@ public final class FishtasticNeoForgeClient {
         // Register companion tutorial sync and bond/rename feedback handlers
         grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionFishingEventPacket.registerClientHandler(packet ->
+                grill24.fishtastic.client.companion.ClientCompanions.onFishingEvent(packet.owner(), packet.outcome()));
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->

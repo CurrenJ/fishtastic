@@ -53,6 +53,18 @@ public final class CompanionFlock {
     /** Bonded fish under this size come as a trio when they are small free swimmers (§2). */
     public static final float TRIO_MAX_CM = 20f;
 
+    /**
+     * Presentation clock rates for companions only (tank sim and tank rendering untouched). The
+     * tank's animation rates are authored for a fish seen at arm's length inside a box; the same
+     * rates read as frantic on a companion swimming right next to the camera (owner feedback,
+     * 2026-10-10: "bobs/wiggles too fast, appears frantic when it shouldn't"). These scale the
+     * clocks fed to the animator — the sim's positions, headings and banking are unaffected, and
+     * because the clocks stay continuous, a rate change can never make the fish jump. Reaction
+     * moments (peeks, tricks, fishing excitement) keep their own livelier timing. Tune these two
+     * numbers to taste; everything else follows.
+     */
+    public static final float SWIM_CLOCK_RATE = 0.55f, IDLE_CLOCK_RATE = 0.6f;
+
     /** Which invisible tank the fish lives in — chosen by the caller from the owner's state. */
     public enum Mode { FOLLOW, WATER, DOCKED }
 
@@ -266,29 +278,31 @@ public final class CompanionFlock {
             if (anim instanceof FishAnimationConfig.HorizontalSwim swim && eng.swimmers[i] && planar) {
                 // Planar swimmers animate on the engine's speed-integrated clock, with the
                 // continuous yaw the +180° maps onto the item sprite's nose.
-                FishAnimator.applySwimming(poseStack, swim, random, eng.renderPhase[i],
+                FishAnimator.applySwimming(poseStack, swim, random, eng.renderPhase[i] * SWIM_CLOCK_RATE,
                         eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i],
                         eng.renderBobRoom[i], scale);
             } else if (anim instanceof FishAnimationConfig.HorizontalSwim swim && eng.swimmers[i]) {
                 // The tank's binary model, exactly as FishTankBlockEntityRenderer draws it.
-                FishAnimator.applySwimming(poseStack, swim, random, eng.renderPhase[i], eng.baseRotations[i],
-                        eng.heading[i] > 0f, eng.speedFactor(i), eng.bank[i], eng.renderBobRoom[i], scale);
+                FishAnimator.applySwimming(poseStack, swim, random, eng.renderPhase[i] * SWIM_CLOCK_RATE,
+                        eng.baseRotations[i], eng.heading[i] > 0f, eng.speedFactor(i), eng.bank[i],
+                        eng.renderBobRoom[i], scale);
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
-                FishAnimator.applyBenthic(poseStack, anim, random, gameTimeTicks, eng.renderYaw[i] + 180f,
-                        eng.baseRotations[i], scale, false, eng.renderShape[i]);
+                FishAnimator.applyBenthic(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
+                        eng.renderYaw[i] + 180f, eng.baseRotations[i], scale, false, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.GLIDE) {
-                FishAnimator.applyGliding(poseStack, anim, random, gameTimeTicks, eng.renderYaw[i] + 180f,
-                        eng.bankFraction(i), eng.baseRotations[i], scale, false);
+                FishAnimator.applyGliding(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
+                        eng.renderYaw[i] + 180f, eng.bankFraction(i), eng.baseRotations[i], scale, false);
             } else if (eng.locomotion[i] == Locomotion.DRIFT) {
-                FishAnimator.applyDrifting(poseStack, anim, random, gameTimeTicks, eng.baseRotations[i],
-                        scale, mirrored, eng.renderShape[i]);
+                FishAnimator.applyDrifting(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
+                        eng.baseRotations[i], scale, mirrored, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.ANCHORED) {
-                FishAnimator.applyAnchored(poseStack, anim, random, gameTimeTicks, eng.baseRotations[i],
-                        scale, mirrored, eng.renderShape[i]);
+                FishAnimator.applyAnchored(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
+                        eng.baseRotations[i], scale, mirrored, eng.renderShape[i]);
             } else {
                 // Anything demoted to STATIC (a fish too big for its box) or a water-swapped
                 // class with no swim of its own poses on game time, exactly as the tank does.
-                FishAnimator.apply(poseStack, anim, random, gameTimeTicks, eng.baseRotations[i], scale, mirrored);
+                FishAnimator.apply(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
+                        eng.baseRotations[i], scale, mirrored);
             }
             poseStack.scale(scale, scale, scale);
 
@@ -298,6 +312,11 @@ public final class CompanionFlock {
             renderState.submit(poseStack, nodes, light, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();
         }
+    }
+
+    /** The lead fish's raw (unscaled) tail phase this frame, for the self-test's wiggle numbers. */
+    public float renderPhase() {
+        return empty ? 0f : engine.renderPhase[0];
     }
 
 }
