@@ -21,15 +21,17 @@
 | **3. Display modes** | ✅ Done, verified on both loaders (see fish-companions.md §15) | `92626048` |
 | **4. Bonding UI** | ✅ Done, verified on both loaders (see fish-companions.md §16) | `802470b9` |
 | **5. Fishing reactions** | ✅ Done, verified on both loaders (see fish-companions.md §17) | `ce429e94` |
-| **6. Pet-to-pet (v1: G1, G2)** | ✅ Done (uncommitted; see fish-companions.md §18) | — |
+| **6. Pet-to-pet (v1: G1, G2)** | ✅ Done, verified on both loaders (see fish-companions.md §18) | `c9756261` |
 | Later: personality, world and player reactions; scenes G3–G6; signature companions | Not started | — |
 | Planned improvements: tank interactions (E3, E4) | **Deferred by owner — do not build** | — |
+| Post-v1 polish (owner playtest 2026-10-10): calm idle — shipped §17; view-decoupling, face-velocity, solo debug commands | In progress (see §19 when done) | — |
 
 The active session goal was "complete all phases using forks and verify using self render tests".
-The owner paused it after Phase 2 to get this handoff; phases 3–5 landed the same day (2026-10-10)
-as `92626048`, `802470b9` and `ce429e94`, one fork each, verified on both loaders. Phase 6
-(pet-to-pet v1) followed, completing **v1 = phases 0–5 + G1/G2** (R8.1); it awaits the parent's
-commit.
+The owner paused it after Phase 2 to get this handoff; phases 3–6 landed the same day (2026-10-10)
+as `92626048`, `802470b9`, `ce429e94` and `c9756261`, one fork each, verified on both loaders —
+**v1 = phases 0–5 + G1/G2 is complete** (R8.1). Post-v1 polish from the owner's first playtest
+follows: baseline paths decoupled from camera rotation, companions facing their world velocity,
+and in-game debug commands to trigger every companion animation solo.
 
 ---
 
