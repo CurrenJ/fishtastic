@@ -415,3 +415,39 @@ when looking up, or when it happens to cross in front. This confirms that the pe
 a requirement for phase 3, not polish.
 
 **Not covered:** bob-matched projection at the handoff (no visible pop in tests; untested with view bob while walking); non-swimmer classes (benthic/glide/drift/anchored), which use the tank idle pose for now.
+
+---
+
+## 14. Phase 2 — as built (2026-10-10)
+
+- **Storage:** `companion/CompanionStorage` (`@ExpectPlatform` get/set), backed on NeoForge by an
+  `AttachmentType<ItemStack>` (default empty, serialized only when set, `copyOnDeath`, synced to the
+  owner and everyone tracking them). On Fabric it's an `AttachmentRegistry` type (persistent,
+  `copyOnDeath`, `syncWith(... all())`, and an empty stack is stored as "not attached"). It is never
+  `FishCatchSavedData`.
+- **Server operations:** `companion/Companions`:
+  - `bond` finds a fish identical in every component (count aside), in loose stacks first and then
+    inside Piles of Fish, and takes exactly one. An emptied pile is removed, and a pile left holding
+    one fish becomes that fish. A previous companion comes back through `RemoveTankEntryPacket.giveOrDrop`.
+  - `unequip` and `equip` are the other two operations.
+  - Results are `BONDED / NOT_A_FISH / LOCKED / NOT_CARRIED`.
+  - `CompanionBondGate.isUnlocked` is a Phase 4 stub that allows everything.
+- **Network:** `BondCompanionPacket(ItemStack)`, decoded with the untrusted stream codec, and
+  `UnequipCompanionPacket`. Other clients learn companions only through the attachment sync.
+- **Client:** `ClientCompanions` rebuilds one `ClientCompanion` for each player in the client level
+  whose synced companion is non-empty: added, rebuilt on change, dropped on leave or unequip. Only
+  the local player's companion docks. Someone else's box turns with its owner's view yaw.
+  `CompanionSpike` is gone.
+- **Dev:** `/fishtastic companion on|off|give <player> <species> [size]|minigame|stopgame`
+  (dev-only). `on` and `off` go through the real bond and unequip.
+- **Verification:**
+  - **Game tests:** 9 new game tests on both loaders (bond from inventory or pile, pile collapse,
+    non-matching description, non-fish, identical return, full-inventory drop, swap, kept on death).
+    The death test takes a per-loader respawn hook, because NeoForge copies inside `restoreFrom`
+    while Fabric copies on `AFTER_RESPAWN`. Fabric passed 292/292. NeoForge's testmod compiles,
+    but its game tests weren't run (that JVM doesn't exit).
+  - **Self-test:** the `companion` scene bonds and unequips through the real packets, and passed
+    every CHECK on both loaders.
+- **Second player:** headless runs can't have one, so the scene adds a dev phantom companion
+  (`ClientCompanions.addPhantom`) to prove the manager tracks and draws two. Real remote-player sync
+  is covered only by the attachment's own sync contract, not by a live two-client test.

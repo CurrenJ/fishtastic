@@ -23,6 +23,7 @@ import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
+import grill24.fishtastic.gametest.CompanionGameTests;
 import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
 import grill24.fishtastic.gametest.StormCharmGameTests;
@@ -580,6 +581,27 @@ public class NeoForgeGameTestRegistration {
             helper -> ShopEntryGameTests.grantRewardsDropsLeftoverWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "grant_rewards_delivers_normally_when_inventory_has_space", 200,
             helper -> ShopEntryGameTests.grantRewardsDeliversNormallyWhenInventoryHasSpace(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- Fish companions -----
+        register(event, env, "bond_takes_the_fish_from_the_inventory", 200,
+            helper -> CompanionGameTests.bondTakesTheFishFromTheInventory(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_takes_the_fish_from_inside_a_pile", 200,
+            helper -> CompanionGameTests.bondTakesTheFishFromInsideAPile(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_from_a_two_fish_pile_leaves_the_other_fish_loose", 200,
+            helper -> CompanionGameTests.bondFromATwoFishPileLeavesTheOtherFishLoose(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_with_a_fish_the_player_does_not_carry_changes_nothing", 200,
+            helper -> CompanionGameTests.bondWithAFishThePlayerDoesNotCarryChangesNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_refuses_something_that_is_not_a_fish", 200,
+            helper -> CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "unequip_returns_the_identical_fish", 200,
+            helper -> CompanionGameTests.unequipReturnsTheIdenticalFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "unequip_with_a_full_inventory_drops_the_fish", 200,
+            helper -> CompanionGameTests.unequipWithAFullInventoryDropsTheFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bonding_a_second_fish_returns_the_first", 200,
+            helper -> CompanionGameTests.bondingASecondFishReturnsTheFirst(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_is_kept_on_death", 200,
+            helper -> CompanionGameTests.companionIsKeptOnDeath(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper),
+                (before, after) -> after.restoreFrom(before, false)));
 
         // ----- RemoveTankEntryPacket.giveOrDrop -----
         register(event, env, "give_or_drop_drops_fish_when_inventory_is_full", 200,

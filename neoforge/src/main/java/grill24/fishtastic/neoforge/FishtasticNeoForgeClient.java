@@ -75,7 +75,7 @@ import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEven
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import grill24.fishtastic.client.companion.CompanionPipRenderState;
 import grill24.fishtastic.client.companion.CompanionPipRenderer;
-import grill24.fishtastic.client.companion.CompanionSpike;
+import grill24.fishtastic.client.companion.ClientCompanions;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -283,7 +283,7 @@ public final class FishtasticNeoForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
-            CompanionSpike.tick();
+            ClientCompanions.tick();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
@@ -298,7 +298,7 @@ public final class FishtasticNeoForgeClient {
 
 
     public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
-        CompanionSpike.submitWorld(event.getPoseStack(), event.getSubmitNodeCollector(),
+        ClientCompanions.submitWorld(event.getPoseStack(), event.getSubmitNodeCollector(),
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
     }
 
@@ -322,7 +322,7 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
-        CompanionSpike.renderHud(event.getGuiGraphics(), CompanionSpike.activeMinigame(),
+        ClientCompanions.renderHud(event.getGuiGraphics(), ClientCompanions.activeMinigame(),
                 event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Render quest progress notifications (after fishing minigame)
         QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));

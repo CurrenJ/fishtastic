@@ -37,7 +37,7 @@ public final class CompanionPipRenderer extends PictureInPictureRenderer<Compani
 
     @Override
     protected void renderToTexture(CompanionPipRenderState state, PoseStack ignoredOrthoStack) {
-        CompanionSpike.pipRenders++;
+        ClientCompanions.pipRenders++;
         RenderSystem.setProjectionMatrix(perspectiveBuffer.getBuffer(state.projection()), ProjectionType.PERSPECTIVE);
         Minecraft mc = Minecraft.getInstance();
         mc.gameRenderer.getLighting().setupFor(lighting);
@@ -49,7 +49,7 @@ public final class CompanionPipRenderer extends PictureInPictureRenderer<Compani
         // as the camera turned away from yaw 180, where the view rotation is close to identity).
         PoseStack poseStack = new PoseStack();
         poseStack.mulPose(state.fishPose());
-        CompanionSpike.submitDockedFish(poseStack, features.getSubmitNodeStorage(), state.light(), state.gameTimeTicks());
+        ClientCompanions.submitDockedFish(poseStack, features.getSubmitNodeStorage(), state.light(), state.gameTimeTicks());
         features.renderAllFeatures();
     }
 

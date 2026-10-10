@@ -1233,6 +1233,58 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Fish companions — bond / unequip / storage
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondTakesTheFishFromTheInventory(GameTestHelper helper) {
+        CompanionGameTests.bondTakesTheFishFromTheInventory(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondTakesTheFishFromInsideAPile(GameTestHelper helper) {
+        CompanionGameTests.bondTakesTheFishFromInsideAPile(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondFromATwoFishPileLeavesTheOtherFishLoose(GameTestHelper helper) {
+        CompanionGameTests.bondFromATwoFishPileLeavesTheOtherFishLoose(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondWithAFishThePlayerDoesNotCarryChangesNothing(GameTestHelper helper) {
+        CompanionGameTests.bondWithAFishThePlayerDoesNotCarryChangesNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondRefusesSomethingThatIsNotAFish(GameTestHelper helper) {
+        CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void unequipReturnsTheIdenticalFish(GameTestHelper helper) {
+        CompanionGameTests.unequipReturnsTheIdenticalFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void unequipWithAFullInventoryDropsTheFish(GameTestHelper helper) {
+        CompanionGameTests.unequipWithAFullInventoryDropsTheFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondingASecondFishReturnsTheFirst(GameTestHelper helper) {
+        CompanionGameTests.bondingASecondFishReturnsTheFirst(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionIsKeptOnDeath(GameTestHelper helper) {
+        CompanionGameTests.companionIsKeptOnDeath(helper, helper::makeMockServerPlayerInLevel, (before, after) -> {
+            after.restoreFrom(before, false);
+            net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.invoker().afterRespawn(before, after, false);
+        });
+    }
+
+    // -------------------------------------------------------------------------
     // RemoveTankEntryPacket.giveOrDrop — fish tank browser GUI removal delivery
     // -------------------------------------------------------------------------
 

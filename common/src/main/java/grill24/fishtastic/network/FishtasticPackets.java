@@ -32,6 +32,8 @@ public class FishtasticPackets {
     public static final Identifier NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
     public static final Identifier SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
     public static final Identifier REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
+    public static final Identifier BOND_COMPANION_ID = Fishtastic.id("bond_companion");
+    public static final Identifier UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -114,6 +116,16 @@ public class FishtasticPackets {
                 RemoveTankEntryPacket.TYPE,
                 RemoveTankEntryPacket.STREAM_CODEC,
                 RemoveTankEntryPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                BondCompanionPacket.TYPE,
+                BondCompanionPacket.STREAM_CODEC,
+                BondCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                UnequipCompanionPacket.TYPE,
+                UnequipCompanionPacket.STREAM_CODEC,
+                UnequipCompanionPacket::handleClientToServer
         );
     }
 

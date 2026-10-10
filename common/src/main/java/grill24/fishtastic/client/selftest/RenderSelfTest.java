@@ -2404,22 +2404,42 @@ public final class RenderSelfTest {
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
     /**
-     * Fish companion Phase 0 spike (docs/fish-companions.md §12): the companion following in first
-     * and third person, then the demo minigame — shots part-way through the swim to the dock, either
-     * side of the world-to-HUD handoff, and docked.
+     * Fish companions (docs/fish-companions.md §12, Phases 0 and 2): bond through the real packet and
+     * check the synced attachment reached the client; the companion following in first and third
+     * person; the demo minigame — shots part-way through the swim to the dock, either side of the
+     * world-to-HUD handoff, docked, both passes side by side, through a camera turn and in third
+     * person; a dev phantom standing in for a second player's companion; then unequip through the
+     * real packet and check the exact fish came back.
      */
     private static void queueCompanionScene() {
+        ItemStack bluegill = fish("bluegill", 25f);
         queue(1, mc -> {
             mc.options.hideGui = false;
             mc.options.setCameraType(CameraType.FIRST_PERSON);
             server(mc, s -> {
                 run(s, "gamemode creative @a");
                 run(s, "time set 6000");
+                run(s, "clear @a");
                 run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f",
                         origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 0.5, 180f, 0f));
+                for (var player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.unequip(player);
+                    player.getInventory().clearContent();
+                    player.getInventory().setItem(3, bluegill.copy());
+                }
             });
         });
-        queue(10, mc -> grill24.fishtastic.client.companion.CompanionSpike.enable(fish("bluegill", 25f)));
+        // The real bond path: the client describes the fish, the server finds it in the inventory.
+        queue(10, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                new grill24.fishtastic.network.BondCompanionPacket(bluegill.copy()))));
+        queue(10, mc -> {
+            ItemStack synced = grill24.fishtastic.companion.CompanionStorage.get(mc.player);
+            check("companion.bondSyncedToClient", ItemStack.matches(synced, bluegill), "synced=" + synced);
+            check("companion.bondTookTheFish", mc.player.getInventory().getItem(3).isEmpty(),
+                    "slot3=" + mc.player.getInventory().getItem(3));
+            check("companion.tracked", grill24.fishtastic.client.companion.ClientCompanions.count() == 1,
+                    "tracked=" + grill24.fishtastic.client.companion.ClientCompanions.count());
+        });
         for (int i = 0; i < 4; i++) {
             int shot = i;
             queue(15, mc -> {
@@ -2445,21 +2465,21 @@ public final class RenderSelfTest {
         queue(10, mc -> screenshot(mc, "companion", "dock_before_handoff"));
         queue(4, mc -> screenshot(mc, "companion", "dock_after_handoff"));
         queue(10, mc -> {
-            check("companion.docked", grill24.fishtastic.client.companion.CompanionSpike.isDocked(), "");
+            check("companion.docked", grill24.fishtastic.client.companion.ClientCompanions.isLocalDocked(), "");
             screenshot(mc, "companion", "docked");
         });
 
         // Block 2: the same fish drawn by both passes in one frame (HUD copy shifted left).
         queue(1, mc -> {
             ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
-            grill24.fishtastic.client.companion.CompanionSpike.pipCompare = true;
+            grill24.fishtastic.client.companion.ClientCompanions.pipCompare = true;
         });
         queue(25, RenderSelfTest::openDemoMinigame);
         for (int i = 0; i < 3; i++) {
             int shot = i;
             queue(i == 0 ? 25 : 6, mc -> screenshot(mc, "companion", "compare_" + shot));
         }
-        queue(1, mc -> grill24.fishtastic.client.companion.CompanionSpike.pipCompare = false);
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.pipCompare = false);
 
         // Block 3: docked fish stays locked to the screen through a camera turn, and in third person.
         queue(1, mc -> ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation());
@@ -2490,7 +2510,33 @@ public final class RenderSelfTest {
             ((grill24.fishtastic.util.IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
         });
         queue(10, mc -> screenshot(mc, "companion", "undock_return"));
-        queue(1, mc -> grill24.fishtastic.client.companion.CompanionSpike.disable());
+
+        // A second companion: no second player exists headlessly, so a dev phantom parked three
+        // blocks ahead stands in for someone else's, drawn by the same manager pass.
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.addPhantom(
+                fish("giant_manta_ray", 300f), mc.player.getEyePosition().add(mc.player.getLookAngle().scale(3.5))));
+        queue(25, mc -> {
+            check("companion.secondCompanionTracked", grill24.fishtastic.client.companion.ClientCompanions.count() == 2,
+                    "tracked=" + grill24.fishtastic.client.companion.ClientCompanions.count());
+            screenshot(mc, "companion", "two_companions");
+        });
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms());
+
+        // The real unequip path: the exact fish comes back and the companion is gone everywhere.
+        queue(1, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+                grill24.fishtastic.network.UnequipCompanionPacket.INSTANCE)));
+        queue(10, mc -> {
+            check("companion.unequipSyncedToClient", grill24.fishtastic.companion.CompanionStorage.get(mc.player).isEmpty(),
+                    "synced=" + grill24.fishtastic.companion.CompanionStorage.get(mc.player));
+            boolean back = false;
+            for (ItemStack stack : mc.player.getInventory().getNonEquipmentItems()) {
+                if (ItemStack.matches(stack, bluegill)) back = true;
+            }
+            check("companion.unequipReturnedTheFish", back, "inventory=" + mc.player.getInventory().getNonEquipmentItems());
+            check("companion.untracked", grill24.fishtastic.client.companion.ClientCompanions.count() == 0,
+                    "tracked=" + grill24.fishtastic.client.companion.ClientCompanions.count());
+            screenshot(mc, "companion", "unequipped");
+        });
     }
 
     private static void openDemoMinigame(Minecraft mc) {
@@ -2500,7 +2546,7 @@ public final class RenderSelfTest {
 
     private static void companionLog(String label) {
         Fishtastic.LOGGER.info("[selftest] companion {}: {}", label,
-                grill24.fishtastic.client.companion.CompanionSpike.debugState());
+                grill24.fishtastic.client.companion.ClientCompanions.debugState());
     }
 
     private static void queueHudScene() {

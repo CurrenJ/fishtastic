@@ -57,6 +57,9 @@ public final class FishtasticNeoForge {
         FishtasticBlockEntityTypes.registerBlockEntityTypes();
         FishtasticRegistriesNeoForge.BLOCK_ENTITY_TYPES.register(modEventBus);
 
+        // Fish companion player attachment (docs/fish-companions.md §8.1).
+        grill24.fishtastic.companion.neoforge.CompanionStorageImpl.register(modEventBus);
+
         FishtasticMenuTypes.registerMenuTypes();
         FishtasticRegistriesNeoForge.MENU_TYPES.register(modEventBus);
 
