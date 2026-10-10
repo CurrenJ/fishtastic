@@ -24,7 +24,7 @@
 | **6. Pet-to-pet (v1: G1, G2)** | ✅ Done, verified on both loaders (see fish-companions.md §18) | `c9756261` |
 | Later: personality, world and player reactions; scenes G3–G6; signature companions | Not started | — |
 | Planned improvements: tank interactions (E3, E4) | **Deferred by owner — do not build** | — |
-| Post-v1 polish (owner playtest 2026-10-10): calm idle — shipped §17; view-decoupling, face-velocity, solo debug commands | ✅ Done (uncommitted; see fish-companions.md §19) | — |
+| Post-v1 polish (owner playtest 2026-10-10): calm idle, view-decoupling, face-velocity, solo debug commands | ✅ Done, verified on both loaders (see fish-companions.md §17, §19) | `37406056` |
 
 The active session goal was "complete all phases using forks and verify using self render tests".
 The owner paused it after Phase 2 to get this handoff; phases 3–6 landed the same day (2026-10-10)
