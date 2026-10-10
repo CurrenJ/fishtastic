@@ -3,6 +3,7 @@ package grill24.fishtastic.client.companion;
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.companion.CompanionFishingOutcome;
+import grill24.fishtastic.companion.CompanionSceneType;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IGameRendererExtension;
@@ -144,6 +145,38 @@ public final class ClientCompanions {
     public static void onFishingEvent(UUID owner, CompanionFishingOutcome outcome) {
         ClientCompanion companion = COMPANIONS.get(owner);
         if (companion != null) companion.setFishingOutcome(outcome);
+    }
+
+    /**
+     * The scene packet's landing point (§10): the server has picked the scene, its two
+     * participants and its start time; hand it to whichever of their companions this client
+     * tracks. A participant this client can't see simply doesn't play it — nothing to do.
+     */
+    public static void onScenePacket(CompanionSceneType scene, UUID first, UUID second, long startTime) {
+        ClientCompanion firstCompanion = findAny(first);
+        if (firstCompanion != null) firstCompanion.startScene(scene, startTime, second, false);
+        ClientCompanion secondCompanion = findAny(second);
+        if (secondCompanion != null) secondCompanion.startScene(scene, startTime, first, true);
+    }
+
+    /** The tracked companion for any owner id — a real player's, or a dev phantom's. */
+    @Nullable
+    static ClientCompanion findAny(UUID owner) {
+        ClientCompanion tracked = COMPANIONS.get(owner);
+        return tracked != null ? tracked : PHANTOMS.get(owner);
+    }
+
+    /** Dev-only: {@link #findAny} for the self-test scenes, which hold only the phantom's id. */
+    @Nullable
+    public static ClientCompanion devFindAny(UUID owner) {
+        return findAny(owner);
+    }
+
+    /** Where a scene partner's body (or a dev phantom's park) is — the scene path math's other end. */
+    @Nullable
+    static Vec3 scenePartnerPoint(UUID partner) {
+        ClientCompanion companion = findAny(partner);
+        return companion == null ? null : companion.sceneHolderPoint();
     }
 
     @Nullable

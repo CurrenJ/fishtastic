@@ -9,6 +9,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
 import grill24.fishtastic.network.CompanionFishingEventPacket;
+import grill24.fishtastic.network.CompanionScenePacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
@@ -304,6 +305,22 @@ public final class PacketRoundTripGameTests {
             CompanionFishingEventPacket decoded = CompanionFishingEventPacket.STREAM_CODEC.decode(buf);
             helper.assertTrue(decoded.equals(original),
                     "CompanionFishingEventPacket must round-trip for " + outcome);
+        }
+        helper.succeed();
+    }
+
+    /** A pet-to-pet scene (§10): scene, both participant ids and the shared start time. */
+    public static void companionScenePacketRoundTrips(GameTestHelper helper) {
+        java.util.UUID first = java.util.UUID.randomUUID();
+        java.util.UUID second = java.util.UUID.randomUUID();
+        for (grill24.fishtastic.companion.CompanionSceneType scene
+                : grill24.fishtastic.companion.CompanionSceneType.values()) {
+            CompanionScenePacket original = new CompanionScenePacket(scene, first, second, 123456L);
+            RegistryFriendlyByteBuf buf = newBuf(helper);
+            CompanionScenePacket.STREAM_CODEC.encode(buf, original);
+            CompanionScenePacket decoded = CompanionScenePacket.STREAM_CODEC.decode(buf);
+            helper.assertTrue(decoded.equals(original),
+                    "CompanionScenePacket must round-trip for " + scene);
         }
         helper.succeed();
     }

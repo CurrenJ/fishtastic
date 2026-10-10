@@ -716,3 +716,72 @@ even in third person, so those shots only corroborate rather than show.
 - The dock-swim metric: `lineDistance` reads the simulated centre, which deliberately holds at
   the bobber while the render-time blend swims to the dock; measuring "has it left the line"
   needs the rendered frame position (`devFrameDistanceToHook`).
+
+---
+
+## 18. Phase 6 — as built (2026-10-10)
+
+Pet-to-pet scenes, v1: G1 and G2 (§10). This completes **v1 = phases 0–5 plus G1/G2** (R8.1).
+
+**The scheduler (server, `CompanionSceneManager`).** Ticked from `ServerTickHandler`. Each tick,
+per level: the players with a companion are collected and the best eligible pair starts at most one
+scene. The rules, all of them: within 6 blocks; neither companion busy (in a scene, or in the
+per-companion cooldown that follows one); neither owner mid-minigame (the fishing minigame
+manager) or with a line out (`player.fishing` — their companion belongs at the bobber, §5); and a
+fixed priority order (R5.6) read straight off the scene enum — same species (G1) beats two free
+swimmers (G2), with later families slotting into `choose()` below them. Starting a scene sends
+**one** `CompanionScenePacket` — scene, both owner ids, absolute start time — to players within 128
+blocks of either participant, and holds both companions busy for the scene's duration + a 60 s
+cooldown. That's the entire memory of the system: two numbers per player, in memory only, nothing
+saved, no per-pair history (R5.2–R5.4).
+
+**Playback (client).** `ClientCompanions.onScenePacket` hands each tracked participant its role;
+`ClientCompanion` derives its position every tick from the packet's start time and the two owners'
+current positions — no per-frame randomness, so both owners' clients compute the identical dance:
+
+| Scene | Path |
+|---|---|
+| `G1_SAME_SPECIES` | Both companions fly a vertical ring at 1.1 blocks around the pair's midpoint, in the plane perpendicular to the owners' axis (a horizontal ring's near edge would sweep their faces), the second always antipodal to the first; at 2 s in, the bubble heart pops — bubbles traced along the classic heart curve in each viewer's camera plane, with one heart through its middle. |
+| `G2_FREE_SWIM_EIGHT` | A figure eight: two circles tangent at the midpoint, one lobe centred on each owner; each fish runs the whole path half a period behind the other, swapping lobes at every crossing. |
+
+A scene overrides the display-mode anchor for its seconds (peeks and tricks pause; perchers hop off
+their perch and join, through the same out-of-body path a peek uses), then it simply expires and
+normal behaviour resumes. In water, the scene still overrides — it is brief and the alternative
+(ignoring it) would desync the pair.
+
+**Verification.** Ten new game tests run the real scheduler with mock players and an explicit
+clock — same-species pair → G1 to both owners; cooldown-gated repeats; minigame and line-out owners
+block scenes; two different free swimmers → G2; a percher pair plays nothing; range and
+one-scene-per-companion; same species beating free swimmers among three candidates; and packet
+targeting to nearby observers. With the scene packet's round-trip test the suite is 315/315 on
+Fabric. The visual self-test scene is `companionscenes` (opt-in): one real player, one dev phantom
+partner, the scene injected through the same landing method the packet handler calls. It checks
+both companions enter and leave each scene, and that the G1 ring actually travels — the sampled
+arc swept over 60 ticks is ~10.5 rad for each fish (threshold 4) and the pair is antipodal in
+12/12 samples. Screenshots are taken from behind the player (first person framed neither fish at most instants): the heart
+moment reads clearly, the loop catches the pair at various ring positions — one fish occluded by
+the player model in some frames — and the G2 figure eight puts one fish on each side of the owner.
+The at-heart bubble trace is subtle at this scale; `HEART_SCALE` is the one knob.
+
+**Pitfalls found and fixed during the phase** (each cost a run):
+- The first G1 ring circled the pair's midpoint **horizontally** — with the midpoint only ~1 block
+  ahead of each owner, the ring's near edge swept their faces (one frame had a fish filling half
+  the screen). The ring is now vertical, in the plane perpendicular to the owners' axis, so every
+  point of it stays at least the separation distance away.
+- The scene had no companion to move: the bond gate is real since phase 4 and the scene never
+  seeded the species' catch count, so `bondFish` came back LOCKED. Seed `catchcount` first. The
+  same latent bug had been sitting in the phase-2 `companion` scene since phase 4 introduced the
+  gate — it only ever passed when another seeding scene ran first in the same world, and fails on
+  a fresh world; it now seeds too.
+- Each participant built the ring basis from `partner − mine`, which flips sign between them: the
+  second fish's π offset became a mirror, not an antipode (the pair measured "opposite" only
+  half the time). The axis is canonicalised to the +x half-space before the perpendicular.
+- Three vanilla hearts 0.12 apart at 1.5 blocks merge into one giant red blob; one heart plus the
+  bubble trace reads as a heart. Related: the scene checks first sampled the box centre, which
+  carries the 0.7 horizontal de-wander bias, so antipodal fish measured ~50% opposite; they sample
+  the fish point instead.
+- Mock players persist in the gametest player list for the JVM's lifetime, so an "exactly these
+  recipients" assertion silently breaks once an earlier test's players are still near spawn; the
+  targeting test asserts against the set computed from the same distance rule, strays included.
+- `Level#getSharedSpawnPos` no longer exists in 26.1.2; the tests offset mock players from wherever
+  they were placed instead of looking up a spawn point.

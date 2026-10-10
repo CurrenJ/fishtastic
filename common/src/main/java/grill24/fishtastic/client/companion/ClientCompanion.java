@@ -7,6 +7,8 @@ import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.renderer.CompanionFlock;
 import grill24.fishtastic.client.renderer.CompanionFishPose;
 import grill24.fishtastic.companion.CompanionFishingOutcome;
+import grill24.fishtastic.companion.CompanionSceneType;
+import grill24.fishtastic.companion.CompanionFishingOutcome;
 import grill24.fishtastic.util.CatchCelebration;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.IFishingHookExtension;
@@ -37,6 +39,7 @@ import org.joml.Vector4f;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
@@ -122,6 +125,17 @@ public final class ClientCompanion {
     /** How far off the bobber a swimmer hovers while waiting for a bite — per class, below. */
     private static final double LINE_HOVER_SIDE = 0.28, LINE_HOVER_UP = 0.12, LINE_HOVER_BACK = 0.2;
 
+    // ── Pet-to-pet scenes (§10). The timings come from the packet's scene type; these are the
+    //    presentation shapes, sized so a scene reads as two friends meeting, not a race. ──────────
+    private static final float SCENE_BLEND_SPEED = 0.08f;
+    /** The G1 loop: how wide it circles the midpoint of the two owners, and how high. */
+    private static final double SCENE_LOOP_RADIUS = 1.1, SCENE_HEIGHT = 0.15;
+    /** When the G1 bubble heart pops (ticks into the scene) and how large it is drawn, blocks/unit. */
+    private static final int HEART_TICK = 40;
+    private static final double HEART_SCALE = 0.03;
+    /** How far above the pair's midpoint the heart floats — out of the fish's path and eye-line. */
+    private static final double HEART_RISE = 0.35;
+
     private static final int PEEK_IDLE = 0, PEEK_OUT_PHASE = 1, PEEK_HOLD_PHASE = 2, PEEK_BACK_PHASE = 3;
 
     /**
@@ -205,6 +219,18 @@ public final class ClientCompanion {
     /** The sim's raw tail phase and its per-tick advance — the self-test's wiggle numbers. */
     private float lastRenderPhase, swimPhaseDelta;
 
+    // ── Pet-to-pet scenes (§10) ────────────────────────────────────────────────
+    /** The scene this companion is playing, or null; set by the scene packet (or a dev injection). */
+    @Nullable private CompanionSceneType scene;
+    private long sceneStart;
+    /** The other participant's owner UUID (a player, or a dev phantom's id) — resolved live. */
+    private UUID scenePartner;
+    /** Role from the packet: true when this companion is the packet's second participant. */
+    private boolean sceneSecond;
+    /** The G1 bubble heart fires once per scene, from the first participant (so a client never doubles). */
+    private boolean sceneHeartFired;
+    private float sceneBlend;
+
     // Per-frame geometry, written by the world pass (it runs first) and read by the HUD pass.
     private Vec3 frameCenter = Vec3.ZERO;
     private float frameScale = 1f;
@@ -285,6 +311,15 @@ public final class ClientCompanion {
         prevHandHop = handHop;
         prevLineWait = lineWait;
         updateFishing(mc, local, docking);
+        // A pet-to-pet scene (§10) runs its fixed duration from the packet's start time; losing the
+        // partner (they left or unequipped) ends it early. The clock is the client's own level time,
+        // which tracks the server's — that's what keeps both owners' playback in step.
+        if (scene != null && (now - sceneStart >= scene.durationTicks()
+                || ClientCompanions.scenePartnerPoint(scenePartner) == null)) {
+            scene = null;
+        }
+        sceneBlend = approach(sceneBlend, scene != null ? 1f : 0f, SCENE_BLEND_SPEED);
+        if (scene == CompanionSceneType.G1_SAME_SPECIES) spawnSceneHeart(mc);
         if (!docking) {
             updateBehaviour(mc, now, inWater, local);
         }
@@ -324,6 +359,7 @@ public final class ClientCompanion {
 
         // Tricks (§3 table's "tricks" column): a quick lap, a swoop, a rise, a spin. Anchored has
         // no trick of its own — its moment is the duck. Not in water, where every class swims.
+        // Nor mid-scene: a trick would fight the scene's path (§10).
         if (trickTimer > 0) {
             trickTimer--;
             if (trickTimer == 0) {
@@ -331,7 +367,7 @@ public final class ClientCompanion {
                 trickIndex++;
                 trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 31 + 7) % TRICK_COOLDOWN_VAR);
             }
-        } else if (--trickCooldown <= 0 && !inWater) {
+        } else if (--trickCooldown <= 0 && !inWater && scene == null) {
             trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 17 + 3) % TRICK_COOLDOWN_VAR);
             trickTimer = TRICK_LENGTH;
         }
@@ -348,7 +384,7 @@ public final class ClientCompanion {
         // timer simply holds at its current value.
         boolean ownerFishing = isLocal() && ClientCompanions.activeMinigame() != null;
         boolean mayPeek = !inWater && reactionName.isEmpty() && !ownerFishing
-                && lineWait < 0.05f && outcome == null;
+                && lineWait < 0.05f && outcome == null && scene == null;
         if (!mayPeek && peekPhase == PEEK_IDLE) peekBlend = 0f;
         switch (peekPhase) {
             case PEEK_IDLE -> {
@@ -563,6 +599,121 @@ public final class ClientCompanion {
                 .add(look.scale(ROD_TIP_AHEAD));
     }
 
+    // ── Pet-to-pet scenes (§10) ────────────────────────────────────────────────
+
+    /**
+     * Starts (or replaces) the scene this companion is playing. The packet's landing point: the
+     * server has already picked the scene and its start time, and both participants derive their
+     * position from the same arithmetic, so the two owners see the same dance.
+     *
+     * @param second whether this companion is the packet's second participant (selects the role
+     *               that is half a period out of phase — opposite sides of the G1 loop, opposite
+     *               lobes of the G2 eight)
+     */
+    void startScene(CompanionSceneType type, long startTime, UUID partner, boolean second) {
+        scene = type;
+        sceneStart = startTime;
+        scenePartner = partner;
+        sceneSecond = second;
+        sceneHeartFired = false;
+    }
+
+    /**
+     * The point on the scene's shared path this companion should be at right now, or null when
+     * there is no scene. Both scenes are pure functions of (start time, the two owners' current
+     * positions), evaluated tick-side where the tick time is known — no per-frame state, so the
+     * two clients cannot drift.
+     */
+    @Nullable
+    private Vec3 sceneAnchor(Minecraft mc) {
+        if (scene == null || mc.level == null) return null;
+        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
+        if (partner == null) return null;
+        Vec3 mine = sceneHolderPoint();
+        long elapsed = Math.max(0L, mc.level.getGameTime() - sceneStart);
+        Vec3 point = switch (scene) {
+            case G1_SAME_SPECIES -> {
+                // A vertical ring around the axis between the two owners, the second fish always
+                // opposite the first. Deliberately NOT a horizontal ring around the midpoint: its
+                // near edge would sweep the owners' faces (the midpoint sits only ~1 block ahead
+                // of each of them). A ring in the axis-perpendicular plane stays at least the
+                // owners' separation distance away in every direction both can see.
+                //
+                // The axis is canonicalised to the +x half-space before the perpendicular is taken:
+                // "partner - mine" points the other way for the two participants, and an uncorrected
+                // flip turns the pi phase offset into a mirror (the pair would read as opposite
+                // only half the time) instead of an antipode.
+                float phase = (float) (elapsed % scene.pathTicks()) / scene.pathTicks() * (float) (Math.PI * 2);
+                if (sceneSecond) phase += (float) Math.PI;
+                Vec3 mid = mine.add(partner).scale(0.5);
+                Vec3 axis = new Vec3(partner.x - mine.x, 0, partner.z - mine.z);
+                axis = axis.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : axis.normalize();
+                if (axis.x < 0 || (axis.x == 0 && axis.z < 0)) axis = axis.scale(-1);
+                Vec3 across = new Vec3(-axis.z, 0, axis.x);
+                yield mid.add(across.scale(Math.cos(phase) * SCENE_LOOP_RADIUS))
+                        .add(0, SCENE_HEIGHT + Math.sin(phase) * SCENE_LOOP_RADIUS, 0);
+            }
+            case G2_FREE_SWIM_EIGHT -> {
+                // The classic figure eight: two circles tangent at the midpoint of the two owners,
+                // each fish running the whole path half a period behind the other, swapping lobes
+                // every crossing. Both tangent points are the midpoint, so the path is continuous.
+                Vec3 mid = mine.add(partner).scale(0.5);
+                Vec3 firstLobe = sceneSecond ? partner : mine;
+                Vec3 secondLobe = sceneSecond ? mine : partner;
+                float t = (float) ((elapsed % scene.pathTicks()) / (double) scene.pathTicks());
+                if (sceneSecond) t = (t + 0.5f) % 1f;
+                Vec3 lobe = t < 0.5f ? firstLobe : secondLobe;
+                float local = (t % 0.5f) * 2f;
+                double dx = mid.x - lobe.x, dz = mid.z - lobe.z;
+                double radius = Math.max(0.7, Math.sqrt(dx * dx + dz * dz));
+                double angle = Math.atan2(dz, dx) + local * Math.PI * 2;
+                yield lobe.add(Math.cos(angle) * radius,
+                        SCENE_HEIGHT + 0.1 * Math.sin(angle),
+                        Math.sin(angle) * radius);
+            }
+        };
+        return fishCentred(point);
+    }
+
+    /**
+     * The point a scene's path is built around: chest height on the owner's body (or a dev
+     * phantom's parked eye). Static per tick — the path follows the owners as they walk.
+     */
+    Vec3 sceneHolderPoint() {
+        Vec3 eye = owner != null ? owner.getEyePosition() : phantomEye;
+        return eye == null ? Vec3.ZERO : eye.add(0, -0.4, 0);
+    }
+
+    /**
+     * The G1 bubble heart (§10): bubbles traced along the classical heart curve, in the local
+     * camera's plane so both owners see it face-on, with a few hearts rising through it. Fired by
+     * the first participant only — either companion's client would draw the same one, so one
+     * spawner per pair per client is the whole load — and it respects the particle setting (R7.5).
+     */
+    private void spawnSceneHeart(Minecraft mc) {
+        if (sceneHeartFired || mc.level == null) return;
+        if (mc.level.getGameTime() - sceneStart < HEART_TICK) return;
+        sceneHeartFired = true; // one pop per scene, whether or not particles are allowed
+        if (mc.options.particles().get() == ParticleStatus.MINIMAL || sceneSecond) return;
+        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
+        if (partner == null) return;
+        Vec3 centre = sceneHolderPoint().add(partner).scale(0.5).add(0, HEART_RISE, 0);
+        Camera camera = mc.gameRenderer.getMainCamera();
+        Vector3fc left = camera.leftVector();
+        Vec3 right = new Vec3(-left.x(), -left.y(), -left.z());
+        Vector3fc upV = camera.upVector();
+        Vec3 up = new Vec3(upV.x(), upV.y(), upV.z());
+        for (int i = 0; i < 32; i++) {
+            double t = i / 32.0 * Math.PI * 2;
+            double hx = 16 * Math.pow(Math.sin(t), 3);
+            double hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            Vec3 p = centre.add(right.scale(hx * HEART_SCALE)).add(up.scale(hy * HEART_SCALE));
+            mc.level.addParticle(ParticleTypes.BUBBLE, p.x, p.y, p.z, 0, 0.015, 0);
+        }
+        // One vanilla heart through the middle — several read as one huge blob this close to the eye.
+        mc.level.addParticle(ParticleTypes.HEART, centre.x, centre.y, centre.z, 0, 0.02, 0);
+    }
+
     /** The held-item reaction for this tick, if any (§3.1 table). First match wins. */
     private void updateReaction(Minecraft mc) {
         reactionName = "";
@@ -609,10 +760,11 @@ public final class ClientCompanion {
 
     /**
      * How far the fish is pulled off its normal anchor pattern: a peek, a reaction, the hand hop,
-     * or a trip to the fishing line (perchers use this to leave their perch, §5).
+     * a trip to the fishing line, or a pet-to-pet scene (perchers use this to leave their perch,
+     * §5, §10).
      */
     private float outAmount() {
-        return Math.max(Math.max(outBlend, handHop), lineWait);
+        return Math.max(Math.max(outBlend, handHop), Math.max(lineWait, sceneBlend));
     }
 
     private void moveCenter(Minecraft mc, boolean inWater, boolean docking) {
@@ -650,7 +802,14 @@ public final class ClientCompanion {
 
     /** Where the companion should be this tick, before the spring/ease is applied. */
     private Vec3 anchorTarget(Minecraft mc, boolean inWater, boolean docking) {
-        if (owner == null) return phantomAnchor();
+        // A pet-to-pet scene (§10) wins over every other path for its few seconds — including for a
+        // dev phantom, which has no display-mode path to blend from. Checked before the owner == null
+        // branch so the phantom partner actually travels the shared loop.
+        Vec3 scenePoint = sceneBlend > 0f ? sceneAnchor(mc) : null;
+        if (owner == null) {
+            Vec3 base = phantomAnchor();
+            return scenePoint != null ? base.lerp(scenePoint, smooth(sceneBlend)) : base;
+        }
         if (docking) {
             // Stay where the swim to the dock started — the line point if the owner was fishing
             // (the hook may already be gone once the minigame ends; the frozen point is the
@@ -684,6 +843,11 @@ public final class ClientCompanion {
             // against ComplementaryReimagined), and at this range the world pass cannot be occluded
             // by terrain the owner is standing on top of.
             base = base.lerp(fishCentred(handHopPoint(mc)), smooth(handHop));
+        }
+        if (scenePoint != null) {
+            // A pet-to-pet scene (§10) wins over every other path for its few seconds: the two
+            // companions fly the shared loop/eight, wherever the display modes would have them.
+            base = base.lerp(scenePoint, smooth(sceneBlend));
         }
         return base;
     }
@@ -787,9 +951,12 @@ public final class ClientCompanion {
 
     /**
      * Where an out-of-body percher (or a reaction) wants to be: its reaction point, the rod tip
-     * while the owner is fishing (§5 — benthic fish ride the rod), or in view.
+     * while the owner is fishing (§5 — benthic fish ride the rod), the scene's path during a
+     * pet-to-pet scene (§10 — perchers hop off and join in), or in view.
      */
     private Vec3 outPoint(Minecraft mc) {
+        Vec3 scenePoint = sceneAnchor(mc);
+        if (scenePoint != null) return scenePoint;
         Vec3 reaction = reactionOffset();
         if (reaction != null) return viewPoint(mc, reaction);
         return lineWait > 0.05f ? rodTipPoint() : peekPoint(mc);
@@ -1194,6 +1361,34 @@ public final class ClientCompanion {
     public float spinDegrees() { return spinDeg; }
 
     public int peekStarts() { return peekCount; }
+
+    /** The pet-to-pet scene this companion is playing, or null (§10). */
+    @Nullable
+    public CompanionSceneType sceneType() { return scene; }
+
+    public boolean isInScene() { return scene != null; }
+
+    /** Dev diagnostics: the midpoint of a running scene's two owners, or null without one. */
+    @Nullable
+    public Vec3 devSceneMidpoint() {
+        if (scene == null) return null;
+        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
+        return partner == null ? null : sceneHolderPoint().add(partner).scale(0.5);
+    }
+
+    /** Dev diagnostics: the box centre this tick, or null before the first tick. */
+    @Nullable
+    public Vec3 devCenter() { return center; }
+
+    /**
+     * Dev diagnostics: where the lead fish actually is in the world this tick. Unlike
+     * {@link #devCenter()} this includes the fish's offset inside the box (minus the wander the
+     * scene anchors deliberately keep), so scene-path checks measure the fish, not the box.
+     */
+    @Nullable
+    public Vec3 devFishPoint() {
+        return center == null ? null : center.add(worldOffsetOfFish());
+    }
 
     /** Height (blocks) of the companion above the owner's eyes; null when there is no owner. */
     @Nullable

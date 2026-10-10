@@ -159,6 +159,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
         grill24.fishtastic.network.CompanionFishingEventPacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.companion.ClientCompanions.onFishingEvent(packet.owner(), packet.outcome()));
+        grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
+                grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                        packet.scene(), packet.first(), packet.second(), packet.startTime()));
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->

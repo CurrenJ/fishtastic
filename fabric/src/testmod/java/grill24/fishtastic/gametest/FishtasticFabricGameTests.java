@@ -1036,6 +1036,11 @@ public class FishtasticFabricGameTests {
         PacketRoundTripGameTests.companionFishingEventPacketRoundTrips(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionScenePacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.companionScenePacketRoundTrips(helper);
+    }
+
     // -------------------------------------------------------------------------
     // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
     // -------------------------------------------------------------------------
@@ -1342,6 +1347,58 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionQuestScanReportsEachSpeciesOnce(GameTestHelper helper) {
         CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
+    }
+
+    // ----- Companion pet-to-pet scenes (Phase 6) -----
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneSameSpeciesPairPlaysG1(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPairPlaysG1AndTellsBothOwners(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneCooldownGatesRepeats(GameTestHelper helper) {
+        CompanionSceneGameTests.cooldownGatesRepeats(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneNoSceneWhileOwnerInMinigame(GameTestHelper helper) {
+        CompanionSceneGameTests.noSceneWhileOwnerInMinigame(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneNoSceneWhileOwnerHasLineOut(GameTestHelper helper) {
+        CompanionSceneGameTests.noSceneWhileOwnerHasALineOut(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneDifferentFreeSwimmersPlayG2(GameTestHelper helper) {
+        CompanionSceneGameTests.differentFreeSwimmersPlayG2(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionScenePercherPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.percherPairPlaysNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneOutOfRangePairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneOneScenePerCompanion(GameTestHelper helper) {
+        CompanionSceneGameTests.oneScenePerCompanion(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneSameSpeciesBeatsFreeSwimmers(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPairBeatsFreeSwimmers(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneNearbyObserversToldFarOnesNot(GameTestHelper helper) {
+        CompanionSceneGameTests.nearbyObserversAreToldAndFarOnesAreNot(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

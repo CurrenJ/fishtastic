@@ -26,6 +26,7 @@ import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
 import grill24.fishtastic.gametest.CarriedFishGameTests;
 import grill24.fishtastic.gametest.CompanionBondGameTests;
 import grill24.fishtastic.gametest.CompanionQuestUnlockGameTests;
+import grill24.fishtastic.gametest.CompanionSceneGameTests;
 import grill24.fishtastic.gametest.CompanionGameTests;
 import grill24.fishtastic.gametest.RemoveTankEntryPacketGameTests;
 import grill24.fishtastic.gametest.ShopEntryGameTests;
@@ -504,6 +505,8 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::requestFishEncyclopediaPacketRoundTrips);
         register(event, env, "companion_fishing_event_packet_round_trips", 200,
             PacketRoundTripGameTests::companionFishingEventPacketRoundTrips);
+        register(event, env, "companion_scene_packet_round_trips", 200,
+            PacketRoundTripGameTests::companionScenePacketRoundTrips);
 
         // ----- FishEncyclopediaEntry tests -----
         register(event, env, "empty_object_decodes_to_all_defaults", 200,
@@ -631,6 +634,28 @@ public class NeoForgeGameTestRegistration {
             CompanionQuestUnlockGameTests::questUnlocksOnlyOnceDone);
         register(event, env, "companion_quest_scan_reports_each_species_once", 200,
             CompanionQuestUnlockGameTests::questScanReportsEachSpeciesOnce);
+
+        // ----- Companion pet-to-pet scenes (Phase 6) -----
+        register(event, env, "companion_scene_same_species_pair_plays_g1", 200,
+            helper -> CompanionSceneGameTests.sameSpeciesPairPlaysG1AndTellsBothOwners(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_cooldown_gates_repeats", 200,
+            helper -> CompanionSceneGameTests.cooldownGatesRepeats(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_no_scene_while_owner_in_minigame", 200,
+            helper -> CompanionSceneGameTests.noSceneWhileOwnerInMinigame(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_no_scene_while_owner_has_line_out", 200,
+            helper -> CompanionSceneGameTests.noSceneWhileOwnerHasALineOut(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_different_free_swimmers_play_g2", 200,
+            helper -> CompanionSceneGameTests.differentFreeSwimmersPlayG2(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_percher_pair_plays_nothing", 200,
+            helper -> CompanionSceneGameTests.percherPairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_out_of_range_pair_plays_nothing", 200,
+            helper -> CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_one_scene_per_companion", 200,
+            helper -> CompanionSceneGameTests.oneScenePerCompanion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_same_species_beats_free_swimmers", 200,
+            helper -> CompanionSceneGameTests.sameSpeciesPairBeatsFreeSwimmers(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_nearby_observers_told_far_ones_not", 200,
+            helper -> CompanionSceneGameTests.nearbyObserversAreToldAndFarOnesAreNot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- RemoveTankEntryPacket.giveOrDrop -----
         register(event, env, "give_or_drop_drops_fish_when_inventory_is_full", 200,

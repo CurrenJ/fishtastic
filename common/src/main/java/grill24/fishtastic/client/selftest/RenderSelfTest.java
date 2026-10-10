@@ -144,7 +144,8 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companion", "companionparade", "companionpeek", "companionhand", "companionbond", "companionfishing");
+            "companion", "companionparade", "companionpeek", "companionhand", "companionbond", "companionfishing",
+            "companionscenes");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -335,6 +336,7 @@ public final class RenderSelfTest {
             case "companionhand" -> queueCompanionHandScene();
             case "companionbond" -> queueCompanionBondScene();
             case "companionfishing" -> queueCompanionFishingScene();
+            case "companionscenes" -> queueCompanionScenesScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2419,6 +2421,9 @@ public final class RenderSelfTest {
      */
     private static void queueCompanionScene() {
         ItemStack bluegill = fish("bluegill", 25f);
+        // The bond gate is real since phase 4: complete the species' entry first, or the bond
+        // packet comes back LOCKED and every follow/dock check below has no companion to watch.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:bluegill 200")));
         queue(1, mc -> {
             mc.options.hideGui = false;
             mc.options.setCameraType(CameraType.FIRST_PERSON);
@@ -3346,6 +3351,153 @@ public final class RenderSelfTest {
             }
         }));
         queue(10, mc -> companionLog("fishing scene end"));
+    }
+
+    /**
+     * Pet-to-pet scenes (§10, Phase 6): G1 (same species — a synchronized loop plus a bubble
+     * heart) and G2 (two free swimmers — a figure eight around both owners). A headless run has
+     * one real player, so the second companion is a dev phantom and the scene packet is injected
+     * through the exact method the packet handler calls; the scheduler that decides scenes in
+     * multiplayer is the game tests' job. After each scene the checks are that both companions
+     * drop it and carry on with normal behaviour.
+     */
+    private static void queueCompanionScenesScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        // The bond gate is real since phase 4: complete the species' entry first (a count past
+        // every derived threshold), or the bond packet comes back LOCKED and there is no local
+        // companion for the scene to move.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:bluegill 200")));
+        bondFish("bluegill", 25f);
+        queue(20, mc -> {
+            check("scenes.companionReady", companion() != null, "");
+            check("scenes.noSceneYet", companion() != null && !companion().isInScene(), "");
+        });
+
+        final java.util.UUID[] phantom = new java.util.UUID[1];
+        final java.util.List<Vec3> g1LocalOffsets = new java.util.ArrayList<>();
+        final java.util.List<Vec3> g1PhantomOffsets = new java.util.ArrayList<>();
+        queue(1, mc -> phantom[0] = grill24.fishtastic.client.companion.ClientCompanions.addPhantom(
+                fish("bluegill", 25f), mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2.4))));
+        queue(10, mc -> {
+            // The same landing call the CompanionScenePacket handler makes — only the transport differs.
+            grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                    grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
+                    mc.player.getUUID(), phantom[0], mc.level.getGameTime());
+            companionLog("G1 injected");
+        });
+        queue(14, mc -> {
+            check("scenes.g1Local", companion() != null && companion().sceneType()
+                    == grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
+                    "scene=" + (companion() == null ? "none" : companion().sceneType()));
+            grill24.fishtastic.client.companion.ClientCompanion partner =
+                    grill24.fishtastic.client.companion.ClientCompanions.devFindAny(phantom[0]);
+            check("scenes.g1Phantom", partner != null && partner.sceneType()
+                    == grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
+                    "phantom scene=" + (partner == null ? "no phantom" : partner.sceneType()));
+        });
+        // The bubble heart pops at HEART_TICK (2 s in) — catch it while it lives. Injected at T,
+        // so this lands right after T+40.
+        queue(30, mc -> screenshot(mc, "companionscenes", "g1_heart"));
+        // The loop swing is wide enough that first person can frame neither fish at a given
+        // instant — take the geometry shots from behind the player, which holds the pair in frame.
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        // Sample both companions' offset from the scene midpoint. A fish circling the shared loop
+        // sweeps a full turn in 40 ticks; merely following would keep a near-constant bearing —
+        // so the swept ANGLE (not the distance) is the discriminator, and the pair must stay on
+        // opposite sides while it spins. 12 samples over 60 ticks covers one and a half loops.
+        for (int i = 0; i < 12; i++) {
+            queue(5, mc -> {
+                grill24.fishtastic.client.companion.ClientCompanion local = companion();
+                grill24.fishtastic.client.companion.ClientCompanion partner =
+                        grill24.fishtastic.client.companion.ClientCompanions.devFindAny(phantom[0]);
+                if (local == null || partner == null) return;
+                Vec3 mid = local.devSceneMidpoint();
+                if (mid == null || local.devFishPoint() == null || partner.devFishPoint() == null) return;
+                g1LocalOffsets.add(local.devFishPoint().subtract(mid));
+                g1PhantomOffsets.add(partner.devFishPoint().subtract(mid));
+            });
+        }
+        queue(2, mc -> {
+            double spinLocal = sweptAngle(g1LocalOffsets);
+            double spinPhantom = sweptAngle(g1PhantomOffsets);
+            int opposite = 0;
+            for (int i = 0; i < g1LocalOffsets.size(); i++) {
+                Vec3 a = g1LocalOffsets.get(i), b = g1PhantomOffsets.get(i);
+                if (a.dot(b) < 0) opposite++;
+            }
+            Fishtastic.LOGGER.info("[selftest] scenes.g1 samples={} spinLocal={} spinPhantom={} opposite={}/{}",
+                    g1LocalOffsets.size(), String.format(Locale.ROOT, "%.2f", spinLocal),
+                    String.format(Locale.ROOT, "%.2f", spinPhantom), opposite, g1LocalOffsets.size());
+            check("scenes.g1Looping", g1LocalOffsets.size() >= 8 && spinLocal > 4.0,
+                    "samples=" + g1LocalOffsets.size() + " spin=" + String.format(Locale.ROOT, "%.2f", spinLocal));
+            check("scenes.g1PhantomLooping", spinPhantom > 4.0,
+                    "spin=" + String.format(Locale.ROOT, "%.2f", spinPhantom));
+            check("scenes.g1Opposite", g1LocalOffsets.size() >= 8 && opposite >= g1LocalOffsets.size() * 3 / 4,
+                    "opposite=" + opposite + "/" + g1LocalOffsets.size());
+            screenshot(mc, "companionscenes", "g1_loop");
+        });
+        // G1 lasts 120 ticks and the injection happened at the scene's first queue — long enough
+        // after it that the scene must be over (and the blend home started).
+        queue(20, mc -> {
+            check("scenes.g1Ended", companion() != null && !companion().isInScene(),
+                    "scene=" + (companion() == null ? "none" : companion().sceneType()));
+            grill24.fishtastic.client.companion.ClientCompanion partner =
+                    grill24.fishtastic.client.companion.ClientCompanions.devFindAny(phantom[0]);
+            check("scenes.g1PhantomEnded", partner != null && !partner.isInScene(), "");
+            screenshot(mc, "companionscenes", "g1_after");
+            companionLog("G1 end");
+        });
+
+        // G2: the same pair, a different scene — the packet is authoritative, whichever species.
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                    grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT,
+                    mc.player.getUUID(), phantom[0], mc.level.getGameTime());
+            companionLog("G2 injected");
+        });
+        queue(14, mc -> {
+            check("scenes.g2Local", companion() != null && companion().sceneType()
+                    == grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT,
+                    "scene=" + (companion() == null ? "none" : companion().sceneType()));
+            grill24.fishtastic.client.companion.ClientCompanion partner =
+                    grill24.fishtastic.client.companion.ClientCompanions.devFindAny(phantom[0]);
+            check("scenes.g2Phantom", partner != null && partner.sceneType()
+                    == grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT, "");
+        });
+        queue(30, mc -> screenshot(mc, "companionscenes", "g2_eight_a"));
+        queue(60, mc -> screenshot(mc, "companionscenes", "g2_eight_b"));
+        queue(110, mc -> {
+            check("scenes.g2Ended", companion() != null && !companion().isInScene(),
+                    "scene=" + (companion() == null ? "none" : companion().sceneType()));
+            screenshot(mc, "companionscenes", "g2_after");
+            companionLog("G2 end");
+        });
+
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+            server(mc, s -> {
+                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.unequip(player);
+                    player.getInventory().clearContent();
+                }
+                run(s, "gamemode creative @a");
+            });
+        });
+        queue(10, mc -> companionLog("scenes end"));
+    }
+
+    /** Total angle swept between successive midpoint-relative points, radians (any plane — G1's
+     *  ring is vertical, so the 2D horizontal cross-product would read it as a flat back-and-forth). */
+    private static double sweptAngle(java.util.List<Vec3> offsets) {
+        double total = 0;
+        for (int i = 1; i < offsets.size(); i++) {
+            Vec3 a = offsets.get(i - 1), b = offsets.get(i);
+            if (a.lengthSqr() < 1e-6 || b.lengthSqr() < 1e-6) continue;
+            double cos = Math.max(-1, Math.min(1, a.normalize().dot(b.normalize())));
+            total += Math.acos(cos);
+        }
+        return total;
     }
 
     /** Opens a demo minigame with one bluegill fish target (optionally) in the undiscovered set. */
