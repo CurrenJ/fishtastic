@@ -11,10 +11,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -64,6 +66,14 @@ public final class CompanionFlock {
      * numbers to taste; everything else follows.
      */
     public static final float SWIM_CLOCK_RATE = 0.55f, IDLE_CLOCK_RATE = 0.6f;
+
+    /**
+     * World speed band (blocks/tick) the facing fix fades over (docs §19): below the low end the
+     * fish keeps whatever heading the sim gave it — it is barely moving, and snapping between
+     * headings at near-zero speed would flicker — above the high end it faces its world velocity
+     * outright. About 0.1 to 1.0 m/s. Named for in-game tuning.
+     */
+    private static final float FACE_FADE_LOW = 0.005f, FACE_FADE_HIGH = 0.05f;
 
     /** Which invisible tank the fish lives in — chosen by the caller from the owner's state. */
     public enum Mode { FOLLOW, WATER, DOCKED }
@@ -261,9 +271,15 @@ public final class CompanionFlock {
      * {@code sizeMultiplier} enlarges the fish itself without moving it — the engine's swim box is
      * sized for the true-to-scale fish. {@code tiltDeg} is an extra lean about X applied to the
      * whole submission (a held-item reaction's head tilt; 0 normally).
+     *
+     * <p>{@code boxVel}/{@code boxYawDeg}/{@code boxScale} describe the box's own motion this frame
+     * in the same space the pose was built from — the fish's true world velocity is the box's travel
+     * plus its local swim, rotated by the box's yaw and scaled — which is what lets the drawn facing
+     * follow where the fish is <i>actually</i> going (docs/fish-companions.md §19).
      */
     public void submit(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTimeTicks,
-                       float sizeMultiplier, float tiltDeg) {
+                       float sizeMultiplier, float tiltDeg,
+                       Vec3 boxVel, float boxYawDeg, float boxScale) {
         if (empty) return;
         FlockEngine eng = engine;
         boolean planar = eng.planar();
@@ -275,11 +291,32 @@ public final class CompanionFlock {
             if (tiltDeg != 0f) poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(tiltDeg));
             random.setSeed(eng.seeds[i]);
             boolean mirrored = eng.swimmers[i] ? eng.heading[i] > 0f : eng.hoverMirrored[i];
+            // The fish's true world velocity — the box's travel plus its local swim — and, where
+            // the drawn pose has a continuous yaw, the facing that follows it (docs §19). A tank
+            // fish faces its box-local heading and the tank never moves; a companion's box does,
+            // so when box motion and local swim oppose, the old code drew the fish swimming
+            // backwards. The binary tank model (the dock) is exempt by construction: its box is
+            // camera-locked, so local IS world there.
+            Vec3 worldVel = headingPose(planar, i)
+                    ? boxVel.add(rotateY(new Vec3(eng.velL()[i] * boxScale, 0, eng.velD()[i] * boxScale), -boxYawDeg))
+                    : null;
+            float worldSpeed = worldVel == null ? 0f : (float) worldVel.horizontalDistance();
+            float theta = eng.renderYaw[i] + 180f;
+            if (worldVel != null && worldSpeed > FACE_FADE_LOW) {
+                float w = Mth.clamp((worldSpeed - FACE_FADE_LOW) / (FACE_FADE_HIGH - FACE_FADE_LOW), 0f, 1f);
+                // Solve for the engine yaw whose sprite nose points along the world velocity: the
+                // nose at engine yaw θ runs (−cos θ, sin θ) in the (lateral, depth) plane — the
+                // animator's documented +180 mapping (FishAnimator#applyBenthic).
+                Vec3 localVel = rotateY(worldVel.scale(1.0 / worldSpeed), boxYawDeg);
+                float thetaStar = (float) Math.toDegrees(Math.atan2(localVel.z, -localVel.x));
+                theta = theta + Mth.wrapDegrees(thetaStar - theta) * w;
+            }
+            if (i == 0) recordFacing(theta, worldVel, worldSpeed, boxYawDeg);
             if (anim instanceof FishAnimationConfig.HorizontalSwim swim && eng.swimmers[i] && planar) {
-                // Planar swimmers animate on the engine's speed-integrated clock, with the
-                // continuous yaw the +180° maps onto the item sprite's nose.
+                // Planar swimmers animate on the engine's speed-integrated clock; the yaw is the
+                // world-velocity facing above (the +180° maps onto the item sprite's nose).
                 FishAnimator.applySwimming(poseStack, swim, random, eng.renderPhase[i] * SWIM_CLOCK_RATE,
-                        eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i],
+                        theta, false, eng.speedFactor(i), eng.bank[i],
                         eng.renderBobRoom[i], scale);
             } else if (anim instanceof FishAnimationConfig.HorizontalSwim swim && eng.swimmers[i]) {
                 // The tank's binary model, exactly as FishTankBlockEntityRenderer draws it.
@@ -288,10 +325,10 @@ public final class CompanionFlock {
                         eng.renderBobRoom[i], scale);
             } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
                 FishAnimator.applyBenthic(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
-                        eng.renderYaw[i] + 180f, eng.baseRotations[i], scale, false, eng.renderShape[i]);
+                        theta, eng.baseRotations[i], scale, false, eng.renderShape[i]);
             } else if (eng.locomotion[i] == Locomotion.GLIDE) {
                 FishAnimator.applyGliding(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
-                        eng.renderYaw[i] + 180f, eng.bankFraction(i), eng.baseRotations[i], scale, false);
+                        theta, eng.bankFraction(i), eng.baseRotations[i], scale, false);
             } else if (eng.locomotion[i] == Locomotion.DRIFT) {
                 FishAnimator.applyDrifting(poseStack, anim, random, gameTimeTicks * IDLE_CLOCK_RATE,
                         eng.baseRotations[i], scale, mirrored, eng.renderShape[i]);
@@ -312,6 +349,56 @@ public final class CompanionFlock {
             renderState.submit(poseStack, nodes, light, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();
         }
+    }
+
+    /** The lead fish's presented facing's dot with its world velocity (NaN when it has no heading). */
+    private float faceDot = Float.NaN;
+    /** The lead fish's world speed (blocks/tick) at the last submit — the facing metric's weight. */
+    private float faceSpeed;
+    /** The yaw (engine convention + 180) the last submit actually drew the lead fish at. */
+    private float faceYawDeg;
+
+    /** Dev diagnostics: the presented-facing alignment from the last world submit. */
+    public float faceDot() { return faceDot; }
+
+    public float faceSpeed() { return faceSpeed; }
+
+    public float faceYawDeg() { return faceYawDeg; }
+
+    /**
+     * Whether fish {@code i}'s drawn pose has a continuous yaw at all: the planar swimmer, the
+     * crawler and the glider do. The binary tank model (docked) draws a mirrored sprite instead,
+     * and the hover poses have no heading to turn.
+     */
+    private boolean headingPose(boolean planar, int i) {
+        if (anim instanceof FishAnimationConfig.HorizontalSwim && engine.swimmers[i]) {
+            return planar;
+        }
+        Locomotion locomotion = engine.locomotion[i];
+        return locomotion == Locomotion.BENTHIC || locomotion == Locomotion.GLIDE;
+    }
+
+    /**
+     * Records the lead fish's facing alignment for the dev metric (docs §19): the drawn nose at
+     * {@code theta} — the sprite nose runs (−cos θ, sin θ) in the box's (lateral, depth) plane, the
+     * animator's documented +180 mapping — against its true world velocity. +1 = facing exactly
+     * along its motion.
+     */
+    private void recordFacing(float theta, @Nullable Vec3 worldVel, float speed, float boxYawDeg) {
+        faceYawDeg = theta;
+        faceSpeed = speed;
+        faceDot = Float.NaN;
+        if (worldVel == null || speed < 1e-4) return;
+        float r = (float) Math.toRadians(theta);
+        Vec3 nose = rotateY(new Vec3(-Mth.cos(r), 0, Mth.sin(r)), -boxYawDeg);
+        faceDot = (float) worldVel.normalize().dot(nose);
+    }
+
+    /** {@code Matrix4f.rotateY} applied to a vector — the box pose's own rotation convention. */
+    private static Vec3 rotateY(Vec3 v, float deg) {
+        double a = Math.toRadians(deg);
+        float c = (float) Math.cos(a), s = (float) Math.sin(a);
+        return new Vec3(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
     }
 
     /** The lead fish's raw (unscaled) tail phase this frame, for the self-test's wiggle numbers. */

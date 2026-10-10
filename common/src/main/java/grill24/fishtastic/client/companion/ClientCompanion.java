@@ -52,7 +52,9 @@ import java.util.function.Predicate;
  * behind one shoulder for drifters. The two attach classes (benthic, anchored) sit on the owner's
  * body instead: they are drawn by a player render layer ({@code CompanionPerchLayer}) and only
  * enter the world path to hop off. In water every class drops its air anchor and the box swims
- * beside the owner.
+ * beside the owner. The baseline paths hang off the companion's own slow frame (§19) — a yaw that
+ * follows the owner's body lazily, never the raw camera — while the intentional moments (peeks,
+ * held-item reactions, the rod tip, the dock) hunt the view as designed.
  *
  * <p><b>Peeks</b> (§3.1, R2.1) are the reason the owner actually sees their companion in first
  * person: when nothing else is holding the fish near the view, every class periodically routes
@@ -124,6 +126,35 @@ public final class ClientCompanion {
     private static final double ROD_TIP_AHEAD = 0.95, ROD_TIP_SIDE = 0.22, ROD_TIP_DROP = 0.18;
     /** How far off the bobber a swimmer hovers while waiting for a bite — per class, below. */
     private static final double LINE_HOVER_SIDE = 0.28, LINE_HOVER_UP = 0.12, LINE_HOVER_BACK = 0.2;
+
+    // ── The companion's own frame (post-v1 polish, §19). ───────────────────────
+    // The baseline paths hang off a yaw that follows the owner's BODY lazily rather than the
+    // camera instantly. Owner playtest: "rotating player view causes companion to rapidly
+    // interpolate to a new position... the fish in practice is a separate entity from the player
+    // and should be decoupled from moving strictly linked to player orientation changes." Turning
+    // in place must not relocate the fish — it drifts to its new spot over seconds, like it chose
+    // to move — while walking re-orients it at a rate that keeps up with where you are actually
+    // going. Rates are degrees per tick (≈12°/s standing, ≈80°/s walking), named for in-game
+    // tuning; the intentional view-coupled moments (peeks, held items, rod tip, dock) don't use
+    // this frame.
+    private static final float FRAME_TURN_STILL = 0.6f, FRAME_TURN_MOVING = 4.0f;
+    /** Vanilla's own walk-vs-stand threshold (LivingEntity: sideDist² > 0.0025 blocks²/tick²). */
+    private static final double FRAME_MOVING_SPEED_SQR = 0.0025;
+
+    /** The companion's orientation frame, degrees — eased toward the owner's body yaw, never the camera. */
+    private float frameOrientationYaw;
+    /**
+     * Dev-only (§19 scene): pause the peek system and the trick scheduler, so a motion
+     * measurement only measures baseline motion. A quick-lap trick triples the orbit rate and a
+     * peek dashes at the view; both would masquerade as camera-following in the numbers.
+     */
+    private boolean devMotionSuppressed;
+    /**
+     * Dev-only (§19 scene): restore the pre-polish basis for a measurement — the baseline paths
+     * read the camera directly again, exactly what the fix replaced — so the scene can measure
+     * "before" and "after" in one run, on one state.
+     */
+    private boolean devCameraLockedFrame;
 
     // ── Pet-to-pet scenes (§10). The timings come from the packet's scene type; these are the
     //    presentation shapes, sized so a scene reads as two friends meeting, not a race. ──────────
@@ -233,6 +264,8 @@ public final class ClientCompanion {
 
     // Per-frame geometry, written by the world pass (it runs first) and read by the HUD pass.
     private Vec3 frameCenter = Vec3.ZERO;
+    /** How far the box centre moved this tick — the box's own velocity, in blocks per tick. */
+    private Vec3 boxVel = Vec3.ZERO;
     private float frameScale = 1f;
     private float frameFishSize = 1f;
     private float frameYaw;
@@ -246,6 +279,7 @@ public final class ClientCompanion {
         this.seed = this.stack.hashCode();
         this.flock = new CompanionFlock(stack, level);
         this.pose = new CompanionFishPose(stack, level);
+        if (owner != null) frameOrientationYaw = owner.yBodyRot;
         // A dev phantom has no body to sink into (the perch draw needs an owner); it swims its box
         // whatever the species.
         this.percher = owner != null
@@ -296,6 +330,7 @@ public final class ClientCompanion {
         boolean local = isLocal();
         boolean firstPerson = mc.options.getCameraType().isFirstPerson();
         boolean inWater = owner != null && owner.isEyeInFluid(FluidTags.WATER);
+        if (owner != null) updateFrameOrientation();
 
         prevDock = dock;
         float dir = anchor != null ? 1f : -1f;
@@ -341,6 +376,7 @@ public final class ClientCompanion {
         }
 
         moveCenter(mc, inWater, docking);
+        boxVel = center.subtract(prevCenter);
         flock.setBiasFade(1f - smooth(dock));
         flock.step();
         float phase = flock.renderPhase();
@@ -367,7 +403,7 @@ public final class ClientCompanion {
                 trickIndex++;
                 trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 31 + 7) % TRICK_COOLDOWN_VAR);
             }
-        } else if (--trickCooldown <= 0 && !inWater && scene == null) {
+        } else if (--trickCooldown <= 0 && !inWater && scene == null && !devMotionSuppressed) {
             trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 17 + 3) % TRICK_COOLDOWN_VAR);
             trickTimer = TRICK_LENGTH;
         }
@@ -384,7 +420,7 @@ public final class ClientCompanion {
         // timer simply holds at its current value.
         boolean ownerFishing = isLocal() && ClientCompanions.activeMinigame() != null;
         boolean mayPeek = !inWater && reactionName.isEmpty() && !ownerFishing
-                && lineWait < 0.05f && outcome == null && scene == null;
+                && lineWait < 0.05f && outcome == null && scene == null && !devMotionSuppressed;
         if (!mayPeek && peekPhase == PEEK_IDLE) peekBlend = 0f;
         switch (peekPhase) {
             case PEEK_IDLE -> {
@@ -423,6 +459,39 @@ public final class ClientCompanion {
             }
             default -> throw new IllegalStateException("bad peek phase " + peekPhase);
         }
+    }
+
+    /**
+     * Advances the companion's own frame toward the owner's body yaw — rate-capped, so the frame
+     * never snaps to a camera flick (see the FRAME_TURN constants). The body yaw itself is already
+     * the "separate entity" reference: vanilla points it at the walk direction, or, standing still,
+     * keeps it lagging within the head-turn envelope rather than pinning it to the view.
+     */
+    private void updateFrameOrientation() {
+        float rate = owner.getDeltaMovement().horizontalDistanceSqr() > FRAME_MOVING_SPEED_SQR
+                ? FRAME_TURN_MOVING : FRAME_TURN_STILL;
+        float step = Mth.clamp(Mth.wrapDegrees(owner.yBodyRot - frameOrientationYaw), -rate, rate);
+        frameOrientationYaw = Mth.wrapDegrees(frameOrientationYaw + step);
+    }
+
+    /** Flat forward of the companion's own frame — the baseline paths build on this, not the camera. */
+    private Vec3 frameForward() {
+        if (devCameraLockedFrame && owner != null) return cameraFlatForward();
+        float r = (float) Math.toRadians(frameOrientationYaw);
+        return new Vec3(-Mth.sin(r), 0, Mth.cos(r));
+    }
+
+    /** The flat camera forward — the pre-polish basis, kept for the §19 measurement seam. */
+    private Vec3 cameraFlatForward() {
+        Vec3 look = owner.getLookAngle();
+        Vec3 flat = new Vec3(look.x, 0, look.z);
+        return flat.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : flat.normalize();
+    }
+
+    /** Flat forward of the owner's BODY: the perch and back points sit on the body, not the view. */
+    private Vec3 bodyForward() {
+        float r = (float) Math.toRadians(owner.yBodyRot);
+        return new Vec3(-Mth.sin(r), 0, Mth.cos(r));
     }
 
     private long hash(long value) {
@@ -578,7 +647,7 @@ public final class ClientCompanion {
             case DRIFT -> linePoint.add(0, LINE_HOVER_UP, 0); // the spring supplies the lag
             default -> {
                 if (owner == null) yield linePoint;
-                Vec3 forward = flatLook();
+                Vec3 forward = frameForward();
                 Vec3 right = new Vec3(-forward.z, 0, forward.x);
                 yield linePoint.add(right.scale(LINE_HOVER_SIDE)).add(forward.scale(-LINE_HOVER_BACK))
                         .add(0, LINE_HOVER_UP, 0);
@@ -858,12 +927,19 @@ public final class ClientCompanion {
     }
 
     /**
-     * The box's yaw this moment — the camera's for the local player, its owner's view yaw for
-     * anyone else (the same choice {@link #computeFrame} makes, but read live so the fish-centred
-     * anchors are right even on the first tick out of a long perch).
+     * The box's yaw this moment — the companion's own slow frame (§19). The render applies it
+     * directly while following and blends it to the view yaw while docking (where the box must be
+     * camera-exact and side-on); this getter is the following case, which is what the tick-side
+     * compensations ({@link #fishCentred}, visibility, the dev metrics) are computed against.
      */
     private float boxYaw() {
         if (owner == null) return 0f;
+        if (devCameraLockedFrame) return viewYawLive();
+        return frameOrientationYaw;
+    }
+
+    /** The owner's live view yaw — the camera's for the local player, the owner's facing otherwise. */
+    private float viewYawLive() {
         return owner == Minecraft.getInstance().player ? Minecraft.getInstance().gameRenderer.getMainCamera().yRot()
                 : owner.getViewYRot(1f);
     }
@@ -886,10 +962,10 @@ public final class ClientCompanion {
         return new Vec3(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
     }
 
-    /** The display-mode path in air (§3 table). */
+    /** The display-mode path in air (§3 table). Built on the companion's own frame (§19). */
     private Vec3 baseAirAnchor(Minecraft mc) {
         Vec3 eye = owner.getEyePosition();
-        Vec3 forward = flatLook();
+        Vec3 forward = frameForward();
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         return switch (flock.locomotion()) {
             case GLIDE -> {
@@ -921,9 +997,9 @@ public final class ClientCompanion {
         };
     }
 
-    /** In water every class swims beside the owner (§3, E1). */
+    /** In water every class swims beside the owner (§3, E1), on the companion's own frame (§19). */
     private Vec3 waterAnchor(Minecraft mc) {
-        Vec3 forward = flatLook();
+        Vec3 forward = frameForward();
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         // Same fish-centred correction as a peek: the box lands so the fish — not the box centre —
         // stays at the owner's side, rather than wandering a body-length off to the left.
@@ -973,12 +1049,6 @@ public final class ClientCompanion {
         return owner.getEyePosition().add(right.scale(offset.x)).add(up.scale(offset.y)).add(look.scale(offset.z));
     }
 
-    private Vec3 flatLook() {
-        Vec3 look = owner.getLookAngle();
-        Vec3 flat = new Vec3(look.x, 0, look.z);
-        return flat.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : flat.normalize();
-    }
-
     private void advanceOrbit(float lapSeconds) {
         orbitAngle += (float) (2 * Math.PI) / (lapSeconds * 20f);
     }
@@ -990,7 +1060,7 @@ public final class ClientCompanion {
     /** The point on the owner's body a benthic percher sits at — head or a shoulder, per species. */
     private Vec3 perchPoint(Minecraft mc) {
         Vec3 eye = owner.getEyePosition();
-        Vec3 forward = flatLook();
+        Vec3 forward = bodyForward();
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         int slot = Math.floorMod(seed, 3);
         return switch (slot) {
@@ -1003,7 +1073,7 @@ public final class ClientCompanion {
     /** The point on the owner's back an anchored companion pokes out of (§3). */
     private Vec3 backPoint() {
         Vec3 eye = owner.getEyePosition();
-        Vec3 forward = flatLook();
+        Vec3 forward = bodyForward();
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         return eye.add(forward.scale(-0.28)).add(right.scale(0.05)).add(0, 0.02, 0);
     }
@@ -1095,7 +1165,8 @@ public final class ClientCompanion {
         poseStack.mulPose(boxPose(cam));
         int light = lightAt(fishOffset());
         if (glowsNow()) light = LightCoordsUtil.FULL_BRIGHT;
-        flock.submit(poseStack, nodes, light, dockedTime(partialTick), frameFishSize, frameTilt);
+        flock.submit(poseStack, nodes, light, dockedTime(partialTick), frameFishSize, frameTilt,
+                boxVel, frameYaw, frameScale);
         poseStack.popPose();
         return true;
     }
@@ -1178,8 +1249,15 @@ public final class ClientCompanion {
         Vec3 follow = prevCenter.lerp(center, partialTick);
         float d = smooth(Mth.lerp(partialTick, prevDock, dock));
         float fly = smooth(Mth.lerp(partialTick, prevFlyPast, flyPast));
-        frameYaw = owner == null ? 0f
+        // The companion's own frame while following (§19): a camera flick rotates the view, not the
+        // fish's world. Docked, the box must be camera-exact (side-on by design), so the dock blend
+        // carries the frame over to the view yaw instead of snapping at the dock's first tick.
+        float viewYaw = owner == null ? 0f
                 : owner == Minecraft.getInstance().player ? camera.yRot() : owner.getViewYRot(partialTick);
+        frameYaw = devCameraLockedFrame ? viewYaw
+                : d > 0f
+                ? frameOrientationYaw + Mth.wrapDegrees(viewYaw - frameOrientationYaw) * d
+                : frameOrientationYaw;
         // The catch wiggle (and only it) rides the rendered position: the sim keeps its calm path
         // while the fish visibly celebrates (§5).
         follow = follow.add(0, catchWiggle(partialTick), 0);
@@ -1244,7 +1322,9 @@ public final class ClientCompanion {
     void submitDockedFish(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTime) {
         // The stack is already at the box centre; the flock places each fish at its own offset.
         // gameTime here is already {@link #dockedTime} — the HUD pass builds the render state.
-        flock.submit(poseStack, nodes, light, gameTime, frameFishSize, frameTilt);
+        // The box numbers are the dock's own frame: the camera-locked box is the tank, and its
+        // motion is the drawn motion, so the facing metric has nothing extra to correct for.
+        flock.submit(poseStack, nodes, light, gameTime, frameFishSize, frameTilt, Vec3.ZERO, 0f, 1f);
     }
 
     // ── Perch layer / hand pass ────────────────────────────────────────────────
@@ -1307,6 +1387,42 @@ public final class ClientCompanion {
             peekCount++;
         }
     }
+
+    /** Dev-only: start (or restart) this class's trick now — what `/fishtastic companion trick` calls. */
+    void devStartTrick() {
+        trickTimer = TRICK_LENGTH;
+        trickIndex++;
+        if (flock.locomotion() == Locomotion.BENTHIC) spinDeg = 0f; // restart the spin from upright
+    }
+
+    /** Dev-only: whether a trick is playing right now. */
+    public boolean devTrickActive() {
+        return trickTimer > 0;
+    }
+
+    /** Dev-only: end any pet-to-pet scene now — what `/fishtastic companion scene stop` calls. */
+    void endScene() {
+        scene = null;
+        sceneHeartFired = false;
+    }
+
+    /** Dev-only (§19 scene): pause the peek system so a motion measurement only measures motion. */
+    void devSuppressMotion(boolean suppressed) { devMotionSuppressed = suppressed; }
+
+    /** Dev-only (§19 scene): restore the pre-polish camera-locked basis, for the "before" number. */
+    void devCameraLockedFrame(boolean cameraLocked) { devCameraLockedFrame = cameraLocked; }
+
+    /** Dev-only: whether the pre-polish camera-locked basis is currently forced (the §19 seam). */
+    boolean devIsCameraLockedFrame() { return devCameraLockedFrame; }
+
+    /** Dev-only: the bonded fish itself — the dev commands clone it to park a phantom partner. */
+    public ItemStack devStack() { return stack; }
+
+    /** Dev diagnostics: the lead fish's presented-facing dot with its world velocity (§19). */
+    public float devFaceDot() { return flock.faceDot(); }
+
+    /** Dev diagnostics: the lead fish's world speed (blocks/tick) that the facing dot pairs with. */
+    public float devFaceSpeed() { return flock.faceSpeed(); }
 
     /** The display class as a stable name for logs and checks. */
     public String displayClassName() {
@@ -1403,13 +1519,16 @@ public final class ClientCompanion {
         return (float) Math.sqrt(d.x * d.x + d.z * d.z);
     }
 
-    /** How far behind the owner's facing the companion is (positive = behind). */
+    /** How far behind the companion's own frame the fish is (positive = behind; §19's reference). */
     public float behindness() {
         if (owner == null || center == null) return 0f;
-        Vec3 f = flatLook();
+        Vec3 f = frameForward();
         Vec3 d = center.subtract(owner.getEyePosition());
         return (float) -(d.x * f.x + d.z * f.z);
     }
+
+    /** Dev diagnostics: the companion's own frame yaw (degrees), for the polish scene's logs. */
+    public float devAnchorYaw() { return frameOrientationYaw; }
 
     // ── Fishing dev accessors (self-test) ──────────────────────────────────────
 
@@ -1483,6 +1602,18 @@ public final class ClientCompanion {
                 progressDelta);
     }
 
+    /** Dev diagnostics: the owner's main-hand item id, or "-" for an empty hand / no owner. */
+    private String heldItemDebug() {
+        if (owner == null) return "-";
+        ItemStack held = owner.getMainHandItem();
+        return held.isEmpty() ? "-" : String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(held.getItem()));
+    }
+
+    /** Dev diagnostics: the owner's selected hotbar slot, or -1 for no owner. */
+    private int selectedSlotDebug() {
+        return owner == null ? -1 : owner.getInventory().getSelectedSlot();
+    }
+
     /** Dev diagnostics: where the box and fish are relative to the camera, and the dock state. */
     String debugState(@Nullable float[] anchor, int screenW, int screenH) {
         Minecraft mc = Minecraft.getInstance();
@@ -1497,10 +1628,11 @@ public final class ClientCompanion {
         new Matrix4f(cs.projectionMatrix).transform(p);
         float gx = (p.x / p.w + 1f) / 2f * screenW, gy = (1f - p.y / p.w) / 2f * screenH;
         return String.format(Locale.ROOT,
-                "owner=%s stack=%s class=%s perched=%s peek=%d(%.2f) seen=%s reaction=%s hand=%.2f duck=%.2f line=%.2f(%.2f) nibble=%.2f outcome=%s fly=%.2f docked=%s dock=%.2f anchor=%s centreRel=(%.2f,%.2f,%.2f) scale=%.3f fishSize=%.2f fishGui=(%.1f,%.1f) viewZ=%.2f | %s | %s",
+                "owner=%s stack=%s class=%s perched=%s peek=%d(%.2f) seen=%s reaction=%s hand=[%s sel=%d] hand=%.2f duck=%.2f line=%.2f(%.2f) nibble=%.2f outcome=%s fly=%.2f docked=%s dock=%.2f anchor=%s centreRel=(%.2f,%.2f,%.2f) scale=%.3f fishSize=%.2f fishGui=(%.1f,%.1f) viewZ=%.2f | %s | %s",
                 owner == null ? "phantom" : owner.getName().getString(), stack.getHoverName().getString(),
                 displayClassName(), isPerchedNow(), peekPhase, peekBlend, visibleNow,
-                reactionName.isEmpty() ? "-" : reactionName, handHop, duck,
+                reactionName.isEmpty() ? "-" : reactionName, heldItemDebug(), selectedSlotDebug(),
+                handHop, duck,
                 lineWait, lineDistance(), nibble, fishingOutcome(), flyPast, frameDocked, dock,
                 anchor == null ? "null" : java.util.Arrays.toString(anchor),
                 rel.x, rel.y, rel.z, frameScale, frameFishSize, gx, gy, viewZ, flock.debug(),

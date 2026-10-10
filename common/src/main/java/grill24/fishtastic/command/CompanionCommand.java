@@ -1,10 +1,13 @@
 package grill24.fishtastic.command;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.companion.CompanionFishingOutcome;
+import grill24.fishtastic.companion.CompanionSceneType;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.companion.Companions;
 import grill24.fishtastic.util.FishingMinigameAnimation;
@@ -33,15 +36,37 @@ import java.util.Optional;
  *   /fishtastic companion on                              — bond with the held fish (the real bond path)
  *   /fishtastic companion off                             — unequip; the fish comes back
  *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size] — equip a conjured fish directly
+ *   /fishtastic companion trick                           — play the companion's class trick now
+ *   /fishtastic companion peek                            — make it swim into your view now
+ *   /fishtastic companion outcome caught|escaped          — play the catch wiggle / escape droop now
+ *   /fishtastic companion catchdemo                       — open a demo bar with a fish of your companion's species
+ *   /fishtastic companion catch                           — land the demo bar's first active target (celebration + greet)
+ *   /fishtastic companion scene g1|g2                     — play a pet-to-pet scene with a dev phantom partner
+ *   /fishtastic companion scene stop                      — end any running scene
+ *   /fishtastic companion phantom &lt;species&gt; [size]      — park a second (ownerless) companion beside you
+ *   /fishtastic companion phantom off                     — remove every dev phantom
  *   /fishtastic companion minigame                        — opens a demo minigame bar so the fish docks
  *   /fishtastic companion stopgame                        — closes it
  *   /fishtastic companion catchcount &lt;player&gt; &lt;species&gt; &lt;count&gt; — set one species' catch count
  *   /fishtastic companion unlock &lt;player&gt; &lt;species&gt;       — force-unlock a bond (fires the banner)
  *   /fishtastic companion resetbonds &lt;player&gt;             — forget every stored bond unlock
+ *   /fishtastic companion hideothers &lt;bool&gt;              — hide other players' companions (persists)
+ *   /fishtastic companion hideown &lt;bool&gt;                 — hide your own in first person (persists)
+ *   /fishtastic companion waitatobber &lt;bool&gt;             — skip docking during the minigame (persists)
  * </pre>
  *
- * {@code minigame}/{@code stopgame} drive client state directly, the same way
- * {@link CelebrationCommand} does, so they only work in single-player.
+ * <p>The visual triggers ({@code trick … waitatbobber}) drive client state directly, the same way
+ * {@link CelebrationCommand} does, so they only work in single-player — they exist so every
+ * companion animation and interaction can be seen solo, without a second player or a headless run.
+ *
+ * <p>This class must never <i>use</i> {@code mc.player} beyond the null-compare in
+ * {@link #client} — no method calls on it, no passing it as an argument. Doing so forces
+ * {@code LocalPlayer} to resolve when this class is verified, and Fabric refuses to load vanilla
+ * client classes in a server environment, which crashes {@code :fabric:runGametest} at command
+ * registration. That is why every dev action lives in
+ * {@code grill24.fishtastic.client.companion.ClientCompanions} (client-only, loaded only when a
+ * command actually runs) and this class only ever calls into it, plus the pure
+ * {@code FishtasticClientConfig} — found the hard way, after an afternoon of bisecting.
  */
 public class CompanionCommand {
 
@@ -61,6 +86,54 @@ public class CompanionCommand {
                                         .executes(ctx -> give(ctx, Optional.empty()))
                                         .then(Commands.argument("size", FloatArgumentType.floatArg(1f, 2000f))
                                                 .executes(ctx -> give(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size"))))))))
+                .then(Commands.literal("trick").executes(ctx -> client(ctx, () -> {
+                    grill24.fishtastic.client.companion.ClientCompanions.devStartTrick();
+                    return "Trick!";
+                })))
+                .then(Commands.literal("peek").executes(ctx -> client(ctx, () -> {
+                    grill24.fishtastic.client.companion.ClientCompanions.devStartPeek();
+                    return "Peek!";
+                })))
+                .then(Commands.literal("outcome")
+                        .then(Commands.literal("caught").executes(ctx -> client(ctx, () -> {
+                            grill24.fishtastic.client.companion.ClientCompanions.devSetOutcome(
+                                    CompanionFishingOutcome.CAUGHT);
+                            return "Playing the caught reaction";
+                        })))
+                        .then(Commands.literal("escaped").executes(ctx -> client(ctx, () -> {
+                            grill24.fishtastic.client.companion.ClientCompanions.devSetOutcome(
+                                    CompanionFishingOutcome.ESCAPED);
+                            return "Playing the escaped reaction";
+                        }))))
+                .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devOpenCatchDemo)))
+                .then(Commands.literal("catch").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devForceCatch)))
+                .then(Commands.literal("scene")
+                        .then(Commands.literal("g1").executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanions.devStartScene(
+                                        CompanionSceneType.G1_SAME_SPECIES))))
+                        .then(Commands.literal("g2").executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanions.devStartScene(
+                                        CompanionSceneType.G2_FREE_SWIM_EIGHT))))
+                        .then(Commands.literal("stop").executes(ctx -> client(ctx, () -> {
+                            grill24.fishtastic.client.companion.ClientCompanions.devStopScenes();
+                            return "Companion scenes ended";
+                        }))))
+                .then(Commands.literal("phantom")
+                        .then(Commands.literal("off").executes(ctx -> client(ctx, () -> {
+                            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+                            return "Dev phantoms removed";
+                        })))
+                        .then(Commands.argument("species", IdentifierArgument.id())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        BuiltInRegistries.ITEM.stream()
+                                                .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                                                .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
+                                        builder))
+                                .executes(ctx -> phantom(ctx, Optional.empty()))
+                                .then(Commands.argument("size", FloatArgumentType.floatArg(1f, 2000f))
+                                        .executes(ctx -> phantom(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size")))))))
                 .then(Commands.literal("minigame").executes(ctx -> client(ctx, () -> {
                     ((IGameRendererExtension) Minecraft.getInstance().gameRenderer)
                             .fishtastic$displayItemActivation(new FishingMinigameAnimation());
@@ -86,7 +159,48 @@ public class CompanionCommand {
                                         .executes(CompanionCommand::unlock))))
                 .then(Commands.literal("resetbonds")
                         .then(Commands.argument("player", EntityArgument.player())
-                                .executes(CompanionCommand::resetBonds)));
+                                .executes(CompanionCommand::resetBonds)))
+                .then(Commands.literal("hideothers")
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                            boolean value = BoolArgumentType.getBool(ctx, "value");
+                            grill24.fishtastic.client.FishtasticClientConfig.setHideOtherCompanions(value);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                    "Other players' companions hidden: " + value + " (persisted)"), false);
+                            return 1;
+                        })))
+                .then(Commands.literal("hideown")
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                            boolean value = BoolArgumentType.getBool(ctx, "value");
+                            grill24.fishtastic.client.FishtasticClientConfig.setHideOwnCompanionFirstPerson(value);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                    "Own companion hidden in first person: " + value + " (persisted)"), false);
+                            return 1;
+                        })))
+                .then(Commands.literal("waitatbobber")
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                            boolean value = BoolArgumentType.getBool(ctx, "value");
+                            grill24.fishtastic.client.FishtasticClientConfig.setCompanionWaitsAtBobber(value);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                    "Companion waits at the bobber: " + value + " (persisted)"), false);
+                            return 1;
+                        })));
+    }
+
+    /**
+     * Parks a dev phantom companion (an ownerless second fish) beside the player. Validation is
+     * server-safe; the client action lives in {@code ClientCompanions} for the same reason as
+     * {@code catchdemo} (see the class note).
+     */
+    private static int phantom(CommandContext<CommandSourceStack> ctx, Optional<Float> size) throws CommandSyntaxException {
+        Identifier id = IdentifierArgument.getId(ctx, "species");
+        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
+        if (item.isEmpty() || !item.get().builtInRegistryHolder().is(FishtasticItemTags.FISH)) {
+            ctx.getSource().sendFailure(Component.literal("Not a fish: " + id));
+            return 0;
+        }
+        ItemStack fish = new ItemStack(item.get());
+        size.ifPresent(cm -> ItemSizeHelper.setSize(fish, cm));
+        return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devAddPhantom(fish));
     }
 
     /** Dev: sets one species' catch count, so a scene can park a species just below or at its gate. */

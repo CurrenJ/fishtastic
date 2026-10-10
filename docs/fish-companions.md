@@ -785,3 +785,101 @@ The at-heart bubble trace is subtle at this scale; `HEART_SCALE` is the one knob
   targeting test asserts against the set computed from the same distance rule, strays included.
 - `Level#getSharedSpawnPos` no longer exists in 26.1.2; the tests offset mock players from wherever
   they were placed instead of looking up a spawn point.
+
+---
+
+## 19. Post-v1 polish (2026-10-10)
+
+The owner's first live playtest (after bonding their first fish in-game), folded back in the same
+day: two motion fixes and a solo-test command surface. Self-test scene `companionpolish` (opt-in)
+measures both fixes with numbers and drives every new command.
+
+**The companion's own orientation frame (§A).** Owner: "Rotating player view causes companion to
+rapidly interpolate to a new position — as if it is trying to keep same relative position to
+player... the fish in practice is a separate entity from the player and should be decoupled from
+moving strictly linked to player orientation changes." The baseline paths (the free-swim orbit,
+the glide arcs, the drift shoulder, the water follow, the at-the-line hover) were built on
+`flatLook()` — the instantaneous camera — so a flick re-based the whole path and the fish chased
+it. They now hang off a per-companion yaw (`ClientCompanion.frameOrientationYaw`) that eases toward
+the owner's **body** yaw, rate-capped: `FRAME_TURN_STILL = 0.6` / `FRAME_TURN_MOVING = 4.0`
+degrees per tick (≈12°/s standing, ≈80°/s walking; vanilla's own walk threshold decides which).
+Turning in place no longer relocates the fish — it drifts to its new spot over seconds, like it
+chose to move — and the box's own yaw (which rotates the in-box wander) rides the same frame, so
+nothing about the follow reads as pinned to the view. The intentional view-coupled moments keep
+tracking the camera: peeks, held-item reactions, the rod tip, the hand hop and the dock (where the
+box blends back to camera-exact for its side-on pose). The perch/back attach points now use the
+body yaw directly — they sit on the body. `behindness()` (dev metric) measures against the frame.
+**Measured:** a 90° camera flick while standing still moved the fish 1.465 blocks over the next 12
+ticks before, 0.544–0.587 after — the residual is the slow re-anchor plus the orbit's own drift
+(~0.17 baseline), i.e. a visible drift instead of a whip.
+
+**Facing follows the world velocity (§B).** Owner, watching runs: "companions moving in a
+direction that they are not facing... often seeing fish literally facing the opposite direction as
+they are moving. Like the fish sim in the tanks, this should not happen." Root cause: a tank fish
+faces its box-local heading and the tank never moves — but a companion's invisible box travels
+(orbit, peeks, scenes, retargets), so the fish's true world velocity is box travel + local swim
+while the drawn yaw followed only the local part; when they opposed, the fish swam backwards.
+`CompanionFlock.submit` now computes the fish's world velocity (box velocity + rotated local
+velocity) and, where the pose has a continuous yaw (planar swimmer, crawler, glider), aims the
+drawn nose along it, fading in over `FACE_FADE_LOW = 0.005` → `FACE_FADE_HIGH = 0.05` blocks/tick
+so near-stationary hovers keep the sim's heading instead of flickering. The binary tank model
+(the dock) is exempt: its box is camera-locked, so local is world there. The pose's own organic
+yaw wiggle rides on top of the aligned base — that is the fish swimming, not mis-facing.
+**Measured** over a G1 scene (box motion dominating): the drawn nose's dot with the true world
+velocity went from mean 0.363 before to mean 0.714 with no sampled frame below 0 (min 0.135)
+after — previously the dot scattered through backwards frames.
+
+**Solo-playtest commands.** The dev tree grows the full trigger set, client-driven like
+`minigame`/`stopgame` (single-player only): `trick`, `peek`, `outcome caught|escaped`,
+`catchdemo` + `catch` (a demo bar with one undiscovered fish of your companion's species, so
+landing it is a full celebration + same-species greet), `scene g1|g2|stop` (auto-parks a dev
+phantom partner when solo and injects through the same method the scene packet handler calls),
+`phantom <species> [size]|off` (a parked ownerless second companion), and
+`hideothers|hideown|waitatobber <bool>` (the three client settings, persisted like the other
+config commands). Every companion animation, reaction and scene is now reachable in a live solo
+game without a second player or a headless run.
+
+**Verification.** Fabric and NeoForge, one full suite run each: all eight companion scenes
+(`companionbond`, `companion`, `companionparade`, `companionpeek`, `companionhand`,
+`companionfishing`, `companionscenes`, `companionpolish`) — **104 checks, 0 failures on both
+loaders**. The `companionpolish` scene measures the two fixes with numbers and drives every new
+dev command through the real dispatcher (`polish.trickCommand` … `polish.settingRestored`).
+
+- **View decoupling**, measured as an in-run pair: the same 90° flick while standing still, once
+  with the pre-polish camera-locked basis (a dev seam that restores exactly what the fix replaced)
+  and once with the companion's own frame — peeks and tricks paused so only baseline motion moves
+  the fish, with per-window diagnostics confirming `trick=false peeking=false basis=…`. Across the
+  passing runs: **camera-locked basis 1.5–3.2 blocks vs own frame 0.1–0.3 blocks** over the 12-tick
+  window (the orbit's own drift is ~0.17). The pre-polish basis lunges a full chord; the own frame
+  barely drifts.
+- **Facing**: the drawn nose's dot with the true world velocity over a scene-driven box motion
+  (20 samples per run) went from **mean 0.363 before the fix** to **mean 0.69–0.77, min 0.13–0.38**
+  after — the residual spread is the pose's own organic yaw wiggle, and no sampled frame ever faces
+  backwards, where the before-run scattered through them.
+
+**Harness findings from the regression passes** (all scene tooling, all fixed; the feature code was
+never at fault):
+- The bond scene left its encyclopedia screen open, and in the headless harness the client's
+  inventory does not resync from behind a custom menu — later scenes read a stale main hand and
+  inventory (every held-item reaction read the same stale fish; the unequip-return check lost its
+  race). The scene now closes its screen, the harness mirrors server inventory edits onto the
+  client view, and the unequip check asserts on the server, the source of truth.
+- A natural quick-lap trick landing inside a measurement window tripled the orbit rate and
+  masqueraded as view-following; the measurement windows now pause peeks *and* tricks.
+- Several scenes only worked as the first scene of a fresh world — the parade found the phase-4
+  bond gate refused its unseeded species, and the bond scene's locked-state checks folded once an
+  earlier scene had unlocked the species. `bondFish` now seeds its own species' catch count, and
+  the suite runs the bond scene first.
+- The dev commands' first draft put their client logic in helper methods that used `mc.player`
+  directly. Any real use of `Minecraft.player` (a method call, an argument) forces `LocalPlayer`
+  to resolve when the command class is verified, and Fabric refuses to load vanilla client
+  classes in a server environment — `:fabric:runGametest` died at command registration with
+  "Cannot load class net.minecraft.client.player.LocalPlayer". Every dev action now lives in
+  `ClientCompanions` (loaded only when a command actually runs in a client), with the rule
+  recorded in `CompanionCommand`'s class note. Found by strip-bisecting the command tree, one
+  construct per run.
+
+Screenshots reviewed: after the flick the fish is *not* parked in the new view — it stays where it
+was, which is the fix's point; during a scene the fish reads side-on along the ring. Open for the
+owner, as ever: the exact frame rates and the fade band are named constants to tune in game.
+

@@ -145,7 +145,7 @@ public final class RenderSelfTest {
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
             "companion", "companionparade", "companionpeek", "companionhand", "companionbond", "companionfishing",
-            "companionscenes");
+            "companionscenes", "companionpolish");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -337,6 +337,7 @@ public final class RenderSelfTest {
             case "companionbond" -> queueCompanionBondScene();
             case "companionfishing" -> queueCompanionFishingScene();
             case "companionscenes" -> queueCompanionScenesScene();
+            case "companionpolish" -> queueCompanionPolishScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2539,13 +2540,22 @@ public final class RenderSelfTest {
         queue(10, mc -> {
             check("companion.unequipSyncedToClient", grill24.fishtastic.companion.CompanionStorage.get(mc.player).isEmpty(),
                     "synced=" + grill24.fishtastic.companion.CompanionStorage.get(mc.player));
-            boolean back = false;
-            for (ItemStack stack : mc.player.getInventory().getNonEquipmentItems()) {
-                if (ItemStack.matches(stack, bluegill)) back = true;
-            }
-            check("companion.unequipReturnedTheFish", back, "inventory=" + mc.player.getInventory().getNonEquipmentItems());
             check("companion.untracked", grill24.fishtastic.client.companion.ClientCompanions.count() == 0,
                     "tracked=" + grill24.fishtastic.client.companion.ClientCompanions.count());
+        });
+        // The returned stack is a separate inventory sync from the attachment sync, and in the
+        // harness the client's inventory view can lag a mod-screen session — so assert on the
+        // SERVER's inventory, the source of truth, a few ticks later.
+        final boolean[] returned = new boolean[1];
+        queue(5, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+                    if (ItemStack.matches(stack, bluegill)) returned[0] = true;
+                }
+            }
+        }));
+        queue(1, mc -> {
+            check("companion.unequipReturnedTheFish", returned[0], "server-returned=" + returned[0]);
             screenshot(mc, "companion", "unequipped");
         });
     }
@@ -2582,23 +2592,59 @@ public final class RenderSelfTest {
     /**
      * Equips a companion of the given species through the real bond path: the fish goes into the
      * inventory, the client sends the description packet, the server finds and takes it.
+     *
+     * <p>Seeds the species' catch count past every threshold first — the bond gate is real since
+     * Phase 4, and a scene that bonds several species would otherwise come back LOCKED for every
+     * species it did not seed itself (the parade found this the first time it ran after the gate
+     * existed). Self-contained per bond, so a scene also works alone on a fresh world.
      */
     private static void bondFish(String species, float sizeCm) {
         ItemStack fish = fish(species, sizeCm);
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:"
+                + species + " 200")));
         queue(1, mc -> server(mc, s -> {
             for (ServerPlayer player : s.getPlayerList().getPlayers()) {
                 grill24.fishtastic.companion.Companions.unequip(player);
                 player.getInventory().clearContent();
                 player.getInventory().setItem(3, fish.copy());
+                mirrorInventoryToClient(mc, player);
             }
         }));
         queue(8, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
                 new grill24.fishtastic.network.BondCompanionPacket(fish.copy()))));
     }
 
+    /** Dev diagnostics: the moving parts inside a §19 turn window, one line per sampled tick. */
+    private static void turnWindowLog(Minecraft mc, String label) {
+        var c = companion();
+        Fishtastic.LOGGER.info("[selftest] polish.window {}: trick={} peeking={} basis={} yRot={}",
+                label,
+                c != null && c.devTrickActive(), c != null && c.isPeeking(),
+                grill24.fishtastic.client.companion.ClientCompanions.devLocalCameraLockedFrame(),
+                String.format(Locale.ROOT, "%.1f", mc.player.getYRot()));
+    }
+
     /** Puts an item in the main hand, or clears it with {@code air}. */
     private static void holdItem(String itemId) {
-        queue(1, mc -> server(mc, s -> run(s, "item replace entity @a hotbar.0 with " + itemId)));
+        queue(1, mc -> server(mc, s -> {
+            run(s, "item replace entity @a hotbar.0 with " + itemId);
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                mirrorInventoryToClient(mc, player);
+            }
+        }));
+    }
+
+    /**
+     * Copies the server player's inventory onto the client's own view. In the headless harness the
+     * client's inventory does not resync while a mod screen with a menu is (or has been) open — see
+     * the bond scene's close — so the held-item reaction checks would otherwise read a stale main
+     * hand (found twice: every reaction leg read the same stale fish, then the "no reaction" leg).
+     */
+    private static void mirrorInventoryToClient(Minecraft mc, ServerPlayer player) {
+        var client = mc.player.getInventory();
+        for (int slot = 0; slot < client.getContainerSize(); slot++) {
+            client.setItem(slot, player.getInventory().getItem(slot).copy());
+        }
     }
 
     /**
@@ -3123,6 +3169,10 @@ public final class RenderSelfTest {
                     "companion=" + grill24.fishtastic.companion.CompanionStorage.get(mc.player));
             screenshot(mc, "companionbond", "unequipped");
         });
+        // Close the screen: while a custom menu is open the server-side inventory changes do not
+        // reach the client's view, so scenes after this one would read a stale main hand and
+        // inventory (found the hard way: every later held-item reaction read the same stale fish).
+        queue(1, mc -> mc.setScreen(null));
 
         // Cleanup: close the screen again and leave no companion or stored bonds behind.
         queue(1, mc -> mc.setScreen(null));
@@ -3160,9 +3210,6 @@ public final class RenderSelfTest {
      */
     private static void queueCompanionFishingScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        // The bond gate is real since phase 4: complete the species' entry first (a count past
-        // every derived threshold), or the bond packet comes back LOCKED and no companion exists.
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:bluegill 200")));
         bondFish("bluegill", 25f);
         double[] preDock = new double[1];
 
@@ -3363,10 +3410,6 @@ public final class RenderSelfTest {
      */
     private static void queueCompanionScenesScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        // The bond gate is real since phase 4: complete the species' entry first (a count past
-        // every derived threshold), or the bond packet comes back LOCKED and there is no local
-        // companion for the scene to move.
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion catchcount @p fishtastic:bluegill 200")));
         bondFish("bluegill", 25f);
         queue(20, mc -> {
             check("scenes.companionReady", companion() != null, "");
@@ -3526,6 +3569,192 @@ public final class RenderSelfTest {
     /** The companion's fishing reaction debug line, for scene checks. */
     private static String companionLogString(String label) {
         return label + " " + grill24.fishtastic.client.companion.ClientCompanions.debugState();
+    }
+
+    /**
+     * Post-v1 polish (docs/fish-companions.md §19): the two owner-playtest motion fixes and the
+     * solo-playtest dev commands.
+     *
+     * <ul>
+     *   <li><b>Facing:</b> samples the presented-facing dot against the companion's true world
+     *       velocity while a G1 scene drives its box fast — the case the owner reported ("moving in
+     *       a direction they are not facing").</li>
+     *   <li><b>View decoupling:</b> flicks the camera 90° while standing still and measures how far
+     *       the fish travels over the next 12 ticks — the case "turning the camera relocates the
+     *       fish".</li>
+     *   <li><b>Commands:</b> drives every new dev trigger through the real command dispatcher.</li>
+     * </ul>
+     */
+    private static void queueCompanionPolishScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        bondFish("bluegill", 25f);
+        queue(40, mc -> {
+            check("polish.ready", companion() != null, "");
+            mc.player.setXRot(0f);
+            mc.player.setYRot(180f);
+            mc.player.setYBodyRot(180f);
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+        });
+
+        // ── Command legs: every new dev trigger, through the real dispatcher ──────
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion trick")));
+        queue(3, mc -> check("polish.trickCommand", companion() != null && companion().devTrickActive(),
+                "active=" + (companion() != null && companion().devTrickActive())));
+        queue(55, mc -> check("polish.trickEnds", companion() != null && !companion().devTrickActive(), ""));
+
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion peek")));
+        queue(3, mc -> check("polish.peekCommand", companion() != null && companion().isPeeking(), ""));
+
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion outcome caught")));
+        queue(3, mc -> check("polish.outcomeCommand",
+                companion() != null && companion().fishingOutcome() == grill24.fishtastic.companion.CompanionFishingOutcome.CAUGHT,
+                "outcome=" + (companion() == null ? "none" : companion().fishingOutcome())));
+
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion phantom fishtastic:bluegill 30")));
+        queue(3, mc -> check("polish.phantomCommand", grill24.fishtastic.client.companion.ClientCompanions.devPhantomIds().size() == 1,
+                "phantoms=" + grill24.fishtastic.client.companion.ClientCompanions.devPhantomIds().size()));
+
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion waitatbobber true")));
+        queue(3, mc -> check("polish.settingCommand",
+                grill24.fishtastic.client.FishtasticClientConfig.companionWaitsAtBobber(), ""));
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion waitatbobber false")));
+        queue(3, mc -> check("polish.settingRestored",
+                !grill24.fishtastic.client.FishtasticClientConfig.companionWaitsAtBobber(), ""));
+
+        // ── View decoupling: a camera flick must not relocate the fish ────────────
+        // Measured twice in one run, on one state: with the pre-polish camera-locked basis (the
+        // dev seam) and with the companion's own frame — and with the peek system paused, because
+        // an unseen-triggered peek dashes toward the view and would masquerade as view-following.
+        final Vec3[] turnBefore = new Vec3[1];
+        final float[] turnYawBefore = new float[1];
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(true);
+            grill24.fishtastic.client.companion.ClientCompanions.devCameraLockedFrame(true);
+        });
+        queue(120, mc -> {
+            // Settle: the forced peek (OUT+HOLD+BACK = 88 ticks), the trick and the outcome
+            // envelope have all expired and the fish is back on its orbit. Re-assert the dev seams
+            // here too: they are per-companion state, and asserting them at the sample point (not
+            // only at scene start) makes the measurement self-contained if anything rebuilt since.
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(true);
+            grill24.fishtastic.client.companion.ClientCompanions.devCameraLockedFrame(true);
+            mc.player.setYRot(180f);
+            mc.player.setYBodyRot(180f);
+            check("polish.settled", companion() != null && !companion().isPeeking(),
+                    "peek=" + (companion() == null ? "none" : companion().isPeeking())
+                            + " trick=" + (companion() != null && companion().devTrickActive())
+                            + " outcome=" + (companion() == null ? "none" : companion().fishingOutcome()));
+            companionLog("camera-locked settle basis=" + grill24.fishtastic.client.companion.ClientCompanions.devLocalCameraLockedFrame());
+            turnBefore[0] = companion() == null ? null : companion().devFishPoint();
+            turnYawBefore[0] = companion() == null ? Float.NaN : companion().devAnchorYaw();
+        });
+        queue(1, mc -> mc.player.setYRot(270f)); // a 90° flick, standing still
+        queue(3, mc -> turnWindowLog(mc, "before-basis k1"));
+        queue(3, mc -> turnWindowLog(mc, "before-basis k2"));
+        queue(6, mc -> {
+            Vec3 after = companion() == null ? null : companion().devFishPoint();
+            double moved = (after == null || turnBefore[0] == null) ? -1 : after.distanceTo(turnBefore[0]);
+            Fishtastic.LOGGER.info("[selftest] polish.turnDisplacement (camera-locked basis) ={} blocks over 12 ticks "
+                            + "after a 90-degree view flick while standing still | frameYaw {}->{} yRot {}->{} peek={} "
+                            + "player=({},{},{}) before={} after={}",
+                    String.format(Locale.ROOT, "%.3f", moved),
+                    String.format(Locale.ROOT, "%.1f", turnYawBefore[0]),
+                    companion() == null ? "none" : String.format(Locale.ROOT, "%.1f", companion().devAnchorYaw()),
+                    String.format(Locale.ROOT, "%.1f", 180f),
+                    String.format(Locale.ROOT, "%.1f", mc.player.getYRot()),
+                    companion() != null && companion().isPeeking(),
+                    String.format(Locale.ROOT, "%.2f", mc.player.getX()),
+                    String.format(Locale.ROOT, "%.2f", mc.player.getY()),
+                    String.format(Locale.ROOT, "%.2f", mc.player.getZ()),
+                    turnBefore[0] == null ? "null" : String.format(Locale.ROOT, "(%.2f,%.2f,%.2f)", turnBefore[0].x, turnBefore[0].y, turnBefore[0].z),
+                    after == null ? "null" : String.format(Locale.ROOT, "(%.2f,%.2f,%.2f)", after.x, after.y, after.z));
+            check("polish.turnBeforeReproduces", moved > 0.9, "moved=" + moved);
+            companionLog("camera-locked flick before/after:  basis=" + grill24.fishtastic.client.companion.ClientCompanions.devLocalCameraLockedFrame() + " " + turnBefore[0] + " -> " + after);
+            screenshot(mc, "companionpolish", "after_turn_before_basis");
+        });
+        // Now the same flick with the companion's own frame: settle back, un-clamp the basis.
+        final Vec3[] turnBefore2 = new Vec3[1];
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devCameraLockedFrame(false);
+            mc.player.setYRot(180f);
+            mc.player.setYBodyRot(180f);
+        });
+        queue(80, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(true);
+            grill24.fishtastic.client.companion.ClientCompanions.devCameraLockedFrame(false);
+            mc.player.setYRot(180f);
+            mc.player.setYBodyRot(180f);
+            companionLog("own-frame settle basis=" + grill24.fishtastic.client.companion.ClientCompanions.devLocalCameraLockedFrame());
+            turnBefore2[0] = companion() == null ? null : companion().devFishPoint();
+        });
+        queue(1, mc -> mc.player.setYRot(270f));
+        queue(3, mc -> turnWindowLog(mc, "own-frame k1"));
+        queue(3, mc -> turnWindowLog(mc, "own-frame k2"));
+        queue(6, mc -> {
+            Vec3 after = companion() == null ? null : companion().devFishPoint();
+            double moved = (after == null || turnBefore2[0] == null) ? -1 : after.distanceTo(turnBefore2[0]);
+            Fishtastic.LOGGER.info("[selftest] polish.turnDisplacement (own frame) ={} blocks over 12 ticks after a "
+                            + "90-degree view flick while standing still (orbit baseline is ~0.17); peek={}",
+                    String.format(Locale.ROOT, "%.3f", moved),
+                    companion() != null && companion().isPeeking());
+            // With the pre-polish basis the same flick moves the fish well over a block; decoupled it
+            // is the orbit's own drift plus a slow re-anchor, well under half a block.
+            check("polish.turnKeepsFish", moved >= 0 && moved < 0.6, "moved=" + moved);
+            companionLog("own-frame flick before/after:  basis=" + grill24.fishtastic.client.companion.ClientCompanions.devLocalCameraLockedFrame() + " " + turnBefore2[0] + " -> " + after);
+            grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(false);
+        });
+
+        // ── Facing: the drawn nose must follow the world velocity ─────────────────
+        final double[] dotSum = {0};
+        final int[] dotCount = {0};
+        final float[] dotMin = {Float.MAX_VALUE};
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion scene g1")));
+        queue(4, mc -> check("polish.sceneCommand",
+                companion() != null && companion().sceneType() == grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
+                "scene=" + (companion() == null ? "none" : companion().sceneType())));
+        queue(1, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        for (int i = 0; i < 20; i++) {
+            queue(2, mc -> {
+                var c = companion();
+                if (c == null) return;
+                float speed = c.devFaceSpeed();
+                float dot = c.devFaceDot();
+                if (speed > 0.02f && !Float.isNaN(dot)) {
+                    dotSum[0] += dot;
+                    dotCount[0]++;
+                    dotMin[0] = Math.min(dotMin[0], dot);
+                }
+            });
+        }
+        queue(1, mc -> {
+            double mean = dotCount[0] == 0 ? Double.NaN : dotSum[0] / dotCount[0];
+            Fishtastic.LOGGER.info("[selftest] polish.faceDot mean={} min={} samples={} (scene-driven box motion; "
+                            + "the pose's own organic yaw wiggle holds the mean below 1 — backwards frames are the failure)",
+                    String.format(Locale.ROOT, "%.3f", mean), String.format(Locale.ROOT, "%.3f", dotMin[0]), dotCount[0]);
+            // Before the fix the nose followed the box-local heading while the ring carried the
+            // fish, so samples went negative; following the world velocity no sampled frame faces
+            // backwards, and the mean sits near cos(wiggle) of +1.
+            check("polish.facesVelocity", dotCount[0] > 6 && dotMin[0] > 0.0f,
+                    "min=" + dotMin[0] + " mean=" + mean + " samples=" + dotCount[0]);
+            screenshot(mc, "companionpolish", "scene_facing");
+        });
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion scene stop")));
+        queue(3, mc -> check("polish.sceneStop", companion() != null && !companion().isInScene(),
+                "scene=" + (companion() == null ? "none" : companion().sceneType())));
+
+        // ── Cleanup ───────────────────────────────────────────────────────────────
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+            server(mc, s -> {
+                run(s, "fishtastic companion waitatobber false");
+                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.unequip(player);
+                    player.getInventory().clearContent();
+                }
+            });
+        });
+        queue(10, mc -> companionLog("polish scene end"));
     }
 
     private static void queueHudScene() {

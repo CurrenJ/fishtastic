@@ -239,6 +239,24 @@ public final class FishtasticClientConfig {
         return companionWaitsAtBobber;
     }
 
+    /** Persists the hide-other-companions toggle (also reachable via the dev `companion` command). */
+    public static void setHideOtherCompanions(boolean hide) {
+        hideOtherCompanions = hide;
+        persist();
+    }
+
+    /** Persists the hide-own-companion-in-first-person toggle (never applied while docked). */
+    public static void setHideOwnCompanionFirstPerson(boolean hide) {
+        hideOwnCompanionFirstPerson = hide;
+        persist();
+    }
+
+    /** Persists the waits-at-the-bobber toggle. */
+    public static void setCompanionWaitsAtBobber(boolean wait) {
+        companionWaitsAtBobber = wait;
+        persist();
+    }
+
     /**
      * Writes every setting back to the properties file. Each value is read through its own getter
      * so an untouched setting round-trips its on-disk value rather than being reset to a default.

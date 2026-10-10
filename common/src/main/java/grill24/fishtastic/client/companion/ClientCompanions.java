@@ -335,6 +335,113 @@ public final class ClientCompanions {
         if (local != null) local.devStartPeek();
     }
 
+    /** Dev-only: makes the local companion start its class trick now (the `trick` dev command). */
+    public static void devStartTrick() {
+        ClientCompanion local = local();
+        if (local != null) local.devStartTrick();
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion catchdemo`): opens a demo bar whose one fish target is a
+     * member of the local companion's own species, flagged undiscovered — landing it is a full
+     * tiered celebration and the same-species greet fires. No drain, so it waits for
+     * {@link #devForceCatch()}. Lives here rather than in the command because the command class
+     * must never use {@code Minecraft.player} — see the class note on
+     * {@code CompanionCommand}; the client-only classes it touches are loadable only here.
+     */
+    public static String devOpenCatchDemo() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return "No client player";
+        ItemStack companion = CompanionStorage.get(mc.player);
+        if (companion.isEmpty()) return "No companion equipped — bond one first (or /fishtastic companion on)";
+        ItemStack reward = companion.copyWithCount(1);
+        FishingMinigameAnimation animation = new FishingMinigameAnimation();
+        // The bare constructor stages three example TREASURE targets; clear them first, exactly as
+        // the start-packet handler and the self-test scenes do.
+        animation.getMinigameState().getTargets().clear();
+        grill24.fishtastic.util.FishingTarget target = new grill24.fishtastic.util.FishingTarget(
+                java.util.List.of(reward), grill24.fishtastic.util.FishingTarget.TargetCategory.FISH,
+                new java.util.Random(7L), 0.5f, 0.2f, java.util.List.of());
+        target.setNoCatchDrain(true);
+        animation.getMinigameState().addTarget(target);
+        animation.setUndiscoveredSpecies(java.util.Set.of(
+                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(reward.getItem())));
+        ((IGameRendererExtension) mc.gameRenderer).fishtastic$displayItemActivation(() -> animation);
+        return "Demo catch open — /fishtastic companion catch to land it";
+    }
+
+    /** Dev-only (`/fishtastic companion catch`): lands the first active target through the real catch path. */
+    public static String devForceCatch() {
+        FishingMinigameAnimation animation = activeMinigame();
+        if (animation == null) return "No minigame open — /fishtastic companion catchdemo first";
+        var targets = animation.getMinigameState().getTargets();
+        for (int i = 0; i < targets.size(); i++) {
+            if (targets.get(i).getState() == grill24.fishtastic.util.FishingTarget.TargetState.ACTIVE) {
+                animation.devCatchTarget(i);
+                return "Caught target " + i;
+            }
+        }
+        return "No active target to catch";
+    }
+
+    /** Dev-only: plays a catch/escape reaction on the local companion now (the `outcome` command). */
+    public static void devSetOutcome(CompanionFishingOutcome kind) {
+        ClientCompanion local = local();
+        if (local != null) local.setFishingOutcome(kind);
+    }
+
+    /** Dev-only (`/fishtastic companion scene stop`): ends every running scene immediately. */
+    public static void devStopScenes() {
+        for (ClientCompanion companion : COMPANIONS.values()) companion.endScene();
+        for (ClientCompanion phantom : PHANTOMS.values()) phantom.endScene();
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion scene g1|g2`): plays a pet-to-pet scene with a dev phantom
+     * as the second companion — a solo game has only one real player, so the phantom stands in and
+     * the scene packet lands through the same method the network handler calls. Lives here, not in
+     * the command, for the link-time class-resolution reason in {@link #devOpenCatchDemo()}.
+     */
+    public static String devStartScene(CompanionSceneType type) {
+        Minecraft mc = Minecraft.getInstance();
+        ClientCompanion local = local();
+        if (local == null) return "No local companion — bond one first";
+        java.util.UUID partner = devPhantomIds().stream().findFirst().orElseGet(() -> addPhantom(
+                local.devStack(), mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2.4))));
+        onScenePacket(type, mc.player.getUUID(), partner, mc.level.getGameTime());
+        return type.name() + " scene playing (phantom partner) — /fishtastic companion scene stop to end it";
+    }
+
+    /** Dev-only (`/fishtastic companion phantom <species> [size]`): parks a second, ownerless fish. */
+    public static String devAddPhantom(ItemStack fish) {
+        Minecraft mc = Minecraft.getInstance();
+        addPhantom(fish, mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2.4)));
+        return "Phantom " + fish.getHoverName().getString() + " parked (a second companion to watch)";
+    }
+
+    /** Dev-only (§19 scene): pause peeks and tricks on the local companion for a clean measurement. */
+    public static void devSuppressMotion(boolean suppressed) {
+        ClientCompanion local = local();
+        if (local != null) local.devSuppressMotion(suppressed);
+    }
+
+    /** Dev-only (§19 scene): restore the pre-polish camera-locked basis on the local companion. */
+    public static void devCameraLockedFrame(boolean cameraLocked) {
+        ClientCompanion local = local();
+        if (local != null) local.devCameraLockedFrame(cameraLocked);
+    }
+
+    /** Dev-only: whether the local companion currently runs the forced camera-locked basis. */
+    public static boolean devLocalCameraLockedFrame() {
+        ClientCompanion local = local();
+        return local != null && local.devIsCameraLockedFrame();
+    }
+
+    /** Dev-only: the ids of every dev phantom currently parked, for the dev commands and scenes. */
+    public static Set<UUID> devPhantomIds() {
+        return new HashSet<>(PHANTOMS.keySet());
+    }
+
     /** Dev diagnostics for the local player's companion. */
     public static String debugState() {
         ClientCompanion local = local();
