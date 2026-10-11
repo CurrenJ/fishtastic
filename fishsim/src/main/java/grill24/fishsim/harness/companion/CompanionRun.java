@@ -116,8 +116,17 @@ public final class CompanionRun {
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
-                    agent.seen(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner()));
+                    seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner()));
         }
+    }
+
+    /**
+     * Whether the owner can see the fish where it is now, against this tick's camera: the harness's
+     * own judgement, independent of what the mind believes, so the metric means the same thing
+     * whatever the mind does.
+     */
+    private boolean seenNow() {
+        return Visibility.visible(owner, agent.position(), agent.voxels());
     }
 
     public void run(int ticks) {

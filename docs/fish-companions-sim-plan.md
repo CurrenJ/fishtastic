@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phase 1 built and passed the owner's gate 2026-10-11 (§9.6); Phase 2 next. GLIDE and DRIFT parked.**
+**Written:** 2026-10-11 · **Status: Phase 1 passed the owner's gate 2026-10-11 (§9.6). Phase 2 in progress (§10). GLIDE and DRIFT parked.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -592,3 +592,45 @@ not gaps.
 **Found for Phase 2:** the spike's `Mind.perceive` judges "seen" on last tick's position against
 this tick's camera (§9.4); fixing it changes FREE_SWIM's attention timing, so it waits for the
 attention work.
+
+---
+
+## 10. Phase 2 — order, gates, and as built
+
+| Step | Builds | Gate |
+|---|---|---|
+| **2a** World snapshot (**built**) | `CompanionWorld` (owner, blocks, points of interest, held item, owner hurt) — one per tick, the only thing agents and trios step from | all FREE_SWIM fingerprints bitwise identical, and the new all-class baseline (`-PfpAll`: 4 classes and the trio × 18 scripts × 3 seeds) too |
+| **2b** Seen timing (**measured, not adopted**) | the harness judges "seen" itself; the mind's one-tick-stale judgement A/B'd against a fresh one | 8-seed A/B over every script; adopt only a clear win |
+| **2c** Points of interest in the harness (**built**) | `ScriptedPoints` tracks (mobs walking up, sitters, passers, companions alongside, item drops, a held-item schedule, hurt events); scripts `held_items`, `hostile_approach`, `cat_lounging`, `item_drops`, `companion_passes`; drawn in first person and the top view | old fingerprints unchanged; new scripts in the invariant tables |
+| **2d** Curiosity → INSPECT | `Drives` (curiosity with per-thing memory: novelty, habituation, cooldown); held items as curiosity targets with a pose hint; perchers hop to the hand for a held item, only look at things further off | invariants on every class including the new scripts; notice time, inspect time, second-look habituation |
+| **2e** Wariness → HIDE | hostiles (at once), cats (after a dwell), predator fish in the hand; dwell → habituation → cooldown (R7.2). Swimmers hide on the owner's far side, BENTHIC hops to the far slot or the head (cats), ANCHORED ducks in | never toward the threat; reaches cover in bounded time; habituates to a lounging cat |
+| **2f** Rest → SETTLE | rest builds while the owner idles; slower, closer, longer dwells; perchers stop swapping shoulders | rest rises on long idles; any movement or new thing wakes it within a bound |
+| **2g** Temperaments | all ten, as weights and timing on the above (spec §4) | invariants × temperament; per-temperament GIFs; **owner gate** |
+
+### 10.1 Steps 2a–2c — as built
+
+- **2a.** `CompanionWorld` + `PointOfInterest` (kinds HOSTILE, CAT, DROPPED_ITEM, COMPANION; a
+  stable id so the mind can tell a cat that stayed from a new one) and `CompanionWorld.Held` (the
+  spec §3.1 reaction categories; the adapter maps stacks to them). `heldPoint()` is where the held
+  item draws the eye: the rod's tip out in front, otherwise the main hand low right in the view.
+  All 303 fingerprints (33 spike + 4 classes × 54 + trio × 54) are bitwise unchanged.
+- **2b — the seen timing (plan §9.4's open item).** First a metric fix: the recorded `seen` was
+  the mind's own (stale) judgement, so the metric moved with whatever the mind did. The harness now
+  judges it itself, from the post-step position against the same tick's camera. Same tree, old vs
+  new metric (FREE_SWIM, 8 seeds): seen walk 19 → 23%, walk_turns 20 → 22%, others ±1; longest
+  unseen unchanged except `about_face` 38.6 → 28.1 s (the old metric overstated that gap).
+  Trajectories are untouched.
+  Then the behaviour A/B on equal grounds (new metric both sides, 8 seeds × all 18 scripts, mind
+  stale vs fresh): **mixed, not adopted.** Fresh was better on stairwell longest unseen
+  34.0 → 23.2 s, forest inside-owner 102 → 63, near-clip ticks overall 558 → 492; worse on walk
+  longest unseen 15.3 → 20.3 s, walk_turns inside-owner 22 → 52, doorway contacts 47 → 71,
+  teleport longest unseen 18 → 22 s; seen % and show-offs/min within a point everywhere. No
+  consistent direction — a one-tick shift in when attention resets, diverging chaotically. The
+  swimmer keeps the stale judgement; the percher keeps its post-step one (there it mattered: a
+  crab riding a walking owner's hand, §9.4).
+- **2c.** Fish ignore everything so far, so the five new scripts measure the Phase 1 mind on new
+  owner motions (FREE_SWIM seed 1: 0 contacts, seen 34–50%, longest unseen 16–29 s). They exposed
+  one Phase 1 gap: with the owner standing still, a loiter spot 2–2.5 blocks straight ahead makes
+  the fish slow through screen centre for 2.1–2.3 s (bound 2 s; `pickSpot` only keeps the central
+  12° clear within 1.2 blocks). Named `CENTRE_DWELL_GAPS` (bound 50 ticks) until step 2f reworks
+  the idle swim.

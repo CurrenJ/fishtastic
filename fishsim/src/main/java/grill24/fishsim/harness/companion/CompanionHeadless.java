@@ -102,7 +102,7 @@ public final class CompanionHeadless {
                 boolean sheetFrame = tick % 60 == 0 && sheet.size() < 20;
                 if (!gifFrame && !sheetFrame) continue;
                 if (run.group != null) run.group.interpolate(1f); else run.agent.interpolate(1f);
-                BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, run.owner, run.scene, run.agent, true);
+                BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, run.owner, run.scene, run.agent, true, run.world);
                 if (run.group != null) {
                     LocalVoxels v = new LocalVoxels();
                     v.update(run.scene, run.owner.eye());
@@ -110,7 +110,7 @@ public final class CompanionHeadless {
                 }
                 if (sheetFrame) sheet.add(label(fp, String.format("%s%s t=%.0fs", prefix, script, tick / 20.0)));
                 if (gifFrame) {
-                    BufferedImage top = CompanionRenderer.topView(TOP, TOP, run.owner, run.scene, run.agent, t, trail, 22);
+                    BufferedImage top = CompanionRenderer.topView(TOP, TOP, run.owner, run.scene, run.agent, t, trail, 22, run.world);
                     BufferedImage frame = CompanionRenderer.composite(fp, top);
                     if (gif == null) gif = new GifSequenceWriter(gifOut, frame.getType(), 100);
                     gif.writeFrame(frame);

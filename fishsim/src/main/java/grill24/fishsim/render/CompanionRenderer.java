@@ -3,8 +3,10 @@ package grill24.fishsim.render;
 import grill24.fishsim.companion.BlockQuery;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.companion.Visibility;
 
@@ -72,6 +74,12 @@ public final class CompanionRenderer {
 
     public static BufferedImage firstPerson(int w, int h, OwnerState o, BlockQuery blocks, CompanionAgent a,
                                             boolean overlay) {
+        return firstPerson(w, h, o, blocks, a, overlay, null);
+    }
+
+    /** As above, with the world's points of interest and held item drawn too ({@code world} may be null). */
+    public static BufferedImage firstPerson(int w, int h, OwnerState o, BlockQuery blocks, CompanionAgent a,
+                                            boolean overlay, CompanionWorld world) {
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -87,6 +95,9 @@ public final class CompanionRenderer {
 
         Vec fish = a.renderPos();
         LocalVoxels voxels = a.voxels();
+        double fishDepth = cam.toCam(fish).z();
+        // Points of interest behind the fish first, the rest after it.
+        if (world != null) drawPoints(g, cam, world, voxels, d -> d >= fishDepth);
         boolean occluded = !voxels.segmentClear(cam.pos(), fish, 0.0);
         boolean camWet = blocks.water(floor(cam.pos().x()), floor(cam.pos().y()), floor(cam.pos().z()));
         if (!occluded && a.renderAppear() > 0.01f) {
@@ -103,18 +114,73 @@ public final class CompanionRenderer {
                 }
             }
         }
+        if (world != null) drawPoints(g, cam, world, voxels, d -> d < fishDepth);
         if (camWet) {
             g.setColor(UNDERWATER);
             g.fillRect(0, 0, w, h);
         }
 
         if (overlay) drawOverlay(g, w, h, a, occluded);
+        if (world != null && world.held() != CompanionWorld.Held.NONE) {
+            g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 12));
+            g.setColor(new Color(0, 0, 0, 140));
+            g.fillRect(w - 150, h - 44, 146, 18);
+            g.setColor(Color.WHITE);
+            g.drawString("holding " + world.held().name().toLowerCase(java.util.Locale.ROOT), w - 146, h - 31);
+        }
         // Crosshair.
         g.setColor(new Color(255, 255, 255, 160));
         g.drawLine(w / 2 - 5, h / 2, w / 2 + 5, h / 2);
         g.drawLine(w / 2, h / 2 - 5, w / 2, h / 2 + 5);
         g.dispose();
         return img;
+    }
+
+    private static final Color HOSTILE = new Color(0x3B7A3B), CAT = new Color(0x8E7CC3),
+            ITEM = new Color(0xF1C232), OTHER_COMPANION = new Color(0x45B5C4), HELD = new Color(0xFFFFFF);
+
+    private static Color pointColor(PointOfInterest.Kind k) {
+        return switch (k) {
+            case HOSTILE -> HOSTILE;
+            case CAT -> CAT;
+            case DROPPED_ITEM -> ITEM;
+            case COMPANION -> OTHER_COMPANION;
+        };
+    }
+
+    /** Half extents of a point of interest's box: a mob stands tall, an item is a speck. */
+    private static Vec pointExtents(PointOfInterest p) {
+        return p.kind() == PointOfInterest.Kind.HOSTILE ? new Vec(p.radius(), 0.9, p.radius())
+                : new Vec(p.radius(), p.radius(), p.radius());
+    }
+
+    /** The world's points of interest as boxes, and the held item's anchor as a small marker. */
+    private static void drawPoints(Graphics2D g, Cam cam, CompanionWorld world, LocalVoxels voxels,
+                                   java.util.function.DoublePredicate depth) {
+        for (PointOfInterest p : world.points()) {
+            if (!depth.test(cam.toCam(p.pos()).z())) continue;
+            if (!voxels.segmentClear(cam.pos(), p.pos(), 0.0)) continue;
+            drawBox(g, cam, p.pos(), pointExtents(p), pointColor(p.kind()));
+        }
+        Vec hp = world.heldPoint();
+        if (hp != null && depth.test(cam.toCam(hp).z())) drawBox(g, cam, hp, new Vec(0.04, 0.04, 0.04), HELD);
+    }
+
+    private static void drawBox(Graphics2D g, Cam cam, Vec c, Vec e, Color color) {
+        double x0 = c.x() - e.x(), x1 = c.x() + e.x(), y0 = c.y() - e.y(), y1 = c.y() + e.y();
+        double z0 = c.z() - e.z(), z1 = c.z() + e.z();
+        Vec[][] faces = {
+                {new Vec(x0, y0, z0), new Vec(x1, y0, z0), new Vec(x1, y1, z0), new Vec(x0, y1, z0)},
+                {new Vec(x0, y0, z1), new Vec(x1, y0, z1), new Vec(x1, y1, z1), new Vec(x0, y1, z1)},
+                {new Vec(x0, y0, z0), new Vec(x0, y0, z1), new Vec(x0, y1, z1), new Vec(x0, y1, z0)},
+                {new Vec(x1, y0, z0), new Vec(x1, y0, z1), new Vec(x1, y1, z1), new Vec(x1, y1, z0)},
+                {new Vec(x0, y1, z0), new Vec(x1, y1, z0), new Vec(x1, y1, z1), new Vec(x0, y1, z1)},
+                {new Vec(x0, y0, z0), new Vec(x1, y0, z0), new Vec(x1, y0, z1), new Vec(x0, y0, z1)}};
+        double[] shade = {0.8, 0.8, 0.7, 0.7, 1.0, 0.5};
+        Integer[] order = {0, 1, 2, 3, 4, 5};
+        java.util.Arrays.sort(order, (p, q) -> Double.compare(cam.toCam(centroid(faces[q])).z(),
+                cam.toCam(centroid(faces[p])).z()));
+        for (int i : order) fill(g, cam, faces[i], shadeColor(color, shade[i]), true);
     }
 
     private static void collectFaces(Cam cam, BlockQuery blocks, List<Face> out) {
@@ -409,6 +475,13 @@ public final class CompanionRenderer {
      */
     public static BufferedImage topView(int w, int h, OwnerState o, BlockQuery blocks, CompanionAgent a,
                                         CompanionTunables t, Deque<Vec> trail, double pxPerBlock) {
+        return topView(w, h, o, blocks, a, t, trail, pxPerBlock, null);
+    }
+
+    /** As above, with the world's points of interest marked ({@code world} may be null). */
+    public static BufferedImage topView(int w, int h, OwnerState o, BlockQuery blocks, CompanionAgent a,
+                                        CompanionTunables t, Deque<Vec> trail, double pxPerBlock,
+                                        CompanionWorld world) {
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -480,6 +553,18 @@ public final class CompanionRenderer {
             }
             prev = p;
             i++;
+        }
+
+        // Points of interest.
+        if (world != null) {
+            for (PointOfInterest pt : world.points()) {
+                double px = SX.applyAsDouble(pt.pos().x()), py = SY.applyAsDouble(pt.pos().z());
+                double pr = Math.max(3, pt.radius() * pxPerBlock);
+                g.setColor(pointColor(pt.kind()));
+                g.fill(new java.awt.geom.Ellipse2D.Double(px - pr, py - pr, pr * 2, pr * 2));
+                g.setColor(Color.DARK_GRAY);
+                g.draw(new java.awt.geom.Ellipse2D.Double(px - pr, py - pr, pr * 2, pr * 2));
+            }
         }
 
         // Owner.

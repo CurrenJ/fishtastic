@@ -38,6 +38,22 @@ public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfIn
         points = List.copyOf(points);
     }
 
+    /**
+     * Where the held item draws a companion's eye: a rod's tip, out in front and up, or the item in
+     * the owner's main hand, low right in the view as first person draws it. Null when empty-handed.
+     */
+    public Vec heldPoint() {
+        if (held == Held.NONE) return null;
+        if (held == Held.ROD) {
+            Vec look = owner.look();
+            Vec right = look.cross(Vec.UP).normalize();
+            if (right.lengthSqr() < 1e-9) right = owner.flatRight();
+            Vec up = right.cross(look);
+            return owner.eye().add(look.scale(1.7)).add(right.scale(0.45)).add(up.scale(0.25));
+        }
+        return PerchBody.slotPoint(owner, PerchBody.Slot.RIGHT_HAND);
+    }
+
     /** An owner and their blocks, with nothing else going on. */
     public static CompanionWorld of(OwnerState owner, BlockQuery blocks) {
         return new CompanionWorld(owner, blocks, List.of(), Held.NONE, false);

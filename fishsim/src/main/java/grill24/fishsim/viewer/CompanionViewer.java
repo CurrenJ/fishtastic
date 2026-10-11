@@ -265,9 +265,9 @@ public final class CompanionViewer {
 
     private void paintView(Graphics2D g) {
         renderCache.update(scene, owner.eye());
-        BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true);
+        BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true, world());
         if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group, CompanionRun.TRIO_LENGTH);
-        BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30);
+        BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
         g.drawImage(fp, 0, 0, null);
         g.drawImage(top, FP_W, 0, null);
         g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));

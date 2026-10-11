@@ -3,6 +3,7 @@ package grill24.fishsim.harness.companion;
 import grill24.fishsim.companion.BlockQuery;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Vec;
 
 import java.util.ArrayList;
@@ -19,7 +20,8 @@ public final class OwnerScript {
     public static final List<String> NAMES = List.of(
             "idle_fixed", "idle_looking", "walk", "walk_turns", "sprint_stop", "camera_sweep",
             "corridor", "doorway", "forest", "teleport", "elytra",
-            "stairwell", "low_ceiling", "pond_dive", "wading", "about_face", "jumping", "creative_flight");
+            "stairwell", "low_ceiling", "pond_dive", "wading", "about_face", "jumping", "creative_flight",
+            "held_items", "hostile_approach", "cat_lounging", "item_drops", "companion_passes");
 
     public static final double WALK = 4.317, SPRINT = 5.612;
 
@@ -34,6 +36,10 @@ public final class OwnerScript {
     private final List<Segment> segments;
     private final Pilot pilot;
     private int index;
+    /** Scripted things around the owner (Phase 2), and what they hold; empty for the Phase 1 scripts. */
+    private final List<ScriptedPoints.Track> tracks = new ArrayList<>();
+    private ScriptedPoints.HeldSchedule held;
+    private int clock;
 
     private OwnerScript(String name, String sceneName, Vec startFeet, float startYaw, List<Segment> segments) {
         this.name = name;
@@ -59,7 +65,38 @@ public final class OwnerScript {
 
     /** Advances one tick and returns everything the companion perceives. */
     public CompanionWorld nextWorld() {
-        return CompanionWorld.of(next(), scene);
+        OwnerState o = next();
+        if (tracks.isEmpty() && held == null) return CompanionWorld.of(o, scene);
+        List<PointOfInterest> points = new ArrayList<>();
+        boolean hurt = false;
+        for (ScriptedPoints.Track track : tracks) {
+            PointOfInterest p = track.at(clock, pilot);
+            if (p == null) continue;
+            points.add(p);
+            // A hostile at arm's reach lands a hit once a second.
+            if (p.kind() == PointOfInterest.Kind.HOSTILE && clock % 20 == 0
+                    && p.pos().sub(o.feet()).horizontalLength() < ScriptedPoints.HURT_RANGE) {
+                hurt = true;
+            }
+        }
+        CompanionWorld.Held h = held == null ? CompanionWorld.Held.NONE : held.at(clock, pilot);
+        clock++;
+        return new CompanionWorld(o, scene, points, h, hurt);
+    }
+
+    private OwnerScript with(ScriptedPoints.Track... t) {
+        tracks.addAll(List.of(t));
+        return this;
+    }
+
+    private OwnerScript with(List<ScriptedPoints.Track> t) {
+        tracks.addAll(t);
+        return this;
+    }
+
+    private OwnerScript holding(ScriptedPoints.HeldSchedule h) {
+        held = h;
+        return this;
     }
 
     public Pilot pilot() {
@@ -535,6 +572,106 @@ public final class OwnerScript {
                 s.add(teleportTo(0.5, y, 0.5));
                 s.add(waitTicks(40));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "held_items" -> {
+                // Standing, glancing about, cycling through everything a companion reacts to in
+                // the hand (spec §3.1), then the rod again (is it still as exciting?) and a walk with it.
+                s.add(hold(300));
+                s.add(lookBy(35, 8, 30));
+                s.add(hold(270));
+                s.add(lookBy(-70, -5, 40));
+                s.add(hold(260));
+                s.add(lookBy(35, -3, 30));
+                s.add(hold(300));
+                s.add(lookBy(20, 25, 30));
+                s.add(hold(200));
+                s.add(lookBy(-20, -25, 30));
+                s.add(hold(170));
+                s.add(walkTo(0.5, 20.5, WALK));
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(200));
+                CompanionWorld.Held N = CompanionWorld.Held.NONE;
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).holding(ScriptedPoints.schedule(2400,
+                        new int[]{0, 100, 340, 460, 660, 820, 1020, 1180, 1380, 1500},
+                        new CompanionWorld.Held[]{N, CompanionWorld.Held.ROD, N, CompanionWorld.Held.BAIT,
+                                CompanionWorld.Held.FOOD, CompanionWorld.Held.SAME_SPECIES, CompanionWorld.Held.NAME_TAG,
+                                CompanionWorld.Held.PREDATOR, N, CompanionWorld.Held.ROD}));
+            }
+            case "hostile_approach" -> {
+                // Zombies walk up from in front and from behind and stay a while hitting the owner;
+                // a skeleton keeps its distance for 40 s (should wear off); one more catches the owner walking.
+                s.add(hold(400));
+                s.add(lookBy(60, 0, 30));
+                s.add(hold(400));
+                s.add(lookBy(-120, 0, 40));
+                s.add(hold(500));
+                s.add(lookBy(60, 0, 30));
+                s.add(hold(600));
+                s.add(walkTo(0.5, 15.5, WALK));
+                s.add(waitTicks(100));
+                s.add(walkTo(0.5, 0.5, WALK));
+                PointOfInterest.Kind H = PointOfInterest.Kind.HOSTILE;
+                double a = Math.toRadians(-60);
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).with(
+                        ScriptedPoints.approacher(H, 1, 2400, 60, 400, 25, 14, ScriptedPoints.ZOMBIE_SPEED, 1.6, 1.0, 0.35),
+                        ScriptedPoints.approacher(H, 2, 2400, 700, 1050, 170, 12, ScriptedPoints.ZOMBIE_SPEED, 1.6, 1.0, 0.35),
+                        ScriptedPoints.sitter(H, 3, 2400, 1150, 1950,
+                                new Vec(0.5 - Math.sin(a) * 7, y + 1.0, 0.5 + Math.cos(a) * 7), 0.35),
+                        ScriptedPoints.approacher(H, 4, 2400, 2000, 2400, 90, 10, ScriptedPoints.ZOMBIE_SPEED, 1.6, 1.0, 0.35));
+            }
+            case "cat_lounging" -> {
+                // A cat strolls up and lounges beside the owner for a minute (dwell, habituation,
+                // cooldown), then the owner walks past another one sitting by the path.
+                s.add(hold(500));
+                s.add(lookBy(40, 15, 30));
+                s.add(hold(500));
+                s.add(lookBy(-40, -15, 30));
+                s.add(hold(490));
+                s.add(walkTo(0.5, 20.5, WALK));
+                s.add(waitTicks(100));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(200));
+                PointOfInterest.Kind C = PointOfInterest.Kind.CAT;
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).with(
+                        ScriptedPoints.approacher(C, 1, 2400, 100, 1500, 40, 10, ScriptedPoints.CAT_SPEED, 1.8, 0.3, 0.3),
+                        ScriptedPoints.sitter(C, 2, 2400, 1500, 2400, new Vec(2.5, y + 0.3, 12.5), 0.3));
+            }
+            case "item_drops" -> {
+                // A stream of items dropping round the owner (what an ambusher habituates to), a
+                // lone one later, then the owner walks round picking them up.
+                s.add(hold(400));
+                s.add(lookBy(30, 20, 30));
+                s.add(hold(500));
+                s.add(lookBy(-30, -20, 30));
+                s.add(hold(700));
+                s.add(walkTo(2.5, 2.5, WALK));
+                s.add(walkTo(-2.5, 2.5, WALK));
+                s.add(walkTo(-2.5, -2.5, WALK));
+                s.add(walkTo(2.5, -2.5, WALK));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(200));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s)
+                        .with(ScriptedPoints.drops(2400, new int[]{100, 220, 340, 460, 580, 700, 1300}, 600, r, 1));
+            }
+            case "companion_passes" -> {
+                // Other players' companions swim past in front and behind, then one keeps pace
+                // with the owner on a walk.
+                s.add(hold(600));
+                s.add(lookBy(-40, 0, 30));
+                s.add(hold(600));
+                s.add(lookBy(80, 0, 40));
+                s.add(hold(500));
+                s.add(walkTo(0.5, 25.5, WALK));
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(200));
+                PointOfInterest.Kind P = PointOfInterest.Kind.COMPANION;
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).with(
+                        ScriptedPoints.passer(P, 1, 2400, 100, new Vec(-6, y + 1.2, 3.5), new Vec(7, y + 1.2, 3.5), 1.5, 0.2),
+                        ScriptedPoints.passer(P, 2, 2400, 800, new Vec(7, y + 1.0, -3), new Vec(-6, y + 1.0, -3), 1.5, 0.2),
+                        ScriptedPoints.passer(P, 3, 2400, 1400, new Vec(-5, y + 1.4, 6), new Vec(6, y + 1.4, 1), 1.2, 0.2),
+                        ScriptedPoints.alongside(P, 4, 2400, 1800, 2300, 3.0, 0.5, 1.2, 0.2));
             }
             default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + ")");
         }

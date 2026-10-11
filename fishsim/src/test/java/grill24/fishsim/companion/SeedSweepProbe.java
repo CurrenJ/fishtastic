@@ -11,7 +11,7 @@ import java.util.function.Consumer;
  * Diagnostic: multi-seed totals per script, for equal-grounds A/B of a change. Run with -PsimStdout.
  *
  * <pre>
- *   -Psweep=walk,forest            just these scripts (default: the spike's obstacle set)
+ *   -Psweep=walk,forest            just these scripts (default: the spike's obstacle set; "all" = every script)
  *   -PsweepClass=GLIDE             the locomotion class (default FREE_SWIM)
  *   -PtweakA=field=value,...       tunables for side A (default: defaults)
  *   -PtweakB=field=value,...       and side B; omit for a single report
@@ -27,6 +27,7 @@ class SeedSweepProbe {
     @Test
     void sweep() {
         String only = System.getProperty("sweep");
+        if ("all".equals(only)) only = String.join(",", grill24.fishsim.harness.companion.OwnerScript.NAMES);
         if ("TRIO".equals(System.getProperty("sweepClass"))) {
             trio(only != null ? only.split(",") : SCRIPTS);
             return;
@@ -91,7 +92,7 @@ class SeedSweepProbe {
         System.out.println("== " + label);
         for (String script : scripts) {
             long backstops = 0, leash = 0; double impact = 0; int inOwner = 0, nearClip = 0;
-            double unseen = 0, far = 0, catchShare = 0, face = 0, seen = 0;
+            double unseen = 0, far = 0, catchShare = 0, face = 0, seen = 0, shows = 0;
             for (int seed = 1; seed <= SEEDS; seed++) {
                 CompanionTunables t = CompanionTunables.defaults();
                 tweak.accept(t);
@@ -110,9 +111,10 @@ class SeedSweepProbe {
                 seen += m.seenFraction() / SEEDS;
                 catchShare += m.goalShare().getOrDefault("CATCH_UP", 0.0) / SEEDS;
                 face = Math.max(face, m.maxFacingErrorDeg());
+                shows += run.agent.showOffs() / (TICKS / 20.0 / 60.0) / SEEDS;
             }
-            System.out.printf("  %-15s backstops=%4d maxImpact=%.2f leash=%3d maxFar=%5.1fs inOwner=%4d nearClip=%4d seen=%3.0f%% maxUnseen=%.1fs catch=%.0f%% maxFace=%.0f%n",
-                    script, backstops, impact, leash, far, inOwner, nearClip, seen * 100, unseen, catchShare * 100, face);
+            System.out.printf("  %-15s backstops=%4d maxImpact=%.2f leash=%3d maxFar=%5.1fs inOwner=%4d nearClip=%4d seen=%3.0f%% maxUnseen=%.1fs catch=%.0f%% maxFace=%.0f shows/min=%.2f%n",
+                    script, backstops, impact, leash, far, inOwner, nearClip, seen * 100, unseen, catchShare * 100, face, shows);
         }
     }
 }
