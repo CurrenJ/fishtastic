@@ -1,0 +1,170 @@
+package grill24.fishsim.companion;
+
+import grill24.fishsim.harness.companion.CompanionRun;
+import grill24.fishsim.harness.companion.OwnerScript;
+import org.junit.jupiter.api.Test;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * The companion sim's floor (docs/fish-companions-sim-plan.md §4.2): every owner script × three
+ * seeds × two minutes, checked against invariants that guard specific failures. These say nothing
+ * about whether the fish feels alive — the viewer and the owner's eye decide that — only that it
+ * never does something plainly wrong.
+ */
+class CompanionInvariantTest {
+
+    private static final long[] SEEDS = {1, 2, 3};
+    private static final int TICKS = 2400;
+
+    /** Scenes with blocks in the way; contact with them is allowed, gently. */
+    private static final Set<String> OBSTACLE_SCRIPTS = Set.of("corridor", "doorway", "forest");
+    /** Scripts where the owner outruns or leaves the fish on purpose. */
+    private static final Set<String> LEASH_SCRIPTS = Set.of("teleport", "elytra");
+    /**
+     * A 1-wide tunnel: the fish can be trapped behind its owner with no room to pass, and an owner
+     * turning round walks into it. Visibility and owner-overlap bounds don't apply there.
+     */
+    private static final Set<String> TUNNEL_SCRIPTS = Set.of("corridor");
+
+    private static Map<String, CompanionRun.Metrics> results;
+
+    private static synchronized Map<String, CompanionRun.Metrics> results() {
+        if (results == null) {
+            results = new LinkedHashMap<>();
+            for (String script : OwnerScript.NAMES) {
+                for (long seed : SEEDS) {
+                    CompanionRun run = new CompanionRun(script, seed, CompanionTunables.defaults(), true);
+                    run.run(TICKS);
+                    results.put(script + "#" + seed, run.metrics());
+                }
+            }
+        }
+        return results;
+    }
+
+    private static String script(String key) {
+        return key.substring(0, key.indexOf('#'));
+    }
+
+    // ── 1. Blocks ──────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void neverInsideABlock() {
+        results().forEach((key, m) -> assertEquals(0, m.solidPenetrations(), key + " " + m.summary()));
+    }
+
+    @Test
+    void wallContactIsRareAndGentle() {
+        results().forEach((key, m) -> {
+            if (!OBSTACLE_SCRIPTS.contains(script(key))) {
+                assertEquals(0, m.backstops(), key + ": no blocks to touch in the open " + m.summary());
+                return;
+            }
+            double perMinute = m.backstops() / (m.ticks() / 20.0 / 60.0);
+            assertTrue(perMinute <= 8, key + ": " + perMinute + " contacts/min " + m.summary());
+            assertTrue(m.maxImpact() <= 3.0, key + ": impact " + m.maxImpact() + " b/s " + m.summary());
+        });
+    }
+
+    // ── 2. Body ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void bodyStaysInsideItsLimits() {
+        CompanionTunables t = CompanionTunables.defaults();
+        double maxAccel = Math.hypot(t.maxLateralAccel, t.maxForce) + 1.5; // + vertical slip
+        results().forEach((key, m) -> {
+            assertTrue(m.maxTurnDeg() <= t.turnRateDegPerTick + 1e-3, key + " turn " + m.summary());
+            assertTrue(m.maxAccel() <= maxAccel, key + " accel " + m.summary());
+            // A floor guard against snapping, not a feel target: measured ~120 at the spike.
+            assertTrue(m.maxJerk() <= 160, key + " jerk " + m.summary());
+        });
+    }
+
+    @Test
+    void facesTheWayItSwims() {
+        // Heading-first body: travel follows the nose by construction, so a fish never swims
+        // backwards or crabs sideways (the first spike measured 100–170° before the rewrite).
+        results().forEach((key, m) -> assertTrue(m.maxFacingErrorDeg() < 1.0, key + " " + m.summary()));
+    }
+
+    // ── 3. The owner ───────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void staysOutOfTheOwnersBodyAndFace() {
+        results().forEach((key, m) -> {
+            if (TUNNEL_SCRIPTS.contains(script(key))) return;
+            double inside = m.insideOwnerTicks() / (double) m.ticks();
+            double clip = m.nearClipTicks() / (double) m.ticks();
+            assertTrue(inside <= 0.01, key + " inside owner " + inside + " " + m.summary());
+            assertTrue(clip <= 0.01, key + " near clip " + clip + " " + m.summary());
+            assertTrue(m.longestCentreDwellTicks() <= 40, key + " parked on screen centre " + m.summary());
+        });
+    }
+
+    @Test
+    void ownerSeesItRegularly() {
+        results().forEach((key, m) -> {
+            if (TUNNEL_SCRIPTS.contains(script(key))) return;
+            assertTrue(m.longestUnseenSeconds() <= 30, key + " unseen too long " + m.summary());
+            assertTrue(m.seenFraction() >= 0.05, key + " barely seen " + m.summary());
+        });
+    }
+
+    @Test
+    void keepsUpWithoutTheLeash() {
+        results().forEach((key, m) -> {
+            if (LEASH_SCRIPTS.contains(script(key))) {
+                assertTrue(m.leashEvents() >= 1, key + " should have faded at least once " + m.summary());
+                return;
+            }
+            assertTrue(m.leashEvents() <= (TUNNEL_SCRIPTS.contains(script(key)) ? 1 : 0),
+                    key + " needed the leash " + m.summary());
+            assertTrue(m.longestFarSeconds() <= 8, key + " left behind " + m.summary());
+        });
+    }
+
+    // ── 4. The mind ────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void goalsAreCommittedTo() {
+        results().forEach((key, m) -> {
+            int shortest = m.shortestNonEmergencyGoalTicks();
+            assertTrue(shortest < 0 || shortest >= 20, key + " dithered " + m.summary());
+        });
+    }
+
+    // ── 5. Determinism and frame-rate independence ─────────────────────────────────────────────
+
+    @Test
+    void sameSeedSameTrajectory() {
+        for (String script : List.of("walk_turns", "forest", "idle_looking")) {
+            CompanionRun a = new CompanionRun(script, 7, CompanionTunables.defaults(), true);
+            CompanionRun b = new CompanionRun(script, 7, CompanionTunables.defaults(), true);
+            a.run(1200);
+            b.run(1200);
+            for (int i = 0; i < a.samples.size(); i++) {
+                assertEquals(a.samples.get(i).pos(), b.samples.get(i).pos(), script + " diverged at " + i);
+            }
+        }
+    }
+
+    @Test
+    void interpolationNeverChangesTheSimulation() {
+        CompanionRun plain = new CompanionRun("walk_turns", 3, CompanionTunables.defaults(), true);
+        CompanionRun drawn = new CompanionRun("walk_turns", 3, CompanionTunables.defaults(), true);
+        for (int i = 0; i < 1200; i++) {
+            plain.tick();
+            drawn.tick();
+            // A 144 Hz client draws ~7 frames per tick; none of them may move the fish.
+            for (int f = 1; f <= 7; f++) drawn.agent.interpolate(f / 7f);
+            assertEquals(plain.agent.position(), drawn.agent.position(), "diverged at " + i);
+        }
+    }
+}

@@ -1,5 +1,9 @@
 # Fish Companions
 
+> **2026-10-11: motion is being rebuilt as a headless simulation.** See
+> [fish-companions-sim-plan.md](fish-companions-sim-plan.md). It replaces this doc's motion approach
+> (§1, §11 Motion, §19–22) and phase table (§12). Fishing reactions (§5) are deferred.
+
 > **Status: Design.** Built from the yes/no pass in [fish-companion-ideas.md](fish-companion-ideas.md),
 > the owner's follow-ups, and the two-reviewer pass in [fish-companion-review.md](fish-companion-review.md)
 > (all 2026-10-10). No open decisions remain; R3.3 (docked motion amount) is tuned in game.

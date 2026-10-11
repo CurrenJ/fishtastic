@@ -55,6 +55,25 @@ tasks.register('runViewer', JavaExec) {
     }
 }
 
+tasks.register('runCompanionHeadless', JavaExec) {
+    group = 'fishsim'
+    description = 'Companion sim export: first-person + top-view GIF, contact sheet and metrics per owner script ' +
+            '(docs/fish-companions-sim-plan.md §4.3). Options via -PsimArgs="--script walk --seed 1 --ticks 1200"'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'grill24.fishsim.harness.companion.CompanionHeadless'
+    systemProperty 'java.awt.headless', 'true'
+    if (project.hasProperty('simArgs')) {
+        args project.property('simArgs').toString().split(' ')
+    }
+}
+
+tasks.register('runCompanionViewer', JavaExec) {
+    group = 'fishsim'
+    description = 'Companion playground: walk the owner with WASD + mouse, watch drives and goals, tune live'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'grill24.fishsim.viewer.CompanionViewer'
+}
+
 tasks.register('runWallTurnAnalysis', JavaExec) {
     group = 'fishsim'
     description = 'Diagnostic: heading autocorrelation + near-wall vs open-water large-turn rate (4x1x2 baseline)'
