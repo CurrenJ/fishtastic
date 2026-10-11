@@ -196,6 +196,17 @@ public final class ClientCompanion {
     private static final double ESCAPE_MAX_SPEED = 0.05;
     /** Share of a tick's raw anchor motion that survives into the feed-forward (smoothing). */
     private static final double ANCHOR_VEL_BLEND = 0.35;
+    /**
+     * How much of the fish's own in-box wander the {@code fishCentred} compensation cancels. Dev
+     * switches for the §21 wobble bisect: {@code ffWeight} 0 disables the feed-forward,
+     * {@code compensationWeight} 0 disables the compensation itself.
+     */
+    private double ffWeight = FOLLOW_FEED_FORWARD;
+    private double compensationWeight = 0.7;
+    /** Dev-only (§21 wobble bisect): the pre-round-3 fixed-lerp follow. */
+    private boolean devLegacyFollow;
+    /** Dev-only (§21 wobble A/B): the moment profile without the jerk-aware lookahead. */
+    private boolean devLegacyMomentSteer;
 
     /** The steering integrator's state: velocity, its derivative, and the smoothed anchor motion. */
     private Vec3 followVel = Vec3.ZERO;
@@ -248,6 +259,7 @@ public final class ClientCompanion {
 
     // ── Behaviour state ────────────────────────────────────────────────────────
     private double orbitAngle;
+    private long tickCount; // dev-only (§21 wobble bisect): per-instance tick-call rate ground truth
     private int peekPhase = PEEK_IDLE;
     private int peekTimer;
     private float peekBlend;
@@ -428,6 +440,7 @@ public final class ClientCompanion {
     void tick(@Nullable float[] anchor) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
+        tickCount++;
         long now = mc.level.getGameTime();
         boolean local = isLocal();
         boolean firstPerson = mc.options.getCameraType().isFirstPerson();
@@ -986,6 +999,10 @@ public final class ClientCompanion {
         // its usual ease.
         float escape = escapeEnvelope();
         if (escape > 0f) target = target.add(0, -ESCAPE_SINK * escape, 0);
+        if (devLegacyFollow) {
+            center = center.lerp(target, escape > 0f ? 0.14 : 0.35);
+            return;
+        }
         if (flock.locomotion() == Locomotion.DRIFT && !docking) {
             // "Behind one shoulder on a loose spring" — velocity-based, so it lags and settles.
             // The spring already trails the player by ~2 blocks once moving; round 3 left its
@@ -1020,17 +1037,28 @@ public final class ClientCompanion {
         double maxJerk = moment ? MOMENT_MAX_JERK : FOLLOW_MAX_JERK;
         if (escapeEnvelope() > 0f) maxSpeed = Math.min(maxSpeed, ESCAPE_MAX_SPEED);
 
-        // Arrival braking (classic arrive): the desired speed may never exceed what maxAccel can
-        // shed over the remaining gap (v²/2a ≤ gap). Without it a fast approach to a static
-        // target (the line, a peek point) sails past at up to v²/2a blocks and hunts around it —
-        // measured at the fishing line: arrived at v=0.52, overshot to 4.6 and oscillated. The
-        // moments brake earlier still (margin < 1): tick discretization and the jerk ramp let the
-        // boundary ride overshoot slightly, and their approaches should read as an ease-in.
-        double brakeMargin = moment ? MOMENT_BRAKE_MARGIN : 1.0;
-        double arriveCap = Math.sqrt(2.0 * maxAccel * Math.max(0.0, gap) * brakeMargin) + 0.02;
-        Vec3 desiredVel = clampLength(err.scale(gain).add(anchorVelocity.scale(FOLLOW_FEED_FORWARD)),
+        // Arrival braking (classic arrive) for the authored moments ONLY: their fast capped
+        // approach to a static point (the line, a peek point) otherwise sails past at up to
+        // v²/2a blocks and hunts — measured at the fishing line: arrived at v=0.52, overshot to
+        // 4.6 and oscillated. The baseline follow deliberately has NO cap: its proportional gain
+        // settles without a braking boundary, and putting one on it made the zero-margin edge a
+        // limit cycle (docs §21).
+        double arriveCap = moment
+                ? Math.sqrt(2.0 * maxAccel * Math.max(0.0, gap) * MOMENT_BRAKE_MARGIN) + 0.02
+                : Double.MAX_VALUE;
+        Vec3 desiredVel = clampLength(err.scale(gain).add(anchorVelocity.scale(ffWeight)),
                 Math.min(maxSpeed, arriveCap));
-        Vec3 accelTarget = clampLength(desiredVel.subtract(followVel), maxAccel);
+        // Jerk-aware lookahead (docs §21, wobble): an acceleration already built up cannot vanish
+        // at once — unwinding it at the jerk cap still adds a·|a|/2j of velocity. Aiming the
+        // acceleration at the desired velocity WITHOUT that term overshoots every reversal, and on
+        // the moment profile (gain 0.35 vs jerk 0.02) that overshoot is self-sustaining: any
+        // displacement past ~0.5 block (a whiplash, a scene-end snap) locked the box into a
+        // permanent ±0.6–1.3 block, ~18-tick limit cycle around a perfectly smooth target — the
+        // owner-visible wobble. The baseline profile's gentle gains never cycle; it is left as tuned.
+        Vec3 projectedVel = moment && !devLegacyMomentSteer
+                ? followVel.add(followAccel.scale(followAccel.length() / (2.0 * maxJerk)))
+                : followVel;
+        Vec3 accelTarget = clampLength(desiredVel.subtract(projectedVel), maxAccel);
         followAccel = followAccel.add(clampLength(accelTarget.subtract(followAccel), maxJerk));
         followVel = clampLength(followVel.add(followAccel), maxSpeed);
         center = center.add(followVel);
@@ -1134,7 +1162,7 @@ public final class ClientCompanion {
      */
     private Vec3 fishCentred(Vec3 boxPoint) {
         Vec3 off = worldOffsetOfFish();
-        return boxPoint.subtract(new Vec3(off.x * 0.7, off.y, off.z * 0.7));
+        return boxPoint.subtract(new Vec3(off.x * compensationWeight, off.y * compensationWeight, off.z * compensationWeight));
     }
 
     /** {@code Matrix4f.rotateY} applied to a vector — the box pose's own rotation convention. */
@@ -1615,6 +1643,34 @@ public final class ClientCompanion {
         return trickTimer > 0;
     }
 
+    /** Dev-only (§21 wobble bisect): raw orbit angle in degrees. */
+    public double devOrbitAngleDeg() { return Math.toDegrees(orbitAngle); }
+
+    /** Dev-only (§21 wobble bisect): remaining ticks of the active trick (0 = none). */
+    public int devTrickTimer() { return trickTimer; }
+
+    /** Dev-only (§21 wobble bisect): per-instance tick-call count — the call-rate ground truth. */
+    public long devTickCount() { return tickCount; }
+
+    /** Dev-only (§21 wobble bisect): current peek blend (0 = idle, 1 = at the held peek point). */
+    public float devPeekBlend() { return peekBlend; }
+
+    /** Dev-only (§21 wobble bisect): scene blend (0 = none, 1 = fully on the scene path). */
+    public float devSceneBlend() { return sceneBlend; }
+
+    /** Dev-only (§21 wobble bisect): the out blend (peek/reaction) driving moment steering. */
+    public float devOutAmount() { return outAmount(); }
+
+    /** Dev-only (§21 wobble bisect): the fishing-line blend. */
+    public float devLineWait() { return lineWait; }
+
+    /**
+     * Dev-only (§21 scene): pin the display-mode orbit phase. The phase seeds from the bonded
+     * fish's identity hash, so it differs per world — walk-window gap checks otherwise sample a
+     * random orbit phase (measured 0.23–0.57 across runs) and flake.
+     */
+    public void devSetOrbitPhaseDeg(double deg) { orbitAngle = Math.toRadians(deg); }
+
     /** Dev-only: end any pet-to-pet scene now — what `/fishtastic companion scene stop` calls. */
     void endScene() {
         scene = null;
@@ -1632,6 +1688,27 @@ public final class ClientCompanion {
 
     /** Dev-only (§21 scene): restore the same-sense G2 sweep, for the crossing "before" number. */
     void devLegacyEight(boolean legacy) { devLegacyEight = legacy; }
+
+    /** Dev-only (§21 wobble bisect): 0 disables the follow feed-forward entirely. */
+    void devFeedForward(double weight) { ffWeight = weight; }
+
+    /** Dev-only (§21 wobble bisect): 0 disables the fish-centring compensation entirely. */
+    void devCompensation(double weight) { compensationWeight = weight; }
+
+    /** Dev-only (§21 wobble bisect): restore the pre-round-3 fixed-lerp follow entirely. */
+    void devLegacyFollow(boolean legacy) { devLegacyFollow = legacy; }
+
+    /** Dev-only (§21 wobble A/B): drop the moment profile's jerk-aware lookahead. */
+    void devLegacyMomentSteer(boolean legacy) { devLegacyMomentSteer = legacy; }
+
+    /** Dev-only (§21 wobble bisect): a floor on the follow box's side. */
+    void devFollowBoxSide(int side) { flock.setDevMinSide(side); }
+
+    /** Dev diagnostics (§21 wobble bisect): the sim-local position/velocity of the lead fish. */
+    public float[] devSimState() { return flock.simState(); }
+
+    /** Dev diagnostics (§21 wobble trace): the companion's own frame yaw, degrees. */
+    public float devFrameYaw() { return frameOrientationYaw; }
 
     /**
      * Dev-only (§21 scene): the raw scene-path point the last {@link #sceneAnchor} computed,

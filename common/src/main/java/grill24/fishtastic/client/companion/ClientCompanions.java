@@ -449,6 +449,42 @@ public final class ClientCompanions {
         if (local != null) local.devLegacyEight(legacy);
     }
 
+    /** Dev-only (§21 wobble bisect): 0 disables the follow feed-forward entirely. */
+    public static void devFeedForward(double weight) {
+        ClientCompanion local = local();
+        if (local != null) local.devFeedForward(weight);
+    }
+
+    /** Dev-only (§21 wobble bisect): 0 disables the fish-centring compensation entirely. */
+    public static void devCompensation(double weight) {
+        ClientCompanion local = local();
+        if (local != null) local.devCompensation(weight);
+    }
+
+    /** Dev-only (§21 wobble bisect): restore the pre-round-3 fixed-lerp follow entirely. */
+    public static void devLegacyFollow(boolean legacy) {
+        ClientCompanion local = local();
+        if (local != null) local.devLegacyFollow(legacy);
+    }
+
+    /** Dev-only (§21 wobble A/B): drop the moment profile's jerk-aware lookahead. */
+    public static void devLegacyMomentSteer(boolean legacy) {
+        ClientCompanion local = local();
+        if (local != null) local.devLegacyMomentSteer(legacy);
+    }
+
+    /** Dev-only (§21 wobble bisect): a floor on the follow box's side. */
+    public static void devFollowBoxSide(int side) {
+        ClientCompanion local = local();
+        if (local != null) local.devFollowBoxSide(side);
+    }
+
+    /** Dev-only (§21 scene): pin the local companion's orbit phase so walk windows are deterministic. */
+    public static void devSetOrbitPhaseDeg(double deg) {
+        ClientCompanion local = local();
+        if (local != null) local.devSetOrbitPhaseDeg(deg);
+    }
+
     /** Dev-only (§21 scene): the local companion's raw scene-path point (pre-fish-centring). */
     @Nullable
     public static Vec3 devScenePathPoint() {

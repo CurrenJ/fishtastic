@@ -1066,3 +1066,47 @@ by the numbers). New diagnostics kept in `companionfishing` (`fish.atBobberDiag`
 `fish.approach`). Open for the owner, all named constants: the follow band (gain / accel / jerk /
 feed-forward / far-gap), the moment profile and its braking margin; the round-2 scene timings
 stand.
+
+### Round-3 regression: the steady-state wobble (fixed 2026-10-11, in-game look pending)
+
+Owner, after round 3: *"Fish in both g1 and g2 scenes, and also sometimes when just player is
+idling with companions, they are doing huge medium-slow wobbles side-to-side or up and down...
+1+ blocks and above 1 wobble oscillation a second."* The diagnosis history (a first fix that
+measured as a no-op, a metric that hid the defect) is in `docs/fish-companion-wobble-bug-handoff.md`.
+
+**Root cause: a limit cycle in the moment profile's steering.** `stepFollow` aimed its
+acceleration at `desiredVel − followVel`, ignoring that an acceleration already built up can only
+unwind at the jerk cap, and so still adds `a·|a|/2j` of velocity. Every reversal overshot. At the
+moment profile's gains (0.35 gain, 0.06 accel, 0.02 jerk) the overshoot sustains itself: an
+offline model of `stepFollow` alone shows any displacement past ~0.5 block locking the box into a
+permanent ±0.6–1.3-block, ~18-tick cycle around a smooth target, even a stationary one. Smaller
+kicks settle. That threshold is why the wobble looked context-dependent. Scene blend-ins, peeks,
+reactions, the line and a scene-end snap all start with a kick of that size. The baseline follow
+profile's gentle gains never cycle in the model and are untouched.
+
+**Fix.** On the moment profile only, the acceleration aims at
+`desiredVel − (followVel + followAccel·|followAccel|/(2·maxJerk))`. Offline the term is robust
+from 0.4× to 2× its nominal weight, and settles kicks of 0.3–16 blocks within ~70 ticks on
+40–200-tick paths and static targets. Dev seam `devLegacyMomentSteer` / selftest param
+`steer=legacy` restores the old steering for A/B.
+
+**Metric fix.** The `wobble.*` checks' high-pass window grew from 9 to 19 ticks (`WOB_HALF` 9).
+The 9-tick window attenuated the defect's 18–36-tick band ~3× and passed a 1.26-block wobble
+at 0.39. The wider window also sees the one-shot scene blend-in swoop and end snap, so
+`wobble.g1`/`g2` bar the scene body (from tick 30; g1 up to 225), and the whole-scene numbers
+are logged as `wobble.g1.whole`/`g2.whole`.
+
+**Numbers** (Fabric, `companionpolish3`, same tree, residual p2p in blocks, bar 0.5):
+
+| Leg | `steer=legacy` (`wobble-LA-legacy.log`) | fix (`wobble-LB-fix.log`) |
+|---|---|---|
+| afterLegacy | **1.115** FAIL (0.83 Hz) | 0.127 |
+| g1 body | **1.153** FAIL (0.82 Hz) | 0.078 |
+| g2 body | **1.373** FAIL (1.00 Hz) | 0.157 |
+| peek | **1.160** FAIL | 0.015 |
+| idle | 0.300 | 0.328 |
+| water | 0.024 | 0.007 |
+
+The tracking error (centre − target p2p) fell the same way: afterLegacy 1.155 → 0.041, g1
+1.717 → 0.041. Suite: 13/17 vs 17/17. Under the old metric g2 and peek read "clean". They were
+wobbling at 1.4 blocks the whole time.

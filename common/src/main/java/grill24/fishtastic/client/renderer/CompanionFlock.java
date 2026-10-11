@@ -150,12 +150,24 @@ public final class CompanionFlock {
      * {@link #MAX_FOLLOW_SIDE}. Gliders and water boxes get extra room — a ray is at its best
      * crossing the box corner to corner.
      */
-    private static VoxelDomain followBox(float length, boolean glide, boolean water) {
-        int side = Math.max(3, (int) Math.ceil(2.5f * length) + 1);
+    /** Dev-only (§21 wobble bisect): a floor on the follow box's side, to test the wall-bounce. */
+    private int devMinSide = 3;
+
+    public void setDevMinSide(int side) { devMinSide = Math.max(3, Math.min(side, MAX_FOLLOW_SIDE)); }
+
+    private VoxelDomain followBox(float length, boolean glide, boolean water) {
+        int side = Math.max(devMinSide, (int) Math.ceil(2.5f * length) + 1);
         if (glide) side += 2;
         if (water) side += 1;
         side = Math.min(side, MAX_FOLLOW_SIDE);
         return openBox(side, 2, side);
+    }
+
+    /** Dev diagnostics (§21 wobble bisect): the lead fish's sim-local position and velocity. */
+    public float[] simState() {
+        if (empty) return new float[6];
+        return new float[]{engine.posL()[0], engine.posY()[0], engine.posD()[0],
+                engine.velL()[0], engine.velY()[0], engine.velD()[0]};
     }
 
     /** The locomotion handed to the engine — water swaps the two attach classes onto free swim. */

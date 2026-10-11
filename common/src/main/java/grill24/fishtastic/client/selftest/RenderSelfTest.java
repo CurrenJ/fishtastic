@@ -4037,6 +4037,35 @@ public final class RenderSelfTest {
             mc.player.setYBodyRot(180f);
             mc.options.setCameraType(CameraType.FIRST_PERSON);
             grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(true);
+            // Pin the orbit phase: it seeds from the fish's identity hash, so an unpinned walk
+            // window samples the phase at random (measured meanGap 0.23–0.57 across runs, with
+            // both walk checks flipping together). 180° puts the orbit point behind the walk
+            // direction, the trailing regime the round-3 bands were calibrated on.
+            grill24.fishtastic.client.companion.ClientCompanions.devSetOrbitPhaseDeg(180.0);
+        });
+        // §21 wobble bisect params: ff=<weight> (follow feed-forward), comp=<weight> (fish-centring
+        // compensation). Absent = defaults; the steady-state wobble legs report the numbers.
+        String ffParam = param("ff", "");
+        String compParam = param("comp", "");
+        String legacyParam = param("legacy", "");
+        String boxParam = param("box", "");
+        String steerParam = param("steer", "");
+        queue(1, mc -> {
+            // steer=legacy: the moment profile without its jerk-aware lookahead — the pre-fix
+            // steering, for the equal-grounds wobble A/B (docs §21).
+            grill24.fishtastic.client.companion.ClientCompanions.devLegacyMomentSteer(steerParam.equals("legacy"));
+            if (!ffParam.isEmpty()) {
+                grill24.fishtastic.client.companion.ClientCompanions.devFeedForward(Double.parseDouble(ffParam));
+            }
+            if (!compParam.isEmpty()) {
+                grill24.fishtastic.client.companion.ClientCompanions.devCompensation(Double.parseDouble(compParam));
+            }
+            if (!legacyParam.isEmpty()) {
+                grill24.fishtastic.client.companion.ClientCompanions.devLegacyFollow(!legacyParam.equals("0"));
+            }
+            if (!boxParam.isEmpty()) {
+                grill24.fishtastic.client.companion.ClientCompanions.devFollowBoxSide(Integer.parseInt(boxParam));
+            }
         });
 
         // -- Ramp, leg A: walk 3 blocks (0.15 per step =~ 0.075/tick), stop, watch it meander --
@@ -4087,6 +4116,11 @@ public final class RenderSelfTest {
             long meanderTicks = arrive < 0 ? -1 : arrive - walkStop[0];
             Fishtastic.LOGGER.info("[selftest] ramp3.walk meanGap={} maxGap={} meanderTicks={} meanderMaxSpeed={} samples={}",
                     fmt3(walkMean), fmt3(walkMax), meanderTicks, fmt3(mMaxSpeed), walk.size());
+            for (int i = 0; i < walk.size(); i += 4) {
+                double[] r = walk.get(i);
+                Fishtastic.LOGGER.info("[selftest] ramp3.walk.trace t={} gap={} scene={} out={} trick={} peek={}",
+                        (long) r[0], fmt3(r[9]), fmt3(r[10]), fmt3(r[11]), (long) r[12], fmt3(r[13]));
+            }
             // Mean, not max: the stepped walk's sawtooth makes the window peak sample-phase
             // dependent, while the mean separates the old glue (~0.21) from following (>=0.3)
             // robustly.
@@ -4194,6 +4228,94 @@ public final class RenderSelfTest {
         });
         queue(20, mc -> screenshot(mc, "companionpolish3", "g2_after"));
 
+        // Run-A reproduction (§21 wobble bisect): the exact window the original 1.24-block reading
+        // came from — 186 ticks into the fixed-crossing scene, right on the heels of the legacy
+        // leg, while the scene's phantom partner may still be travelling back from the whiplash.
+        final java.util.List<double[]> wAfterLegacy = new java.util.ArrayList<>();
+        queue(30, mc -> startDrawnProbe(wAfterLegacy));   // step 186 = run A's probe start
+        queue(60, mc -> tickProbe = null);
+        queue(1, mc -> {
+            checkWobble("wobble.afterLegacy", wAfterLegacy);
+            dumpWobbleTrace(wAfterLegacy, 2);
+        });
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devStopScenes());
+
+        // -- Wobble regression (§21): steady-state drawn-position oscillation ------------------
+        // The owner's blocker: 1+ block wobbles at >1 Hz. Each leg samples the DRAWN position per
+        // tick through a steady state; the check bars the fast component of that path (a centred
+        // 19-tick moving-average high-pass, WOB_HALF), i.e. exactly the wobble, not travel.
+        // First leg: true idle. Stop the G2 crossing scene still playing from the leg above —
+        // the round-3 regression hid behind exactly this: the "idle" probe was mid-scene.
+        final java.util.List<double[]> wIdle = new java.util.ArrayList<>();
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devStopScenes());
+        queue(60, mc -> startDrawnProbe(wIdle));          // scene blend decayed + swam home
+        queue(60, mc -> tickProbe = null);                // ~60 ticks of idle follow
+        queue(1, mc -> {
+            checkWobble("wobble.idle", wIdle);
+            dumpWobbleTrace(wIdle, 2);
+        });
+
+        final java.util.List<double[]> wG1 = new java.util.ArrayList<>();
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                    grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES,
+                    mc.player.getUUID(), phantom[0], mc.level.getGameTime());
+            startDrawnProbe(wG1);                         // from tick 0: blend-in, attack, arrival
+        });
+        queue(250, mc -> tickProbe = null);               // the whole scene: start, ring, end, return
+        queue(1, mc -> {
+            // The bar covers the scene BODY: the 19-tick high-pass reads the one-shot blend-in
+            // swoop (ticks ~8-20) and the end-of-scene snap (240) as ~0.5-block residuals. Those are
+            // single transitions, not the repeating wobble; the whole-scene number is logged below.
+            checkWobble("wobble.g1", ticks(wG1, 30, 225));
+            logWobble("wobble.g1.whole", wG1);
+            dumpWobbleTrace(wG1, 4);
+        });
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devStopScenes());
+
+        final java.util.List<double[]> wG2 = new java.util.ArrayList<>();
+        queue(40, mc -> {});                              // blend decay + settle home
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                    grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT,
+                    mc.player.getUUID(), phantom[0], mc.level.getGameTime());
+            startDrawnProbe(wG2);                         // from tick 0: blend-in, attack, arrival
+        });
+        queue(300, mc -> tickProbe = null);               // the whole scene incl. both crossings + end
+        queue(1, mc -> {
+            // Body only, as for g1 (the probe stops before G2's end at 320).
+            checkWobble("wobble.g2", ticks(wG2, 30, wG2.size()));
+            logWobble("wobble.g2.whole", wG2);
+            dumpWobbleTrace(wG2, 4);
+        });
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devStopScenes());
+
+        final java.util.List<double[]> wPeek = new java.util.ArrayList<>();
+        queue(20, mc -> {});                              // resettle after the scene
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devStartPeek());
+        queue(35, mc -> startDrawnProbe(wPeek));          // past the travel, inside HOLD(70)
+        queue(45, mc -> tickProbe = null);                // ~45 ticks of held peek
+        queue(1, mc -> checkWobble("wobble.peek", wPeek));
+
+        // Water follow: a small pool at the origin, the player in it, the fish using the sim.
+        final java.util.List<double[]> wWater = new java.util.ArrayList<>();
+        queue(1, mc -> server(mc, s -> run(s, String.format(java.util.Locale.ROOT,
+                "fill %d %d %d %d %d %d minecraft:water",
+                origin.getX() - 2, origin.getY(), origin.getZ() - 2,
+                origin.getX() + 2, origin.getY() + 3, origin.getZ() + 2))));
+        queue(1, mc -> server(mc, s -> run(s, String.format(java.util.Locale.ROOT,
+                "tp @a %.3f %.3f %.3f", origin.getX() + 0.5, (double) origin.getY() + 1, origin.getZ() + 0.5))));
+        queue(90, mc -> startDrawnProbe(wWater));         // long settle: the tp home is ~11 blocks
+        queue(60, mc -> tickProbe = null);                // ~120 ticks of water follow
+        queue(1, mc -> checkWobble("wobble.water", wWater));
+        queue(1, mc -> server(mc, s -> {
+            run(s, String.format(java.util.Locale.ROOT, "fill %d %d %d %d %d %d minecraft:air",
+                    origin.getX() - 2, origin.getY(), origin.getZ() - 2,
+                    origin.getX() + 2, origin.getY() + 3, origin.getZ() + 2));
+            run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f",
+                    origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 0.5));
+        }));
+
         // -- Cleanup -------------------------------------------------------------------------
         queue(1, mc -> {
             tickProbe = null;
@@ -4202,6 +4324,9 @@ public final class RenderSelfTest {
             grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
             grill24.fishtastic.client.companion.ClientCompanions.devSuppressMotion(false);
             grill24.fishtastic.client.companion.ClientCompanions.devLegacyEight(false);
+            grill24.fishtastic.client.companion.ClientCompanions.devFeedForward(0.6);
+            grill24.fishtastic.client.companion.ClientCompanions.devCompensation(0.7);
+            grill24.fishtastic.client.companion.ClientCompanions.devLegacyMomentSteer(false);
         });
         queue(1, mc -> server(mc, s -> {
             for (ServerPlayer player : s.getPlayerList().getPlayers()) {
@@ -4220,7 +4345,8 @@ public final class RenderSelfTest {
             grill24.fishtastic.client.companion.ClientCompanion c = companion();
             if (c == null || c.devFollowTarget() == null || c.devFollowCenter() == null) return;
             Vec3 p = mc.player.position(), t = c.devFollowTarget(), ct = c.devFollowCenter(), v = c.devFollowVelocity();
-            sink.add(new double[]{mc.level.getGameTime(), p.x, p.z, t.x, t.z, ct.x, ct.z, v.x, v.z, c.devFollowGap()});
+            sink.add(new double[]{mc.level.getGameTime(), p.x, p.z, t.x, t.z, ct.x, ct.z, v.x, v.z, c.devFollowGap(),
+                    c.devSceneBlend(), c.devOutAmount(), c.devTrickTimer(), c.devPeekBlend()});
         };
     }
 
@@ -4236,6 +4362,185 @@ public final class RenderSelfTest {
     /** A Vec3 as "x,y,z" with 3dp, for scene diag dumps. */
     private static String vec3(Vec3 v) {
         return v == null ? "null" : "(" + fmt3(v.x) + "," + fmt3(v.y) + "," + fmt3(v.z) + ")";
+    }
+
+    /** §21 wobble bar: steady-state TRACKING error peak-to-peak, blocks (pre-fix: 1.2+±0.6 cycle). */
+    private static final double WOB_MAX_P2P = 0.5;
+    /**
+     * Half-width (ticks) of the wobble high-pass's centred moving average. The defect's band is an
+     * 18–36-tick period; the original 4 (a 9-tick window) attenuated it ~3× and PASSed a measured
+     * 1.26-block wobble at 0.39. 9 (a 19-tick window) passes that band nearly whole.
+     */
+    private static final int WOB_HALF = 9;
+
+    /**
+     * §21 probe: one row per client tick with the full trace. Columns: 0 time, 1-3 drawn,
+     * 4-6 anchor target, 7-9 box centre, 10 frame yaw, 11 owner body yaw, 12-14 sim local
+     * position, 15-17 sim local velocity — everything the wobble can come from, so the offline
+     * analysis can attribute it rather than guess.
+     */
+    private static final int TRACE_COLUMNS = 18;
+
+    private static void startDrawnProbe(java.util.List<double[]> sink) {
+        tickProbe = mc -> {
+            if (mc.level == null || mc.player == null) return;
+            grill24.fishtastic.client.companion.ClientCompanion c = companion();
+            Vec3 pt = c == null ? null : c.devFishPoint();
+            if (pt == null) return;
+            Vec3 t = c.devFollowTarget(), ct = c.devFollowCenter();
+            if (t == null || ct == null) return;
+            float[] sim = c.devSimState();
+            Vec3 eye = mc.player.getEyePosition();
+            sink.add(new double[]{mc.level.getGameTime(), pt.x, pt.y, pt.z,
+                    t.x, t.y, t.z, ct.x, ct.y, ct.z,
+                    c.devFrameYaw(), mc.player.yBodyRot,
+                    sim[0], sim[1], sim[2], sim[3], sim[4], sim[5],
+                    eye.x, eye.y, eye.z,
+                    c.devOrbitAngleDeg(), c.devTrickTimer(), c.devTickCount(), c.devPeekBlend(),
+                    c.devSceneBlend(), c.devOutAmount(), c.devLineWait()});
+        };
+    }
+
+    /**
+     * §21 wobble metric: the drawn position with its slow component removed — for each axis,
+     * the sample minus a centred {@link #WOB_HALF}-wide moving average. A steady path (an orbit, a scene lane,
+     * a straight approach) leaves ~zero; a fast oscillation — the owner-visible wobble — is
+     * exactly what remains. The bar ({@link #WOB_MAX_P2P}) sits well under the 1+ block the
+     * owner reported. The plain drawn p2p and the tracking error are logged for the record:
+     * the raw drawn path travels by design, and the tracking error carries the steering lag as
+     * a slow rotating vector (it does not show the wobble — see the §21 bisect).
+     */
+    private static void checkWobble(String name, java.util.List<double[]> rows) {
+        if (rows.size() < 30) {
+            check(name, false, "rows=" + rows.size());
+            return;
+        }
+        double worst = logWobble(name, rows);
+        check(name, worst <= WOB_MAX_P2P, "wobbleP2p=" + fmt3(worst));
+    }
+
+    /** Probe rows {@code [from, to)}, clipped to what was sampled. */
+    private static java.util.List<double[]> ticks(java.util.List<double[]> rows, int from, int to) {
+        int hi = Math.min(to, rows.size());
+        return rows.subList(Math.min(from, hi), hi);
+    }
+
+    /** {@link #checkWobble}'s measurement without the bar; returns the worst axis residual p2p. */
+    private static double logWobble(String name, java.util.List<double[]> rows) {
+        if (rows.size() < 2 * WOB_HALF + 2) return Double.NaN;
+        int n = rows.size();
+        double seconds = Math.max(1e-3, (rows.get(n - 1)[0] - rows.get(0)[0]) / 20.0);
+        double worst = 0, zcrHz = 0;
+        for (int axis = 1; axis <= 3; axis++) {
+            // Only fully-windowed samples: at the edges the centred average degenerates to a
+            // one-sided mean and a uniformly moving path leaves a residual in proportion to its
+            // speed — measured at up to ~0.2–0.4 for a normal swim.
+            int lo = WOB_HALF, hi = n - 1 - WOB_HALF;
+            double[] res = new double[hi - lo + 1];
+            for (int i = lo; i <= hi; i++) {
+                double mean = 0;
+                for (int j = i - WOB_HALF; j <= i + WOB_HALF; j++) mean += rows.get(j)[axis];
+                res[i - lo] = rows.get(i)[axis] - mean / (2 * WOB_HALF + 1);
+            }
+            double mn = Double.MAX_VALUE, mx = -Double.MAX_VALUE;
+            for (double v : res) {
+                mn = Math.min(mn, v);
+                mx = Math.max(mx, v);
+            }
+            worst = Math.max(worst, mx - mn);
+            zcrHz = Math.max(zcrHz, zeroCrossingsHzArr(res, seconds));
+        }
+        double drawnP2p = Math.max(Math.max(p2p(rows, 1), p2p(rows, 2)), p2p(rows, 3));
+        double trackErr = rows.get(0).length > 9
+                ? Math.max(Math.max(p2pDiff(rows, 7, 4), p2pDiff(rows, 8, 5)), p2pDiff(rows, 9, 6))
+                : -1;
+        Fishtastic.LOGGER.info("[selftest] {} wobbleP2p={} zcrHz={} trackErr={} drawnP2p={} ticks={}",
+                name, fmt3(worst), fmt3(zcrHz), fmt3(trackErr), fmt3(drawnP2p), rows.size());
+        return worst;
+    }
+
+    /** Dev-only: raw wobble-probe rows, one log line each {@code step} samples. */
+    private static void dumpWobbleTrace(java.util.List<double[]> rows, int step) {
+        for (int i = 0; i < rows.size(); i += step) {
+            double[] w = rows.get(i);
+            Fishtastic.LOGGER.info("[selftest] wobble.trace t={} d=({},{},{}) tgt=({},{},{}) c=({},{},{}) "
+                            + "frameYaw={} bodyYaw={} sim=({},{},{}) simv=({},{},{}) "
+                            + "eye=({},{},{}) orbitDeg={} trick={} ticks={} peek={} scene={} out={} line={}",
+                    (long) w[0], fmt3(w[1]), fmt3(w[2]), fmt3(w[3]), fmt3(w[4]), fmt3(w[5]), fmt3(w[6]),
+                    fmt3(w[7]), fmt3(w[8]), fmt3(w[9]), fmt3(w[10]), fmt3(w[11]),
+                    fmt3(w[12]), fmt3(w[13]), fmt3(w[14]), fmt3(w[15]), fmt3(w[16]), fmt3(w[17]),
+                    fmt3(w[18]), fmt3(w[19]), fmt3(w[20]),
+                    fmt3(w[21]), (long) w[22], (long) w[23], fmt3(w[24]),
+                    fmt3(w[25]), fmt3(w[26]), fmt3(w[27]));
+        }
+    }
+
+    /** Zero crossings of a raw series about its own mean, as Hz. */
+    private static double zeroCrossingsHzArr(double[] vals, double seconds) {
+        double mean = 0;
+        for (double v : vals) mean += v;
+        mean /= Math.max(1, vals.length);
+        int cross = 0, sgn = 0;
+        for (double v : vals) {
+            int s = v - mean > 0 ? 1 : (v - mean < 0 ? -1 : 0);
+            if (s != 0) {
+                if (sgn != 0 && s != sgn) cross++;
+                sgn = s;
+            }
+        }
+        return cross / (2.0 * seconds);
+    }
+
+    /** Peak-to-peak of (rows[a] - rows[b]) over the sampled rows. */
+    private static double p2pDiff(java.util.List<double[]> rows, int a, int b) {
+        double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
+        for (double[] r : rows) {
+            double v = r[a] - r[b];
+            lo = Math.min(lo, v);
+            hi = Math.max(hi, v);
+        }
+        return hi - lo;
+    }
+
+    /** Zero crossings (Hz) of (rows[a] - rows[b]) around its own mean. */
+    private static double zeroCrossingsHzDiff(java.util.List<double[]> rows, int a, int b, double seconds) {
+        double mean = 0;
+        for (double[] r : rows) mean += r[a] - r[b];
+        mean /= rows.size();
+        int crossings = 0, sign = 0;
+        for (double[] r : rows) {
+            double d = (r[a] - r[b]) - mean;
+            int s = d > 0 ? 1 : d < 0 ? -1 : 0;
+            if (s != 0 && sign != 0 && s != sign) crossings++;
+            if (s != 0) sign = s;
+        }
+        return crossings / (2.0 * seconds);
+    }
+
+    /** Peak-to-peak of axis {@code axis} (1=x, 2=y, 3=z) over the sampled rows. */
+    private static double p2p(java.util.List<double[]> rows, int axis) {
+        double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
+        for (double[] r : rows) {
+            lo = Math.min(lo, r[axis]);
+            hi = Math.max(hi, r[axis]);
+        }
+        return hi - lo;
+    }
+
+    /** Zero crossings of the axis deviation from its own mean, in Hz. */
+    private static double zeroCrossingsHz(java.util.List<double[]> rows, int axis, double seconds) {
+        double mean = 0;
+        for (double[] r : rows) mean += r[axis];
+        mean /= rows.size();
+        int crossings = 0;
+        int sign = 0;
+        for (double[] r : rows) {
+            double d = r[axis] - mean;
+            int s = d > 0 ? 1 : d < 0 ? -1 : 0;
+            if (s != 0 && sign != 0 && s != sign) crossings++;
+            if (s != 0) sign = s;
+        }
+        return crossings / (2.0 * seconds);
     }
 
     /** {@code %.3f} for scene logs, locale-safe. */
