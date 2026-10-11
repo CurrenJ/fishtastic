@@ -14,13 +14,19 @@ class SeedSweepProbe {
 
     @Test
     void sweep() {
-        report("whiskers on ", t -> t.whiskers = true);
-        report("whiskers off", t -> t.whiskers = false);
+        // -Psweep=script,script,... sweeps just those scripts at defaults.
+        String only = System.getProperty("sweep");
+        if (only != null) {
+            report("defaults", only.split(","), t -> { });
+            return;
+        }
+        report("whiskers on ", SCRIPTS, t -> t.whiskers = true);
+        report("whiskers off", SCRIPTS, t -> t.whiskers = false);
     }
 
-    static void report(String label, Consumer<CompanionTunables> tweak) {
+    static void report(String label, String[] scripts, Consumer<CompanionTunables> tweak) {
         System.out.println("== " + label);
-        for (String script : SCRIPTS) {
+        for (String script : scripts) {
             long backstops = 0; double impact = 0; int inOwner = 0, nearClip = 0; double unseen = 0, catchShare = 0, face = 0;
             for (int seed = 1; seed <= SEEDS; seed++) {
                 CompanionTunables t = CompanionTunables.defaults();

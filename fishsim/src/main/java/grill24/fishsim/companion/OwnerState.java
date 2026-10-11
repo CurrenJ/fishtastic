@@ -13,9 +13,11 @@ package grill24.fishsim.companion;
  *                    dimension change, respawn) — the companion fades out and back in
  * @param firstPerson the owner's camera is at their eye; otherwise it sits behind them
  * @param fovDeg      vertical field of view
+ * @param inWater     water at the owner's chest: deep enough to swim, not a puddle at their feet
  */
 public record OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
-                         boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg) {
+                         boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,
+                         boolean inWater) {
 
     public static final double EYE_HEIGHT = 1.62;
     public static final double BODY_HEIGHT = 1.8;

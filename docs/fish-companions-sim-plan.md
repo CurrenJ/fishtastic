@@ -375,3 +375,33 @@ The owner drives the fish in `runCompanionViewer` (manual and scripted owners) a
 first-person GIFs. **Go** = it reads as a creature deciding things, not a staged scene → Phase 1.
 
 **Result (owner, 2026-10-11): go.** "This looks a lot better. I really like this."
+
+---
+
+## 9. Phase 1 — order, gates, and as built
+
+| Step | Builds | Gate |
+|---|---|---|
+| **1a** Harness + perception | water bits (`BlockQuery.water`, `LocalVoxels`), `OwnerState.inWater` (water at the chest), terrain-following pilot (opt-in per script); scenes `stairwell`, `low_ceiling`, `pond`; scripts `stairwell`, `low_ceiling`, `pond_dive`, `wading`, `about_face`, `jumping`, `creative_flight`; water in the renderer | FREE_SWIM fingerprints of the 11 spike scripts bitwise identical (`FingerprintProbe`); FREE_SWIM invariants on the new scripts, or the gap named |
+| **1b** Body seam + GLIDE | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
+| **1c** DRIFT | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
+| **1d** Perch + hop | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
+| **1e** Trios | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
+| **1f** Full table | invariant test over class × script × seed; per-class export | **owner gate**: viewer + per-class GIFs |
+
+Defaults chosen for the owner's gate: a drifter keeps up by pulsing harder, never by a tether; perchers
+in air hop only between body slots and the hand (no ground walking — that needs a crawl body).
+
+### 9.1 Step 1a — as built
+
+- Every spike trajectory is bitwise unchanged (33 fingerprints, 11 scripts × 3 seeds).
+- FREE_SWIM on the new scripts (8 seeds × 2 min): 0 penetrations, 0 facing error, contacts only
+  in the cellar (5, ≤ 0.97 b/s).
+- **Known gaps, carried to Phase 2's attention work** (named in `CompanionInvariantTest`):
+  - `about_face` (reversing every 2–3 s): the fish starts every leg behind the owner, spends ~2 s
+    catching up, then rides at 65–80° off centre, just outside the ~49° horizontal half-FOV; legs
+    end before the attention drive (7–20 s) fires. Longest unseen 38.6 s across 8 seeds, catch-up 51%.
+  - `stairwell`: the same trailing on a climb (34.1 s unseen, catch-up 36%), and the tight turns
+    put it near the camera 0.7% of ticks on average, 1.1% at worst (bound 1%, relaxed to 2% there).
+- Correction to §8.2: re-measured at b3b1b0b6, "whiskers off" gives doorway 102 / forest 108
+  contacts (8 seeds × 2 min), not 180 / 281; the whiskers-on numbers (31 / 44) match.

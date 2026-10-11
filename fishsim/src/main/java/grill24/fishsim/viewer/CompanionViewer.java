@@ -168,16 +168,19 @@ public final class CompanionViewer {
             Vec start = switch (sceneName) {
                 case "corridor" -> new Vec(0.5, scene.feetY(), -6.5);
                 case "forest" -> new Vec(4, scene.feetY(), 4);
+                case "stairwell" -> new Vec(1.5, scene.feetY(), -4.5);
                 default -> new Vec(0.5, scene.feetY(), 0.5);
             };
             pilot = new OwnerScript.Pilot(start, 0f);
+            pilot.world = scene;
+            pilot.terrain = true;
             lookYaw = 0f;
             lookPitch = 0f;
             pilot.beginTick();
             owner = pilot.endTick();
         } else {
             script = OwnerScript.named(ownerMode, seed);
-            scene = VoxelScene.named(script.sceneName);
+            scene = script.scene;
             owner = script.next();
         }
         agent = new CompanionAgent(tunables, seed, CompanionRun.LENGTH, owner, scene);

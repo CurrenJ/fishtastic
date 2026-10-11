@@ -40,6 +40,8 @@ public final class CompanionRenderer {
     private static final Color GRASS = new Color(0x6FA34C), GRASS_ALT = new Color(0x689B47);
     private static final Color STONE = new Color(0x8C8C8C);
     private static final Color FISH = new Color(0xF28C28), FISH_FIN = new Color(0xE0602A);
+    private static final Color WATER = new Color(40, 110, 200, 110);
+    private static final Color UNDERWATER = new Color(20, 70, 160, 90);
 
     private CompanionRenderer() {}
 
@@ -85,9 +87,24 @@ public final class CompanionRenderer {
         Vec fish = a.renderPos();
         LocalVoxels voxels = a.voxels();
         boolean occluded = !voxels.segmentClear(cam.pos(), fish, 0.0);
+        boolean camWet = blocks.water(floor(cam.pos().x()), floor(cam.pos().y()), floor(cam.pos().z()));
         if (!occluded && a.renderAppear() > 0.01f) {
             drawShadow(g, cam, fish, blocks, a);
             drawFish(g, cam, a);
+            boolean fishWet = blocks.water(floor(fish.x()), floor(fish.y()), floor(fish.z()));
+            if (fishWet && !camWet) {
+                // Seen through the surface: wash the fish with the water's colour.
+                Vec c = cam.toCam(fish);
+                if (c.z() > NEAR) {
+                    double rpx = a.length() * 0.6 / c.z() * cam.f();
+                    g.setColor(WATER);
+                    g.fill(new java.awt.geom.Ellipse2D.Double(cam.sx(c) - rpx, cam.sy(c) - rpx, rpx * 2, rpx * 2));
+                }
+            }
+        }
+        if (camWet) {
+            g.setColor(UNDERWATER);
+            g.fillRect(0, 0, w, h);
         }
 
         if (overlay) drawOverlay(g, w, h, a, occluded);
@@ -106,6 +123,12 @@ public final class CompanionRenderer {
         for (int x = cx - r; x <= cx + r; x++) {
             for (int y = cy - r; y <= cy + r; y++) {
                 for (int z = cz - r; z <= cz + r; z++) {
+                    if (blocks.water(x, y, z) && !blocks.water(x, y + 1, z) && !blocks.solid(x, y + 1, z)) {
+                        Vec c = new Vec(x + 0.5, y + 1, z + 0.5);
+                        if (c.distanceTo(cam.pos()) <= VIEW_RADIUS) {
+                            out.add(new Face(quad(x, y, z, new int[]{0, 1, 0}), WATER, c.distanceTo(cam.pos())));
+                        }
+                    }
                     if (!blocks.solid(x, y, z)) continue;
                     double dx = x + 0.5 - cam.pos().x(), dy = y + 0.5 - cam.pos().y(), dz = z + 0.5 - cam.pos().z();
                     if (dx * dx + dy * dy + dz * dz > VIEW_RADIUS * VIEW_RADIUS) continue;
@@ -295,7 +318,14 @@ public final class CompanionRenderer {
             for (int z = (int) Math.floor(oz) - rz; z <= (int) Math.floor(oz) + rz; z++) {
                 boolean body = blocks.solid(x, feetY, z) || blocks.solid(x, feetY + 1, z);
                 boolean over = blocks.solid(x, feetY + 2, z) || blocks.solid(x, feetY + 3, z);
-                if (!body && !over) continue;
+                if (!body && !over) {
+                    if (blocks.water(x, feetY, z) || blocks.water(x, feetY - 1, z)) {
+                        g.setColor(new Color(0x9CC3E6));
+                        g.fillRect((int) SX.applyAsDouble((double) x), (int) SY.applyAsDouble((double) z),
+                                (int) Math.ceil(pxPerBlock), (int) Math.ceil(pxPerBlock));
+                    }
+                    continue;
+                }
                 g.setColor(body ? new Color(0x5A5A5A) : new Color(0xB9C4B0));
                 g.fillRect((int) SX.applyAsDouble((double) x), (int) SY.applyAsDouble((double) z),
                         (int) Math.ceil(pxPerBlock), (int) Math.ceil(pxPerBlock));
@@ -413,6 +443,10 @@ public final class CompanionRenderer {
     private static Color shadeColor(Color c, double k) {
         return new Color(clamp((int) (c.getRed() * k)), clamp((int) (c.getGreen() * k)), clamp((int) (c.getBlue() * k)),
                 c.getAlpha());
+    }
+
+    private static int floor(double v) {
+        return (int) Math.floor(v);
     }
 
     private static int clamp(int v) {

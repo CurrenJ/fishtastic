@@ -21,6 +21,7 @@ public final class LocalVoxels implements BlockQuery {
 
     private final long[] known = new long[WORDS];
     private final long[] solid = new long[WORDS];
+    private final long[] wet = new long[WORDS];
     private BlockQuery source = (x, y, z) -> false;
     private int minX, minY, minZ;
     private boolean placed;
@@ -45,22 +46,44 @@ public final class LocalVoxels implements BlockQuery {
     public void invalidate() {
         Arrays.fill(known, 0L);
         Arrays.fill(solid, 0L);
+        Arrays.fill(wet, 0L);
     }
 
     @Override
     public boolean solid(int x, int y, int z) {
+        int bit = bit(x, y, z);
+        if (bit < 0) return source.solid(x, y, z);
+        sample(bit, x, y, z);
+        return (solid[bit >>> 6] & (1L << (bit & 63))) != 0;
+    }
+
+    @Override
+    public boolean water(int x, int y, int z) {
+        int bit = bit(x, y, z);
+        if (bit < 0) return source.water(x, y, z);
+        sample(bit, x, y, z);
+        return (wet[bit >>> 6] & (1L << (bit & 63))) != 0;
+    }
+
+    /** Whether {@code p} is in water. */
+    public boolean water(Vec p) {
+        return water(floor(p.x()), floor(p.y()), floor(p.z()));
+    }
+
+    /** The cell's index in the window, or −1 outside it. */
+    private int bit(int x, int y, int z) {
         int lx = x - minX, ly = y - minY, lz = z - minZ;
-        if (lx < 0 || ly < 0 || lz < 0 || lx >= SIZE || ly >= SIZE || lz >= SIZE) {
-            return source.solid(x, y, z);
-        }
-        int bit = (lx * SIZE + ly) * SIZE + lz;
+        if (lx < 0 || ly < 0 || lz < 0 || lx >= SIZE || ly >= SIZE || lz >= SIZE) return -1;
+        return (lx * SIZE + ly) * SIZE + lz;
+    }
+
+    private void sample(int bit, int x, int y, int z) {
         int word = bit >>> 6;
         long mask = 1L << (bit & 63);
-        if ((known[word] & mask) == 0) {
-            known[word] |= mask;
-            if (source.solid(x, y, z)) solid[word] |= mask;
-        }
-        return (solid[word] & mask) != 0;
+        if ((known[word] & mask) != 0) return;
+        known[word] |= mask;
+        if (source.solid(x, y, z)) solid[word] |= mask;
+        else if (source.water(x, y, z)) wet[word] |= mask;
     }
 
     /** Whether a sphere of radius {@code r} at {@code p} touches no solid block. */

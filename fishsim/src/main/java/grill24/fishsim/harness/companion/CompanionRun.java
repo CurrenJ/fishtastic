@@ -35,7 +35,7 @@ public final class CompanionRun {
 
     public CompanionRun(String scriptName, long seed, CompanionTunables tunables, boolean record) {
         this.script = OwnerScript.named(scriptName, seed);
-        this.scene = VoxelScene.named(script.sceneName);
+        this.scene = script.scene;
         this.tunables = tunables;
         this.record = record;
         this.owner = script.next();

@@ -1,5 +1,6 @@
 package grill24.fishsim.harness.companion;
 
+import grill24.fishsim.companion.BlockQuery;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.Vec;
 
@@ -16,7 +17,8 @@ public final class OwnerScript {
 
     public static final List<String> NAMES = List.of(
             "idle_fixed", "idle_looking", "walk", "walk_turns", "sprint_stop", "camera_sweep",
-            "corridor", "doorway", "forest", "teleport", "elytra");
+            "corridor", "doorway", "forest", "teleport", "elytra",
+            "stairwell", "low_ceiling", "pond_dive", "wading", "about_face", "jumping", "creative_flight");
 
     public static final double WALK = 4.317, SPRINT = 5.612;
 
@@ -27,6 +29,7 @@ public final class OwnerScript {
 
     public final String name;
     public final String sceneName;
+    public final VoxelScene scene;
     private final List<Segment> segments;
     private final Pilot pilot;
     private int index;
@@ -35,7 +38,15 @@ public final class OwnerScript {
         this.name = name;
         this.sceneName = sceneName;
         this.segments = segments;
+        this.scene = VoxelScene.named(sceneName);
         this.pilot = new Pilot(startFeet, startYaw);
+        pilot.world = scene;
+    }
+
+    /** Lets the owner walk up and down the scene's blocks and jump (the original scripts stay level). */
+    private OwnerScript withTerrain() {
+        pilot.terrain = true;
+        return this;
     }
 
     /** Advances one tick and returns the owner as the companion sees it. */
@@ -55,14 +66,21 @@ public final class OwnerScript {
     public static final class Pilot {
         private static final double ACCEL = 20; // blocks/s² — players reach speed in a few ticks
         private static final float TURN = 20f;  // degrees/tick when turning to face travel
+        private static final double GRAVITY = 32, JUMP_SPEED = 8.4; // Minecraft's, in blocks/s
+        /** How fast feet rise onto a step up, blocks/s: stairs, not a jump. */
+        private static final double STEP_RATE = 8;
 
         public Vec feet;
         public Vec vel = Vec.ZERO;
         public float yaw, pitch;
         public boolean firstPerson = true;
         public float fov = 70f;
+        /** The blocks around the owner, for water and (with {@link #terrain}) the ground; may be null. */
+        public BlockQuery world;
+        /** Feet follow the ground (steps up, falls, jumps) instead of staying at one height. */
+        public boolean terrain;
         private Vec desiredVel = Vec.ZERO;
-        private boolean lookOverride, teleported, flying;
+        private boolean lookOverride, teleported, flying, swimming, jump;
         private Vec prevFeet;
 
         public Pilot(Vec feet, float yaw) {
@@ -76,6 +94,19 @@ public final class OwnerScript {
             lookOverride = false;
             teleported = false;
             flying = false;
+            swimming = false;
+            jump = false;
+        }
+
+        /** Swims at {@code velocity}: free in 3D, looking where it goes. */
+        void swim(Vec velocity) {
+            fly(velocity);
+            swimming = true;
+        }
+
+        /** Jumps this tick if standing on the ground. */
+        public void jump() {
+            jump = true;
         }
 
         /** Asks to move at {@code velocity} this tick (horizontal unless flying). */
@@ -102,21 +133,69 @@ public final class OwnerScript {
 
         public OwnerState endTick() {
             double dt = 0.05;
+            double vy = vel.y();
             Vec dv = desiredVel.sub(vel).clampLength(ACCEL * dt);
             vel = vel.add(dv);
             if (!flying) vel = new Vec(vel.x(), 0, vel.z());
             Vec before = feet;
             if (!teleported) feet = feet.add(vel.scale(dt));
+            if (terrain && !flying && !teleported && !followGround(vy, before.y(), dt)) {
+                // Walked into a wall (no headroom to step up): stay put, as a player would.
+                feet = before;
+                vel = Vec.ZERO;
+            }
             if (!lookOverride && vel.horizontalLength() > 0.5) {
                 float target = (float) vel.yawDeg();
                 float diff = wrap(target - yaw);
                 yaw = wrap(yaw + Math.max(-TURN, Math.min(TURN, diff)));
-                pitch += (0f - pitch) * 0.2f;
+                float targetPitch = swimming
+                        ? (float) -Math.toDegrees(Math.atan2(vel.y(), vel.horizontalLength())) * 0.6f : 0f;
+                pitch += (targetPitch - pitch) * 0.2f;
             }
             Vec realVel = teleported ? Vec.ZERO : feet.sub(before).scale(1 / dt);
             prevFeet = before;
-            return new OwnerState(feet.add(0, OwnerState.EYE_HEIGHT, 0), realVel, yaw, pitch,
-                    vel.horizontalLength() > (WALK + SPRINT) / 2, teleported, firstPerson, fov);
+            Vec eye = feet.add(0, OwnerState.EYE_HEIGHT, 0);
+            Vec chest = eye.add(0, -OwnerState.CHEST_DROP, 0);
+            boolean inWater = world != null && world.water(
+                    (int) Math.floor(chest.x()), (int) Math.floor(chest.y()), (int) Math.floor(chest.z()));
+            return new OwnerState(eye, realVel, yaw, pitch,
+                    vel.horizontalLength() > (WALK + SPRINT) / 2, teleported, firstPerson, fov, inWater);
+        }
+
+        /**
+         * Gravity, jumps, and stepping up onto the block ahead (one block at most). Returns false
+         * when the feet are against a wall: a step up without the two blocks of headroom a player needs.
+         */
+        private boolean followGround(double vy, double prevY, double dt) {
+            double ground = groundUnder(prevY);
+            int bx = (int) Math.floor(feet.x()), bz = (int) Math.floor(feet.z());
+            int gy = (int) Math.floor(Math.max(ground, prevY) + 1e-6);
+            if (world.solid(bx, gy, bz) || world.solid(bx, gy + 1, bz)) return false;
+            boolean onGround = prevY <= ground + 1e-6;
+            if (jump && onGround) vy = JUMP_SPEED;
+            vy -= GRAVITY * dt;
+            double y = prevY + vy * dt;
+            if (ground > prevY + 1e-6) {
+                // A step up: climb onto it rather than fall through it.
+                y = Math.min(ground, prevY + STEP_RATE * dt);
+                vy = 0;
+            } else if (y <= ground) {
+                y = ground;
+                vy = 0;
+            }
+            feet = new Vec(feet.x(), y, feet.z());
+            vel = new Vec(vel.x(), vy, vel.z());
+            return true;
+        }
+
+        /** The top of the highest block under the feet that is at most one block above them. */
+        private double groundUnder(double y) {
+            int bx = (int) Math.floor(feet.x()), bz = (int) Math.floor(feet.z());
+            int top = (int) Math.floor(y + 1e-6);
+            for (int by = top; by > top - 12; by--) {
+                if (world.solid(bx, by, bz)) return by + 1;
+            }
+            return top - 12;
         }
     }
 
@@ -144,6 +223,50 @@ public final class OwnerScript {
             if (d < 0.5) return true;
             p.fly(to.normalize().scale(Math.min(speed, d * 4)));
             return false;
+        };
+    }
+
+    /** Swims to a point in 3D (the owner in deep water). */
+    static Segment swimTo(double x, double y, double z, double speed) {
+        return p -> {
+            Vec to = new Vec(x, y, z).sub(p.feet);
+            double d = to.length();
+            if (d < 0.4) return true;
+            p.swim(to.normalize().scale(Math.min(speed, d * 4)));
+            return false;
+        };
+    }
+
+    /** Holds position in the air or water (a creative hover, treading water). */
+    static Segment hover(int ticks) {
+        int[] left = {ticks};
+        return p -> {
+            p.fly(Vec.ZERO);
+            if (left[0]-- <= 0) {
+                left[0] = ticks;
+                return true;
+            }
+            return false;
+        };
+    }
+
+    /** Walks to a point, jumping every {@code period} ticks on the way. */
+    static Segment walkJumping(double x, double z, double speed, int period) {
+        Segment walk = walkTo(x, z, speed);
+        int[] t = {0};
+        return p -> {
+            if (++t[0] % period == 0) p.jump();
+            boolean done = walk.tick(p);
+            if (done) t[0] = 0;
+            return done;
+        };
+    }
+
+    static Segment jumpOnce() {
+        return p -> {
+            p.move(Vec.ZERO);
+            p.jump();
+            return true;
         };
     }
 
@@ -309,6 +432,103 @@ public final class OwnerScript {
                 s.add(teleportTo(0.5, y, 0.5));
                 s.add(waitTicks(60));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s);
+            }
+            case "stairwell" -> {
+                // Up two flights of a switchback stairwell to the dead-end top landing, and back out.
+                s.add(waitTicks(40));
+                s.add(walkTo(1.5, 1.5, WALK));
+                s.add(walkTo(1.5, 11.5, WALK));
+                s.add(walkTo(5.5, 11.5, WALK));
+                s.add(walkTo(5.5, 1.5, WALK));
+                s.add(waitTicks(60));
+                s.add(lookBy(180, 0, 30));
+                s.add(walkTo(5.5, 11.5, WALK));
+                s.add(walkTo(1.5, 11.5, WALK));
+                s.add(walkTo(1.5, -4.5, WALK));
+                s.add(waitTicks(40));
+                return new OwnerScript(name, "stairwell", new Vec(1.5, y, -4.5), 0f, s).withTerrain();
+            }
+            case "low_ceiling" -> {
+                // Round a cellar with two blocks of headroom, past its pillars, stopping to look about.
+                double[][] pts = {{5.5, 0.5}, {5.5, 5.5}, {0.5, 6.5}, {-5.5, 5.5}, {-5.5, -0.5},
+                        {-6.5, -5.5}, {0.5, -6.5}, {5.5, -5.5}, {5.5, -1.5}, {0.5, 0.5}};
+                for (double[] q : pts) {
+                    s.add(walkTo(q[0], q[1], WALK));
+                    if (r.nextDouble() < 0.5) {
+                        s.add(lookBy((float) ((r.nextDouble() - 0.5) * 160), 0, 30));
+                        s.add(hold(40 + r.nextInt(60)));
+                    }
+                }
+                return new OwnerScript(name, "low_ceiling", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "pond_dive" -> {
+                // Into a pond, down to the bottom, a lap underwater, back up and out.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 5.5, WALK));
+                s.add(swimTo(0.5, 62.7, 9.5, 2.2));
+                s.add(swimTo(0.5, 59.3, 12.5, 2.2));
+                s.add(swimTo(-4.5, 59.5, 14.5, 2.2));
+                s.add(swimTo(4.5, 60.5, 14.5, 5.0));
+                s.add(hover(60));
+                s.add(swimTo(4.5, 59.5, 8.5, 2.2));
+                s.add(swimTo(0.5, 62.7, 9.5, 2.2));
+                s.add(hover(40));
+                s.add(swimTo(0.5, 63.0, 6.0, 2.2));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "pond", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "wading" -> {
+                // Off the bank onto the knee-deep shelf, along it, then out of our depth (swimming
+                // at the surface), and back onto dry land.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 5.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(4.5, 5.5, WALK * 0.6));
+                s.add(waitTicks(40));
+                s.add(swimTo(4.5, 62.7, 10.5, 2.0));
+                s.add(swimTo(-3.5, 62.7, 12.5, 2.0));
+                s.add(hover(60));
+                s.add(swimTo(0.5, 62.7, 7.5, 2.0));
+                s.add(swimTo(0.5, 63.0, 6.0, 2.0));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "pond", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "about_face" -> {
+                // Walking, then straight back the other way with no pause, over and over.
+                for (int i = 0; i < 12; i++) {
+                    double d = 4 + r.nextDouble() * 10;
+                    s.add(walkTo(0.5, i % 2 == 0 ? d : -d, r.nextDouble() < 0.3 ? SPRINT : WALK));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "jumping" -> {
+                s.add(walkJumping(0.5, 20.5, WALK, 12));
+                s.add(jumpOnce());
+                s.add(waitTicks(14));
+                s.add(jumpOnce());
+                s.add(waitTicks(30));
+                s.add(walkJumping(12.5, 12.5, SPRINT, 10));
+                s.add(walkJumping(0.5, 0.5, WALK, 16));
+                s.add(waitTicks(40));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "creative_flight" -> {
+                // Lift off, hover, drift about, one full-speed dash (faster than any fish), land.
+                s.add(waitTicks(40));
+                s.add(flyTo(0.5, y + 6, 0.5, 4));
+                s.add(hover(60));
+                s.add(flyTo(8.5, y + 7, 6.5, 5));
+                s.add(hover(40));
+                s.add(flyTo(8.5, y + 7, 46.5, 10.9));
+                s.add(hover(60));
+                s.add(flyTo(2.5, y + 3, 40.5, 5));
+                s.add(flyTo(2.5, y, 40.5, 3));
+                s.add(waitTicks(60));
+                s.add(teleportTo(0.5, y, 0.5));
+                s.add(waitTicks(40));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
             }
             default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + ")");
         }
